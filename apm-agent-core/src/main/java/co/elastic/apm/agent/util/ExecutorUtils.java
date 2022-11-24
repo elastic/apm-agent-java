@@ -123,10 +123,11 @@ public final class ExecutorUtils {
         public Thread newThread(Runnable r) {
             Thread thread = PrivilegedActionUtils.newThread(wrapForListenerInvocation(r, threadPurpose));
             thread.setDaemon(true);
-            thread.setName(ThreadUtils.addElasticApmThreadPrefix(threadPurpose));
+            String threadName = ThreadUtils.addElasticApmThreadPrefix(threadPurpose);
+            thread.setName(threadName);
             ClassLoader originalContextCL = PrivilegedActionUtils.getContextClassLoader(thread);
             PrivilegedActionUtils.setContextClassLoader(thread, PrivilegedActionUtils.getClassLoader(ExecutorUtils.class));
-            logThreadCreation(originalContextCL, threadPurpose);
+            logThreadCreation(originalContextCL, threadName);
             return thread;
         }
     }
