@@ -23,6 +23,7 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
@@ -129,7 +130,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         .withSubtype("jms")
                         .withAction("receive");
                 } else if (createPollingTransaction) {
-                    createdSpan = tracer.startRootTransaction(clazz.getClassLoader());
+                    createdSpan = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
                     if (createdSpan != null) {
                         ((Transaction) createdSpan).withType(MESSAGE_POLLING);
                     }

@@ -121,11 +121,11 @@ public final class ExecutorUtils {
 
         @Override
         public Thread newThread(Runnable r) {
-            Thread thread = new Thread(wrapForListenerInvocation(r, threadPurpose));
+            Thread thread = PrivilegedActionUtils.newThread(wrapForListenerInvocation(r, threadPurpose));
             thread.setDaemon(true);
             thread.setName(ThreadUtils.addElasticApmThreadPrefix(threadPurpose));
-            ClassLoader originalContextCL = thread.getContextClassLoader();
-            thread.setContextClassLoader(ExecutorUtils.class.getClassLoader());
+            ClassLoader originalContextCL = PrivilegedActionUtils.getContextClassLoader(thread);
+            PrivilegedActionUtils.setContextClassLoader(thread, PrivilegedActionUtils.getClassLoader(ExecutorUtils.class));
             logThreadCreation(originalContextCL, threadPurpose);
             return thread;
         }
@@ -152,12 +152,12 @@ public final class ExecutorUtils {
 
         @Override
         public Thread newThread(Runnable r) {
-            Thread thread = new Thread(wrapForListenerInvocation(r, threadPurpose));
+            Thread thread = PrivilegedActionUtils.newThread(wrapForListenerInvocation(r, threadPurpose));
             thread.setDaemon(true);
             String threadName = ThreadUtils.addElasticApmThreadPrefix(threadPurpose) + "-" + threadCounter.getAndIncrement();
             thread.setName(threadName);
-            ClassLoader originalContextCL = thread.getContextClassLoader();
-            thread.setContextClassLoader(ExecutorUtils.class.getClassLoader());
+            ClassLoader originalContextCL = PrivilegedActionUtils.getContextClassLoader(thread);
+            PrivilegedActionUtils.setContextClassLoader(thread, PrivilegedActionUtils.getClassLoader(ExecutorUtils.class));
             logThreadCreation(originalContextCL, threadName);
             return thread;
         }

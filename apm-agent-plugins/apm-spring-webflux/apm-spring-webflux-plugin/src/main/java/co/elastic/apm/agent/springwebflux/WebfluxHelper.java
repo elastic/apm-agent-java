@@ -32,6 +32,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import org.reactivestreams.Publisher;
 import org.springframework.http.HttpCookie;
@@ -95,7 +96,7 @@ public class WebfluxHelper {
         String path = exchange.getRequest().getPath().value();
         String userAgent = exchange.getRequest().getHeaders().getFirst("User-Agent");
         if (!fromServlet && !serverHelper.isRequestExcluded(path, userAgent)) {
-            transaction = tracer.startChildTransaction(exchange.getRequest().getHeaders(), HEADER_GETTER, ServerWebExchange.class.getClassLoader());
+            transaction = tracer.startChildTransaction(exchange.getRequest().getHeaders(), HEADER_GETTER, PrivilegedActionUtils.getClassLoader(ServerWebExchange.class));
         }
 
         if (transaction == null) {
