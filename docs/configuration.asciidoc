@@ -165,6 +165,9 @@ Click on a key to get more information.
 * <<config-metrics>>
 ** <<config-dedot-custom-metrics>>
 ** <<config-metric-set-limit>>
+** <<config-agent-reporter-health-metrics>>
+* <<config-mongodb>>
+** <<config-mongodb-capture-statement-commands>>
 * <<config-profiling>>
 ** <<config-profiling-inferred-spans-enabled>>
 ** <<config-profiling-inferred-spans-sampling-interval>>
@@ -196,6 +199,11 @@ Click on a key to get more information.
 
 [[config-circuit-breaker]]
 === Circuit-Breaker configuration options
+
+++++
+<titleabbrev>Circuit-Breaker</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-circuit-breaker-enabled]]
@@ -383,6 +391,11 @@ monitor to decide that the CPU stress has been relieved.
 
 [[config-core]]
 === Core configuration options
+
+++++
+<titleabbrev>Core</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-recording]]
@@ -1469,6 +1482,11 @@ Valid options: `continue`, `restart`, `restart_external`
 
 [[config-http]]
 === HTTP configuration options
+
+++++
+<titleabbrev>HTTP</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-capture-body-content-types]]
@@ -1625,6 +1643,11 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 [[config-huge-traces]]
 === Huge Traces configuration options
+
+++++
+<titleabbrev>Huge Traces</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-span-compression-enabled]]
@@ -1728,6 +1751,11 @@ Example: `0ms`.
 
 [[config-jax-rs]]
 === JAX-RS configuration options
+
+++++
+<titleabbrev>JAX-RS</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-enable-jaxrs-annotation-inheritance]]
@@ -1779,6 +1807,11 @@ If you want to use the URI template from the `@Path` annotation, set the value t
 
 [[config-jmx]]
 === JMX configuration options
+
+++++
+<titleabbrev>JMX</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-capture-jmx-metrics]]
@@ -1904,6 +1937,11 @@ The resulting documents in Elasticsearch look similar to this:
 
 [[config-logging]]
 === Logging configuration options
+
+++++
+<titleabbrev>Logging</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-log-level]]
@@ -2184,6 +2222,11 @@ Valid options: `PLAIN_TEXT`, `JSON`
 
 [[config-messaging]]
 === Messaging configuration options
+
+++++
+<titleabbrev>Messaging</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-ignore-message-queues]]
@@ -2217,6 +2260,11 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 [[config-metrics]]
 === Metrics configuration options
+
+++++
+<titleabbrev>Metrics</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-dedot-custom-metrics]]
@@ -2270,8 +2318,74 @@ But if you must, you can use this option to increase the limit.
 | `elastic.apm.metric_set_limit` | `metric_set_limit` | `ELASTIC_APM_METRIC_SET_LIMIT`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-agent-reporter-health-metrics]]
+==== `agent_reporter_health_metrics` (added[1.35.0] experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+Enables metrics which capture the health state of the agent's event reporting mechanism.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.agent_reporter_health_metrics` | `agent_reporter_health_metrics` | `ELASTIC_APM_AGENT_REPORTER_HEALTH_METRICS`
+|============
+
+[[config-mongodb]]
+=== MongoDB configuration options
+
+++++
+<titleabbrev>MongoDB</titleabbrev>
+++++
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-mongodb-capture-statement-commands]]
+==== `mongodb_capture_statement_commands`
+
+MongoDB command names for which the command document will be captured, limited to common read-only operations by default.
+Set to ` ""` (empty) to disable capture, and `"*"` to capture all (which is discouraged as it may lead to sensitive information capture).
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `find, aggregate, count, distinct, mapReduce` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.mongodb_capture_statement_commands` | `mongodb_capture_statement_commands` | `ELASTIC_APM_MONGODB_CAPTURE_STATEMENT_COMMANDS`
+|============
+
 [[config-profiling]]
 === Profiling configuration options
+
+++++
+<titleabbrev>Profiling</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-profiling-inferred-spans-enabled]]
@@ -2448,6 +2562,11 @@ If unset, the value of the `java.io.tmpdir` system property will be used.
 
 [[config-reporter]]
 === Reporter configuration options
+
+++++
+<titleabbrev>Reporter</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-secret-token]]
@@ -2822,6 +2941,11 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 [[config-serverless]]
 === Serverless configuration options
+
+++++
+<titleabbrev>Serverless</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-aws-lambda-handler]]
@@ -2873,6 +2997,11 @@ For serverless functions, APM data is written in a synchronous way, thus, blocki
 
 [[config-stacktrace]]
 === Stacktrace configuration options
+
+++++
+<titleabbrev>Stacktrace</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-application-packages]]
@@ -4099,6 +4228,32 @@ Example: `5ms`.
 # Default value: 1000
 #
 # metric_set_limit=1000
+
+# Enables metrics which capture the health state of the agent's event reporting mechanism.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# agent_reporter_health_metrics=false
+
+############################################
+# MongoDB                                  #
+############################################
+
+# MongoDB command names for which the command document will be captured, limited to common read-only operations by default.
+# Set to ` ""` (empty) to disable capture, and `"*"` to capture all (which is discouraged as it may lead to sensitive information capture).
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: find,aggregate,count,distinct,mapReduce
+#
+# mongodb_capture_statement_commands=find,aggregate,count,distinct,mapReduce
 
 ############################################
 # Profiling                                #

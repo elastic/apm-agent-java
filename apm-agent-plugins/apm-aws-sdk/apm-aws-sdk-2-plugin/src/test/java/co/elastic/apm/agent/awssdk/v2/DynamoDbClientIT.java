@@ -116,7 +116,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
                 .build()),
             dbAssert);
         Span span = reporter.getSpanByName("DynamoDB Query " + TABLE_NAME);
-        assertThat(span).hasDbStatement(KEY_CONDITION_EXPRESSION);
+        assertThat(span.getContext().getDb()).hasStatement(KEY_CONDITION_EXPRESSION);
 
         executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDB.deleteTable(DeleteTableRequest.builder().tableName(TABLE_NAME).build()), dbAssert);
 
@@ -168,7 +168,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
                 .build()),
             dbAssert);
         Span span = reporter.getSpanByName("DynamoDB Query " + TABLE_NAME);
-        assertThat(span).hasDbStatement(KEY_CONDITION_EXPRESSION);
+        assertThat(span.getContext().getDb()).hasStatement(KEY_CONDITION_EXPRESSION);
 
         executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDBAsync.deleteTable(DeleteTableRequest.builder().tableName(TABLE_NAME).build()),
             dbAssert);

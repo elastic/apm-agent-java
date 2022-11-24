@@ -20,15 +20,14 @@ package co.elastic.apm.agent.tomcatlogging.reformatting;
 
 import co.elastic.apm.agent.jul.reformatting.AbstractJulEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import org.apache.juli.FileHandler;
 
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.Handler;
@@ -82,9 +81,7 @@ public class TomcatReformattingHelper extends AbstractJulEcsReformattingHelper {
         Path destinationDir = Utils.computeLogReformattingDir(destinationPattern, getConfiguredReformattingDir());
 
         if (destinationDir != null) {
-            if (!Files.exists(destinationDir)) {
-                Files.createDirectories(destinationDir);
-            }
+            PrivilegedActionUtils.createDirectories(destinationDir);
             pattern = destinationDir.resolve(destinationPattern.getFileName()).toString();
         }
 

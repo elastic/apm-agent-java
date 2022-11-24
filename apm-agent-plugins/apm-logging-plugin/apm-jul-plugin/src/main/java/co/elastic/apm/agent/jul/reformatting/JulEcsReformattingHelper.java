@@ -19,11 +19,11 @@
 package co.elastic.apm.agent.jul.reformatting;
 
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
@@ -86,8 +86,8 @@ class JulEcsReformattingHelper extends AbstractJulEcsReformattingHelper {
         }
         Path logReformattingDir = Utils.computeLogReformattingDir(originalFilePath, configuredReformattingDir);
         if (logReformattingDir != null) {
-            if (createDirs && !Files.exists(logReformattingDir)) {
-                Files.createDirectories(logReformattingDir);
+            if (createDirs) {
+                PrivilegedActionUtils.createDirectories(logReformattingDir);
             }
             pattern = logReformattingDir.resolve(pattern).toString();
         }

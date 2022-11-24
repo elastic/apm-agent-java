@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 import javax.jms.Destination;
@@ -143,7 +144,7 @@ public class JmsInstrumentationHelper {
 
     @Nullable
     public Transaction startJmsTransaction(Message parentMessage, Class<?> instrumentedClass) {
-        Transaction transaction = tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), instrumentedClass.getClassLoader());
+        Transaction transaction = tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), PrivilegedActionUtils.getClassLoader(instrumentedClass));
         if (transaction != null) {
             transaction.setFrameworkName(FRAMEWORK_NAME);
         }
