@@ -21,6 +21,7 @@ package co.elastic.apm.agent.loginstr.error;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.sdk.state.CallDepth;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 
@@ -45,7 +46,7 @@ public class LoggerErrorHelper {
     public Object enter(@Nullable Throwable exception, Class<?> originClass) {
         if (!callDepth.isNestedCallAndIncrement()) {
             if (exception != null) {
-                ErrorCapture error = tracer.captureException(exception, tracer.getActive(), originClass.getClassLoader());
+                ErrorCapture error = tracer.captureException(exception, tracer.getActive(), PrivilegedActionUtils.getClassLoader(originClass));
                 if (error != null) {
                     error.activate();
                 }
