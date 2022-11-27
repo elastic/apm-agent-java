@@ -95,6 +95,8 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         try {
             logFile = new File(logFile).getAbsolutePath();
             final File logDir = new File(logFile).getParentFile();
+
+            // already privileged, thus will work as expected when security manager is enabled and agent permission set
             if (!logDir.exists()) {
                 logDir.mkdirs();
             }
@@ -103,7 +105,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
             canWrite = false;
         }
 
-        if(!canWrite){
+        if (!canWrite) {
             System.err.println("[elastic-apm-agent] WARN Log file " + logFile + " is not writable. Falling back to System.out.");
             return SYSTEM_OUT;
         }
@@ -174,8 +176,8 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
     private LayoutComponentBuilder createLayout(ConfigurationBuilder<BuiltConfiguration> builder, LogFormat logFormat) {
         if (logFormat == LogFormat.PLAIN_TEXT) {
             return builder
-                    .newLayout("PatternLayout")
-                    .addAttribute("pattern", "%d [%thread] %-5level %logger{36} - %msg{nolookups}%n");
+                .newLayout("PatternLayout")
+                .addAttribute("pattern", "%d [%thread] %-5level %logger{36} - %msg{nolookups}%n");
         } else {
             String serviceName = getValue(CoreConfiguration.SERVICE_NAME, sources, ServiceInfo.autoDetected().getServiceName());
             return builder.newLayout("EcsLayout")

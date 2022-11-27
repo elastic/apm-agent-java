@@ -22,6 +22,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.LoggerUtils;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -74,7 +75,7 @@ public class SpringKafkaBatchListenerInstrumentation extends BaseKafkaInstrument
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This Object thiz) {
-            Transaction transaction = tracer.startRootTransaction(thiz.getClass().getClassLoader());
+            Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(thiz.getClass()));
             if (transaction != null) {
                 transaction
                     .withType("messaging")

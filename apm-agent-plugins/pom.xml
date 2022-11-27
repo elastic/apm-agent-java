@@ -71,6 +71,7 @@
         <module>apm-jakarta-websocket-plugin</module>
         <module>apm-ecs-logging-plugin</module>
         <module>apm-aws-sdk</module>
+        <module>apm-finagle-httpclient-plugin</module>
     </modules>
 
     <dependencies>
