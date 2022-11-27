@@ -174,12 +174,14 @@ grant {
     // Precompiled JSPs need access to these packages.
     permission java.lang.RuntimePermission "accessClassInPackage.org.apache.jasper.el";
     permission java.lang.RuntimePermission "accessClassInPackage.org.apache.jasper.runtime";
-    permission java.lang.RuntimePermission
-     "accessClassInPackage.org.apache.jasper.runtime.*";
+    permission java.lang.RuntimePermission "accessClassInPackage.org.apache.jasper.runtime.*";
 
     // Applications using WebSocket need to be able to access these packages
     permission java.lang.RuntimePermission "accessClassInPackage.org.apache.tomcat.websocket";
     permission java.lang.RuntimePermission "accessClassInPackage.org.apache.tomcat.websocket.server";
+
+    // Our test application need to be able to access these packages
+    permission java.lang.RuntimePermission "accessClassInPackage.org.apache.catalina.core";
 };
 
 // The Manager application needs access to the following packages to support the
