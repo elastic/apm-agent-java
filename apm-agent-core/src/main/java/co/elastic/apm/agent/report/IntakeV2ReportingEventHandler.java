@@ -42,7 +42,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     @Nullable
     private Runnable timeoutTask;
     private final AtomicLong processed = new AtomicLong();
-    private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
+    private static final ReportingLogger logger = new ReportingLogger(LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class));
 
     public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
                                          PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
@@ -58,10 +58,12 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
     @Override
     public void onEvent(ReportingEvent event, long sequence, boolean endOfBatch) throws Exception {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Receiving {} event (sequence {})", event.getType(), sequence);
-        }
+        // when reporting log events, we have to mute logger to avoid creating exponentially more log events
         try {
+            logger.setMuted(event.isLogEvent());
+            if (logger.isDebugEnabled()) {
+                logger.debug("Receiving {} event (sequence {})", event.getType(), sequence);
+            }
             if (!shutDown) {
                 if (connection != null && isApiRequestTimeExpired()) {
                     logger.debug("Request flush because the request timeout occurred");
@@ -73,6 +75,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             processed.set(sequence);
             event.end();
             event.resetState();
+            logger.setMuted(false);
         }
     }
 

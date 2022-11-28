@@ -58,6 +58,9 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
     private final List<org.stagemonitor.configuration.source.ConfigurationSource> sources;
     private final String ephemeralId;
 
+    @Nullable
+    private Configuration config;
+
     public Log4j2ConfigurationFactory(List<org.stagemonitor.configuration.source.ConfigurationSource> sources, String ephemeralId) {
         this.sources = sources;
         this.ephemeralId = ephemeralId;
@@ -126,6 +129,10 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
     }
 
     Configuration getConfiguration() {
+        if(config != null){
+            return config;
+        }
+
         ConfigurationBuilder<BuiltConfiguration> builder = newConfigurationBuilder();
         builder.setStatusLevel(Level.ERROR)
             .setConfigurationName("ElasticAPM")
@@ -138,7 +145,9 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
             rootLogger.add(builder.newAppenderRef(appender.getName()));
         }
         builder.add(rootLogger);
-        return builder.build();
+        config = builder.build();
+
+        return config;
     }
 
     private Level getLogLevel() {
@@ -155,6 +164,8 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         } else {
             appenders.add(createFileAppender(builder, logFile, createLayout(builder, getFileLogFormat())));
         }
+        appenders.add(createStreamingAppender(builder));
+
         for (AppenderComponentBuilder appender : appenders) {
             builder.add(appender);
         }
@@ -206,5 +217,10 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
             // This is not the case, when apm.log2 is fully read, the reading will continue from apm.log.
             // That is because we don't want to require the reader having to know the file name pattern of the rotated file.
             .addComponent(builder.newComponent("DefaultRolloverStrategy").addAttribute("max", 1));
+    }
+
+    private AppenderComponentBuilder createStreamingAppender(ConfigurationBuilder<BuiltConfiguration> builder) {
+        return builder.newAppender("apm-server", "ApmServer")
+            .add(createLayout(builder, LogFormat.JSON));
     }
 }

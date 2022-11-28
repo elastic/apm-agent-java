@@ -279,7 +279,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
      * whether the current {@code append()} execution should result with an appended shaded event based on the configuration
      * AND whether this is the outermost execution in nested {@code append()} calls.
      *
-     * @param logEvent
+     * @param logEvent log event
      * @param appender the instrumented appender
      */
     public void onAppendExit(L logEvent, A appender) {
@@ -294,7 +294,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
                 Object mappedAppender = originalAppender2ecsAppender.get(appender);
                 invokeAppender(logEvent, mappedAppender);
             }
-            if (loggingConfiguration.isShipLogs()) {
+            if (loggingConfiguration.getStreamLogs()) {
                 Object mappedAppender = originalAppender2shipperAppender.get(appender);
                 if (mappedAppender == null) {
                     mappedAppender = createAndMapShipperAppenderFor(appender);

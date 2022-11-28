@@ -29,6 +29,7 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.core.config.LoggerConfig;
+import org.apache.logging.log4j.core.config.plugins.util.PluginManager;
 import org.apache.logging.log4j.core.impl.Log4jContextFactory;
 import org.apache.logging.log4j.core.selector.ContextSelector;
 import org.apache.logging.log4j.spi.LoggerContextFactory;
@@ -256,16 +257,13 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .description("Defines the log format when logging to a file.\n" +
             "\n" +
             "When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]\n" +
-            "where each log event is serialized as a single line.\n"
-            //+ "\n" +
-            //"If <<config-ship-agent-logs,`ship_agent_logs`>> is enabled,\n" +
-            //"the value has to be `JSON`."
+            "where each log event is serialized as a single line."
         )
         .tags("added[1.17.0]")
         .buildWithDefault(LogFormat.PLAIN_TEXT);
 
-    private final ConfigurationOption<Boolean> shipLogs = ConfigurationOption.booleanOption()
-        .key("ship_logs")
+    private final ConfigurationOption<Boolean> streamLogs = ConfigurationOption.booleanOption()
+        .key("log_streaming") // TODO : set the right configuration name
         .configurationCategory(LOGGING_CATEGORY)
         .description("Sends agent and application logs directly to APM Server.\n" +
             "\n" +
@@ -298,6 +296,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             // example through org.apache.logging.log4j.core.config.Configurator, means that loggers in non-initialized
             // contexts will either get the app-configuration for log4j, if such exists, or none.
             ConfigurationFactory.setConfigurationFactory(new Log4j2ConfigurationFactory(sources, ephemeralId));
+
+            // required to add the apm server appender to plugins
+            PluginManager.addPackage(ApmServerLogAppender.class.getPackage().getName());
+
             LoggerFactory.initialize(new Log4jLoggerFactoryBridge());
         } catch (Throwable throwable) {
             System.err.println("[elastic-apm-agent] ERROR Failure during initialization of agent's log4j system: " + throwable.getMessage());
@@ -383,7 +385,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         return logFormatFile.get();
     }
 
-    public boolean isShipLogs() {
-        return shipLogs.get();
+    public boolean getStreamLogs() {
+        return streamLogs.get();
     }
 }

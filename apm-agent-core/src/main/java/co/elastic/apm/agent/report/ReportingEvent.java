@@ -132,6 +132,11 @@ public class ReportingEvent {
             return null;
         }
     }
+
+    public boolean isLogEvent() {
+        return type != null && (type == BYTES_LOG || type == STRING_LOG);
+    }
+
     public void shutdownEvent() {
         this.type = SHUTDOWN;
     }
