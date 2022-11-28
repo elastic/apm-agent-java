@@ -180,8 +180,10 @@ grant {
     permission java.lang.RuntimePermission "accessClassInPackage.org.apache.tomcat.websocket";
     permission java.lang.RuntimePermission "accessClassInPackage.org.apache.tomcat.websocket.server";
 
-    // Our test application need to be able to access these packages
+    // Our test application needs these permissions
     permission java.lang.RuntimePermission "accessClassInPackage.org.apache.catalina.core";
+    permission java.net.SocketPermission "*:8080", "connect,resolve";
+    permission java.io.FilePermission "${java.home}${file.separator}bin${file.separator}java", "execute";
 };
 
 // The Manager application needs access to the following packages to support the

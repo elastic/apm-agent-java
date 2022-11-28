@@ -75,6 +75,8 @@ import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.nio.file.Paths;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -753,46 +755,62 @@ public class ElasticApmAgent {
      * @param classToInstrument      the class which should be instrumented
      * @param instrumentationClasses the instrumentation which should be applied to the class to instrument.
      */
-    public static void ensureInstrumented(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses) {
+    public static void ensureInstrumented(final Class<?> classToInstrument,
+                                          final Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses) {
         Set<Collection<Class<? extends ElasticApmInstrumentation>>> appliedInstrumentations = getOrCreate(classToInstrument);
 
         if (!appliedInstrumentations.contains(instrumentationClasses)) {
             synchronized (ElasticApmAgent.class) {
-                ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+                final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
                 if (instrumentation == null) {
                     throw new IllegalStateException("Agent is not initialized");
                 }
 
-                appliedInstrumentations = dynamicallyInstrumentedClasses.get(classToInstrument);
-                if (!appliedInstrumentations.contains(instrumentationClasses)) {
-                    appliedInstrumentations = new HashSet<>(appliedInstrumentations);
-                    appliedInstrumentations.add(instrumentationClasses);
-                    // immutability guards against race conditions (for example concurrent rehash due to add and lookup)
-                    appliedInstrumentations = Collections.unmodifiableSet(appliedInstrumentations);
-                    dynamicallyInstrumentedClasses.put(classToInstrument, appliedInstrumentations);
-
-                    CoreConfiguration config = tracer.getConfig(CoreConfiguration.class);
-                    final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
-                    final ByteBuddy byteBuddy = new ByteBuddy()
-                        .with(TypeValidation.of(logger.isDebugEnabled()))
-                        .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
-                    AgentBuilder agentBuilder = getAgentBuilder(
-                        byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false, false
-                    );
-                    for (Class<? extends ElasticApmInstrumentation> instrumentationClass : instrumentationClasses) {
-                        ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
-                        mapInstrumentationCL2adviceClassName(
-                            apmInstrumentation.getAdviceClassName(),
-                            PrivilegedActionUtils.getClassLoader(instrumentationClass));
-                        ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());
-                        if (typeMatcher != null && isIncluded(apmInstrumentation, config)) {
-                            agentBuilder = applyAdvice(tracer, agentBuilder, apmInstrumentation, typeMatcher.and(apmInstrumentation.getTypeMatcher()));
-                        }
+                final Set<Collection<Class<? extends ElasticApmInstrumentation>>> updatedAppliedInstrumentations =
+                    dynamicallyInstrumentedClasses.get(classToInstrument);
+                if (!updatedAppliedInstrumentations.contains(instrumentationClasses)) {
+                    if (System.getSecurityManager() == null) {
+                        applyInstrumentation(classToInstrument, instrumentationClasses, updatedAppliedInstrumentations, tracer);
+                    } else {
+                        AccessController.doPrivileged(new PrivilegedAction<Object>() {
+                            @Override
+                            public Object run() {
+                                applyInstrumentation(classToInstrument, instrumentationClasses, updatedAppliedInstrumentations, tracer);
+                                return null;
+                            }
+                        });
                     }
-                    dynamicClassFileTransformers.add(agentBuilder.installOn(instrumentation));
                 }
             }
         }
+    }
+
+    private static void applyInstrumentation(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses, Set<Collection<Class<? extends ElasticApmInstrumentation>>> appliedInstrumentations, ElasticApmTracer tracer) {
+        appliedInstrumentations = new HashSet<>(appliedInstrumentations);
+        appliedInstrumentations.add(instrumentationClasses);
+        // immutability guards against race conditions (for example concurrent rehash due to add and lookup)
+        appliedInstrumentations = Collections.unmodifiableSet(appliedInstrumentations);
+        dynamicallyInstrumentedClasses.put(classToInstrument, appliedInstrumentations);
+
+        CoreConfiguration config = tracer.getConfig(CoreConfiguration.class);
+        final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
+        final ByteBuddy byteBuddy = new ByteBuddy()
+            .with(TypeValidation.of(logger.isDebugEnabled()))
+            .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
+        AgentBuilder agentBuilder = getAgentBuilder(
+            byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false, false
+        );
+        for (Class<? extends ElasticApmInstrumentation> instrumentationClass : instrumentationClasses) {
+            ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
+            mapInstrumentationCL2adviceClassName(
+                apmInstrumentation.getAdviceClassName(),
+                PrivilegedActionUtils.getClassLoader(instrumentationClass));
+            ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());
+            if (typeMatcher != null && isIncluded(apmInstrumentation, config)) {
+                agentBuilder = applyAdvice(tracer, agentBuilder, apmInstrumentation, typeMatcher.and(apmInstrumentation.getTypeMatcher()));
+            }
+        }
+        dynamicClassFileTransformers.add(agentBuilder.installOn(instrumentation));
     }
 
     public static void mapInstrumentationCL2adviceClassName(String adviceClassName, ClassLoader instrumentationClassLoader) {
