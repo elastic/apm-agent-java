@@ -18,7 +18,8 @@
  */
 package co.elastic.apm.servlet;
 
-import co.elastic.apm.servlet.tests.ServletApiTestApp;
+import co.elastic.apm.servlet.tests.JakartaExternalPluginTestApp;
+import co.elastic.apm.servlet.tests.JakartaeeServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -43,7 +44,10 @@ public class JakartaeeTomcatWithSecurityManagerIT extends AbstractTomcatIT {
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return List.of(ServletApiTestApp.class);
+        return List.of(
+            JakartaeeServletApiTestApp.class,
+            JakartaExternalPluginTestApp.class
+        );
     }
 
     @Override

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.servlet.tests.JavaxExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
@@ -45,7 +46,10 @@ public class TomcatWithSecurityManagerIT extends AbstractTomcatIT {
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return List.of(ServletApiTestApp.class);
+        return List.of(
+            ServletApiTestApp.class,
+            JavaxExternalPluginTestApp.class
+        );
     }
 
     @Override
