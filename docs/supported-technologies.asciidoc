@@ -374,6 +374,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |
 |1.33.0 (experimental), 1.34.0 (GA)
 
+|Finagle Http Client
+| 22+
+|
+| 1.35.0
+
 |===
 
 
