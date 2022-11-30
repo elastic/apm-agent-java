@@ -146,7 +146,6 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         }
         builder.add(rootLogger);
         config = builder.build();
-
         return config;
     }
 
@@ -190,7 +189,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         } else {
             String serviceName = getValue(CoreConfiguration.SERVICE_NAME, sources, ServiceInfo.autoDetected().getServiceName());
             return builder.newLayout("EcsLayout")
-                .addAttribute("eventDataset", serviceName + ".apm");
+                .addAttribute("eventDataset", serviceName + ".apm-agent");
         }
     }
 

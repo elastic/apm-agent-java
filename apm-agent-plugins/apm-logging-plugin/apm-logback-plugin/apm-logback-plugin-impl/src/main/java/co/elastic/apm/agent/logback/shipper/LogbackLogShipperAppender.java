@@ -34,6 +34,6 @@ public class LogbackLogShipperAppender extends UnsynchronizedAppenderBase<ILoggi
 
     @Override
     protected void append(ILoggingEvent eventObject) {
-        reporter.shipLog(formatter.encode(eventObject));
+        reporter.reportLog(formatter.encode(eventObject));
     }
 }

@@ -35,7 +35,7 @@ public class JulLogShipperHandler extends Handler {
 
     @Override
     public void publish(LogRecord record) {
-        reporter.shipLog(formatter.format(record));
+        reporter.reportLog(formatter.format(record));
     }
 
     @Override

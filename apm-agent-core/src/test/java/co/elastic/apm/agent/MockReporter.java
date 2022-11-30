@@ -470,12 +470,17 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public void shipLog(String log) {
+    public void reportLog(String log) {
         this.logs.add(log);
     }
 
     @Override
-    public void shipLog(byte[] log) {
+    public void reportLog(byte[] log) {
+        this.logs.add(new String(log, StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public void reportAgentLog(byte[] log) {
         this.logs.add(new String(log, StandardCharsets.UTF_8));
     }
 

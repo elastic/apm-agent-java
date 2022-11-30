@@ -20,8 +20,6 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.ExecutorUtils;
 
 import javax.annotation.Nullable;
@@ -42,7 +40,6 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     @Nullable
     private Runnable timeoutTask;
     private final AtomicLong processed = new AtomicLong();
-    private static final ReportingLogger logger = new ReportingLogger(LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class));
 
     public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
                                          PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
@@ -60,7 +57,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     public void onEvent(ReportingEvent event, long sequence, boolean endOfBatch) throws Exception {
         // when reporting log events, we have to mute logger to avoid creating exponentially more log events
         try {
-            logger.setMuted(event.isLogEvent());
+            logger.setMuted(event.isAgentLog());
             if (logger.isDebugEnabled()) {
                 logger.debug("Receiving {} event (sequence {})", event.getType(), sequence);
             }
@@ -225,4 +222,5 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             }
         }
     }
+
 }

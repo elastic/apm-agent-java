@@ -36,7 +36,7 @@ public class Log4j2LogShipperAppender extends AbstractAppender {
 
     @Override
     public void append(LogEvent event) {
-        reporter.shipLog(ecsLayout.toSerializable(event));
+        reporter.reportLog(ecsLayout.toSerializable(event));
     }
 
 }

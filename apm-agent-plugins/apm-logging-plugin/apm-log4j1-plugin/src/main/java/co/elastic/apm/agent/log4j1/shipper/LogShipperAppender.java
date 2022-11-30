@@ -39,7 +39,7 @@ public class LogShipperAppender extends AppenderSkeleton {
 
     @Override
     protected void append(LoggingEvent event) {
-        reporter.shipLog(formatter.format(event));
+        reporter.reportLog(formatter.format(event));
     }
 
     @Override

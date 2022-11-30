@@ -46,9 +46,13 @@ public class ReportingEvent {
     @Nullable
     private Thread unparkAfterProcessed;
 
+    private boolean agentLog;
+
     public void resetState() {
         this.event = null;
         this.unparkAfterProcessed = null;
+        this.type = null;
+        this.agentLog = false;
     }
 
     @Nullable
@@ -119,9 +123,10 @@ public class ReportingEvent {
             return null;
         }
     }
-    public void setBytesLog(byte[] bytes) {
+    public void setBytesLog(byte[] bytes, boolean agentLog) {
         this.event = bytes;
         this.type = BYTES_LOG;
+        this.agentLog = agentLog;
     }
 
     @Nullable
@@ -133,8 +138,10 @@ public class ReportingEvent {
         }
     }
 
-    public boolean isLogEvent() {
-        return type != null && (type == BYTES_LOG || type == STRING_LOG);
+    public boolean isAgentLog() {
+        return type != null
+            && (type == BYTES_LOG || type == STRING_LOG)
+            && agentLog;
     }
 
     public void shutdownEvent() {

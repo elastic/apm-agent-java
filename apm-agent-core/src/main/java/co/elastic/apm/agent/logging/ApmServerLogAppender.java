@@ -21,8 +21,10 @@ package co.elastic.apm.agent.logging;
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.logging.log4j2.EcsLayout;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.Core;
 import org.apache.logging.log4j.core.Layout;
@@ -32,6 +34,8 @@ import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginElement;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
+import org.apache.logging.log4j.core.impl.MutableLogEvent;
+import org.apache.logging.log4j.message.SimpleMessage;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -67,6 +71,10 @@ public class ApmServerLogAppender extends AbstractAppender {
     public static ApmServerLogAppender createAppender(@PluginAttribute("name") String name,
                                                       @PluginElement("Layout") Layout<?> layout) {
 
+        if(!(layout instanceof EcsLayout)){
+            throw new IllegalArgumentException("invalid layout "+ layout);
+        }
+
         if (INSTANCE == null) {
             INSTANCE = new ApmServerLogAppender(name, layout);
         }
@@ -76,7 +84,7 @@ public class ApmServerLogAppender extends AbstractAppender {
 
     @Override
     public void append(LogEvent event) {
-        if (!isStreamingInitialized()) {
+        if (!isAgentInitialized()) {
             synchronized (buffer) {
                 if (buffer.size() < MAX_BUFFER_SIZE) {
                     buffer.add(event.toImmutable());
@@ -101,7 +109,7 @@ public class ApmServerLogAppender extends AbstractAppender {
     }
 
     private void initStreaming(LoggingConfiguration config, Reporter reporter) {
-        if (isStreamingInitialized()) {
+        if (isAgentInitialized()) {
             throw new IllegalStateException("streaming already initialized");
         }
 
@@ -118,10 +126,21 @@ public class ApmServerLogAppender extends AbstractAppender {
 
 
     private void sendLogEvent(LogEvent event) {
-        Objects.requireNonNull(reporter).shipLog(getLayout().toByteArray(event));
+        // When trying to debug wire protocol, adding the whole HTTP request body nested in a log message is not possible
+        // otherwise it makes the agent recursively nest payload data until the request size limit is reached.
+        //
+        // We have to filter this exception here to still provide the ability to log to filesystem if needed.
+        if (event.getLevel().intLevel() >= Level.TRACE.intLevel() && event.getLoggerName().equals(DslJsonSerializer.class.getName())) {
+            MutableLogEvent newEvent = new MutableLogEvent();
+            newEvent.initFrom(event);
+            newEvent.setMessage(new SimpleMessage("wire protocol logging only available when logging to filesystem"));
+            event = newEvent;
+        }
+
+        Objects.requireNonNull(reporter).reportAgentLog(getLayout().toByteArray(event));
     }
 
-    private boolean isStreamingInitialized() {
+    private boolean isAgentInitialized() {
         return this.config != null && this.reporter != null;
     }
 }

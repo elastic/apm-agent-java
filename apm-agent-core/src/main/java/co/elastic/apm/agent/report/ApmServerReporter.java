@@ -111,7 +111,13 @@ public class ApmServerReporter implements Reporter {
     private static final EventTranslatorOneArg<ReportingEvent, byte[]> LOG_BYTES_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, byte[]>() {
         @Override
         public void translateTo(ReportingEvent event, long sequence, byte[] bytes) {
-            event.setBytesLog(bytes);
+            event.setBytesLog(bytes, false);
+        }
+    };
+    private static final EventTranslatorOneArg<ReportingEvent, byte[]> AGENT_LOG_BYTES_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, byte[]>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence, byte[] bytes) {
+            event.setBytesLog(bytes, true);
         }
     };
 
@@ -275,22 +281,31 @@ public class ApmServerReporter implements Reporter {
     }
 
     @Override
-    public void shipLog(String string) {
-        if (string.isEmpty()) {
+    public void reportLog(String log) {
+        if (log.isEmpty()) {
             return;
         }
-        tryAddEventToRingBuffer(string, LOG_STRING_EVENT_TRANSLATOR);
+        tryAddEventToRingBuffer(log, LOG_STRING_EVENT_TRANSLATOR);
         if (syncReport) {
             flush();
         }
     }
 
     @Override
-    public void shipLog(byte[] bytes) {
-        if (bytes.length == 0) {
+    public void reportLog(byte[] log) {
+        reportLogBytes(log, LOG_BYTES_EVENT_TRANSLATOR);
+    }
+
+    @Override
+    public void reportAgentLog(byte[] bytes) {
+        reportLogBytes(bytes, AGENT_LOG_BYTES_EVENT_TRANSLATOR);
+    }
+
+    private void reportLogBytes(byte[] log, EventTranslatorOneArg<ReportingEvent, byte[]> translator) {
+        if (log.length == 0) {
             return;
         }
-        tryAddEventToRingBuffer(bytes, LOG_BYTES_EVENT_TRANSLATOR);
+        tryAddEventToRingBuffer(log, translator);
         if (syncReport) {
             flush();
         }
@@ -301,7 +316,7 @@ public class ApmServerReporter implements Reporter {
             boolean queueFull = !disruptor.getRingBuffer().tryPublishEvent(eventTranslator, event);
             if (queueFull) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Could not add {} {} to ring buffer as no slots are available", event.getClass().getSimpleName(), event);
+                    logger.debug("Could not add {} to ring buffer as no slots are available", event.getClass().getSimpleName());
                 }
                 dropped.incrementAndGet();
                 return false;
