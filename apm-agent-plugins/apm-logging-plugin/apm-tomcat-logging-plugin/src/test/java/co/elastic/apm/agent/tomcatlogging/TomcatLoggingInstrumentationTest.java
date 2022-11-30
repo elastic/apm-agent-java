@@ -59,7 +59,7 @@ public class TomcatLoggingInstrumentationTest extends JulInstrumentationTest {
         protected void resetRemovedHandler() {
             if (Arrays.stream(julLogger.getHandlers()).noneMatch(handler -> handler instanceof FileHandler)) {
                 try {
-                    FileHandler fileHandler = new FileHandler("target/tomcat", "catalina.", ".log");
+                    FileHandler fileHandler = new FileHandler();
                     fileHandler.setFormatter(new SimpleFormatter());
                     julLogger.addHandler(fileHandler);
                 } catch (Exception e) {
