@@ -49,13 +49,14 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
     private static final String ALLOCATION_METRIC = "agent.background.memory.allocation.bytes";
     private static final String THREAD_COUNT_METRIC = "agent.background.threads.count";
 
+    private static final long NO_VALUE = -1L;
+
     private boolean cpuOverheadMetricEnabled;
     private boolean cpuUsageMetricEnabled;
     private boolean allocationMetricEnabled;
     private boolean threadCountMetricEnabled;
 
-    @Nullable
-    private Long lastReportedProcessCpuTime;
+    private long lastReportedProcessCpuTime = NO_VALUE;
 
     /**
      * Contains all started, running and stopped threads since the last metrics reporting.
@@ -65,15 +66,11 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
     private static class ThreadInfo {
         final String threadPurpose;
 
-        @Nullable
-        volatile Long cpuTime;
-        @Nullable
-        volatile Long allocationBytes;
+        volatile long cpuTime = NO_VALUE;
+        volatile long allocationBytes = NO_VALUE;
 
-        @Nullable
-        volatile Long deathCpuTime;
-        @Nullable
-        volatile Long deathAllocationBytes;
+        volatile long deathCpuTime = NO_VALUE;
+        volatile long deathAllocationBytes = NO_VALUE;
 
         private ThreadInfo(String threadPurpose) {
             this.threadPurpose = threadPurpose;
@@ -139,7 +136,7 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
 
         if (cpuOverheadMetricEnabled || cpuUsageMetricEnabled) {
             //ensure that process-cpu-time is supported, as it is required
-            boolean cpuTimeMeasurementEnabled = getProcessCpuTime() != null;
+            boolean cpuTimeMeasurementEnabled = getProcessCpuTime() != NO_VALUE;
             if (!cpuTimeMeasurementEnabled) {
                 logger.warn("Agent cpu overhead metrics can not be enabled: OperatingSystemMXBean.getProcessCpuTime() is not supported");
             }
@@ -273,8 +270,8 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
             ThreadInfo info = threadInfo.getValue();
             String threadPurpose = info.threadPurpose;
 
-            Long allocationDelta = updateAllocationStat(thread, info);
-            if (allocationDelta != null && allocationDelta > 0) {
+            long allocationDelta = updateAllocationStat(thread, info);
+            if (allocationDelta > 0) {
                 addToCounter(allocatedBytesByPurpose, threadPurpose, allocationDelta);
             }
         }
@@ -300,18 +297,18 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
             ThreadInfo info = threadInfo.getValue();
             String threadPurpose = info.threadPurpose;
 
-            Long cpuTimeDelta = updateCpuTimeStat(thread, info);
-            if (cpuTimeDelta != null && cpuTimeDelta > 0) {
+            long cpuTimeDelta = updateCpuTimeStat(thread, info);
+            if (cpuTimeDelta > 0) {
                 addToCounter(cpuTimeIncreaseByPurpose, threadPurpose, cpuTimeDelta);
             }
         }
 
-        Long processCpuTimeDelta = getProcessCpuTimeDelta();
-        if (processCpuTimeDelta == null) {
+        long processCpuTimeDelta = getProcessCpuTimeDelta();
+        if (processCpuTimeDelta == NO_VALUE) {
             return; //nothing we can do without the process-cpu-time
         }
 
-        Double processCpuUsage = getProcessCpuLoad();
+        double processCpuUsage = getProcessCpuLoad();
 
         for (Map.Entry<String, AtomicLong> entry : cpuTimeIncreaseByPurpose.entrySet()) {
             String purpose = entry.getKey();
@@ -321,7 +318,7 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
             if (cpuOverheadMetricEnabled) {
                 collector.addMetricValue(CPU_OVERHEAD_METRIC, labels, cpuOverhead);
             }
-            if (cpuUsageMetricEnabled && processCpuUsage != null) {
+            if (cpuUsageMetricEnabled && processCpuUsage != NO_VALUE) {
                 collector.addMetricValue(CPU_USAGE_METRIC, labels, cpuOverhead * processCpuUsage);
             }
         }
@@ -336,22 +333,21 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
         }
     }
 
-    @Nullable
-    private Long updateCpuTimeStat(Thread thread, ThreadInfo info) {
+    private long updateCpuTimeStat(Thread thread, ThreadInfo info) {
         if (!cpuUsageMetricEnabled && !cpuOverheadMetricEnabled) {
-            return null;
+            return NO_VALUE;
         }
 
-        Long currentCpuTime;
-        if (info.deathCpuTime != null) {
+        long currentCpuTime;
+        if (info.deathCpuTime != NO_VALUE) {
             currentCpuTime = info.deathCpuTime;
         } else {
             currentCpuTime = getThreadCpuTime(thread);
         }
 
-        Long delta = null;
-        Long lastCpuTime = info.cpuTime;
-        if (currentCpuTime != null && lastCpuTime != null) {
+        long delta = NO_VALUE;
+        long lastCpuTime = info.cpuTime;
+        if (currentCpuTime != NO_VALUE && lastCpuTime != NO_VALUE) {
             delta = currentCpuTime - lastCpuTime;
         }
         info.cpuTime = currentCpuTime;
@@ -359,23 +355,21 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
         return delta;
     }
 
-
-    @Nullable
-    private Long updateAllocationStat(Thread thread, ThreadInfo info) {
+    private long updateAllocationStat(Thread thread, ThreadInfo info) {
         if (!allocationMetricEnabled) {
-            return null;
+            return NO_VALUE;
         }
-        Long currentAllocation;
-        if (info.deathAllocationBytes != null) {
+        long currentAllocation;
+        if (info.deathAllocationBytes != NO_VALUE) {
             currentAllocation = info.deathAllocationBytes;
         } else {
             currentAllocation = getThreadAllocatedBytes(thread);
         }
 
-        Long delta = null;
+        long delta = NO_VALUE;
 
-        Long lastAllocation = info.allocationBytes;
-        if (currentAllocation != null && lastAllocation != null) {
+        long lastAllocation = info.allocationBytes;
+        if (currentAllocation != NO_VALUE && lastAllocation != NO_VALUE) {
             delta = currentAllocation - lastAllocation;
         }
         info.allocationBytes = currentAllocation;
@@ -383,10 +377,9 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
         return delta;
     }
 
-    @Nullable
-    private Long getThreadAllocatedBytes(Thread thread) {
+    private long getThreadAllocatedBytes(Thread thread) {
         if (getThreadAllocatedBytes == null) {
-            return null;
+            return NO_VALUE;
         }
         try {
             long allocated = (Long) getThreadAllocatedBytes.invoke(threadBean, thread.getId());
@@ -396,22 +389,20 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
         } catch (Exception e) {
             logger.error("Error on attempt to fetch thread allocated bytes", e);
         }
-        return null;
+        return NO_VALUE;
     }
 
-    @Nullable
-    private Long getThreadCpuTime(Thread thread) {
+    private long getThreadCpuTime(Thread thread) {
         long time = threadBean.getThreadCpuTime(thread.getId());
         if (time < 0) {
-            return null; //If the thread has died JVMs are allowed to return -1
+            return NO_VALUE; //If the thread has died JVMs are allowed to return -1
         }
         return time;
     }
 
-    @Nullable
-    private Long getProcessCpuTime() {
+    private long getProcessCpuTime() {
         if (getProcessCpuTime == null) {
-            return null;
+            return NO_VALUE;
         }
         try {
             long cpuTime = (Long) getProcessCpuTime.invoke(osBean);
@@ -421,24 +412,22 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
         } catch (Exception e) {
             logger.error("Error on attempt to fetch process cpu time", e);
         }
-        return null;
+        return NO_VALUE;
     }
 
-    @Nullable
-    private Long getProcessCpuTimeDelta() {
-        Long processCpuTimeDelta = null;
-        Long currentProcessCpuTime = getProcessCpuTime();
-        if (currentProcessCpuTime != null && lastReportedProcessCpuTime != null) {
+    private long getProcessCpuTimeDelta() {
+        long processCpuTimeDelta = NO_VALUE;
+        long currentProcessCpuTime = getProcessCpuTime();
+        if (currentProcessCpuTime != NO_VALUE && lastReportedProcessCpuTime != NO_VALUE) {
             processCpuTimeDelta = currentProcessCpuTime - lastReportedProcessCpuTime;
         }
         lastReportedProcessCpuTime = currentProcessCpuTime;
         return processCpuTimeDelta;
     }
 
-    @Nullable
-    Double getProcessCpuLoad() {
+    double getProcessCpuLoad() {
         if (getProcessCpuLoad == null) {
-            return null;
+            return NO_VALUE;
         }
         try {
             double cpuLoad = (Double) getProcessCpuLoad.invoke(osBean);
@@ -448,6 +437,6 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
         } catch (Exception e) {
             logger.error("Error on attempt to fetch process cpu load", e);
         }
-        return null;
+        return NO_VALUE;
     }
 }
