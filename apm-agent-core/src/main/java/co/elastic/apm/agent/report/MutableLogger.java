@@ -23,14 +23,14 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Logger implementation that has the ability to be muted.
+ * Logger implementation that can be muted
  */
-class ReportingLogger implements Logger {
+class MutableLogger implements Logger {
 
     private final Logger delegate;
     private final AtomicBoolean muted = new AtomicBoolean();
 
-    ReportingLogger(Logger delegate) {
+    MutableLogger(Logger delegate) {
         this.delegate = delegate;
     }
 

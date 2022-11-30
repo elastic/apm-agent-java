@@ -20,7 +20,6 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
-import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
 
@@ -37,7 +36,7 @@ import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
 public class AbstractIntakeApiHandler {
-    protected static final ReportingLogger logger = new ReportingLogger(LoggerFactory.getLogger(AbstractIntakeApiHandler.class));
+    protected static final MutableLogger logger = new MutableLogger(LoggerFactory.getLogger(AbstractIntakeApiHandler.class));
     private static final Object WAIT_LOCK = new Object();
 
     protected final ReporterConfiguration reporterConfiguration;
