@@ -294,7 +294,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
                 Object mappedAppender = originalAppender2ecsAppender.get(appender);
                 invokeAppender(logEvent, mappedAppender);
             }
-            if (loggingConfiguration.getStreamLogs()) {
+            if (loggingConfiguration.getSendLogs()) {
                 Object mappedAppender = originalAppender2shipperAppender.get(appender);
                 if (mappedAppender == null) {
                     mappedAppender = createAndMapShipperAppenderFor(appender);

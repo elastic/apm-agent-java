@@ -93,7 +93,7 @@ public class ApmServerLogAppender extends AbstractAppender {
             return;
         }
 
-        if (!config.getStreamLogs()) {
+        if (!config.getSendLogs()) {
             return;
         }
         sendLogEvent(event);

@@ -262,8 +262,8 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.17.0]")
         .buildWithDefault(LogFormat.PLAIN_TEXT);
 
-    private final ConfigurationOption<Boolean> streamLogs = ConfigurationOption.booleanOption()
-        .key("log_streaming") // TODO : set the right configuration name
+    private final ConfigurationOption<Boolean> sendLogs = ConfigurationOption.booleanOption()
+        .key("log_sending")
         .configurationCategory(LOGGING_CATEGORY)
         .description("Sends agent and application logs directly to APM Server.\n" +
             "\n" +
@@ -385,7 +385,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         return logFormatFile.get();
     }
 
-    public boolean getStreamLogs() {
-        return streamLogs.get();
+    public boolean getSendLogs() {
+        return sendLogs.get();
     }
 }

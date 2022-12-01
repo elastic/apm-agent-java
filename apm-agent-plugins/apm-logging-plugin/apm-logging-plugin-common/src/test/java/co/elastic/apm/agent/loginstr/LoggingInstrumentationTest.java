@@ -232,7 +232,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
     @Test
     public void testShipLog() {
-        doReturn(Boolean.TRUE).when(loggingConfig).getStreamLogs();
+        doReturn(Boolean.TRUE).when(loggingConfig).getSendLogs();
 
         logger.trace(TRACE_MESSAGE);
         logger.debug(DEBUG_MESSAGE);

@@ -336,7 +336,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("log");
 
-        // because the input might come directly from the ECS reformater, there might be an extra EOL
+        // because the input might come directly from the ECS reformatter, there might be an extra EOL
         // that needs to be ignored otherwise we get invalid ND-JSON.
         int length = stringLog.length();
         if (stringLog.charAt(length - 1) == NEW_LINE) {
