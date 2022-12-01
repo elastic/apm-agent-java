@@ -336,7 +336,13 @@ public class ApmServerClientTest {
     }
 
     private void testSupportUnsampledTransactions(@Nullable String version, boolean expected) {
+        stubServerVersion(version);
+        assertThat(apmServerClient.supportsKeepingUnsampledTransaction())
+            .describedAs("keeping unsampled transactions for version %s is expected to be %s", version, expected)
+            .isEqualTo(expected);
+    }
 
+    private void stubServerVersion(@Nullable String version){
         // supported by default as we stub 6.x server by default
         if (version != null && !version.isEmpty()) {
             stubServerVersion(apmServer1, version);
@@ -350,11 +356,23 @@ public class ApmServerClientTest {
             // we have to check version to ensure it's not in-progress
             checkApmServerVersion(version);
         }
+    }
 
-        assertThat(apmServerClient.supportsKeepingUnsampledTransaction())
-            .describedAs("keeping unsampled transactions for version %s is expected to be %s", version, expected)
+    @Test
+    public void testSupportLogsEnpoint() {
+        testSupportLogsEndpoint(null, false);
+        testSupportLogsEndpoint("8.5.99", false);
+        testSupportLogsEndpoint("8.6.0", true);
+        testSupportLogsEndpoint("9.0.0", true);
+    }
+
+    private void testSupportLogsEndpoint(@Nullable String version, boolean expected) {
+        stubServerVersion(version);
+        assertThat(apmServerClient.supportsLogsEndpoint())
+            .describedAs("logs endpoint for version %s is expected to be %s", expected ? "supported": "not supported")
             .isEqualTo(expected);
     }
+
 
     /**
      * Stubs the APM server endpoint with a specific version

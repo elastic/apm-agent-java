@@ -20,7 +20,10 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.util.LoggerUtils;
 
 import javax.annotation.Nullable;
 import java.net.HttpURLConnection;
@@ -35,6 +38,10 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
     public static final String INTAKE_V2_URL = "/intake/v2/events";
     public static final String INTAKE_V2_FLUSH_URL = INTAKE_V2_URL + "?flushed=true";
+
+    // does not depend on inherited logger as it might be muted
+    private static final Logger logsSupportLogger = LoggerUtils.logOnce(LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class));
+
     private final ProcessorEventHandler processorEventHandler;
     private final ScheduledExecutorService timeoutTimer;
     @Nullable
@@ -169,13 +176,23 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
         } else if (event.getJsonWriter() != null) {
             currentlyTransmitting++;
             payloadSerializer.writeBytes(event.getJsonWriter().getByteBuffer(), event.getJsonWriter().size());
-        } else if (event.getBytesLog() != null) {
+        } else if (event.getBytesLog() != null && logsSupported()) {
             currentlyTransmitting++;
             payloadSerializer.serializeLogNdJson(event.getBytesLog());
-        } else if (event.getStringLog() != null) {
+        } else if (event.getStringLog() != null && logsSupported()) {
             currentlyTransmitting++;
             payloadSerializer.serializeLogNdJson(event.getStringLog());
         }
+    }
+
+    private boolean logsSupported() {
+        if(apmServerClient.supportsLogsEndpoint()){
+            return true;
+        }
+
+        logsSupportLogger.warn("sending logs to apm server is not supported, upgrading to a more recent version is required");
+
+        return false;
     }
 
     @Override
