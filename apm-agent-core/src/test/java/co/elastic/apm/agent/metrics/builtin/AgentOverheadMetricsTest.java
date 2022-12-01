@@ -103,6 +103,9 @@ public class AgentOverheadMetricsTest {
         startLatch.countDown();
         finish1.await();
 
+        //also burn some CPU here to make sure not 100% is accounted to the test threads
+        consumeCpu();
+
         reportAndCheckMetrics(metrics -> {
             assertThat(metrics).containsKeys(
                 Labels.Mutable.of("task", "start-before"),
@@ -129,6 +132,9 @@ public class AgentOverheadMetricsTest {
         t1.join();
         t2.join();
         t3.join();
+
+        //also burn some CPU here to make sure not 100% is accounted to the test threads
+        consumeCpu();
 
         //ensure that died threads are also counted
         reportAndCheckMetrics(metrics -> {
