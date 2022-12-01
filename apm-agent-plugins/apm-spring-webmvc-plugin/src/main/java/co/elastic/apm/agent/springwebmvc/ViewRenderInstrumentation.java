@@ -31,6 +31,7 @@ import org.springframework.web.servlet.view.AbstractView;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -44,7 +45,7 @@ public class ViewRenderInstrumentation extends TracerAwareInstrumentation {
     private static final String SPAN_TYPE = "template";
     private static final String SPAN_ACTION = "render";
     private static final String DISPATCHER_SERVLET_RENDER_METHOD = "View#render";
-    private static Map<String, String> subTypeCache = new ConcurrentHashMap<>();
+    private static final Map<String, String> subTypeCache = new ConcurrentHashMap<>();
 
     @Override
     public String getAdviceClassName() {
@@ -53,8 +54,9 @@ public class ViewRenderInstrumentation extends TracerAwareInstrumentation {
 
     public static class ViewRenderAdviceService {
 
+        @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object beforeExecute(@Advice.This @Nullable Object thiz) {
+        public static Object beforeExecute(@Advice.This Object thiz) {
             if (tracer.getActive() == null) {
                 return null;
             }
@@ -140,7 +142,7 @@ public class ViewRenderInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("spring-view-render");
+        return Collections.singleton("spring-view-render");
     }
 }
 
