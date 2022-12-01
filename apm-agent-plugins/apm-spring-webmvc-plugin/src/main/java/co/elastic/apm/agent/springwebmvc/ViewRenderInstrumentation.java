@@ -69,7 +69,10 @@ public class ViewRenderInstrumentation extends TracerAwareInstrumentation {
 
             if (thiz instanceof AbstractView) {
                 AbstractView view = (AbstractView) thiz;
-                span.appendToName(" ").appendToName(view.getBeanName());
+                String beanName = view.getBeanName();
+                if (beanName != null) {
+                    span.appendToName(" ").appendToName(beanName);
+                }
             }
             span.activate();
             return span;
