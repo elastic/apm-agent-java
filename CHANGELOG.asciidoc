@@ -42,6 +42,8 @@ endif::[]
 * Capture MongoDB statements - {pull}2806[#2806]
 Added agent health and background overhead metrics (experimental) - {pull}2864[#2864], {pull}2888[#2888]
 * Added support for Finagle Http Client - {pull}2795[#2795]
+* Add support for Apache HTTP client 3.x - {pull}2853[#2853]
+* Made `api_key` and `secret_token` configuration options dynamic - {pull}2889[#2889]
 
 [float]
 ===== Bug fixes
@@ -51,6 +53,7 @@ Added agent health and background overhead metrics (experimental) - {pull}2864[#
 * Fix security manager issues on OpenJDK 17, with errors like: `java.lang.UnsupportedOperationException: Could not access Unsafe class` -
 {pull}2874[#2874]
 * Fix security manager compatibility with Tomcat - {pull}2871[#2871]
+* Fix NPE with Spring MVC - {pull}2896[#2896]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

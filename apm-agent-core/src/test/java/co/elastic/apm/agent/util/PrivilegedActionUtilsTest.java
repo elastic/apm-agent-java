@@ -106,29 +106,33 @@ class PrivilegedActionUtilsTest {
     @Test
     void newFileInputStream(@TempDir Path tempDir) throws IOException {
         Path existingFile = tempDir.resolve("empty.test");
-        Files.createFile(existingFile);
-
         Path missingFile = tempDir.resolve("missing.test");
 
-        testWithAndWithoutSecurityManager(()->{
-            try {
-                assertThat(PrivilegedActionUtils.newFileInputStream(existingFile.toFile())).isNotNull();
+        Files.createFile(existingFile);
 
-                // file not found and other runtime errors should be perserved
-                assertThatThrownBy(() -> PrivilegedActionUtils.newFileInputStream(missingFile.toFile())).isInstanceOf(FileNotFoundException.class);
-                assertThatThrownBy(() -> PrivilegedActionUtils.newFileInputStream(null)).isInstanceOf(NullPointerException.class);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        try {
+            testWithAndWithoutSecurityManager(() -> {
+                try (FileInputStream fis = PrivilegedActionUtils.newFileInputStream(existingFile.toFile())) {
+                    assertThat(fis).isNotNull();
+
+                    // file not found and other runtime errors should be perserved
+                    assertThatThrownBy(() -> PrivilegedActionUtils.newFileInputStream(missingFile.toFile())).isInstanceOf(FileNotFoundException.class);
+                    assertThatThrownBy(() -> PrivilegedActionUtils.newFileInputStream(null)).isInstanceOf(NullPointerException.class);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        } finally {
+            Files.deleteIfExists(existingFile);
+        }
     }
 
     @Test
     void createDirectories(@TempDir Path tempDir) throws IOException {
         Path existingDir = tempDir.resolve("existing");
-        Files.createDirectories(existingDir);
         Path toCreate = tempDir.resolve(Path.of("to-create", "child"));
 
+        Files.createDirectories(existingDir);
         testWithAndWithoutSecurityManager(() -> {
             testPrivileged(() -> {
                 assertThat(existingDir).isDirectory();

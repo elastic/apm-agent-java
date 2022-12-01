@@ -2603,13 +2603,13 @@ This string is used to ensure that only your agents can send data to your APM se
 Both the agents and the APM server have to be configured with the same secret token.
 Use if APM Server requires a token.
 
-
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<none>` | String | false
+| `<none>` | String | true
 |============
 
 
@@ -2630,13 +2630,13 @@ Agents can use API keys as a replacement of secret token, APM server can have mu
 When both secret token and API key are used, API key has priority and secret token is ignored.
 Use if APM Server requires an API key.
 
-
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<none>` | String | false
+| `<none>` | String | true
 |============
 
 
@@ -4382,7 +4382,7 @@ Example: `5ms`.
 # Both the agents and the APM server have to be configured with the same secret token.
 # Use if APM Server requires a token.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: String
 # Default value: 
 #
@@ -4394,7 +4394,7 @@ Example: `5ms`.
 # When both secret token and API key are used, API key has priority and secret token is ignored.
 # Use if APM Server requires an API key.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: String
 # Default value: 
 #

@@ -50,6 +50,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "Both the agents and the APM server have to be configured with the same secret token.\n" +
             "Use if APM Server requires a token.")
         .sensitive()
+        .dynamic(true)
         .build();
 
     private final ConfigurationOption<String> apiKey = ConfigurationOption.stringOption()
@@ -61,6 +62,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "When both secret token and API key are used, API key has priority and secret token is ignored.\n" +
             "Use if APM Server requires an API key.")
         .sensitive()
+        .dynamic(true)
         .build();
 
     private final ConfigurationOption<URL> serverUrl = ConfigurationOption.urlOption()
