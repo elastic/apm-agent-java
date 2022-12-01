@@ -21,6 +21,8 @@ package co.elastic.apm.agent.util;
 import co.elastic.apm.agent.common.ThreadUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.CancellationException;
@@ -39,16 +41,21 @@ public final class ExecutorUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(ExecutorUtils.class);
 
+    private static final WeakMap<Thread, String> startedThreads = WeakConcurrent.buildMap();
+
+    @Nullable
+    private static volatile ElasticThreadStateListener threadStateListener = null;
+
     private ExecutorUtils() {
         // don't instantiate
     }
 
     public static ScheduledThreadPoolExecutor createSingleThreadSchedulingDaemonPool(final String threadPurpose) {
-        final SingleNamedThreadFactory daemonThreadFactory = new SingleNamedThreadFactory(ThreadUtils.addElasticApmThreadPrefix(threadPurpose));
+        final SingleNamedThreadFactory daemonThreadFactory = new SingleNamedThreadFactory(threadPurpose);
         ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1, daemonThreadFactory) {
             @Override
             public String toString() {
-                return super.toString() + "(thread name = " + daemonThreadFactory.threadName + ")";
+                return super.toString() + "(thread name = " + daemonThreadFactory.threadPurpose + ")";
             }
 
             @Override
@@ -62,9 +69,8 @@ public final class ExecutorUtils {
     }
 
     public static ThreadPoolExecutor createSingleThreadDaemonPool(final String threadPurpose, int queueCapacity) {
-        String threadName = ThreadUtils.addElasticApmThreadPrefix(threadPurpose);
-        final ThreadFactory daemonThreadFactory = new SingleNamedThreadFactory(threadName);
-        return new SingleNamedDaemonThreadPoolExecutor(queueCapacity, daemonThreadFactory, threadName);
+        final ThreadFactory daemonThreadFactory = new SingleNamedThreadFactory(threadPurpose);
+        return new SingleNamedDaemonThreadPoolExecutor(queueCapacity, daemonThreadFactory, threadPurpose);
     }
 
     public static ThreadPoolExecutor createThreadDaemonPool(final String threadPurpose, int poolSize, int queueCapacity) {
@@ -72,21 +78,52 @@ public final class ExecutorUtils {
         return new NamedDaemonThreadPoolExecutor(poolSize, queueCapacity, daemonThreadFactory, threadPurpose);
     }
 
+    public static WeakMap<Thread, String> getStartedThreads() {
+        return startedThreads;
+    }
+
+    public static void setThreadStartListener(@Nullable ElasticThreadStateListener listener) {
+        threadStateListener = listener;
+    }
+
+    private static Runnable wrapForListenerInvocation(final Runnable r, final String threadPurpose) {
+        return new Runnable() {
+            @Override
+            public void run() {
+                ElasticThreadStateListener snapshot1 = threadStateListener;
+                if (snapshot1 != null) {
+                    snapshot1.elasticThreadStarted(Thread.currentThread(), threadPurpose);
+                }
+                startedThreads.put(Thread.currentThread(), threadPurpose);
+                try {
+                    r.run();
+                } finally {
+                    ElasticThreadStateListener snapshot2 = threadStateListener;
+                    if (snapshot2 != null) {
+                        snapshot2.elasticThreadFinished(Thread.currentThread());
+                    }
+                }
+            }
+        };
+    }
+
+
     public static boolean isAgentExecutor(Executor executor) {
         return executor.getClass().getName().startsWith("co.elastic.apm");
     }
 
     public static class SingleNamedThreadFactory implements ThreadFactory {
-        private final String threadName;
+        private final String threadPurpose;
 
-        public SingleNamedThreadFactory(String threadName) {
-            this.threadName = threadName;
+        public SingleNamedThreadFactory(String threadPurpose) {
+            this.threadPurpose = threadPurpose;
         }
 
         @Override
         public Thread newThread(Runnable r) {
-            Thread thread = PrivilegedActionUtils.newThread(r);
+            Thread thread = PrivilegedActionUtils.newThread(wrapForListenerInvocation(r, threadPurpose));
             thread.setDaemon(true);
+            String threadName = ThreadUtils.addElasticApmThreadPrefix(threadPurpose);
             thread.setName(threadName);
             ClassLoader originalContextCL = PrivilegedActionUtils.getContextClassLoader(thread);
             PrivilegedActionUtils.setContextClassLoader(thread, PrivilegedActionUtils.getClassLoader(ExecutorUtils.class));
@@ -116,7 +153,7 @@ public final class ExecutorUtils {
 
         @Override
         public Thread newThread(Runnable r) {
-            Thread thread = PrivilegedActionUtils.newThread(r);
+            Thread thread = PrivilegedActionUtils.newThread(wrapForListenerInvocation(r, threadPurpose));
             thread.setDaemon(true);
             String threadName = ThreadUtils.addElasticApmThreadPrefix(threadPurpose) + "-" + threadCounter.getAndIncrement();
             thread.setName(threadName);
@@ -128,16 +165,16 @@ public final class ExecutorUtils {
     }
 
     private static class SingleNamedDaemonThreadPoolExecutor extends ThreadPoolExecutor {
-        private final String threadName;
+        private final String threadPurpose;
 
-        SingleNamedDaemonThreadPoolExecutor(int queueCapacity, ThreadFactory daemonThreadFactory, String threadName) {
+        SingleNamedDaemonThreadPoolExecutor(int queueCapacity, ThreadFactory daemonThreadFactory, String threadPurpose) {
             super(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(queueCapacity), daemonThreadFactory);
-            this.threadName = threadName;
+            this.threadPurpose = threadPurpose;
         }
 
         @Override
         public String toString() {
-            return super.toString() + "(thread name = " + threadName + ")";
+            return super.toString() + "(thread purpose = " + threadPurpose + ")";
         }
 
         @Override
