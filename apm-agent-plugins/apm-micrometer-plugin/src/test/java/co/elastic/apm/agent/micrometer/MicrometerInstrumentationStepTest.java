@@ -139,7 +139,7 @@ public class MicrometerInstrumentationStepTest {
                 }
             }).start();
         }
-        reporter.awaitUntilAsserted(5000, () ->
+        reporter.awaitUntilAsserted(20000, () ->
             assertThat(countFooBars()).isEqualTo(result));
     }
 
