@@ -225,9 +225,11 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
 
     @Override
     public void collectAndReset(MetricCollector collector) {
-        collectCpuUsageMetrics(collector);
-        collectAllocationMetrics(collector);
-        collectActiveThreadsMetric(collector);
+
+        Map<String, AtomicLong> reusableCounters = new HashMap<>();
+        collectCpuUsageMetrics(collector, reusableCounters);
+        collectAllocationMetrics(collector, reusableCounters);
+        collectActiveThreadsMetric(collector, reusableCounters);
 
         //cleanup dead threads
         for (Map.Entry<Thread, ThreadInfo> threadInfo : lastThreadInfo.entrySet()) {
@@ -238,11 +240,11 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
         }
     }
 
-    private void collectActiveThreadsMetric(MetricCollector collector) {
+    private void collectActiveThreadsMetric(MetricCollector collector, Map<String, AtomicLong> threadCountByPurpose) {
         if (!threadCountMetricEnabled) {
             return;
         }
-        Map<String, AtomicLong> threadCountByPurpose = new HashMap<>();
+        resetCounterMap(threadCountByPurpose);
 
         for (ThreadInfo threadInfo : lastThreadInfo.values()) {
             // We don't check here whether the thread is still alive because we also want to count
@@ -252,18 +254,19 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
 
         for (Map.Entry<String, AtomicLong> entry : threadCountByPurpose.entrySet()) {
             String purpose = entry.getKey();
-            Labels labels = Labels.Mutable.of("task", purpose).immutableCopy();
-
-            collector.addMetricValue(THREAD_COUNT_METRIC, labels, entry.getValue().get());
+            long threadCount = entry.getValue().get();
+            if (threadCount > 0) {
+                Labels labels = Labels.Mutable.of("task", purpose).immutableCopy();
+                collector.addMetricValue(THREAD_COUNT_METRIC, labels, threadCount);
+            }
         }
     }
 
-    private void collectAllocationMetrics(MetricCollector collector) {
+    private void collectAllocationMetrics(MetricCollector collector, Map<String, AtomicLong> allocatedBytesByPurpose) {
         if (!allocationMetricEnabled) {
             return;
         }
-
-        Map<String, AtomicLong> allocatedBytesByPurpose = new HashMap<>();
+        resetCounterMap(allocatedBytesByPurpose);
 
         for (Map.Entry<Thread, ThreadInfo> threadInfo : lastThreadInfo.entrySet()) {
             Thread thread = threadInfo.getKey();
@@ -278,19 +281,19 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
 
         for (Map.Entry<String, AtomicLong> entry : allocatedBytesByPurpose.entrySet()) {
             String purpose = entry.getKey();
-            Labels labels = Labels.Mutable.of("task", purpose).immutableCopy();
-
             long allocationBytes = entry.getValue().get();
-            collector.addMetricValue(ALLOCATION_METRIC, labels, allocationBytes);
+            if (allocationBytes > 0) {
+                Labels labels = Labels.Mutable.of("task", purpose).immutableCopy();
+                collector.addMetricValue(ALLOCATION_METRIC, labels, allocationBytes);
+            }
         }
     }
 
-    private void collectCpuUsageMetrics(MetricCollector collector) {
+    private void collectCpuUsageMetrics(MetricCollector collector, Map<String, AtomicLong> cpuTimeIncreaseByPurpose) {
         if (!cpuUsageMetricEnabled && !cpuOverheadMetricEnabled) {
             return;
         }
-
-        Map<String, AtomicLong> cpuTimeIncreaseByPurpose = new HashMap<>();
+        resetCounterMap(cpuTimeIncreaseByPurpose);
 
         for (Map.Entry<Thread, ThreadInfo> threadInfo : lastThreadInfo.entrySet()) {
             Thread thread = threadInfo.getKey();
@@ -312,15 +315,23 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
 
         for (Map.Entry<String, AtomicLong> entry : cpuTimeIncreaseByPurpose.entrySet()) {
             String purpose = entry.getKey();
-            Labels.Immutable labels = Labels.Mutable.of("task", purpose).immutableCopy();
-
             double cpuOverhead = ((double) entry.getValue().get()) / processCpuTimeDelta;
-            if (cpuOverheadMetricEnabled) {
-                collector.addMetricValue(CPU_OVERHEAD_METRIC, labels, cpuOverhead);
+
+            if (cpuOverhead > 0) {
+                Labels.Immutable labels = Labels.Mutable.of("task", purpose).immutableCopy();
+                if (cpuOverheadMetricEnabled) {
+                    collector.addMetricValue(CPU_OVERHEAD_METRIC, labels, cpuOverhead);
+                }
+                if (cpuUsageMetricEnabled && processCpuUsage != NO_VALUE) {
+                    collector.addMetricValue(CPU_USAGE_METRIC, labels, cpuOverhead * processCpuUsage);
+                }
             }
-            if (cpuUsageMetricEnabled && processCpuUsage != NO_VALUE) {
-                collector.addMetricValue(CPU_USAGE_METRIC, labels, cpuOverhead * processCpuUsage);
-            }
+        }
+    }
+
+    private void resetCounterMap(Map<String, AtomicLong> map) {
+        for (Map.Entry<String, AtomicLong> entry : map.entrySet()) {
+            entry.getValue().set(0L);
         }
     }
 
