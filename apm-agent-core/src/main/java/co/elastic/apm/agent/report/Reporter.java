@@ -36,7 +36,7 @@ public interface Reporter extends Closeable {
 
     void report(ErrorCapture error);
 
-    void report(JsonWriter jsonWriter);
+    void reportMetrics(JsonWriter jsonWriter);
 
     /**
      * Reports an ECS-logging formatted log message.

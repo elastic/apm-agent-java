@@ -25,6 +25,7 @@ import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -62,7 +63,7 @@ public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrume
                                                 @Advice.Origin Class<?> clazz) {
             AbstractSpan<?> active = tracer.getActive();
             if (active == null) {
-                Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
                 if (transaction != null) {
                     transaction.withName(signature)
                         .withType("scheduled")

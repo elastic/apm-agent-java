@@ -26,6 +26,7 @@ import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 
 import javax.annotation.Nullable;
@@ -63,7 +64,7 @@ public class GlobalTracer implements Tracer {
     }
 
     private static void checkClassloader() {
-        ClassLoader cl = GlobalTracer.class.getClassLoader();
+        ClassLoader cl = PrivilegedActionUtils.getClassLoader(GlobalTracer.class);
 
         // agent currently loaded in the bootstrap CL, which is the current correct location
         if (cl == null) {
@@ -74,7 +75,7 @@ public class GlobalTracer implements Tracer {
             return;
         }
 
-        String agentLocation = GlobalTracer.class.getProtectionDomain().getCodeSource().getLocation().getFile();
+        String agentLocation = PrivilegedActionUtils.getProtectionDomain(GlobalTracer.class).getCodeSource().getLocation().getFile();
         if (!agentLocation.endsWith(".jar")) {
             // agent is not packaged, thus we assume running tests
             classloaderCheckOk = true;

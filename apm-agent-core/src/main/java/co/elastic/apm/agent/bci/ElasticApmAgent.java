@@ -45,6 +45,7 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracemethods.TraceMethodInstrumentation;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.RedefinitionStrategy;
@@ -173,7 +174,7 @@ public class ElasticApmAgent {
     @Nonnull
     private static Iterable<ElasticApmInstrumentation> loadInstrumentations(ElasticApmTracer tracer) {
         List<ClassLoader> pluginClassLoaders = new ArrayList<>();
-        pluginClassLoaders.add(ElasticApmAgent.class.getClassLoader());
+        pluginClassLoaders.add(PrivilegedActionUtils.getClassLoader(ElasticApmAgent.class));
         pluginClassLoaders.addAll(createExternalPluginClassLoaders(tracer.getConfig(CoreConfiguration.class).getPluginsDir()));
         final List<ElasticApmInstrumentation> instrumentations = DependencyInjectingServiceLoader.load(ElasticApmInstrumentation.class, pluginClassLoaders, tracer);
         for (MethodMatcher traceMethod : tracer.getConfig(CoreConfiguration.class).getTraceMethods()) {
@@ -207,7 +208,7 @@ public class ElasticApmAgent {
         for (File pluginJar : pluginJars) {
             logger.info("Loading plugin {}", pluginJar.getName());
             try {
-                result.add(new ExternalPluginClassLoader(pluginJar, ElasticApmAgent.class.getClassLoader()));
+                result.add(new ExternalPluginClassLoader(pluginJar, PrivilegedActionUtils.getClassLoader(ElasticApmAgent.class)));
             } catch (Exception e) {
                 logger.error("Error loading external plugin", e);
             }
@@ -259,7 +260,7 @@ public class ElasticApmAgent {
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
             mapInstrumentationCL2adviceClassName(
                 apmInstrumentation.getAdviceClassName(),
-                apmInstrumentation.getClass().getClassLoader());
+                PrivilegedActionUtils.getClassLoader(apmInstrumentation.getClass()));
         }
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
             @Override
@@ -489,7 +490,7 @@ public class ElasticApmAgent {
         };
         return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
             .advice(instrumentationStats.shouldMeasureMatching() ? statsCollectingMatcher : matcher, instrumentation.getAdviceClassName())
-            .include(ClassLoader.getSystemClassLoader(), instrumentation.getClass().getClassLoader())
+            .include(ClassLoader.getSystemClassLoader(), PrivilegedActionUtils.getClassLoader(instrumentation.getClass()))
             .withExceptionHandler(PRINTING);
     }
 
@@ -501,7 +502,7 @@ public class ElasticApmAgent {
         if (instrumentation.getClass().getName().equals(adviceClassName)) {
             throw new IllegalStateException("The advice must be declared in a separate class: " + adviceClassName);
         }
-        ClassLoader adviceClassLoader = instrumentation.getClass().getClassLoader();
+        ClassLoader adviceClassLoader = PrivilegedActionUtils.getClassLoader(instrumentation.getClass());
         if (adviceClassLoader == null) {
             // the bootstrap class loader can't do resource lookup
             // if classes are added via java.lang.instrument.Instrumentation.appendToBootstrapClassLoaderSearch
@@ -594,7 +595,7 @@ public class ElasticApmAgent {
 
     // may help to debug classloading problems
     private static void logClassLoaderHierarchy(@Nullable ClassLoader classLoader, Logger logger, ElasticApmInstrumentation advice) {
-        logger.trace("Advice {} is loaded by {}", advice.getClass().getName(), advice.getClass().getClassLoader());
+        logger.trace("Advice {} is loaded by {}", advice.getClass().getName(), PrivilegedActionUtils.getClassLoader(advice.getClass()));
         if (classLoader != null) {
             boolean canLoadAgent = false;
             try {
@@ -786,7 +787,7 @@ public class ElasticApmAgent {
                         ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
                         mapInstrumentationCL2adviceClassName(
                             apmInstrumentation.getAdviceClassName(),
-                            instrumentationClass.getClassLoader());
+                            PrivilegedActionUtils.getClassLoader(instrumentationClass));
                         ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());
                         if (typeMatcher != null && isIncluded(apmInstrumentation, config)) {
                             agentBuilder = applyAdvice(tracer, agentBuilder, apmInstrumentation, typeMatcher.and(apmInstrumentation.getTypeMatcher()));
@@ -876,7 +877,7 @@ public class ElasticApmAgent {
     }
 
     public static ClassLoader getAgentClassLoader() {
-        ClassLoader agentClassLoader = ElasticApmAgent.class.getClassLoader();
+        ClassLoader agentClassLoader = PrivilegedActionUtils.getClassLoader(ElasticApmAgent.class);
         if (agentClassLoader == null) {
             throw new IllegalStateException("Agent is loaded from bootstrap class loader as opposed to the dedicated agent class loader");
         }

@@ -50,7 +50,7 @@ public class DependencyInjectingServiceLoader<T> {
     private final Set<URL> resourcePathCache;
 
     private DependencyInjectingServiceLoader(Class<T> clazz, Object... constructorArguments) {
-        this(clazz, Collections.singletonList(clazz.getClassLoader()), constructorArguments);
+        this(clazz, Collections.singletonList(PrivilegedActionUtils.getClassLoader(clazz)), constructorArguments);
     }
 
     private DependencyInjectingServiceLoader(Class<T> clazz, List<ClassLoader> classLoaders, Object... constructorArguments) {

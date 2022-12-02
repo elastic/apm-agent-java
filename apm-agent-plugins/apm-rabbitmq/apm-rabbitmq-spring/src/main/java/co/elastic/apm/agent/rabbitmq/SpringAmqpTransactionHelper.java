@@ -21,6 +21,7 @@ package co.elastic.apm.agent.rabbitmq;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.rabbitmq.header.SpringRabbitMQTextHeaderGetter;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 
@@ -49,7 +50,7 @@ public class SpringAmqpTransactionHelper {
         if (transaction != null) {
             return null;
         }
-        transaction = tracer.startChildTransaction(messageProperties, SpringRabbitMQTextHeaderGetter.INSTANCE, message.getClass().getClassLoader());
+        transaction = tracer.startChildTransaction(messageProperties, SpringRabbitMQTextHeaderGetter.INSTANCE, PrivilegedActionUtils.getClassLoader(message.getClass()));
         if (transaction == null) {
             return null;
         }

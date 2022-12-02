@@ -22,8 +22,8 @@ import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.disruptor.ExponentionallyIncreasingSleepingWaitStrategy;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.MathUtils;
-import co.elastic.apm.agent.common.ThreadUtils;
 import com.dslplatform.json.JsonWriter;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslator;
@@ -36,7 +36,6 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
@@ -89,10 +88,10 @@ public class ApmServerReporter implements Reporter {
             event.setError(error);
         }
     };
-    private static final EventTranslatorOneArg<ReportingEvent, JsonWriter> JSON_WRITER_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, JsonWriter>() {
+    private static final EventTranslatorOneArg<ReportingEvent, JsonWriter> METRICS_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, JsonWriter>() {
         @Override
         public void translateTo(ReportingEvent event, long sequence, JsonWriter jsonWriter) {
-            event.setJsonWriter(jsonWriter);
+            event.setMetricSet(jsonWriter);
         }
     };
     private static final EventTranslatorOneArg<ReportingEvent, Thread> SHUTDOWN_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Thread>() {
@@ -127,19 +126,19 @@ public class ApmServerReporter implements Reporter {
     private final ReportingEventHandler reportingEventHandler;
     private final boolean syncReport;
 
+    private final ReporterMonitor monitor;
+
     public ApmServerReporter(boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration,
-                             ReportingEventHandler reportingEventHandler) {
+                             ReportingEventHandler reportingEventHandler, ReporterMonitor monitor) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
         this.syncReport = reporterConfiguration.isReportSynchronously();
-        disruptor = new Disruptor<>(new TransactionEventFactory(), MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()), new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread thread = new Thread(r);
-                thread.setDaemon(true);
-                thread.setName(ThreadUtils.addElasticApmThreadPrefix("server-reporter"));
-                return thread;
-            }
-        }, ProducerType.MULTI, new ExponentionallyIncreasingSleepingWaitStrategy(100_000, 10_000_000));
+        this.monitor = monitor;
+        disruptor = new Disruptor<>(
+            new TransactionEventFactory(),
+            MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()),
+            new ExecutorUtils.SingleNamedThreadFactory("server-reporter"),
+            ProducerType.MULTI,
+            new ExponentionallyIncreasingSleepingWaitStrategy(100_000, 10_000_000));
         this.reportingEventHandler = reportingEventHandler;
         disruptor.setDefaultExceptionHandler(new IgnoreExceptionHandler());
         disruptor.handleEventsWith(this.reportingEventHandler);
@@ -153,7 +152,7 @@ public class ApmServerReporter implements Reporter {
 
     @Override
     public void report(Transaction transaction) {
-        if (!tryAddEventToRingBuffer(transaction, TRANSACTION_EVENT_TRANSLATOR)) {
+        if (!tryAddEventToRingBuffer(transaction, TRANSACTION_EVENT_TRANSLATOR, ReportingEvent.ReportingEventType.TRANSACTION)) {
             transaction.decrementReferences();
         }
         if (syncReport) {
@@ -163,7 +162,7 @@ public class ApmServerReporter implements Reporter {
 
     @Override
     public void report(Span span) {
-        if (!tryAddEventToRingBuffer(span, SPAN_EVENT_TRANSLATOR)) {
+        if (!tryAddEventToRingBuffer(span, SPAN_EVENT_TRANSLATOR, ReportingEvent.ReportingEventType.SPAN)) {
             span.decrementReferences();
         }
         if (syncReport) {
@@ -184,6 +183,10 @@ public class ApmServerReporter implements Reporter {
     @Override
     public long getReported() {
         return reportingEventHandler.getReported();
+    }
+
+    public ReporterMonitor getReporterMonitor() {
+        return monitor;
     }
 
     public void scheduleWakeupEvent() {
@@ -261,7 +264,7 @@ public class ApmServerReporter implements Reporter {
 
     @Override
     public void report(ErrorCapture error) {
-        if (!tryAddEventToRingBuffer(error, ERROR_EVENT_TRANSLATOR)) {
+        if (!tryAddEventToRingBuffer(error, ERROR_EVENT_TRANSLATOR, ReportingEvent.ReportingEventType.ERROR)) {
             error.recycle();
         }
         if (syncReport) {
@@ -270,11 +273,11 @@ public class ApmServerReporter implements Reporter {
     }
 
     @Override
-    public void report(JsonWriter jsonWriter) {
+    public void reportMetrics(JsonWriter jsonWriter) {
         if (jsonWriter.size() == 0) {
             return;
         }
-        tryAddEventToRingBuffer(jsonWriter, JSON_WRITER_EVENT_TRANSLATOR);
+        tryAddEventToRingBuffer(jsonWriter, METRICS_EVENT_TRANSLATOR, ReportingEvent.ReportingEventType.METRICSET_JSON_WRITER);
         if (syncReport) {
             flush();
         }
@@ -285,7 +288,7 @@ public class ApmServerReporter implements Reporter {
         if (log.isEmpty()) {
             return;
         }
-        tryAddEventToRingBuffer(log, LOG_STRING_EVENT_TRANSLATOR);
+        tryAddEventToRingBuffer(log, LOG_STRING_EVENT_TRANSLATOR, ReportingEvent.ReportingEventType.STRING_LOG);
         if (syncReport) {
             flush();
         }
@@ -305,18 +308,28 @@ public class ApmServerReporter implements Reporter {
         if (log.length == 0) {
             return;
         }
-        tryAddEventToRingBuffer(log, translator);
+        tryAddEventToRingBuffer(log, translator, ReportingEvent.ReportingEventType.BYTES_LOG);
         if (syncReport) {
             flush();
         }
     }
 
-    private <E> boolean tryAddEventToRingBuffer(E event, EventTranslatorOneArg<ReportingEvent, E> eventTranslator) {
+    long getQueueCapacity() {
+        return disruptor.getRingBuffer().getBufferSize();
+    }
+
+    long getQueueElementCount() {
+        return disruptor.getRingBuffer().getBufferSize() - disruptor.getRingBuffer().remainingCapacity();
+    }
+
+    private <E> boolean tryAddEventToRingBuffer(E event, EventTranslatorOneArg<ReportingEvent, E> eventTranslator, ReportingEvent.ReportingEventType targetType) {
+        long capacity = getQueueCapacity();
+        monitor.eventCreated(targetType, capacity, getQueueElementCount());
         if (dropTransactionIfQueueFull) {
             boolean queueFull = !disruptor.getRingBuffer().tryPublishEvent(eventTranslator, event);
             if (queueFull) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Could not add {} to ring buffer as no slots are available", event.getClass().getSimpleName());
+                    logger.debug("Could not add {} {} to ring buffer as no slots are available", event.getClass().getSimpleName(), event);
                 }
                 dropped.incrementAndGet();
                 return false;

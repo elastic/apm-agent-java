@@ -54,20 +54,24 @@ public class HttpClientHelper {
                                            @Nullable String scheme, @Nullable CharSequence hostName, int port) {
         Span span = parent.createExitSpan();
         if (span != null) {
-            span.withType(EXTERNAL_TYPE)
-                .withSubtype(HTTP_SUBTYPE)
-                .appendToName(method).appendToName(" ").appendToName(hostName != null ? hostName : "unknown host");
-
-            span.getContext().getHttp()
-                .withUrl(uri)
-                .withMethod(method);
-
-            setDestinationServiceDetails(span, scheme, hostName, port);
+            updateHttpSpanNameAndContext(span, method, uri, scheme, hostName, port);
         }
         if (logger.isTraceEnabled()) {
             logger.trace("Created an HTTP exit span: {} for URI: {}. Parent span: {}", span, uri, parent);
         }
         return span;
+    }
+
+    public static void updateHttpSpanNameAndContext(Span span, String method, @Nullable String uri, String scheme, CharSequence hostName, int port) {
+        span.withType(EXTERNAL_TYPE)
+            .withSubtype(HTTP_SUBTYPE)
+            .withName(method).appendToName(" ").appendToName(hostName != null ? hostName : "unknown host");
+
+        span.getContext().getHttp()
+            .withUrl(uri)
+            .withMethod(method);
+
+        setDestinationServiceDetails(span, scheme, hostName, port);
     }
 
     public static void setDestinationServiceDetails(Span span, @Nullable String scheme, @Nullable CharSequence host, int port) {

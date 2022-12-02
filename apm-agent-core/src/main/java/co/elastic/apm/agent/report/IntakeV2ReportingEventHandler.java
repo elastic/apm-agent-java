@@ -24,9 +24,11 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.LoggerUtils;
+import com.dslplatform.json.DslJson;
 
 import javax.annotation.Nullable;
 import java.net.HttpURLConnection;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -46,12 +48,22 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private final ScheduledExecutorService timeoutTimer;
     @Nullable
     private Runnable timeoutTask;
+
+    @Nullable
+    private ApmServerReporter reporter;
     private final AtomicLong processed = new AtomicLong();
+    private final ReportingEventCounter inflightEvents = new ReportingEventCounter();
+
+    private final DslJson<Object> dslJson;
+
+    private long reported;
+    private long dropped;
 
     public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
                                          PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
         super(reporterConfiguration, payloadSerializer, apmServerClient);
         this.processorEventHandler = processorEventHandler;
+        this.dslJson = new DslJson<>(new DslJson.Settings<>());
         this.timeoutTimer = ExecutorUtils.createSingleThreadSchedulingDaemonPool("request-timeout-timer");
     }
 
@@ -62,9 +74,14 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
     @Override
     public void onEvent(ReportingEvent event, long sequence, boolean endOfBatch) throws Exception {
+
+        logger.setMuted(event.isAgentLog());
         // when reporting log events, we have to mute logger to avoid creating exponentially more log events
         try {
-            logger.setMuted(event.isAgentLog());
+            if (reporter != null) {
+                ReporterMonitor monitor = reporter.getReporterMonitor();
+                monitor.eventDequeued(event.getType(), reporter.getQueueCapacity(), reporter.getQueueElementCount());
+            }
             if (logger.isDebugEnabled()) {
                 logger.debug("Receiving {} event (sequence {})", event.getType(), sequence);
             }
@@ -89,9 +106,6 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     }
 
     private void dispatchEvent(ReportingEvent event, long sequence, boolean endOfBatch) throws Exception {
-        if (event.getType() == null) {
-            return;
-        }
         switch (event.getType()) {
             case WAKEUP:
                 // wakeup silently ignored
@@ -109,13 +123,11 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             case SPAN:
             case ERROR:
             case TRANSACTION:
-            case JSON_WRITER:
             case BYTES_LOG:
             case STRING_LOG:
+            case METRICSET_JSON_WRITER:
                 handleIntakeEvent(event, sequence, endOfBatch);
                 break;
-            default:
-                throw new IllegalArgumentException("unknown event type " + event.getType());
         }
     }
 
@@ -127,6 +139,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private void handleIntakeEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
         processorEventHandler.onEvent(event, sequence, endOfBatch);
         try {
+            inflightEvents.increment(event.getType());
             if (connection == null) {
                 connection = startRequest(INTAKE_V2_URL);
             }
@@ -137,6 +150,10 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
                     logger.debug("Failed to get APM server connection, dropping event: {}", event);
                 }
                 dropped++;
+                if (reporter != null) {
+                    inflightEvents.reset(); //we never actually created a request when connection is null
+                    reporter.getReporterMonitor().eventDroppedAfterDequeue(event.getType());
+                }
             }
         } catch (Exception e) {
             handleConnectionError(event, e);
@@ -150,8 +167,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private void handleConnectionError(ReportingEvent event, Exception e) {
         logger.error("Failed to handle event of type {} with this error: {}", event.getType(), e.getMessage());
         logger.debug("Event handling failure", e);
-        endRequest();
-        onConnectionError(null, currentlyTransmitting + 1, 0);
+        endRequestExceptionally();
     }
 
     /**
@@ -165,33 +181,26 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
     private void writeEvent(ReportingEvent event) {
         if (event.getTransaction() != null) {
-            currentlyTransmitting++;
             payloadSerializer.serializeTransactionNdJson(event.getTransaction());
         } else if (event.getSpan() != null) {
-            currentlyTransmitting++;
             payloadSerializer.serializeSpanNdJson(event.getSpan());
         } else if (event.getError() != null) {
-            currentlyTransmitting++;
             payloadSerializer.serializeErrorNdJson(event.getError());
         } else if (event.getJsonWriter() != null) {
-            currentlyTransmitting++;
             payloadSerializer.writeBytes(event.getJsonWriter().getByteBuffer(), event.getJsonWriter().size());
         } else if (event.getBytesLog() != null && logsSupported()) {
-            currentlyTransmitting++;
             payloadSerializer.serializeLogNdJson(event.getBytesLog());
         } else if (event.getStringLog() != null && logsSupported()) {
-            currentlyTransmitting++;
             payloadSerializer.serializeLogNdJson(event.getStringLog());
         }
     }
 
     private boolean logsSupported() {
-        if(apmServerClient.supportsLogsEndpoint()){
+        if (apmServerClient.supportsLogsEndpoint()) {
             return true;
         }
 
         logsSupportLogger.warn("sending logs to apm server is not supported, upgrading to a more recent version is required");
-
         return false;
     }
 
@@ -208,6 +217,51 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             }
         }
         return connection;
+    }
+
+    @Override
+    protected void onRequestSuccess(long bytesWritten) {
+        long totalCount = inflightEvents.getTotalCount();
+        reported += totalCount;
+        if (reporter != null) {
+            reporter.getReporterMonitor().requestFinished(new ReportingEventCounter(inflightEvents), totalCount, bytesWritten, true);
+        }
+        inflightEvents.reset();
+        super.onRequestSuccess(bytesWritten);
+    }
+
+    @Override
+    protected void onConnectionError(@Nullable Integer responseCode, @Nullable String responseBody, long bytesWritten) {
+        long accepted = readAccepted(responseBody);
+        dropped += inflightEvents.getTotalCount() - accepted;
+        if (reporter != null) {
+            reporter.getReporterMonitor().requestFinished(new ReportingEventCounter(inflightEvents), accepted, bytesWritten, false);
+        }
+        inflightEvents.reset();
+        super.onConnectionError(responseCode, responseBody, bytesWritten);
+    }
+
+    private long readAccepted(@Nullable String responseBody) {
+        if (responseBody != null) {
+            byte[] data = responseBody.getBytes();
+            try {
+                Map<String, ?> response = dslJson.deserialize(Map.class, data, data.length);
+                if (response != null && response.get("accepted") instanceof Number) {
+                    return ((Number) response.get("accepted")).longValue();
+                }
+            } catch (Exception e) {
+                logger.warn("failed to deserialize APM server response", e);
+            }
+        }
+        return 0;
+    }
+
+    public long getReported() {
+        return reported;
+    }
+
+    public long getDropped() {
+        return dropped;
     }
 
     @Override

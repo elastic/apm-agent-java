@@ -190,7 +190,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         }
         logger.debug("Reporting {} meters", meterConsumer.meters.size());
         for (JsonWriter serializedMetricSet : serializer.serialize(meterConsumer.meters, now * 1000)) {
-            reporter.report(serializedMetricSet);
+            reporter.reportMetrics(serializedMetricSet);
         }
     }
 
