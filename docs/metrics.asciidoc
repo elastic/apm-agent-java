@@ -355,34 +355,28 @@ The reason for that is that if you set your sampling rate to 10%, for example,
 you'll only be storing one out of 10 requests.
 The labels you set on non-sampled transactions will be lost.
 
-* <<metrics-micrometer-beta-caveats>>
+* <<metrics-micrometer-beta-notes>>
 * <<metrics-micrometer-get-started-existing>>
 * <<metrics-micrometer-get-started-from-scratch>>
 * <<metrics-micrometer-spring-boot>>
 * <<metrics-micrometer-fields>>
 
 [float]
-[[metrics-micrometer-beta-caveats]]
-==== Caveats
-
-To fix some of the caveats listed here, we may have to introduce breaking changes.
-Please look for Micrometer-related release notes before updating.
+[[metrics-micrometer-beta-notes]]
+==== Notes
 
 * Dots in metric names of Micrometer metrics get replaced with underscores to avoid mapping conflicts.
 De-dotting can be disabled via <<config-dedot-custom-metrics, `dedot_custom_metrics`>>.
 * Histograms (https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/DistributionSummary.html[DistributionSummary],
 https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/Timer.html[Timer],
 and https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/LongTaskTimer.html[LongTaskTimer])
-are partially supported by converting the histogram metric into two derived metrics: a counter of the values and the sum of the values.
-For example, `DistributionSummary.builder("order").register(...).record(orderPrice)` will create two metrics: `order.sum` and `order.count`.
-* When multiple `MeterRegistry` s are used, the metrics are de-duplicated based on their meter id.
-  However, it is non-deterministic which metrics are favored if multiple meter registries are used within a compound meter registry.
-See https://github.com/elastic/apm-agent-java/issues/1476[#1476]
-* When using `CountingMode.STEP`, the step duration has to be aligned with <<config-metrics-interval, `metrics_interval`>>.
-  But even if doing that there can be missing values. See https://github.com/elastic/apm-agent-java/issues/1476[#1476]
+are supported by converting the histogram metric into three derived metrics: a counter of the values, the sum of the values, and the https://www.elastic.co/guide/en/elasticsearch/reference/current/histogram.html[histogram].
+For example, `DistributionSummary.builder("order").register(...).record(orderPrice)` will create three metrics: `order.sum`, `order.count` and `order.histogram` (which has a `values` array for the buckets and a `counts` array for counts of samples in each bucket).
+* When multiple `MeterRegistry` s are used, the metrics are de-duplicated based on their meter id. A warning is issued if a collision occurs from multiple meter registries within a compound meter registry.
 * When using `CountingMode.CUMULATIVE`, you can use TSVB's "Positive Rate" aggregation to convert the counter to a rate.
   But you have to remember to group by a combination of dimensions that uniquely identify the time series.
   This may be a combination of `host.name` and `service.name`, or the `kubernetes.pod.id`.
+
 
 [float]
 [[metrics-micrometer-get-started-existing]]
