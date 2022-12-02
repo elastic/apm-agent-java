@@ -69,6 +69,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
     @Override
     public void init(ApmServerReporter reporter) {
+        this.reporter = reporter;
         timeoutTask = new WakeupOnTimeout(reporter);
     }
 
