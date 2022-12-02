@@ -13,7 +13,7 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
-        <version.aws.sdk>2.17.288</version.aws.sdk>
+        <version.aws.sdk>2.18.28</version.aws.sdk>
         <version.aws.jms>2.0.0</version.aws.jms>
         <!-- AWS SDK v2 is compiled for Java 8 -->
         <maven.compiler.target>8</maven.compiler.target>
