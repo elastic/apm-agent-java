@@ -42,8 +42,7 @@ public class ReportingEvent {
     private Transaction transaction;
     @Nullable
     private ReportingEventType type;
-    @Nullable
-    private Object event;
+
     @Nullable
     private ErrorCapture error;
     @Nullable
@@ -53,6 +52,10 @@ public class ReportingEvent {
     @Nullable
     private Thread unparkAfterProcessed;
 
+    @Nullable
+    private String stringLog;
+    @Nullable
+    private byte[] bytesLog;
     private boolean agentLog;
 
     public void resetState() {
@@ -60,10 +63,11 @@ public class ReportingEvent {
         this.type = null;
         this.error = null;
         this.span = null;
-        this.event = null;
         this.jsonWriter = null;
         this.unparkAfterProcessed = null;
         this.agentLog = false;
+        this.bytesLog = null;
+        this.stringLog = null;
     }
 
     @Nullable
@@ -112,31 +116,23 @@ public class ReportingEvent {
     }
 
     public void setStringLog(String string) {
-        this.event = string;
+        this.stringLog = string;
         this.type = STRING_LOG;
     }
 
     @Nullable
     public String getStringLog() {
-        if (type == STRING_LOG) {
-            return (String) event;
-        } else {
-            return null;
-        }
+        return stringLog;
     }
     public void setBytesLog(byte[] bytes, boolean agentLog) {
-        this.event = bytes;
+        this.bytesLog = bytes;
         this.type = BYTES_LOG;
         this.agentLog = agentLog;
     }
 
     @Nullable
     public byte[] getBytesLog() {
-        if (type == BYTES_LOG) {
-            return (byte[]) event;
-        } else {
-            return null;
-        }
+        return bytesLog;
     }
 
     public boolean isAgentLog() {

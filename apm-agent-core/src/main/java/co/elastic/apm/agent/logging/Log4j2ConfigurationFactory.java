@@ -165,7 +165,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         } else {
             appenders.add(createFileAppender(builder, logFile, createLayout(builder, getFileLogFormat())));
         }
-        appenders.add(createStreamingAppender(builder));
+        appenders.add(createSendingAppender(builder));
 
         for (AppenderComponentBuilder appender : appenders) {
             builder.add(appender);
@@ -220,7 +220,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
             .addComponent(builder.newComponent("DefaultRolloverStrategy").addAttribute("max", 1));
     }
 
-    private AppenderComponentBuilder createStreamingAppender(ConfigurationBuilder<BuiltConfiguration> builder) {
+    private AppenderComponentBuilder createSendingAppender(ConfigurationBuilder<BuiltConfiguration> builder) {
         return builder.newAppender("apm-server", "ApmServer")
             .add(createLayout(builder, LogFormat.JSON));
     }

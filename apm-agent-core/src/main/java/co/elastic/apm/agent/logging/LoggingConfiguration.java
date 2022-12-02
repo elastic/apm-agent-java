@@ -88,10 +88,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
      * However, the registry initializes logging by declaring a static final logger variable.
      * In order to break up the cyclic dependency and to not accidentally initialize logging before we had the chance to configure the logging,
      * we manually resolve these options.
-     *
+     * <p>
      * NOTE: on top of the above, this specific option should never be accessed through the ConfigurationOption as it
      * allows {@link LogLevel} that are effectively mapped to other values.
-     *
+     * <p>
      * See {@link Log4j2ConfigurationFactory#getValue}
      */
     @SuppressWarnings("unused")
@@ -117,6 +117,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     /**
      * Maps a {@link LogLevel} that is supported by the agent to a value that is also supported by the underlying
      * logging framework.
+     *
      * @param original the agent-supported {@link LogLevel}
      * @return a {@link LogLevel} that is both supported by the agent and the underlying logging framework
      */
@@ -379,10 +380,6 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     public long getDefaultLogFileSize() {
         return logFileSize.getValueConverter().convert(logFileSize.getDefaultValueAsString()).getBytes();
-    }
-
-    public LogFormat getLogFormatFile() {
-        return logFormatFile.get();
     }
 
     public boolean getSendLogs() {

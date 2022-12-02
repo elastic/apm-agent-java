@@ -169,7 +169,7 @@ class IntakeV2ReportingEventHandlerTest {
         reportTransaction(reportingEventHandler);
         reportSpan();
         reportError();
-        reportLog();
+        reportLog(); // FIXME: moving 'reportLog' after 'reportMetrics' make the log event to be skipped
         reportMetrics();
 
         assertThat(reportingEventHandler.getBufferSize()).isGreaterThan(0);
