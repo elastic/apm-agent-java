@@ -339,10 +339,8 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             for (LoggerContext loggerContext : selector.getLoggerContexts()) {
                 // Taken from org.apache.logging.log4j.core.config.Configurator#setRootLevel()
                 final LoggerConfig loggerConfig = loggerContext.getConfiguration().getRootLogger();
-                if (!loggerConfig.getLevel().equals(log4jLevel)) {
-                    loggerConfig.setLevel(log4jLevel);
-                    loggerContext.updateLoggers();
-                }
+                loggerConfig.setLevel(log4jLevel);
+                loggerContext.updateLoggers();
             }
         } else {
             // it should be safe to obtain a logger here
