@@ -231,7 +231,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     }
 
     @Test
-    public void testShipLog() {
+    public void testSendLogs() {
         doReturn(Boolean.TRUE).when(loggingConfig).getSendLogs();
 
         logger.trace(TRACE_MESSAGE);
