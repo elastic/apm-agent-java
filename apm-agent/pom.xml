@@ -38,7 +38,12 @@
         <!--Agent plugins, sorted alphabetically -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-apache-httpclient-plugin</artifactId>
+            <artifactId>apm-apache-httpclient3-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-apache-httpclient4-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

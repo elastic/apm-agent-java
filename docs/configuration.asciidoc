@@ -166,6 +166,7 @@ Click on a key to get more information.
 ** <<config-dedot-custom-metrics>>
 ** <<config-metric-set-limit>>
 ** <<config-agent-reporter-health-metrics>>
+** <<config-agent-background-overhead-metrics>>
 * <<config-mongodb>>
 ** <<config-mongodb-capture-statement-commands>>
 * <<config-profiling>>
@@ -2343,6 +2344,31 @@ Enables metrics which capture the health state of the agent's event reporting me
 | `elastic.apm.agent_reporter_health_metrics` | `agent_reporter_health_metrics` | `ELASTIC_APM_AGENT_REPORTER_HEALTH_METRICS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-agent-background-overhead-metrics]]
+==== `agent_background_overhead_metrics` (added[1.35.0] experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+Enables metrics which capture the resource consumption of agent background tasks.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.agent_background_overhead_metrics` | `agent_background_overhead_metrics` | `ELASTIC_APM_AGENT_BACKGROUND_OVERHEAD_METRICS`
+|============
+
 [[config-mongodb]]
 === MongoDB configuration options
 
@@ -2577,13 +2603,13 @@ This string is used to ensure that only your agents can send data to your APM se
 Both the agents and the APM server have to be configured with the same secret token.
 Use if APM Server requires a token.
 
-
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<none>` | String | false
+| `<none>` | String | true
 |============
 
 
@@ -2604,13 +2630,13 @@ Agents can use API keys as a replacement of secret token, APM server can have mu
 When both secret token and API key are used, API key has priority and secret token is ignored.
 Use if APM Server requires an API key.
 
-
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<none>` | String | false
+| `<none>` | String | true
 |============
 
 
@@ -4237,6 +4263,14 @@ Example: `5ms`.
 #
 # agent_reporter_health_metrics=false
 
+# Enables metrics which capture the resource consumption of agent background tasks.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# agent_background_overhead_metrics=false
+
 ############################################
 # MongoDB                                  #
 ############################################
@@ -4348,7 +4382,7 @@ Example: `5ms`.
 # Both the agents and the APM server have to be configured with the same secret token.
 # Use if APM Server requires a token.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: String
 # Default value: 
 #
@@ -4360,7 +4394,7 @@ Example: `5ms`.
 # When both secret token and API key are used, API key has priority and secret token is ignored.
 # Use if APM Server requires an API key.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: String
 # Default value: 
 #

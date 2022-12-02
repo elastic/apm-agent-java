@@ -584,6 +584,11 @@ experimental::[]
 
 The agent internally uses a queue to buffer the various events (e.g. transactions, spans, metrics) before sending them to the APM server.
 When <<config-agent-reporter-health-metrics, `agent_reporter_health_metrics`>> is enabled, the agent will expose several metrics regarding the health state of this queue and the network connectivity to the APM server.
+In addition, if <<config-agent-background-overhead-metrics, `agent_background_overhead_metrics`>> is enabled, the agent will continuously measure the resource consumption of its own background tasks and provide the results as metrics.
+
+[float]
+[[metrics-agenthealth-events]]
+==== Agent Reporting and Event Metrics
 
 *`agent.events.total`*::
 +
@@ -644,4 +649,48 @@ type: long
 format: bytes
 
 The number of bytes attempted to send (successful and failed) to the APM server to report data.
+--
+
+[float]
+[[metrics-agenthealth-overhead]]
+==== Agent Background Resource Consumption Metrics
+
+*`agent.background.cpu.total.pct`*::
++
+--
+type: double
+
+format: percentage [0-1]
+
+The total CPU usage caused by background tasks running in the agent.
+--
+
+*`agent.background.cpu.overhead.pct`*::
++
+--
+type: double
+
+format: percentage [0-1]
+
+The share of process CPU usage caused by background tasks running in the agent.
+--
+
+*`agent.background.memory.allocation.bytes`*::
++
+--
+type: long
+
+format: bytes
+
+The number of bytes allocated in the heap by background tasks running in the agent.
+--
+
+*`agent.background.threads.count`*::
++
+--
+type: long
+
+format: number of threads
+
+The number of threads used by background tasks in the agent.
 --
