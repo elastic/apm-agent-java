@@ -169,6 +169,7 @@ class IntakeV2ReportingEventHandlerTest {
         reportTransaction(reportingEventHandler);
         reportSpan();
         reportError();
+        reportLog();
         reportMetrics();
 
         assertThat(reportingEventHandler.getBufferSize()).isGreaterThan(0);
@@ -176,12 +177,13 @@ class IntakeV2ReportingEventHandlerTest {
         assertThat(reportingEventHandler.getBufferSize()).isEqualTo(0);
 
         final List<JsonNode> ndJsonNodes = getNdJsonNodes();
-        assertThat(ndJsonNodes).hasSize(5);
+        assertThat(ndJsonNodes).hasSize(6);
         assertThat(ndJsonNodes.get(0).get("metadata")).isNotNull();
         assertThat(ndJsonNodes.get(1).get("transaction")).isNotNull();
         assertThat(ndJsonNodes.get(2).get("span")).isNotNull();
         assertThat(ndJsonNodes.get(3).get("error")).isNotNull();
-        assertThat(ndJsonNodes.get(4).get("metrics")).isNotNull();
+        assertThat(ndJsonNodes.get(4).get("log")).isNotNull();
+        assertThat(ndJsonNodes.get(5).get("metrics")).isNotNull();
     }
 
     @Test

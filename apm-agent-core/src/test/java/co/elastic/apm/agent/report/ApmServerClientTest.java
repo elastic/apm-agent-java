@@ -86,6 +86,7 @@ public class ApmServerClientTest {
         URL url2 = new URL("http", "localhost", apmServer2.port(), "/proxy");
         // APM server 6.x style
         apmServer1.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("ok", Map.of("version", "6.7.1-SNAPSHOT")))));
+
         apmServer1.stubFor(get(urlEqualTo("/test")).willReturn(notFound()));
         apmServer1.stubFor(get(urlEqualTo("/not-found")).willReturn(notFound()));
         // APM server 7+ style
@@ -111,6 +112,7 @@ public class ApmServerClientTest {
         // force a known order, with server1, then server2
         // tracer start will actually randomize it
         apmServerClient.start(urlList);
+
         //wait until the health request completes to prevent mockito race conditions
         apmServerClient.getApmServerVersion(10, TimeUnit.SECONDS);
     }
