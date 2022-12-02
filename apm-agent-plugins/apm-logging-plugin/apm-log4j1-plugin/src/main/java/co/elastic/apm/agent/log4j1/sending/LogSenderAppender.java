@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.log4j1.shipper;
+package co.elastic.apm.agent.log4j1.sending;
 
 import co.elastic.apm.agent.report.Reporter;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.Layout;
 import org.apache.log4j.spi.LoggingEvent;
 
-public class LogShipperAppender extends AppenderSkeleton {
+public class LogSenderAppender extends AppenderSkeleton {
     private final Reporter reporter;
     private final Layout formatter;
 
-    public LogShipperAppender(Reporter reporter, Layout formatter) {
+    public LogSenderAppender(Reporter reporter, Layout formatter) {
         this.reporter = reporter;
         this.formatter = formatter;
     }

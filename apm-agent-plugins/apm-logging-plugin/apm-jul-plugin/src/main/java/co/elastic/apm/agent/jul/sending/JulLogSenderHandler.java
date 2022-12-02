@@ -16,24 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.logback.shipper;
+package co.elastic.apm.agent.jul.sending;
 
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.UnsynchronizedAppenderBase;
-import ch.qos.logback.core.encoder.Encoder;
 import co.elastic.apm.agent.report.Reporter;
 
-public class LogbackLogShipperAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
-    private final Reporter reporter;
-    private final Encoder<ILoggingEvent> formatter;
+import java.util.logging.Formatter;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
 
-    public LogbackLogShipperAppender(Reporter reporter, Encoder<ILoggingEvent> formatter) {
+public class JulLogSenderHandler extends Handler {
+    private final Reporter reporter;
+    private final Formatter formatter;
+
+    public JulLogSenderHandler(Reporter reporter, Formatter formatter) {
         this.reporter = reporter;
         this.formatter = formatter;
     }
 
     @Override
-    protected void append(ILoggingEvent eventObject) {
-        reporter.reportLog(formatter.encode(eventObject));
+    public void publish(LogRecord record) {
+        reporter.reportLog(formatter.format(record));
+    }
+
+    @Override
+    public void flush() {
+
+    }
+
+    @Override
+    public void close() throws SecurityException {
+
     }
 }

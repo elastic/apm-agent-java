@@ -28,7 +28,7 @@ import ch.qos.logback.core.encoder.LayoutWrappingEncoder;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
-import co.elastic.apm.agent.logback.shipper.LogbackLogShipperAppender;
+import co.elastic.apm.agent.logback.sending.LogbackLogSenderAppender;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -155,7 +155,7 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
 
     @Override
     protected Appender<ILoggingEvent> createAndStartLogShipperAppender(Reporter reporter, Encoder<ILoggingEvent> formatter) {
-        LogbackLogShipperAppender appender = new LogbackLogShipperAppender(reporter, formatter);
+        LogbackLogSenderAppender appender = new LogbackLogSenderAppender(reporter, formatter);
         appender.start();
         return appender;
     }

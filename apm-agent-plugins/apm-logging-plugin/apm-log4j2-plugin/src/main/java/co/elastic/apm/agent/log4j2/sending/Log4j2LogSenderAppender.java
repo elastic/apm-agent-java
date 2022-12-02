@@ -16,35 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jul.shipper;
+package co.elastic.apm.agent.log4j2.sending;
 
 import co.elastic.apm.agent.report.Reporter;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.StringLayout;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
 
-import java.util.logging.Formatter;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
+public class Log4j2LogSenderAppender extends AbstractAppender {
 
-public class JulLogShipperHandler extends Handler {
     private final Reporter reporter;
-    private final Formatter formatter;
+    private final StringLayout ecsLayout;
 
-    public JulLogShipperHandler(Reporter reporter, Formatter formatter) {
+    public Log4j2LogSenderAppender(Reporter reporter, StringLayout ecsLayout) {
+        super("ElasticApmAppender", null, ecsLayout, true, null);
         this.reporter = reporter;
-        this.formatter = formatter;
+        this.ecsLayout = ecsLayout;
     }
 
     @Override
-    public void publish(LogRecord record) {
-        reporter.reportLog(formatter.format(record));
+    public void append(LogEvent event) {
+        reporter.reportLog(ecsLayout.toSerializable(event));
     }
 
-    @Override
-    public void flush() {
-
-    }
-
-    @Override
-    public void close() throws SecurityException {
-
-    }
 }

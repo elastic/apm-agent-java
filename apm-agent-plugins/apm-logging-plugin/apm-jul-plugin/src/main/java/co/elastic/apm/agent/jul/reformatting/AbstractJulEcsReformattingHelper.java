@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.jul.reformatting;
 
-import co.elastic.apm.agent.jul.shipper.JulLogShipperHandler;
+import co.elastic.apm.agent.jul.sending.JulLogSenderHandler;
 import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.report.Reporter;
@@ -146,7 +146,7 @@ public abstract class AbstractJulEcsReformattingHelper<T extends Handler> extend
 
     @Override
     protected T createAndStartLogShipperAppender(Reporter reporter, Formatter formatter) {
-        return (T) new JulLogShipperHandler(reporter, formatter);
+        return (T) new JulLogSenderHandler(reporter, formatter);
     }
 
     @Override

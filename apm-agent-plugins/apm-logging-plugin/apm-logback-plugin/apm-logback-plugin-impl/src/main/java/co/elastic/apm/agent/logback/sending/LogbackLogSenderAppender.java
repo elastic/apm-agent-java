@@ -16,27 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.log4j2.shipper;
+package co.elastic.apm.agent.logback.sending;
 
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.UnsynchronizedAppenderBase;
+import ch.qos.logback.core.encoder.Encoder;
 import co.elastic.apm.agent.report.Reporter;
-import org.apache.logging.log4j.core.LogEvent;
-import org.apache.logging.log4j.core.StringLayout;
-import org.apache.logging.log4j.core.appender.AbstractAppender;
 
-public class Log4j2LogShipperAppender extends AbstractAppender {
-
+public class LogbackLogSenderAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
     private final Reporter reporter;
-    private final StringLayout ecsLayout;
+    private final Encoder<ILoggingEvent> formatter;
 
-    public Log4j2LogShipperAppender(Reporter reporter, StringLayout ecsLayout) {
-        super("ElasticApmAppender", null, ecsLayout, true, null);
+    public LogbackLogSenderAppender(Reporter reporter, Encoder<ILoggingEvent> formatter) {
         this.reporter = reporter;
-        this.ecsLayout = ecsLayout;
+        this.formatter = formatter;
     }
 
     @Override
-    public void append(LogEvent event) {
-        reporter.reportLog(ecsLayout.toSerializable(event));
+    protected void append(ILoggingEvent eventObject) {
+        reporter.reportLog(formatter.encode(eventObject));
     }
-
 }

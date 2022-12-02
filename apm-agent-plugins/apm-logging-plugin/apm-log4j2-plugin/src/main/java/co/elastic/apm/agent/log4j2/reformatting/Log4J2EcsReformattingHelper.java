@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.log4j2.reformatting;
 
-import co.elastic.apm.agent.log4j2.shipper.Log4j2LogShipperAppender;
+import co.elastic.apm.agent.log4j2.sending.Log4j2LogSenderAppender;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
 import co.elastic.apm.agent.report.Reporter;
@@ -151,7 +151,7 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
 
     @Override
     protected Appender createAndStartLogShipperAppender(Reporter reporter, Layout<? extends Serializable> ecsLayout) {
-        Log4j2LogShipperAppender appender = new Log4j2LogShipperAppender(reporter, (StringLayout) ecsLayout);
+        Log4j2LogSenderAppender appender = new Log4j2LogSenderAppender(reporter, (StringLayout) ecsLayout);
         appender.start();
         return appender;
     }

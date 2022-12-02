@@ -332,6 +332,7 @@ public class ApmServerReporter implements Reporter {
                     logger.debug("Could not add {} {} to ring buffer as no slots are available", event.getClass().getSimpleName(), event);
                 }
                 dropped.incrementAndGet();
+                monitor.eventDroppedBeforeQueue(targetType, capacity);
                 return false;
             }
         } else {
