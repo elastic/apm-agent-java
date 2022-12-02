@@ -44,6 +44,8 @@ Added agent health and background overhead metrics (experimental) - {pull}2864[#
 * Added support for Finagle Http Client - {pull}2795[#2795]
 * Add support for Apache HTTP client 3.x - {pull}2853[#2853]
 * Made `api_key` and `secret_token` configuration options dynamic - {pull}2889[#2889]
+* Misaligned micrometer interval vs Elastic agent metrics reporting interval now handled - {pull}2801[#2801]
+* Histograms now reported from micrometer metrics - {pull}2895[#2895]
 
 [float]
 ===== Bug fixes
