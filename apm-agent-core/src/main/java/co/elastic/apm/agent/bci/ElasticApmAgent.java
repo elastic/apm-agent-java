@@ -769,6 +769,8 @@ public class ElasticApmAgent {
                 final Set<Collection<Class<? extends ElasticApmInstrumentation>>> updatedAppliedInstrumentations =
                     dynamicallyInstrumentedClasses.get(classToInstrument);
                 if (!updatedAppliedInstrumentations.contains(instrumentationClasses)) {
+                    // as this instrumentation route is expected to be invoked by application threads, we need to make sure everything we
+                    // do hereafter is only restricted by the permissions granted to the agent if the security manager is enabled.
                     if (System.getSecurityManager() == null) {
                         applyInstrumentation(classToInstrument, instrumentationClasses, updatedAppliedInstrumentations, tracer);
                     } else {

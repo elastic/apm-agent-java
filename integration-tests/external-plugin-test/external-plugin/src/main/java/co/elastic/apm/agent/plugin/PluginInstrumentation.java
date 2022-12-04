@@ -50,7 +50,7 @@ public class PluginInstrumentation extends ElasticApmInstrumentation {
         String customType = null;
         try {
             customType = System.getProperty("elastic.apm.plugin.instrumented_class");
-        } catch (Exception e) {
+        } catch (SecurityException e) {
             // ignore, probably failure related to running with the security manager on
         }
         return named(customType != null ? customType : "co.elastic.apm.plugin.test.TestClass");
@@ -61,7 +61,7 @@ public class PluginInstrumentation extends ElasticApmInstrumentation {
         String customMethod = null;
         try {
             customMethod = System.getProperty("elastic.apm.plugin.instrumented_method");
-        } catch (Exception e) {
+        } catch (SecurityException e) {
             // ignore, probably failure related to running with the security manager on
         }
         return named(customMethod != null ? customMethod : "traceMe");
