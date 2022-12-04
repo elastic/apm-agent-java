@@ -785,7 +785,8 @@ public class ElasticApmAgent {
         }
     }
 
-    private static void applyInstrumentation(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses, Set<Collection<Class<? extends ElasticApmInstrumentation>>> appliedInstrumentations, ElasticApmTracer tracer) {
+    private static void applyInstrumentation(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses,
+                                             Set<Collection<Class<? extends ElasticApmInstrumentation>>> appliedInstrumentations, ElasticApmTracer tracer) {
         appliedInstrumentations = new HashSet<>(appliedInstrumentations);
         appliedInstrumentations.add(instrumentationClasses);
         // immutability guards against race conditions (for example concurrent rehash due to add and lookup)
