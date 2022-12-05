@@ -28,12 +28,7 @@ public final class WeakConcurrent {
     private static final WeakConcurrentProvider supplier;
 
     static {
-        ClassLoader classLoader = InternalUtil.getClassLoader(WeakConcurrentProvider.class);
-        if (classLoader == null) {
-            classLoader = InternalUtil.getSystemClassLoader();
-        }
-        // loads the implementation provided by the core module without depending on the class or class name
-        supplier = ServiceLoader.load(WeakConcurrentProvider.class, classLoader).iterator().next();
+        supplier = InternalUtil.getServiceProvider(WeakConcurrentProvider.class);
     }
 
     /**

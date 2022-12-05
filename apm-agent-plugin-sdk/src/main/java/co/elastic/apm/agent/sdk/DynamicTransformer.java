@@ -29,12 +29,7 @@ public class DynamicTransformer {
     private static final DynamicTransformerProvider transformer;
 
     static {
-        ClassLoader classLoader = InternalUtil.getClassLoader(DynamicTransformer.class);
-        if (classLoader == null) {
-            classLoader = InternalUtil.getSystemClassLoader();
-        }
-        // loads the implementation provided by the core module without depending on the class or class name
-        transformer = ServiceLoader.load(DynamicTransformerProvider.class, classLoader).iterator().next();
+        transformer = InternalUtil.getServiceProvider(DynamicTransformerProvider.class);
     }
 
     /**
