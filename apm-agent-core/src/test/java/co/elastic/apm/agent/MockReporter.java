@@ -81,6 +81,8 @@ public class MockReporter implements Reporter {
     private boolean checkUnknownOutcomes = true;
     // Allows optional opt-out from strict span type/sub-type checking
     private boolean checkStrictSpanType = true;
+    //Instead of recording data, they are recycled immediately. Mainly used in repeated tests to uncover issues with premature recycling.
+    private boolean enabledImmediateRecycling = false;
 
     /**
      * If set to {@code true}, the reporter will attempt to execute gc when asserting that all objects were properly
@@ -170,6 +172,15 @@ public class MockReporter implements Reporter {
         gcWhenAssertingRecycling = true;
     }
 
+    /**
+     * If set to true, spans & transactions will not be recorded but instead immediately recycled.
+     *
+     * @param enable true to enable immediate recycling
+     */
+    public void setImmediateRecycling(boolean enable) {
+        this.enabledImmediateRecycling = enable;
+    }
+
     @Override
     public void start() {
     }
@@ -190,7 +201,11 @@ public class MockReporter implements Reporter {
         }
 
         verifyTransactionSchema(transaction);
-        transactions.add(transaction);
+        if (enabledImmediateRecycling) {
+            transaction.decrementReferences();
+        } else {
+            transactions.add(transaction);
+        }
     }
 
     @Override
@@ -215,8 +230,11 @@ public class MockReporter implements Reporter {
             e.printStackTrace(System.err);
             throw e;
         }
-
-        spans.add(span);
+        if (enabledImmediateRecycling) {
+            span.decrementReferences();
+        } else {
+            spans.add(span);
+        }
     }
 
 

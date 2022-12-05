@@ -64,6 +64,7 @@ public class SpanCompressionIT {
     @BeforeEach
     void resetReporter() {
         reporter.reset();
+        reporter.setImmediateRecycling(false);
     }
 
     @AfterAll
@@ -74,7 +75,7 @@ public class SpanCompressionIT {
     @RepeatedTest(100)
     void testParallelExitSpanCreation() {
         runInTransactionScope((transaction, i) -> {
-            return () -> createExitSpan(transaction, i, 1000L + i);
+            return () -> createExitSpan(transaction, i, 1000L + i, "postgresql");
         });
 
         assertReportedSpans(reporter.getSpans());
@@ -86,12 +87,26 @@ public class SpanCompressionIT {
             if (ThreadLocalRandom.current().nextInt(100) < 10) {
                 return () -> createSpan(transaction, i, 1000L + i);
             } else {
-                return () -> createExitSpan(transaction, i, 1000L + i);
+                return () -> createExitSpan(transaction, i, 1000L + i, "postgresql");
             }
         });
 
         assertReportedSpans(reporter.getSpans());
     }
+
+    @RepeatedTest(100)
+    void testParallelNonCompressibleExitSpanCreationWithRecycling() {
+        reporter.setImmediateRecycling(true);
+
+        runInTransactionScope((transaction, i) -> {
+            if (ThreadLocalRandom.current().nextInt(100) < 10) {
+                return () -> createExitSpan(transaction, i, 1000L + i, "mysql");
+            } else {
+                return () -> createExitSpan(transaction, i, 1000L + i, "postgresql");
+            }
+        });
+    }
+
 
     private static void runInTransactionScope(BiFunction<AbstractSpan<?>, Integer, Runnable> r) {
         Transaction transaction = tracer.startRootTransaction(null).withName("Some Transaction");
@@ -113,8 +128,8 @@ public class SpanCompressionIT {
         span.end(endTimestamp);
     }
 
-    private static void createExitSpan(AbstractSpan<?> parent, long startTimestamp, long endTimestamp) {
-        Span span = parent.createSpan().asExit().withName("Some Other Name").withType("db").withSubtype("postgresql");
+    private static void createExitSpan(AbstractSpan<?> parent, long startTimestamp, long endTimestamp, String subtype) {
+        Span span = parent.createSpan().asExit().withName("Some Other Name").withType("db").withSubtype(subtype);
         span.getContext().getDestination().withAddress("127.0.0.1").withPort(5432);
         span.setStartTimestamp(startTimestamp);
         span.end(endTimestamp);

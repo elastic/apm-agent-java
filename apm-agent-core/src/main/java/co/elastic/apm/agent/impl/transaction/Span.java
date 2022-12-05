@@ -305,7 +305,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                         if (isSampled() && transaction != null) {
                             transaction.getSpanCount().getDropped().incrementAndGet();
                         }
-                        //drop the span by removing the reference allocated in onAfterStart() because is has been compressed
+                        //drop the span by removing the reference allocated in onAfterStart() because it has been compressed
                         decrementReferences();
                     }
                 } finally {
