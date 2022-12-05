@@ -336,7 +336,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testActivationStackOverflow() {
-        doReturn(2).when(tracerImpl.getConfig(CoreConfiguration.class)).getTransactionMaxSpans();
+        doReturn(2).when(config.getConfig(CoreConfiguration.class)).getTransactionMaxSpans();
 
         ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
