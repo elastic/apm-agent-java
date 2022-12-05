@@ -18,7 +18,10 @@
  */
 package co.elastic.apm.agent.configuration;
 
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
+
 import javax.annotation.Nullable;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.jar.Attributes;
@@ -30,7 +33,7 @@ public class ServiceInfo {
     private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)+(\\d+)(.*)?$";
     private static final String DEFAULT_SERVICE_NAME = "unknown-java-service";
     private static final ServiceInfo EMPTY = new ServiceInfo(null, null);
-    private static final ServiceInfo AUTO_DETECTED = autoDetect(System.getProperties());
+    private static final ServiceInfo AUTO_DETECTED = autoDetect(System.getProperties(), PrivilegedActionUtils.getEnv());
 
     private final String serviceName;
     @Nullable
@@ -83,12 +86,12 @@ public class ServiceInfo {
         return AUTO_DETECTED;
     }
 
-    public static ServiceInfo autoDetect(Properties properties) {
-        String lambdaFunctionName = System.getenv("AWS_LAMBDA_FUNCTION_NAME");
+    public static ServiceInfo autoDetect(Properties sysProperties, Map<String,String> sysEnv) {
+        String lambdaFunctionName = sysEnv.get("AWS_LAMBDA_FUNCTION_NAME");
         if (lambdaFunctionName != null) {
-            return new ServiceInfo(lambdaFunctionName, System.getenv("AWS_LAMBDA_FUNCTION_VERSION"));
+            return new ServiceInfo(lambdaFunctionName, sysEnv.get("AWS_LAMBDA_FUNCTION_VERSION"));
         } else {
-            ServiceInfo serviceInfo = createFromSunJavaCommand(properties.getProperty("sun.java.command"));
+            ServiceInfo serviceInfo = createFromSunJavaCommand(sysProperties.getProperty("sun.java.command"));
             if (serviceInfo != null) {
                 return serviceInfo;
             }

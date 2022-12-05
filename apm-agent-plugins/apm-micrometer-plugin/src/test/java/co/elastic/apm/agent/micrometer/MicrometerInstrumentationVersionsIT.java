@@ -27,7 +27,7 @@ public class MicrometerInstrumentationVersionsIT {
 
     public MicrometerInstrumentationVersionsIT() throws Exception {
         this.runner = new TestClassWithDependencyRunner("io.micrometer", "micrometer-core", "1.0.1",
-            MicrometerInstrumentationTest.class
+            MicrometerInstrumentationTest.class, MicrometerInstrumentationTest.OneSecondStepSimpleConfig.class
         );
     }
 

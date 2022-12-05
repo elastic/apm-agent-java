@@ -33,13 +33,13 @@ import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.FunctionTimer;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.MockClock;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import io.micrometer.core.instrument.simple.CountingMode;
 import io.micrometer.core.instrument.simple.SimpleConfig;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.core.instrument.util.TimeUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -73,14 +74,15 @@ class MicrometerMetricsReporterTest {
         meterRegistry = new CompositeMeterRegistry(Clock.SYSTEM, List.of(nestedCompositeMeterRegistry));
         reporter = new MockReporter();
         tracer = MockTracer.createRealTracer(reporter);
-        doReturn(0L).when(tracer.getConfig(ReporterConfiguration.class)).getMetricsIntervalMs();
-        metricsReporter = new MicrometerMetricsReporter(tracer);
+        doReturn(61_000L).when(tracer.getConfig(ReporterConfiguration.class)).getMetricsIntervalMs();
+        metricsReporter = new MicrometerMetricsReporter(tracer, true); //all calls to run() are explicit from the tests
+        //note the default mode is CUMULATIVE, so no need to addConfig(meterRegistry, meterRegistryConfig);
         metricsReporter.registerMeterRegistry(meterRegistry);
         metricsReporter.registerMeterRegistry(nestedCompositeMeterRegistry);
         metricsReporter.registerMeterRegistry(simpleMeterRegistry);
-        assertThat(metricsReporter.getMeterRegistries()).doesNotContain(meterRegistry);
-        assertThat(metricsReporter.getMeterRegistries()).doesNotContain(nestedCompositeMeterRegistry);
-        assertThat(metricsReporter.getMeterRegistries()).contains(simpleMeterRegistry);
+        assertThat(metricsReporter.getMeterRegistries().containsKey(meterRegistry)).isFalse();
+        assertThat(metricsReporter.getMeterRegistries().containsKey(nestedCompositeMeterRegistry)).isFalse();
+        assertThat(metricsReporter.getMeterRegistries().containsKey(simpleMeterRegistry)).isTrue();
     }
 
     @AfterEach
@@ -199,6 +201,14 @@ class MicrometerMetricsReporterTest {
     }
 
     @Test
+    void testCounterWithMetricsIntervalDisabled() {
+        doReturn(0L).when(tracer.getConfig(ReporterConfiguration.class)).getMetricsIntervalMs();
+        meterRegistry.counter("counter", List.of(Tag.of("foo", "bar"), Tag.of("baz", "qux"))).increment(42);
+        List<JsonNode> metricSets = getMetricSets(null);
+        assertThat(metricSets).isEmpty();
+    }
+
+    @Test
     void testFunctionCounter() {
         FunctionCounter.builder("counter", 42, i -> i).tag("foo", "bar").register(meterRegistry);
 
@@ -208,9 +218,50 @@ class MicrometerMetricsReporterTest {
     }
 
     @Test
+    void testStepCounterIntervalTakesPrecedenceAndNoReportBeforeFirstStep() {
+        ThreadSafeMockClock clock = new ThreadSafeMockClock();
+        metricsReporter.resetNow(clock.wallTime());
+        SimpleConfig meterRegistryConfig = new SimpleConfig() {
+
+            @Override
+            public CountingMode mode() {
+                return CountingMode.STEP;
+            }
+
+            @Override
+            public Duration step() {
+                return Duration.ofSeconds(10);
+            }
+
+            @Override
+            public String get(@Nonnull String key) {
+                return null;
+            }
+        };
+        meterRegistry = new SimpleMeterRegistry(meterRegistryConfig, clock);
+        metricsReporter.addConfig(meterRegistry, meterRegistryConfig);
+        metricsReporter.registerMeterRegistry(meterRegistry);
+        meterRegistry.counter("counter").increment();
+        clock.add(5, TimeUnit.SECONDS);
+        List<JsonNode> metricSets = getMetricSets(clock);
+        //interval is 30s but step is 10s so that 10s should take precedence
+        //which means after 5 seconds there should be no value reported
+        assertThat(metricSets).isEmpty();
+
+        //but after 15 seconds there should be an entry
+        clock.add(10, TimeUnit.SECONDS);
+        metricSets = getMetricSets(clock);
+        assertThat(metricSets).hasSize(1);
+        assertThat(metricSets.get(0).get("metricset").get("samples").get("counter").get("value").doubleValue()).isEqualTo(1);
+        System.out.println("E-- "+meterRegistry.counter("counter").count());
+    }
+
+    @Test
     void testCounterReset() {
-        MockClock clock = new MockClock();
-        meterRegistry = new SimpleMeterRegistry(new SimpleConfig() {
+        ThreadSafeMockClock clock = new ThreadSafeMockClock();
+        metricsReporter.resetNow(clock.wallTime());
+        SimpleConfig meterRegistryConfig;
+        meterRegistry = new SimpleMeterRegistry(meterRegistryConfig = new SimpleConfig() {
 
             @Override
             public CountingMode mode() {
@@ -227,14 +278,15 @@ class MicrometerMetricsReporterTest {
                 return null;
             }
         }, clock);
+        metricsReporter.addConfig(meterRegistry, meterRegistryConfig);
         metricsReporter.registerMeterRegistry(meterRegistry);
         meterRegistry.counter("counter").increment();
 
-        clock.addSeconds(30);
-        assertThat(getSingleMetricSet().get("metricset").get("samples").get("counter").get("value").doubleValue()).isEqualTo(1);
+        clock.addSeconds(31);
+        assertThat(getSingleMetricSet(clock).get("metricset").get("samples").get("counter").get("value").doubleValue()).isEqualTo(1);
 
         clock.addSeconds(30);
-        assertThat(getSingleMetricSet().get("metricset").get("samples").get("counter").get("value").doubleValue()).isEqualTo(0);
+        assertThat(getSingleMetricSet(clock).get("metricset").get("samples").get("counter").get("value").doubleValue()).isEqualTo(0);
     }
 
     @Test
@@ -475,13 +527,28 @@ class MicrometerMetricsReporterTest {
     }
 
     private JsonNode getSingleMetricSet() {
-        List<JsonNode> metricSets = getMetricSets();
+        return getSingleMetricSet(null);
+    }
+    private JsonNode getSingleMetricSet(Clock clock) {
+        List<JsonNode> metricSets = getMetricSets(clock);
         assertThat(metricSets).hasSize(1);
         return metricSets.get(0);
     }
 
     private List<JsonNode> getMetricSets() {
-        metricsReporter.run();
+        return getMetricSets(null);
+    }
+    private List<JsonNode> getMetricSets(Clock clock) {
+        if (clock == null) {
+            //default tests use a +61seconds invocation, as the default
+            //SimpleMeterRegistry interval is 60 seconds
+            long now = System.currentTimeMillis();
+            metricsReporter.resetNow(now);
+            metricsReporter.run(now + 61*1000L);
+        } else {
+            //Assume the caller has reset to some appropriate time
+            metricsReporter.run(clock.wallTime());
+        }
         List<JsonNode> metricSets = reporter.getBytes()
             .stream()
             .map(k -> new String(k, StandardCharsets.UTF_8))
@@ -499,5 +566,35 @@ class MicrometerMetricsReporterTest {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public class ThreadSafeMockClock implements Clock {
+
+        // has to be non-zero to prevent divide-by-zeroes and other weird math results based
+        // on the clock
+        private AtomicLong timeNanos = new AtomicLong((long) TimeUtils.millisToUnit(1, TimeUnit.NANOSECONDS));
+
+        @Override
+        public long monotonicTime() {
+            return timeNanos.get();
+        }
+
+        @Override
+        public long wallTime() {
+            return TimeUnit.MILLISECONDS.convert(timeNanos.get(), TimeUnit.NANOSECONDS);
+        }
+
+        public long add(long amount, TimeUnit unit) {
+            return timeNanos.addAndGet(unit.toNanos(amount));
+        }
+
+        public long add(Duration duration) {
+            return add(duration.toNanos(), TimeUnit.NANOSECONDS);
+        }
+
+        public long addSeconds(long amount) {
+            return add(amount, TimeUnit.SECONDS);
+        }
+
     }
 }

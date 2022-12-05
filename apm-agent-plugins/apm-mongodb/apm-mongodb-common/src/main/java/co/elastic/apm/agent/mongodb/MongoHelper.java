@@ -18,9 +18,12 @@
  */
 package co.elastic.apm.agent.mongodb;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.bson.BsonDocument;
@@ -32,13 +35,15 @@ public class MongoHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(MongoHelper.class);
 
-    private final Tracer tracer;
+    private final ElasticApmTracer tracer;
+    private final MongoConfiguration config;
 
-    public MongoHelper(Tracer tracer) {
-        this.tracer = tracer;
+    public MongoHelper() {
+        this.tracer = GlobalTracer.getTracerImpl();
+        this.config = tracer.getConfig(MongoConfiguration.class);
     }
 
-    public Span startSpan(@Nullable String database, @Nullable String collection, @Nullable String command, String host, int port) {
+    public Span startSpan(@Nullable String database, @Nullable String collection, @Nullable String command, String host, int port, @Nullable BsonDocument commandDocument) {
         Span span = null;
         final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan != null) {
@@ -58,8 +63,14 @@ public class MongoHelper {
             .withType("mongodb")
             .withName(database);
 
+        String statement = null;
+        if (command != null && commandDocument != null && WildcardMatcher.anyMatch(config.getCaptureStatementCommands(), command) != null) {
+            statement = commandDocument.toJson();
+        }
+
         span.getContext().getDb()
-            .withInstance(database);
+            .withInstance(database)
+            .withStatement(statement);
 
         StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
         if (name != null) {

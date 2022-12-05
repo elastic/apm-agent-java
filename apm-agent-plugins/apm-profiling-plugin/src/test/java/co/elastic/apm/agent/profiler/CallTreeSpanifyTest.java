@@ -40,7 +40,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 class CallTreeSpanifyTest {
 
@@ -52,7 +52,7 @@ class CallTreeSpanifyTest {
         reporter = new MockReporter();
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         // disable scheduled profiling to not interfere with this test
-        when(config.getConfig(ProfilingConfiguration.class).isProfilingEnabled()).thenReturn(false);
+        doReturn(false).when(config.getConfig(ProfilingConfiguration.class)).isProfilingEnabled();
         tracer = MockTracer.createRealTracer(reporter, config);
         tracer = MockTracer.createRealTracer(reporter);
     }

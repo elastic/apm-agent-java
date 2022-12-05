@@ -20,9 +20,12 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.common.ThreadUtils;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.logging.TestUtils;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,13 +39,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiFunction;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class SpanCompressionIT {
 
     private static final int numberOfSpans = 2 * Runtime.getRuntime().availableProcessors();
 
-    private static final ExecutorService executor = Executors.newFixedThreadPool(numberOfSpans);
+    private static ExecutorService executor;
 
     private static ElasticApmTracer tracer;
     private static MockReporter reporter;
@@ -54,11 +57,13 @@ public class SpanCompressionIT {
         reporter = mockInstrumentationSetup.getReporter();
 
         SpanConfiguration spanConfiguration = mockInstrumentationSetup.getConfig().getConfig(SpanConfiguration.class);
-        when(spanConfiguration.isSpanCompressionEnabled()).thenReturn(true);
-        when(spanConfiguration.getSpanCompressionExactMatchMaxDuration()).thenReturn(TimeDuration.of("10ms"));
-        when(spanConfiguration.getSpanCompressionSameKindMaxDuration()).thenReturn(TimeDuration.of("10ms"));
+        doReturn(true).when(spanConfiguration).isSpanCompressionEnabled();
+        doReturn(TimeDuration.of("10ms")).when(spanConfiguration).getSpanCompressionExactMatchMaxDuration();
+        doReturn(TimeDuration.of("10ms")).when(spanConfiguration).getSpanCompressionSameKindMaxDuration();
 
         assertThat(tracer.isRunning()).isTrue();
+
+        executor = Executors.newFixedThreadPool(numberOfSpans);
     }
 
     @BeforeEach
@@ -69,7 +74,7 @@ public class SpanCompressionIT {
 
     @AfterAll
     static void shutdownExecutor() {
-        executor.shutdown();
+        ExecutorUtils.shutdownAndWaitTermination(executor);
     }
 
     @RepeatedTest(100)
