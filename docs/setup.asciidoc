@@ -51,11 +51,11 @@ If you see a `java.lang.SecurityException` exception (for example a - `java.secu
 `grant` snippet is effectively applied, open an issue in our https://github.com/elastic/apm-agent-java[GitHub repo] with a description
 and the full stack trace.
 
-\* it is possible to have multiple policy files taking effect at the same time on a single JVM. The policy entry above can be added to an
-existing policy or can be appended through the `java.security.policy` system property. See
+{empty}* it is possible to have multiple policy files taking effect at the same time on a single JVM. The policy entry above can be added
+to an existing policy or can be appended through the `java.security.policy` system property. See
 https://docs.oracle.com/javase/8/docs/technotes/guides/security/PolicyFiles.html[documentation] for more details.
 
-\** you can make use of the https://docs.oracle.com/javase/8/docs/technotes/guides/security/PolicyFiles.html#PropertyExp[property
+{empty}** you can make use of the https://docs.oracle.com/javase/8/docs/technotes/guides/security/PolicyFiles.html#PropertyExp[property
 expansion] capability for specifying the agent jar path.
 
 [float]
