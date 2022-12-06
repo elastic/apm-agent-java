@@ -90,11 +90,12 @@ public class ElasticApmTracer implements Tracer {
     private final ThreadLocal<ActiveStack> activeStack = new ThreadLocal<ActiveStack>() {
         @Override
         protected ActiveStack initialValue() {
-            return new ActiveStack(coreConfiguration.getTransactionMaxSpans());
+            return new ActiveStack(transactionMaxSpans);
         }
     };
 
     private final CoreConfiguration coreConfiguration;
+    private final int transactionMaxSpans;
     private final SpanConfiguration spanConfiguration;
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
@@ -126,6 +127,7 @@ public class ElasticApmTracer implements Tracer {
         this.metaDataFuture = metaDataFuture;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
+        transactionMaxSpans = coreConfiguration.getTransactionMaxSpans();
         spanConfiguration = configurationRegistry.getConfig(SpanConfiguration.class);
 
         TracerConfiguration tracerConfiguration = configurationRegistry.getConfig(TracerConfiguration.class);

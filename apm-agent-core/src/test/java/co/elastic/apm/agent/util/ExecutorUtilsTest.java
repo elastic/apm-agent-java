@@ -100,6 +100,5 @@ class ExecutorUtilsTest {
         }
         await().atMost(Duration.ofSeconds(10)).until(() -> !startedThread.get().isAlive());
         verify(listener).elasticThreadFinished(same(startedThread.get()));
-        verifyNoMoreInteractions(listener);
     }
 }
