@@ -120,7 +120,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         Step newStep = new Step(step);
         Step hopefullyNull = meterRegistries.putIfAbsent(meterRegistry, newStep);
         if (hopefullyNull != null) {
-            logger.info("Not re-registering MeterRegistry as it is already registered from another compound meter registry: {}", meterRegistry);
+            logger.debug("Not re-registering MeterRegistry as it is already registered from another compound meter registry: {}", meterRegistry);
         } else {
             logger.info("Registering Micrometer MeterRegistry: {}", meterRegistry);
         }
