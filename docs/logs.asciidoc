@@ -3,8 +3,11 @@ NOTE: For the best reading experience,
 please view this documentation at https://www.elastic.co/guide/en/apm/agent/java[elastic.co]
 endif::[]
 
+[[logs]]
+== Logs
+
 [[log-correlation-intro]]
-== Log correlation
+=== Log correlation
 
 {apm-guide-ref}/log-correlation.html[Log correlation] allows you to navigate to all logs belonging to a particular trace
 and vice-versa: for a specific log, see in which context it has been logged and which parameters the user provided.
@@ -21,7 +24,7 @@ Here are the 3 main steps required to implement log correlation with a Java appl
 
 [float]
 [[log-correlation-extract-ids]]
-=== Step 1: Inject ID fields in logs
+==== Step 1: Inject ID fields in logs
 
 In order to correlate logs from your application with transactions captured by the Elastic APM Java Agent,
 the agent injects the following IDs into https://www.slf4j.org/api/org/slf4j/MDC.html[slf4j-MDC]-equivalents of
@@ -41,7 +44,7 @@ case You can then skip directly to <<log-correlation-ingest, step 3>>.
 
 [float]
 [[log-correlation-reformat]]
-=== Step 2: Reformat plain text logs
+==== Step 2: Reformat plain text logs
 
 This step is optional, but strongly recommended as reformatting makes Elasticsearch ingestion simpler if they are
 in ECS JSON format.
@@ -65,7 +68,7 @@ and {ecs-ref}/ecs-error.html[`error.id`].
 
 [float]
 [[log-correlation-ingest]]
-=== Step 3: Ingest your application logs into Elasticsearch
+==== Step 3: Ingest your application logs into Elasticsearch
 
 Ingestion of log files into Elasticsearch is the last step and is common to all platforms, thus the
 {apm-guide-ref}/log-correlation.html#_ingest_your_logs_into_elasticsearch[general guide] should be followed for instructions.
