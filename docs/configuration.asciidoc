@@ -166,6 +166,7 @@ Click on a key to get more information.
 ** <<config-dedot-custom-metrics>>
 ** <<config-metric-set-limit>>
 ** <<config-agent-reporter-health-metrics>>
+** <<config-agent-background-overhead-metrics>>
 * <<config-mongodb>>
 ** <<config-mongodb-capture-statement-commands>>
 * <<config-profiling>>
@@ -2343,6 +2344,31 @@ Enables metrics which capture the health state of the agent's event reporting me
 | `elastic.apm.agent_reporter_health_metrics` | `agent_reporter_health_metrics` | `ELASTIC_APM_AGENT_REPORTER_HEALTH_METRICS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-agent-background-overhead-metrics]]
+==== `agent_background_overhead_metrics` (added[1.35.0] experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+Enables metrics which capture the resource consumption of agent background tasks.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.agent_background_overhead_metrics` | `agent_background_overhead_metrics` | `ELASTIC_APM_AGENT_BACKGROUND_OVERHEAD_METRICS`
+|============
+
 [[config-mongodb]]
 === MongoDB configuration options
 
@@ -4236,6 +4262,14 @@ Example: `5ms`.
 # Default value: false
 #
 # agent_reporter_health_metrics=false
+
+# Enables metrics which capture the resource consumption of agent background tasks.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# agent_background_overhead_metrics=false
 
 ############################################
 # MongoDB                                  #
