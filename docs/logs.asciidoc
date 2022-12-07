@@ -8,7 +8,7 @@ endif::[]
 
 Elastic Java APM Agent provides the following log features:
 
-- <<log-correlation-ids>> : Automatically inject correlation IDs that allow navigation between logs and traces.
+- <<log-correlation>> : Automatically inject correlation IDs that allow navigation between logs and traces.
 - <<log-reformatting>> : Automatically reformat plaintext logs in ECS logging format
 // TODO add link to ECS logging format
 - <<log-sending>> : Automatically send logs to APM Server without filebeat
@@ -17,7 +17,7 @@ Those features are part of log ingestion strategies.
 // TODO : add link to the Observability/APM docs for the different log ingestion strategies
 
 [float]
-[[log-correlation-ids]]
+[[log-correlation]]
 === Log correlation
 
 {apm-guide-ref}/log-correlation.html[Log correlation] allows you to navigate to all logs belonging to a particular trace
