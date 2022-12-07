@@ -6,6 +6,15 @@ endif::[]
 [[logs]]
 == Logs
 
+Elastic Java APM Agent provides the following log features:
+- <<log-correlation-intro>> : Automatically inject correlation IDs that allow navigation between logs and traces.
+- <<log-reformatting>> : Automatically reformat plaintext logs in ECS logging format
+// TODO add link to ECS logging format
+- <<log-sending>> : Automatically send logs to APM Server without filebeat
+
+// TODO : add link to the Observability/APM docs for the different log ingestion strategies
+
+[float]
 [[log-correlation-intro]]
 === Log correlation
 
@@ -77,3 +86,15 @@ The Filebeat configuration will differ depending on the log file format:
 
 - for ECS-formatted log files, the *JSON logs* configuration should be used
 - for plain-text log files, the *Parsing unstructured logs* configuration should be used.
+
+[float]
+[[log-reformatting]]
+=== Log reformatting
+
+TODO
+
+[float]
+[[log-sending]]
+=== Log sending
+
+TODO
