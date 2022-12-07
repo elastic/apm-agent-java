@@ -114,7 +114,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         }
         long step = getStep(meterRegistry);
         if (step >= 0 && step < 1000) {
-            logger.warn("Not registering unsupported step interval of {} milliseconds (1 seconds is the minimum supported) for Micrometer MeterRegistry: {}", step, meterRegistry);
+            logger.debug("Not registering unsupported step interval of {} milliseconds (1 seconds is the minimum supported) for Micrometer MeterRegistry: {}", step, meterRegistry);
             return;
         }
         Step newStep = new Step(step);
