@@ -160,6 +160,7 @@ Click on a key to get more information.
 ** <<config-log-file-size>>
 ** <<config-log-format-sout>>
 ** <<config-log-format-file>>
+** <<config-log-sending>>
 * <<config-messaging>>
 ** <<config-ignore-message-queues>>
 * <<config-metrics>>
@@ -2205,7 +2206,6 @@ where each log event is serialized as a single line.
 
 
 
-
 Valid options: `PLAIN_TEXT`, `JSON`
 
 [options="header"]
@@ -2219,6 +2219,38 @@ Valid options: `PLAIN_TEXT`, `JSON`
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.log_format_file` | `log_format_file` | `ELASTIC_APM_LOG_FORMAT_FILE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-sending]]
+==== `log_sending` (added[1.36.0] experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+Sends agent and application logs directly to APM Server.
+
+Note that logs can get lost if the agent can't keep up with the logs,
+if APM Server is not available,
+or if Elasticsearch can't index the logs fast enough.
+
+For better delivery guarantees, it's recommended to ship ECS JSON log files with Filebeat
+See also <<config-log-ecs-reformatting,`log_ecs_reformatting`>>.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_sending` | `log_sending` | `ELASTIC_APM_LOG_SENDING`
 |============
 
 [[config-messaging]]
@@ -4199,7 +4231,6 @@ Example: `5ms`.
 # 
 # When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
 # where each log event is serialized as a single line.
-# 
 #
 # Valid options: PLAIN_TEXT, JSON
 # This setting can not be changed at runtime. Changes require a restart of the application.
@@ -4207,6 +4238,21 @@ Example: `5ms`.
 # Default value: PLAIN_TEXT
 #
 # log_format_file=PLAIN_TEXT
+
+# Sends agent and application logs directly to APM Server.
+# 
+# Note that logs can get lost if the agent can't keep up with the logs,
+# if APM Server is not available,
+# or if Elasticsearch can't index the logs fast enough.
+# 
+# For better delivery guarantees, it's recommended to ship ECS JSON log files with Filebeat
+# See also <<config-log-ecs-reformatting,`log_ecs_reformatting`>>.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# log_sending=false
 
 ############################################
 # Messaging                                #

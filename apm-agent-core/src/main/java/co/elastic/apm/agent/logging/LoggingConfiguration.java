@@ -275,7 +275,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             "For better delivery guarantees, it's recommended to ship ECS JSON log files with Filebeat\n" +
             "See also <<config-log-ecs-reformatting,`log_ecs_reformatting`>>.")
         .dynamic(true)
-        .tags("added[not officially added yet]", "internal")
+        .tags("added[1.36.0]", "experimental")
         .buildWithDefault(false);
 
     public static void init(List<ConfigurationSource> sources, String ephemeralId) {
