@@ -120,7 +120,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         Step newStep = new Step(step);
         Step hopefullyNull = meterRegistries.putIfAbsent(meterRegistry, newStep);
         if (hopefullyNull != null) {
-            logger.debug("Not re-registering MeterRegistry as it is already registered from another compound meter registry: {}", meterRegistry);
+            logger.trace("Not re-registering MeterRegistry as it is already registered from another compound meter registry: {}", meterRegistry);
         } else {
             logger.info("Registering Micrometer MeterRegistry: {}", meterRegistry);
         }
@@ -254,7 +254,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         if (configMap.putIfAbsent(meterRegistry, config) != null) {
             return;
         }
-        logger.warn("Identified Micrometer SimpleConfig: {}", config);
+        logger.debug("Identified Micrometer SimpleConfig: {}", config);
 
         //this next only happens during testing
         //can't use instanceof or casts because of different classloaders
