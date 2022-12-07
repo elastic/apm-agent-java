@@ -50,11 +50,11 @@ change to the application.
 
 Log reformatting is controlled by the <<config-log-ecs-reformatting, `log_ecs_reformatting`>> configuration option, and is disabled by default.
 
-[float]
-[[log-sending]]
-=== Log sending (experimental)
-
-The agent can automatically capture and send logs directly to APM Server, which allows to ingest log events without relying filebeat.
-
-Log sending is controlled by the `log_sending` configuration option and is disabled by default.
-// TODO replace with an actual link on log_sending config
+// [float]
+// [[log-sending]]
+// === Log sending (experimental)
+//
+// The agent can automatically capture and send logs directly to APM Server, which allows to ingest log events without relying filebeat.
+//
+// Log sending is controlled by the `log_sending` configuration option and is disabled by default.
+// // TODO replace with an actual link on log_sending config
