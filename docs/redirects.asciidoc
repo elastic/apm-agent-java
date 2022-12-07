@@ -6,4 +6,4 @@ The following pages have moved or been deleted.
 [role="exclude",id="log-correlation"]
 === Log correlation
 
-This section has moved. See <<log-correlation-intro>>.
+This section has moved. See <<logs>>.

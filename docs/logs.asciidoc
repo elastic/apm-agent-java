@@ -7,15 +7,17 @@ endif::[]
 == Logs
 
 Elastic Java APM Agent provides the following log features:
-- <<log-correlation-intro>> : Automatically inject correlation IDs that allow navigation between logs and traces.
+
+- <<log-correlation-ids>> : Automatically inject correlation IDs that allow navigation between logs and traces.
 - <<log-reformatting>> : Automatically reformat plaintext logs in ECS logging format
 // TODO add link to ECS logging format
 - <<log-sending>> : Automatically send logs to APM Server without filebeat
 
+Those features are part of log ingestion strategies.
 // TODO : add link to the Observability/APM docs for the different log ingestion strategies
 
 [float]
-[[log-correlation-intro]]
+[[log-correlation-ids]]
 === Log correlation
 
 {apm-guide-ref}/log-correlation.html[Log correlation] allows you to navigate to all logs belonging to a particular trace
@@ -25,16 +27,6 @@ NOTE: Starting in APM agent version 1.30.0, log correlation is enabled by defaul
 In previous versions, log correlation must be explicitly enabled by setting
 the `enable_log_correlation` configuration variable to `true`.
 
-Here are the 3 main steps required to implement log correlation with a Java application.
-
-- <<log-correlation-extract-ids>>
-- <<log-correlation-reformat>> (optional)
-- <<log-correlation-ingest>>
-
-[float]
-[[log-correlation-extract-ids]]
-==== Step 1: Inject ID fields in logs
-
 In order to correlate logs from your application with transactions captured by the Elastic APM Java Agent,
 the agent injects the following IDs into https://www.slf4j.org/api/org/slf4j/MDC.html[slf4j-MDC]-equivalents of
 <<supported-logging-frameworks, supported logging frameworks>>:
@@ -43,58 +35,54 @@ the agent injects the following IDs into https://www.slf4j.org/api/org/slf4j/MDC
 * {ecs-ref}/ecs-tracing.html[`trace.id`]
 * {ecs-ref}/ecs-error.html[`error.id`]
 
+// TODO : list which log libraries are supported
+
 For plain text logs, the pattern layout of your logging configuration needs to be modified to write the MDC values into
 log files. If you are using Logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.
 
-If your application is already using https://github.com/elastic/java-ecs-logging[Java ECS logging] or the
-<<config-log-ecs-reformatting, `log_ecs_reformatting`>> configuration option to write ECS formatted
-logs, then there is no change required as the IDs will be automatically added to the ECS-formatted log lines. In this
-case You can then skip directly to <<log-correlation-ingest, step 3>>.
+// TODO : for the supported log libraries, provide an example log pattern with correlation IDs
 
-[float]
-[[log-correlation-reformat]]
-==== Step 2: Reformat plain text logs
+// If your application is already using https://github.com/elastic/java-ecs-logging[Java ECS logging] or the
+// <<config-log-ecs-reformatting, `log_ecs_reformatting`>> configuration option to write ECS formatted
+// logs, then there is no change required as the IDs will be automatically added to the ECS-formatted log lines. In this
+// case You can then skip directly to <<log-correlation-ingest, step 3>>.
 
-This step is optional, but strongly recommended as reformatting makes Elasticsearch ingestion simpler if they are
-in ECS JSON format.
+// [float]
+// [[log-correlation-reformat]]
+// ==== Step 2: Reformat plain text logs
 
-If you are using https://github.com/elastic/java-ecs-logging[Java ECS logging], there's nothing to do in this step as
-the application logs will already be formatted in ECS format.
+// This step is optional, but strongly recommended as reformatting makes Elasticsearch ingestion simpler if they are
+// in ECS JSON format.
 
-The easiest way to reformat application logs is to use the experimental <<config-log-ecs-reformatting, `log_ecs_reformatting`>>
-configuration option as it will allow to reformat logs without modifying the application nor its configuration.
+// If you are using https://github.com/elastic/java-ecs-logging[Java ECS logging], there's nothing to do in this step as
+// the application logs will already be formatted in ECS format.
 
-NOTE: the <<config-log-ecs-reformatting, `log_ecs_reformatting`>> configuration is still experimental and may change
-in the future. However, since it is effortless, it may be your first choice to try out.
+// The easiest way to reformat application logs is to use the experimental <<config-log-ecs-reformatting, `log_ecs_reformatting`>>
+// configuration option as it will allow to reformat logs without modifying the application nor its configuration.
 
-By default, application logs are written in plain-text format, thus they have to be parsed prior storage in
-Elasticsearch, this transformation is usually implemented through an {ref}/ingest.html[ingest pipeline] and a
-{ref}/grok-processor.html[grok processor] or with a combination of Filebeat and Logstash configuration.
+// NOTE: the <<config-log-ecs-reformatting, `log_ecs_reformatting`>> configuration is still experimental and may change
+// in the future. However, since it is effortless, it may be your first choice to try out.
 
-With plain-text log files, this parsing will have to extract the IDs added in <<log-correlation-extract-ids,step 1>> from
-the plain-text log file and store them to their respective fields: {ecs-ref}/ecs-tracing.html[`transaction.id`], {ecs-ref}/ecs-tracing.html[`trace.id`]
-and {ecs-ref}/ecs-error.html[`error.id`].
+// By default, application logs are written in plain-text format, thus they have to be parsed prior storage in
+// Elasticsearch, this transformation is usually implemented through an {ref}/ingest.html[ingest pipeline] and a
+// {ref}/grok-processor.html[grok processor] or with a combination of Filebeat and Logstash configuration.
 
-[float]
-[[log-correlation-ingest]]
-==== Step 3: Ingest your application logs into Elasticsearch
-
-Ingestion of log files into Elasticsearch is the last step and is common to all platforms, thus the
-{apm-guide-ref}/log-correlation.html#_ingest_your_logs_into_elasticsearch[general guide] should be followed for instructions.
-
-The Filebeat configuration will differ depending on the log file format:
-
-- for ECS-formatted log files, the *JSON logs* configuration should be used
-- for plain-text log files, the *Parsing unstructured logs* configuration should be used.
+// With plain-text log files, this parsing will have to extract the IDs added in <<log-correlation-extract-ids,step 1>> from
+// the plain-text log file and store them to their respective fields: {ecs-ref}/ecs-tracing.html[`transaction.id`], {ecs-ref}/ecs-tracing.html[`trace.id`]
+// and {ecs-ref}/ecs-error.html[`error.id`].
 
 [float]
 [[log-reformatting]]
-=== Log reformatting
+=== Log reformatting (experimental)
 
-TODO
+The agent can automatically reformat application logs to ECS format, without adding a dependency to `ecs-logging-java`, modifying the application
+logging configuration and making the application always use ECS log format. In short, it provides the benefits of ECS logging at runtime without any 
+change to the application.
+
+Log reformatting is controlled by the <<config-log-ecs-reformatting, `log_ecs_reformatting`>> configuration option, and is disabled by default.
 
 [float]
 [[log-sending]]
-=== Log sending
+=== Log sending (experimental)
 
-TODO
+TODO document log sending
