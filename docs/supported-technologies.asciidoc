@@ -547,7 +547,7 @@ There are multiple log-related features in the agent and their support depend on
 
 - *Log correlation*:
     The agent automatically injects `trace.id`, `transaction.id` and `error.id` into MDC implementation when a log event
-    is written to log. See <<log-correlation, Log Correlation>> for details.
+    is written to log. See <<log-correlation-ids, Log Correlation>> for details.
     For frameworks that don't provide an MDC like `java.util.logging` (JUL), correlation is only supported when using ECS logging library or
     with <<config-log-ecs-reformatting, `log_ecs_reformatting`>>.
 
