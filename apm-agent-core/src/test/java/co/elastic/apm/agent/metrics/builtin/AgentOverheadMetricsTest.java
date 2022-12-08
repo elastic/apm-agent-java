@@ -92,6 +92,7 @@ public class AgentOverheadMetricsTest {
         ThreadFactory singleNamedThreadFactory = new ExecutorUtils.SingleNamedThreadFactory("cpu-start-before");
         Thread t1 = singleNamedThreadFactory.newThread(threadTask);
         t1.start();
+        await().atMost(Duration.ofSeconds(10)).until(() -> t1.getState() == Thread.State.WAITING);
 
         doReturn(true).when(spyMetricsConfig).isOverheadMetricsEnabled();
         overheadMetrics.bindTo(metricRegistry, spyMetricsConfig);
@@ -182,6 +183,7 @@ public class AgentOverheadMetricsTest {
         ThreadFactory singleNamedThreadFactory = new ExecutorUtils.SingleNamedThreadFactory("alloc-start-before");
         Thread t1 = singleNamedThreadFactory.newThread(threadTask);
         t1.start();
+        await().atMost(Duration.ofSeconds(10)).until(() -> t1.getState() == Thread.State.WAITING);
 
         doReturn(true).when(spyMetricsConfig).isOverheadMetricsEnabled();
         overheadMetrics.bindTo(metricRegistry, spyMetricsConfig);
