@@ -10,6 +10,7 @@ Elastic Java APM Agent provides the following log features:
 
 - <<log-correlation-ids>> : Automatically inject correlation IDs that allow navigation between logs and traces.
 - <<log-reformatting>> : Automatically reformat plaintext logs in ECS logging format
+- <<log-error-capturing>> : Automatically captures exceptions for calls like `logger.error("message", exception)`.
 // TODO add link to ECS logging format
 // - <<log-sending>> : Automatically send logs to APM Server without filebeat
 
@@ -49,6 +50,14 @@ logging configuration and making the application always use ECS log format. In s
 change to the application.
 
 Log reformatting is controlled by the <<config-log-ecs-reformatting, `log_ecs_reformatting`>> configuration option, and is disabled by default.
+
+[float]
+[[log-error-capturing]]
+=== Error capturing
+
+The agent automatically captures exceptions sent to loggers with calls like `logger.error("message", exception)`.
+
+When doing so, the `error.id` is added to the MDC as well for log correlation since 1.16.0.
 
 // [float]
 // [[log-sending]]
