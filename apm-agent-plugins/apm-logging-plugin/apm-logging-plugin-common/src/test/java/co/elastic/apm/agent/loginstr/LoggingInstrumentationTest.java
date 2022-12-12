@@ -241,7 +241,8 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
         List<JsonNode> logs = reporter.getLogs()
             .stream()
-            .filter(log -> log.get("event.dataset").textValue().equals("JUnitStarter.FILE"))
+            // running test with surefire and within IDE do not produce the same 'event.dataset'
+            .filter(log -> log.get("event.dataset").textValue().endsWith(".FILE"))
             .collect(Collectors.toList());
         assertThat(logs).hasSize(4);
         for (JsonNode ecsLogLineTree : logs) {
