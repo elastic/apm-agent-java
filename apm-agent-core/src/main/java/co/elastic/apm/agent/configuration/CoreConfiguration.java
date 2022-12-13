@@ -798,6 +798,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(TraceContinuationStrategy.CONTINUE);
 
+    private final ConfigurationOption<ActivationMethod> activationMethod = ConfigurationOption.enumOption(ActivationMethod.class)
+        .key("activation_method")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("telling the agent what activated it, used for telemetry and should not be set unless supported by ActivationType")
+        .dynamic(true)
+        .buildWithDefault(ActivationMethod.NONE);
+
     public boolean isEnabled() {
         return enabled.get();
     }
@@ -1062,6 +1070,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return traceContinuationStrategy.get();
     }
 
+    public ActivationMethod getActivationMethod() {
+        return activationMethod.get();
+    }
+
     public enum EventType {
         /**
          * Request bodies will never be reported
@@ -1104,4 +1116,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             return name().toLowerCase();
         }
     }
+
+    //Deliberately decoupled from ActivationType as fewer types can be explicitly set
+    public enum ActivationMethod {
+        NONE,
+        K8S,
+        REMOTE,
+        SELF_ATTACH,
+        FLEET;
+    }
+
 }
