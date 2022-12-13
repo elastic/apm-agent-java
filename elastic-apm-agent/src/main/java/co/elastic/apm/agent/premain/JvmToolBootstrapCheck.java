@@ -44,11 +44,14 @@ public class JvmToolBootstrapCheck implements BootstrapCheck{
         }
 
         String[] parts = cmd.split("/");
-        if (parts.length != 2) {
-            return false;
+        if (parts.length == 2) {
+            // JDK with module system
+            return parts[0].startsWith("jdk.") ||
+                parts[0].startsWith("java.");
+        } else if (parts.length == 1) {
+            return cmd.startsWith("sun.") || cmd.startsWith("com.sun.") || cmd.startsWith("jdk.");
         }
 
-        return parts[0].startsWith("jdk.") ||
-            parts[0].startsWith("java.");
+        return false;
     }
 }
