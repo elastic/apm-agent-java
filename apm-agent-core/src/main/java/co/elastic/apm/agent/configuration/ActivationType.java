@@ -53,7 +53,13 @@ public enum ActivationType {
 
     public static ActivationType _findType() {
         // Really just a big `switch` type method
-        ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+
+        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
+        if (tracer == null) {
+            //Not yet finished initializing, or we're in test mode, in which case
+            return UNKNOWN;
+        }
+
         CoreConfiguration.ActivationMethod method = tracer.getConfig(CoreConfiguration.class).getActivationMethod();
         logger.debug("CoreConfiguration.ActivationMethod: {}", method);
         if (!method.equals(CoreConfiguration.ActivationMethod.NONE)){
