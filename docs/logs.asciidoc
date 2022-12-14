@@ -12,7 +12,6 @@ Elastic Java APM Agent provides the following log features:
 - <<log-reformatting>> : Automatically reformat plaintext logs in ECS logging format
 - <<log-error-capturing>> : Automatically captures exceptions for calls like `logger.error("message", exception)`.
 // TODO add link to ECS logging format
-// - <<log-sending>> : Automatically send logs to APM Server without filebeat
 
 Those features are part of log ingestion strategies.
 // TODO : add link to the Observability/APM docs for the different log ingestion strategies
@@ -65,15 +64,6 @@ As a result, when an exception is reported to the logger:
 - The agent reports an error to APM server with the provided exception
 - An `error.id` is generated and injected into logger MDC for the duration of the logger invocation
 - Logger output will contain the `error.id` if the log format allows it (plaintext still requires some configuration)
-
-// [float]
-// [[log-sending]]
-// === Log sending (experimental)
-//
-// The agent can automatically capture and send logs directly to APM Server, which allows to ingest log events without relying filebeat.
-//
-// Log sending is controlled by the `log_sending` configuration option and is disabled by default.
-// // TODO replace with an actual link on log_sending config
 
 [float]
 [[ecs-logging-service-fields]]
