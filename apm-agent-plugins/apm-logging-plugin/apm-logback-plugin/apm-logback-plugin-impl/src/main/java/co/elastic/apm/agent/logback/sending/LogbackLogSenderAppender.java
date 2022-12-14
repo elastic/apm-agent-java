@@ -22,18 +22,26 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.UnsynchronizedAppenderBase;
 import ch.qos.logback.core.encoder.Encoder;
 import co.elastic.apm.agent.report.Reporter;
+import co.elastic.logging.logback.EcsEncoder;
 
 public class LogbackLogSenderAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
     private final Reporter reporter;
-    private final Encoder<ILoggingEvent> formatter;
+    private final EcsEncoder formatter;
 
     public LogbackLogSenderAppender(Reporter reporter, Encoder<ILoggingEvent> formatter) {
         this.reporter = reporter;
-        this.formatter = formatter;
+        // Due to API compatibility (see below in 'append'), we have to use our own formatter type rather than the
+        // base/interface class from logback.
+        if (!(formatter instanceof EcsEncoder)) {
+            throw new IllegalArgumentException("ECS sender requires to use an ECS appender");
+        }
+        this.formatter = (EcsEncoder) formatter;
     }
 
     @Override
     protected void append(ILoggingEvent eventObject) {
+        // the Formatter interface was changed in logback 1.x, but our ECS implementation is compatible with both
+        // older and newer versions of the API so we can rely on the more recent version of the API
         reporter.reportLog(formatter.encode(eventObject));
     }
 }
