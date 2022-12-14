@@ -57,7 +57,13 @@ Log reformatting is controlled by the <<config-log-ecs-reformatting, `log_ecs_re
 
 The agent automatically captures exceptions sent to loggers with calls like `logger.error("message", exception)`.
 
-When doing so, the `error.id` is added to the MDC as well for log correlation since 1.16.0.
+When doing so, the `error.id` is added to the MDC as well for <<log-correlation-ids,log correlation>> since 1.16.0.
+
+As a result, when an exception is reported to the logger:
+
+- The agent reports an error to APM server with the provided exception
+- An `error.id` is generated and injected into logger MDC for the duration of the logger invocation
+- Logger output will contain the `error.id` if the log format allows it (plaintext still requires some configuration)
 
 // [float]
 // [[log-sending]]
