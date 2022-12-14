@@ -36,7 +36,8 @@ the agent injects the following IDs into https://www.slf4j.org/api/org/slf4j/MDC
 * {ecs-ref}/ecs-tracing.html[`trace.id`]
 * {ecs-ref}/ecs-error.html[`error.id`]
 
-// TODO : list which log libraries are supported
+For frameworks that don't provide an MDC like `java.util.logging` (JUL), correlation is only supported when using ECS logging library or
+with <<log-reformatting, Log reformatting>>.
 
 For plain text logs, the pattern layout of your logging configuration needs to be modified to write the MDC values into
 log files. If you are using Logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.
@@ -73,3 +74,13 @@ As a result, when an exception is reported to the logger:
 //
 // Log sending is controlled by the `log_sending` configuration option and is disabled by default.
 // // TODO replace with an actual link on log_sending config
+
+[float]
+[[ecs-logging-service-fields]]
+=== ECS Logging Service fields
+
+When the application is using `ecs-logging-java` but does not provide the service fields, then the agent will
+automatically provide fallback values from its own configuration:
+
+- `service.name` value will be populated by <<config-service-name, `service_name`>> in agent config.
+- `service.version` value will be populated by <<config-service-version, `service_version`>> in agent config.
