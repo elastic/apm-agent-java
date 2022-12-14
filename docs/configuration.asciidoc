@@ -2670,7 +2670,7 @@ NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `http://localhost:8200` | URL | true
+| `http://127.0.0.1:8200` | URL | true
 |============
 
 
@@ -4418,9 +4418,9 @@ Example: `5ms`.
 #
 # This setting can be changed at runtime
 # Type: URL
-# Default value: http://localhost:8200
+# Default value: http://127.0.0.1:8200
 #
-# server_url=http://localhost:8200
+# server_url=http://127.0.0.1:8200
 
 # The URLs for your APM Servers
 #
