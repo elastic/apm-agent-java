@@ -21,6 +21,7 @@ package co.elastic.apm.agent.awslambda.helper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import com.amazonaws.services.lambda.runtime.Context;
 
 import javax.annotation.Nullable;
@@ -45,7 +46,7 @@ public class PlainTransactionHelper extends AbstractLambdaTransactionHelper<Obje
 
     @Override
     protected Transaction doStartTransaction(Object input, Context lambdaContext) {
-        return tracer.startRootTransaction(lambdaContext.getClass().getClassLoader());
+        return tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(lambdaContext.getClass()));
     }
 
     @Override

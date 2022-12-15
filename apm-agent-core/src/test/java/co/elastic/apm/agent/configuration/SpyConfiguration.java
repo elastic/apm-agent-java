@@ -59,10 +59,17 @@ public class SpyConfiguration {
         for (ConfigurationOptionProvider options : ServiceLoader.load(ConfigurationOptionProvider.class)) {
             builder.addOptionProvider(spy(options));
         }
-        return builder
-            .addConfigSource(configurationSource)
-            .addConfigSource(ConfigSources.fromClasspath("test.elasticapm.properties", ClassLoader.getSystemClassLoader()))
-            .build();
+        builder.addConfigSource(configurationSource)
+            // global testing config
+            .addConfigSource(ConfigSources.fromClasspath("test.elasticapm.properties", ClassLoader.getSystemClassLoader()));
+
+        // optional additional config file per test classpath
+        SimpleSource testSuiteConfigSource = ConfigSources.fromClasspath("test.suite.elasticapm.properties", ClassLoader.getSystemClassLoader());
+        if (testSuiteConfigSource != null) {
+            builder.addConfigSource(testSuiteConfigSource);
+        }
+
+        return builder.build();
     }
 
     public static void reset(ConfigurationRegistry config) {

@@ -29,6 +29,7 @@ import co.elastic.apm.agent.rabbitmq.header.SpringRabbitMQTextHeaderGetter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.LoggerUtils;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
@@ -79,7 +80,7 @@ public class SpringAmqpBatchMessageListenerInstrumentation extends SpringBaseIns
             if (tracer.isRunning() && messageBatch != null && !messageBatch.isEmpty()) {
                 AbstractSpan<?> active = tracer.getActive();
                 if (active == null && messagingConfiguration.getMessageBatchStrategy() == MessagingConfiguration.BatchStrategy.BATCH_HANDLING) {
-                    batchTransaction = tracer.startRootTransaction(thiz.getClass().getClassLoader());
+                    batchTransaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(thiz.getClass()));
                     if (batchTransaction == null) {
                         oneTimeTransactionCreationWarningLogger.warn("Failed to start Spring AMQP transaction for batch processing");
                     } else {

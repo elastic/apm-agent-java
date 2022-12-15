@@ -31,11 +31,12 @@ public class ReporterFactory {
 
     public Reporter createReporter(ConfigurationRegistry configurationRegistry,
                                    ApmServerClient apmServerClient,
-                                   Future<MetaData> metaData) {
+                                   Future<MetaData> metaData,
+                                   ReporterMonitor monitor) {
 
         ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
         ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry, reporterConfiguration, metaData, apmServerClient);
-        return new ApmServerReporter(true, reporterConfiguration, reportingEventHandler);
+        return new ApmServerReporter(true, reporterConfiguration, reportingEventHandler, monitor);
     }
 
     @Nonnull

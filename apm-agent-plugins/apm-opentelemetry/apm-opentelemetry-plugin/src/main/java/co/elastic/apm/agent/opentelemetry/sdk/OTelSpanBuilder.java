@@ -29,6 +29,7 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.LoggerUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
@@ -158,9 +159,9 @@ class OTelSpanBuilder implements SpanBuilder {
         if (remoteContext != null) {
             PotentiallyMultiValuedMap headers = new PotentiallyMultiValuedMap(2);
             W3CTraceContextPropagator.getInstance().inject(remoteContext, headers, PotentiallyMultiValuedMap::add);
-            span = elasticApmTracer.startChildTransaction(headers, MultiValueMapAccessor.INSTANCE, getClass().getClassLoader(), epochMicros);
+            span = elasticApmTracer.startChildTransaction(headers, MultiValueMapAccessor.INSTANCE, PrivilegedActionUtils.getClassLoader(getClass()), epochMicros);
         } else if (parent == null) {
-            span = elasticApmTracer.startRootTransaction(getClass().getClassLoader(), epochMicros);
+            span = elasticApmTracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(getClass()), epochMicros);
         } else {
             span = elasticApmTracer.startSpan(parent, epochMicros);
         }
