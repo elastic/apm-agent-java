@@ -55,7 +55,7 @@ public class ApmServerLogAppender extends AbstractAppender {
     @Nullable
     private Reporter reporter;
 
-    private final List<LogEvent> buffer;
+    private final ArrayList<LogEvent> buffer;
 
     private ApmServerLogAppender(String name, Layout<?> layout) {
         super(name, null, layout, true, null);
@@ -121,6 +121,7 @@ public class ApmServerLogAppender extends AbstractAppender {
                 sendLogEvent(logEvent);
             }
             buffer.clear();
+            buffer.trimToSize();
         }
     }
 
