@@ -129,6 +129,8 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             case METRICSET_JSON_WRITER:
                 handleIntakeEvent(event, sequence, endOfBatch);
                 break;
+            default:
+                throw new IllegalArgumentException("unsupported event type " + event.getType());
         }
     }
 

@@ -190,17 +190,32 @@ public class ReportingEvent {
 
     public enum ReportingEventType {
         // control events
-        END_REQUEST,
-        MAKE_FLUSH_REQUEST,
-        SHUTDOWN,
-        WAKEUP,
+        END_REQUEST(true),
+        MAKE_FLUSH_REQUEST(true),
+        SHUTDOWN(true),
+        WAKEUP(true),
 
         // payload events,
-        TRANSACTION,
-        SPAN,
-        ERROR,
-        METRICSET_JSON_WRITER,
-        STRING_LOG,
-        BYTES_LOG
+        TRANSACTION(false),
+        SPAN(false),
+        ERROR(false),
+        METRICSET_JSON_WRITER(false),
+        STRING_LOG(false),
+        BYTES_LOG(false);
+
+        private final boolean control;
+
+        /**
+         * @param control {@literal true} for control events
+         */
+        ReportingEventType(boolean control) {
+            this.control = control;
+        }
+
+        public boolean isControl() {
+            return control;
+        }
     }
+
+
 }
