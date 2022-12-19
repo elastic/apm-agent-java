@@ -1,3 +1,21 @@
+/*
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package co.elastic.apm.agent.configuration;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -29,18 +47,21 @@ public class ActivationTypeIT {
     // so tests here spawn a full JVM with an agent to test the activation method
     private static final int TIMEOUT_IN_SECONDS = 200;
 
-    private static String ElasticAgentAttachJarFileLocation = "\\Temp\\apm-agent-attach-1.35.1-SNAPSHOT.jar";
-    private static String ElasticAgentAttachCliJarFileLocation = "\\Temp\\apm-agent-attach-cli-1.35.1-SNAPSHOT.jar";
-    private static String ElasticAgentJarFileLocation = "\\Temp\\elastic-apm-agent-1.35.1-SNAPSHOT.jar";
+    private static String ElasticAgentAttachJarFileLocation;
+    private static String ElasticAgentAttachTestJarFileLocation;
+    private static String ElasticAgentAttachCliJarFileLocation;
+    private static String ElasticAgentJarFileLocation;
     private static MockServer Server;
 
     @BeforeAll
     public static void setUp() throws IOException {
-        ElasticAgentJarFileLocation = getJarPath("elastic-apm-agent");
+        ElasticAgentJarFileLocation = getJarPath("elastic-apm-agent", false);
         assertThat(ElasticAgentJarFileLocation).isNotNull();
-        ElasticAgentAttachJarFileLocation = getJarPath("apm-agent-attach");
+        ElasticAgentAttachJarFileLocation = getJarPath("apm-agent-attach", false);
         assertThat(ElasticAgentAttachJarFileLocation).isNotNull();
-        ElasticAgentAttachCliJarFileLocation = getJarPath("apm-agent-attach-cli");
+        ElasticAgentAttachTestJarFileLocation = getJarPath("apm-agent-attach", true);
+        assertThat(ElasticAgentAttachTestJarFileLocation).isNotNull();
+        ElasticAgentAttachCliJarFileLocation = getJarPath("apm-agent-attach-cli", false);
         assertThat(ElasticAgentAttachCliJarFileLocation).isNotNull();
 
         Server = new MockServer();
@@ -49,7 +70,7 @@ public class ActivationTypeIT {
         assertThat(Server.port()).isGreaterThan(0);
     }
 
-    private static String getJarPath(String project) {
+    private static String getJarPath(String project, boolean findTestJar) {
         File rootDir = new File("..");
         File projectDir = new File(rootDir, project);
         assertThat(projectDir.exists()).isTrue();
@@ -59,7 +80,13 @@ public class ActivationTypeIT {
         assertThat(targetDir.isDirectory()).isTrue();
         String jarName = null;
         for (String file : targetDir.list()) {
-            if (file.matches("^"+project+".*"+".jar$") && !file.contains("sources")) {
+            if (file.matches("^"+project+".*"+".jar$") && !file.contains("-sources")) {
+                if (!findTestJar && file.contains("-tests")) {
+                    continue;
+                }
+                if (findTestJar && !file.contains("-tests")) {
+                    continue;
+                }
                 File jarNameFile = new File(targetDir, file);
                 assertThat(jarNameFile.exists()).isTrue();
                 assertThat(jarNameFile.isDirectory()).isFalse();
@@ -78,9 +105,10 @@ public class ActivationTypeIT {
     @Test
     public void testSelfAttach() throws IOException, InterruptedException {
         JvmAgentProcess proc = new JvmAgentProcess(Server, "SimpleSelfAttach",
-            "co.elastic.apm.agent.configuration.ActivationTestExampleSelfAttachApp",
+            "co.elastic.apm.attach.ExampleSelfAttachAppWithProvidedJar",
             "programmatic-self-attach");
         proc.prependToClasspath(ElasticAgentAttachJarFileLocation);
+        proc.prependToClasspath(ElasticAgentAttachTestJarFileLocation);
         proc.addOption("-DElasticApmAgent.jarfile="+ElasticAgentJarFileLocation);
         proc.executeCommand();
     }
