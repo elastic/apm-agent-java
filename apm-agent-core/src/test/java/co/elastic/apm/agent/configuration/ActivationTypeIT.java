@@ -1,0 +1,472 @@
+package co.elastic.apm.agent.configuration;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class ActivationTypeIT {
+    // Activation is about how an external config or process activates the agent,
+    // so tests here spawn a full JVM with an agent to test the activation method
+    private static final int TIMEOUT_IN_SECONDS = 200;
+
+    private static String ElasticAgentAttachJarFileLocation = "\\Temp\\apm-agent-attach-1.35.1-SNAPSHOT.jar";
+    private static String ElasticAgentAttachCliJarFileLocation = "\\Temp\\apm-agent-attach-cli-1.35.1-SNAPSHOT.jar";
+    private static String ElasticAgentJarFileLocation = "\\Temp\\elastic-apm-agent-1.35.1-SNAPSHOT.jar";
+    private static MockServer Server;
+
+    @BeforeAll
+    public static void setUp() throws IOException {
+        ElasticAgentJarFileLocation = getJarPath("elastic-apm-agent");
+        assertThat(ElasticAgentJarFileLocation).isNotNull();
+        ElasticAgentAttachJarFileLocation = getJarPath("apm-agent-attach");
+        assertThat(ElasticAgentAttachJarFileLocation).isNotNull();
+        ElasticAgentAttachCliJarFileLocation = getJarPath("apm-agent-attach-cli");
+        assertThat(ElasticAgentAttachCliJarFileLocation).isNotNull();
+
+        Server = new MockServer();
+        Server.start();
+        assertThat(Server.waitUntilStarted(500)).isTrue();
+        assertThat(Server.port()).isGreaterThan(0);
+    }
+
+    private static String getJarPath(String project) {
+        File rootDir = new File("..");
+        File projectDir = new File(rootDir, project);
+        assertThat(projectDir.exists()).isTrue();
+        assertThat(projectDir.isDirectory()).isTrue();
+        File targetDir = new File(projectDir, "target");
+        assertThat(targetDir.exists()).isTrue();
+        assertThat(targetDir.isDirectory()).isTrue();
+        String jarName = null;
+        for (String file : targetDir.list()) {
+            if (file.matches("^"+project+".*"+".jar$") && !file.contains("sources")) {
+                File jarNameFile = new File(targetDir, file);
+                assertThat(jarNameFile.exists()).isTrue();
+                assertThat(jarNameFile.isDirectory()).isFalse();
+                assertThat(jarNameFile.canRead()).isTrue();
+                jarName = jarNameFile.getPath();
+            }
+        }
+        return jarName;
+    }
+
+    @AfterAll
+    public static void tearDown() {
+        Server.stop();
+    }
+
+    @Test
+    public void testSelfAttach() throws IOException, InterruptedException {
+        JvmAgentProcess proc = new JvmAgentProcess(Server, "SimpleSelfAttach",
+            "co.elastic.apm.agent.configuration.ActivationTestExampleSelfAttachApp",
+            "programmatic-self-attach");
+        proc.prependToClasspath(ElasticAgentAttachJarFileLocation);
+        proc.addOption("-DElasticApmAgent.jarfile="+ElasticAgentJarFileLocation);
+        proc.executeCommand();
+    }
+
+    @Test
+    public void testCLIAttach() throws IOException, InterruptedException {
+        JvmAgentProcess proc = new JvmAgentProcess(Server, "JavaAgentCLI",
+            "co.elastic.apm.agent.configuration.ActivationTestExampleApp",
+            "javaagent-flag");
+        proc.addOption("-javaagent:"+ElasticAgentJarFileLocation);
+        proc.executeCommand();
+    }
+
+    @Test
+    public void testEnvAttach() throws IOException, InterruptedException {
+        JvmAgentProcess proc = new JvmAgentProcess(Server, "JavaAgentCLIViaToolEnv",
+            "co.elastic.apm.agent.configuration.ActivationTestExampleApp",
+            "env-attach");
+        proc.addEnv("JAVA_TOOL_OPTIONS", "-javaagent:"+ElasticAgentJarFileLocation);
+        proc.executeCommand();
+    }
+
+    @Test
+    public void testRemoteAttach() throws IOException, InterruptedException {
+        JvmAgentProcess proc = new JvmAgentProcess(Server, "SimpleRemoteAttached",
+            "co.elastic.apm.agent.configuration.ActivationTestExampleApp",
+            "apm-agent-attach-cli");
+        proc.attachRemotely(true);
+        proc.executeCommand();
+    }
+
+    @Test
+    public void testFleetAttach() throws IOException, InterruptedException {
+        JvmAgentProcess proc = new JvmAgentProcess(Server, "FleetRemoteAttached",
+            "co.elastic.apm.agent.configuration.ActivationTestExampleApp",
+            "fleet");
+        proc.attachRemotely(true);
+        proc.executeCommand();
+    }
+
+    static class ExternalProcess {
+        volatile Process child;
+        boolean debug = true;
+
+        private static void pauseSeconds(int seconds) {
+            try {Thread.sleep(seconds*1_000L);} catch (InterruptedException e) {}
+        }
+
+        public void executeCommandInNewThread(ProcessBuilder pb, ActivationHandler handler, String activationMethod, String remoteClassToAttach) throws IOException, InterruptedException {
+            ExternalProcess spawnedProcess = new ExternalProcess();
+            new Thread(() -> {
+                try {
+                    spawnedProcess.executeCommandSynchronously(pb);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+            pauseSeconds(1);
+            if (remoteClassToAttach != null) {
+                ProcessBuilder pbAttach;
+                if ("fleet".equals(activationMethod)) {
+                    pbAttach = new ProcessBuilder("java",
+                        "-jar", ElasticAgentAttachCliJarFileLocation,
+                        "--include-main", remoteClassToAttach,
+                        "-C", "activation_method=FLEET");
+                } else {
+                    pbAttach = new ProcessBuilder("java",
+                        "-jar", ElasticAgentAttachCliJarFileLocation,
+                        "--include-main", remoteClassToAttach);
+                }
+                executeCommandSynchronously(pbAttach);
+            }
+            waitForActivationMethod(handler, TIMEOUT_IN_SECONDS*1000);
+            assertThat(handler.found()).isTrue();
+            terminate();
+            spawnedProcess.terminate();
+        }
+
+        private static void waitForActivationMethod(ActivationHandler handler, long timeoutInMillis) {
+            long start = System.currentTimeMillis();
+            while (System.currentTimeMillis() - start < timeoutInMillis) {
+                if (handler.found()) {
+                    return;
+                }
+                try {Thread.sleep(5);} catch (InterruptedException e) {}
+            }
+        }
+
+
+        private void terminate() {
+            if (child != null) {
+                if (child.isAlive()) {
+                    child.destroy();
+                    pauseSeconds(1);
+                    if (child.isAlive()) {
+                        child.destroyForcibly();
+                    }
+                }
+            }
+        }
+
+        public void executeCommandSynchronously(ProcessBuilder pb) throws IOException {
+            if (debug) {
+                System.out.println("Executing command: "+ Arrays.toString(pb.command().toArray()));
+            }
+            pb.redirectErrorStream(true);
+            Process childProcess = pb.start();
+            child = childProcess;
+
+            StringBuilder commandOutput = new StringBuilder();
+
+            boolean isAlive = true;
+            byte[] buffer = new byte[64 * 1000];
+            try (InputStream in = childProcess.getInputStream()) {
+                //stop trying if the time elapsed exceeds the timeout
+                while (isAlive) {
+                    while (in.available() > 0) {
+                        int lengthRead = in.read(buffer, 0, buffer.length);
+                        commandOutput.append(new String(buffer, 0, lengthRead));
+                        if (debug) {
+                            System.out.print(commandOutput);
+                        }
+                        commandOutput.setLength(0);
+                    }
+                    pauseSeconds(1);
+                    //if it's not alive but there is still readable input, then continue reading
+                    isAlive = childProcess.isAlive() || in.available() > 0;
+                }
+            }
+
+            //Cleanup as well as I can
+            boolean exited = false;
+            try {exited = childProcess.waitFor(3, TimeUnit.SECONDS);}catch (InterruptedException e) {}
+            if (!exited) {
+                childProcess.destroy();
+                pauseSeconds(1);
+                if (childProcess.isAlive()) {
+                    childProcess.destroyForcibly();
+                }
+            }
+            if (debug) {
+                System.out.print(commandOutput);
+            }
+        }
+
+    }
+
+    static class JvmAgentProcess extends ExternalProcess {
+        static final String Classpath = System.getProperty("java.class.path");
+        static final String[] TestAgentParams = {"api_request_size=100b", "report_sync=true", "log_level=DEBUG", "instrument=false"};
+
+        MockServer apmServer;
+        List<String> command = new ArrayList<>();
+        String serviceName;
+        String targetClass;
+        String activationMethod;
+        Map<String,String> env;
+        boolean attachRemotely;
+        List<String> targetParams = new ArrayList<>();
+
+        public void attachRemotely(boolean attachRemotely1) {
+            this.attachRemotely = attachRemotely1;
+        }
+
+        public JvmAgentProcess(MockServer server, String serviceName1, String targetClass1, String activationMethod1) {
+            apmServer = server;
+            serviceName = serviceName1;
+            targetClass = targetClass1;
+            activationMethod = activationMethod1;
+            init();
+        }
+
+        public void addEnv(String key, String value) {
+            if(env == null) {
+                env = new HashMap<>();
+            }
+            env.put(key, value);
+        }
+
+        public void prependToClasspath(String location) {
+            command.set(2, location+System.getProperty("path.separator")+command.get(2));
+        }
+
+        public void executeCommand() throws IOException, InterruptedException {
+            executeCommandInNewThread(buildProcess(), apmServer.getHandler(),
+                activationMethod, attachRemotely? targetClass : null);
+        }
+
+        public void init() {
+            command.clear();
+            addOption("java");
+            addOption("-classpath");
+            addOption(Classpath);
+            addAgentOption("server_url=http://localhost:"+apmServer.port());
+            for (String keyEqualsValue : TestAgentParams) {
+                addAgentOption(keyEqualsValue);
+            }
+            addAgentOption("service_name="+serviceName);
+            apmServer.getHandler().setActivationToWaitFor(serviceName, activationMethod);
+        }
+
+        public void addAgentOption(String keyEqualsValue) {
+            command.add("-Delastic.apm."+keyEqualsValue);
+        }
+
+        public void addOption(String option) {
+            command.add(option);
+        }
+
+        public void addTargetParam(String param) {
+            targetParams.add(param);
+        }
+
+        private ProcessBuilder buildProcess() {
+            command.add(targetClass);
+            for (String param :targetParams) {
+                command.add(param);
+            }
+            ProcessBuilder pb = new ProcessBuilder(command);
+            if (env != null) {
+                for (Map.Entry<String, String> entry : env.entrySet()) {
+                    pb.environment().put(entry.getKey(), entry.getValue());
+                }
+            }
+            return pb;
+        }
+
+    }
+
+    static class ActivationHandler {
+
+        private volatile String serviceNameToWaitFor;
+        private volatile String activationMethodToWaitFor;
+        private volatile boolean found;
+        private final ObjectMapper objectMapper = new ObjectMapper();
+
+        public boolean found() {
+            return found;
+        }
+
+        public void setActivationToWaitFor(String serviceNameToWaitFor1, String activationMethodToWaitFor1) {
+            this.serviceNameToWaitFor = serviceNameToWaitFor1;
+            this.activationMethodToWaitFor = activationMethodToWaitFor1;
+            found = false;
+        }
+
+        public void handle(String line) {
+            try {
+                report(line);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+        }
+
+        private void report(String line) throws JsonProcessingException {
+            System.out.println("MockServer line read: "+line);
+            JsonNode messageRootNode = objectMapper.readTree(line);
+            JsonNode metadataNode = messageRootNode.get("metadata");
+            if (metadataNode != null) {
+                JsonNode serviceNode = metadataNode.get("service");
+                if (serviceNode != null) {
+                    String name = serviceNode.get("name").asText();
+                    JsonNode agentNode = serviceNode.get("agent");
+                    if (agentNode != null) {
+                        JsonNode activationNode = agentNode.get("activation");
+                        if(activationNode != null) {
+                            JsonNode activationMethodNode = activationNode.get("method");
+                            if (activationMethodNode != null) {
+                                String activationMethod = activationMethodNode.asText();
+                                if (name.equals(serviceNameToWaitFor) &&
+                                    activationMethod.equals(activationMethodToWaitFor)) {
+                                    found = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+    static class MockServer {
+
+        private static final String HTTP_HEADER ="HTTP/1.0 200 OK\nContent-Type: text/html; charset=utf-8\nServer: MockApmServer\n\n";
+
+        private volatile ServerSocket server;
+        private volatile boolean keepGoing = true;
+        private final ActivationHandler handler = new ActivationHandler();
+
+
+        public MockServer() {
+        }
+
+        public ActivationHandler getHandler() {
+            return handler;
+        }
+
+        public void stop() {
+            keepGoing = false;
+            try {
+                if (this.server != null) {
+                    this.server.close();
+                }
+            } catch (IOException e) {
+                System.out.println("MockApmServer: Unsuccessfully called stop(), stack trace follows, error is:"+e.getLocalizedMessage());
+                e.printStackTrace(System.out);
+            }
+        }
+
+        public int port() {
+            if (this.server != null) {
+                return this.server.getLocalPort();
+            } else {
+                return -1;
+            }
+        }
+
+        public boolean waitUntilStarted(long timeoutInMillis) {
+            long start = System.currentTimeMillis();
+            while((System.currentTimeMillis() - start < timeoutInMillis) && server == null) {
+                try {Thread.sleep(1);} catch (InterruptedException e) {}
+            }
+            return server != null;
+        }
+
+        public void start() throws IOException {
+            if (this.server != null) {
+                throw new IOException("MockApmServer: Ooops, you can't start this instance more than once");
+            }
+            new Thread(() -> {
+                try {
+                    _start();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
+
+        private synchronized void _start() throws IOException {
+            if (this.server != null) {
+                throw new IOException("MockApmServer: Ooops, you can't start this instance more than once");
+            }
+            this.server = new ServerSocket(0);
+            System.out.println("MockApmServer: Successfully called start(), now listening for requests on port "+this.server.getLocalPort());
+            while(keepGoing) {
+                try(Socket client = this.server.accept()) {
+                    while(!client.isClosed() && !client.isInputShutdown() && !client.isOutputShutdown()) {
+                        try (BufferedReader clientInput = new BufferedReader(new InputStreamReader(client.getInputStream()))) {
+                            String line = clientInput.readLine();
+                            if(line == null) {
+                                //hmmm, try again
+                                try {Thread.sleep(10);} catch (InterruptedException e) {}
+                                line = clientInput.readLine();
+                                if (line == null) {
+                                    clientInput.close();
+                                    break;
+                                }
+                            }
+                            if (line.startsWith("GET /exit")) {
+                                keepGoing = false;
+                            }
+                            while ( (line = clientInput.readLine()) != null) {
+                                if (line.strip().startsWith("{")) {
+                                    try {
+                                        handler.handle(line.strip());
+                                    } catch (Throwable e) {
+                                        //ignore, the report() is responsible to have log it
+                                    }
+                                }
+                            }
+                            PrintWriter outputToClient = new PrintWriter(client.getOutputStream());
+                            outputToClient.println(HTTP_HEADER);
+                            outputToClient.println("{}");
+                            outputToClient.flush();
+                            outputToClient.close();
+                        } catch (IOException e) {
+                            if (!e.getMessage().equals("Connection reset")) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+            }
+            stop();
+        }
+
+    }
+}
