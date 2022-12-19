@@ -202,7 +202,7 @@
             <groupId>co.elastic.apm</groupId>
             <artifactId>apm-agent-attach</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
