@@ -21,7 +21,6 @@ package co.elastic.apm.agent.util;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -56,33 +55,6 @@ public class IOUtils {
             return StandardCharsets.UTF_8.newEncoder();
         }
     };
-
-    public static void writeUtf8Stream(final OutputStream os, String s) throws IOException {
-        CharsetEncoder charsetEncoder = threadLocalCharsetEncoder.get();
-        ByteBuffer byteBuffer = threadLocalByteBuffer.get();
-        CharBuffer charBuffer = threadLocalCharBuffer.get();
-
-        try {
-            int copied = 0;
-            boolean endOfInput = false;
-            while (!endOfInput) {
-                charBuffer.clear();
-                copied += copy(s, copied, charBuffer);
-                endOfInput = copied >= s.length();
-                charBuffer.flip();
-                for (CoderResult result = CoderResult.OVERFLOW; result.isOverflow(); ) {
-                    byteBuffer.clear();
-                    result = charsetEncoder.encode(charBuffer, byteBuffer, endOfInput);
-                    byteBuffer.flip();
-                    os.write(byteBuffer.array(), 0, byteBuffer.limit());
-                }
-            }
-        } finally {
-            ((Buffer) charBuffer).clear();
-            ((Buffer) byteBuffer).clear();
-            charsetEncoder.reset();
-        }
-    }
 
     static int copy(final String s, final int offset, final CharBuffer destination) {
         final int length = Math.min(s.length() - offset, destination.remaining());

@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -136,23 +135,6 @@ class IOUtilsTest  {
         final CharBuffer charBuffer = CharBuffer.allocate(16);
         assertThat(IOUtils.decodeUtf8Bytes("{foo}".getBytes(UTF_16), charBuffer).isError()).isTrue();
         assertThat((CharSequence) charBuffer).isEqualTo(CharBuffer.allocate(16));
-    }
-
-    @Test
-    void writeUtf8StringToStream() throws IOException {
-        assertStringEncoded("{test}");
-        assertStringEncoded("\u2202");
-        assertStringEncoded(RandomStringUtils.randomAlphanumeric(IOUtils.BYTE_BUFFER_CAPACITY * 2));
-        assertStringEncoded(RandomStringUtils.random(
-            IOUtils.BYTE_BUFFER_CAPACITY * 2,
-            "\u2202\u0153\u2211\u2020\u00A5\u00A8\u02C6\u02C6\u02C6\u03C0\u201C\u2018\u00E5\u00DF\u2202\u0192\u00A9\u02D9\u2206\u02DA"));
-    }
-
-    private void assertStringEncoded(String input) throws IOException {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        IOUtils.writeUtf8Stream(os, input);
-        String encodedString = os.toString(UTF_8);
-        assertThat(encodedString).isEqualTo(input);
     }
 
     @Nonnull
