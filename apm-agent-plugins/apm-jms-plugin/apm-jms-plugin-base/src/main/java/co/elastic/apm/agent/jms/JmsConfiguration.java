@@ -35,9 +35,7 @@ public class JmsConfiguration extends ConfigurationOptionProvider {
         .description("Defines which packages contain JMS MessageListener implementations for instrumentation." +
             "\n" +
             "When set to a non-empty value, only the classes matching configuration will be instrumented.\n" +
-            "This configuration option helps to make MessageListener type matching faster and improve application startup performance.\n" +
-            "\n" +
-            WildcardMatcher.DOCUMENTATION
+            "This configuration option helps to make MessageListener type matching faster and improve application startup performance."
         )
         .dynamic(false)
         .buildWithDefault(Collections.<String>emptyList());
