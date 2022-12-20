@@ -21,9 +21,10 @@ package co.elastic.apm.agent.configuration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -31,8 +32,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.lang.ref.Cleaner;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -42,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Execution(ExecutionMode.CONCURRENT)
 public class ActivationTypeIT {
     // Activation is about how an external config or process activates the agent,
     // so tests here spawn a full JVM with an agent to test the activation method
@@ -51,7 +55,7 @@ public class ActivationTypeIT {
     private static String ElasticAgentAttachTestJarFileLocation;
     private static String ElasticAgentAttachCliJarFileLocation;
     private static String ElasticAgentJarFileLocation;
-    private static MockServer Server;
+    private static final Cleaner MockCleaner = Cleaner.create();
 
     @BeforeAll
     public static void setUp() throws IOException {
@@ -63,11 +67,15 @@ public class ActivationTypeIT {
         assertThat(ElasticAgentAttachTestJarFileLocation).isNotNull();
         ElasticAgentAttachCliJarFileLocation = getJarPath("apm-agent-attach-cli", false);
         assertThat(ElasticAgentAttachCliJarFileLocation).isNotNull();
+    }
 
-        Server = new MockServer();
-        Server.start();
-        assertThat(Server.waitUntilStarted(500)).isTrue();
-        assertThat(Server.port()).isGreaterThan(0);
+    public MockServer startServer() throws IOException {
+        final MockServer server = new MockServer();
+        server.start();
+        assertThat(server.waitUntilStarted(500)).isTrue();
+        assertThat(server.port()).isGreaterThan(0);
+        MockCleaner.register(server, () -> server.stop());
+        return server;
     }
 
     private static String getJarPath(String project, boolean findTestJar) {
@@ -98,56 +106,61 @@ public class ActivationTypeIT {
         return jarName;
     }
 
-    @AfterAll
-    public static void tearDown() {
-        Server.stop();
+    @Test
+    public void testSelfAttach() throws Exception {
+        try (MockServer server = startServer()) {
+            JvmAgentProcess proc = new JvmAgentProcess(server, "SimpleSelfAttach",
+                "co.elastic.apm.attach.ExampleSelfAttachAppWithProvidedJar",
+                "programmatic-self-attach");
+            proc.prependToClasspath(ElasticAgentAttachJarFileLocation);
+            proc.prependToClasspath(ElasticAgentAttachTestJarFileLocation);
+            proc.addOption("-DElasticApmAgent.jarfile=" + ElasticAgentJarFileLocation);
+            proc.executeCommand();
+        }
     }
 
     @Test
-    public void testSelfAttach() throws IOException, InterruptedException {
-        JvmAgentProcess proc = new JvmAgentProcess(Server, "SimpleSelfAttach",
-            "co.elastic.apm.attach.ExampleSelfAttachAppWithProvidedJar",
-            "programmatic-self-attach");
-        proc.prependToClasspath(ElasticAgentAttachJarFileLocation);
-        proc.prependToClasspath(ElasticAgentAttachTestJarFileLocation);
-        proc.addOption("-DElasticApmAgent.jarfile="+ElasticAgentJarFileLocation);
-        proc.executeCommand();
+    public void testCLIAttach() throws Exception {
+        try (MockServer server = startServer()) {
+            JvmAgentProcess proc = new JvmAgentProcess(server, "JavaAgentCLI",
+                "co.elastic.apm.agent.configuration.ActivationTestExampleApp",
+                "javaagent-flag");
+            proc.addOption("-javaagent:" + ElasticAgentJarFileLocation);
+            proc.executeCommand();
+        }
     }
 
     @Test
-    public void testCLIAttach() throws IOException, InterruptedException {
-        JvmAgentProcess proc = new JvmAgentProcess(Server, "JavaAgentCLI",
-            "co.elastic.apm.agent.configuration.ActivationTestExampleApp",
-            "javaagent-flag");
-        proc.addOption("-javaagent:"+ElasticAgentJarFileLocation);
-        proc.executeCommand();
+    public void testEnvAttach() throws Exception {
+        try (MockServer server = startServer()) {
+            JvmAgentProcess proc = new JvmAgentProcess(server, "JavaAgentCLIViaToolEnv",
+                "co.elastic.apm.agent.configuration.ActivationTestExampleApp",
+                "env-attach");
+            proc.addEnv("JAVA_TOOL_OPTIONS", "-javaagent:" + ElasticAgentJarFileLocation);
+            proc.executeCommand();
+        }
     }
 
     @Test
-    public void testEnvAttach() throws IOException, InterruptedException {
-        JvmAgentProcess proc = new JvmAgentProcess(Server, "JavaAgentCLIViaToolEnv",
-            "co.elastic.apm.agent.configuration.ActivationTestExampleApp",
-            "env-attach");
-        proc.addEnv("JAVA_TOOL_OPTIONS", "-javaagent:"+ElasticAgentJarFileLocation);
-        proc.executeCommand();
+    public void testRemoteAttach() throws Exception {
+        try (MockServer server = startServer()) {
+            JvmAgentProcess proc = new JvmAgentProcess(server, "SimpleRemoteAttached",
+                "co.elastic.apm.agent.configuration.ActivationTestExampleApp",
+                "apm-agent-attach-cli");
+            proc.attachRemotely(true);
+            proc.executeCommand();
+        }
     }
 
     @Test
-    public void testRemoteAttach() throws IOException, InterruptedException {
-        JvmAgentProcess proc = new JvmAgentProcess(Server, "SimpleRemoteAttached",
-            "co.elastic.apm.agent.configuration.ActivationTestExampleApp",
-            "apm-agent-attach-cli");
-        proc.attachRemotely(true);
-        proc.executeCommand();
-    }
-
-    @Test
-    public void testFleetAttach() throws IOException, InterruptedException {
-        JvmAgentProcess proc = new JvmAgentProcess(Server, "FleetRemoteAttached",
-            "co.elastic.apm.agent.configuration.ActivationTestExampleApp",
-            "fleet");
-        proc.attachRemotely(true);
-        proc.executeCommand();
+    public void testFleetAttach() throws Exception {
+        try (MockServer server = startServer()) {
+            JvmAgentProcess proc = new JvmAgentProcess(server, "FleetRemoteAttached",
+                "co.elastic.apm.agent.configuration.ActivationTestExampleApp",
+                "fleet");
+            proc.attachRemotely(true);
+            proc.executeCommand();
+        }
     }
 
     static class ExternalProcess {
@@ -158,7 +171,7 @@ public class ActivationTypeIT {
             try {Thread.sleep(seconds*1_000L);} catch (InterruptedException e) {}
         }
 
-        public void executeCommandInNewThread(ProcessBuilder pb, ActivationHandler handler, String activationMethod, String remoteClassToAttach) throws IOException, InterruptedException {
+        public void executeCommandInNewThread(ProcessBuilder pb, ActivationHandler handler, String activationMethod, String serviceName) throws IOException, InterruptedException {
             ExternalProcess spawnedProcess = new ExternalProcess();
             new Thread(() -> {
                 try {
@@ -168,17 +181,17 @@ public class ActivationTypeIT {
                 }
             }).start();
             pauseSeconds(1);
-            if (remoteClassToAttach != null) {
+            if (serviceName != null) {
                 ProcessBuilder pbAttach;
                 if ("fleet".equals(activationMethod)) {
                     pbAttach = new ProcessBuilder("java",
                         "-jar", ElasticAgentAttachCliJarFileLocation,
-                        "--include-main", remoteClassToAttach,
+                        "--include-vmarg", serviceName,
                         "-C", "activation_method=FLEET");
                 } else {
                     pbAttach = new ProcessBuilder("java",
                         "-jar", ElasticAgentAttachCliJarFileLocation,
-                        "--include-main", remoteClassToAttach);
+                        "--include-vmarg", serviceName);
                 }
                 executeCommandSynchronously(pbAttach);
             }
@@ -290,17 +303,18 @@ public class ActivationTypeIT {
         }
 
         public void prependToClasspath(String location) {
-            command.set(2, location+System.getProperty("path.separator")+command.get(2));
+            command.set(3, location+System.getProperty("path.separator")+command.get(3));
         }
 
         public void executeCommand() throws IOException, InterruptedException {
             executeCommandInNewThread(buildProcess(), apmServer.getHandler(),
-                activationMethod, attachRemotely? targetClass : null);
+                activationMethod, attachRemotely? serviceName : null);
         }
 
         public void init() {
             command.clear();
             addOption("java");
+            addOption("-Xmx16m");
             addOption("-classpath");
             addOption(Classpath);
             addAgentOption("server_url=http://localhost:"+apmServer.port());
@@ -392,7 +406,7 @@ public class ActivationTypeIT {
 
     }
 
-    static class MockServer {
+    class MockServer implements AutoCloseable {
 
         private static final String HTTP_HEADER ="HTTP/1.0 200 OK\nContent-Type: text/html; charset=utf-8\nServer: MockApmServer\n\n";
 
@@ -492,10 +506,16 @@ public class ActivationTypeIT {
                             }
                         }
                     }
+                } catch (SocketException e) {
+                    //ignore, we exit regardless and stop() at the end of the method
                 }
             }
             stop();
         }
 
+        @Override
+        public void close() throws Exception {
+            stop();
+        }
     }
 }
