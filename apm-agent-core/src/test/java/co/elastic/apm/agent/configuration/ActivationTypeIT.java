@@ -80,7 +80,8 @@ public class ActivationTypeIT {
         assertThat(targetDir.isDirectory()).isTrue();
         String jarName = null;
         for (String file : targetDir.list()) {
-            if (file.matches("^"+project+".*"+".jar$") && !file.contains("-sources")) {
+            if (file.matches("^"+project+".*"+".jar$")
+                && !file.contains("-sources") && !file.contains("-slim")) {
                 if (!findTestJar && file.contains("-tests")) {
                     continue;
                 }
