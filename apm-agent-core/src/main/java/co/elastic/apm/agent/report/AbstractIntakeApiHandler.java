@@ -36,7 +36,7 @@ import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
 public class AbstractIntakeApiHandler {
-    protected static final MutableLogger logger = new MutableLogger(LoggerFactory.getLogger(AbstractIntakeApiHandler.class));
+    protected static final MuteableLogger logger = new MuteableLogger(LoggerFactory.getLogger(AbstractIntakeApiHandler.class));
     private static final Object WAIT_LOCK = new Object();
 
     protected final ReporterConfiguration reporterConfiguration;

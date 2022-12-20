@@ -25,12 +25,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Logger implementation that can be muted
  */
-class MutableLogger implements Logger {
+class MuteableLogger implements Logger {
 
     private final Logger delegate;
     private final AtomicBoolean muted = new AtomicBoolean();
 
-    MutableLogger(Logger delegate) {
+    MuteableLogger(Logger delegate) {
         this.delegate = delegate;
     }
 
