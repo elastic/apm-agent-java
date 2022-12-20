@@ -39,10 +39,9 @@ import org.apache.logging.log4j.message.SimpleMessage;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
-@Plugin(name = "ApmServer", category = Core.CATEGORY_NAME, elementType = Appender.ELEMENT_TYPE, printObject = true)
+@Plugin(name = Log4j2ConfigurationFactory.APM_SERVER_PLUGIN_NAME, category = Core.CATEGORY_NAME, elementType = Appender.ELEMENT_TYPE, printObject = true)
 public class ApmServerLogAppender extends AbstractAppender {
 
     public static final int MAX_BUFFER_SIZE = 1024;

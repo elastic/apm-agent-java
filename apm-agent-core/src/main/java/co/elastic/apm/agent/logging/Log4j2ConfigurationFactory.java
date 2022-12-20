@@ -55,6 +55,8 @@ import static co.elastic.apm.agent.logging.LoggingConfiguration.SYSTEM_OUT;
 
 public class Log4j2ConfigurationFactory extends ConfigurationFactory {
 
+    public static final String APM_SERVER_PLUGIN_NAME = "ApmServer";
+
     private final List<org.stagemonitor.configuration.source.ConfigurationSource> sources;
     private final String ephemeralId;
 
@@ -221,7 +223,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
     }
 
     private AppenderComponentBuilder createSendingAppender(ConfigurationBuilder<BuiltConfiguration> builder) {
-        return builder.newAppender("apm-server", "ApmServer")
+        return builder.newAppender("apm-server", APM_SERVER_PLUGIN_NAME)
             .add(createLayout(builder, LogFormat.JSON));
     }
 }
