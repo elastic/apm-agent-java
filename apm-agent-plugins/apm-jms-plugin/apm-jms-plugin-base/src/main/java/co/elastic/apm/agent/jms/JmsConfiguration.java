@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
