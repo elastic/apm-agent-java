@@ -37,7 +37,6 @@ import co.elastic.apm.agent.util.TransactionNameUtils;
 import org.reactivestreams.Publisher;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.MultiValueMap;
@@ -270,8 +269,13 @@ public class WebfluxHelper {
 
     private static void fillResponse(Transaction transaction, ServerWebExchange exchange) {
         ServerHttpResponse serverResponse = exchange.getResponse();
-        HttpStatus statusCode = serverResponse.getStatusCode();
-        int status = statusCode != null ? statusCode.value() : 200;
+
+        int status;
+        if (serverResponse.getStatusCode() != null) {
+            status = serverResponse.getStatusCode().value();
+        } else {
+            status = 200;
+        }
 
         transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
 
