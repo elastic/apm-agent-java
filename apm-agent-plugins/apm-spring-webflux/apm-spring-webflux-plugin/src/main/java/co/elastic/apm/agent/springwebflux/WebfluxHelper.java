@@ -72,6 +72,7 @@ public class WebfluxHelper {
 
     private static final HeaderGetter HEADER_GETTER = new HeaderGetter();
 
+    @Nullable
     private static final SpringWebVersionUtils springWebVersionUtils = SpringWebUtilsFactory.getImplementation();
 
     private static final CoreConfiguration coreConfig;
@@ -271,7 +272,7 @@ public class WebfluxHelper {
 
     private static void fillResponse(Transaction transaction, ServerWebExchange exchange) {
         ServerHttpResponse serverResponse = exchange.getResponse();
-        int status = springWebVersionUtils.getStatusCode(serverResponse);
+        int status = springWebVersionUtils != null ? springWebVersionUtils.getStatusCode(serverResponse) : 200;
 
         transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
 

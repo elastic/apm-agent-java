@@ -21,30 +21,41 @@ package co.elastic.apm.agent.springwebflux;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
+import javax.annotation.Nullable;
+
 public class SpringWebUtilsFactory {
 
+    private static final String SPRING_WEB_5_UTILS_CLASS_NAME = "co.elastic.apm.agent.springwebflux.SpringWeb5Utils";
     private static final String SPRING_WEB_6_UTILS_CLASS_NAME = "co.elastic.apm.agent.springwebflux.SpringWeb6Utils";
 
     private static final Logger logger = LoggerFactory.getLogger(SpringWebUtilsFactory.class);
-    private static SpringWebVersionUtils instance;
+
+    @Nullable
+    private static SpringWebVersionUtils instance = null;
 
     static {
         try {
-            Class<?> springWeb6Class = Class.forName("org.springframework.http.HttpStatusCode");
+            Class.forName("org.springframework.http.HttpStatusCode");
             try {
-                // loading class by name sot to avoid linkage attempt when spring-web 6 is unavailable
+                // loading class by name so to avoid linkage attempt when spring-web 6 is unavailable
                 instance = (SpringWebVersionUtils) Class.forName(SPRING_WEB_6_UTILS_CLASS_NAME).getDeclaredConstructor().newInstance();
                 logger.debug("Spring-web 6.x+ identified");
             } catch (Exception e) {
                 logger.error("Spring-web 6.x+ identified, but failed to load related utility class", e);
-                instance = new SpringWeb5Utils();
             }
-        } catch (Exception e) {
-            logger.debug("Spring-web < 6.x identified");
-            instance = new SpringWeb5Utils();
+        } catch (ClassNotFoundException ignored) {
+            // assuming spring-web < 6.x
+            try {
+                // loading class by name so to avoid linkage attempt on spring-web 6, where the getStatusCode API has changed
+                instance = (SpringWebVersionUtils) Class.forName(SPRING_WEB_5_UTILS_CLASS_NAME).getDeclaredConstructor().newInstance();
+                logger.debug("Spring-web < 6.x identified");
+            } catch (Exception e) {
+                logger.error("Spring-web < 6.x identified, but failed to load related utility class", e);
+            }
         }
     }
 
+    @Nullable
     public static SpringWebVersionUtils getImplementation() {
         return instance;
     }

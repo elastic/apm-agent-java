@@ -21,7 +21,12 @@ package co.elastic.apm.agent.springwebflux;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 
+/**
+ * This class is compiled with spring-web 5.x, relying on the {@link ServerHttpResponse#getStatusCode()}, which changed in 6.0.0.
+ * Therefore, it MUST only be loaded through its class name through {@link SpringWebUtilsFactory}.
+ */
 public class SpringWeb5Utils implements SpringWebVersionUtils {
+
     @Override
     public int getStatusCode(ServerHttpResponse response) {
         HttpStatus statusCode = response.getStatusCode();

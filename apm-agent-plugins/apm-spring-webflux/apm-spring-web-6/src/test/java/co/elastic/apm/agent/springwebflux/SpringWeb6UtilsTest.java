@@ -22,13 +22,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 
+import java.util.Objects;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 public class SpringWeb6UtilsTest {
 
-    private final SpringWebVersionUtils springWebVersionUtils = SpringWebUtilsFactory.getImplementation();
+    private final SpringWebVersionUtils springWebVersionUtils = Objects.requireNonNull(SpringWebUtilsFactory.getImplementation());
 
     @Test
     void testSpringWebUtilsVersion() {
