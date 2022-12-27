@@ -13,12 +13,6 @@
     <properties>
         <!-- for licence header plugin -->
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
-
-        <!-- spring 6.x is compiled with Java 17 -->
-        <maven.compiler.target>17</maven.compiler.target>
-        <maven.compiler.source>${maven.compiler.target}</maven.compiler.source>
-
-        <animal.sniffer.skip>true</animal.sniffer.skip>
     </properties>
 
     <dependencies>
