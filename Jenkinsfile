@@ -31,7 +31,7 @@ pipeline {
     issueCommentTrigger("(${obltGitHubComments()}|^run (jdk compatibility|benchmark|integration|windows) tests)")
   }
   parameters {
-    string(name: 'JAVA_VERSION', defaultValue: 'java11', description: 'Java version to build & test')
+    string(name: 'JAVA_VERSION', defaultValue: 'jdk17', description: 'Java version to build & test')
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
 
     // Note about GH checks and optional steps

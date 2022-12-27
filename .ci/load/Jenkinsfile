@@ -81,8 +81,9 @@ pipeline {
                     echo "Switch to requested agent version = ${params.apm_version}"
                     sh(script: "git checkout ${params.apm_version}")
 
-                    echo 'Building agent with Java 11'
-                    sh(script: "JAVA_HOME=${env.HUDSON_HOME}/.java/java11 ./mvnw --batch-mode clean package -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.sources.skip=true")
+                    echo 'Building agent with Java 17'
+                    sh(script: "JAVA_HOME=${env.HUDSON_HOME}/.java/jdk17 ./mvnw --batch-mode clean package -DskipTests=true -Dmaven.javadoc
+                    .skip=true -Dmaven.sources.skip=true")
 
                     // copy agent jar to a known filename that don't change with version
                     sh(script: "cp -v \$(find ./elastic-apm-agent/target -name '*.jar' | grep -v sources | grep -v original | grep -v javadoc) ${WORKSPACE}/elastic-apm-agent.jar")
