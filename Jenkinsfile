@@ -371,8 +371,7 @@ pipeline {
               axis {
                 // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
                 name 'JDK_VERSION'
-                // 'openjdk18'  disabled for now see https://github.com/elastic/apm-agent-java/issues/2328
-                values 'openjdk17'
+                values 'jdk11', "jdk19"
               }
             }
             stages {
