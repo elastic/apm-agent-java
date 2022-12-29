@@ -223,6 +223,17 @@
           </build>
         </profile>
         <profile>
+          <!-- this profile should actually be active whenever running on Java 17 or higher, but since the only pre-Java-17 version we
+          test with is 11, this should be sufficient -->
+          <id>non-java-11</id>
+          <activation>
+              <jdk>!11</jdk>
+          </activation>
+          <modules>
+              <module>apm-agent-java-17</module>
+          </modules>
+        </profile>
+        <profile>
             <id>no-errorprone</id>
             <activation>
                 <property>

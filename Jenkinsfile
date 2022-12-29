@@ -371,7 +371,8 @@ pipeline {
               axis {
                 // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
                 name 'JDK_VERSION'
-                values 'jdk11', "jdk19"
+                // todo: upgrade jacoco and try adding "jdk19"
+                values 'jdk11'
               }
             }
             stages {
