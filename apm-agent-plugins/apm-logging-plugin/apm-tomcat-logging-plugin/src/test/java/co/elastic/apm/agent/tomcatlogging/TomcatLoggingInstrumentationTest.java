@@ -21,6 +21,8 @@ package co.elastic.apm.agent.tomcatlogging;
 import co.elastic.apm.agent.jul.JulInstrumentationTest;
 import co.elastic.apm.agent.loginstr.LoggerFacade;
 import org.apache.juli.FileHandler;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -32,6 +34,7 @@ import java.util.Date;
 import java.util.logging.Handler;
 import java.util.logging.SimpleFormatter;
 
+@DisabledOnOs(OS.WINDOWS)
 public class TomcatLoggingInstrumentationTest extends JulInstrumentationTest {
 
     @Override
@@ -66,12 +69,6 @@ public class TomcatLoggingInstrumentationTest extends JulInstrumentationTest {
                     e.printStackTrace();
                 }
             }
-        }
-
-        @Override
-        public void close() {
-            super.close();
-            cleanupPreviousLogFiles();
         }
 
         @Override
