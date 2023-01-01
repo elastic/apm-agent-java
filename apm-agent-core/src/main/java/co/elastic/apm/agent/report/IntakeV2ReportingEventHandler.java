@@ -186,10 +186,11 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
         HttpURLConnection connection = super.startRequest(endpoint);
         if (connection != null) {
             if (timeoutTask != null) {
+                long requestTimeoutMillis = reporterConfiguration.getApiRequestTime().getMillis();
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Scheduling request timeout in {}", reporterConfiguration.getApiRequestTime());
+                    logger.debug("Scheduling request timeout in {} seconds", TimeUnit.MILLISECONDS.toSeconds(requestTimeoutMillis));
                 }
-                timeoutTimer.schedule(timeoutTask, reporterConfiguration.getApiRequestTime().getMillis(), TimeUnit.MILLISECONDS);
+                timeoutTimer.schedule(timeoutTask, requestTimeoutMillis, TimeUnit.MILLISECONDS);
             }
         }
         return connection;
@@ -265,7 +266,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
                 reporter.scheduleWakeupEvent();
             } catch (Exception e) {
                 // should never happen in practice as we're not expecting this method to throw any exception
-                logger.warn(e.getMessage(), e);
+                logger.warn("Error trying to schedule a WAKEUP event: " + e.getMessage(), e);
             }
         }
     }
