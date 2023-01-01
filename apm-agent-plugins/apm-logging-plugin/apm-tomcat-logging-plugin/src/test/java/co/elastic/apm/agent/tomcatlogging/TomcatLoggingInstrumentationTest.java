@@ -69,6 +69,12 @@ public class TomcatLoggingInstrumentationTest extends JulInstrumentationTest {
         }
 
         @Override
+        public void close() {
+            super.close();
+            cleanupPreviousLogFiles();
+        }
+
+        @Override
         public String getLogFilePath() {
             for (Handler loggerHandler : julLogger.getHandlers()) {
                 if (loggerHandler instanceof FileHandler) {
