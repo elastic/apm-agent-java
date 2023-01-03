@@ -362,9 +362,6 @@ pipeline {
               }
             }
           }
-          environment {
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-          }
           matrix {
             agent { label 'linux && immutable' }
             axes {
@@ -377,6 +374,10 @@ pipeline {
             }
             stages {
               stage('JDK Unit Tests') {
+                environment {
+                  JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JDK_VERSION}"
+                  PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+                }
                 steps {
                   withGithubNotify(context: "${STAGE_NAME} ${JDK_VERSION}", tab: 'tests') {
                     deleteDir()
