@@ -177,7 +177,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
     @Nullable
     @Override
     protected String expectedTargetName(@Nullable String entityName) {
-        return null;
+        return localstack.getRegion();
     }
 
     @Override
