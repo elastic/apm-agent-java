@@ -45,11 +45,7 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
     private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:0.14.2");
     protected static final String BUCKET_NAME = "some-test-bucket";
     protected static final String SQS_QUEUE_NAME = "some-test-sqs-queue";
-    protected static final String SQS_MESSAGE_PROCESSING_SPAN_NAME = "Process SQS message from " + SQS_QUEUE_NAME;
     protected static final String SQS_IGNORED_QUEUE_NAME = "ignored-queue";
-    protected static final String SQS_TYPE = "sqs";
-    protected static final String SQS_MESSAGING_TYPE = "messaging";
-    protected static final String SQS_MESSAGE_PROCESSING_ACTION = "processing";
     protected static final String MESSAGE_BODY = "some-test-sqs-message-body";
     protected static final String NEW_BUCKET_NAME = "new-test-bucket";
     protected static final String OBJECT_KEY = "some-object-key";
