@@ -94,20 +94,53 @@ class JvmToolBootstrapCheckTest {
         "sun.tools.serialver.SerialVer",
     })
     void testJdkTool(String cmd) {
-        assertThat(new JvmToolBootstrapCheck(cmd).isJdkTool())
+        BootstrapCheck.BootstrapCheckResult result = new BootstrapCheck.BootstrapCheckResult();
+        JvmToolBootstrapCheck.checkJdkTool(cmd, result);
+        assertThat(result.hasErrors())
             .describedAs("command '%s' should be detected as a JDK tool")
-            .isTrue();
+                .isTrue();
+
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0)).contains("JVM tool detected");
+
+        assertThat(result.hasWarnings())
+            .describedAs("no warning expected")
+            .isFalse();
     }
 
     @Test
     void checkNotJdkTool() {
         checkNotJdkTool(null);
         checkNotJdkTool("");
+        checkNotJdkTool("/target/app.jar"); // java -jar /target/app.jar
+        checkNotJdkTool("/target/app.jar with some arguments"); // java -jar /target/app.jar with arguments
+        checkNotJdkTool("app.Main"); // java app.Main
+        checkNotJdkTool(System.getProperty("sun.java.command")); // Maven/IDE JUnit runner
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "/my/app/Main",
+        "my/app/main/Main"})
+    void checkOtherNotJdkTool(String cmd) {
+        BootstrapCheck.BootstrapCheckResult result = new BootstrapCheck.BootstrapCheckResult();
+        JvmToolBootstrapCheck.checkJdkTool(cmd, result);
+        assertThat(result.hasErrors())
+            .describedAs("command '%s' should issue an error to help us enhance the heuristic")
+            .isTrue();
+
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0)).describedAs("warning message should include original command").contains(cmd);
     }
 
     private static void checkNotJdkTool(@Nullable String cmd) {
-        assertThat(new JvmToolBootstrapCheck(cmd).isJdkTool())
-            .describedAs("command '%s' should not be detected as a JDK tool")
+        BootstrapCheck.BootstrapCheckResult result = new BootstrapCheck.BootstrapCheckResult();
+        JvmToolBootstrapCheck.checkJdkTool(cmd, result);
+        assertThat(result.hasErrors())
+            .describedAs("command '%s' should not be detected as a JDK tool", cmd)
+            .isFalse();
+        assertThat(result.hasWarnings())
+            .describedAs("no warning expected")
             .isFalse();
     }
 

@@ -20,7 +20,7 @@ package co.elastic.apm.agent.premain;
 
 import javax.annotation.Nullable;
 
-public class JvmToolBootstrapCheck implements BootstrapCheck{
+public class JvmToolBootstrapCheck implements BootstrapCheck {
 
     @Nullable
     private final String cmd;
@@ -33,25 +33,33 @@ public class JvmToolBootstrapCheck implements BootstrapCheck{
     public void doBootstrapCheck(BootstrapCheckResult result) {
         // JDK tools like 'jps' or 'keytool' should not be instrumented as it just makes them slower
         // they can be instrumented as a side effect of setting a global JAVA_TOOL_OPTIONS env variable
-        if (isJdkTool()) {
-            result.addError(String.format("JVM tool detected: '%s' agent will self-disable", cmd));
-        }
+        checkJdkTool(cmd, result);
     }
 
-    public boolean isJdkTool() {
-        if (cmd == null) {
-            return false;
+    public static void checkJdkTool(String jvmCmd, BootstrapCheckResult result) {
+        if (jvmCmd == null) {
+            return;
         }
 
-        String[] parts = cmd.split("/");
+        String[] parts = jvmCmd.split(" ");
+        if (parts.length > 0 && parts[0].endsWith(".jar")) {
+            // java -jar xxx.jar
+            return;
+        }
+
+        boolean isJdkTool = false;
+
+        parts = jvmCmd.split("/");
         if (parts.length == 2) {
             // JDK with module system
-            return parts[0].startsWith("jdk.") ||
-                parts[0].startsWith("java.");
+            isJdkTool = parts[0].startsWith("jdk.") || parts[0].startsWith("java.");
         } else if (parts.length == 1) {
-            return cmd.startsWith("sun.") || cmd.startsWith("com.sun.") || cmd.startsWith("jdk.");
+            isJdkTool = jvmCmd.startsWith("sun.") || jvmCmd.startsWith("com.sun.") || jvmCmd.startsWith("jdk.");
+        } else {
+            result.addError("Unexpected JVM command line syntax: " + jvmCmd);
         }
-
-        return false;
+        if (isJdkTool) {
+            result.addError(String.format("JVM tool detected: '%s' agent will self-disable", jvmCmd));
+        }
     }
 }
