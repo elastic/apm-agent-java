@@ -26,6 +26,7 @@ endif::[]
 [float]
 ===== Bug fixes
 * Use `127.0.0.1` as defaut for `server_url` to prevent ipv6 ambiguity - {pull}2927[#2927]
+* Self-disable the agent if accidentally started on a JVM/JDK command-line tool - {pull}2924[#2924]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
