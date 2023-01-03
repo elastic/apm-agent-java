@@ -40,6 +40,8 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import javax.annotation.Nullable;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 
@@ -112,6 +114,17 @@ public class S3ClientIT extends AbstractAwsClientIT {
     @Override
     protected String type() {
         return "storage";
+    }
+
+    @Override
+    protected String subtype() {
+        return "s3";
+    }
+
+    @Nullable
+    @Override
+    protected String expectedTargetName(@Nullable String entityName) {
+        return entityName; //entityName is bucket name
     }
 
     @Override
