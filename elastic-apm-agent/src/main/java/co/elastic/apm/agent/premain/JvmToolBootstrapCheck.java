@@ -33,6 +33,10 @@ public class JvmToolBootstrapCheck implements BootstrapCheck {
     public void doBootstrapCheck(BootstrapCheckResult result) {
         // JDK tools like 'jps' or 'keytool' should not be instrumented as it just makes them slower
         // they can be instrumented as a side effect of setting a global JAVA_TOOL_OPTIONS env variable
+        //
+        // When this happens there is a message in standard error output: "Picked up JAVA_TOOL_OPTIONS: <...>"
+        // The bootstrap checks errors & warnings are written to standard error too, thus the warning message
+        // is likely to be written just next to this JVM message.
         checkJdkTool(cmd, result);
     }
 
