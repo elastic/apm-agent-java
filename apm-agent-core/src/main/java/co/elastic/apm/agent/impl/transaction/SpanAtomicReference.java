@@ -38,8 +38,8 @@ class SpanAtomicReference<V extends AbstractSpan<?>> {
             if (ref != null) {
                 ref.incrementReferences();
             }
+            return ref;
         }
-        return ref;
     }
 
     /**
