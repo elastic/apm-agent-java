@@ -56,10 +56,10 @@ public class JvmToolBootstrapCheck implements BootstrapCheck {
         } else if (parts.length == 1) {
             isJdkTool = jvmCmd.startsWith("sun.") || jvmCmd.startsWith("com.sun.") || jvmCmd.startsWith("jdk.");
         } else {
-            result.addError("Unexpected JVM command line syntax: " + jvmCmd);
+            result.addWarn("Unexpected JVM command line syntax: " + jvmCmd);
         }
         if (isJdkTool) {
-            result.addError(String.format("JVM tool detected: '%s' agent will self-disable", jvmCmd));
+            result.addWarn(String.format("JVM tool detected: '%s' agent will self-disable", jvmCmd));
         }
     }
 }
