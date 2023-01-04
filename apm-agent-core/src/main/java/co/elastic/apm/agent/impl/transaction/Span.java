@@ -262,50 +262,66 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
     @Override
     protected void afterEnd() {
-        if (transaction != null && transaction.isSpanCompressionEnabled() && parent != null) {
-            Span buffered = parent.bufferedSpan.get();
-            if (parent.isFinished() || !isCompressionEligible()) {
-                if (buffered != null) {
-                    if (parent.bufferedSpan.compareAndSet(buffered, null)) {
-                        this.tracer.endSpan(buffered);
+        // Why do we increment references of this span here?
+        // The only thing preventing the "this"-span from being recycled is the initial reference increment in onAfterStart()
+        // There are multiple ways in afterEnd() on how this reference may be decremented and therefore potentially causing recycling:
+        //  - we call tracer.endSpan() for this span and the span is dropped / not reported for some reason
+        //  - we call tracer.endSpan() for this span and the span is reported and released afterwards (=> recycled on the reporter thread!)
+        //  - we successfully set parent.bufferedSpan to "this".
+        //     - a span on a different thread with the same parent can now call tracer.endSpan() for parent.bufferedSpan (=this span)
+        //     - the parent span is ended on a different thread and calls tracer.endSpan() for parent.bufferedSpan (=this span)
+        // By incrementing the reference count here, we guarantee that the "this" span is only recycled AFTER we decrement the reference count again
+        this.incrementReferences();
+        try {
+            if (transaction != null && transaction.isSpanCompressionEnabled() && parent != null) {
+                Span parentBuffered = parent.bufferedSpan.incrementReferencesAndGet();
+                try {
+                    if (parent.isFinished() || !isCompressionEligible()) {
+                        if (parentBuffered != null) {
+                            if (parent.bufferedSpan.compareAndSet(parentBuffered, null)) {
+                                this.tracer.endSpan(parentBuffered);
+                            }
+                        }
+                        this.tracer.endSpan(this);
+                        return;
+                    }
+                    if (parentBuffered == null) {
+                        if (!parent.bufferedSpan.compareAndSet(null, this)) {
+                            // the failed update would ideally lead to a compression attempt with the new buffer,
+                            // but we're dropping the compression attempt to keep things simple
+                            this.tracer.endSpan(this);
+                        }
+                        return;
+                    }
+                    if (!parentBuffered.tryToCompress(this)) {
+                        if (parent.bufferedSpan.compareAndSet(parentBuffered, this)) {
+                            this.tracer.endSpan(parentBuffered);
+                        } else {
+                            // the failed update would ideally lead to a compression attempt with the new buffer,
+                            // but we're dropping the compression attempt to keep things simple
+                            this.tracer.endSpan(this);
+                        }
+                    } else {
+                        if (isSampled() && transaction != null) {
+                            transaction.getSpanCount().getDropped().incrementAndGet();
+                        }
+                        //drop the span by removing the reference allocated in onAfterStart() because it has been compressed
+                        decrementReferences();
+                    }
+                } finally {
+                    if (parentBuffered != null) {
+                        parentBuffered.decrementReferences();
                     }
                 }
-                parent.decrementReferences();
+            } else {
                 this.tracer.endSpan(this);
-                return;
             }
-            if (buffered == null) {
-                parent.decrementReferences();
-                if (!parent.bufferedSpan.compareAndSet(null, this)) {
-                    // the failed update would ideally lead to a compression attempt with the new buffer,
-                    // but we're dropping the compression attempt to keep things simple
-                    this.tracer.endSpan(this);
-                }
-                return;
-            }
-            if (!buffered.tryToCompress(this)) {
-                if (parent.bufferedSpan.compareAndSet(buffered, this)) {
-                    parent.decrementReferences();
-                    this.tracer.endSpan(buffered);
-                } else {
-                    parent.decrementReferences();
-                    // the failed update would ideally lead to a compression attempt with the new buffer,
-                    // but we're dropping the compression attempt to keep things simple
-                    this.tracer.endSpan(this);
-                }
-            } else if (isSampled()) {
-                Transaction transaction = getTransaction();
-                if (transaction != null) {
-                    transaction.getSpanCount().getDropped().incrementAndGet();
-                }
-                parent.decrementReferences();
-                decrementReferences();
-            }
-        } else {
+        } finally {
             if (parent != null) {
+                //this needs to happen before this.decrementReferences(), because otherwise "this" might have been recycled already
                 parent.decrementReferences();
             }
-            this.tracer.endSpan(this);
+            this.decrementReferences();
         }
     }
 
