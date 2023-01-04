@@ -63,7 +63,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 public abstract class AbstractHttpClientInstrumentationTest extends AbstractInstrumentationTest {
 
     @Rule
-    public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort(), false);
+    public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort().dynamicHttpsPort(), false);
 
     @Before
     public final void setUpWiremock() {
@@ -165,6 +165,8 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Test
     public void testHttpCallRedirect() {
+        Assume.assumeTrue(isRedirectFollowingSupported());
+
         String path = "/redirect";
         performGetWithinTransaction(path);
 
@@ -201,8 +203,13 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     // assumption
-    protected boolean isErrorOnCircularRedirectSupported() {
+    protected boolean isRedirectFollowingSupported() {
         return true;
+    }
+
+    // assumption
+    protected boolean isErrorOnCircularRedirectSupported() {
+        return isRedirectFollowingSupported();
     }
 
     // assumption
@@ -239,13 +246,18 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted) {
+        return verifyHttpSpan(host, path, status, requestExecuted, false);
+    }
+
+    protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted, boolean isHttps) {
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         Span span = reporter.getSpans().get(0);
 
-        int port = wireMockRule.port();
+        int port = isHttps ? wireMockRule.httpsPort() : wireMockRule.port();
 
-        String baseUrl = String.format("http://%s:%d", host, port);
+        String schema = isHttps ? "https" : "http";
+        String baseUrl = String.format("%s://%s:%d", schema, host, port);
 
         Http httpContext = span.getContext().getHttp();
 
@@ -271,6 +283,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
         assertThat(span.getContext().getServiceTarget())
             .hasName(String.format("%s:%d", host, port))
+            .hasType("http")
             .hasNameOnlyDestinationResource();
 
         if (requestExecuted) {

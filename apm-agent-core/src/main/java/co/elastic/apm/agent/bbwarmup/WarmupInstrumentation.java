@@ -21,6 +21,7 @@ package co.elastic.apm.agent.bbwarmup;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -45,7 +46,7 @@ public class WarmupInstrumentation extends TracerAwareInstrumentation {
         // (caused by java.lang.ClassFormatError) on OpenJDK 7.
         // By allowing instrumentation only when the test class is loaded by the same class loader that loads this
         // instrumentation class, we avoid this problem and still allow it to work both on production and unit tests
-        return CustomElementMatchers.isSameClassLoader(getClass().getClassLoader());
+        return CustomElementMatchers.isSameClassLoader(PrivilegedActionUtils.getClassLoader(getClass()));
     }
 
     @Override

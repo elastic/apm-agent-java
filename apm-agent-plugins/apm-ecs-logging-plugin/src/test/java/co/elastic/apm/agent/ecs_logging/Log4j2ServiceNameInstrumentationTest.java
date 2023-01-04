@@ -32,14 +32,14 @@ import org.junit.Test;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 @Ignore
 public class Log4j2ServiceNameInstrumentationTest extends AbstractInstrumentationTest {
 
     @BeforeClass
     public static void setUp() {
-        when(tracer.getConfig(CoreConfiguration.class).getServiceName()).thenReturn("foo");
+        doReturn("foo").when(tracer.getConfig(CoreConfiguration.class)).getServiceName();
     }
 
     @Test

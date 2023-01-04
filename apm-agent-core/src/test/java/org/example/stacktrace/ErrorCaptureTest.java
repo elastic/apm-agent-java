@@ -32,7 +32,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 class ErrorCaptureTest {
 
@@ -55,7 +55,7 @@ class ErrorCaptureTest {
 
     @Test
     void testCulprit() {
-        when(stacktraceConfiguration.getApplicationPackages()).thenReturn(List.of("org.example.stacktrace"));
+        doReturn(List.of("org.example.stacktrace")).when(stacktraceConfiguration).getApplicationPackages();
         final ErrorCapture errorCapture = new ErrorCapture(tracer);
         final Exception nestedException = new Exception();
         final Exception topLevelException = new Exception(nestedException);

@@ -59,7 +59,6 @@ import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 /**
  * Tests newer client with a 0.10.2.2 version.
@@ -216,7 +215,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
 
     @Test
     public void testDestinationAddressCollectionDisabled() {
-        when(messagingConfiguration.shouldCollectQueueAddress()).thenReturn(false);
+        doReturn(false).when(messagingConfiguration).shouldCollectQueueAddress();
         testScenario = TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         reporter.disableCheckDestinationAddress();
@@ -226,7 +225,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
 
     @Test
     public void testIgnoreTopic() {
-        when(messagingConfiguration.getIgnoreMessageQueues()).thenReturn(List.of(WildcardMatcher.valueOf(REQUEST_TOPIC)));
+        doReturn(List.of(WildcardMatcher.valueOf(REQUEST_TOPIC))).when(messagingConfiguration).getIgnoreMessageQueues();
         testScenario = TestScenario.IGNORE_REQUEST_TOPIC;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();

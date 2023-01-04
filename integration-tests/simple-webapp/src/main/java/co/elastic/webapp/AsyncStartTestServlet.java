@@ -50,7 +50,7 @@ public class AsyncStartTestServlet extends HttpServlet {
                 }
                 try {
                     ctx.getResponse().getWriter().append(content);
-                } catch (IOException e) {
+                } catch (Exception e) {
                     cause = e;
                 }
                 if (causeTransactionError) {

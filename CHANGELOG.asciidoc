@@ -24,10 +24,14 @@ endif::[]
 ==== x.x.x - YYYY/MM/DD
 
 [float]
-===== Breaking changes
+===== Bug fixes
+* Use `127.0.0.1` as defaut for `server_url` to prevent ipv6 ambiguity - {pull}2927[#2927]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
 
 [[release-notes-1.35.0]]
-==== 1.35.0 - YYYY/MM/DD
+==== 1.35.0 - 2022/12/06
 
 [float]
 ===== Features
@@ -37,19 +41,25 @@ endif::[]
 * Prevented exclusion of agent-packages via `classes_excluded_from_instrumentation` to avoid unintended side effects
 * Add Tomcat support for log reformatting - {pull}2839[#2839]
 * Capture Elastic cluster name on Elastic Cloud - {pull}2796[#2796]
-* Attacher CLI: added a `--no-fork` config to opt out from executing a forked process as different user. If `--no-fork` is used
-alongside discovery rules that contain only `--include-pid` rules, the attacher will not execute JVM discovery - {pull}2863[#2863]
-* Add the option to instrument very old bytecode through the <<config-instrument-ancient-bytecode, `instrument_ancient_bytecode`>> config
-option - {pull}2866[#2866]
+* Attacher CLI: added a `--no-fork` config to opt out from executing a forked process as different user.If `--no-fork` is used alongside discovery rules that contain only `--include-pid` rules, the attacher will not execute JVM discovery - {pull}2863[#2863]
+* Add the option to instrument very old bytecode through the <<config-instrument-ancient-bytecode, `instrument_ancient_bytecode`>> config option - {pull}2866[#2866]
+* Capture MongoDB statements - {pull}2806[#2806]
+* Added agent health and background overhead metrics (experimental) - {pull}2864[#2864], {pull}2888[#2888]
+* Added support for Finagle Http Client - {pull}2795[#2795]
+* Add support for Apache HTTP client 3.x - {pull}2853[#2853]
+* Made `api_key` and `secret_token` configuration options dynamic - {pull}2889[#2889]
+* Misaligned micrometer interval vs Elastic agent metrics reporting interval now handled - {pull}2801[#2801]
+* Histograms now reported from micrometer metrics - {pull}2895[#2895]
 
 [float]
 ===== Bug fixes
 * Remove `context.db` fields from S3 instrumentation - {pull}2821[#2821]
 * Allowed OpenTelemetry `Span.updateName` to update names provided by elastic - {pull}2838[#2838]
 * Prevent random `NullPointerException` when span compression is not possible - {pull}2859[#2859]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Fix security manager issues on OpenJDK 17, with errors like: `java.lang.UnsupportedOperationException: Could not access Unsafe class` -
+{pull}2874[#2874]
+* Fix security manager compatibility with Tomcat - {pull}2871[#2871] and {pull}2883[#2883]
+* Fix NPE with Spring MVC - {pull}2896[#2896]
 
 [[release-notes-1.34.1]]
 ==== 1.34.1 - 2022/09/29

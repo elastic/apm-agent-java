@@ -53,7 +53,7 @@ import java.util.Collections;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class SQSJmsClientIT extends AbstractAwsClientIT {
     AmazonSQSMessagingClientWrapper client;
@@ -155,7 +155,7 @@ public class SQSJmsClientIT extends AbstractAwsClientIT {
 
     @Test
     public void testReceiveOutsideTransaction() throws JMSException {
-        when(messagingConfiguration.getMessagePollingTransactionStrategy()).thenReturn(MessagingConfiguration.JmsStrategy.POLLING);
+        doReturn(MessagingConfiguration.JmsStrategy.POLLING).when(messagingConfiguration).getMessagePollingTransactionStrategy();
         client.createQueue(SQS_QUEUE_NAME);
 
         // SEND message

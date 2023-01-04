@@ -43,6 +43,8 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -354,10 +356,25 @@ public class IndyBootstrap {
      * @return a {@link ConstantCallSite} that is the target of the invokedynamic
      */
     @Nullable
-    public static ConstantCallSite bootstrap(MethodHandles.Lookup lookup,
-                                             String adviceMethodName,
-                                             MethodType adviceMethodType,
-                                             Object... args) {
+    public static ConstantCallSite bootstrap(final MethodHandles.Lookup lookup,
+                                             final String adviceMethodName,
+                                             final MethodType adviceMethodType,
+                                             final Object... args) {
+
+        if (System.getSecurityManager() == null) {
+            return internalBootstrap(lookup, adviceMethodName, adviceMethodType, args);
+        }
+
+        // callsite resolution needs privileged access to call Class#getClassLoader() and MethodHandles$Lookup#findStatic
+        return AccessController.doPrivileged(new PrivilegedAction<ConstantCallSite>() {
+            @Override
+            public ConstantCallSite run() {
+                return internalBootstrap(lookup, adviceMethodName, adviceMethodType, args);
+            }
+        });
+    }
+
+    private static ConstantCallSite internalBootstrap(MethodHandles.Lookup lookup, String adviceMethodName, MethodType adviceMethodType, Object[] args) {
         try {
             if (callDepth.isNestedCallAndIncrement()) {
                 // avoid re-entrancy and stack overflow errors

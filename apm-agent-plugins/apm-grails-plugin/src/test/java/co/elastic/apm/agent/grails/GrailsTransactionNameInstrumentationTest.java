@@ -32,8 +32,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class GrailsTransactionNameInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -47,9 +47,9 @@ public class GrailsTransactionNameInstrumentationTest extends AbstractInstrument
     @Test
     void testSetGrailsTransactionName() throws Exception {
         final GrailsControllerClass controllerClass = mock(GrailsControllerClass.class);
-        when(controllerClass.getShortName()).thenReturn("Foo");
+        doReturn("Foo").when(controllerClass).getShortName();
         final UrlMappingInfo mappingInfo = mock(UrlMappingInfo.class);
-        when(mappingInfo.getActionName()).thenReturn("bar");
+        doReturn("bar").when(mappingInfo).getActionName();
         final Transaction transaction = tracer.startRootTransaction(null).withName("override me");
         try (Scope scope = transaction.activateInScope()) {
             handlerAdapter.handle(mock(HttpServletRequest.class), mock(HttpServletResponse.class), new GrailsControllerUrlMappingInfo(controllerClass, mappingInfo));

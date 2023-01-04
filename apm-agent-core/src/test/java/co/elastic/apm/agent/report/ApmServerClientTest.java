@@ -50,9 +50,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder.okForJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
@@ -61,6 +64,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.doReturn;
 
 public class ApmServerClientTest {
 
@@ -77,7 +81,7 @@ public class ApmServerClientTest {
     private List<URL> urlList;
 
     @Before
-    public void setUp() throws IOException {
+    public void setUp() throws IOException, ExecutionException, InterruptedException, TimeoutException {
         URL url1 = new URL("http", "localhost", apmServer1.port(), "/");
         URL url2 = new URL("http", "localhost", apmServer2.port(), "/proxy");
         // APM server 6.x style
@@ -107,6 +111,8 @@ public class ApmServerClientTest {
         // force a known order, with server1, then server2
         // tracer start will actually randomize it
         apmServerClient.start(urlList);
+        //wait until the health request completes to prevent mockito race conditions
+        apmServerClient.getApmServerVersion(10, TimeUnit.SECONDS);
     }
 
     @Test
@@ -269,9 +275,10 @@ public class ApmServerClientTest {
     public void testDefaultServerUrls() throws IOException {
         config.save("server_urls", "", SpyConfiguration.CONFIG_SOURCE_NAME);
         List<URL> updatedServerUrls = apmServerClient.getServerUrls();
-        URL tempUrl = new URL("http", "localhost", 8200, "");
-        // server_urls setting is removed, we expect the default URL to be used
-        assertThat(updatedServerUrls).isEqualTo(List.of(tempUrl));
+        assertThat(updatedServerUrls).hasSize(1);
+        URL defaultServerUrl = updatedServerUrls.get(0);
+        assertThat(defaultServerUrl.getHost()).isNotEqualTo("localhost");
+        assertThat(defaultServerUrl.getHost()).isEqualTo("127.0.0.1");
     }
 
     @Test
@@ -333,6 +340,37 @@ public class ApmServerClientTest {
         testSupportUnsampledTransactions(null, true);
         testSupportUnsampledTransactions("7.0.0", true);
         testSupportUnsampledTransactions("8.0.0", false);
+    }
+
+    @Test
+    public void testApiKeyRotation() throws Exception {
+        doReturn("token1").when(reporterConfiguration).getApiKey();
+
+        apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
+        apmServer1.verify(1, getRequestedFor(urlEqualTo("/test"))
+            .withHeader("Authorization", equalTo("ApiKey token1")));
+
+        doReturn("token2").when(reporterConfiguration).getApiKey();
+
+        apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
+        apmServer1.verify(1, getRequestedFor(urlEqualTo("/test"))
+            .withHeader("Authorization", equalTo("ApiKey token2")));
+    }
+
+
+    @Test
+    public void testSecretTokenRotation() throws Exception {
+        doReturn("token1").when(reporterConfiguration).getSecretToken();
+
+        apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
+        apmServer1.verify(1, getRequestedFor(urlEqualTo("/test"))
+            .withHeader("Authorization", equalTo("Bearer token1")));
+
+        doReturn("token2").when(reporterConfiguration).getSecretToken();
+
+        apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
+        apmServer1.verify(1, getRequestedFor(urlEqualTo("/test"))
+            .withHeader("Authorization", equalTo("Bearer token2")));
     }
 
     private void testSupportUnsampledTransactions(@Nullable String version, boolean expected) {

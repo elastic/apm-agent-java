@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Objects;
 
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class PlainLambdaTest extends AbstractPlainLambdaTest {
 
@@ -34,7 +34,7 @@ public class PlainLambdaTest extends AbstractPlainLambdaTest {
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(PlainLambdaFunction.class.getName());
+        doReturn(PlainLambdaFunction.class.getName()).when(Objects.requireNonNull(serverlessConfiguration)).getAwsLambdaHandler();
         AbstractLambdaTest.initInstrumentation();
     }
 

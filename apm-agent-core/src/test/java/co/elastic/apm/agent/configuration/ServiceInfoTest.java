@@ -39,7 +39,7 @@ class ServiceInfoTest extends CustomEnvVariables {
             properties.setProperty("sun.java.command", sunJavaCommand);
         }
 
-        return ServiceInfo.autoDetect(properties).getServiceName();
+        return ServiceInfo.autoDetect(properties, Map.of()).getServiceName();
     }
 
     @Test
@@ -81,7 +81,7 @@ class ServiceInfoTest extends CustomEnvVariables {
         final Map<String, String> awsLambdaEnvVariables = new HashMap<>();
         awsLambdaEnvVariables.put("AWS_LAMBDA_FUNCTION_NAME", "my-lambda-function");
         awsLambdaEnvVariables.put("AWS_LAMBDA_FUNCTION_VERSION", "24");
-        ServiceInfo serviceInfo = callWithCustomEnvVariables(awsLambdaEnvVariables, () -> ServiceInfo.autoDetect(new Properties()));
+        ServiceInfo serviceInfo = callWithCustomEnvVariables(awsLambdaEnvVariables, () -> ServiceInfo.autoDetect(System.getProperties(), System.getenv()));
         assertSoftly(softly -> {
             softly.assertThat(serviceInfo.getServiceName()).isEqualTo("my-lambda-function");
             softly.assertThat(serviceInfo.getServiceVersion()).isEqualTo("24");
