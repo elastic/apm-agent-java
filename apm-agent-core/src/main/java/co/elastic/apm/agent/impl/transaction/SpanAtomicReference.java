@@ -20,7 +20,7 @@ package co.elastic.apm.agent.impl.transaction;
 
 import javax.annotation.Nullable;
 
-public class AbstractSpanAtomicReference<V extends AbstractSpan<?>> {
+class SpanAtomicReference<V extends AbstractSpan<?>> {
 
     @Nullable
     private V ref;

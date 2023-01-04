@@ -116,7 +116,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     protected volatile boolean sync = true;
 
-    protected final AbstractSpanAtomicReference<Span> bufferedSpan = new AbstractSpanAtomicReference<>();
+    protected final SpanAtomicReference<Span> bufferedSpan = new SpanAtomicReference<>();
 
     // Span links handling
     public static final int MAX_ALLOWED_SPAN_LINKS = 1000;
