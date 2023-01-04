@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.34.2-SNAPSHOT</version>
+    <version>1.35.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -120,7 +120,7 @@
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.json-schema-validator>1.0.72</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.12.19</version.byte-buddy>
+        <version.byte-buddy>1.12.20</version.byte-buddy>
         <version.asm>9.4</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
@@ -155,7 +155,7 @@
             <properties>
                 <!-- use same java version as tests -->
                 <maven.compiler.target>${maven.compiler.testTarget}</maven.compiler.target>
-                <!-- used by intelij to set per-module language level when target version is overriden in module -->
+                <!-- used by IntelliJ to set per-module language level when target version is overriden in module -->
                 <maven.compiler.source>${maven.compiler.testTarget}</maven.compiler.source>
             </properties>
         </profile>
@@ -585,7 +585,7 @@
             <dependency>
                 <groupId>org.apache.ivy</groupId>
                 <artifactId>ivy</artifactId>
-                <version>2.5.0</version>
+                <version>2.5.1</version>
                 <scope>test</scope>
             </dependency>
 
@@ -663,7 +663,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>4.8.0</version>
+            <version>4.11.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

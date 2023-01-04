@@ -275,9 +275,10 @@ public class ApmServerClientTest {
     public void testDefaultServerUrls() throws IOException {
         config.save("server_urls", "", SpyConfiguration.CONFIG_SOURCE_NAME);
         List<URL> updatedServerUrls = apmServerClient.getServerUrls();
-        URL tempUrl = new URL("http", "localhost", 8200, "");
-        // server_urls setting is removed, we expect the default URL to be used
-        assertThat(updatedServerUrls).isEqualTo(List.of(tempUrl));
+        assertThat(updatedServerUrls).hasSize(1);
+        URL defaultServerUrl = updatedServerUrls.get(0);
+        assertThat(defaultServerUrl.getHost()).isNotEqualTo("localhost");
+        assertThat(defaultServerUrl.getHost()).isEqualTo("127.0.0.1");
     }
 
     @Test

@@ -736,6 +736,3 @@ If you are seeing gaps in the span timeline and want to include additional metho
 [[supported-technologies-caveats]]
 === Caveats
 * Other JVM languages, like Scala, Kotlin and Groovy have not been tested yet.
-* The agent does currently not support running on JVMs with an enabled `SecurityManager`.
-  You may see exceptions like this: `java.security.AccessControlException: access denied ("java.lang.RuntimePermission" "getProtectionDomain")`.
-  Try to grant `java.security.AllPermission` to the agent.
