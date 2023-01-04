@@ -366,10 +366,9 @@ pipeline {
             agent { label 'linux && immutable' }
             axes {
               axis {
-                // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
+                // the list of supported java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
                 name 'JDK_VERSION'
-                // todo: upgrade jacoco and try adding "jdk19"
-                values 'java11'
+                values 'java11', 'jdk19'
               }
             }
             stages {
