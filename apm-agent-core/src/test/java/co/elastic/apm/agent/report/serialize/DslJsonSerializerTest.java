@@ -1360,6 +1360,19 @@ class DslJsonSerializerTest {
         assertThat(jsonSpan.get("sample_rate").asDouble()).isEqualTo(0.42d);
     }
 
+    @Test
+    void testNonSampledTransaction() {
+        Sampler sampler = mock(Sampler.class);
+        doReturn(false).when(sampler).isSampled(any(Id.class));
+        doReturn(0.42d).when(sampler).getSampleRate();
+        Transaction transaction = createRootTransaction(sampler);
+        TraceContext transactionContext = transaction.getTraceContext();
+        assertThat(transactionContext.isSampled()).isFalse();
+        assertThat(transactionContext.getSampleRate()).isEqualTo(0.0d);
+        JsonNode transactionSpan = readJsonString(serializer.toJsonString(transaction));
+        assertThat(transactionSpan.get("sample_rate").asDouble()).isEqualTo(0.0d);
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void multiValueHeaders(boolean supportsMulti) {
