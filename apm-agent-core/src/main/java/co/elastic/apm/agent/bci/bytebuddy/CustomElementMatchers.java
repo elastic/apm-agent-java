@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.bci.bytebuddy;
 
 import co.elastic.apm.agent.matcher.AnnotationMatcher;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.ClassLoaderUtils;
