@@ -1,3 +1,21 @@
+/*
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package co.elastic.apm.agent.premain;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
@@ -14,7 +32,8 @@ import java.util.List;
  * In such cases, we should provide a configurable way to exclude JVMs from being instrumented, or to specifically allow when necessary.
  *
  * For this purpose, we have the following bootstrap configuration options available:
- * <table border="3">
+ * <table border="1">
+ *     <caption>Configuration options</caption>
  *     <tr><th>System property name</th><th>Env variable name</th><th>Description</th></tr>
  *     <tr><td>elastic.apm.bootstrap_allowlist</td><td>ELASTIC_APM_BOOTSTRAP_ALLOWLIST</td><td>If set, the agent will be enabled
  *     only on JVMs of which command matches one of the patterns in the provided list</td></tr>
@@ -24,7 +43,7 @@ import java.util.List;
  *
  * The allowlist option expects a comma-separated list of wild-card patterns. Such patterns may contain wildcards *, which match zero
  * or more characters. Examples: {@code foo*bar*baz*, *foo*}. Matching is case-insensitive by default. Prepending an element with
- * {@code (?-i) makes the matching case sensitive.
+ * {@code (?-i)} makes the matching case-sensitive.
  *
  * If neither configurable option is set, the agent contains a builtin list of default disable System property names. For example, we know
  * that attaching the agent to ActiveMQ processes by accident may prevent it from starting.
