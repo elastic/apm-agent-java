@@ -34,6 +34,7 @@ class BootstrapChecks {
         this.bootstrapChecksEnabled = bootstrapChecksEnabled;
     }
 
+    // todo: wrap with doPrivileged?
     static BootstrapChecks defaults() {
         boolean bootstrapChecksDisabled = Boolean.parseBoolean(System.getProperty("elastic.apm.disable_bootstrap_checks")) ||
             Boolean.parseBoolean(System.getenv("ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS"));
