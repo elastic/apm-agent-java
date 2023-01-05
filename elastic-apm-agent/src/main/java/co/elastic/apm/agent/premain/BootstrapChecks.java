@@ -21,6 +21,8 @@ package co.elastic.apm.agent.premain;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 
 import java.lang.management.ManagementFactory;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.List;
 
@@ -34,14 +36,29 @@ class BootstrapChecks {
         this.bootstrapChecksEnabled = bootstrapChecksEnabled;
     }
 
-    // todo: wrap with doPrivileged?
     static BootstrapChecks defaults() {
+        if (System.getSecurityManager() == null) {
+            return createDefaults();
+        }
+
+        return AccessController.doPrivileged(new PrivilegedAction<BootstrapChecks>() {
+            @Override
+            public BootstrapChecks run() {
+                return createDefaults();
+            }
+        });
+    }
+
+    private static BootstrapChecks createDefaults() {
         boolean bootstrapChecksDisabled = Boolean.parseBoolean(System.getProperty("elastic.apm.disable_bootstrap_checks")) ||
             Boolean.parseBoolean(System.getenv("ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS"));
+        String cmd = System.getProperty("sun.java.command");
         return new BootstrapChecks(!bootstrapChecksDisabled,
             new JavaVersionBootstrapCheck(JvmRuntimeInfo.ofCurrentVM()),
             new VerifyNoneBootstrapCheck(ManagementFactory.getRuntimeMXBean()),
-            new JvmToolBootstrapCheck(System.getProperty("sun.java.command")));
+            new JvmToolBootstrapCheck(cmd),
+            new ExcludeJvmBootstrapCheck(cmd)
+        );
     }
 
     /**

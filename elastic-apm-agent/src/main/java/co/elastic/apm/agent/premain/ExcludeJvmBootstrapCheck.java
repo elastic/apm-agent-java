@@ -21,6 +21,8 @@ package co.elastic.apm.agent.premain;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 
 import javax.annotation.Nullable;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,7 +38,7 @@ import java.util.List;
  *     <caption>Configuration options</caption>
  *     <tr><th>System property name</th><th>Env variable name</th><th>Description</th></tr>
  *     <tr><td>elastic.apm.bootstrap_allowlist</td><td>ELASTIC_APM_BOOTSTRAP_ALLOWLIST</td><td>If set, the agent will be enabled
- *     only on JVMs of which command matches one of the patterns in the provided list</td></tr>
+ *     <b>only</b> on JVMs of which command matches one of the patterns in the provided list</td></tr>
  *     <tr><td>elastic.apm.bootstrap_exclude_list</td><td>ELASTIC_APM_BOOTSTRAP_EXCLUDE_LIST</td><td>If set, the agent will be disabled
  *     on JVMs that contain a System property with one of the provided names in the list</td></tr>
  * </table>
@@ -48,52 +50,125 @@ import java.util.List;
  * If neither configurable option is set, the agent contains a builtin list of default disable System property names. For example, we know
  * that attaching the agent to ActiveMQ processes by accident may prevent it from starting.
  * This list is meant to grow based on users' feedback.
+ *
+ * Some examples:
+ * <ul>
+ *     <li>
+ *         Example 1: allow JVM attachment only on Tomcat and some proprietary Java apps:
+ *         {@code -Delastic.apm.bootstrap_allowlist=org.apache.catalina.startup.Bootstrap*,my.cool.app.*}
+ *     </li>
+ *     <li>
+ *         Example 2: disable when some custom System properties are set:
+ *         {@code -Delastic.apm.bootstrap_exclude_list=custom.property.1,custom.property.2}
+ *     </li>
+ * </ul>
  */
 public class ExcludeJvmBootstrapCheck implements BootstrapCheck {
 
     private static final List<String> defaultExcludeList = Arrays.asList("activemq.home", "activemq.base");
 
     @Nullable
+    private final String cmd;
+
+    @Nullable
+    private String allowListRaw;
+
+    @Nullable
     private List<WildcardMatcher> configuredAllowList;
+
+    @Nullable
+    private String excludeListRaw;
 
     @Nullable
     private List<String> configuredExcludeList;
 
-    public ExcludeJvmBootstrapCheck() {
-        // todo - read configuration options and populate lists if necessary
+    public ExcludeJvmBootstrapCheck(@Nullable String cmd) {
+        this.cmd = cmd;
+
+        allowListRaw = System.getProperty("elastic.apm.bootstrap_allowlist");
+        if (allowListRaw == null) {
+            allowListRaw = System.getenv("ELASTIC_APM_BOOTSTRAP_ALLOWLIST");
+        }
+        if (allowListRaw != null) {
+            configuredAllowList = parse(allowListRaw, new WildCardMatcherConverter());
+        }
+
+        excludeListRaw = System.getProperty("elastic.apm.bootstrap_exclude_list");
+        if (excludeListRaw == null) {
+            excludeListRaw = System.getenv("ELASTIC_APM_BOOTSTRAP_EXCLUDE_LIST");
+        }
+        if (excludeListRaw != null) {
+            configuredExcludeList = parse(excludeListRaw, new StringConverter());
+        }
     }
 
-    // todo: wrap with doPrivileged?
     @Override
-    public void doBootstrapCheck(BootstrapCheckResult result) {
-        if (configuredAllowList != null) {
-            if (WildcardMatcher.isNoneMatch(configuredAllowList, System.getProperty("sun.java.command"))) {
-                // when specifically configuring allowlist, any non-matched command is implicitly excluded
-                // todo - improve
-                result.addError("Excluded because");
+    public void doBootstrapCheck(final BootstrapCheckResult result) {
+        if (cmd != null && configuredAllowList != null) {
+            if (WildcardMatcher.isNoneMatch(configuredAllowList, cmd)) {
+                // when configuring allowlist, any JVM with non-matched command is implicitly excluded
+                result.addError(String.format("`elastic.apm.bootstrap_allowlist` or `ELASTIC_APM_BOOTSTRAP_ALLOWLIST` are configured with " +
+                "the pattern list '%s', which does not match this JVM's command: '%s'", allowListRaw, cmd));
             }
             // No need to keep looking if allow list configured
             return;
         }
 
-        List<String> excludeSystemProperties = (configuredExcludeList != null) ? configuredExcludeList : defaultExcludeList;
+        final List<String> excludeSystemProperties = (configuredExcludeList != null) ? configuredExcludeList : defaultExcludeList;
+        if (System.getSecurityManager() == null) {
+            doExcludeListCheck(result, excludeSystemProperties);
+            return;
+        }
+
+        AccessController.doPrivileged(new PrivilegedAction<Void>() {
+            @Override
+            public Void run() {
+                doExcludeListCheck(result, excludeSystemProperties);
+                return null;
+            }
+        });
+
+        doExcludeListCheck(result, excludeSystemProperties);
+    }
+
+    private void doExcludeListCheck(BootstrapCheckResult result, List<String> excludeSystemProperties) {
         for (String excludeSystemProperty : excludeSystemProperties) {
             if (System.getProperty(excludeSystemProperty) != null) {
-                // todo - improve
-                result.addError("Excluded because ...");
+                result.addError(String.format("Found the '%s' System property, which is configured to cause the exclusion of this JVM. " +
+                        "Change either the `elastic.apm.bootstrap_exclude_list` System property or `ELASTIC_APM_BOOTSTRAP_EXCLUDE_LIST` " +
+                        "environment variable setting in order to override this exclusion. Current configured value is: '%s'.",
+                    excludeSystemProperty, excludeListRaw));
                 return;
             }
         }
     }
 
-    private List<WildcardMatcher> parse(String commaSeparatedList) {
+    private <T> List<T> parse(String commaSeparatedList, ListItemConverter<T> converter) {
         if (commaSeparatedList != null && commaSeparatedList.length() > 0) {
-            final ArrayList<WildcardMatcher> result = new ArrayList<>();
+            final ArrayList<T> result = new ArrayList<>();
             for (String part : commaSeparatedList.split(",")) {
-                result.add(WildcardMatcher.valueOf(part.trim()));
+                result.add(converter.convert(part.trim()));
             }
             return Collections.unmodifiableList(result);
         }
         return Collections.emptyList();
+    }
+
+    private interface ListItemConverter<T> {
+        T convert(String rawValue);
+    }
+
+    private static class WildCardMatcherConverter implements ListItemConverter<WildcardMatcher> {
+        @Override
+        public WildcardMatcher convert(String rawValue) {
+            return WildcardMatcher.valueOf(rawValue);
+        }
+    }
+
+    private static class StringConverter implements ListItemConverter<String> {
+        @Override
+        public String convert(String rawValue) {
+            return rawValue;
+        }
     }
 }
