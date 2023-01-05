@@ -35,7 +35,9 @@ class BootstrapChecks {
     }
 
     static BootstrapChecks defaults() {
-        return new BootstrapChecks(!Boolean.parseBoolean(System.getProperty("elastic.apm.disable_bootstrap_checks")),
+        boolean bootstrapChecksDisabled = Boolean.parseBoolean(System.getProperty("elastic.apm.disable_bootstrap_checks")) ||
+            Boolean.parseBoolean(System.getenv("ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS"));
+        return new BootstrapChecks(!bootstrapChecksDisabled,
             new JavaVersionBootstrapCheck(JvmRuntimeInfo.ofCurrentVM()),
             new VerifyNoneBootstrapCheck(ManagementFactory.getRuntimeMXBean()),
             new JvmToolBootstrapCheck(System.getProperty("sun.java.command")));
@@ -59,7 +61,8 @@ class BootstrapChecks {
             if (bootstrapChecksEnabled) {
                 isPassing = false;
                 System.err.println("[elastic-apm-agent] WARN Failed to start agent because of failing bootstrap checks.");
-                System.err.println("[elastic-apm-agent] INFO To override Java bootstrap checks, set the 'elastic.apm.disable_bootstrap_checks' System property to 'true'.");
+                System.err.println("[elastic-apm-agent] INFO To override Java bootstrap checks, set the 'elastic.apm.disable_bootstrap_checks' System property, " +
+                    "or the `ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS` environment variable, `to 'true'.");
             } else {
                 System.err.println("[elastic-apm-agent] WARN Bootstrap checks have failed. The agent will still start because bootstrap check have been disabled.");
             }
