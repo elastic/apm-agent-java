@@ -215,7 +215,7 @@ public class AbstractIntakeApiHandler {
         String responseBody = null;
         try {
             responseBody = IOUtils.toString(inputStream);
-            logger.warn(responseBody);
+            logger.warn("Response body: {}", responseBody);
         } catch (IOException e1) {
             logger.warn(e1.getMessage(), e1);
         }

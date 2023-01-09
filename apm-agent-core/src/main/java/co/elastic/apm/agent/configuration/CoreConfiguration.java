@@ -787,7 +787,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "However, in certain cases it can be helpful to not use the incoming `traceparent` header. Some example use cases:\n\n" +
             "* An Elastic-monitored service is receiving requests with `traceparent` headers from unmonitored services.\n" +
             "* An Elastic-monitored service is publicly exposed, and does not want tracing data (trace-ids, sampling decisions) to possibly be spoofed by user requests.\n\n" +
-            "Valid values are:\n" +
+            "Valid values are:\n\n" +
             "* 'continue': The default behavior. An incoming `traceparent` value is used to continue the trace and determine the sampling decision.\n" +
             "* 'restart': Always ignores the `traceparent` header of incoming requests. A new trace-id will be generated and the sampling decision" +
             " will be made based on transaction_sample_rate. A span link will be made to the incoming `traceparent`.\n" +

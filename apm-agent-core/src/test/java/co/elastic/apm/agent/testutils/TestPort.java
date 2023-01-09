@@ -18,9 +18,8 @@
  */
 package co.elastic.apm.agent.testutils;
 
-import javax.net.ServerSocketFactory;
-import java.net.InetAddress;
-import java.net.ServerSocket;
+import java.io.IOException;
+import java.net.Socket;
 import java.util.Random;
 
 public class TestPort {
@@ -42,12 +41,11 @@ public class TestPort {
     }
 
     private static boolean isAvailablePort(int port) {
-        try {
-            ServerSocket serverSocket = ServerSocketFactory.getDefault().createServerSocket(port, 1, InetAddress.getByName("localhost"));
-            serverSocket.close();
-            return true;
-        } catch (Exception ignored) {
+        //see https://stackoverflow.com/a/13826145 for the chosen implementation
+        try (Socket s = new Socket("localhost", port)) {
             return false;
+        } catch (IOException e) {
+            return true;
         }
     }
 }
