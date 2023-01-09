@@ -30,6 +30,9 @@ import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -85,6 +88,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         utcTimestampFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
+    @Before
     @BeforeEach
     public void setup() throws Exception {
         doReturn(SERVICE_VERSION).when(config.getConfig(CoreConfiguration.class)).getServiceVersion();
@@ -112,6 +116,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         Files.deleteIfExists(Paths.get(getLogReformattingFilePath() + ".1"));
     }
 
+    @After
     @AfterEach
     public void closeLogger() {
         childSpan.deactivate().end();

@@ -38,10 +38,11 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler implements ReportingEventHandler {
 
+    private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
+
     public static final String INTAKE_V2_URL = "/intake/v2/events";
     public static final String INTAKE_V2_FLUSH_URL = INTAKE_V2_URL + "?flushed=true";
 
-    // does not depend on inherited logger as it might be muted
     private static final Logger logsSupportLogger = LoggerUtils.logOnce(LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class));
 
     private final ProcessorEventHandler processorEventHandler;
@@ -75,9 +76,6 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
     @Override
     public void onEvent(ReportingEvent event, long sequence, boolean endOfBatch) throws Exception {
-
-        logger.setMuted(event.isAgentLog());
-        // when reporting log events, we have to mute logger to avoid creating exponentially more log events
         try {
             if (reporter != null) {
                 ReporterMonitor monitor = reporter.getReporterMonitor();
@@ -97,7 +95,6 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             processed.set(sequence);
             event.end();
             event.resetState();
-            logger.setMuted(false);
         }
     }
 

@@ -22,13 +22,16 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.converter.ByteValue;
+import co.elastic.apm.agent.report.ApmServerReporter;
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.ConsoleAppender;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.builder.api.AppenderComponentBuilder;
+import org.apache.logging.log4j.core.config.builder.api.AppenderRefComponentBuilder;
 import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder;
 import org.apache.logging.log4j.core.config.builder.api.LayoutComponentBuilder;
 import org.apache.logging.log4j.core.config.builder.api.RootLoggerComponentBuilder;
@@ -40,7 +43,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 
 import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACEHOLDER;
@@ -56,6 +58,7 @@ import static co.elastic.apm.agent.logging.LoggingConfiguration.SYSTEM_OUT;
 public class Log4j2ConfigurationFactory extends ConfigurationFactory {
 
     public static final String APM_SERVER_PLUGIN_NAME = "ApmServer";
+    public static final String APM_SERVER_FILTER_PLUGIN_NAME = "ApmServerFilter";
 
     private final List<org.stagemonitor.configuration.source.ConfigurationSource> sources;
     private final String ephemeralId;
@@ -144,10 +147,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
 
         Level level = getLogLevel();
         RootLoggerComponentBuilder rootLogger = builder.newRootLogger(level);
-        List<AppenderComponentBuilder> appenders = createAppenders(builder);
-        for (AppenderComponentBuilder appender : appenders) {
-            rootLogger.add(builder.newAppenderRef(appender.getName()));
-        }
+        createAppenders(builder, rootLogger);
         builder.add(rootLogger);
         config = builder.build();
         return config;
@@ -159,30 +159,28 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         return Level.valueOf(logLevel.toString());
     }
 
-    private List<AppenderComponentBuilder> createAppenders(ConfigurationBuilder<BuiltConfiguration> builder) {
-        List<AppenderComponentBuilder> appenders = new ArrayList<>();
+    private void createAppenders(ConfigurationBuilder<BuiltConfiguration> builder, RootLoggerComponentBuilder rootLogger) {
         String logFile = getActualLogFile(ElasticApmAgent.getAgentHome(), getValue(LOG_FILE_KEY, sources, getValue(DEPRECATED_LOG_FILE_KEY, sources, DEFAULT_LOG_FILE)));
         if (logFile.equals(SYSTEM_OUT)) {
-            appenders.add(createConsoleAppender(builder));
+            rootLogger.add(createConsoleAppender(builder));
         } else {
-            appenders.add(createFileAppender(builder, logFile, createLayout(builder, getFileLogFormat())));
+            rootLogger.add(createFileAppender(builder, logFile, createLayout(builder, getFileLogFormat())));
         }
-        appenders.add(createSendingAppender(builder));
-
-        for (AppenderComponentBuilder appender : appenders) {
-            builder.add(appender);
-        }
-        return appenders;
+        rootLogger.add(createSendingAppender(builder));
     }
 
-    public static File getTempLogFile(String ephemeralId) {
+    public static File getTempLogFile(String ephemeralId) { // TODO : remove unused method
         return new File(System.getProperty("java.io.tmpdir"), "elasticapm-java-" + ephemeralId + ".log.json");
     }
 
-    private AppenderComponentBuilder createConsoleAppender(ConfigurationBuilder<BuiltConfiguration> builder) {
-        return builder.newAppender("Stdout", "CONSOLE")
+    private AppenderRefComponentBuilder createConsoleAppender(ConfigurationBuilder<BuiltConfiguration> builder) {
+        String appenderName = "Stdout";
+        AppenderComponentBuilder appender = builder.newAppender(appenderName, "CONSOLE")
             .addAttribute("target", ConsoleAppender.Target.SYSTEM_OUT)
             .add(createLayout(builder, getSoutLogFormat()));
+
+        builder.add(appender);
+        return builder.newAppenderRef(appender.getName());
     }
 
     private LayoutComponentBuilder createLayout(ConfigurationBuilder<BuiltConfiguration> builder, LogFormat logFormat) {
@@ -205,9 +203,10 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         return new EnumValueConverter<>(LogFormat.class).convert(getValue(LOG_FORMAT_FILE_KEY, sources, LogFormat.PLAIN_TEXT.toString()));
     }
 
-    private AppenderComponentBuilder createFileAppender(ConfigurationBuilder<BuiltConfiguration> builder, String logFile, LayoutComponentBuilder layout) {
+    private AppenderRefComponentBuilder createFileAppender(ConfigurationBuilder<BuiltConfiguration> builder, String logFile, LayoutComponentBuilder layout) {
         ByteValue size = ByteValue.of(getValue("log_file_size", sources, LoggingConfiguration.DEFAULT_MAX_SIZE));
-        return builder.newAppender("rolling", "RollingFile")
+
+        AppenderComponentBuilder appender = builder.newAppender("rolling", "RollingFile")
             .addAttribute("fileName", logFile)
             .addAttribute("filePattern", logFile + ".%i")
             .add(layout)
@@ -220,10 +219,28 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
             // This is not the case, when apm.log2 is fully read, the reading will continue from apm.log.
             // That is because we don't want to require the reader having to know the file name pattern of the rotated file.
             .addComponent(builder.newComponent("DefaultRolloverStrategy").addAttribute("max", 1));
+
+        builder.add(appender);
+        return builder.newAppenderRef(appender.getName());
     }
 
-    private AppenderComponentBuilder createSendingAppender(ConfigurationBuilder<BuiltConfiguration> builder) {
-        return builder.newAppender("apm-server", APM_SERVER_PLUGIN_NAME)
+    private AppenderRefComponentBuilder createSendingAppender(ConfigurationBuilder<BuiltConfiguration> builder) {
+        AppenderComponentBuilder appender = builder.newAppender("apm-server", APM_SERVER_PLUGIN_NAME)
             .add(createLayout(builder, LogFormat.JSON));
+
+        builder.add(appender);
+
+        // unlike other appenders, we have to filter on the appender ref to prevent recursive logger invocation
+        AppenderRefComponentBuilder appenderRef = builder.newAppenderRef(appender.getName());
+
+        appenderRef.add(builder
+            .newFilter(APM_SERVER_FILTER_PLUGIN_NAME, Filter.Result.DENY, Filter.Result.NEUTRAL)
+            // we have to ignore logging from the 'reporter' package to prevent recursive calls to log appenders
+            // for example a full send queue log message makes no sense to be also added to the (already filled) event
+            // queue, so we just ignore those. That means debugging communication or dropped events will require to
+            // use agent log file for proper investigation.
+            .addAttribute("ignoreLoggerPrefix", ApmServerReporter.class.getPackageName() + "."));
+
+        return appenderRef;
     }
 }

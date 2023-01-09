@@ -22,11 +22,10 @@ import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.report.Reporter;
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.logging.log4j2.EcsLayout;
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.Core;
+import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
@@ -34,8 +33,6 @@ import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginElement;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
-import org.apache.logging.log4j.core.impl.MutableLogEvent;
-import org.apache.logging.log4j.message.SimpleMessage;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -44,7 +41,7 @@ import java.util.Objects;
 @Plugin(name = Log4j2ConfigurationFactory.APM_SERVER_PLUGIN_NAME, category = Core.CATEGORY_NAME, elementType = Appender.ELEMENT_TYPE, printObject = true)
 public class ApmServerLogAppender extends AbstractAppender {
 
-    public static final int MAX_BUFFER_SIZE = 1024;
+    private static final int MAX_BUFFER_SIZE = 1024;
 
     @Nullable
     private static ApmServerLogAppender INSTANCE;
@@ -57,7 +54,8 @@ public class ApmServerLogAppender extends AbstractAppender {
     private final ArrayList<LogEvent> buffer;
 
     private ApmServerLogAppender(String name, Layout<?> layout) {
-        super(name, null, layout, true, null);
+        // recursive calls filtering is done through a filter on the appender ref, not on the appender itself
+        super(name, null , layout, true, null);
         this.buffer = new ArrayList<>();
     }
 
@@ -83,6 +81,7 @@ public class ApmServerLogAppender extends AbstractAppender {
 
     @Override
     public void append(LogEvent event) {
+
         if (!isAgentInitialized()) {
             synchronized (buffer) {
                 if (buffer.size() < MAX_BUFFER_SIZE) {
@@ -124,23 +123,12 @@ public class ApmServerLogAppender extends AbstractAppender {
         }
     }
 
-
     private void sendLogEvent(LogEvent event) {
-        // When trying to debug wire protocol, adding the whole HTTP request body nested in a log message is not possible
-        // otherwise it makes the agent recursively nest payload data until the request size limit is reached.
-        //
-        // We have to filter this exception here to still provide the ability to log to filesystem if needed.
-        if (event.getLevel().intLevel() >= Level.TRACE.intLevel() && event.getLoggerName().equals(DslJsonSerializer.class.getName())) {
-            MutableLogEvent newEvent = new MutableLogEvent();
-            newEvent.initFrom(event);
-            newEvent.setMessage(new SimpleMessage("wire protocol logging only available when logging to filesystem"));
-            event = newEvent;
-        }
-
         Objects.requireNonNull(reporter).reportAgentLog(getLayout().toByteArray(event));
     }
 
     private boolean isAgentInitialized() {
         return this.config != null && this.reporter != null;
     }
+
 }
