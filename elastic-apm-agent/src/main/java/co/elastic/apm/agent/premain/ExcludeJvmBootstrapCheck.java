@@ -37,9 +37,9 @@ import java.util.List;
  * <table border="1">
  *     <caption>Configuration options</caption>
  *     <tr><th>System property name</th><th>Env variable name</th><th>Description</th></tr>
- *     <tr><td>elastic.apm.bootstrap_allowlist</td><td>ELASTIC_APM_BOOTSTRAP_ALLOWLIST</td><td>If set, the agent will be enabled
+ *     <tr><td>{@value #ALLOWLIST_SYSTEM_PROPERTY}</td><td>{@value #ALLOWLIST_ENV_VARIABLE}</td><td>If set, the agent will be enabled
  *     <b>only</b> on JVMs of which command matches one of the patterns in the provided list</td></tr>
- *     <tr><td>elastic.apm.bootstrap_exclude_list</td><td>ELASTIC_APM_BOOTSTRAP_EXCLUDE_LIST</td><td>If set, the agent will be disabled
+ *     <tr><td>{@value EXCLUDE_LIST_SYSTEM_PROPERTY}</td><td>{@value #EXCLUDE_LIST_ENV_VARIABLE}</td><td>If set, the agent will be disabled
  *     on JVMs that contain a System property with one of the provided names in the list</td></tr>
  * </table>
  *
@@ -65,6 +65,11 @@ import java.util.List;
  */
 public class ExcludeJvmBootstrapCheck implements BootstrapCheck {
 
+    public static final String ALLOWLIST_SYSTEM_PROPERTY = "elastic.apm.bootstrap_allowlist";
+    public static final String ALLOWLIST_ENV_VARIABLE = "ELASTIC_APM_BOOTSTRAP_ALLOWLIST";
+    public static final String EXCLUDE_LIST_SYSTEM_PROPERTY = "elastic.apm.bootstrap_exclude_list";
+    public static final String EXCLUDE_LIST_ENV_VARIABLE = "ELASTIC_APM_BOOTSTRAP_EXCLUDE_LIST";
+
     private static final List<String> defaultExcludeList = Arrays.asList("activemq.home", "activemq.base");
 
     @Nullable
@@ -85,17 +90,17 @@ public class ExcludeJvmBootstrapCheck implements BootstrapCheck {
     public ExcludeJvmBootstrapCheck(@Nullable String cmd) {
         this.cmd = cmd;
 
-        allowListRaw = System.getProperty("elastic.apm.bootstrap_allowlist");
+        allowListRaw = System.getProperty(ALLOWLIST_SYSTEM_PROPERTY);
         if (allowListRaw == null) {
-            allowListRaw = System.getenv("ELASTIC_APM_BOOTSTRAP_ALLOWLIST");
+            allowListRaw = System.getenv(ALLOWLIST_ENV_VARIABLE);
         }
         if (allowListRaw != null) {
             configuredAllowList = parse(allowListRaw, new WildCardMatcherConverter());
         }
 
-        excludeListRaw = System.getProperty("elastic.apm.bootstrap_exclude_list");
+        excludeListRaw = System.getProperty(EXCLUDE_LIST_SYSTEM_PROPERTY);
         if (excludeListRaw == null) {
-            excludeListRaw = System.getenv("ELASTIC_APM_BOOTSTRAP_EXCLUDE_LIST");
+            excludeListRaw = System.getenv(EXCLUDE_LIST_ENV_VARIABLE);
         }
         if (excludeListRaw != null) {
             configuredExcludeList = parse(excludeListRaw, new StringConverter());
@@ -104,14 +109,23 @@ public class ExcludeJvmBootstrapCheck implements BootstrapCheck {
 
     @Override
     public void doBootstrapCheck(final BootstrapCheckResult result) {
-        if (cmd != null && configuredAllowList != null) {
-            if (WildcardMatcher.isNoneMatch(configuredAllowList, cmd)) {
-                // when configuring allowlist, any JVM with non-matched command is implicitly excluded
-                result.addError(String.format("`elastic.apm.bootstrap_allowlist` or `ELASTIC_APM_BOOTSTRAP_ALLOWLIST` are configured with " +
-                "the pattern list '%s', which does not match this JVM's command: '%s'", allowListRaw, cmd));
+        if (configuredAllowList != null) {
+            if (cmd == null || cmd.isEmpty()) {
+                result.addWarn(String.format("'%s' or '%s' are configured, but they cannot be matched with the JVM command," +
+                        "as it is not properly discovered: '%s'",
+                    ALLOWLIST_SYSTEM_PROPERTY, ALLOWLIST_ENV_VARIABLE, cmd));
+            } else {
+                if (WildcardMatcher.isNoneMatch(configuredAllowList, cmd)) {
+                    // when configuring allowlist, any JVM with non-matched command is implicitly excluded
+                    result.addError(String.format("'%s' or '%s' are configured with the pattern list '%s', which does not match this JVM's command: '%s'",
+                        ALLOWLIST_SYSTEM_PROPERTY, ALLOWLIST_ENV_VARIABLE, allowListRaw, cmd));
+                } else {
+                    System.out.printf("[elastic-apm-agent] INFO Attaching an agent to this process as its command '%s' matches the configured allowlist: '%s'%n",
+                        cmd, allowListRaw);
+                }
+                // No need to keep looking if allow list configured and the command doesn't match
+                return;
             }
-            // No need to keep looking if allow list configured
-            return;
         }
 
         final List<String> excludeSystemProperties = (configuredExcludeList != null) ? configuredExcludeList : defaultExcludeList;
@@ -127,17 +141,15 @@ public class ExcludeJvmBootstrapCheck implements BootstrapCheck {
                 return null;
             }
         });
-
-        doExcludeListCheck(result, excludeSystemProperties);
     }
 
     private void doExcludeListCheck(BootstrapCheckResult result, List<String> excludeSystemProperties) {
         for (String excludeSystemProperty : excludeSystemProperties) {
             if (System.getProperty(excludeSystemProperty) != null) {
                 result.addError(String.format("Found the '%s' System property, which is configured to cause the exclusion of this JVM. " +
-                        "Change either the `elastic.apm.bootstrap_exclude_list` System property or `ELASTIC_APM_BOOTSTRAP_EXCLUDE_LIST` " +
+                        "Change either the '%s' System property or '%s' " +
                         "environment variable setting in order to override this exclusion. Current configured value is: '%s'.",
-                    excludeSystemProperty, excludeListRaw));
+                    excludeSystemProperty, EXCLUDE_LIST_SYSTEM_PROPERTY, EXCLUDE_LIST_ENV_VARIABLE, excludeListRaw));
                 return;
             }
         }
