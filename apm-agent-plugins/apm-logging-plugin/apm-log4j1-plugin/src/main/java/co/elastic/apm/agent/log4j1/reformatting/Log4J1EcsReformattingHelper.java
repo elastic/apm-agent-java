@@ -106,7 +106,7 @@ class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAp
     }
 
     @Override
-    protected Appender createAndStartLogShipperAppender(Reporter reporter, Layout formatter) {
+    protected Appender createAndStartLogSendingAppender(Reporter reporter, Layout formatter) {
         return new LogSenderAppender(reporter, formatter);
     }
 

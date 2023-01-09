@@ -154,7 +154,7 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
     }
 
     @Override
-    protected Appender<ILoggingEvent> createAndStartLogShipperAppender(Reporter reporter, Encoder<ILoggingEvent> formatter) {
+    protected Appender<ILoggingEvent> createAndStartLogSendingAppender(Reporter reporter, Encoder<ILoggingEvent> formatter) {
         LogbackLogSenderAppender appender = new LogbackLogSenderAppender(reporter, formatter);
         appender.start();
         return appender;

@@ -141,7 +141,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
     @SuppressWarnings("JavadocReference")
     private static final WeakMap<Object, Object> originalAppender2ecsFormatter = WeakConcurrent.buildMap();
 
-    private static final WeakMap<Object, Object> originalAppender2shipperAppender = WeakConcurrent.buildMap();
+    private static final WeakMap<Object, Object> originalAppender2sendingAppender = WeakConcurrent.buildMap();
 
     /**
      * This state is set at the beginning of {@link #onAppendEnter(Object)} and cleared at the end of {@link #onAppendExit(Object, Object)}.
@@ -295,9 +295,9 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
                 invokeAppender(logEvent, mappedAppender);
             }
             if (loggingConfiguration.getSendLogs()) {
-                Object mappedAppender = originalAppender2shipperAppender.get(appender);
+                Object mappedAppender = originalAppender2sendingAppender.get(appender);
                 if (mappedAppender == null) {
-                    mappedAppender = createAndMapShipperAppenderFor(appender);
+                    mappedAppender = createAndMapSendingAppenderFor(appender);
                 }
                 invokeAppender(logEvent, mappedAppender);
             }
@@ -318,24 +318,24 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
         return loggingConfiguration.getLogEcsFormattingDestinationDir();
     }
 
-    private Object createAndMapShipperAppenderFor(final A originalAppender) {
-        synchronized (originalAppender2shipperAppender) {
-            Object shipperAppender = originalAppender2shipperAppender.get(originalAppender);
-            if (shipperAppender != null) {
-                return shipperAppender;
+    private Object createAndMapSendingAppenderFor(final A originalAppender) {
+        synchronized (originalAppender2sendingAppender) {
+            Object sendingAppender = originalAppender2sendingAppender.get(originalAppender);
+            if (sendingAppender != null) {
+                return sendingAppender;
             }
-            shipperAppender = NULL_APPENDER;
+            sendingAppender = NULL_APPENDER;
             try {
-                shipperAppender = createAndStartLogShipperAppender(reporter, createEcsFormatter(originalAppender));
-                originalAppender2shipperAppender.put(originalAppender, shipperAppender);
+                sendingAppender = createAndStartLogSendingAppender(reporter, createEcsFormatter(originalAppender));
+                originalAppender2sendingAppender.put(originalAppender, sendingAppender);
             } catch (Throwable throwable) {
                 logger.warn(String.format("Failed to create ECS shipper appender for log appender %s.%s. " +
                         "Log events for this appender will not be shaded.",
                     originalAppender.getClass().getName(), getAppenderName(originalAppender)), throwable);
             } finally {
-                originalAppender2shipperAppender.put(originalAppender, shipperAppender);
+                originalAppender2sendingAppender.put(originalAppender, sendingAppender);
             }
-            return shipperAppender;
+            return sendingAppender;
         }
     }
 
@@ -524,7 +524,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
 
     protected abstract void closeShadeAppender(A shadeAppender);
 
-    protected abstract B createAndStartLogShipperAppender(Reporter reporter, F formatter);
+    protected abstract B createAndStartLogSendingAppender(Reporter reporter, F formatter);
 
     protected abstract void append(L logEvent, B appender);
 }

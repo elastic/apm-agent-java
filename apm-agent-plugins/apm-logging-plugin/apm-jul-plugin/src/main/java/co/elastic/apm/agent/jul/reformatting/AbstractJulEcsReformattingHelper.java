@@ -145,7 +145,7 @@ public abstract class AbstractJulEcsReformattingHelper<T extends Handler> extend
     protected abstract boolean isFileHandler(Handler originalHandler);
 
     @Override
-    protected T createAndStartLogShipperAppender(Reporter reporter, Formatter formatter) {
+    protected T createAndStartLogSendingAppender(Reporter reporter, Formatter formatter) {
         return (T) new JulLogSenderHandler(reporter, formatter);
     }
 

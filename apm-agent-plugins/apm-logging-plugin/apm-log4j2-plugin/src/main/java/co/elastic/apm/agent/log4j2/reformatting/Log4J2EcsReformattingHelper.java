@@ -150,7 +150,7 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
     }
 
     @Override
-    protected Appender createAndStartLogShipperAppender(Reporter reporter, Layout<? extends Serializable> ecsLayout) {
+    protected Appender createAndStartLogSendingAppender(Reporter reporter, Layout<? extends Serializable> ecsLayout) {
         Log4j2LogSenderAppender appender = new Log4j2LogSenderAppender(reporter, (StringLayout) ecsLayout);
         appender.start();
         return appender;
