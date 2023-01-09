@@ -169,10 +169,6 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         rootLogger.add(createSendingAppender(builder));
     }
 
-    public static File getTempLogFile(String ephemeralId) { // TODO : remove unused method
-        return new File(System.getProperty("java.io.tmpdir"), "elasticapm-java-" + ephemeralId + ".log.json");
-    }
-
     private AppenderRefComponentBuilder createConsoleAppender(ConfigurationBuilder<BuiltConfiguration> builder) {
         String appenderName = "Stdout";
         AppenderComponentBuilder appender = builder.newAppender(appenderName, "CONSOLE")
