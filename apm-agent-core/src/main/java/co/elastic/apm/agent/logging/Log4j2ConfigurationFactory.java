@@ -235,7 +235,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
             // for example a full send queue log message makes no sense to be also added to the (already filled) event
             // queue, so we just ignore those. That means debugging communication or dropped events will require to
             // use agent log file for proper investigation.
-            .addAttribute("ignoreLoggerPrefix", ApmServerReporter.class.getPackageName() + "."));
+            .addAttribute("ignoreLoggerPrefix", ApmServerReporter.class.getPackage().getName() + "."));
 
         return appenderRef;
     }
