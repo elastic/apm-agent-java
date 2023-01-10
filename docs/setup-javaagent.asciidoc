@@ -13,7 +13,7 @@ Using the `-javaagent` option is the most common way to set up java agents on a 
 [[setup-javaagent-get-agent]]
 ==== Get the Java agent
 
-include::setup/get-agent-widget.asciidoc
+include::./setup/get-agent-widget.asciidoc[]
 
 NOTE: Agents are not like regular application dependencies.
 Don't declare a dependency to the agent jar in your application.
