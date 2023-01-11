@@ -20,4 +20,4 @@ Adding the following statement in `Dockerfile` will add the agent jar in `/elast
 COPY --from=docker.elastic.co/observability/apm-agent-java:latest /usr/agent/elastic-apm-agent.jar /elastic-apm-agent.jar
 ----
 
-// end::docker
+// end::docker[]

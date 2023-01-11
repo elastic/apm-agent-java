@@ -13,6 +13,8 @@ Using the `-javaagent` option is the most common way to set up java agents on a 
 [[setup-javaagent-get-agent]]
 ==== Get the Java agent
 
+The first step in getting started with the Elastic APM Java agent is to retrieve a copy of the agent jar.
+
 include::./setup/get-agent-widget.asciidoc[]
 
 NOTE: Agents are not like regular application dependencies.
