@@ -47,6 +47,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumentation {
+    private static Throwable REDACTED = new Throwable("Unable to provide details of the error");
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -106,7 +107,7 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
                 Span span = (Span) spanObj;
                 span.deactivate();
                 if (thrown != null) {
-                    span.captureException(thrown);
+                    span.captureException(REDACTED);
                     span.withOutcome(Outcome.FAILURE);
                 } else {
                     span.withOutcome(Outcome.SUCCESS);
