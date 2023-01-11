@@ -58,6 +58,7 @@ public class JavaConcurrent {
         EXCLUDED_EXECUTABLE_TYPES.add("org.springframework.jms.listener.DefaultMessageListenerContainer$AsyncMessageListenerInvoker");
         EXCLUDED_EXECUTABLE_TYPES.add("com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator");
         EXCLUDED_EXECUTABLE_TYPES.add("com.github.benmanes.caffeine.cache.BoundedLocalCache.PerformCleanupTask");
+        EXCLUDED_EXECUTABLE_TYPES.add("com.amazonaws.services.sqs.AmazonSQSAsyncClient$5");
     }
 
     private static void removeContext(Object o) {
