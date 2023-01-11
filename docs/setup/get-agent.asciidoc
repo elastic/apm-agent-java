@@ -4,17 +4,18 @@ Java agent releases are published to https://repo.maven.apache.org/maven2/[Maven
 
 - download manually from https://search.maven.org/artifact/co.elastic.apm/elastic-apm-agent[Maven central].
 - download with `curl`:
-
-    [source,bash]
-    ----
-    curl -o 'elastic-apm-agent.jar' -L 'https://oss.sonatype.org/service/local/artifact/maven/redirect?r=releases&g=co.elastic.apm&a=elastic-apm-agent&v=LATEST'
-    ----
++
+[source,bash]
+----
+curl -o 'elastic-apm-agent.jar' -L 'https://oss.sonatype.org/service/local/artifact/maven/redirect?r=releases&g=co.elastic.apm&a=elastic-apm-agent&v=LATEST'
+----
 
 // end::maven-central[]
 
 // tag::docker[]
 
 Java agent releases are published as Docker images in `docker.elastic.co` registry.
+
 The `latest` tag allows to use the most recent release at the time the image is built.
 
 Adding the following statement in `Dockerfile` will add the agent jar in `/elastic-apm-agent.jar`.
