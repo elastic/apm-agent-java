@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.util;
 
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -35,9 +37,23 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 public class PackageScanner {
+
+
+    private static final List<String> MR_JAR_PREFIXES;
+
+    static {
+        MR_JAR_PREFIXES = new ArrayList<String>();
+        MR_JAR_PREFIXES.add("");
+        int jvmMajorVersion = JvmRuntimeInfo.ofCurrentVM().getMajorVersion();
+        for (int i = 9; i <= jvmMajorVersion; i++) {
+            MR_JAR_PREFIXES.add("META-INF/versions/" + i + "/");
+        }
+    }
+
 
     /**
      * Returns all class names within a package and sub-packages
@@ -79,29 +95,31 @@ public class PackageScanner {
 
     private static List<String> doGetClassNames(String basePackage, ClassLoader classLoader) throws IOException, URISyntaxException {
         String baseFolderResource = basePackage.replace('.', '/');
-        final List<String> classNames = new ArrayList<>();
+        final LinkedHashSet<String> classNames = new LinkedHashSet<>();
         Enumeration<URL> resources = classLoader.getResources(baseFolderResource);
         while (resources.hasMoreElements()) {
             URL resource = resources.nextElement();
             URI uri = resource.toURI();
-            List<String> result;
             if (uri.getScheme().equals("jar")) {
                 // avoids FileSystemAlreadyExistsException
                 synchronized (PackageScanner.class) {
                     try (FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap())) {
-                        Path basePath  = fileSystem.getPath(baseFolderResource).toAbsolutePath();
-                        if (!Files.exists(basePath)) { // called in a privileged action, thus no need to deal with security manager
-                            basePath = fileSystem.getPath("agent/" + baseFolderResource).toAbsolutePath();
+                        for (String multiReleasePrefix : MR_JAR_PREFIXES) {
+                            Path basePath = fileSystem.getPath(multiReleasePrefix + baseFolderResource).toAbsolutePath();
+                            if (!Files.exists(basePath)) { // called in a privileged action, thus no need to deal with security manager
+                                basePath = fileSystem.getPath(multiReleasePrefix + "agent/" + baseFolderResource).toAbsolutePath();
+                            }
+                            if (Files.exists(basePath)) {
+                                classNames.addAll(listClassNames(basePackage, basePath));
+                            }
                         }
-                        result = listClassNames(basePackage, basePath);
                     }
                 }
             } else {
-                result = listClassNames(basePackage, Paths.get(uri));
+                classNames.addAll(listClassNames(basePackage, Paths.get(uri)));
             }
-            classNames.addAll(result);
         }
-        return classNames;
+        return new ArrayList<>(classNames);
     }
 
     /**
