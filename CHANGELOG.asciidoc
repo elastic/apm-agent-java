@@ -23,6 +23,12 @@ endif::[]
 [[release-notes-x.x.x]]
 ==== x.x.x - YYYY/MM/DD
 
+[float]
+===== Bug fixes
+* Use `127.0.0.1` as defaut for `server_url` to prevent ipv6 ambiguity - {pull}2927[#2927]
+* Fix some span-compression concurrency issues - {pull}2865[#2865]
+* Add warning when agent is accidentally started on a JVM/JDK command-line tool - {pull}2924[#2924]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
@@ -40,7 +46,7 @@ endif::[]
 * Attacher CLI: added a `--no-fork` config to opt out from executing a forked process as different user.If `--no-fork` is used alongside discovery rules that contain only `--include-pid` rules, the attacher will not execute JVM discovery - {pull}2863[#2863]
 * Add the option to instrument very old bytecode through the <<config-instrument-ancient-bytecode, `instrument_ancient_bytecode`>> config option - {pull}2866[#2866]
 * Capture MongoDB statements - {pull}2806[#2806]
-Added agent health and background overhead metrics (experimental) - {pull}2864[#2864], {pull}2888[#2888]
+* Added agent health and background overhead metrics (experimental) - {pull}2864[#2864], {pull}2888[#2888]
 * Added support for Finagle Http Client - {pull}2795[#2795]
 * Add support for Apache HTTP client 3.x - {pull}2853[#2853]
 * Made `api_key` and `secret_token` configuration options dynamic - {pull}2889[#2889]
