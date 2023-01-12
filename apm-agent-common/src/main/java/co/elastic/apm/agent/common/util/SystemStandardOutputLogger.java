@@ -94,6 +94,6 @@ public class SystemStandardOutputLogger {
     }
 
     public static void stdErrError(String message) {
-        printToStdErr("Error", message);
+        printToStdErr("ERROR", message);
     }
 }
