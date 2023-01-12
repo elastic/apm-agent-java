@@ -18,33 +18,22 @@
  */
 package co.elastic.apm.agent.httpclient.v3;
 
-import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import co.elastic.apm.agent.testutils.TestClassWithDependencyRunner;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
-import java.util.Arrays;
 import java.util.List;
 
-@RunWith(Parameterized.class)
 public class HttpClient3VersionIT {
 
-    private final JUnit4TestClassWithDependencyRunner runner;
-
-    public HttpClient3VersionIT(String dependency) throws Exception {
-        this.runner = new JUnit4TestClassWithDependencyRunner(List.of(dependency), HttpClient3InstrumentationTest.class);
-    }
-
-    @Parameterized.Parameters(name = "{0}")
-    public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-            {"commons-httpclient:commons-httpclient:3.0"},
-            {"commons-httpclient:commons-httpclient:3.1"}
-        });
-    }
-
-    @Test
-    public void testVersion() {
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "3.0",
+        "3.1"
+    })
+    void testVersion(String version) throws Exception {
+        String dependency = String.format("commons-httpclient:commons-httpclient:" + version);
+        TestClassWithDependencyRunner runner = new TestClassWithDependencyRunner(List.of(dependency), "co.elastic.apm.agent.httpclient.v3.HttpClient3InstrumentationTest");
         runner.run();
     }
 }

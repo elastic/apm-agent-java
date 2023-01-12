@@ -30,6 +30,10 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * @deprecated use {@link TestClassWithDependencyRunner} and test with junit5 instead
+ */
+@Deprecated
 public class JUnit4TestClassWithDependencyRunner extends AbstractTestClassWithDependencyRunner {
 
     @Nullable
