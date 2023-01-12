@@ -14,11 +14,11 @@ curl -o 'elastic-apm-agent.jar' -L 'https://oss.sonatype.org/service/local/artif
 
 // tag::docker[]
 
-Java agent releases are published as Docker images in `docker.elastic.co` registry.
+Java agent releases are published as Docker images  through the `docker.elastic.co` registry.
 
 The `latest` tag allows to use the most recent release at the time the image is built.
 
-Adding the following statement in `Dockerfile` will add the agent jar in `/elastic-apm-agent.jar`.
+Adding the following statement in `Dockerfile` will copy the agent jar to `/elastic-apm-agent.jar`.
 
 [source]
 ----
