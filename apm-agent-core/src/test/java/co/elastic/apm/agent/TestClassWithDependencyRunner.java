@@ -18,51 +18,23 @@
  */
 package co.elastic.apm.agent;
 
-import co.elastic.test.ChildFirstURLClassLoader;
-import org.apache.ivy.Ivy;
-import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
-import org.apache.ivy.core.module.descriptor.DefaultModuleDescriptor;
-import org.apache.ivy.core.module.id.ModuleRevisionId;
-import org.apache.ivy.core.report.ArtifactDownloadReport;
-import org.apache.ivy.core.report.ResolveReport;
-import org.apache.ivy.core.resolve.ResolveOptions;
-import org.apache.ivy.core.settings.IvySettings;
-import org.apache.ivy.plugins.parser.xml.XmlModuleDescriptorWriter;
-import org.apache.ivy.plugins.resolver.URLResolver;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runners.BlockJUnit4ClassRunner;
 
 import javax.annotation.Nullable;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.ref.WeakReference;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.jar.JarEntry;
-import java.util.jar.JarOutputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class TestClassWithDependencyRunner {
+public class TestClassWithDependencyRunner extends AbstractTestClassWithDependencyRunner {
 
-    private WeakReference<ClassLoader> classLoader;
     @Nullable
-    private BlockJUnit4ClassRunner testRunner;
+    private final BlockJUnit4ClassRunner testRunner;
 
-    /**
-     * Downloads the dependency and all its transitive dependencies via Apache Ivy.
-     * Also exports a jar for the test class and all classes which reference the provided dependency.
-     * All downloaded and exported jar files are then loaded from class loader with child-first semantics.
-     * This avoids that the dependency will be loaded by the parent class loader which contains the {@code provided}-scoped maven dependency.
-     */
     public TestClassWithDependencyRunner(String groupId, String artifactId, String version, Class<?> testClass, Class<?>... classesReferencingDependency) throws Exception {
         this(Collections.singletonList(groupId + ":" + artifactId + ":" + version), testClass, classesReferencingDependency);
     }
@@ -72,15 +44,8 @@ public class TestClassWithDependencyRunner {
     }
 
     public TestClassWithDependencyRunner(List<String> dependencies, String testClass, String... classesReferencingDependency) throws Exception {
-        List<URL> urls = resolveArtifacts(dependencies);
-        List<String> classesToExport = new ArrayList<>();
-        classesToExport.add(testClass);
-        classesToExport.addAll(Arrays.asList(classesReferencingDependency));
-        urls.add(exportToTempJarFile(classesToExport));
-
-        URLClassLoader testClassLoader = new ChildFirstURLClassLoader(urls);
-        testRunner = new BlockJUnit4ClassRunner(testClassLoader.loadClass(testClass));
-        classLoader = new WeakReference<>(testClassLoader);
+        super(dependencies, testClass, classesReferencingDependency);
+        testRunner = new BlockJUnit4ClassRunner(this.testClass);
     }
 
     public void run() {
@@ -95,84 +60,4 @@ public class TestClassWithDependencyRunner {
         assertThat(result.wasSuccessful()).isTrue();
     }
 
-    public void assertClassLoaderIsGCed() {
-        testRunner = null;
-        System.gc();
-        System.gc();
-        System.gc();
-        assertThat(classLoader.get()).isNull();
-    }
-
-    private static URL exportToTempJarFile(List<String> classes) throws IOException {
-        File tempTestJar = File.createTempFile("temp-test", ".jar");
-        tempTestJar.deleteOnExit();
-        try (JarOutputStream jarOutputStream = new JarOutputStream(new FileOutputStream(tempTestJar))) {
-            for (String clazz : classes) {
-                String resourceName = clazz.replace('.', '/') + ".class";
-                InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream(resourceName);
-                try (inputStream) {
-                    jarOutputStream.putNextEntry(new JarEntry(resourceName));
-                    byte[] buffer = new byte[1024];
-                    int index;
-                    while ((index = inputStream.read(buffer)) != -1) {
-                        jarOutputStream.write(buffer, 0, index);
-                    }
-                    jarOutputStream.closeEntry();
-                }
-            }
-            return tempTestJar.toURI().toURL();
-        }
-    }
-
-    /*
-     * Taken from http://web.archive.org/web/20140420091631/http://developers-blog.org:80/blog/default/2010/11/08/Embed-Ivy-How-to-use-Ivy-with-Java
-     */
-    private static List<URL> resolveArtifacts(List<String> dependencies) throws Exception {
-        //creates clear ivy settings
-        IvySettings ivySettings = new IvySettings();
-        //url resolver for configuration of maven repo
-        URLResolver resolver = new URLResolver();
-        resolver.setM2compatible(true);
-        resolver.setName("central");
-        //you can specify the url resolution pattern strategy
-        resolver.addArtifactPattern(
-            "https://repo1.maven.org/maven2/"
-                + "[organisation]/[module]/[revision]/[artifact](-[revision]).[ext]");
-        //adding maven repo resolver
-        ivySettings.addResolver(resolver);
-        //set to the default resolver
-        ivySettings.setDefaultResolver(resolver.getName());
-        //creates an Ivy instance with settings
-        Ivy ivy = Ivy.newInstance(ivySettings);
-
-        File ivyfile = File.createTempFile("ivy", ".xml");
-        ivyfile.deleteOnExit();
-
-        DefaultModuleDescriptor md =
-            DefaultModuleDescriptor.newDefaultInstance(ModuleRevisionId.newInstance("foo", "foo" + "-caller", "working"));
-        for (String dependency : dependencies) {
-            String[] split = dependency.split(":");
-
-            DefaultDependencyDescriptor dd = new DefaultDependencyDescriptor(md,
-                ModuleRevisionId.newInstance(split[0], split[1], split[2]), false, false, true);
-            md.addDependency(dd);
-        }
-
-        //creates an ivy configuration file
-        XmlModuleDescriptorWriter.write(md, ivyfile);
-
-        String[] confs = new String[]{"default"};
-        ResolveOptions resolveOptions = new ResolveOptions().setConfs(confs);
-
-        //init resolve report
-        ResolveReport report = ivy.resolve(ivyfile.toURL(), resolveOptions);
-
-        List<URL> resolvedDependencies = new ArrayList<>();
-        ArtifactDownloadReport[] allArtifactsReports = report.getAllArtifactsReports();
-        for (ArtifactDownloadReport allArtifactsReport : allArtifactsReports) {
-            resolvedDependencies.add(allArtifactsReport.getLocalFile().toURI().toURL());
-        }
-        assertThat(resolvedDependencies).hasSizeGreaterThanOrEqualTo(dependencies.size());
-        return resolvedDependencies;
-    }
 }
