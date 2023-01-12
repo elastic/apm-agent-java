@@ -67,15 +67,15 @@ public class ApmServerLogAppender extends AbstractAppender {
     public static ApmServerLogAppender createAppender(@PluginAttribute("name") String name,
                                                       @PluginElement("Layout") Layout<?> layout) {
 
-        if(!(layout instanceof EcsLayout)){
-            throw new IllegalArgumentException("invalid layout "+ layout);
+        if (!(layout instanceof EcsLayout)) {
+            throw new IllegalArgumentException("invalid layout " + layout);
         }
 
         if (INSTANCE == null) {
             INSTANCE = new ApmServerLogAppender(name, layout);
         }
 
-        return INSTANCE;
+        return new ApmServerLogAppender(name, layout);
     }
 
     @Override
@@ -85,13 +85,15 @@ public class ApmServerLogAppender extends AbstractAppender {
         if (bufferBeforeInit) {
             synchronized (buffer) {
                 bufferBeforeInit = !isAgentInitialized();
-            }
-        }
 
-        // buffering before the configuration is known
-        if (bufferBeforeInit && buffer.size() < MAX_BUFFER_SIZE) {
-            buffer.add(event.toImmutable());
-            return;
+                // buffering before the configuration is known
+                if (bufferBeforeInit) {
+                    if (buffer.size() < MAX_BUFFER_SIZE) {
+                        buffer.add(event.toImmutable());
+                    }
+                    return;
+                }
+            }
         }
 
         sendLogEvent(event);
