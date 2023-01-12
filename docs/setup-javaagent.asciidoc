@@ -18,7 +18,7 @@ The first step in getting started with the Elastic APM Java agent is to retrieve
 include::./setup/get-agent-widget.asciidoc[]
 
 NOTE: Agents are not like regular application dependencies.
-Don't declare a dependency to the agent jar in your application.
+Don't declare a dependency to the agent in your application.
 
 [float]
 [[setup-javaagent-add-flag]]
