@@ -25,7 +25,6 @@ import co.elastic.apm.agent.report.Reporter;
 import co.elastic.logging.log4j2.EcsLayout;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.Core;
-import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
@@ -82,18 +81,19 @@ public class ApmServerLogAppender extends AbstractAppender {
     @Override
     public void append(LogEvent event) {
 
-        if (!isAgentInitialized()) {
+        boolean bufferBeforeInit = !isAgentInitialized();
+        if (bufferBeforeInit) {
             synchronized (buffer) {
-                if (buffer.size() < MAX_BUFFER_SIZE) {
-                    buffer.add(event.toImmutable());
-                }
+                bufferBeforeInit = !isAgentInitialized();
             }
+        }
+
+        // buffering before the configuration is known
+        if (bufferBeforeInit && buffer.size() < MAX_BUFFER_SIZE) {
+            buffer.add(event.toImmutable());
             return;
         }
 
-        if (!config.getSendLogs()) {
-            return;
-        }
         sendLogEvent(event);
     }
 
@@ -111,10 +111,10 @@ public class ApmServerLogAppender extends AbstractAppender {
             throw new IllegalStateException("streaming already initialized");
         }
 
-        this.config = config;
-        this.reporter = reporter;
-
         synchronized (buffer) {
+            this.config = config;
+            this.reporter = reporter;
+
             for (LogEvent logEvent : buffer) {
                 sendLogEvent(logEvent);
             }
@@ -124,6 +124,9 @@ public class ApmServerLogAppender extends AbstractAppender {
     }
 
     private void sendLogEvent(LogEvent event) {
+        if (!config.getSendLogs()) {
+            return;
+        }
         Objects.requireNonNull(reporter).reportAgentLog(getLayout().toByteArray(event));
     }
 
