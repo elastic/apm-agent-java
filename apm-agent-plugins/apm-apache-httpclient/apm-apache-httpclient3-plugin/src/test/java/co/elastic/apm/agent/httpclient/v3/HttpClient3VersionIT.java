@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.httpclient.v3;
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,10 +29,10 @@ import java.util.List;
 @RunWith(Parameterized.class)
 public class HttpClient3VersionIT {
 
-    private final TestClassWithDependencyRunner runner;
+    private final JUnit4TestClassWithDependencyRunner runner;
 
     public HttpClient3VersionIT(String dependency) throws Exception {
-        this.runner = new TestClassWithDependencyRunner(List.of(dependency), HttpClient3InstrumentationTest.class);
+        this.runner = new JUnit4TestClassWithDependencyRunner(List.of(dependency), HttpClient3InstrumentationTest.class);
     }
 
     @Parameterized.Parameters(name = "{0}")

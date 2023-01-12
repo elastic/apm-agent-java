@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent;
+package co.elastic.apm.agent.testutils;
 
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Result;
@@ -30,20 +30,20 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class TestClassWithDependencyRunner extends AbstractTestClassWithDependencyRunner {
+public class JUnit4TestClassWithDependencyRunner extends AbstractTestClassWithDependencyRunner {
 
     @Nullable
     private final BlockJUnit4ClassRunner testRunner;
 
-    public TestClassWithDependencyRunner(String groupId, String artifactId, String version, Class<?> testClass, Class<?>... classesReferencingDependency) throws Exception {
+    public JUnit4TestClassWithDependencyRunner(String groupId, String artifactId, String version, Class<?> testClass, Class<?>... classesReferencingDependency) throws Exception {
         this(Collections.singletonList(groupId + ":" + artifactId + ":" + version), testClass, classesReferencingDependency);
     }
 
-    public TestClassWithDependencyRunner(List<String> dependencies, Class<?> testClass, Class<?>... classesReferencingDependency) throws Exception {
+    public JUnit4TestClassWithDependencyRunner(List<String> dependencies, Class<?> testClass, Class<?>... classesReferencingDependency) throws Exception {
         this(dependencies, testClass.getName(), Arrays.stream(classesReferencingDependency).map(Class::getName).toArray(String[]::new));
     }
 
-    public TestClassWithDependencyRunner(List<String> dependencies, String testClass, String... classesReferencingDependency) throws Exception {
+    public JUnit4TestClassWithDependencyRunner(List<String> dependencies, String testClass, String... classesReferencingDependency) throws Exception {
         super(dependencies, testClass, classesReferencingDependency);
         testRunner = new BlockJUnit4ClassRunner(this.testClass);
     }

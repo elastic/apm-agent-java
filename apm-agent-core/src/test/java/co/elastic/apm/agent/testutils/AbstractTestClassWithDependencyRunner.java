@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent;
+package co.elastic.apm.agent.testutils;
 
 import co.elastic.test.ChildFirstURLClassLoader;
 import org.apache.ivy.Ivy;

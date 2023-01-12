@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent;
+package co.elastic.apm.agent.testutils;
 
 import org.junit.jupiter.api.extension.ConditionEvaluationResult;
 import org.junit.jupiter.api.extension.ExecutionCondition;
@@ -43,11 +43,11 @@ import static org.junit.jupiter.api.extension.ConditionEvaluationResult.enabled;
 import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
 import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass;
 
-public class JUnit5TestClassWithDependencyRunner extends AbstractTestClassWithDependencyRunner {
+public class TestClassWithDependencyRunner extends AbstractTestClassWithDependencyRunner {
 
 
     /**
-     * Prevents test from running when the test class is not executed from within a {@link JUnit5TestClassWithDependencyRunner}.
+     * Prevents test from running when the test class is not executed from within a {@link TestClassWithDependencyRunner}.
      */
     @Target({ElementType.TYPE, ElementType.METHOD})
     @Retention(RetentionPolicy.RUNTIME)
@@ -71,7 +71,7 @@ public class JUnit5TestClassWithDependencyRunner extends AbstractTestClassWithDe
         }
     }
 
-    public JUnit5TestClassWithDependencyRunner(List<String> dependencies, String testClass, String... classesReferencingDependency) throws Exception {
+    public TestClassWithDependencyRunner(List<String> dependencies, String testClass, String... classesReferencingDependency) throws Exception {
         super(dependencies, testClass, classesReferencingDependency);
     }
 
