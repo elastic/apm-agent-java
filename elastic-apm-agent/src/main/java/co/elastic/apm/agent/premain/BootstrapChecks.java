@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.premain;
 
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 
 import java.lang.management.ManagementFactory;
 import java.security.AccessController;
@@ -78,20 +79,20 @@ class BootstrapChecks {
         if (result.hasErrors()) {
             if (bootstrapChecksEnabled) {
                 isPassing = false;
-                System.err.println("[elastic-apm-agent] WARN Failed to start agent because of failing bootstrap checks.");
-                System.err.println("[elastic-apm-agent] INFO To override Java bootstrap checks, set the 'elastic.apm.disable_bootstrap_checks' System property, " +
+                SystemStandardOutputLogger.stdErrWarn("Failed to start agent because of failing bootstrap checks.");
+                SystemStandardOutputLogger.stdErrInfo("To override Java bootstrap checks, set the 'elastic.apm.disable_bootstrap_checks' System property, " +
                     "or the `ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS` environment variable, `to 'true'.");
             } else {
-                System.err.println("[elastic-apm-agent] WARN Bootstrap checks have failed. The agent will still start because bootstrap check have been disabled.");
+                SystemStandardOutputLogger.stdErrWarn("Bootstrap checks have failed. The agent will still start because bootstrap check have been disabled.");
             }
-            System.err.println("[elastic-apm-agent] INFO Note that we can not offer support for issues related to disabled bootstrap checks.");
+            SystemStandardOutputLogger.stdErrInfo("Note that we can not offer support for issues related to disabled bootstrap checks.");
             for (String msg : result.getErrors()) {
-                System.err.println("[elastic-apm-agent] ERROR " + msg);
+                SystemStandardOutputLogger.stdErrError(msg);
             }
         }
         if (result.hasWarnings()) {
             for (String msg : result.getWarnings()) {
-                System.err.println("[elastic-apm-agent] WARN " + msg);
+                SystemStandardOutputLogger.stdErrWarn(msg);
             }
         }
         return isPassing;

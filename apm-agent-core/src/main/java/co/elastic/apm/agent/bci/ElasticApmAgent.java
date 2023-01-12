@@ -31,6 +31,7 @@ import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.common.ThreadUtils;
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
@@ -239,7 +240,7 @@ public class ElasticApmAgent {
                     }
                     System.setProperty("net.bytebuddy.dump", bytecodeDumpDir.getPath());
                 } catch (Exception e) {
-                    System.err.println("[elastic-apm-agent] WARN Failed to create directory to dump instrumented bytecode: " + e.getMessage());
+                    SystemStandardOutputLogger.stdErrWarn("Failed to create directory to dump instrumented bytecode: " + e.getMessage());
                 }
             }
         }

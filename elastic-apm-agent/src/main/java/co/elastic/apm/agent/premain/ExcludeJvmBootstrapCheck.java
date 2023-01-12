@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.premain;
 
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 
 import javax.annotation.Nullable;
@@ -120,8 +121,8 @@ public class ExcludeJvmBootstrapCheck implements BootstrapCheck {
                     result.addError(String.format("'%s' or '%s' are configured with the pattern list '%s', which does not match this JVM's command: '%s'",
                         ALLOWLIST_SYSTEM_PROPERTY, ALLOWLIST_ENV_VARIABLE, allowListRaw, cmd));
                 } else {
-                    System.out.printf("[elastic-apm-agent] INFO Attaching an agent to this process as its command '%s' matches the configured allowlist: '%s'%n",
-                        cmd, allowListRaw);
+                    SystemStandardOutputLogger.stdOutInfo(String.format("Attaching an agent to this process as its command '%s' matches the " +
+                            "configured allowlist: '%s'%n", cmd, allowListRaw));
                 }
                 // No need to keep looking if allow list configured and the command doesn't match
                 return;
