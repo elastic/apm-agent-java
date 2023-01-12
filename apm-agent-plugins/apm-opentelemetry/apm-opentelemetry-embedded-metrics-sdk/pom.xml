@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>co.elastic.apm</groupId>
+        <artifactId>apm-opentelemetry</artifactId>
+        <version>1.36.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>apm-opentelemetry-embedded-metrics-sdk</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-sdk-metrics</artifactId>
+            <version>${version.opentelemetry}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-metrics-exporter</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.4.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <artifactSet>
+                                <includes>
+                                    <include>io.opentelemetry:*</include>
+                                    <include>co.elastic.apm:apm-opentelemetry-metrics-exporter</include>
+                                </includes>
+                            </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>co.elastic.apm.agent.otelmetricexport</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.otelmetricexport</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>io.opentelemetry</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.otel</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>java.util.logging.Logger</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.java.util.logging.Logger</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
