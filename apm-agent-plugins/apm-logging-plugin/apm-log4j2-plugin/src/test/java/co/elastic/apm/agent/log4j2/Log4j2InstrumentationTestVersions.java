@@ -27,7 +27,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.jupiter.api.BeforeEach;
 
 import java.io.IOException;
 import java.util.List;
@@ -52,7 +51,6 @@ public class Log4j2InstrumentationTestVersions extends Log4j2InstrumentationTest
     }
 
     @Before
-    @BeforeEach
     @Override
     public void setup() throws Exception {
         super.setup();

@@ -25,7 +25,6 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
 
@@ -37,33 +36,13 @@ public class IOUtils {
             return ByteBuffer.allocate(BYTE_BUFFER_CAPACITY);
         }
     };
-    protected static final ThreadLocal<CharBuffer> threadLocalCharBuffer = new ThreadLocal<CharBuffer>() {
-        @Override
-        protected CharBuffer initialValue() {
-            return CharBuffer.allocate(BYTE_BUFFER_CAPACITY);
-        }
-    };
     protected static final ThreadLocal<CharsetDecoder> threadLocalCharsetDecoder = new ThreadLocal<CharsetDecoder>() {
         @Override
         protected CharsetDecoder initialValue() {
             return StandardCharsets.UTF_8.newDecoder();
         }
     };
-    protected static final ThreadLocal<CharsetEncoder> threadLocalCharsetEncoder = new ThreadLocal<CharsetEncoder>() {
-        @Override
-        protected CharsetEncoder initialValue() {
-            return StandardCharsets.UTF_8.newEncoder();
-        }
-    };
 
-    static int copy(final String s, final int offset, final CharBuffer destination) {
-        final int length = Math.min(s.length() - offset, destination.remaining());
-        final char[] array = destination.array();
-        final int start = destination.position();
-        s.getChars(offset, offset + length, array, destination.arrayOffset() + start);
-        destination.position(start + length);
-        return length;
-    }
 
     /**
      * Reads the provided {@link InputStream} into the {@link CharBuffer} without causing allocations.

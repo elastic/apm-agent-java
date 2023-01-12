@@ -300,7 +300,7 @@ public class DslJsonSerializer implements PayloadSerializer {
      */
     @Override
     public int getBufferSize() {
-         return jw.size();
+        return jw.size();
     }
 
     @Override
