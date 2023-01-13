@@ -28,6 +28,7 @@ endif::[]
 * Use `127.0.0.1` as defaut for `server_url` to prevent ipv6 ambiguity - {pull}2927[#2927]
 * Fix some span-compression concurrency issues - {pull}2865[#2865]
 * Add warning when agent is accidentally started on a JVM/JDK command-line tool - {pull}2924[#2924]
+* Optimize JMS listener matcher - {pull}2930[#2930]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
