@@ -21,7 +21,7 @@ package co.elastic.apm.agent.sdk.logging;
 public interface Logger {
 
     /**
-     * Case insensitive String constant used to retrieve the name of the root logger.
+     * Case in-sensitive String constant used to retrieve the name of the root logger.
      */
     String ROOT_LOGGER_NAME = "ROOT";
 

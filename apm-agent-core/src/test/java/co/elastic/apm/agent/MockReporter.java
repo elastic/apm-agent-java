@@ -45,6 +45,7 @@ import specs.TestJsonSpec;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -95,6 +96,7 @@ public class MockReporter implements Reporter {
     private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
     private final List<ErrorCapture> errors = Collections.synchronizedList(new ArrayList<>());
     private final List<byte[]> bytes = new CopyOnWriteArrayList<>();
+    private final List<String> logs = Collections.synchronizedList(new ArrayList<>());
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
 
@@ -463,6 +465,12 @@ public class MockReporter implements Reporter {
             .isEqualTo(count));
     }
 
+    public void awaitLogsCount(int count) {
+        awaitUntilAsserted(() -> assertThat(getNumReportedLogs())
+            .describedAs("expecting %d logs", count)
+            .isEqualTo(count));
+    }
+
     @Override
     public synchronized void report(ErrorCapture error) {
         if (closed) {
@@ -473,11 +481,26 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public synchronized void report(JsonWriter jsonWriter) {
+    public synchronized void reportMetrics(JsonWriter jsonWriter) {
         if (closed) {
             return;
         }
         this.bytes.add(jsonWriter.toByteArray());
+    }
+
+    @Override
+    public void reportLog(String log) {
+        this.logs.add(log);
+    }
+
+    @Override
+    public void reportLog(byte[] log) {
+        this.logs.add(new String(log, StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public void reportAgentLog(byte[] log) {
+        this.logs.add(new String(log, StandardCharsets.UTF_8));
     }
 
     @Override
@@ -494,6 +517,19 @@ public class MockReporter implements Reporter {
 
     public synchronized List<Span> getSpans() {
         return Collections.unmodifiableList(spans);
+    }
+
+    public synchronized JsonNode getFirstLog() {
+        assertThat(logs)
+            .describedAs("at least one log expected, none have been reported")
+            .isNotEmpty();
+        return asJson(logs.get(0));
+    }
+
+    public synchronized List<JsonNode> getLogs() {
+        return logs.stream()
+            .map(log -> asJson(log))
+            .collect(Collectors.toList());
     }
 
     public Span getSpanByName(String name) {
@@ -515,6 +551,10 @@ public class MockReporter implements Reporter {
 
     public synchronized int getNumReportedErrors() {
         return errors.size();
+    }
+
+    public synchronized int getNumReportedLogs() {
+        return logs.size();
     }
 
     public synchronized ErrorCapture getFirstError() {

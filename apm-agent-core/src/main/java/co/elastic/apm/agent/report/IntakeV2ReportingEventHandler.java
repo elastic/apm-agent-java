@@ -23,6 +23,7 @@ import co.elastic.apm.agent.report.serialize.PayloadSerializer;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.util.LoggerUtils;
 import com.dslplatform.json.DslJson;
 
 import javax.annotation.Nullable;
@@ -38,8 +39,12 @@ import java.util.concurrent.atomic.AtomicLong;
 public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler implements ReportingEventHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
+
     public static final String INTAKE_V2_URL = "/intake/v2/events";
     public static final String INTAKE_V2_FLUSH_URL = INTAKE_V2_URL + "?flushed=true";
+
+    private static final Logger logsSupportLogger = LoggerUtils.logOnce(LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class));
+
     private final ProcessorEventHandler processorEventHandler;
     private final ScheduledExecutorService timeoutTimer;
     @Nullable
@@ -71,14 +76,14 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
     @Override
     public void onEvent(ReportingEvent event, long sequence, boolean endOfBatch) throws Exception {
-        if (reporter != null) {
-            ReporterMonitor monitor = reporter.getReporterMonitor();
-            monitor.eventDequeued(event.getType(), reporter.getQueueCapacity(), reporter.getQueueElementCount());
-        }
-        if (logger.isDebugEnabled()) {
-            logger.debug("Receiving {} event (sequence {})", event.getType(), sequence);
-        }
         try {
+            if (reporter != null) {
+                ReporterMonitor monitor = reporter.getReporterMonitor();
+                monitor.eventDequeued(event.getType(), reporter.getQueueCapacity(), reporter.getQueueElementCount());
+            }
+            if (logger.isDebugEnabled()) {
+                logger.debug("Receiving {} event (sequence {})", event.getType(), sequence);
+            }
             if (!shutDown) {
                 if (connection != null && isApiRequestTimeExpired()) {
                     logger.debug("Request flush because the request timeout occurred");
@@ -100,6 +105,9 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
     private void dispatchEvent(ReportingEvent event, long sequence, boolean endOfBatch) throws Exception {
         switch (event.getType()) {
+            case WAKEUP:
+                // wakeup silently ignored
+                break;
             case MAKE_FLUSH_REQUEST:
                 endRequest();
                 connection = startRequest(INTAKE_V2_FLUSH_URL);
@@ -113,9 +121,13 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             case SPAN:
             case ERROR:
             case TRANSACTION:
+            case BYTES_LOG:
+            case STRING_LOG:
             case METRICSET_JSON_WRITER:
                 handleIntakeEvent(event, sequence, endOfBatch);
                 break;
+            default:
+                throw new IllegalArgumentException("unsupported event type " + event.getType());
         }
     }
 
@@ -158,7 +170,6 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
         endRequestExceptionally();
     }
 
-
     /**
      * Returns the number of bytes already serialized and waiting in the underlying serializer's buffer.
      *
@@ -177,7 +188,20 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             payloadSerializer.serializeErrorNdJson(event.getError());
         } else if (event.getJsonWriter() != null) {
             payloadSerializer.writeBytes(event.getJsonWriter().getByteBuffer(), event.getJsonWriter().size());
+        } else if (event.getBytesLog() != null && logsSupported()) {
+            payloadSerializer.serializeLogNdJson(event.getBytesLog());
+        } else if (event.getStringLog() != null && logsSupported()) {
+            payloadSerializer.serializeLogNdJson(event.getStringLog());
         }
+    }
+
+    private boolean logsSupported() {
+        if (apmServerClient.supportsLogsEndpoint()) {
+            return true;
+        }
+
+        logsSupportLogger.warn("sending logs to apm server is not supported, upgrading to a more recent version is required");
+        return false;
     }
 
     @Override
@@ -270,4 +294,5 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             }
         }
     }
+
 }
