@@ -67,7 +67,7 @@ An example configuration looks like this:
 ----
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example,org.another.example
--Delastic.apm.server_url=http://localhost:8200
+-Delastic.apm.server_url=http://127.0.0.1:8200
 ----
 
 [source,properties]
@@ -75,7 +75,7 @@ An example configuration looks like this:
 ----
 service_name=my-cool-service
 application_packages=org.example,org.another.example
-server_url=http://localhost:8200
+server_url=http://127.0.0.1:8200
 ----
 
 [source,bash]
@@ -83,7 +83,7 @@ server_url=http://localhost:8200
 ----
 ELASTIC_APM_SERVICE_NAME=my-cool-service
 ELASTIC_APM_APPLICATION_PACKAGES=org.example,org.another.example
-ELASTIC_APM_SERVER_URL=http://localhost:8200
+ELASTIC_APM_SERVER_URL=http://127.0.0.1:8200
 ----
 
 [float]
@@ -2670,7 +2670,7 @@ NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `http://localhost:8200` | URL | true
+| `http://127.0.0.1:8200` | URL | true
 |============
 
 
@@ -4418,9 +4418,9 @@ Example: `5ms`.
 #
 # This setting can be changed at runtime
 # Type: URL
-# Default value: http://localhost:8200
+# Default value: http://127.0.0.1:8200
 #
-# server_url=http://localhost:8200
+# server_url=http://127.0.0.1:8200
 
 # The URLs for your APM Servers
 #
