@@ -47,6 +47,11 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumentation {
+    //Coretto causes sigsegv crashes when you try to access a throwable if it thinks
+    //it went out of scope, which it seems to for the instrumented throwable access
+    private static final boolean IS_CORRETTO = System.getProperty("java.vendor.version") == null ?
+        false :
+        System.getProperty("java.vendor.version").contains("Corretto");
     private static Throwable REDACTED = new Throwable("Unable to provide details of the error");
 
     @Override
@@ -107,7 +112,11 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
                 Span span = (Span) spanObj;
                 span.deactivate();
                 if (thrown != null) {
-                    span.captureException(REDACTED);
+                    if (IS_CORRETTO) {
+                        span.captureException(REDACTED);
+                    } else {
+                        span.captureException(thrown);
+                    }
                     span.withOutcome(Outcome.FAILURE);
                 } else {
                     span.withOutcome(Outcome.SUCCESS);
