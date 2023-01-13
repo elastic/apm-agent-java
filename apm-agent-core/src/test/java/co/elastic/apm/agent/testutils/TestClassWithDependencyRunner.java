@@ -48,6 +48,15 @@ public class TestClassWithDependencyRunner extends AbstractTestClassWithDependen
 
     /**
      * Prevents test from running when the test class is not executed from within a {@link TestClassWithDependencyRunner}.
+     * <p>
+     * This if for example useful when attempting to test that an instrumentation is *not* active for unsupported versions
+     * of the instrumentation target. To test this, one would create a test that checks that the instrumentation is not active
+     * and run it via the {@link TestClassWithDependencyRunner} for the unsupported versions of the instrumentation target.
+     * <p>
+     * However, the test itself would also be run by maven outside the {@link TestClassWithDependencyRunner}, because it is a
+     * normal unit test. In this environment the test is executed with the latest version of the instrumentation target (from the pom.xml),
+     * which in turn would cause the test to fail because this version is actually supported.
+     * To prevent these "wrong" failures, this annotation can be used to disable the test outside the {@link TestClassWithDependencyRunner}.
      */
     @Target({ElementType.TYPE, ElementType.METHOD})
     @Retention(RetentionPolicy.RUNTIME)
