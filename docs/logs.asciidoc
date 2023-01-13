@@ -9,12 +9,10 @@ endif::[]
 Elastic Java APM Agent provides the following log features:
 
 - <<log-correlation-ids>> : Automatically inject correlation IDs that allow navigation between logs and traces.
-- <<log-reformatting>> : Automatically reformat plaintext logs in ECS logging format
+- <<log-reformatting>> : Automatically reformat plaintext logs in {ecs-logging-ref}/intro.html[ECS logging] format.
 - <<log-error-capturing>> : Automatically captures exceptions for calls like `logger.error("message", exception)`.
-// TODO add link to ECS logging format
 
-Those features are part of log ingestion strategies.
-// TODO : add link to the Observability/APM docs for the different log ingestion strategies
+Those features are part of {observability-guide}application-logs.html[Application log ingestion strategies].
 
 [float]
 [[log-correlation-ids]]
