@@ -12,7 +12,7 @@ Elastic Java APM Agent provides the following log features:
 - <<log-reformatting>> : Automatically reformat plaintext logs in {ecs-logging-ref}/intro.html[ECS logging] format.
 - <<log-error-capturing>> : Automatically captures exceptions for calls like `logger.error("message", exception)`.
 
-Those features are part of {observability-guide}application-logs.html[Application log ingestion strategies].
+Those features are part of {observability-guide-all}application-logs.html[Application log ingestion strategies].
 
 [float]
 [[log-correlation-ids]]
