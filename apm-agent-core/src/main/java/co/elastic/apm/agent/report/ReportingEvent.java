@@ -26,12 +26,14 @@ import com.dslplatform.json.JsonWriter;
 import javax.annotation.Nullable;
 import java.util.concurrent.locks.LockSupport;
 
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.BYTES_LOG;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.END_REQUEST;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.ERROR;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.MAKE_FLUSH_REQUEST;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.METRICSET_JSON_WRITER;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SHUTDOWN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SPAN;
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.STRING_LOG;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.TRANSACTION;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.WAKEUP;
 
@@ -40,6 +42,7 @@ public class ReportingEvent {
     private Transaction transaction;
     @Nullable
     private ReportingEventType type;
+
     @Nullable
     private ErrorCapture error;
     @Nullable
@@ -49,6 +52,12 @@ public class ReportingEvent {
     @Nullable
     private Thread unparkAfterProcessed;
 
+    @Nullable
+    private String stringLog;
+    @Nullable
+    private byte[] bytesLog;
+    private boolean agentLog;
+
     public void resetState() {
         this.transaction = null;
         this.type = null;
@@ -56,6 +65,9 @@ public class ReportingEvent {
         this.span = null;
         this.jsonWriter = null;
         this.unparkAfterProcessed = null;
+        this.agentLog = false;
+        this.bytesLog = null;
+        this.stringLog = null;
     }
 
     @Nullable
@@ -103,6 +115,32 @@ public class ReportingEvent {
         this.type = SPAN;
     }
 
+    public void setStringLog(String string) {
+        this.stringLog = string;
+        this.type = STRING_LOG;
+    }
+
+    @Nullable
+    public String getStringLog() {
+        return stringLog;
+    }
+    public void setBytesLog(byte[] bytes, boolean agentLog) {
+        this.bytesLog = bytes;
+        this.type = BYTES_LOG;
+        this.agentLog = agentLog;
+    }
+
+    @Nullable
+    public byte[] getBytesLog() {
+        return bytesLog;
+    }
+
+    public boolean isAgentLog() {
+        return type != null
+            && (type == BYTES_LOG || type == STRING_LOG)
+            && agentLog;
+    }
+
     public void shutdownEvent() {
         this.type = SHUTDOWN;
     }
@@ -124,7 +162,7 @@ public class ReportingEvent {
         return jsonWriter;
     }
 
-    public void setJsonWriter(@Nullable JsonWriter jsonWriter) {
+    public void setMetricSet(@Nullable JsonWriter jsonWriter) {
         this.jsonWriter = jsonWriter;
         this.type = METRICSET_JSON_WRITER;
     }
@@ -151,6 +189,33 @@ public class ReportingEvent {
     }
 
     public enum ReportingEventType {
-        END_REQUEST, MAKE_FLUSH_REQUEST, TRANSACTION, SPAN, ERROR, SHUTDOWN, METRICSET_JSON_WRITER, WAKEUP
+        // control events
+        END_REQUEST(true),
+        MAKE_FLUSH_REQUEST(true),
+        SHUTDOWN(true),
+        WAKEUP(true),
+
+        // payload events,
+        TRANSACTION(false),
+        SPAN(false),
+        ERROR(false),
+        METRICSET_JSON_WRITER(false),
+        STRING_LOG(false),
+        BYTES_LOG(false);
+
+        private final boolean control;
+
+        /**
+         * @param control {@literal true} for control events
+         */
+        ReportingEventType(boolean control) {
+            this.control = control;
+        }
+
+        public boolean isControl() {
+            return control;
+        }
     }
+
+
 }

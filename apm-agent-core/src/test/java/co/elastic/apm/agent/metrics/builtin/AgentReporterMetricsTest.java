@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -285,6 +286,24 @@ public class AgentReporterMetricsTest {
             assertMetricNotExported(metrics, "agent.events.queue.min_size.pct");
             assertMetricNotExported(metrics, "agent.events.queue.max_size.pct");
         });
+    }
+
+    @Test
+    void testLabelMapping() {
+        Arrays.stream(ReportingEvent.ReportingEventType.values()).forEach(t -> {
+            Labels labels = AgentReporterMetrics.getLabelFor(t);
+
+            if (t.isControl()) {
+                assertThat(labels)
+                    .describedAs("no label expected for control events")
+                    .isNull();
+            } else {
+                assertThat(labels)
+                    .describedAs("missing label for event type '%s'", t)
+                    .isNotNull();
+            }
+        });
+
     }
 
 
