@@ -7,14 +7,15 @@ Using the `-javaagent` option is the most common way to set up java agents on a 
 - Requires to change JVM arguments, which implies a restart of the whole JVM.
 - For application servers, the JVM arguments modification requires changing application server configuration
 - Agent artifact is an extra binary to manage alongside the JVM or application server.
-- Ensures that that the application is fully instrumented before it starts.
+- Ensures that the application is fully instrumented before it starts.
 
 [float]
-[[setup-javaagent-download]]
-==== Download the Java agent
+[[setup-javaagent-get-agent]]
+==== Get the Java agent
 
-The first step in getting started with the Elastic APM Java agent is to download the latest release of the agent jar file from
-link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:elastic-apm-agent[maven central].
+The first step in getting started with the Elastic APM Java agent is to retrieve a copy of the agent jar.
+
+include::./setup/get-agent-widget.asciidoc[]
 
 NOTE: Agents are not like regular application dependencies.
 Don't declare a dependency to the agent in your application.

@@ -21,8 +21,6 @@ package co.elastic.apm.agent.sdk.logging;
 import javax.annotation.Nullable;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.Iterator;
-import java.util.ServiceLoader;
 
 public class LoggerFactory {
 

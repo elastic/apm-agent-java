@@ -24,6 +24,10 @@ endif::[]
 ==== x.x.x - YYYY/MM/DD
 
 [float]
+===== Features
+* Add experimental log sending from the agent with `log_sending` - {pull}2694[#2694]
+
+[float]
 ===== Bug fixes
 * Use `127.0.0.1` as defaut for `server_url` to prevent ipv6 ambiguity - {pull}2927[#2927]
 * Fix some span-compression concurrency issues - {pull}2865[#2865]
