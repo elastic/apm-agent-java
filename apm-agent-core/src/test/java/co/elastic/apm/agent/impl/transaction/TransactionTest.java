@@ -37,7 +37,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-class TransactionTest {
+public class TransactionTest {
 
     private DslJsonSerializer jsonSerializer;
 
@@ -118,5 +118,12 @@ class TransactionTest {
         );
     }
 
-
+    /**
+     * A utility to enable arbitrary tests to set an existing {@link Transaction} state without making this functionality globally accessible
+     * @param recorded should the provided trace context be recorded
+     * @param transaction a span of which state is to be set
+     */
+    public static void setRecorded(boolean recorded, Transaction transaction) {
+        transaction.getTraceContext().setRecorded(recorded);
+    }
 }
