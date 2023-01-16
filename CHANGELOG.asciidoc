@@ -23,6 +23,12 @@ endif::[]
 [[release-notes-x.x.x]]
 ==== x.x.x - YYYY/MM/DD
 
+===== Potentially breaking changes
+* Previously, agent instrumented all implementations of `javax.jms.MessageListener`, which could cause performance issues.
+  From now on, the instrumention is limited to implementations that fit at least one of the following critera:
+  * have `Message` or `Listener` in their class name
+  * is an anonymous inner class or a lambda
+
 [float]
 ===== Features
 * Add experimental log sending from the agent with `log_sending` - {pull}2694[#2694]
