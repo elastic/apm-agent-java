@@ -20,7 +20,6 @@ package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -46,7 +45,6 @@ import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.none;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
@@ -58,7 +56,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
     @Nullable
     private MessagingConfiguration configuration;
 
-    public JmsMessageListenerInstrumentation(ElasticApmTracer tracer){
+    public JmsMessageListenerInstrumentation(ElasticApmTracer tracer) {
         this.configuration = tracer.getConfig(MessagingConfiguration.class);
     }
 

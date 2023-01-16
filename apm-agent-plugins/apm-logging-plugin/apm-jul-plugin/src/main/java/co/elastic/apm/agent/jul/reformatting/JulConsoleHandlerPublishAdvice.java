@@ -24,11 +24,10 @@ import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
-import java.util.logging.StreamHandler;
 
 public class JulConsoleHandlerPublishAdvice {
 
-    private static final JulEcsReformattingHelper helper = new JulEcsReformattingHelper();
+    private static final JulEcsReformattingHelper<ConsoleHandler> helper = new JulEcsReformattingHelper<ConsoleHandler>();
 
     @SuppressWarnings("unused")
     @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
@@ -41,9 +40,7 @@ public class JulConsoleHandlerPublishAdvice {
     public static void reformatLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogRecord logRecord,
                                             @Advice.This(typing = Assigner.Typing.DYNAMIC) ConsoleHandler thisHandler) {
 
-        Handler shadeAppender = helper.onAppendExit(thisHandler);
-        if (shadeAppender != null) {
-            shadeAppender.publish(logRecord);
-        }
+
+        helper.onAppendExit(logRecord, thisHandler);
     }
 }

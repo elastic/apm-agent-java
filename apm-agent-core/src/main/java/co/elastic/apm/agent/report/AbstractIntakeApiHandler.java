@@ -37,7 +37,7 @@ import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
 public class AbstractIntakeApiHandler {
-    protected final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(AbstractIntakeApiHandler.class);
     private static final Object WAIT_LOCK = new Object();
 
     protected final ReporterConfiguration reporterConfiguration;
@@ -55,7 +55,7 @@ public class AbstractIntakeApiHandler {
     private volatile boolean healthy = true;
     private long requestStartedNanos;
 
-    public AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
+    protected AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
         this.reporterConfiguration = reporterConfiguration;
         this.payloadSerializer = payloadSerializer;
         this.apmServerClient = apmServerClient;

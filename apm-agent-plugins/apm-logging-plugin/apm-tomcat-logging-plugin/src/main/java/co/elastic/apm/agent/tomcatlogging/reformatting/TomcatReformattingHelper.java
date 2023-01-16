@@ -32,7 +32,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.Handler;
 
-public class TomcatReformattingHelper extends AbstractJulEcsReformattingHelper {
+public class TomcatReformattingHelper extends AbstractJulEcsReformattingHelper<Handler> {
 
     private static final ThreadLocal<String> currentDirectory = new ThreadLocal<>();
     private static final ThreadLocal<String> currentPrefix = new ThreadLocal<>();
@@ -41,7 +41,7 @@ public class TomcatReformattingHelper extends AbstractJulEcsReformattingHelper {
     TomcatReformattingHelper() {
     }
 
-    public boolean onAppendEnter(FileHandler fileHandler, String directory, String prefix, String suffix) {
+    public boolean onAppendEnter(Handler fileHandler, String directory, String prefix, String suffix) {
         try {
             currentDirectory.set(directory);
             currentPrefix.set(prefix);

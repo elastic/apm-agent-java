@@ -35,6 +35,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.logging.ApmServerLogAppender;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -151,7 +152,10 @@ public class ElasticApmAgent {
             }
         }
 
-        ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources).build();
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources)
+            // server log appender requires buffering log events before the config and reporter are ready.
+            .withLifecycleListener(ApmServerLogAppender.getInstance().getInitListener())
+            .build();
         initInstrumentation(tracer, instrumentation, premain);
         tracer.start(premain);
     }
