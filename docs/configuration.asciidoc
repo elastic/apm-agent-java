@@ -67,7 +67,7 @@ An example configuration looks like this:
 ----
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example,org.another.example
--Delastic.apm.server_url=http://localhost:8200
+-Delastic.apm.server_url=http://127.0.0.1:8200
 ----
 
 [source,properties]
@@ -75,7 +75,7 @@ An example configuration looks like this:
 ----
 service_name=my-cool-service
 application_packages=org.example,org.another.example
-server_url=http://localhost:8200
+server_url=http://127.0.0.1:8200
 ----
 
 [source,bash]
@@ -83,7 +83,7 @@ server_url=http://localhost:8200
 ----
 ELASTIC_APM_SERVICE_NAME=my-cool-service
 ELASTIC_APM_APPLICATION_PACKAGES=org.example,org.another.example
-ELASTIC_APM_SERVER_URL=http://localhost:8200
+ELASTIC_APM_SERVER_URL=http://127.0.0.1:8200
 ----
 
 [float]
@@ -160,6 +160,7 @@ Click on a key to get more information.
 ** <<config-log-file-size>>
 ** <<config-log-format-sout>>
 ** <<config-log-format-file>>
+** <<config-log-sending>>
 * <<config-messaging>>
 ** <<config-ignore-message-queues>>
 * <<config-metrics>>
@@ -1456,6 +1457,7 @@ This option allows some control over how the APM agent handles W3C trace-context
 * An Elastic-monitored service is publicly exposed, and does not want tracing data (trace-ids, sampling decisions) to possibly be spoofed by user requests.
 
 Valid values are:
+
 * 'continue': The default behavior. An incoming `traceparent` value is used to continue the trace and determine the sampling decision.
 * 'restart': Always ignores the `traceparent` header of incoming requests. A new trace-id will be generated and the sampling decision will be made based on transaction_sample_rate. A span link will be made to the incoming `traceparent`.
 * 'restart_external': If an incoming request includes the `es` vendor flag in `tracestate`, then any `traceparent` will be considered internal and will be handled as described for 'continue' above. Otherwise, any `traceparent` is considered external and will be handled as described for 'restart' above.
@@ -2205,7 +2207,6 @@ where each log event is serialized as a single line.
 
 
 
-
 Valid options: `PLAIN_TEXT`, `JSON`
 
 [options="header"]
@@ -2219,6 +2220,38 @@ Valid options: `PLAIN_TEXT`, `JSON`
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.log_format_file` | `log_format_file` | `ELASTIC_APM_LOG_FORMAT_FILE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-sending]]
+==== `log_sending` (added[1.36.0] experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+Sends agent and application logs directly to APM Server.
+
+Note that logs can get lost if the agent can't keep up with the logs,
+if APM Server is not available,
+or if Elasticsearch can't index the logs fast enough.
+
+For better delivery guarantees, it's recommended to ship ECS JSON log files with Filebeat
+See also <<config-log-ecs-reformatting,`log_ecs_reformatting`>>.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_sending` | `log_sending` | `ELASTIC_APM_LOG_SENDING`
 |============
 
 [[config-messaging]]
@@ -2669,7 +2702,7 @@ NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `http://localhost:8200` | URL | true
+| `http://127.0.0.1:8200` | URL | true
 |============
 
 
@@ -3788,6 +3821,7 @@ Example: `5ms`.
 # * An Elastic-monitored service is publicly exposed, and does not want tracing data (trace-ids, sampling decisions) to possibly be spoofed by user requests.
 # 
 # Valid values are:
+# 
 # * 'continue': The default behavior. An incoming `traceparent` value is used to continue the trace and determine the sampling decision.
 # * 'restart': Always ignores the `traceparent` header of incoming requests. A new trace-id will be generated and the sampling decision will be made based on transaction_sample_rate. A span link will be made to the incoming `traceparent`.
 # * 'restart_external': If an incoming request includes the `es` vendor flag in `tracestate`, then any `traceparent` will be considered internal and will be handled as described for 'continue' above. Otherwise, any `traceparent` is considered external and will be handled as described for 'restart' above.
@@ -4199,7 +4233,6 @@ Example: `5ms`.
 # 
 # When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
 # where each log event is serialized as a single line.
-# 
 #
 # Valid options: PLAIN_TEXT, JSON
 # This setting can not be changed at runtime. Changes require a restart of the application.
@@ -4207,6 +4240,21 @@ Example: `5ms`.
 # Default value: PLAIN_TEXT
 #
 # log_format_file=PLAIN_TEXT
+
+# Sends agent and application logs directly to APM Server.
+# 
+# Note that logs can get lost if the agent can't keep up with the logs,
+# if APM Server is not available,
+# or if Elasticsearch can't index the logs fast enough.
+# 
+# For better delivery guarantees, it's recommended to ship ECS JSON log files with Filebeat
+# See also <<config-log-ecs-reformatting,`log_ecs_reformatting`>>.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# log_sending=false
 
 ############################################
 # Messaging                                #
@@ -4416,9 +4464,9 @@ Example: `5ms`.
 #
 # This setting can be changed at runtime
 # Type: URL
-# Default value: http://localhost:8200
+# Default value: http://127.0.0.1:8200
 #
-# server_url=http://localhost:8200
+# server_url=http://127.0.0.1:8200
 
 # The URLs for your APM Servers
 #
