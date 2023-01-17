@@ -45,9 +45,9 @@ public class MetricsConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<List<Double>> customMetricsHistogramBoundaries = ConfigurationOption.builder(new ListValueConverter<>(DoubleValueConverter.INSTANCE), List.class)
         .key("custom_metrics_histogram_boundaries")
         .configurationCategory(METRICS_CATEGORY)
-        .description("TODO")
+        .description("Defines the default bucket boundaries to use for OpenTelemetry histograms.")
         .dynamic(true)
-        .tags("added[1.36.0]")
+        .tags("added[1.36.0]", "experimental")
         .buildWithDefault(Arrays.asList(
             0.00390625, 0.00552427, 0.0078125, 0.0110485, 0.015625, 0.0220971, 0.03125, 0.0441942,
             0.0625, 0.0883883, 0.125, 0.176777, 0.25, 0.353553, 0.5, 0.707107, 1.0, 1.41421, 2.0,
