@@ -259,7 +259,7 @@ public class AgentOverheadMetricsTest {
             }
         };
 
-        ThreadFactory singleNamedThreadFactory = new ExecutorUtils.SingleNamedThreadFactory("cnt-start-before");
+        ThreadFactory singleNamedThreadFactory = new ExecutorUtils.SingleNamedThreadFactory("count-start-before");
         Thread t1 = singleNamedThreadFactory.newThread(threadTask);
         t1.start();
         await().atMost(Duration.ofSeconds(10)).untilAtomic(startedCount, equalTo(1));
@@ -267,20 +267,20 @@ public class AgentOverheadMetricsTest {
         doReturn(true).when(spyMetricsConfig).isOverheadMetricsEnabled();
         overheadMetrics.bindTo(metricRegistry, spyMetricsConfig);
 
-        ThreadFactory namedThreadFactory = new ExecutorUtils.NamedThreadFactory("cnt-start-after");
+        ThreadFactory namedThreadFactory = new ExecutorUtils.NamedThreadFactory("count-start-after");
         Thread t2 = namedThreadFactory.newThread(threadTask);
         t2.start();
         await().atMost(Duration.ofSeconds(10)).untilAtomic(startedCount, equalTo(2));
 
         reportAndCheckMetrics(metrics -> {
             assertThat(metrics).containsKeys(
-                Labels.Mutable.of("task", "cnt-start-before"),
-                Labels.Mutable.of("task", "cnt-start-after")
+                Labels.Mutable.of("task", "count-start-before"),
+                Labels.Mutable.of("task", "count-start-after")
             );
 
-            assertThat(metrics.get(Labels.Mutable.of("task", "cnt-start-before")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-before")).getRawMetrics())
                 .containsEntry("agent.background.threads.count", 1.0);
-            assertThat(metrics.get(Labels.Mutable.of("task", "cnt-start-after")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-after")).getRawMetrics())
                 .containsEntry("agent.background.threads.count", 1.0);
         });
 
@@ -289,9 +289,9 @@ public class AgentOverheadMetricsTest {
         await().atMost(Duration.ofSeconds(10)).untilAtomic(startedCount, equalTo(3));
 
         reportAndCheckMetrics(metrics -> {
-            assertThat(metrics.get(Labels.Mutable.of("task", "cnt-start-before")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-before")).getRawMetrics())
                 .containsEntry("agent.background.threads.count", 1.0);
-            assertThat(metrics.get(Labels.Mutable.of("task", "cnt-start-after")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-after")).getRawMetrics())
                 .containsEntry("agent.background.threads.count", 2.0);
         });
 
@@ -301,26 +301,27 @@ public class AgentOverheadMetricsTest {
         t3.join();
 
 
-        ThreadFactory shortLivedFactory = new ExecutorUtils.SingleNamedThreadFactory("cnt-short-lived");
-        Thread t4 = shortLivedFactory.newThread(() -> {});
+        ThreadFactory shortLivedFactory = new ExecutorUtils.SingleNamedThreadFactory("count-short-lived");
+        Thread t4 = shortLivedFactory.newThread(() -> {
+        });
         t4.start();
         t4.join();
 
         //ensure that died threads are also counted for the time interval in which they died
         reportAndCheckMetrics(metrics -> {
-            assertThat(metrics.get(Labels.Mutable.of("task", "cnt-start-before")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-before")).getRawMetrics())
                 .containsEntry("agent.background.threads.count", 1.0);
-            assertThat(metrics.get(Labels.Mutable.of("task", "cnt-start-after")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-after")).getRawMetrics())
                 .containsEntry("agent.background.threads.count", 2.0);
-            assertThat(metrics.get(Labels.Mutable.of("task", "cnt-short-lived")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-short-lived")).getRawMetrics())
                 .containsEntry("agent.background.threads.count", 1.0);
         });
 
         //and that died threads are finally cleaned up after the last report
         reportAndCheckMetrics(metrics -> {
-            assertThat(metrics.get(Labels.Mutable.of("task", "cnt-start-before")).getRawMetrics()).isEmpty();
-            assertThat(metrics.get(Labels.Mutable.of("task", "cnt-start-after")).getRawMetrics()).isEmpty();
-            assertThat(metrics.get(Labels.Mutable.of("task", "cnt-short-lived")).getRawMetrics()).isEmpty();
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-before")).getRawMetrics()).isEmpty();
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-after")).getRawMetrics()).isEmpty();
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-short-lived")).getRawMetrics()).isEmpty();
         });
     }
 
