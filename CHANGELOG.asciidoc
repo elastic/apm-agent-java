@@ -29,10 +29,16 @@ endif::[]
 
 [float]
 ===== Bug fixes
+
 * Use `127.0.0.1` as defaut for `server_url` to prevent ipv6 ambiguity - {pull}2927[#2927]
 * Fix some span-compression concurrency issues - {pull}2865[#2865]
 * Add warning when agent is accidentally started on a JVM/JDK command-line tool - {pull}2924[#2924]
 * Fix `NullPointerException` caused by the Elasticsearch REST client instrumentation when collecting dropped span metrics - {pull}2959[#2959]
+
+===== Potentially breaking changes
+
+* The `context.destination.service.resource` span field has been changed for AWS S3, SQS and DynamoDB.
+As a result, the history of metrics relying on this field might break. - {pull}2947[#2947]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
@@ -42,6 +48,7 @@ endif::[]
 
 [float]
 ===== Features
+
 * Add support for log correlation for `java.util.logging` (JUL) - {pull}2724[#2724]
 * Add support for spring-kafka batch listeners - {pull}2815[#2815]
 * Improved instrumentation for legacy Apache HttpClient (when not using an `HttpUriRequest`, such as `BasicHttpRequest`)
