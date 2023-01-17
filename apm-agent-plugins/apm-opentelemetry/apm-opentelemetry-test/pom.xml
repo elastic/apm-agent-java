@@ -57,7 +57,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-opentelemetry-metrics-plugin</artifactId>
+            <artifactId>apm-opentelemetry-metricsdk-plugin</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
             <exclusions>
