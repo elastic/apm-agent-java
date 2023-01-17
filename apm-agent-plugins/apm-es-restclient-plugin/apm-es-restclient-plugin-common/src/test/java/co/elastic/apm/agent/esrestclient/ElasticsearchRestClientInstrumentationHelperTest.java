@@ -21,12 +21,9 @@ package co.elastic.apm.agent.esrestclient;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import org.apache.http.Header;
+import co.elastic.apm.agent.impl.transaction.TransactionTest;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpVersion;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
 import org.elasticsearch.client.Response;
 import org.junit.jupiter.api.AfterEach;
@@ -119,5 +116,20 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
         doReturn(httpHost).when(response).getHost();
         doReturn(statusLine).when(response).getStatusLine();
         return response;
+    }
+
+    @Test
+    void testNonSampledSpan() {
+        TransactionTest.setRecorded(false, transaction);
+        Span esSpan = helper.createClientSpan("SEARCH", "/test", null);
+        assertThat(esSpan).isNotNull();
+        try {
+            assertThat(esSpan.isSampled()).isFalse();
+            assertThat(esSpan.getContext().getServiceTarget().getType())
+                .describedAs("service target field should not be null in non-sampled spans because it is used for dropped spans stats")
+                .isNotNull();
+        } finally {
+            esSpan.deactivate().end();
+        }
     }
 }

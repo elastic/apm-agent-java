@@ -65,7 +65,7 @@ compare them against `main` branch values as a baseline to know if a given code 
 1. Import the repository as a maven project
 1. After importing, select the IntelliJ profile in Maven Projects sidebar
 
-   <img width="268" alt="Maven profiles" src="https://user-images.githubusercontent.com/2163464/43443771-22e3ba3c-94a2-11e8-9bd8-5ed73b7e975a.png">   
+   <img width="268" alt="Maven profiles" src="https://user-images.githubusercontent.com/2163464/43443771-22e3ba3c-94a2-11e8-9bd8-5ed73b7e975a.png">
 1. This project makes heavy use of the `javax.annotation.Nonnull` and `javax.annotation.Nullable` annotations.
    In order for the IDE to properly understand these annotations and to show warnings when invariants are violated,
    there are a few things which need to be configured.
@@ -255,16 +255,25 @@ See [`apm-agent-plugins/README.md`](apm-agent-plugins/README.md)
 ### Documenting
 
 HTML Documentation is generated from text files stored in `docs` folder using [AsciiDoc](http://asciidoc.org/) format.
-The ``configuration.asciidoc`` file is generated from running `co.elastic.apm.agent.configuration.ConfigurationExporter`,
-all the other asciidoc text files are written manually.
+The `configuration.asciidoc` file is generated from running `co.elastic.apm.agent.configuration.ConfigurationExporter`
+(e.g. via `./mvnw test -Dtest="ConfigurationExporterTest" -DfailIfNoTests=false`). All the other asciidoc text files
+are written manually.
 
 A preview of the documentation is generated for each pull-request.
 Click on the build `Details` of the `elasticsearch-ci/docs` job and go to the bottom of the `Console Output` to see the link.
 
 This step is part of Elasticsearch CI, and the build job is [the following](https://elasticsearch-ci.elastic.co/view/Docs/job/elastic+docs+apm-agent-java+pull-request/).
 
-In order to generate a local copy of agent documentation, you will need to clone [docs](https://github.com/elastic/docs) repository
-and follow [those instructions](https://github.com/elastic/docs#for-a-local-repo).
+In order to generate a local copy of agent documentation, you will need to clone/update the [docs](https://github.com/elastic/docs)
+and [apm-aws-lambda](https://github.com/elastic/apm-aws-lambda) repositories and run the following.
+(The `--direct_html --open` options tells the doc build container to serve the docs at <http://localhost:8000>.
+See [the "docs" repo README](https://github.com/elastic/docs#for-a-local-repo) for more details.)
+
+```
+../docs/build_docs --resource ../apm-aws-lambda/docs \
+  --doc ./docs/index.asciidoc \
+  --direct_html --open
+```
 
 ### Releasing
 

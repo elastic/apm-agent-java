@@ -22,7 +22,6 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import org.apache.juli.FileHandler;
 
-import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 
 public class FileHandlerPublishAdvice {
@@ -42,9 +41,6 @@ public class FileHandlerPublishAdvice {
     public static void onExit(@Advice.This(typing = Assigner.Typing.DYNAMIC) FileHandler fileHandler,
                               @Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogRecord logRecord) {
 
-        Handler shadeAppender = helper.onAppendExit(fileHandler);
-        if (shadeAppender != null) {
-            shadeAppender.publish(logRecord);
-        }
+        helper.onAppendExit(logRecord,fileHandler);
     }
 }

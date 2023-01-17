@@ -114,13 +114,13 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         }
         long step = getStep(meterRegistry);
         if (step >= 0 && step < 1000) {
-            logger.warn("Not registering unsupported step interval of {} milliseconds (1 seconds is the minimum supported) for Micrometer MeterRegistry: {}", step, meterRegistry);
+            logger.debug("Not registering unsupported step interval of {} milliseconds (1 seconds is the minimum supported) for Micrometer MeterRegistry: {}", step, meterRegistry);
             return;
         }
         Step newStep = new Step(step);
         Step hopefullyNull = meterRegistries.putIfAbsent(meterRegistry, newStep);
         if (hopefullyNull != null) {
-            logger.info("Not re-registering MeterRegistry as it is already registered from another compound meter registry: {}", meterRegistry);
+            logger.trace("Not re-registering MeterRegistry as it is already registered from another compound meter registry: {}", meterRegistry);
         } else {
             logger.info("Registering Micrometer MeterRegistry: {}", meterRegistry);
         }
@@ -190,7 +190,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         }
         logger.debug("Reporting {} meters", meterConsumer.meters.size());
         for (JsonWriter serializedMetricSet : serializer.serialize(meterConsumer.meters, now * 1000)) {
-            reporter.report(serializedMetricSet);
+            reporter.reportMetrics(serializedMetricSet);
         }
     }
 
@@ -254,7 +254,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         if (configMap.putIfAbsent(meterRegistry, config) != null) {
             return;
         }
-        logger.warn("Identified Micrometer SimpleConfig: {}", config);
+        logger.debug("Identified Micrometer SimpleConfig: {}", config);
 
         //this next only happens during testing
         //can't use instanceof or casts because of different classloaders

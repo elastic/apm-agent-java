@@ -546,7 +546,7 @@ NOTE: only classes from the quartz-jobs dependency will be instrumented automati
 There are multiple log-related features in the agent and their support depend on the logging framework:
 
 - *<<log-correlation-ids, Log Correlation>>*:
-    The agent automatically injects `trace.id`, `transaction.id` and `error.id` into MDC implementation.
+    The agent automatically injects `trace.id`, `transaction.id` and `error.id` into the MDC implementation (see below for framework specific MDC implementations used. MDC = Mapped Diagnostic Context, a standard way to enrich log messages with additional information).
 
 - *<<log-error-capturing, Log Error capturing>>*:
     Automatically captures exceptions for calls like `logger.error("message", exception)`.
