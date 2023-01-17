@@ -53,7 +53,6 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
     @SuppressWarnings("WeakerAccess")
     public static final Logger logger = LoggerFactory.getLogger(JmsMessageListenerInstrumentation.class);
 
-    @Nullable
     private MessagingConfiguration configuration;
 
     public JmsMessageListenerInstrumentation(ElasticApmTracer tracer) {
@@ -63,16 +62,18 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
 
-        ElementMatcher.Junction<NamedElement> nameMatcher = nameContains("$") // inner classes
-            .or(nameContains("/")) // lambdas
+        ElementMatcher.Junction<NamedElement> nameHeuristic =
+            nameContains("$") // inner classes
             .or(nameContains("Message"))
             .or(nameContains("Listener"));
 
         Collection<String> listenerPackages = configuration.getJmsListenerPackages();
         if (listenerPackages.isEmpty()) {
-            return nameMatcher;
+            // default heuristic
+            return nameHeuristic;
         } else {
-            return nameMatcher.and(isInAnyPackage(listenerPackages, ElementMatchers.<NamedElement>none()));
+            // expand the default heuristic with the provided listener package list
+            return nameHeuristic.or(isInAnyPackage(listenerPackages, ElementMatchers.<NamedElement>none()));
         }
     }
 

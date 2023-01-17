@@ -163,6 +163,7 @@ Click on a key to get more information.
 ** <<config-log-sending>>
 * <<config-messaging>>
 ** <<config-ignore-message-queues>>
+** <<config-jms-listener-packages>>
 * <<config-metrics>>
 ** <<config-dedot-custom-metrics>>
 ** <<config-metric-set-limit>>
@@ -2292,6 +2293,31 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | `elastic.apm.ignore_message_queues` | `ignore_message_queues` | `ELASTIC_APM_IGNORE_MESSAGE_QUEUES`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-jms-listener-packages]]
+==== `jms_listener_packages` (performance added[1.36.0])
+
+Defines which packages contain JMS MessageListener implementations for instrumentation.
+When set to a non-empty value, only the classes matching configuration will be instrumented.
+This configuration option helps to make MessageListener type matching faster and improve application startup performance.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | Collection | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.jms_listener_packages` | `jms_listener_packages` | `ELASTIC_APM_JMS_LISTENER_PACKAGES`
+|============
+
 [[config-metrics]]
 === Metrics configuration options
 
@@ -4275,6 +4301,16 @@ Example: `5ms`.
 # Default value: 
 #
 # ignore_message_queues=
+
+# Defines which packages contain JMS MessageListener implementations for instrumentation.
+# When set to a non-empty value, only the classes matching configuration will be instrumented.
+# This configuration option helps to make MessageListener type matching faster and improve application startup performance.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: comma separated list
+# Default value: 
+#
+# jms_listener_packages=
 
 ############################################
 # Metrics                                  #

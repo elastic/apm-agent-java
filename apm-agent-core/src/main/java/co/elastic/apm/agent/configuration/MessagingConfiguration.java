@@ -96,8 +96,8 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Collection<String>> jmsListenerPackages = ConfigurationOption
         .stringsOption()
         .key("jms_listener_packages")
-        .configurationCategory("JMS")
-        .tags("internal")
+        .tags("performance", "added[1.36.0]")
+        .configurationCategory(MESSAGING_CATEGORY)
         .description("Defines which packages contain JMS MessageListener implementations for instrumentation." +
             "\n" +
             "When set to a non-empty value, only the classes matching configuration will be instrumented.\n" +

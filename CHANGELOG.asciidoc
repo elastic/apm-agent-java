@@ -28,6 +28,7 @@ endif::[]
   From now on, the instrumention is limited to implementations that fit at least one of the following critera:
   * have `Message` or `Listener` in their class name
   * is an anonymous inner class or a lambda
+  * is within a package provided by the `jms_listener_packages` configuration.
 
 [float]
 ===== Features
