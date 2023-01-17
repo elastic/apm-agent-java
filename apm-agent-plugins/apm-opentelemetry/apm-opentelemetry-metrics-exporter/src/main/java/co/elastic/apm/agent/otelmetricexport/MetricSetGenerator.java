@@ -282,7 +282,7 @@ class MetricSetGenerator {
     public void finishAndReport(Reporter reporter) {
         if (anySamplesWritten) {
             serializeMetricSetEnd();
-            reporter.report(jw);
+            reporter.reportMetrics(jw);
         }
     }
 }
