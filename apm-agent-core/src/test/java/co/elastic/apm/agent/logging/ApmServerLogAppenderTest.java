@@ -67,6 +67,14 @@ class ApmServerLogAppenderTest {
         appender.getInitListener().init(tracer);
 
         assertThatThrownBy(() -> appender.getInitListener().init(tracer), "should throw when trying to init more than once");
+
+        // testing singleton invariants, while being implementation details matter here
+        assertThat(ApmServerLogAppender.getInstance())
+            .describedAs("singleton instance should be set by the factory")
+            .isSameAs(appender);
+        assertThat(ApmServerLogAppender.createAppender("test", layout))
+            .describedAs("factory method should only create once and return the singleton afterwards")
+            .isSameAs(appender);
     }
 
     @ParameterizedTest
@@ -74,7 +82,9 @@ class ApmServerLogAppenderTest {
     void bufferingAndInit(boolean enabled) throws Exception {
 
         EcsLayout layout = fakeLayout();
-        ApmServerLogAppender appender = ApmServerLogAppender.createAppender("test", layout);
+
+        // using constructor to avoid singleton that won't allow more than one instance
+        ApmServerLogAppender appender = new ApmServerLogAppender("test", layout);
         ApmServerReporter reporter = mock(ApmServerReporter.class);
 
         int expectedBufferSize = 1024;
