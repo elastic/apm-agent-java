@@ -61,4 +61,12 @@ public class ApacheHttpClientInstrumentationTest extends AbstractHttpClientInstr
         String response = client.execute(new HttpGet(path), responseHandler);
     }
 
+    /**
+     * org.apache.hc.client5.http.ClientProtocolException: Request URI authority contains deprecated userinfo component
+     * @return
+     */
+    @Override
+    public boolean isTestHttpCallWithUserInfoEnabled() {
+        return false;
+    }
 }
