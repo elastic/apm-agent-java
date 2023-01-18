@@ -51,9 +51,8 @@ public class LdapClientAdvice {
             .withSubtype("ldap");
 
         if (connection != null) {
-            span.getContext()
-                .getDestination().withAddress(connection.host).withPort(connection.port)
-                .getService().getResource().append(connection.host).append(":").append(connection.port);
+            span.getContext().getDestination().withAddress(connection.host).withPort(connection.port);
+            span.getContext().getServiceTarget().withType("ldap").withHostPortName(connection.host, connection.port);
         }
 
         return span.activate();
