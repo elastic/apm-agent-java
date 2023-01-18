@@ -52,7 +52,6 @@ public class ApacheHttpClientInstrumentationTest extends AbstractHttpClientInstr
             if (status >= 200 && status < 300) {
                 HttpEntity entity = response.getEntity();
                 String res = entity != null ? EntityUtils.toString(entity) : null;
-                System.out.println(String.format("got result %s", res));
                 return res;
             } else {
                 throw new ClientProtocolException("Unexpected response status: " + status);
