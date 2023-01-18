@@ -26,11 +26,15 @@ import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.impl.Log4jLogEvent;
 import org.apache.logging.log4j.message.SimpleMessage;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 
+import javax.annotation.Nullable;
+import java.lang.reflect.Field;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -47,6 +51,24 @@ import static org.mockito.Mockito.verifyNoInteractions;
 class ApmServerLogAppenderTest {
 
     private static final Instant BASE_CLOCK = Instant.now();
+
+    @Nullable
+    private Object previousInstanceValue;
+    private Field instanceField;
+
+    @BeforeEach
+    public void before() throws Exception {
+        // use introspection to reset the instance to a known null value, while perserving the original value
+        instanceField = ApmServerLogAppender.class.getDeclaredField("INSTANCE");
+        instanceField.setAccessible(true);
+        previousInstanceValue = instanceField.get(null);
+        instanceField.set(null, null);
+    }
+
+    @AfterEach
+    public void after() throws Exception {
+        instanceField.set(null, previousInstanceValue);
+    }
 
     @Test
     void createAndInit() throws Exception {
