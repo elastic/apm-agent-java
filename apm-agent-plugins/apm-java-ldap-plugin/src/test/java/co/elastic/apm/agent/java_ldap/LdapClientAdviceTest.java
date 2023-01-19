@@ -38,6 +38,8 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+// In order to run this test from intelliJ you need to add --add-exports java.naming/com.sun.jndi.ldap=ALL-UNNAMED
+// to the module compiler overrides within intelliJ
 public class LdapClientAdviceTest extends AbstractInstrumentationTest {
 
     private static InMemoryDirectoryServer ldapServer;
