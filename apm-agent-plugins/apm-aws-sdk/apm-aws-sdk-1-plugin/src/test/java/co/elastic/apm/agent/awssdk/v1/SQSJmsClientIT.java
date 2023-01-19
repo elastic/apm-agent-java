@@ -41,6 +41,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 
+import javax.annotation.Nullable;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
@@ -272,6 +273,17 @@ public class SQSJmsClientIT extends AbstractAwsClientIT {
     @Override
     protected String type() {
         return "messaging";
+    }
+
+    @Override
+    protected String subtype() {
+        return "sqs";
+    }
+
+    @Nullable
+    @Override
+    protected String expectedTargetName(@Nullable String entityName) {
+        return entityName; //entityName is queue name
     }
 
     @Override

@@ -45,6 +45,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.function.Consumer;
 
@@ -223,6 +224,17 @@ public class SQSClientIT extends AbstractSQSClientIT {
     @Override
     protected String type() {
         return "messaging";
+    }
+
+    @Override
+    protected String subtype() {
+        return "sqs";
+    }
+
+    @Nullable
+    @Override
+    protected String expectedTargetName(@Nullable String entityName) {
+        return entityName; //entityName is queue name
     }
 
     @Override
