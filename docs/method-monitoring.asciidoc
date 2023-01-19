@@ -147,6 +147,8 @@ https://github.com/elastic/apm-agent-java/tree/main/apm-agent-plugins/apm-profil
 Also note that the very first inferred span in a transaction doesn't have a stack trace as it's
 likely to be untypical - it's usually the entry point and has a lot of stuff in it about how the
 server has accepted a request etc. Consecutive inferred spans have a stack trace that go to their parent.
+This means that long running methods may show as a span from the inferred span mechanism, but not
+show an associated stack trace.
 
 // Inferred spans are created after the profiling session ends and therefor may appear later in the APM app's span timeline than regular spans.
 // Because of this, a regular span cannot be the child of an inferred span.
