@@ -68,7 +68,7 @@ As a result, when an exception is reported to the logger:
 [[log-sending]]
 === Log sending (experimental)
 
-The agent can automatically capture and send logs directly to APM Server, which allows to ingest log events without relying filebeat.
+The agent can automatically capture and send logs directly to APM Server, which allows to ingest log events without relying on filebeat.
 Log sending is controlled by the <<config-log-sending, `log_sending`>> configuration option and is disabled by default.
 
 [float]
