@@ -72,7 +72,6 @@ The agent can automatically capture and send logs directly to APM Server, which 
 Log sending is controlled by the <<config-log-sending, `log_sending`>> configuration option and is disabled by default.
 
 [float]
-=======
 [[ecs-logging-service-fields]]
 === ECS Logging Service fields
 
