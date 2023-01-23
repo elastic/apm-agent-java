@@ -31,13 +31,13 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.util.LoggerUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import org.reactivestreams.Publisher;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.MultiValueMap;
@@ -64,6 +64,7 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.M
 public class WebfluxHelper {
 
     private static final Logger log = LoggerFactory.getLogger(WebfluxHelper.class);
+    private static final Logger oneTimeResponseCodeErrorLogger = LoggerUtils.logOnce(log);
 
     public static final String TRANSACTION_ATTRIBUTE = WebfluxHelper.class.getName() + ".transaction";
     private static final String SUBSCRIBER_ATTRIBUTE = WebfluxHelper.class.getName() + ".wrapped_subscriber";
@@ -270,8 +271,12 @@ public class WebfluxHelper {
 
     private static void fillResponse(Transaction transaction, ServerWebExchange exchange) {
         ServerHttpResponse serverResponse = exchange.getResponse();
-        HttpStatus statusCode = serverResponse.getStatusCode();
-        int status = statusCode != null ? statusCode.value() : 200;
+        int status = 0;
+        try {
+            status = SpringWebVersionUtils.getStatusCode(serverResponse);
+        } catch (Exception e) {
+            oneTimeResponseCodeErrorLogger.error("Failed to get response code", e);
+        }
 
         transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
 

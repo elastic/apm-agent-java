@@ -222,6 +222,17 @@
           </build>
         </profile>
         <profile>
+          <!-- this profile should actually be active whenever running on Java 17 or higher, but since the only pre-Java-17 version we
+          test with is 11, this should be sufficient -->
+          <id>non-java-11</id>
+          <activation>
+              <jdk>!11</jdk>
+          </activation>
+          <modules>
+              <module>apm-agent-java-17</module>
+          </modules>
+        </profile>
+        <profile>
             <id>no-errorprone</id>
             <activation>
                 <property>
@@ -520,7 +531,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.7</version>
+                    <version>0.8.8</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -539,7 +550,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>3.2.4</version>
+                    <version>3.3.0</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-clean-plugin</artifactId>
