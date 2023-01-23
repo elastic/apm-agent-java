@@ -34,6 +34,7 @@ endif::[]
 * Fix some span-compression concurrency issues - {pull}2865[#2865]
 * Add warning when agent is accidentally started on a JVM/JDK command-line tool - {pull}2924[#2924]
 * Fix `NullPointerException` caused by the Elasticsearch REST client instrumentation when collecting dropped span metrics - {pull}2959[#2959]
+* Fix SQS Instrumentation for Non-MessageReceive actions to avoid NoSuchElementException - {pull}2979[#2979]
 
 ===== Potentially breaking changes
 
