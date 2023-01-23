@@ -23,6 +23,7 @@ import co.elastic.apm.agent.awssdk.v2.helper.S3Helper;
 import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
 import co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper.MessageListWrapper;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
@@ -49,9 +50,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumentation {
     //Coretto causes sigsegv crashes when you try to access a throwable if it thinks
     //it went out of scope, which it seems to for the instrumented throwable access
-    private static final boolean IS_CORRETTO = System.getProperty("java.vendor.version") == null ?
-        false :
-        System.getProperty("java.vendor.version").contains("Corretto");
     private static Throwable REDACTED = new Throwable("Unable to provide details of the error");
 
     @Override
@@ -112,7 +110,7 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
                 Span span = (Span) spanObj;
                 span.deactivate();
                 if (thrown != null) {
-                    if (IS_CORRETTO) {
+                    if (JvmRuntimeInfo.ofCurrentVM().isCoretto() && JvmRuntimeInfo.ofCurrentVM().getMajorVersion() > 16) {
                         span.captureException(REDACTED);
                     } else {
                         span.captureException(thrown);
