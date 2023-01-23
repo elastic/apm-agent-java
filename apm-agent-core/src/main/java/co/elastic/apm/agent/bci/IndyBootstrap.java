@@ -470,6 +470,7 @@ public class IndyBootstrap {
         } catch (ClassNotFoundException e) {
             // must not be a static field as it would initialize logging before it's ready
             LoggerFactory.getLogger(IndyBootstrap.class).error("Cannot open module because witness class is not found", e);
+            return false;
         }
         return true;
     }
