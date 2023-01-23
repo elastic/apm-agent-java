@@ -31,6 +31,7 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.util.LoggerUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.TransactionNameUtils;
@@ -63,6 +64,7 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.M
 public class WebfluxHelper {
 
     private static final Logger log = LoggerFactory.getLogger(WebfluxHelper.class);
+    private static final Logger oneTimeResponseCodeErrorLogger = LoggerUtils.logOnce(log);
 
     public static final String TRANSACTION_ATTRIBUTE = WebfluxHelper.class.getName() + ".transaction";
     private static final String SUBSCRIBER_ATTRIBUTE = WebfluxHelper.class.getName() + ".wrapped_subscriber";
@@ -273,7 +275,7 @@ public class WebfluxHelper {
         try {
             status = SpringWebVersionUtils.getStatusCode(serverResponse);
         } catch (Exception e) {
-            // todo : log
+            oneTimeResponseCodeErrorLogger.error("Failed to get response code", e);
         }
 
         transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
