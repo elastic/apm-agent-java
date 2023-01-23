@@ -50,6 +50,7 @@ import java.util.Collections;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 public class SQSClientIT extends AbstractSQSClientIT {
     private SqsClient sqs;
@@ -165,6 +166,74 @@ public class SQSClientIT extends AbstractSQSClientIT {
 
         assertThat(reporter.getSpans()).noneMatch(AbstractSpan::isSync);
         transaction.deactivate().end();
+    }
+
+    @Test
+    public void testNonReceiveMessageWithinMessagingTransaction() {
+        sqs.createQueue(CreateQueueRequest.builder().queueName(SQS_QUEUE_NAME).build());
+
+        final StringBuilder queueUrl = new StringBuilder();
+        queueUrl.append(sqs.getQueueUrl(GetQueueUrlRequest.builder().queueName(SQS_QUEUE_NAME).build()).queueUrl());
+
+        Transaction transaction = startTestRootTransaction("sqs-test");
+        transaction.withType("messaging");
+
+        sqs.sendMessage(SendMessageRequest.builder()
+            .queueUrl(queueUrl.toString())
+            .messageBody(MESSAGE_BODY)
+            .build());
+
+        transaction.deactivate().end();
+
+        assertThat(reporter.getFirstTransaction()).isNotNull();
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("sqs-test");
+        assertThat(reporter.getFirstSpan()).isNotNull();
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("SQS SEND to " + SQS_QUEUE_NAME);
+    }
+
+    @Test
+    public void testAsnycNonReceiveMessageWithinMessagingTransaction() {
+        sqsAsync.createQueue(CreateQueueRequest.builder().queueName(SQS_QUEUE_NAME).build()).join();
+
+        final StringBuilder queueUrl = new StringBuilder();
+        queueUrl.append(sqsAsync.getQueueUrl(GetQueueUrlRequest.builder().queueName(SQS_QUEUE_NAME).build()).join().queueUrl());
+
+        Transaction transaction = startTestRootTransaction("sqs-test");
+        transaction.withType("messaging");
+
+        sqsAsync.sendMessage(SendMessageRequest.builder()
+            .queueUrl(queueUrl.toString())
+            .messageBody(MESSAGE_BODY)
+            .build()).join();
+
+        transaction.deactivate().end();
+
+        assertThat(reporter.getFirstTransaction()).isNotNull();
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("sqs-test");
+        assertThat(reporter.getFirstSpan()).isNotNull();
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("SQS SEND to " + SQS_QUEUE_NAME);
+    }
+
+    @Test
+    public void testReceiveMessageWithinMessagingTransaction() {
+        when(messagingConfiguration.shouldEndMessagingTransactionOnPoll()).thenReturn(false);
+        sqs.createQueue(CreateQueueRequest.builder().queueName(SQS_QUEUE_NAME).build());
+
+        final StringBuilder queueUrl = new StringBuilder();
+        queueUrl.append(sqs.getQueueUrl(GetQueueUrlRequest.builder().queueName(SQS_QUEUE_NAME).build()).queueUrl());
+
+        Transaction transaction = startTestRootTransaction("sqs-test");
+        transaction.withType("messaging");
+
+        sqs.receiveMessage(ReceiveMessageRequest.builder().queueUrl(queueUrl.toString()).build());
+
+        transaction.deactivate().end();
+
+
+        assertThat(reporter.getFirstTransaction()).isNotNull();
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("sqs-test");
+        assertThat(reporter.getFirstSpan()).isNotNull();
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("SQS POLL from " + SQS_QUEUE_NAME);
     }
 
     @Override
