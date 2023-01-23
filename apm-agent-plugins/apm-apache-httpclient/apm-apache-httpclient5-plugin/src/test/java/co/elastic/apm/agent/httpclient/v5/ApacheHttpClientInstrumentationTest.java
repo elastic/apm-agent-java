@@ -23,6 +23,7 @@ import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.classic.ProtocolExec;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
@@ -62,10 +63,14 @@ public class ApacheHttpClientInstrumentationTest extends AbstractHttpClientInstr
 
     /**
      * org.apache.hc.client5.http.ClientProtocolException: Request URI authority contains deprecated userinfo component
-     * @return
+     * see {@link ProtocolExec#execute}
+     *   final URIAuthority authority = request.getAuthority();
+     *   if (authority.getUserInfo() != null) {
+     *      throw new ProtocolException("Request URI authority contains deprecated userinfo component");
+     *   }
      */
     @Override
-    public boolean isTestHttpCallWithUserInfoEnabled() {
-        return false;
+    public String getBaseUserInfoPath() {
+        return "http://localhost:";
     }
 }

@@ -7,24 +7,29 @@ import org.apache.hc.client5.http.async.methods.SimpleRequestBuilder;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
-import org.apache.hc.client5.http.impl.classic.ProtocolExec;
 import org.apache.hc.client5.http.protocol.HttpClientContext;
 import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.reactor.IOReactorConfig;
+import org.apache.hc.core5.util.Timeout;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
-public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
+public class ApacheHttpAsyncReactiveClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
     private static CloseableHttpAsyncClient client;
 
     @BeforeClass
     public static void setUp() {
-        client = HttpAsyncClients.createDefault();
+        final IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
+            .setSoTimeout(Timeout.ofSeconds(5))
+            .build();
+        client = HttpAsyncClients
+            .custom()
+            .setIOReactorConfig(ioReactorConfig)
+            .build();
         client.start();
     }
 
@@ -62,17 +67,4 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
 
         responseFuture.get();
     }
-
-    /**
-     * org.apache.hc.client5.http.ClientProtocolException: Request URI authority contains deprecated userinfo component
-     * see {@link ProtocolExec#execute}
-     *   final URIAuthority authority = request.getAuthority();
-     *   if (authority.getUserInfo() != null) {
-     *      throw new ProtocolException("Request URI authority contains deprecated userinfo component");
-     *   }
-     */
-//    @Override
-//    public String getBaseUserInfoPath() {
-//        return "http://localhost:";
-//    }
 }

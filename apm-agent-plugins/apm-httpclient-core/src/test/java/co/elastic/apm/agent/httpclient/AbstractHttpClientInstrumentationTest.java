@@ -129,7 +129,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     public void testHttpCallWithUserInfo() throws Exception {
         Assume.assumeTrue(isTestHttpCallWithUserInfoEnabled());
 
-        performGet("http://user:passwd@localhost:" + wireMockRule.port() + "/");
+        performGet(getBaseUserInfoPath() + wireMockRule.port() + "/");
         verifyHttpSpan("/");
     }
 
@@ -224,6 +224,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     protected String getBaseUrl() {
         return "http://localhost:" + wireMockRule.port();
+    }
+
+    public String getBaseUserInfoPath() {
+        return "http://user:passwd@localhost:";
     }
 
     protected void performGetWithinTransaction(String path) {
