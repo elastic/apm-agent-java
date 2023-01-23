@@ -22,8 +22,6 @@ import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.disruptor.ExponentionallyIncreasingSleepingWaitStrategy;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.MathUtils;
 import com.dslplatform.json.JsonWriter;
@@ -34,6 +32,8 @@ import com.lmax.disruptor.IgnoreExceptionHandler;
 import com.lmax.disruptor.InsufficientCapacityException;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
@@ -88,10 +88,10 @@ public class ApmServerReporter implements Reporter {
             event.setError(error);
         }
     };
-    private static final EventTranslatorOneArg<ReportingEvent, JsonWriter> JSON_WRITER_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, JsonWriter>() {
+    private static final EventTranslatorOneArg<ReportingEvent, JsonWriter> METRICS_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, JsonWriter>() {
         @Override
         public void translateTo(ReportingEvent event, long sequence, JsonWriter jsonWriter) {
-            event.setJsonWriter(jsonWriter);
+            event.setMetricSet(jsonWriter);
         }
     };
     private static final EventTranslatorOneArg<ReportingEvent, Thread> SHUTDOWN_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Thread>() {
@@ -99,6 +99,24 @@ public class ApmServerReporter implements Reporter {
         public void translateTo(ReportingEvent event, long sequence, @Nullable Thread unparkAfterProcessed) {
             event.shutdownEvent();
             event.unparkAfterProcessed(Thread.currentThread());
+        }
+    };
+    private static final EventTranslatorOneArg<ReportingEvent, String> LOG_STRING_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, String>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence, String string) {
+            event.setStringLog(string);
+        }
+    };
+    private static final EventTranslatorOneArg<ReportingEvent, byte[]> LOG_BYTES_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, byte[]>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence, byte[] bytes) {
+            event.setBytesLog(bytes, false);
+        }
+    };
+    private static final EventTranslatorOneArg<ReportingEvent, byte[]> AGENT_LOG_BYTES_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, byte[]>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence, byte[] bytes) {
+            event.setBytesLog(bytes, true);
         }
     };
 
@@ -115,7 +133,12 @@ public class ApmServerReporter implements Reporter {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
         this.syncReport = reporterConfiguration.isReportSynchronously();
         this.monitor = monitor;
-        disruptor = new Disruptor<>(new TransactionEventFactory(), MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()), new ExecutorUtils.SingleNamedThreadFactory("server-reporter"), ProducerType.MULTI, new ExponentionallyIncreasingSleepingWaitStrategy(100_000, 10_000_000));
+        disruptor = new Disruptor<>(
+            new TransactionEventFactory(),
+            MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()),
+            new ExecutorUtils.SingleNamedThreadFactory("server-reporter"),
+            ProducerType.MULTI,
+            new ExponentionallyIncreasingSleepingWaitStrategy(100_000, 10_000_000));
         this.reportingEventHandler = reportingEventHandler;
         disruptor.setDefaultExceptionHandler(new IgnoreExceptionHandler());
         disruptor.handleEventsWith(this.reportingEventHandler);
@@ -250,11 +273,42 @@ public class ApmServerReporter implements Reporter {
     }
 
     @Override
-    public void report(JsonWriter jsonWriter) {
+    public void reportMetrics(JsonWriter jsonWriter) {
         if (jsonWriter.size() == 0) {
             return;
         }
-        tryAddEventToRingBuffer(jsonWriter, JSON_WRITER_EVENT_TRANSLATOR, ReportingEvent.ReportingEventType.METRICSET_JSON_WRITER);
+        tryAddEventToRingBuffer(jsonWriter, METRICS_EVENT_TRANSLATOR, ReportingEvent.ReportingEventType.METRICSET_JSON_WRITER);
+        if (syncReport) {
+            flush();
+        }
+    }
+
+    @Override
+    public void reportLog(String log) {
+        if (log.isEmpty()) {
+            return;
+        }
+        tryAddEventToRingBuffer(log, LOG_STRING_EVENT_TRANSLATOR, ReportingEvent.ReportingEventType.STRING_LOG);
+        if (syncReport) {
+            flush();
+        }
+    }
+
+    @Override
+    public void reportLog(byte[] log) {
+        reportLogBytes(log, LOG_BYTES_EVENT_TRANSLATOR);
+    }
+
+    @Override
+    public void reportAgentLog(byte[] bytes) {
+        reportLogBytes(bytes, AGENT_LOG_BYTES_EVENT_TRANSLATOR);
+    }
+
+    private void reportLogBytes(byte[] log, EventTranslatorOneArg<ReportingEvent, byte[]> translator) {
+        if (log.length == 0) {
+            return;
+        }
+        tryAddEventToRingBuffer(log, translator, ReportingEvent.ReportingEventType.BYTES_LOG);
         if (syncReport) {
             flush();
         }

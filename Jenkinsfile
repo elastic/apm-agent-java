@@ -18,7 +18,7 @@ pipeline {
     JOB_GCS_CREDENTIALS = 'apm-ci-gcs-plugin'
   }
   options {
-    timeout(time: 90, unit: 'MINUTES')
+    timeout(time: 120, unit: 'MINUTES')
     buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '20', daysToKeepStr: '30'))
     timestamps()
     ansiColor('xterm')

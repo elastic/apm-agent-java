@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.mongodb.v4;
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationIT;
 import co.elastic.apm.agent.common.util.Version;
 import org.junit.After;
@@ -33,7 +33,7 @@ import java.util.List;
 @RunWith(Parameterized.class)
 public class Mongo4VersionIT {
 
-    private final TestClassWithDependencyRunner runner;
+    private final JUnit4TestClassWithDependencyRunner runner;
 
     public Mongo4VersionIT(String version, boolean legacyDriver) throws Exception {
 
@@ -52,7 +52,7 @@ public class Mongo4VersionIT {
             dependencies.add("org.mongodb:bson-record-codec:" + version);
         }
 
-        runner = new TestClassWithDependencyRunner(dependencies,
+        runner = new JUnit4TestClassWithDependencyRunner(dependencies,
             legacyDriver ? Mongo4LegacyIT.class : Mongo4SyncIT.class,
             AbstractMongoClientInstrumentationIT.class);
     }
