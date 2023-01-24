@@ -122,6 +122,11 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<Request<?>, Exec
     }
 
     @Override
+    protected boolean isReceiveMessageRequest(Request<?> request) {
+        return request instanceof ReceiveMessageRequest;
+    }
+
+    @Override
     protected void setMessageContext(@Nullable Message sqsMessage, @Nullable String queueName, co.elastic.apm.agent.impl.context.Message message) {
         if (queueName != null) {
             message.withQueue(queueName);

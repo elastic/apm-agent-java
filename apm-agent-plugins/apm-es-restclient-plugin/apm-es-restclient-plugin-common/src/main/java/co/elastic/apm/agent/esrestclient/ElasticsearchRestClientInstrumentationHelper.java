@@ -95,6 +95,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
             .withAction(SPAN_ACTION)
             .appendToName("Elasticsearch: ").appendToName(method).appendToName(" ").appendToName(endpoint);
         span.getContext().getDb().withType(ELASTICSEARCH);
+        span.getContext().getServiceTarget().withType(ELASTICSEARCH);
         span.activate();
 
         if (span.isSampled()) {
@@ -108,7 +109,6 @@ public class ElasticsearchRestClientInstrumentationHelper {
                     }
                 }
             }
-            span.getContext().getServiceTarget().withType(ELASTICSEARCH);
         }
         return span;
     }

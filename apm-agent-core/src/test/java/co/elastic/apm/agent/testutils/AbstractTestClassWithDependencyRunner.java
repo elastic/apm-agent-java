@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent;
+package co.elastic.apm.agent.testutils;
 
 import co.elastic.test.ChildFirstURLClassLoader;
 import org.apache.ivy.Ivy;
@@ -29,33 +29,24 @@ import org.apache.ivy.core.resolve.ResolveOptions;
 import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.parser.xml.XmlModuleDescriptorWriter;
 import org.apache.ivy.plugins.resolver.URLResolver;
-import org.junit.runner.JUnitCore;
-import org.junit.runner.Result;
-import org.junit.runner.notification.Failure;
-import org.junit.runners.BlockJUnit4ClassRunner;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class TestClassWithDependencyRunner {
+public abstract class AbstractTestClassWithDependencyRunner {
 
-    private WeakReference<ClassLoader> classLoader;
-    @Nullable
-    private BlockJUnit4ClassRunner testRunner;
+    protected final Class<?> testClass;
 
     /**
      * Downloads the dependency and all its transitive dependencies via Apache Ivy.
@@ -63,15 +54,7 @@ public class TestClassWithDependencyRunner {
      * All downloaded and exported jar files are then loaded from class loader with child-first semantics.
      * This avoids that the dependency will be loaded by the parent class loader which contains the {@code provided}-scoped maven dependency.
      */
-    public TestClassWithDependencyRunner(String groupId, String artifactId, String version, Class<?> testClass, Class<?>... classesReferencingDependency) throws Exception {
-        this(Collections.singletonList(groupId + ":" + artifactId + ":" + version), testClass, classesReferencingDependency);
-    }
-
-    public TestClassWithDependencyRunner(List<String> dependencies, Class<?> testClass, Class<?>... classesReferencingDependency) throws Exception {
-        this(dependencies, testClass.getName(), Arrays.stream(classesReferencingDependency).map(Class::getName).toArray(String[]::new));
-    }
-
-    public TestClassWithDependencyRunner(List<String> dependencies, String testClass, String... classesReferencingDependency) throws Exception {
+    protected AbstractTestClassWithDependencyRunner(List<String> dependencies, String testClass, String... classesReferencingDependency) throws Exception {
         List<URL> urls = resolveArtifacts(dependencies);
         List<String> classesToExport = new ArrayList<>();
         classesToExport.add(testClass);
@@ -79,28 +62,7 @@ public class TestClassWithDependencyRunner {
         urls.add(exportToTempJarFile(classesToExport));
 
         URLClassLoader testClassLoader = new ChildFirstURLClassLoader(urls);
-        testRunner = new BlockJUnit4ClassRunner(testClassLoader.loadClass(testClass));
-        classLoader = new WeakReference<>(testClassLoader);
-    }
-
-    public void run() {
-        if (testRunner == null) {
-            throw new IllegalStateException();
-        }
-        Result result = new JUnitCore().run(testRunner);
-        for (Failure failure : result.getFailures()) {
-            System.out.println(failure);
-            failure.getException().printStackTrace();
-        }
-        assertThat(result.wasSuccessful()).isTrue();
-    }
-
-    public void assertClassLoaderIsGCed() {
-        testRunner = null;
-        System.gc();
-        System.gc();
-        System.gc();
-        assertThat(classLoader.get()).isNull();
+        this.testClass = testClassLoader.loadClass(testClass);
     }
 
     private static URL exportToTempJarFile(List<String> classes) throws IOException {
