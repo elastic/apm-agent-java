@@ -65,6 +65,39 @@ expansion] capability for specifying the agent jar path.
 Please check <<supported-technologies-details,supported technologies>>
 for details on if the Elastic APM agent supports auto-instrumentation of the technologies your application is using.
 
+[float]
+[[bootstrap-checks]]
+=== Bootstrap checks
+
+In some cases, the agent needs to take a decision to abort very early, before almost any initialization occurs.
+For example, when it is attached to a non-supported JVM version.
+If any of the bootstrap checks fails, the agent will log an error to the standard error stream and abort.
+It is possible to disable bootstrap checks through the `elastic.apm.disable_bootstrap_checks` System property, or the
+`ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS` environment variable, to `true`.
+
+[float]
+[[jvm-filtering]]
+==== JVM Filtering
+In some cases, users may cast a too-wide net to instrument their Java processes, for example when setting the `JAVA_TOOL_OPTIONS`
+environment variable globally on a host/container on which many JVMs run.
+In such cases, users may want to exclude JVMs from being instrumented, or to specifically allow when necessary.
+For this purpose, we have the following bootstrap configuration options available:
+[cols="1,1,1"]
+|===
+|System property name | Env variable name | Description
+
+|elastic.apm.bootstrap_allowlist
+|ELASTIC_APM_BOOTSTRAP_ALLOWLIST
+|If set, the agent will be enabled *only* on JVMs of which command matches one of the patterns in the provided list
+
+|elastic.apm.bootstrap_exclude_list
+|ELASTIC_APM_BOOTSTRAP_EXCLUDE_LIST
+|If set, the agent will be disabled on JVMs that contain a System property with one of the provided names in the list
+|===
+The allowlist option expects a comma-separated list of wild-card patterns. Such patterns may contain wildcards (`\*`), which match zero
+or more characters. Examples: `foo\*bar\*baz\*, \*foo\*`. Matching is case-insensitive by default. Prepending an element with
+`(?-i)}` makes the matching case-sensitive.
+
 include::./setup-javaagent.asciidoc[]
 include::./setup-attach-cli.asciidoc[]
 include::./setup-attach-api.asciidoc[]
