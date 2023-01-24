@@ -50,7 +50,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumentation {
     //Coretto causes sigsegv crashes when you try to access a throwable if it thinks
     //it went out of scope, which it seems to for the instrumented throwable access
-    private static Throwable REDACTED = new Throwable("Unable to provide details of the error");
+    private static final RedactedException REDACTED = new RedactedException();
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -130,6 +130,13 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
             if ("Sqs".equalsIgnoreCase(awsService) && sdkResponse instanceof SdkResponse) {
                 MessageListWrapper.registerWrapperListForResponse(sdkRequest, (SdkResponse) sdkResponse, SQSHelper.getInstance().getTracer());
             }
+        }
+    }
+
+    static class RedactedException extends Exception {
+        //Only the protected Throwable constructor let's you skip the stack trace
+        private RedactedException() {
+            super("Unable to provide details of the error", null, false, false);
         }
     }
 }
