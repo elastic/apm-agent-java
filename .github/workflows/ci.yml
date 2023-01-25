@@ -76,6 +76,12 @@ jobs:
           goal: ./mvnw test
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
+      - name: Store test results
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: '**/target/*.xml'
 
   non-app-test:
     runs-on: ubuntu-latest
@@ -88,6 +94,12 @@ jobs:
           goal: ./mvnw -q -P ci-non-application-server-integration-tests verify
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
+      - name: Store test results
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: '**/target/*.xml'
 
   app-test:
     runs-on: ubuntu-latest
@@ -100,6 +112,12 @@ jobs:
           goal: ./mvnw -q -P ci-application-server-integration-tests verify
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
+      - name: Store test results
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: '**/target/*.xml'
 
   javadoc:
     runs-on: ubuntu-latest
@@ -140,3 +158,9 @@ jobs:
           goal: ./mvnw test
           java-version: ${{ matrix.version }}
           distribution: ${{ env.JAVA_DIST }}
+      - name: Store test results
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: '**/target/*.xml'
