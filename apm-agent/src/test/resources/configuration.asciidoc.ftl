@@ -64,7 +64,7 @@ An example configuration looks like this:
 ----
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example,org.another.example
--Delastic.apm.server_url=http://localhost:8200
+-Delastic.apm.server_url=http://127.0.0.1:8200
 ----
 
 [source,properties]
@@ -72,7 +72,7 @@ An example configuration looks like this:
 ----
 service_name=my-cool-service
 application_packages=org.example,org.another.example
-server_url=http://localhost:8200
+server_url=http://127.0.0.1:8200
 ----
 
 [source,bash]
@@ -80,7 +80,7 @@ server_url=http://localhost:8200
 ----
 ELASTIC_APM_SERVICE_NAME=my-cool-service
 ELASTIC_APM_APPLICATION_PACKAGES=org.example,org.another.example
-ELASTIC_APM_SERVER_URL=http://localhost:8200
+ELASTIC_APM_SERVER_URL=http://127.0.0.1:8200
 ----
 <#assign defaultServiceName>
 Auto-detected based on the rules described above
@@ -102,6 +102,11 @@ Click on a key to get more information.
 <#list config as category, options>
 [[config-${category?lower_case?replace(" ", "-")}]]
 === ${category} configuration options
+
+++++
+<titleabbrev>${category}</titleabbrev>
+++++
+
     <#list options as option>
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]

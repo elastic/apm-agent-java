@@ -45,8 +45,8 @@ import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumentationTest {
 
@@ -152,7 +152,7 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
     static synchronized void initAllButInstrumentation() {
         config = SpyConfiguration.createSpyConfig();
         serverlessConfiguration = config.getConfig(ServerlessConfiguration.class);
-        when(serverlessConfiguration.runsOnAwsLambda()).thenReturn(true);
+        doReturn(true).when(serverlessConfiguration).runsOnAwsLambda();
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup(config);
         tracer = mockInstrumentationSetup.getTracer();
         objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();

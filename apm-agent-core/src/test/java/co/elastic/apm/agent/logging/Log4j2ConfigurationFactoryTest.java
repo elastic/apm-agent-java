@@ -54,8 +54,8 @@ class Log4j2ConfigurationFactoryTest {
         String logFile = tempDir.resolve("agent.json").toString();
         Configuration configuration = getLogConfig(Map.of("log_file", logFile, "log_format_file", "json"));
 
-        assertThat(configuration.getAppenders().values()).hasSize(1);
-        appender = configuration.getAppenders().values().iterator().next();
+        assertThat(configuration.getAppenders().values()).hasSize(2);
+        appender = configuration.getAppenders().values().stream().filter(a->!a.getName().equals("apm-server")).findFirst().get();
 
         assertThat(appender).isInstanceOf(RollingFileAppender.class);
         assertThat(((RollingFileAppender) appender).getFileName()).isEqualTo(logFile);
@@ -67,8 +67,8 @@ class Log4j2ConfigurationFactoryTest {
         String logFile = tempDir.resolve("agent.log").toString();
         Configuration configuration = getLogConfig(Map.of("log_file", logFile));
 
-        assertThat(configuration.getAppenders().values()).hasSize(1);
-        appender = configuration.getAppenders().values().iterator().next();
+        assertThat(configuration.getAppenders().values()).hasSize(2);
+        appender = configuration.getAppenders().values().stream().filter(a->!a.getName().equals("apm-server")).findFirst().get();
 
         assertThat(appender).isInstanceOf(RollingFileAppender.class);
         assertThat(((RollingFileAppender) appender).getFileName()).isEqualTo(logFile);

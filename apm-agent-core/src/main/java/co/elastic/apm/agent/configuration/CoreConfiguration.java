@@ -231,7 +231,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("performance")
         .description("By default, the agent will sample every transaction (e.g. request to your service). " +
             "To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. " +
-            "We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.\n\n" +
+            "(For pre-8.0 servers the agent still records and sends overall time and the result for unsampled transactions, but no context information, labels, or spans." +
+            " When connecting to 8.0+ servers, the unsampled requests are not sent at all).\n\n" +
             "Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`")
         .dynamic(true)
         .addValidator(isInRange(0d, 1d))
@@ -787,7 +788,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "However, in certain cases it can be helpful to not use the incoming `traceparent` header. Some example use cases:\n\n" +
             "* An Elastic-monitored service is receiving requests with `traceparent` headers from unmonitored services.\n" +
             "* An Elastic-monitored service is publicly exposed, and does not want tracing data (trace-ids, sampling decisions) to possibly be spoofed by user requests.\n\n" +
-            "Valid values are:\n" +
+            "Valid values are:\n\n" +
             "* 'continue': The default behavior. An incoming `traceparent` value is used to continue the trace and determine the sampling decision.\n" +
             "* 'restart': Always ignores the `traceparent` header of incoming requests. A new trace-id will be generated and the sampling decision" +
             " will be made based on transaction_sample_rate. A span link will be made to the incoming `traceparent`.\n" +

@@ -20,8 +20,11 @@ package co.elastic.apm.agent.micrometer;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
@@ -34,8 +37,8 @@ import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import io.micrometer.core.instrument.distribution.CountAtBucket;
+import io.micrometer.core.instrument.distribution.HistogramSnapshot;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -107,7 +110,7 @@ public class MicrometerMeterRegistrySerializer {
                 DslJsonSerializer.writeFieldName("samples", jw);
                 jw.writeByte(JsonWriter.OBJECT_START);
 
-                ClassLoader originalContextCL = Thread.currentThread().getContextClassLoader();
+                ClassLoader originalContextCL = PrivilegedActionUtils.getContextClassLoader(Thread.currentThread());
                 try {
                     for (int i = 0, size = meters.size(); i < size; i++) {
                         Meter meter = meters.get(i);
@@ -116,19 +119,19 @@ public class MicrometerMeterRegistrySerializer {
                         }
                         try {
                             // Setting the Meter CL as the context class loader during the Meter query operations
-                            Thread.currentThread().setContextClassLoader(meter.getClass().getClassLoader());
+                            PrivilegedActionUtils.setContextClassLoader(Thread.currentThread(), PrivilegedActionUtils.getClassLoader(meter.getClass()));
                             if (meter instanceof Timer) {
                                 Timer timer = (Timer) meter;
-                                hasSamples = serializeTimer(jw, timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasSamples, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeTimer(jw, timer.takeSnapshot(), timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasSamples, replaceBuilder, dedotMetricName);
                             } else if (meter instanceof FunctionTimer) {
                                 FunctionTimer timer = (FunctionTimer) meter;
-                                hasSamples = serializeTimer(jw, timer.getId(), (long) timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasSamples, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeTimer(jw, null, timer.getId(), (long) timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasSamples, replaceBuilder, dedotMetricName);
                             } else if (meter instanceof LongTaskTimer) {
                                 LongTaskTimer timer = (LongTaskTimer) meter;
-                                hasSamples = serializeTimer(jw, timer.getId(), timer.activeTasks(), timer.duration(TimeUnit.MICROSECONDS), hasSamples, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeTimer(jw, timer.takeSnapshot(), timer.getId(), timer.activeTasks(), timer.duration(TimeUnit.MICROSECONDS), hasSamples, replaceBuilder, dedotMetricName);
                             } else if (meter instanceof DistributionSummary) {
-                                DistributionSummary timer = (DistributionSummary) meter;
-                                hasSamples = serializeDistributionSummary(jw, timer.getId(), timer.count(), timer.totalAmount(), hasSamples, replaceBuilder, dedotMetricName);
+                                DistributionSummary summary = (DistributionSummary) meter;
+                                hasSamples = serializeDistributionSummary(jw, summary.takeSnapshot(), summary.getId(), summary.count(), summary.totalAmount(), hasSamples, replaceBuilder, dedotMetricName);
                             } else if (meter instanceof Gauge) {
                                 Gauge gauge = (Gauge) meter;
                                 hasSamples = serializeValue(gauge.getId(), gauge.value(), hasSamples, jw, replaceBuilder, dedotMetricName);
@@ -149,7 +152,7 @@ public class MicrometerMeterRegistrySerializer {
                         }
                     }
                 } finally {
-                    Thread.currentThread().setContextClassLoader(originalContextCL);
+                    PrivilegedActionUtils.setContextClassLoader(Thread.currentThread(), originalContextCL);
                 }
                 jw.writeByte(JsonWriter.OBJECT_END);
             }
@@ -183,6 +186,7 @@ public class MicrometerMeterRegistrySerializer {
      * Conditionally serializes a {@link Timer} if the total time is valid, i.e. neither Double.NaN nor +/-Infinite
      *
      * @param jw        writer
+     * @param histogramSnapshot
      * @param id        meter ID
      * @param count     count
      * @param totalTime total time
@@ -191,12 +195,16 @@ public class MicrometerMeterRegistrySerializer {
      * @param dedotMetricName
      * @return true if a value has been written before, including this one; false otherwise
      */
-    private static boolean serializeTimer(JsonWriter jw, Meter.Id id, long count, double totalTime, boolean hasValue, StringBuilder replaceBuilder, boolean dedotMetricName) {
+    private static boolean serializeTimer(JsonWriter jw, HistogramSnapshot histogramSnapshot, Meter.Id id, long count, double totalTime, boolean hasValue, StringBuilder replaceBuilder, boolean dedotMetricName) {
         if (isValidValue(totalTime)) {
             if (hasValue) jw.writeByte(JsonWriter.COMMA);
             serializeValue(id, ".count", count, jw, replaceBuilder, dedotMetricName);
             jw.writeByte(JsonWriter.COMMA);
             serializeValue(id, ".sum.us", totalTime, jw, replaceBuilder, dedotMetricName);
+            if (histogramSnapshot != null) {
+                jw.writeByte(JsonWriter.COMMA);
+                serializeHistogram(id, histogramSnapshot, jw, replaceBuilder, dedotMetricName);
+            }
             return true;
         }
         return hasValue;
@@ -206,6 +214,7 @@ public class MicrometerMeterRegistrySerializer {
      * Conditionally serializes a {@link DistributionSummary} if the total amount is valid, i.e. neither Double.NaN nor +/-Infinite
      *
      * @param jw          writer
+     * @param histogramSnapshot
      * @param id          meter ID
      * @param count       count
      * @param totalAmount total amount of recorded events
@@ -214,15 +223,50 @@ public class MicrometerMeterRegistrySerializer {
      * @param dedotMetricName
      * @return true if a value has been written before, including this one; false otherwise
      */
-    private static boolean serializeDistributionSummary(JsonWriter jw, Meter.Id id, long count, double totalAmount, boolean hasValue, StringBuilder replaceBuilder, boolean dedotMetricName) {
+    private static boolean serializeDistributionSummary(JsonWriter jw, HistogramSnapshot histogramSnapshot, Meter.Id id, long count, double totalAmount, boolean hasValue, StringBuilder replaceBuilder, boolean dedotMetricName) {
         if (isValidValue(totalAmount)) {
             if (hasValue) jw.writeByte(JsonWriter.COMMA);
             serializeValue(id, ".count", count, jw, replaceBuilder, dedotMetricName);
             jw.writeByte(JsonWriter.COMMA);
             serializeValue(id, ".sum", totalAmount, jw, replaceBuilder, dedotMetricName);
+            jw.writeByte(JsonWriter.COMMA);
+            serializeHistogram(id, histogramSnapshot, jw, replaceBuilder, dedotMetricName);
             return true;
         }
         return hasValue;
+    }
+
+    private static void serializeHistogram(Meter.Id id, HistogramSnapshot histogramSnapshot, JsonWriter jw, StringBuilder replaceBuilder, boolean dedotMetricName) {
+        if (histogramSnapshot == null) {
+            return;
+        }
+        String suffix = ".histogram";
+        CountAtBucket[] bucket = histogramSnapshot.histogramCounts();
+        serializeObjectStart(id.getName(), "values", suffix, jw, replaceBuilder, dedotMetricName);
+        jw.writeByte(JsonWriter.ARRAY_START);
+        if (bucket.length > 0) {
+            NumberConverter.serialize(bucket[0].bucket(), jw);
+            for (int i = 1; i < bucket.length; i++) {
+                jw.writeByte(JsonWriter.COMMA);
+                NumberConverter.serialize(bucket[i].bucket(), jw);
+            }
+        }
+        jw.writeByte(JsonWriter.ARRAY_END);
+        jw.writeByte(JsonWriter.COMMA);
+        jw.writeByte(JsonWriter.QUOTE);
+        jw.writeAscii("counts");
+        jw.writeByte(JsonWriter.QUOTE);
+        jw.writeByte(JsonWriter.SEMI);
+        jw.writeByte(JsonWriter.ARRAY_START);
+        if (bucket.length > 0) {
+            NumberConverter.serialize((long) bucket[0].count(), jw);
+            for (int i = 1; i < bucket.length; i++) {
+                jw.writeByte(JsonWriter.COMMA);
+                NumberConverter.serialize((long) bucket[i].count(), jw);
+            }
+        }
+        jw.writeByte(JsonWriter.ARRAY_END);
+        jw.writeByte(JsonWriter.OBJECT_END);
     }
 
     private static void serializeValue(Meter.Id id, String suffix, long value, JsonWriter jw, StringBuilder replaceBuilder, boolean dedotMetricName) {
@@ -258,6 +302,10 @@ public class MicrometerMeterRegistrySerializer {
     }
 
     private static void serializeValueStart(String key, String suffix, JsonWriter jw, StringBuilder replaceBuilder, boolean dedotMetricName) {
+        serializeObjectStart(key, "value",  suffix, jw, replaceBuilder, dedotMetricName);
+    }
+
+    private static void serializeObjectStart(String key, String objectName, String suffix, JsonWriter jw, StringBuilder replaceBuilder, boolean dedotMetricName) {
         replaceBuilder.setLength(0);
         if (dedotMetricName) {
             DslJsonSerializer.sanitizePropertyName(key, replaceBuilder);
@@ -275,7 +323,7 @@ public class MicrometerMeterRegistrySerializer {
         jw.writeByte(JsonWriter.SEMI);
         jw.writeByte(JsonWriter.OBJECT_START);
         jw.writeByte(JsonWriter.QUOTE);
-        jw.writeAscii("value");
+        jw.writeAscii(objectName);
         jw.writeByte(JsonWriter.QUOTE);
         jw.writeByte(JsonWriter.SEMI);
     }

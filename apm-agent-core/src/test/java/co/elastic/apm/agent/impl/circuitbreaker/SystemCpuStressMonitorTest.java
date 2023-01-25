@@ -37,8 +37,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 class SystemCpuStressMonitorTest {
     private static ElasticApmTracer tracer;
@@ -56,7 +56,7 @@ class SystemCpuStressMonitorTest {
         ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         CircuitBreakerConfiguration circuitBreakerConfiguration = configurationRegistry.getConfig(CircuitBreakerConfiguration.class);
         long pollingInterval = circuitBreakerConfiguration.getStressMonitoringPollingIntervalMillis();
-        when(circuitBreakerConfiguration.getCpuStressDurationThresholdMillis()).thenReturn(pollingInterval * 3);
+        doReturn(pollingInterval * 3).when(circuitBreakerConfiguration).getCpuStressDurationThresholdMillis();
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(configurationRegistry)
             .reporter(new MockReporter())
@@ -73,8 +73,8 @@ class SystemCpuStressMonitorTest {
     void createMock() {
         mbeanMock = new MBeanMock();
         systemCpuStressMonitor = spy(new SystemCpuStressMonitor(tracer));
-        when(systemCpuStressMonitor.getGetSystemCpuLoadMethod()).thenReturn(getNextValueMethod);
-        when(systemCpuStressMonitor.getOperatingSystemBean()).thenReturn(mbeanMock);
+        doReturn(getNextValueMethod).when(systemCpuStressMonitor).getGetSystemCpuLoadMethod();
+        doReturn(mbeanMock).when(systemCpuStressMonitor).getOperatingSystemBean();
     }
 
     @AfterEach

@@ -23,8 +23,8 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.Agent;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
 import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
@@ -35,6 +35,7 @@ import co.elastic.apm.agent.report.ApmServerReporter;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.report.ReporterMonitor;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -78,8 +79,8 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @Ignore
 public class ElasticsearchRestClientInstrumentationIT_RealReporter {
@@ -125,9 +126,9 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
 
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        when(reporterConfiguration.getMaxQueueSize()).thenReturn(0);
+        doReturn(0).when(reporterConfiguration).getMaxQueueSize();
         StacktraceConfiguration stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
-        when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(30);
+        doReturn(30).when(stacktraceConfiguration).getStackTraceLimit();
         SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
         final Service service = new Service().withName("Eyal-ES-client-test").withAgent(new Agent("java", "Test"));
         final ProcessInfo title = new ProcessInfo("title");
@@ -143,7 +144,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
                 MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
             ),
             apmServerClient);
-        realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler);
+        realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler, ReporterMonitor.NOOP);
         realReporter.start();
 
         tracer = new ElasticApmTracerBuilder()

@@ -53,7 +53,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import java.util.Collections;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
 @RunWith(SpringRunner.class)
@@ -76,7 +76,7 @@ public abstract class AbstractSpringBootTest {
 
     @Before
     public void setUp() {
-        when(config.getConfig(ReporterConfiguration.class).isReportSynchronously()).thenReturn(true);
+        doReturn(true).when(config.getConfig(ReporterConfiguration.class)).isReportSynchronously();
         restTemplate = new TestRestTemplate(new RestTemplateBuilder()
             .setConnectTimeout(0)
             .setReadTimeout(0)
@@ -110,8 +110,8 @@ public abstract class AbstractSpringBootTest {
     }
 
     @Test
-    public void testStaticFile() throws Exception {
-        when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(Collections.emptyList());
+    public void testStaticFile() {
+        doReturn(Collections.emptyList()).when(config.getConfig(WebConfiguration.class)).getIgnoreUrls();
         assertThat(restTemplate.getForObject("http://localhost:" + port + "/script.js", String.class))
             .contains("// empty test script");
 

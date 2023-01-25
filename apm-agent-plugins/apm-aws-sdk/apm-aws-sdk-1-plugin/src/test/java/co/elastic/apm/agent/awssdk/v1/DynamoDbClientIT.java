@@ -43,6 +43,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -99,7 +100,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
                 .withKeyConditionExpression(KEY_CONDITION_EXPRESSION)
                 .withExpressionAttributeValues(Map.of(":one", new AttributeValue("valueOne")))),
             dbAssert
-                .andThen(span -> assertThat(span).hasDbStatement(KEY_CONDITION_EXPRESSION)));
+                .andThen(span -> assertThat(span.getContext().getDb()).hasStatement(KEY_CONDITION_EXPRESSION)));
 
         executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDB.deleteTable(TABLE_NAME),
             dbAssert);
@@ -146,7 +147,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
                 .withKeyConditionExpression(KEY_CONDITION_EXPRESSION)
                 .withExpressionAttributeValues(Map.of(":one", new AttributeValue("valueOne")))),
             dbAssert
-                .andThen(span -> assertThat(span).hasDbStatement(KEY_CONDITION_EXPRESSION)));
+                .andThen(span -> assertThat(span.getContext().getDb()).hasStatement(KEY_CONDITION_EXPRESSION)));
 
         executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDBAsync.deleteTableAsync(TABLE_NAME),
             dbAssert);
@@ -166,6 +167,17 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
     @Override
     protected String type() {
         return "db";
+    }
+
+    @Override
+    protected String subtype() {
+        return "dynamodb";
+    }
+
+    @Nullable
+    @Override
+    protected String expectedTargetName(@Nullable String entityName) {
+        return localstack.getRegion();
     }
 
     @Override

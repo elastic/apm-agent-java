@@ -58,7 +58,7 @@ public class ConnectionCommandInstrumentation extends Mongo4Instrumentation {
 
     public static class AdviceClass {
 
-        private static final MongoHelper helper = new MongoHelper(GlobalTracer.get());
+        private static final MongoHelper helper = new MongoHelper();
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -70,7 +70,7 @@ public class ConnectionCommandInstrumentation extends Mongo4Instrumentation {
             String collection = helper.getCollectionFromBson(cmd, command);
 
             ServerAddress address = thiz.getDescription().getServerAddress();
-            return helper.startSpan(database, collection, cmd, address.getHost(), address.getPort());
+            return helper.startSpan(database, collection, cmd, address.getHost(), address.getPort(), command);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

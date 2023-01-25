@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.awssdk.common;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.testcontainers.containers.localstack.LocalStackContainer;
@@ -44,11 +45,7 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
     private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:0.14.2");
     protected static final String BUCKET_NAME = "some-test-bucket";
     protected static final String SQS_QUEUE_NAME = "some-test-sqs-queue";
-    protected static final String SQS_MESSAGE_PROCESSING_SPAN_NAME = "Process SQS message from " + SQS_QUEUE_NAME;
     protected static final String SQS_IGNORED_QUEUE_NAME = "ignored-queue";
-    protected static final String SQS_TYPE = "sqs";
-    protected static final String SQS_MESSAGING_TYPE = "messaging";
-    protected static final String SQS_MESSAGE_PROCESSING_ACTION = "processing";
     protected static final String MESSAGE_BODY = "some-test-sqs-message-body";
     protected static final String NEW_BUCKET_NAME = "new-test-bucket";
     protected static final String OBJECT_KEY = "some-object-key";
@@ -61,6 +58,11 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
     protected abstract String awsService();
 
     protected abstract String type();
+
+    protected abstract String subtype();
+
+    @Nullable
+    protected abstract String expectedTargetName(@Nullable String entityName);
 
     protected abstract LocalStackContainer.Service localstackService();
 
@@ -96,6 +98,17 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
         assertThat(span.getType()).isEqualTo(type());
         assertThat(span.getSubtype()).isEqualTo(localstackService().getLocalStackName());
         assertThat(span.getAction()).isEqualTo(action);
+        ServiceTarget serviceTarget = span.getContext().getServiceTarget();
+        assertThat(serviceTarget.getType()).isEqualTo(subtype());
+        String expectedTargetName = expectedTargetName(entityName);
+        if (expectedTargetName == null) {
+            assertThat(serviceTarget.getName()).isNull();
+            assertThat(serviceTarget.getDestinationResource().toString()).isEqualTo(subtype());
+        } else {
+            assertThat(serviceTarget.getName()).isNotNull();
+            assertThat(serviceTarget.getName().toString()).isEqualTo(expectedTargetName);
+            assertThat(serviceTarget.getDestinationResource().toString()).isEqualTo(subtype() + "/" + expectedTargetName);
+        }
         assertThat(span.getContext().getDestination().getAddress().toString())
             .isEqualTo(localstack.getEndpointOverride(LocalStackContainer.Service.S3).getHost());
         if (assertions != null) {
@@ -122,4 +135,5 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
             assertions.accept(span);
         }
     }
+
 }
