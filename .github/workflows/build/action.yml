@@ -11,10 +11,12 @@ inputs:
     description: 'Default shell'
     default: 'bash'
     required: false
-  version:
+  java-version:
     description: 'Java version'
-    default: ${{ env.JAVA_VERSION }}
-    required: false
+    required: true
+  distribution:
+    description: 'Java distribution'
+    required: true
 
 runs:
   using: "composite"
@@ -26,12 +28,13 @@ runs:
         
     - name: Unzip artifact
       run: unzip ${{ inputs.artifact-name }}.zip
+      shell: ${{ inputs.shell }}
 
-    - name: Set up JDK ${{ inputs.version }}
+    - name: Set up JDK ${{ inputs.java-version }}
       uses: actions/setup-java@v3
       with:
-        java-version: ${{ inputs.version }}
-        distribution: ${{ env.JAVA_DIST }}
+        java-version: ${{ inputs.java-version }}
+        distribution: ${{ inputs.distribution }}
         cache: 'maven'
 
     - run: ${{ inputs.goal }}
