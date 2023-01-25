@@ -15,7 +15,7 @@ on:
 
 env:
   MAVEN_CONFIG: "-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25"
-  JAVA_VERSION: 11
+  JAVA_VERSION: 17
   JAVA_DIST: adopt
 
 # limit the access of the generated GITHUB_TOKEN
@@ -118,13 +118,16 @@ jobs:
 
   comp-jdk-test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: [11, 19]
     steps:
       - uses: actions/checkout@v3
-      - name: Set up JDK 17
+      - name: Set up JDK
         uses: actions/setup-java@v3
         with:
-          java-version: '17'
+          java-version: ${{ matrix.version }}
           distribution: ${{ env.JAVA_DIST }}
           cache: 'maven'
       - name: Test
-        run: mvnw test
+        run: ./mvnw test
