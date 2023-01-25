@@ -101,7 +101,7 @@ or more characters. Examples: `foo\*bar\*baz\*, \*foo\*`. Matching is case-insen
 Some examples:
 
 1. Allow JVM attachment only on Tomcat and a proprietary Java app: +
-   `-Delastic.apm.bootstrap_allowlist=\*org.apache.catalina.startup.Bootstrap*,my.cool.app.*`
+   `-Delastic.apm.bootstrap_allowlist=*org.apache.catalina.startup.Bootstrap*,my.cool.app.*`
 2. Disable when some custom System properties are set: +
    `-Delastic.apm.bootstrap_exclude_list=custom.property.1,custom.property.2`
 
