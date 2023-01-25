@@ -26,6 +26,7 @@ endif::[]
 [float]
 ===== Features
 * Add experimental log sending from the agent with `log_sending` - {pull}2694[#2694]
+* Add bootstrap checks that enable <<jvm-filtering>> on startup - {pull}2951[#2951]
 
 [float]
 ===== Bug fixes
