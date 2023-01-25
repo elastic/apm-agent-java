@@ -28,7 +28,7 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger("(${obltGitHubComments()}|^run (jdk compatibility|benchmark|integration|windows) tests)")
+    issueCommentTrigger("(${obltGitHubComments()}|^run benchmark tests)")
   }
   parameters {
     string(name: 'JAVA_VERSION', defaultValue: 'jdk17', description: 'Java version to build & test')
@@ -95,11 +95,6 @@ pipeline {
             withGithubNotify(context: "${STAGE_NAME}", tab: 'artifacts') {
               deleteDir()
               unstash 'source'
-              // prepare m2 repository with the existing dependencies
-              whenTrue(fileExists('/var/lib/jenkins/.m2/repository')) {
-                sh label: 'Prepare .m2 cached folder', returnStatus: true, script: 'cp -Rf /var/lib/jenkins/.m2/repository ${HOME}/.m2'
-                sh label: 'Size .m2', returnStatus: true, script: 'du -hs .m2'
-              }
               dir("${BASE_DIR}"){
                 withOtelEnv() {
                   retryWithSleep(retries: 5, seconds: 10) {
@@ -110,72 +105,52 @@ pipeline {
               }
               stashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
               stash(allowEmpty: true, name: 'snapshoty', includes: "${BASE_DIR}/.ci/snapshoty.yml,${BASE_DIR}/elastic-apm-agent/target/*,${BASE_DIR}/apm-agent-attach/target/*,${BASE_DIR}/apm-agent-attach-cli/target/*,${BASE_DIR}/apm-agent-api/target/*", useDefaultExcludes: false)
-              archiveArtifacts allowEmptyArchive: true,
-                artifacts: "\
-                  ${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,\
-                  ${BASE_DIR}/elastic-apm-agent/target/elastic-apm-java-aws-lambda-layer-*.zip,\
-                  ${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
-                  ${BASE_DIR}/apm-agent-attach-cli/target/apm-agent-attach-cli-*.jar,\
-                  ${BASE_DIR}/apm-agent-api/target/apm-agent-api-*.jar,\
-                  ${BASE_DIR}/target/site/aggregate-third-party-report.html",
-                onlyIfSuccessful: true
             }
           }
         }
-        stage('Tests') {
+        stage('Benchmarks') {
+          agent { label 'microbenchmarks-pool' }
+          options { skipDefaultCheckout() }
+          environment {
+            NO_BUILD = "true"
+            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+          }
           when {
             beforeAgent true
-            expression { return env.ONLY_DOCS == "false" }
+            allOf {
+              expression { return env.ONLY_DOCS == "false" }
+              anyOf {
+                branch 'main'
+                expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
+                expression { matchesPrLabel(label: 'ci:benchmarks') }
+                expression { return params.bench_ci }
+              }
+            }
           }
-          failFast true
-          parallel {
-            /**
-             * Run the benchmarks and store the results on ES.
-             * The result JSON files are also archive into Jenkins.
-             */
-            stage('Benchmarks') {
-              agent { label 'microbenchmarks-pool' }
-              options { skipDefaultCheckout() }
-              environment {
-                NO_BUILD = "true"
-                PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-              }
-              when {
-                beforeAgent true
-                anyOf {
-                  branch 'main'
-                  expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
-                  expression { matchesPrLabel(label: 'ci:benchmarks') }
-                  expression { return params.bench_ci }
+          steps {
+            withGithubNotify(context: "${STAGE_NAME}", tab: 'artifacts') {
+              deleteDir()
+              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+              dir("${BASE_DIR}"){
+                withOtelEnv() {
+                  sh './scripts/jenkins/run-benchmarks.sh'
                 }
               }
-              steps {
-                withGithubNotify(context: "${STAGE_NAME}", tab: 'artifacts') {
-                  deleteDir()
-                  unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
-                  dir("${BASE_DIR}"){
-                    withOtelEnv() {
-                      sh './scripts/jenkins/run-benchmarks.sh'
-                    }
-                  }
-                }
-              }
-              post {
-                cleanup {
-                  deleteDir()
-                }
-                always {
-                  archiveArtifacts(allowEmptyArchive: true,
-                    artifacts: "${BASE_DIR}/${RESULT_FILE}",
-                    onlyIfSuccessful: false)
-                  sendBenchmarks(file: "${BASE_DIR}/${BULK_UPLOAD_FILE}", index: "benchmark-java")
-                }
-              }
+            }
+          }
+          post {
+            cleanup {
+              deleteDir()
+            }
+            always {
+              archiveArtifacts(allowEmptyArchive: true,
+                artifacts: "${BASE_DIR}/${RESULT_FILE}",
+                onlyIfSuccessful: false)
+              sendBenchmarks(file: "${BASE_DIR}/${BULK_UPLOAD_FILE}", index: "benchmark-java")
             }
           }
         }
         stage('Publish snapshots') {
-          agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
             BUCKET_NAME = 'oblt-artifacts'
