@@ -41,114 +41,68 @@ jobs:
         continue-on-error: true
       - run: ./mvnw $GOAL
         if: steps.fetch-deps.outcome == 'failure'
-      - uses: actions/upload-artifact@v3
+      - name: Zip artifact
+        run: zip build.zip ./* -r
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v3
         with:
           name: build
-          path: '**/target/'
-          retention-days: 1
+          path: build.zip
 
   license:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
+      - uses: ./.github/workflows/build
         with:
-          name: build
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
-          cache: 'maven'
-      - run: ./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
+          artifact-name: build
+          goal: ./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
 
   test:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
+      - uses: ./.github/workflows/build
         with:
-          name: build
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
-          cache: 'maven'
-      - name: Test
-        run: ./mvnw test
+          artifact-name: build
+          goal: ./mvnw test
 
   non-app-test:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
+      - uses: ./.github/workflows/build
         with:
-          name: build
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
-          cache: 'maven'
-      - name: Verify
-        run: ./mvnw -q -P ci-non-application-server-integration-tests verify
+          artifact-name: build
+          goal: ./mvnw -q -P ci-non-application-server-integration-tests verify
 
   app-test:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
+      - uses: ./.github/workflows/build
         with:
-          name: build
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
-          cache: 'maven'
-      - name: Verify
-        run: ./mvnw -q -P ci-application-server-integration-tests verify
+          artifact-name: build
+          goal: ./mvnw -q -P ci-application-server-integration-tests verify
 
   javadoc:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
+      - uses: ./.github/workflows/build
         with:
-          name: build
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
-          cache: 'maven'
-      - name: Javadoc
-        run: ./mvnw compile javadoc:javadoc
+          artifact-name: build
+          goal: ./mvnw compile javadoc:javadoc
 
   windows-test:
     runs-on: windows-latest
     needs: build
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
+      - uses: ./.github/workflows/build
         with:
-          name: build
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
-          cache: 'maven'
-      - name: Install
-        run: ./mvnw clean install -DskipTests=true -D maven.javadoc.skip=true -D maven.gitcommitid.skip=true
-      - name: Test
-        run: ./mvnw test
+          artifact-name: build
+          goal: ./mvnw test
+          shell: 'pwsh'
 
   comp-jdk-test:
     runs-on: ubuntu-latest
@@ -157,15 +111,8 @@ jobs:
       matrix:
         version: [11, 19]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
+      - uses: ./.github/workflows/build
         with:
-          name: build
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{ matrix.version }}
-          distribution: ${{ env.JAVA_DIST }}
-          cache: 'maven'
-      - name: Test
-        run: ./mvnw test
+          artifact-name: build
+          goal: ./mvnw test
+          version: ${{ matrix.version }}

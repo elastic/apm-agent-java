@@ -1,0 +1,40 @@
+---
+name: common build tasks
+inputs:
+  artifact-name:
+    artifact-name: 'Artifact to be downloaded'
+    required: true
+  goal:
+    description: 'Maven command'
+    required: true
+  shell:
+    description: 'Default shell'
+    default: 'bash'
+    required: false
+  version:
+    description: 'Java version'
+    default: ${{ env.JAVA_VERSION }}
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v3
+
+    - name: Download artifact from build job
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        
+    - name: Unzip artifact
+      run: unzip ${{ inputs.artifact-name }}.zip
+
+    - name: Set up JDK ${{ inputs.version }}
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ inputs.version }}
+        distribution: ${{ env.JAVA_DIST }}
+        cache: 'maven'
+
+    - run: ${{ inputs.goal }}
+      shell: ${{ inputs.shell }}
