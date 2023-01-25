@@ -31,44 +31,32 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ExcludeJvmBootstrapCheckTest {
 
     @Test
-    void checkDefaultExcludeList() {
-        BootstrapCheck.BootstrapCheckResult result = runCheckWithConfigurationProperty(null, null, null, "cmd");
-        assertThat(result.hasErrors()).isFalse();
-        result = runCheckWithConfigurationProperty(null, null, "activemq.home", "cmd");
-        assertThat(result.getErrors()).hasSize(1);
-    }
-
-    @Test
     void checkConfiguredExcludeList() {
-        BootstrapCheck.BootstrapCheckResult result = runCheckWithConfigurationProperty(EXCLUDE_LIST_SYSTEM_PROPERTY, "test1,test2", null, "cmd");
+        BootstrapCheck.BootstrapCheckResult result = runCheckWithConfigurationProperty(null, "test1,test2", null, "cmd");
         assertThat(result.hasErrors()).isFalse();
-        result = runCheckWithConfigurationProperty(EXCLUDE_LIST_SYSTEM_PROPERTY, "test1,test2", "test1", "cmd");
+        result = runCheckWithConfigurationProperty(null, "test1,test2", "test1", "cmd");
         assertThat(result.getErrors()).hasSize(1);
-        result = runCheckWithConfigurationProperty(EXCLUDE_LIST_SYSTEM_PROPERTY, "test1,test2", "test2", "cmd");
+        result = runCheckWithConfigurationProperty(null, "test1,test2", "test2", "cmd");
         assertThat(result.getErrors()).hasSize(1);
-        result = runCheckWithConfigurationProperty(EXCLUDE_LIST_SYSTEM_PROPERTY, "test1,test2", "activemq.home", "cmd");
+        result = runCheckWithConfigurationProperty("test2*", "test1,test2", "test2", "test2cmd");
         assertThat(result.hasErrors())
-            .describedAs("Configured exclude list should override the default exclude list")
+            .describedAs("Configured allow list should override exclude lists")
             .isFalse();
     }
 
     @Test
     void checkConfiguredAllowlist() {
-        BootstrapCheck.BootstrapCheckResult result = runCheckWithConfigurationProperty(ALLOWLIST_SYSTEM_PROPERTY, "test1*,*test2", null, "test1cmd");
+        BootstrapCheck.BootstrapCheckResult result = runCheckWithConfigurationProperty("test1*,*test2", null, null, "test1cmd");
         assertThat(result.hasErrors())
             .describedAs("First wildcard pattern should be matched")
             .isFalse();
-        result = runCheckWithConfigurationProperty(ALLOWLIST_SYSTEM_PROPERTY, "test1*,*test2", null, "cmdtest1");
+        result = runCheckWithConfigurationProperty("test1*,*test2", null, null, "cmdtest1");
         assertThat(result.hasErrors())
             .describedAs("No wildcard pattern should be matched")
             .isTrue();
-        result = runCheckWithConfigurationProperty(ALLOWLIST_SYSTEM_PROPERTY, "test1*,*test2", null, "cmdtest2");
+        result = runCheckWithConfigurationProperty("test1*,*test2", null, null, "cmdtest2");
         assertThat(result.hasErrors())
             .describedAs("Second wildcard pattern should be matched")
-            .isFalse();
-        result = runCheckWithConfigurationProperty(ALLOWLIST_SYSTEM_PROPERTY, "test1*,*test2", "activemq.home", "cmdtest2");
-        assertThat(result.hasErrors())
-            .describedAs("Configured allow list should override exclude lists")
             .isFalse();
     }
 
@@ -78,22 +66,29 @@ class ExcludeJvmBootstrapCheckTest {
         assertThat(EXCLUDE_LIST_ENV_VARIABLE).isEqualTo(EXCLUDE_LIST_SYSTEM_PROPERTY.replace('.', '_').toUpperCase());
     }
 
-    private BootstrapCheck.BootstrapCheckResult runCheckWithConfigurationProperty(@Nullable String configPropKey, @Nullable String configPropValue,
-                                                                                  @Nullable String systemProp, String cmd) {
+    private BootstrapCheck.BootstrapCheckResult runCheckWithConfigurationProperty(@Nullable String allowlistValue,
+                                                                                  @Nullable String excludeListValue,
+                                                                                  @Nullable String runtimeSystemProp, String cmd) {
         BootstrapCheck.BootstrapCheckResult result = new BootstrapCheck.BootstrapCheckResult();
         try {
-            if (configPropKey != null && configPropValue != null) {
-                System.setProperty(configPropKey, configPropValue);
+            if (allowlistValue != null) {
+                System.setProperty(ALLOWLIST_SYSTEM_PROPERTY, allowlistValue);
+            }
+            if (excludeListValue != null) {
+                System.setProperty(EXCLUDE_LIST_SYSTEM_PROPERTY, excludeListValue);
             }
             ExcludeJvmBootstrapCheck check = new ExcludeJvmBootstrapCheck(cmd);
-            if (systemProp == null) {
+            if (runtimeSystemProp == null) {
                 check.doBootstrapCheck(result);
             } else {
-                runCheckWithSystemProperty(check, systemProp, result);
+                runCheckWithSystemProperty(check, runtimeSystemProp, result);
             }
         } finally {
-            if (configPropKey != null) {
-                System.clearProperty(configPropKey);
+            if (allowlistValue != null) {
+                System.clearProperty(ALLOWLIST_SYSTEM_PROPERTY);
+            }
+            if (excludeListValue != null) {
+                System.clearProperty(EXCLUDE_LIST_SYSTEM_PROPERTY);
             }
         }
         return result;

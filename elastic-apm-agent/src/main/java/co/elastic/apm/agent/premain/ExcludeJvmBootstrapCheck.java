@@ -48,10 +48,6 @@ import java.util.List;
  * or more characters. Examples: {@code foo*bar*baz*, *foo*}. Matching is case-insensitive by default. Prepending an element with
  * {@code (?-i)} makes the matching case-sensitive.
  *
- * If neither configurable option is set, the agent contains a builtin list of default disable System property names. For example, we know
- * that attaching the agent to ActiveMQ processes by accident may prevent it from starting.
- * This list is meant to grow based on users' feedback.
- *
  * Some examples:
  * <ul>
  *     <li>
@@ -70,8 +66,6 @@ public class ExcludeJvmBootstrapCheck implements BootstrapCheck {
     public static final String ALLOWLIST_ENV_VARIABLE = "ELASTIC_APM_BOOTSTRAP_ALLOWLIST";
     public static final String EXCLUDE_LIST_SYSTEM_PROPERTY = "elastic.apm.bootstrap_exclude_list";
     public static final String EXCLUDE_LIST_ENV_VARIABLE = "ELASTIC_APM_BOOTSTRAP_EXCLUDE_LIST";
-
-    private static final List<String> defaultExcludeList = Arrays.asList("activemq.home", "activemq.base");
 
     @Nullable
     private final String cmd;
@@ -129,19 +123,20 @@ public class ExcludeJvmBootstrapCheck implements BootstrapCheck {
             }
         }
 
-        final List<String> excludeSystemProperties = (configuredExcludeList != null) ? configuredExcludeList : defaultExcludeList;
-        if (System.getSecurityManager() == null) {
-            doExcludeListCheck(result, excludeSystemProperties);
-            return;
-        }
-
-        AccessController.doPrivileged(new PrivilegedAction<Void>() {
-            @Override
-            public Void run() {
-                doExcludeListCheck(result, excludeSystemProperties);
-                return null;
+        if (configuredExcludeList != null) {
+            if (System.getSecurityManager() == null) {
+                doExcludeListCheck(result, configuredExcludeList);
+                return;
             }
-        });
+
+            AccessController.doPrivileged(new PrivilegedAction<Void>() {
+                @Override
+                public Void run() {
+                    doExcludeListCheck(result, configuredExcludeList);
+                    return null;
+                }
+            });
+        }
     }
 
     private void doExcludeListCheck(BootstrapCheckResult result, List<String> excludeSystemProperties) {
