@@ -21,13 +21,14 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Download artifact from build job
-      uses: actions/download-artifact@v3
-      with:
-        name: ${{ inputs.artifact-name }}
-        
-    - name: Unzip artifact
-      run: unzip ${{ inputs.artifact-name }}.zip
+    # Fetch dependencies with a retry
+    - run: ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
+      id: fetch-deps
+      continue-on-error: true
+      shell: ${{ inputs.shell }}
+
+    - run: ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
+      if: steps.fetch-deps.outcome == 'failure'
       shell: ${{ inputs.shell }}
 
     - name: Set up JDK ${{ inputs.java-version }}
