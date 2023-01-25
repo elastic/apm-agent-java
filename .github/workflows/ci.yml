@@ -25,6 +25,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GOAL: clean install -DskipTests=true -Dmaven.javadoc.skip=true
     steps:
       - uses: actions/checkout@v3
       - name: Set up JDK ${{ env.JAVA_VERSION }}
@@ -33,15 +35,16 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
           cache: 'maven'
-      - run: ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
-        id: myStepId1
+      # Fetch dependencies with a retry
+      - run: ./mvnw $GOAL
+        id: fetch-deps
         continue-on-error: true
-      - run: ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
-        if: steps.myStepId1.outcome == 'failure'
+      - run: ./mvnw $GOAL
+        if: steps.fetch-deps.outcome == 'failure'
       - uses: actions/upload-artifact@v3
         with:
           name: build
-          path: target
+          path: '**/target/'
           retention-days: 1
 
   license:
