@@ -27,7 +27,7 @@ import java.util.Map;
 public class LdapPluginModuleOpens extends PluginClassLoaderRootPackageCustomizer {
     @Override
     public Collection<String> pluginClassLoaderRootPackages() {
-        return Collections.singleton("co.elastic.apm.agent.java_ldap");
+        return Collections.singleton(getPluginPackage());
     }
 
     @Override

@@ -432,19 +432,21 @@ public class IndyBootstrap {
                     // if config classes would be loaded from the plugin CL,
                     // tracer.getConfig(Config.class) would return null when called from an advice as the classes are not the same
                     .or(nameContains("Config").and(hasSuperType(is(ConfigurationOptionProvider.class)))));
-            if (addRequiredModuleOpens(requiredModuleOpens, targetClassLoader, pluginClassLoader)) {
-                Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
-                Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass(LOOKUP_EXPOSER_CLASS_NAME);
-                // can't use MethodHandle.lookup(), see also https://github.com/elastic/apm-agent-java/issues/1450
-                MethodHandles.Lookup indyLookup = (MethodHandles.Lookup) lookupExposer.getMethod("getLookup").invoke(null);
-                // When calling findStatic now, the lookup class will be one that is loaded by the plugin class loader
-                MethodHandle methodHandle = indyLookup.findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
-                return new ConstantCallSite(methodHandle);
-            } else {
-                // must not be a static field as it would initialize logging before it's ready
-                LoggerFactory.getLogger(IndyBootstrap.class).error("Cannot bootstrap advice because required modules could not be opened!");
-                return null;
+            if (ElasticApmAgent.areModulesSupported() && !requiredModuleOpens.isEmpty()) {
+                boolean success = addRequiredModuleOpens(requiredModuleOpens, targetClassLoader, pluginClassLoader);
+                if (!success) {
+                    // must not be a static field as it would initialize logging before it's ready
+                    LoggerFactory.getLogger(IndyBootstrap.class).error("Cannot bootstrap advice because required modules could not be opened!");
+                    return null;
+                }
             }
+            Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
+            Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass(LOOKUP_EXPOSER_CLASS_NAME);
+            // can't use MethodHandle.lookup(), see also https://github.com/elastic/apm-agent-java/issues/1450
+            MethodHandles.Lookup indyLookup = (MethodHandles.Lookup) lookupExposer.getMethod("getLookup").invoke(null);
+            // When calling findStatic now, the lookup class will be one that is loaded by the plugin class loader
+            MethodHandle methodHandle = indyLookup.findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
+            return new ConstantCallSite(methodHandle);
         } catch (Exception e) {
             // must not be a static field as it would initialize logging before it's ready
             LoggerFactory.getLogger(IndyBootstrap.class).error(e.getMessage(), e);
@@ -454,10 +456,18 @@ public class IndyBootstrap {
         }
     }
 
+    /**
+     * Attempts to open required modules for a given plugin classloader.
+     *
+     * @param requiredModuleOpens A map of FQNs of "witness" classes from modules and the corresponding package names to be opened.
+     * @param targetClassLoader   the Classloader in which the class instrumented by the plugin classloader lives.
+     *                            Will be used to lookup "witness" classes from modules.
+     * @param pluginClassLoader   the instrumentation plugin classloader which will be given module access.
+     * @return true if all required modules could be opened. On java < 17, true may be returned
+     * even if not all modules could be opened because in these versions module boundaries are not enforced.
+     * If any of the provided witness classes is not found, false is always returned.
+     */
     private static boolean addRequiredModuleOpens(Map<String, List<String>> requiredModuleOpens, ClassLoader targetClassLoader, ClassLoader pluginClassLoader) {
-        if (!ElasticApmAgent.areModulesSupported()) {
-            return true;
-        }
         try {
             for (Map.Entry<String, List<String>> requiredOpen : requiredModuleOpens.entrySet()) {
                 String witnessClassName = requiredOpen.getKey();

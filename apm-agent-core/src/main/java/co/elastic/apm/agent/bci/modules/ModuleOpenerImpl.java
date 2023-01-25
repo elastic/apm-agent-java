@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.bci.modules;
 
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,16 +50,29 @@ class ModuleOpenerImpl extends ModuleOpener {
         if (!missingOpens.isEmpty()) {
             if (instrumentation.isModifiableModule(targetModule)) {
                 logger.debug("Opening packages {} from module {} for instrumentation to module {}", missingOpens.keySet(), targetModule, openToModule);
-                instrumentation.redefineModule(targetModule,
-                    Collections.<Module>emptySet(), //reads
-                    Collections.<String, Set<Module>>emptyMap(), //exports
-                    missingOpens,  //opens
-                    Collections.<Class<?>>emptySet(), //uses
-                    Collections.<Class<?>, List<Class<?>>>emptyMap() //provides
-                );
+                try {
+                    instrumentation.redefineModule(targetModule,
+                        Collections.<Module>emptySet(), //reads
+                        Collections.<String, Set<Module>>emptyMap(), //exports
+                        missingOpens,  //opens
+                        Collections.<Class<?>>emptySet(), //uses
+                        Collections.<Class<?>, List<Class<?>>>emptyMap() //provides
+                    );
+                } catch (Exception e) {
+                    if (JvmRuntimeInfo.ofCurrentVM().getMajorVersion() >= 17) {
+                        logger.error("Failed to open packages {} from module {} for instrumentation due to exception", missingOpens.keySet(), targetModule, e);
+                        return false;
+                    } else {
+                        logger.warn("Failed to open packages {} from module {} for instrumentation due to exception", missingOpens.keySet(), targetModule, e);
+                    }
+                }
             } else {
-                logger.error("Cannot open packages {} from module {} for instrumentation because module cannot be redefined!", missingOpens.keySet(), targetModule);
-                return false;
+                if (JvmRuntimeInfo.ofCurrentVM().getMajorVersion() >= 17) {
+                    logger.error("Cannot open packages {} from module {} for instrumentation because module cannot be redefined!", missingOpens.keySet(), targetModule);
+                    return false;
+                } else {
+                    logger.error("annot open packages {} from module {} for instrumentation because module cannot be redefined!", missingOpens.keySet(), targetModule);
+                }
             }
         }
         return true;
