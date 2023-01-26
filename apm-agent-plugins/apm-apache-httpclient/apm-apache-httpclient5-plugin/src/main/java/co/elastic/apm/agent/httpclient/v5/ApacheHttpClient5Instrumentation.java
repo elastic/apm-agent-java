@@ -18,12 +18,11 @@
  */
 package co.elastic.apm.agent.httpclient.v5;
 
-import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.httpclient.common.ApacheHttpClientAdvice;
+import co.elastic.apm.agent.httpclient.v5.helper.ApacheHttpClient5ApiAdapter;
 import co.elastic.apm.agent.httpclient.v5.helper.RequestHeaderAccessor;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -47,53 +46,23 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class ApacheHttpClient5Instrumentation extends BaseApacheHttpClient5Instrumentation {
 
-    public static class HttpClient5Advice {
+    public static class HttpClient5Advice extends ApacheHttpClientAdvice {
+        private static final ApacheHttpClient5ApiAdapter adapter = ApacheHttpClient5ApiAdapter.get();
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(0) HttpHost httpHost,
                                              @Advice.Argument(1) ClassicHttpRequest request,
                                              @Advice.Argument(2) HttpContext context) throws URISyntaxException {
-            AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
-            }
-            Span span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getUri(), httpHost.getHostName());
-            if (span != null) {
-                span.activate();
-            }
-            if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
-                if (span != null) {
-                    span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
-                } else if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
-                    // re-adds the header on redirects
-                    parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
-                }
-            }
-            return span;
+            RequestHeaderAccessor requestHeaderAccessor = RequestHeaderAccessor.INSTANCE;
+            return startSpan(tracer, adapter, request, httpHost, requestHeaderAccessor, requestHeaderAccessor);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Return @Nullable CloseableHttpResponse response,
                                           @Advice.Enter @Nullable Object spanObj,
                                           @Advice.Thrown @Nullable Throwable t) {
-            Span span = (Span) spanObj;
-            if (span == null) {
-                return;
-            }
-            try {
-                if (response != null) {
-                    int statusCode = response.getCode();
-                    span.getContext().getHttp().withStatusCode(statusCode);
-                }
-                span.captureException(t);
-            } finally {
-                if (t instanceof CircularRedirectException) {
-                    span.withOutcome(Outcome.FAILURE);
-                }
-
-                span.deactivate().end();
-            }
+            endSpan(spanObj, t, adapter, response);
         }
     }
 

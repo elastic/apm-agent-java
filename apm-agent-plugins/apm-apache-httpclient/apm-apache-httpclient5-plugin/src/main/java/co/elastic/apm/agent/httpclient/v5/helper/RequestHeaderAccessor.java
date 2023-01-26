@@ -26,13 +26,13 @@ import org.apache.hc.core5.http.HttpRequest;
 
 import javax.annotation.Nullable;
 
-public class RequestHeaderAccessor implements TextHeaderGetter<HttpRequest>, TextHeaderSetter<HttpRequest> {
+public class RequestHeaderAccessor implements TextHeaderGetter<ClassicHttpRequest>, TextHeaderSetter<ClassicHttpRequest> {
 
     public static final RequestHeaderAccessor INSTANCE = new RequestHeaderAccessor();
 
     @Nullable
     @Override
-    public String getFirstHeader(String headerName, HttpRequest request) {
+    public String getFirstHeader(String headerName, ClassicHttpRequest request) {
         Header header = request.getFirstHeader(headerName);
         if (header == null) {
             return null;
@@ -41,7 +41,7 @@ public class RequestHeaderAccessor implements TextHeaderGetter<HttpRequest>, Tex
     }
 
     @Override
-    public <S> void forEach(String headerName, HttpRequest carrier, S state, HeaderConsumer<String, S> consumer) {
+    public <S> void forEach(String headerName, ClassicHttpRequest carrier, S state, HeaderConsumer<String, S> consumer) {
         Header[] headers = carrier.getHeaders(headerName);
         if (headers == null) {
             return;
@@ -52,7 +52,7 @@ public class RequestHeaderAccessor implements TextHeaderGetter<HttpRequest>, Tex
     }
 
     @Override
-    public void setHeader(String headerName, String headerValue, HttpRequest request) {
+    public void setHeader(String headerName, String headerValue, ClassicHttpRequest request) {
         request.setHeader(headerName, headerValue);
     }
 }
