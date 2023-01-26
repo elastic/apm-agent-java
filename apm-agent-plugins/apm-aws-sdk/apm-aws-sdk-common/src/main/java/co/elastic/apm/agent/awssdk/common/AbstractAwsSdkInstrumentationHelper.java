@@ -49,8 +49,7 @@ public abstract class AbstractAwsSdkInstrumentationHelper<R, C> {
 
         span.getContext().getServiceTarget()
             .withType(type)
-            .withName(name)
-            .withNameOnlyDestinationResource();
+            .withName(name);
 
         span.getContext().getDestination()
             .getCloud()

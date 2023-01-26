@@ -11,7 +11,7 @@ pipeline {
     NEXUS_SECRET = 'secret/apm-team/ci/nexus'
     MAVEN_CONFIG = '-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dmaven.repo.local=.m2'
     HOME = "${env.WORKSPACE}"
-    JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+    JAVA_HOME = "${env.HUDSON_HOME}/.java/jdk17"
     PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
     SLACK_CHANNEL = '#apm-agent-java'
     NOTIFY_TO = 'build-apm+apm-agent-java@elastic.co'

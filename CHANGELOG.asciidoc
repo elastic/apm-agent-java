@@ -23,6 +23,13 @@ endif::[]
 [[release-notes-x.x.x]]
 ==== x.x.x - YYYY/MM/DD
 
+===== Potentially breaking changes
+* Previously, agent instrumented all implementations of `javax.jms.MessageListener`, which could cause performance issues.
+  From now on, the instrumention is limited to implementations that fit at least one of the following critera:
+  * have `Message` or `Listener` in their class name
+  * is an anonymous inner class or a lambda
+  * is within a package provided by the `jms_listener_packages` configuration.
+
 [float]
 ===== Features
 * Add experimental log sending from the agent with `log_sending` - {pull}2694[#2694]
@@ -34,6 +41,14 @@ endif::[]
 * Fix some span-compression concurrency issues - {pull}2865[#2865]
 * Add warning when agent is accidentally started on a JVM/JDK command-line tool - {pull}2924[#2924]
 * Fix `NullPointerException` caused by the Elasticsearch REST client instrumentation when collecting dropped span metrics - {pull}2959[#2959]
+* Fix SQS Instrumentation for Non-MessageReceive actions to avoid NoSuchElementException - {pull}2979[#2979]
+* Fix `java.lang.NoSuchMethodError` when using the agent with WebFlux and Spring 6.x/Spring Boot 3.x - {pull}2935[#2935]
+* Optimize JMS listener matcher - {pull}2930[#2930]
+
+===== Potentially breaking changes
+
+* The `context.destination.service.resource` span field has been changed for AWS S3, SQS and DynamoDB.
+As a result, the history of metrics relying on this field might break. - {pull}2947[#2947]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
@@ -43,6 +58,7 @@ endif::[]
 
 [float]
 ===== Features
+
 * Add support for log correlation for `java.util.logging` (JUL) - {pull}2724[#2724]
 * Add support for spring-kafka batch listeners - {pull}2815[#2815]
 * Improved instrumentation for legacy Apache HttpClient (when not using an `HttpUriRequest`, such as `BasicHttpRequest`)

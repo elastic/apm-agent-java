@@ -549,22 +549,18 @@ NOTE: only classes from the quartz-jobs dependency will be instrumented automati
 
 There are multiple log-related features in the agent and their support depend on the logging framework:
 
-- *Log correlation*:
-    The agent automatically injects `trace.id`, `transaction.id` and `error.id` into MDC implementation when a log event
-    is written to log. See <<log-correlation, Log Correlation>> for details.
-    For frameworks that don't provide an MDC like `java.util.logging` (JUL), correlation is only supported when using ECS logging library or
-    with <<config-log-ecs-reformatting, `log_ecs_reformatting`>>.
+- *<<log-correlation-ids, Log Correlation>>*:
+    The agent automatically injects `trace.id`, `transaction.id` and `error.id` into the MDC implementation (see below for framework specific MDC implementations used. MDC = Mapped Diagnostic Context, a standard way to enrich log messages with additional information).
 
-- *Error capturing*:
+- *<<log-error-capturing, Log Error capturing>>*:
     Automatically captures exceptions for calls like `logger.error("message", exception)`.
-    When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well for log correlation
-    since 1.16.0.
 
-- *ECS reformatting*:
+- *<<config-log-ecs-reformatting,ECS reformatting>>*:
     When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
     ECS-compatible format.
 
-- *ECS Service Name*: The agent sets the service name and version for the `EcsLayout` if not provided explicitly.
+- *<<ecs-logging-service-fields, ECS Logging service fields>>*: For users of `ecs-logging-java`, the agent sets the service name and version for the `EcsLayout` if not provided explicitly by the
+application.
 
 |===
 |Framework |Supported versions | Description | Since

@@ -153,10 +153,12 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
             ExecutorUtils.setThreadStartListener(this);
             for (Map.Entry<Thread, String> threadWithPurpose : ExecutorUtils.getStartedThreads()) {
                 Thread thread = threadWithPurpose.getKey();
-                lastThreadInfo.putIfAbsent(thread, new ThreadInfo(threadWithPurpose.getValue()));
-                ThreadInfo threadInfo = lastThreadInfo.get(thread);
-                updateCpuTimeStat(thread, threadInfo);
-                updateAllocationStat(thread, threadInfo);
+                if (thread.isAlive()) {
+                    lastThreadInfo.putIfAbsent(thread, new ThreadInfo(threadWithPurpose.getValue()));
+                    ThreadInfo threadInfo = lastThreadInfo.get(thread);
+                    updateCpuTimeStat(thread, threadInfo);
+                    updateAllocationStat(thread, threadInfo);
+                }
             }
 
             metricRegistry.addMetricsProvider(this);

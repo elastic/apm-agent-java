@@ -24,6 +24,7 @@ import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -92,6 +93,19 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Boolean.TRUE);
 
+    private final ConfigurationOption<Collection<String>> jmsListenerPackages = ConfigurationOption
+        .stringsOption()
+        .key("jms_listener_packages")
+        .tags("performance", "added[1.36.0]")
+        .configurationCategory(MESSAGING_CATEGORY)
+        .description("Defines which packages contain JMS MessageListener implementations for instrumentation." +
+            "\n" +
+            "When set to a non-empty value, only the classes matching configuration will be instrumented.\n" +
+            "This configuration option helps to make MessageListener type matching faster and improve application startup performance."
+        )
+        .dynamic(false)
+        .buildWithDefault(Collections.<String>emptyList());
+
     public JmsStrategy getMessagePollingTransactionStrategy() {
         return messagePollingTransactionStrategy.get();
     }
@@ -110,6 +124,10 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
 
     public boolean shouldEndMessagingTransactionOnPoll() {
         return endMessagingTransactionOnPoll.get();
+    }
+
+    public Collection<String> getJmsListenerPackages() {
+        return jmsListenerPackages.get();
     }
 
     public enum JmsStrategy {

@@ -43,6 +43,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -166,6 +167,17 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
     @Override
     protected String type() {
         return "db";
+    }
+
+    @Override
+    protected String subtype() {
+        return "dynamodb";
+    }
+
+    @Nullable
+    @Override
+    protected String expectedTargetName(@Nullable String entityName) {
+        return localstack.getRegion();
     }
 
     @Override
