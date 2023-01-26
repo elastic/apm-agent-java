@@ -86,12 +86,12 @@ For this purpose, we have the following bootstrap configuration options availabl
 |===
 |System property name | Env variable name | Description
 
-|elastic.apm.bootstrap_allowlist
-|ELASTIC_APM_BOOTSTRAP_ALLOWLIST
+|`elastic.apm.bootstrap_allowlist`
+|`ELASTIC_APM_BOOTSTRAP_ALLOWLIST`
 |If set, the agent will be enabled *only* on JVMs of which command matches one of the patterns in the provided list
 
-|elastic.apm.bootstrap_exclude_list
-|ELASTIC_APM_BOOTSTRAP_EXCLUDE_LIST
+|`elastic.apm.bootstrap_exclude_list`
+|`ELASTIC_APM_BOOTSTRAP_EXCLUDE_LIST`
 |If set, the agent will be disabled on JVMs that contain a System property with one of the provided names in the list
 |===
 
