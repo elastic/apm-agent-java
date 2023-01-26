@@ -370,10 +370,14 @@
             <artifactId>apm-aws-sdk-2-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-finagle-httpclient-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-java-ldap-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 
