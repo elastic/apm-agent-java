@@ -65,6 +65,7 @@ public class AgentReporterMetrics implements ReporterMonitor {
     private static final Labels SPAN_LABEL = Labels.Mutable.of("event_type", "span").immutableCopy();
     private static final Labels ERROR_LABEL = Labels.Mutable.of("event_type", "error").immutableCopy();
     private static final Labels METRICSET_LABEL = Labels.Mutable.of("event_type", "metricset").immutableCopy();
+    private static final Labels LOG_LABEL = Labels.Mutable.of("event_type", "log").immutableCopy();
 
     private static final Labels SUCCESS_LABEL = Labels.Mutable.of("success", "true").immutableCopy();
     private static final Labels FAILURE_LABEL = Labels.Mutable.of("success", "false").immutableCopy();
@@ -170,8 +171,13 @@ public class AgentReporterMetrics implements ReporterMonitor {
         }
     }
 
+    // package-protected for tests
     @Nullable
-    private Labels getLabelFor(ReportingEvent.ReportingEventType type) {
+    static Labels getLabelFor(ReportingEvent.ReportingEventType type) {
+        if (type.isControl()) {
+            //Control-Events don't matter
+            return null;
+        }
         switch (type) {
             case TRANSACTION:
                 return TRANSACTION_LABEL;
@@ -181,11 +187,9 @@ public class AgentReporterMetrics implements ReporterMonitor {
                 return ERROR_LABEL;
             case METRICSET_JSON_WRITER:
                 return METRICSET_LABEL;
-            case SHUTDOWN:
-            case END_REQUEST:
-            case MAKE_FLUSH_REQUEST:
-            case WAKEUP:
-                return null; //Control-Events don't matter
+            case STRING_LOG:
+            case BYTES_LOG:
+                return LOG_LABEL;
             default:
                 throw new IllegalStateException("Unhandled type: " + type);
         }

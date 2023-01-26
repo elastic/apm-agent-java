@@ -23,7 +23,7 @@ import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -95,6 +95,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
             .withAction(SPAN_ACTION)
             .appendToName("Elasticsearch: ").appendToName(method).appendToName(" ").appendToName(endpoint);
         span.getContext().getDb().withType(ELASTICSEARCH);
+        span.getContext().getServiceTarget().withType(ELASTICSEARCH);
         span.activate();
 
         if (span.isSampled()) {
@@ -108,7 +109,6 @@ public class ElasticsearchRestClientInstrumentationHelper {
                     }
                 }
             }
-            span.getContext().getServiceTarget().withType(ELASTICSEARCH);
         }
         return span;
     }

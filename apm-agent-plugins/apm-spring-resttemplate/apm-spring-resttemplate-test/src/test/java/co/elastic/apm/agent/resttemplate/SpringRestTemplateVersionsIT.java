@@ -42,7 +42,7 @@ package co.elastic.apm.agent.resttemplate;
  * #L%
  */
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -114,7 +114,7 @@ public class SpringRestTemplateVersionsIT {
             otherClasses = new Class[]{SprintRestTemplateIntegration.class};
             testClass = SpringRestTemplateIntegrationNoOp.class;
         }
-        TestClassWithDependencyRunner runner = new TestClassWithDependencyRunner(dependencies, testClass, otherClasses);
+        JUnit4TestClassWithDependencyRunner runner = new JUnit4TestClassWithDependencyRunner(dependencies, testClass, otherClasses);
         runner.run();
     }
 

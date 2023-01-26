@@ -21,7 +21,7 @@ package co.elastic.apm.agent.micrometer;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -190,7 +190,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         }
         logger.debug("Reporting {} meters", meterConsumer.meters.size());
         for (JsonWriter serializedMetricSet : serializer.serialize(meterConsumer.meters, now * 1000)) {
-            reporter.report(serializedMetricSet);
+            reporter.reportMetrics(serializedMetricSet);
         }
     }
 

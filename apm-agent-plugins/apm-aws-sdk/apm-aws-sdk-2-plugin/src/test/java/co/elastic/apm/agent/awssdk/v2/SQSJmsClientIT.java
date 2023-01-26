@@ -41,6 +41,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 
+import javax.annotation.Nullable;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
@@ -277,6 +278,17 @@ public class SQSJmsClientIT extends AbstractAwsClientIT {
     @Override
     protected String type() {
         return "messaging";
+    }
+
+    @Override
+    protected String subtype() {
+        return "sqs";
+    }
+
+    @Nullable
+    @Override
+    protected String expectedTargetName(@Nullable String entityName) {
+        return entityName; //entityName is queue name
     }
 
     @Override

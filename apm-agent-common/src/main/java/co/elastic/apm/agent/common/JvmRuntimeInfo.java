@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.common;
 
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
+
 import javax.annotation.Nullable;
 
 public class JvmRuntimeInfo {
@@ -114,7 +116,7 @@ public class JvmRuntimeInfo {
         }
 
         if (updateVersion < 0) {
-            System.err.println("[elastic-apm-agent] WARN Unsupported format of the java.version system property - " + version);
+            SystemStandardOutputLogger.stdErrWarn("Unsupported format of the java.version system property - " + version);
         }
         return updateVersion;
     }

@@ -18,17 +18,17 @@
  */
 package co.elastic.apm.agent.ecs_logging;
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 public class Log4j2_17_1ServiceNameInstrumentationTest {
-    private final TestClassWithDependencyRunner runner;
+    private final JUnit4TestClassWithDependencyRunner runner;
 
     public Log4j2_17_1ServiceNameInstrumentationTest() throws Exception {
         List<String> dependencies = List.of("co.elastic.logging:log4j2-ecs-layout:1.3.2");
-        runner = new TestClassWithDependencyRunner(dependencies, Log4j2ServiceNameInstrumentationTest.class);
+        runner = new JUnit4TestClassWithDependencyRunner(dependencies, Log4j2ServiceNameInstrumentationTest.class);
     }
 
     @Test

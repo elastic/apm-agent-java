@@ -18,8 +18,10 @@
  */
 package co.elastic.apm.agent.jul.reformatting;
 
+import co.elastic.apm.agent.jul.sending.JulLogSenderHandler;
 import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
+import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.LoggerUtils;
@@ -37,26 +39,27 @@ import java.util.Map;
 import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
+import java.util.logging.LogRecord;
 import java.util.logging.StreamHandler;
 
-public abstract class AbstractJulEcsReformattingHelper extends AbstractEcsReformattingHelper<Handler, Formatter> {
+public abstract class AbstractJulEcsReformattingHelper<T extends Handler> extends AbstractEcsReformattingHelper<T, T, Formatter, LogRecord> {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractJulEcsReformattingHelper.class);
     private static final Logger oneTimeLogFileLimitWarningLogger = LoggerUtils.logOnce(logger);
 
     @Nullable
     @Override
-    protected Formatter getFormatterFrom(Handler handler) {
+    protected Formatter getFormatterFrom(T handler) {
         return handler.getFormatter();
     }
 
     @Override
-    protected void setFormatter(Handler handler, Formatter formatter) {
+    protected void setFormatter(T handler, Formatter formatter) {
         handler.setFormatter(formatter);
     }
 
     @Override
-    protected void closeShadeAppender(Handler handler) {
+    protected void closeShadeAppender(T handler) {
         handler.close();
     }
 
@@ -141,4 +144,13 @@ public abstract class AbstractJulEcsReformattingHelper extends AbstractEcsReform
 
     protected abstract boolean isFileHandler(Handler originalHandler);
 
+    @Override
+    protected T createAndStartLogSendingAppender(Reporter reporter, Formatter formatter) {
+        return (T) new JulLogSenderHandler(reporter, formatter);
+    }
+
+    @Override
+    protected void append(LogRecord logEvent, Handler appender) {
+        appender.publish(logEvent);
+    }
 }

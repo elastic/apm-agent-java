@@ -32,6 +32,10 @@ import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
+/**
+ * Instruments {@link LoggingConfigurationTest.LoggerTest#getLogger()}
+ */
+@SuppressWarnings("JavadocReference")
 public class LoggerTestInstrumentation extends TracerAwareInstrumentation {
 
     public static class AdviceClass {

@@ -31,7 +31,7 @@ pipeline {
     issueCommentTrigger("(${obltGitHubComments()}|^run (jdk compatibility|benchmark|integration|windows) tests)")
   }
   parameters {
-    string(name: 'JAVA_VERSION', defaultValue: 'java11', description: 'Java version to build & test')
+    string(name: 'JAVA_VERSION', defaultValue: 'jdk17', description: 'Java version to build & test')
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
 
     // Note about GH checks and optional steps
@@ -125,7 +125,6 @@ pipeline {
                 }
               }
               stashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
-              stash(allowEmpty: true, name: 'snapshoty', includes: "${BASE_DIR}/.ci/snapshoty.yml,${BASE_DIR}/elastic-apm-agent/target/*,${BASE_DIR}/apm-agent-attach/target/*,${BASE_DIR}/apm-agent-attach-cli/target/*,${BASE_DIR}/apm-agent-api/target/*", useDefaultExcludes: false)
               archiveArtifacts allowEmptyArchive: true,
                 artifacts: "\
                   ${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,\
@@ -362,21 +361,21 @@ pipeline {
               }
             }
           }
-          environment {
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-          }
           matrix {
             agent { label 'linux && immutable' }
             axes {
               axis {
-                // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
+                // the list of supported java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
                 name 'JDK_VERSION'
-                // 'openjdk18'  disabled for now see https://github.com/elastic/apm-agent-java/issues/2328
-                values 'openjdk17'
+                values 'java11', 'jdk19'
               }
             }
             stages {
               stage('JDK Unit Tests') {
+                environment {
+                  JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JDK_VERSION}"
+                  PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+                }
                 steps {
                   withGithubNotify(context: "${STAGE_NAME} ${JDK_VERSION}", tab: 'tests') {
                     deleteDir()
@@ -393,31 +392,6 @@ pipeline {
                     reportTestResults()
                   }
                 }
-              }
-            }
-          }
-        }
-        stage('Publish snapshots') {
-          agent { label 'linux && immutable' }
-          options { skipDefaultCheckout() }
-          environment {
-            BUCKET_NAME = 'oblt-artifacts'
-            DOCKER_REGISTRY = 'docker.elastic.co'
-            DOCKER_REGISTRY_SECRET = 'secret/observability-team/ci/docker-registry/prod'
-            GCS_ACCOUNT_SECRET = 'secret/observability-team/ci/snapshoty'
-          }
-          when { branch 'main' }
-          steps {
-            withGithubNotify(context: 'Publish snapshot packages') {
-              deleteDir()
-              unstash(name: 'snapshoty')
-              dir(env.BASE_DIR) {
-                snapshoty(
-                  bucket: env.BUCKET_NAME,
-                  gcsAccountSecret: env.GCS_ACCOUNT_SECRET,
-                  dockerRegistry: env.DOCKER_REGISTRY,
-                  dockerSecret: env.DOCKER_REGISTRY_SECRET
-                )
               }
             }
           }

@@ -30,11 +30,14 @@ import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
+import co.elastic.apm.agent.bci.modules.ModuleOpener;
 import co.elastic.apm.agent.common.ThreadUtils;
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.logging.ApmServerLogAppender;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -81,8 +84,10 @@ import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -130,7 +135,7 @@ public class ElasticApmAgent {
      * with the corresponding instrumentation class.
      */
     private static final ConcurrentMap<String, ClassLoader> adviceClassName2instrumentationClassLoader = new ConcurrentHashMap<>();
-    private static final ConcurrentMap<String, Collection<String>> pluginPackages2pluginClassLoaderRootPackages = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, PluginClassLoaderCustomizations> pluginPackages2pluginClassLoaderCustomizations = new ConcurrentHashMap<>();
 
     /**
      * Called reflectively by {@code co.elastic.apm.agent.premain.AgentMain} to initialize the agent
@@ -151,7 +156,10 @@ public class ElasticApmAgent {
             }
         }
 
-        ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources).build();
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources)
+            // server log appender requires buffering log events before the config and reporter are ready.
+            .withLifecycleListener(ApmServerLogAppender.getInstance().getInitListener())
+            .build();
         initInstrumentation(tracer, instrumentation, premain);
         tracer.start(premain);
     }
@@ -239,7 +247,7 @@ public class ElasticApmAgent {
                     }
                     System.setProperty("net.bytebuddy.dump", bytecodeDumpDir.getPath());
                 } catch (Exception e) {
-                    System.err.println("[elastic-apm-agent] WARN Failed to create directory to dump instrumented bytecode: " + e.getMessage());
+                    SystemStandardOutputLogger.stdErrWarn("Failed to create directory to dump instrumented bytecode: " + e.getMessage());
                 }
             }
         }
@@ -247,9 +255,14 @@ public class ElasticApmAgent {
             PluginClassLoaderRootPackageCustomizer.class,
             getAgentClassLoader());
         for (PluginClassLoaderRootPackageCustomizer rootPackageCustomizer : rootPackageCustomizers) {
-            Collection<String> previous = pluginPackages2pluginClassLoaderRootPackages.put(
+            PluginClassLoaderCustomizations customizations = new PluginClassLoaderCustomizations(
+                rootPackageCustomizer.pluginClassLoaderRootPackages(),
+                rootPackageCustomizer.requiredModuleOpens()
+            );
+            PluginClassLoaderCustomizations previous = pluginPackages2pluginClassLoaderCustomizations.put(
                 rootPackageCustomizer.getPluginPackage(),
-                Collections.unmodifiableList(new ArrayList<>(rootPackageCustomizer.pluginClassLoaderRootPackages())));
+                customizations
+            );
             if (previous != null) {
                 throw new IllegalStateException("Only one PluginClassLoaderRootPackageCustomizer is allowed per plugin package: "
                     + rootPackageCustomizer.getPluginPackage());
@@ -310,6 +323,18 @@ public class ElasticApmAgent {
             executor.shutdown();
         }
     }
+
+    public static boolean areModulesSupported() {
+        return ModuleOpener.areModulesSupported();
+    }
+    
+    public static boolean openModule(Class<?> classFromTargetModule, ClassLoader openTo, Collection<String> packagesToOpen) {
+        if (instrumentation == null) {
+            throw new IllegalStateException("Can't open modules before the agent has been initialized");
+        }
+        return ModuleOpener.getInstance().openModuleTo(instrumentation, classFromTargetModule, openTo, packagesToOpen);
+    }
+
 
     static synchronized void doReInitInstrumentation(Iterable<ElasticApmInstrumentation> instrumentations) {
         Logger logger = getLogger();
@@ -646,7 +671,7 @@ public class ElasticApmAgent {
         instrumentation = null;
         IndyPluginClassLoaderFactory.clear();
         adviceClassName2instrumentationClassLoader.clear();
-        pluginPackages2pluginClassLoaderRootPackages.clear();
+        pluginPackages2pluginClassLoaderCustomizations.clear();
     }
 
     private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, final Logger logger,
@@ -917,10 +942,39 @@ public class ElasticApmAgent {
     }
 
     public static Collection<String> getPluginClassLoaderRootPackages(String pluginPackage) {
-        Collection<String> pluginPackages = pluginPackages2pluginClassLoaderRootPackages.get(pluginPackage);
-        if (pluginPackages != null) {
-            return pluginPackages;
+        PluginClassLoaderCustomizations customizations = pluginPackages2pluginClassLoaderCustomizations.get(pluginPackage);
+        if (customizations != null) {
+            return customizations.packages;
         }
         return Collections.singleton(pluginPackage);
+    }
+
+    public static Map<String, List<String>> getRequiredPluginModuleOpens(String pluginPackage) {
+        PluginClassLoaderCustomizations customizations = pluginPackages2pluginClassLoaderCustomizations.get(pluginPackage);
+        if (customizations != null) {
+            return customizations.requiredOpens;
+        }
+        return Collections.emptyMap();
+    }
+
+    private static class PluginClassLoaderCustomizations {
+        final List<String> packages;
+
+        final Map<String, List<String>> requiredOpens;
+
+        private PluginClassLoaderCustomizations(Collection<String> packages, Map<String, ? extends Collection<String>> requiredOpens) {
+            this.packages = Collections.unmodifiableList(new ArrayList<>(packages));
+            if (!requiredOpens.isEmpty()) {
+                Map<String, List<String>> opens = new HashMap<>();
+                for (Map.Entry<String, ? extends Collection<String>> open : requiredOpens.entrySet()) {
+                    if (!open.getValue().isEmpty()) {
+                        opens.put(open.getKey(), Collections.unmodifiableList(new ArrayList<>(open.getValue())));
+                    }
+                }
+                this.requiredOpens = Collections.unmodifiableMap(opens);
+            } else {
+                this.requiredOpens = Collections.emptyMap();
+            }
+        }
     }
 }
