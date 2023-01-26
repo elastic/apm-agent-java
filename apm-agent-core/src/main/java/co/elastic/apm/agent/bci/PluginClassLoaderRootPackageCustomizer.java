@@ -38,10 +38,14 @@ public abstract class PluginClassLoaderRootPackageCustomizer {
 
     public PluginClassLoaderRootPackageCustomizer() {
         String className = getClass().getName();
+        pluginPackage = getPluginPackageFromClassName(className);
+    }
+
+    public static String getPluginPackageFromClassName(String className) {
         if (!className.startsWith(EMBEDDED_PLUGINS_PACKAGE_PREFIX)) {
             throw new IllegalArgumentException("invalid instrumentation class location : " + className);
         }
-        this.pluginPackage = className.substring(0, className.indexOf('.', EMBEDDED_PLUGINS_PACKAGE_PREFIX.length()));
+        return className.substring(0, className.indexOf('.', EMBEDDED_PLUGINS_PACKAGE_PREFIX.length()));
     }
 
     public final String getPluginPackage() {

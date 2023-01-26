@@ -203,11 +203,6 @@ public class IndyBootstrap {
     public static final String LOOKUP_EXPOSER_CLASS_NAME = "co.elastic.apm.agent.bci.classloading.LookupExposer";
 
     /**
-     * The root package name prefix that all embedded plugins classes should start with
-     */
-    private static final String EMBEDDED_PLUGINS_PACKAGE_PREFIX = "co.elastic.apm.agent.";
-
-    /**
      * Caches the names of classes that are defined within a package and it's subpackages
      */
     private static final ConcurrentMap<String, List<String>> classesByPackage = new ConcurrentHashMap<>();
@@ -415,7 +410,7 @@ public class IndyBootstrap {
                     ClassFileLocator.ForJarFile.of(agentJarFile)
                 );
             } else {
-                String pluginPackage = getPluginPackageFromAdviceClass(adviceClassName);
+                String pluginPackage = PluginClassLoaderRootPackageCustomizer.getPluginPackageFromClassName(adviceClassName);
                 pluginClasses.addAll(getClassNamesFromBundledPlugin(pluginPackage, instrumentationClassLoader));
                 requiredModuleOpens = ElasticApmAgent.getRequiredPluginModuleOpens(pluginPackage);
                 classFileLocator = ClassFileLocator.ForClassLoader.of(instrumentationClassLoader);
@@ -498,13 +493,4 @@ public class IndyBootstrap {
         }
         return pluginClasses;
     }
-
-    private static String getPluginPackageFromAdviceClass(String adviceClassName) {
-        if (!adviceClassName.startsWith(EMBEDDED_PLUGINS_PACKAGE_PREFIX)) {
-            throw new IllegalArgumentException("invalid advice class location : " + adviceClassName);
-        }
-        String pluginPackage = adviceClassName.substring(0, adviceClassName.indexOf('.', EMBEDDED_PLUGINS_PACKAGE_PREFIX.length()));
-        return pluginPackage;
-    }
-
 }
