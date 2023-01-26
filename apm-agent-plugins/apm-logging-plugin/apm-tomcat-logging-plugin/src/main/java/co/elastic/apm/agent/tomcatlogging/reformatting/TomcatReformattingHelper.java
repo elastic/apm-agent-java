@@ -89,6 +89,12 @@ public class TomcatReformattingHelper extends AbstractJulEcsReformattingHelper<H
     }
 
     @Override
+    protected String getShadeConsolePatternAndCreateDir() throws IOException {
+        // not relevant for Tomcat
+        return null;
+    }
+
+    @Override
     protected boolean isFileHandler(Handler originalHandler) {
         return originalHandler instanceof FileHandler;
     }
