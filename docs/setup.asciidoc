@@ -95,7 +95,7 @@ For this purpose, we have the following bootstrap configuration options availabl
 |If set, the agent will be disabled on JVMs that contain a System property with one of the provided names in the list
 |===
 
-The allowlist option expects a comma-separated list of wild-card patterns. Such patterns may contain wildcards (`\*`), which match zero
+The allowlist option expects a comma-separated list of wild-card patterns. Such patterns may contain wildcards (`*`), which match zero
 or more characters. Examples: `foo\*bar\*baz\*, \*foo\*`. Matching is case-insensitive by default. Prepending an element with
 `(?-i)}` makes the matching case-sensitive. The patterns are matched against the JVM command as it is stored in the `sun.java.command`
 system property.
