@@ -96,14 +96,14 @@ class JvmToolBootstrapCheckTest {
     void testJdkTool(String cmd) {
         BootstrapCheck.BootstrapCheckResult result = new BootstrapCheck.BootstrapCheckResult();
         JvmToolBootstrapCheck.checkJdkTool(cmd, result);
-        assertThat(result.hasWarnings())
+        assertThat(result.hasErrors())
             .describedAs("command '%s' should be detected as a JDK tool", cmd)
                 .isTrue();
 
-        assertThat(result.getWarnings()).hasSize(1);
-        assertThat(result.getWarnings().get(0)).contains("JVM tool detected");
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0)).contains("JVM tool detected");
 
-        assertThat(result.hasErrors())
+        assertThat(result.hasWarnings())
             .describedAs("no error expected")
             .isFalse();
     }
@@ -131,7 +131,9 @@ class JvmToolBootstrapCheckTest {
             .isTrue();
 
         assertThat(result.getWarnings()).hasSize(1);
-        assertThat(result.getWarnings().get(0)).describedAs("warning message should include original command").contains(cmd);
+        assertThat(result.getWarnings().get(0))
+            .describedAs("warning message should include original command")
+            .contains(cmd);
 
         assertThat(result.hasErrors())
             .describedAs("no error expected")

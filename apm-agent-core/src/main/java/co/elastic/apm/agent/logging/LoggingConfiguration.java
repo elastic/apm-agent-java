@@ -18,9 +18,10 @@
  */
 package co.elastic.apm.agent.logging;
 
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.apache.logging.log4j.Level;
@@ -303,7 +304,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
             LoggerFactory.initialize(new Log4jLoggerFactoryBridge());
         } catch (Throwable throwable) {
-            System.err.println("[elastic-apm-agent] ERROR Failure during initialization of agent's log4j system: " + throwable.getMessage());
+            SystemStandardOutputLogger.stdErrError("Failure during initialization of agent's log4j system: " + throwable.getMessage());
         } finally {
             restoreSystemProperty(INITIAL_LISTENERS_LEVEL, initialListenersLevel);
             restoreSystemProperty(INITIAL_STATUS_LOGGER_LEVEL, initialStatusLoggerLevel);

@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.matcher;
-
-import org.stagemonitor.util.StringUtils;
+package co.elastic.apm.agent.common.util;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -46,7 +44,7 @@ import java.util.List;
 
 /**
  * This matcher is used in for example to disable tracing for certain URLs.
- * The advantage of this class compared to alternatives is is that {@linkplain #matches(CharSequence) matching} strings is completely allocation free.
+ * The advantage of this class compared to alternatives is that {@linkplain #matches(CharSequence) matching} strings is completely allocation free.
  * <p>
  * The wildcard matcher supports the {@code *} wildcard which matches zero or more characters.
  * By default, matches are a case insensitive.
