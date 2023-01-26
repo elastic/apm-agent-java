@@ -21,8 +21,10 @@ x-metadata: &metadata
   - name: 'custom'
     data:
       project: 'apm-agent-java'
-  # Add jenkins metadata
-  - name: 'jenkins'
+  # Add git metadata
+  - name: 'git'
+  # Add github_actions metadata
+  - name: 'github_actions'
 
 
 # List of artifacts
@@ -32,22 +34,22 @@ artifacts:
     # Files pattern to match
     files_pattern: 'elastic-apm-agent-(?P<app_version>\d+\.\d+\.\d+(-\S+)?)\.jar'
     # File layout on GCS bucket
-    output_pattern: '{project}/{jenkins_branch_name}/elastic-apm-java-{app_version}-{jenkins_git_commit_short}.jar'
+    output_pattern: '{project}/{github_branch_name}/elastic-apm-java-{app_version}-{github_sha_short}.jar'
     # List of metadata processors to use.
     metadata: *metadata
   - path: './elastic-apm-agent/target'
     files_pattern: 'elastic-apm-java-aws-lambda-layer-(?P<app_version>\d+\.\d+\.\d+(-\S+)?)\.zip'
-    output_pattern: '{project}/{jenkins_branch_name}/elastic-apm-java-aws-lambda-layer-{app_version}-{jenkins_git_commit_short}.zip'
+    output_pattern: '{project}/{github_branch_name}/elastic-apm-java-aws-lambda-layer-{app_version}-{github_sha_short}.zip'
     metadata: *metadata
   - path: './apm-agent-attach/target'
     files_pattern: 'apm-agent-attach-(?P<app_version>\d+\.\d+\.\d+(-\S+)?)\.jar'
-    output_pattern: '{project}/{jenkins_branch_name}/elastic-apm-java-attach-{app_version}-{jenkins_git_commit_short}.jar'
+    output_pattern: '{project}/{github_branch_name}/elastic-apm-java-attach-{app_version}-{github_sha_short}.jar'
     metadata: *metadata
   - path: './apm-agent-attach-cli/target'
     files_pattern: 'apm-agent-attach-cli-(?P<app_version>\d+\.\d+\.\d+(-\S+)?)\.jar'
-    output_pattern: '{project}/{jenkins_branch_name}/elastic-apm-java-attach-{app_version}-{jenkins_git_commit_short}.jar'
+    output_pattern: '{project}/{github_branch_name}/elastic-apm-java-attach-{app_version}-{github_sha_short}.jar'
     metadata: *metadata
   - path: './apm-agent-api/target'
     files_pattern: 'apm-agent-api-(?P<app_version>\d+\.\d+\.\d+(-\S+)?)\.jar'
-    output_pattern: '{project}/{jenkins_branch_name}/elastic-apm-java-api-{app_version}-{jenkins_git_commit_short}.jar'
+    output_pattern: '{project}/{github_branch_name}/elastic-apm-java-api-{app_version}-{github_sha_short}.jar'
     metadata: *metadata
