@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.logging;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.converter.ByteValue;
@@ -92,7 +93,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         }
         if (logFile.contains(AGENT_HOME_PLACEHOLDER)) {
             if (agentHome == null) {
-                System.err.println("[elastic-apm-agent] WARN Could not resolve " + AGENT_HOME_PLACEHOLDER + ". Falling back to System.out.");
+                SystemStandardOutputLogger.stdErrWarn("Could not resolve " + AGENT_HOME_PLACEHOLDER + ". Falling back to System.out.");
                 return SYSTEM_OUT;
             } else {
                 logFile = logFile.replace(AGENT_HOME_PLACEHOLDER, agentHome);
@@ -114,7 +115,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         }
 
         if (!canWrite) {
-            System.err.println("[elastic-apm-agent] WARN Log file " + logFile + " is not writable. Falling back to System.out.");
+            SystemStandardOutputLogger.stdErrWarn("Log file " + logFile + " is not writable. Falling back to System.out.");
             return SYSTEM_OUT;
         }
         return logFile;

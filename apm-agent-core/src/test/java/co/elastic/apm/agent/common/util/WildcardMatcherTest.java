@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.matcher;
+package co.elastic.apm.agent.common.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
@@ -32,9 +32,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static co.elastic.apm.agent.matcher.WildcardMatcher.indexOfIgnoreCase;
+import static co.elastic.apm.agent.common.util.WildcardMatcher.indexOfIgnoreCase;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
+/**
+ * This test is located in this maven project, even though it tests {@link WildcardMatcher} from the common module as it is dependent on
+ * the {@link TestJsonSpec} capabilities
+ */
 class WildcardMatcherTest {
 
     @ParameterizedTest
