@@ -21,14 +21,11 @@ package co.elastic.apm.agent.httpclient.v5;
 import co.elastic.apm.agent.httpclient.common.ApacheHttpClientAdvice;
 import co.elastic.apm.agent.httpclient.v5.helper.ApacheHttpClient5ApiAdapter;
 import co.elastic.apm.agent.httpclient.v5.helper.RequestHeaderAccessor;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.apache.hc.client5.http.CircularRedirectException;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.HttpHost;
@@ -54,8 +51,7 @@ public class ApacheHttpClient5Instrumentation extends BaseApacheHttpClient5Instr
         public static Object onBeforeExecute(@Advice.Argument(0) HttpHost httpHost,
                                              @Advice.Argument(1) ClassicHttpRequest request,
                                              @Advice.Argument(2) HttpContext context) throws URISyntaxException {
-            RequestHeaderAccessor requestHeaderAccessor = RequestHeaderAccessor.INSTANCE;
-            return startSpan(tracer, adapter, request, httpHost, requestHeaderAccessor, requestHeaderAccessor);
+            return startSpan(adapter, request, httpHost, RequestHeaderAccessor.INSTANCE);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

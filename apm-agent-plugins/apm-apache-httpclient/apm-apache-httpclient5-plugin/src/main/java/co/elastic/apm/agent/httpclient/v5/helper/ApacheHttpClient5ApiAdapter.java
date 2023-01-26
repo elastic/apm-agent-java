@@ -5,11 +5,12 @@ import org.apache.hc.client5.http.CircularRedirectException;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.HttpRequest;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<ClassicHttpRequest, HttpHost, CloseableHttpResponse> {
+public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<ClassicHttpRequest, HttpRequest, HttpHost, CloseableHttpResponse> {
     private static final ApacheHttpClient5ApiAdapter INSTANCE = new ApacheHttpClient5ApiAdapter();
 
     private ApacheHttpClient5ApiAdapter() {

@@ -88,13 +88,13 @@ public class RequestChannelWrapper implements RequestChannel, Recyclable {
                 HttpClientHelper.setDestinationServiceDetails(span, protocol, host, port);
             }
 
-//            if (!TraceContext.containsTraceContextTextHeaders(httpRequest, RequestHeaderAccessor.INSTANCE)) {
-//                if (span != null) {
-//                    span.propagateTraceContext(httpRequest, RequestHeaderAccessor.INSTANCE);
-//                } else if (parent != null) {
-//                    parent.propagateTraceContext(httpRequest, RequestHeaderAccessor.INSTANCE);
-//                }
-//            }
+            if (!TraceContext.containsTraceContextTextHeaders(httpRequest, RequestHeaderAccessor.INSTANCE)) {
+                if (span != null) {
+                    span.propagateTraceContext(httpRequest, RequestHeaderAccessor.INSTANCE);
+                } else if (parent != null) {
+                    parent.propagateTraceContext(httpRequest, RequestHeaderAccessor.INSTANCE);
+                }
+            }
         }
 
         if (parent != null) {
