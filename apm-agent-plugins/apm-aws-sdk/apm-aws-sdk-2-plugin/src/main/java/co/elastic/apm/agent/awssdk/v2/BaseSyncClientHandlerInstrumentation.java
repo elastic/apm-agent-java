@@ -39,6 +39,7 @@ import software.amazon.awssdk.core.client.handler.ClientExecutionParams;
 import software.amazon.awssdk.core.http.ExecutionContext;
 
 import javax.annotation.Nullable;
+import java.lang.management.ManagementFactory;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,11 +51,13 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumentation {
     //Coretto causes sigsegv crashes when you try to access a throwable if it thinks
     //it went out of scope, which it seems to for the instrumented throwable access
-    private static final RedactedException REDACTED = new RedactedException();
+    static final String AWS_CLASS_NAME = "software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler";
+    //package access and non-final so that tests can replace this
+    static JvmRuntimeInfo JVM_RUNTIME_INFO = JvmRuntimeInfo.ofCurrentVM();
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler");
+        return named(AWS_CLASS_NAME);
     }
 
     @Override
@@ -110,8 +113,8 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
                 Span span = (Span) spanObj;
                 span.deactivate();
                 if (thrown != null) {
-                    if (JvmRuntimeInfo.ofCurrentVM().isCoretto() && JvmRuntimeInfo.ofCurrentVM().getMajorVersion() > 16) {
-                        span.captureException(REDACTED);
+                    if (JVM_RUNTIME_INFO.isCoretto() && JVM_RUNTIME_INFO.getMajorVersion() > 16) {
+                        span.captureException(RedactedException.getInstance(AWS_CLASS_NAME));
                     } else {
                         span.captureException(thrown);
                     }
@@ -134,9 +137,35 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
     }
 
     static class RedactedException extends Exception {
-        //Only the protected Throwable constructor let's you skip the stack trace
+        // explicitly not synchronizing this, if we create extra instances
+        // it doesn't matter apart from a little extra overhead and garbage
+        static RedactedException INSTANCE;
+
+        static void resetInstance() {
+            INSTANCE = null;
+        }
+
         private RedactedException() {
-            super("Unable to provide details of the error", null, false, false);
+            super("Unable to provide details of the error");
+        }
+
+        static RedactedException getInstance(String classname) {
+            if (INSTANCE == null) {
+                INSTANCE = new RedactedException();
+                StackTraceElement[] stack = INSTANCE.getStackTrace();
+                int stackElementToStartAt = 0;
+                for (; stackElementToStartAt < stack.length; stackElementToStartAt++) {
+                    if (stack[stackElementToStartAt].getClassName().equals(classname)) {
+                        break;
+                    }
+                }
+                if (stackElementToStartAt > 0 && stackElementToStartAt < stack.length) {
+                    StackTraceElement[] newstack = new StackTraceElement[stack.length-stackElementToStartAt];
+                    System.arraycopy(stack, stackElementToStartAt, newstack, 0, newstack.length);
+                    INSTANCE.setStackTrace(newstack);
+                }
+            }
+            return INSTANCE;
         }
     }
 }
