@@ -23,6 +23,7 @@ import co.elastic.apm.agent.awssdk.v2.helper.S3Helper;
 import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
 import co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper.MessageListWrapper;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
@@ -41,12 +42,18 @@ import javax.annotation.Nullable;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumentation {
+    //Coretto causes sigsegv crashes when you try to access a throwable if it thinks
+    //it went out of scope, which it seems to for the instrumented throwable access
+    //package access and non-final so that tests can replace this
+    static JvmRuntimeInfo JVM_RUNTIME_INFO = JvmRuntimeInfo.ofCurrentVM();
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -99,14 +106,19 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
                                          @Advice.Argument(value = 1) ExecutionContext executionContext,
                                          @Nullable @Advice.Enter Object spanObj,
                                          @Nullable @Advice.Thrown Throwable thrown,
-                                         @Nullable @Advice.Return Object sdkResponse) {
+                                         @Nullable @Advice.Return Object sdkResponse,
+                                         @Advice.This Object thiz) {
             String awsService = executionContext.executionAttributes().getAttribute(AwsSignerExecutionAttribute.SERVICE_NAME);
             SdkRequest sdkRequest = clientExecutionParams.getInput();
             if (spanObj instanceof Span) {
                 Span span = (Span) spanObj;
                 span.deactivate();
                 if (thrown != null) {
-                    span.captureException(thrown);
+                    if (JVM_RUNTIME_INFO.isCoretto() && JVM_RUNTIME_INFO.getMajorVersion() > 16) {
+                        span.captureException(RedactedException.getInstance(thiz.getClass().getName()));
+                    } else {
+                        span.captureException(thrown);
+                    }
                     span.withOutcome(Outcome.FAILURE);
                 } else {
                     span.withOutcome(Outcome.SUCCESS);
@@ -122,6 +134,36 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
             if ("Sqs".equalsIgnoreCase(awsService) && sdkResponse instanceof SdkResponse) {
                 MessageListWrapper.registerWrapperListForResponse(sdkRequest, (SdkResponse) sdkResponse, SQSHelper.getInstance().getTracer());
             }
+        }
+    }
+
+    static class RedactedException extends Exception {
+        //package access and non-final so that tests can access this
+        static ConcurrentMap<String,RedactedException> Exceptions = new ConcurrentHashMap<>();
+
+        private RedactedException() {
+            super("Unable to provide details of the error");
+        }
+
+        static RedactedException getInstance(String classname) {
+            if (!Exceptions.containsKey(classname)) {
+                // race but if we create extra instances it doesn't matter apart from a little extra overhead and garbage
+                RedactedException newException = new RedactedException();
+                StackTraceElement[] stack = newException.getStackTrace();
+                int stackElementToStartAt = 0;
+                for (; stackElementToStartAt < stack.length; stackElementToStartAt++) {
+                    if (stack[stackElementToStartAt].getClassName().equals(classname)) {
+                        break;
+                    }
+                }
+                if (stackElementToStartAt > 0 && stackElementToStartAt < stack.length) {
+                    StackTraceElement[] newstack = new StackTraceElement[stack.length-stackElementToStartAt];
+                    System.arraycopy(stack, stackElementToStartAt, newstack, 0, newstack.length);
+                    newException.setStackTrace(newstack);
+                }
+                Exceptions.putIfAbsent(classname, newException);
+            }
+            return Exceptions.get(classname);
         }
     }
 }
