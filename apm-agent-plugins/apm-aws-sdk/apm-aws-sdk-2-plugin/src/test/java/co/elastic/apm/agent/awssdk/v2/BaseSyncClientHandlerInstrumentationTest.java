@@ -24,10 +24,10 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.auth.signer.AwsSignerExecutionAttribute;
 import software.amazon.awssdk.core.SdkRequest;
-import software.amazon.awssdk.core.client.config.SdkClientConfiguration;
 import software.amazon.awssdk.core.client.handler.ClientExecutionParams;
 import software.amazon.awssdk.core.http.ExecutionContext;
 import software.amazon.awssdk.core.interceptor.ExecutionAttributes;
@@ -36,36 +36,37 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class BaseSyncClientHandlerInstrumentationTest {
 
+    @BeforeEach
+    public void clearRedactedExceptions() {
+        BaseSyncClientHandlerInstrumentation.RedactedException.Exceptions.clear();
+        assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.Exceptions).isEmpty();
+
+    }
+
     @Test
     public void checkNoRedactedExceptionIfNoExceptionThrown() {
-        BaseSyncClientHandlerInstrumentation.RedactedException.resetInstance();
-        BaseSyncClientHandlerInstrumentation.RedactedException instance = BaseSyncClientHandlerInstrumentation.RedactedException.INSTANCE;
-        assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.INSTANCE).isNull();
         BaseSyncClientHandlerInstrumentation.JVM_RUNTIME_INFO = new JvmRuntimeInfo("17.0.1", "OpenJDK 64-Bit Server VM", "Eclipse Adoptium", "17.0.1+12");
         assertThat(BaseSyncClientHandlerInstrumentation.JVM_RUNTIME_INFO.isCoretto()).isFalse();
         assertThat(exerciseRedactedException(null)).isEqualTo(Outcome.SUCCESS);
-        assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.INSTANCE).isNull();
+        assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.Exceptions).isEmpty();
     }
 
     @Test
     public void checkRedactedExceptionWhenExceptionThrownButNotCorretto() {
-        BaseSyncClientHandlerInstrumentation.RedactedException.resetInstance();
-        assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.INSTANCE).isNull();
         BaseSyncClientHandlerInstrumentation.JVM_RUNTIME_INFO = new JvmRuntimeInfo("17.0.1", "OpenJDK 64-Bit Server VM", "Eclipse Adoptium", "17.0.1+12");
         assertThat(BaseSyncClientHandlerInstrumentation.JVM_RUNTIME_INFO.isCoretto()).isFalse();
         assertThat(exerciseRedactedException(new Exception("test1"))).isEqualTo(Outcome.FAILURE);
-        assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.INSTANCE).isNull();
+        assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.Exceptions).isEmpty();
     }
 
     @Test
     public void checkRedactedExceptionWhenExceptionThrownOnCorretto17() {
-        BaseSyncClientHandlerInstrumentation.RedactedException.resetInstance();
-        assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.INSTANCE).isNull();
         BaseSyncClientHandlerInstrumentation.JVM_RUNTIME_INFO = new JvmRuntimeInfo("17.0.5", "OpenJDK 64-Bit Server VM", "Amazon.com Inc.", "17.0.5+8-LTS");
         assertThat(BaseSyncClientHandlerInstrumentation.JVM_RUNTIME_INFO.isCoretto()).isTrue();
         assertThat(BaseSyncClientHandlerInstrumentation.JVM_RUNTIME_INFO.getMajorVersion()).isGreaterThan(16);
-        assertThat(exerciseRedactedException(new Exception("test1"))).isEqualTo(Outcome.FAILURE);
-        assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.INSTANCE).isNotNull();
+        assertThat(exerciseRedactedException(new Exception("test2"))).isEqualTo(Outcome.FAILURE);
+        assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.Exceptions).isNotEmpty();
+        assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.Exceptions.get(this.getClass().getName())).isNotNull();
     }
 
     public Outcome exerciseRedactedException(Exception canBeNull) {
@@ -99,22 +100,28 @@ public class BaseSyncClientHandlerInstrumentationTest {
             )
             .build();
         ClientExecutionParams<SdkRequest,?> clientExecutionParams = new ClientExecutionParams<>();
-        BaseSyncClientHandlerInstrumentation.AdviceClass.exitDoExecute(clientExecutionParams, executionContext, span, canBeNull, null);
+        BaseSyncClientHandlerInstrumentation.AdviceClass.exitDoExecute(clientExecutionParams, executionContext, span, canBeNull, null, this);
         return span.getOutcome();
     }
 
     @Test
-    public void checkRedactedExceptionStackTraceIsCorrect() {
-        BaseSyncClientHandlerInstrumentation.RedactedException.resetInstance();
-        ClassLevel1.level1("won't match");
-        Exception exception = BaseSyncClientHandlerInstrumentation.RedactedException.getInstance(null);
-        assertThat(exception.getStackTrace()[0].getClassName()).isEqualTo(BaseSyncClientHandlerInstrumentation.RedactedException.class.getName());
+    public void checkRedactedExceptionStackTraceIsCorrectForNoMatchingClass() {
+        checkRedactedExceptionStackTraceFor("won't match any class", BaseSyncClientHandlerInstrumentation.RedactedException.class.getName());
+    }
 
+    @Test
+    public void checkRedactedExceptionStackTraceIsCorrectForClasslevel2() {
         String fakeTopOfStackClassname = ClassLevel2.class.getName();
-        BaseSyncClientHandlerInstrumentation.RedactedException.resetInstance();
-        ClassLevel1.level1(fakeTopOfStackClassname);
-        exception = BaseSyncClientHandlerInstrumentation.RedactedException.getInstance(null);
-        assertThat(exception.getStackTrace()[0].getClassName()).isEqualTo(fakeTopOfStackClassname);
+        checkRedactedExceptionStackTraceFor(fakeTopOfStackClassname, fakeTopOfStackClassname);
+    }
+
+    public void checkRedactedExceptionStackTraceFor(String classname, String matches) {
+        ClassLevel1.level1(classname);
+        BaseSyncClientHandlerInstrumentation.RedactedException exception = BaseSyncClientHandlerInstrumentation.RedactedException.getInstance(classname);
+        assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.Exceptions).isNotEmpty();
+        assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.Exceptions.get(classname)).isNotNull();
+        assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.Exceptions.get(classname)).isEqualTo(exception);
+        assertThat(exception.getStackTrace()[0].getClassName()).isEqualTo(matches);
     }
 
     private static void level4(String fakeTopOfStackClassname) {
