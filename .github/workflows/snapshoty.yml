@@ -13,7 +13,12 @@ on:
     - 'docs/**'
 
 env:
-  MAVEN_CONFIG: "-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25"
+  MAVEN_CONFIG: >-
+    -V
+    -B
+    -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+    -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3
+    -Dmaven.wagon.httpconnectionManager.ttlSeconds=25
   JAVA_VERSION: 17
   JAVA_DIST: adopt
   GOAL: clean install -DskipTests=true -Dmaven.javadoc.skip=true
