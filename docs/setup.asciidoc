@@ -37,6 +37,28 @@ If {apm-guide-ref}/agent-tls.html[SSL/TLS communication] is enabled on the APM S
 Learn how to set up AWS Lambda functions tracing in our <<aws-lambda, Lambda setup guide>>.
 
 [float]
+[[security-manager]]
+=== Using with Security Manager enabled
+
+The agent should work as expected on JVMs with an enabled `SecurityManager`, provided that it is granted with `java.security.AllPermission`.
+Make sure that the following snippet is added to an effective* policy (replace with the real path** to the agent jar):
+```
+grant codeBase "file:</path/to/elastic-apm-agent.jar>" {
+    permission java.security.AllPermission;
+};
+```
+If you see a `java.lang.SecurityException` exception (for example a - `java.security.AccessControlException`) after verifying the above
+`grant` snippet is effectively applied, open an issue in our https://github.com/elastic/apm-agent-java[GitHub repo] with a description
+and the full stack trace.
+
+{empty}* it is possible to have multiple policy files taking effect at the same time on a single JVM. The policy entry above can be added
+to an existing policy or can be appended through the `java.security.policy` system property. See
+https://docs.oracle.com/javase/8/docs/technotes/guides/security/PolicyFiles.html[documentation] for more details.
+
+{empty}** you can make use of the https://docs.oracle.com/javase/8/docs/technotes/guides/security/PolicyFiles.html#PropertyExp[property
+expansion] capability for specifying the agent jar path.
+
+[float]
 [[supported-technologies]]
 === Supported technologies
 

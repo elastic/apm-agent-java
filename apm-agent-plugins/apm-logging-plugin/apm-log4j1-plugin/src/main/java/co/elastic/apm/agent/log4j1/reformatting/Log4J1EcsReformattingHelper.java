@@ -18,23 +18,27 @@
  */
 package co.elastic.apm.agent.log4j1.reformatting;
 
+import co.elastic.apm.agent.log4j1.sending.LogSenderAppender;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
 
+import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.logging.log4j.EcsLayout;
+import org.apache.log4j.Appender;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Layout;
 import org.apache.log4j.RollingFileAppender;
 import org.apache.log4j.WriterAppender;
+import org.apache.log4j.spi.LoggingEvent;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Map;
 
-class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAppender, Layout> {
+class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAppender, Appender, Layout, LoggingEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(Log4J1EcsReformattingHelper.class);
 
@@ -60,7 +64,7 @@ class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAp
     @Override
     protected Layout createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceVersion,
                                         @Nullable String serviceNodeName, @Nullable Map<String, String> additionalFields,
-                                        Layout originalFormatter) {
+                                        @Nullable Layout originalFormatter) {
         EcsLayout ecsLayout = new EcsLayout();
         ecsLayout.setServiceName(serviceName);
         ecsLayout.setServiceVersion(serviceVersion);
@@ -110,4 +114,15 @@ class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAp
     protected void closeShadeAppender(WriterAppender shadeAppender) {
         shadeAppender.close();
     }
+
+    @Override
+    protected Appender createAndStartLogSendingAppender(Reporter reporter, Layout formatter) {
+        return new LogSenderAppender(reporter, formatter);
+    }
+
+    @Override
+    protected void append(LoggingEvent logEvent, Appender appender) {
+        appender.doAppend(logEvent);
+    }
+
 }

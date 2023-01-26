@@ -95,6 +95,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
             .withAction(SPAN_ACTION)
             .appendToName("Elasticsearch: ").appendToName(method).appendToName(" ").appendToName(endpoint);
         span.getContext().getDb().withType(ELASTICSEARCH);
+        span.getContext().getServiceTarget().withType(ELASTICSEARCH);
         span.activate();
 
         if (span.isSampled()) {
@@ -108,7 +109,6 @@ public class ElasticsearchRestClientInstrumentationHelper {
                     }
                 }
             }
-            span.getContext().getServiceTarget().withType(ELASTICSEARCH);
         }
         return span;
     }
@@ -119,12 +119,16 @@ public class ElasticsearchRestClientInstrumentationHelper {
             int statusCode = -1;
             String address = null;
             int port = -1;
+            String cluster = null;
             if (response != null) {
                 HttpHost host = response.getHost();
                 address = host.getHostName();
                 port = host.getPort();
                 url = host.toURI();
                 statusCode = response.getStatusLine().getStatusCode();
+
+                cluster = response.getHeader("x-found-handling-cluster");
+
             } else if (t != null) {
                 if (t instanceof ResponseException) {
                     ResponseException esre = (ResponseException) t;
@@ -145,6 +149,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
             }
             span.getContext().getHttp().withStatusCode(statusCode);
             span.getContext().getDestination().withAddress(address).withPort(port);
+            span.getContext().getServiceTarget().withName(cluster);
         } finally {
             span.end();
         }

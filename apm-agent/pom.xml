@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.34.2-SNAPSHOT</version>
+        <version>1.35.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent</artifactId>
@@ -38,7 +38,12 @@
         <!--Agent plugins, sorted alphabetically -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-apache-httpclient-plugin</artifactId>
+            <artifactId>apm-apache-httpclient3-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-apache-httpclient4-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -168,12 +173,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-lettuce-plugin</artifactId>
+            <artifactId>apm-kafka-spring-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-log-shipper-plugin</artifactId>
+            <artifactId>apm-lettuce-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -204,6 +209,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-slf4j-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-tomcat-logging-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -359,6 +369,12 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-aws-sdk-2-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-finagle-httpclient-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 

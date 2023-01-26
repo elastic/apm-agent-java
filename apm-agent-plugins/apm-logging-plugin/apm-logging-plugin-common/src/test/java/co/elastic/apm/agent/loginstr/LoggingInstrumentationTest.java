@@ -30,6 +30,8 @@ import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,7 +57,6 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 public abstract class LoggingInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -87,6 +88,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         utcTimestampFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
+    @Before
     @BeforeEach
     public void setup() throws Exception {
         doReturn(SERVICE_VERSION).when(config.getConfig(CoreConfiguration.class)).getServiceVersion();
@@ -117,7 +119,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
             dirName = dir.toString();
         }
 
-        when(loggingConfig.getLogEcsFormattingDestinationDir()).thenReturn(dirName);
+        doReturn(dirName).when(loggingConfig).getLogEcsFormattingDestinationDir();
 
         // ensure that the files that are expected to be created by tests do not exist when the test starts
         // deleting all the '*.ecs.json*' files would also delete other tests results and make debugging harder
@@ -127,6 +129,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         Files.deleteIfExists(Paths.get(getLogReformattingConsoleFilePath() + ".1"));
     }
 
+    @After
     @AfterEach
     public void closeLogger() {
         childSpan.deactivate().end();
@@ -269,6 +272,26 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     }
 
     @Test
+    public void testSendLogs() {
+        doReturn(Boolean.TRUE).when(loggingConfig).getSendLogs();
+
+        logger.trace(TRACE_MESSAGE);
+        logger.debug(DEBUG_MESSAGE);
+        logger.warn(WARN_MESSAGE);
+        logger.error(ERROR_MESSAGE, new Throwable());
+
+        List<JsonNode> logs = reporter.getLogs()
+            .stream()
+            // running test with surefire and within IDE do not produce the same 'event.dataset'
+            .filter(log -> log.get("event.dataset").textValue().endsWith(".FILE"))
+            .collect(Collectors.toList());
+        assertThat(logs).hasSize(4);
+        for (JsonNode ecsLogLineTree : logs) {
+            verifyEcsLogLine(ecsLogLineTree);
+        }
+    }
+
+    @Test
     public void testEmptyFormatterAllowList() throws Exception {
         initializeReformattingDir("disabled");
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
@@ -359,7 +382,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     private void verifyErrorCaptureAndCorrelation(boolean isErrorLine, JsonNode ecsLogLineTree) {
         final JsonNode errorJsonNode = ecsLogLineTree.get(AbstractLogCorrelationHelper.ERROR_ID_MDC_KEY);
         if (isErrorLine) {
-            assertThat(errorJsonNode).isNotNull();
+            assertThat(errorJsonNode).describedAs("missing error ID").isNotNull();
             List<ErrorCapture> errors = reporter.getErrors().stream()
                 .filter(error -> errorJsonNode.textValue().equals(error.getTraceContext().getId().toString()))
                 .collect(Collectors.toList());
@@ -429,10 +452,10 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     private void verifyLogCorrelation(JsonNode ecsLogLineTree, boolean isErrorLine) {
         if (isLogCorrelationSupported()) {
             JsonNode traceId = ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY);
-            assertThat(traceId).withFailMessage("Logging correlation does not work as expected").isNotNull();
+            assertThat(traceId).describedAs("Logging correlation does not work as expected: missing trace ID").isNotNull();
             assertThat(traceId.textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
             JsonNode transactionId = ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY);
-            assertThat(transactionId).withFailMessage("Logging correlation does not work as expected").isNotNull();
+            assertThat(transactionId).describedAs("Logging correlation does not work as expected: missing transaction ID").isNotNull();
             assertThat(transactionId.textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
             verifyErrorCaptureAndCorrelation(isErrorLine, ecsLogLineTree);
         } else {
@@ -459,7 +482,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     public void testReformattedLogRolling() throws IOException {
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
         initializeReformattingDir("rolling");
-        when(loggingConfig.getLogFileSize()).thenReturn(100L);
+        doReturn(100L).when(loggingConfig).getLogFileSize();
         logger.trace("First line");
         waitForFileRolling();
         logger.debug("Second Line");

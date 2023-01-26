@@ -24,6 +24,8 @@ import co.elastic.apm.agent.loginstr.LoggingInstrumentationTest;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -79,7 +81,41 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
         public static final CustomLevel TRACE = new CustomLevel("TRACE", 400);
     }
 
-    private static class JulLoggerFacade implements LoggerFacade {
+    private static class JulLoggerFacade extends AbstractJulLoggerFacade {
+
+        @Override
+        protected void resetRemovedHandler() {
+            try {
+                if (Arrays.stream(julLogger.getHandlers()).noneMatch(handler -> handler instanceof FileHandler)) {
+                    julLogger.addHandler(new FileHandler());
+                }
+                if (Arrays.stream(julLogger.getHandlers()).noneMatch(handler -> handler instanceof ConsoleHandler)) {
+                    julLogger.addHandler(new ConsoleHandler());
+                }
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+
+        @Override
+        public String getLogFilePath() {
+            for (Handler loggerHandler : julLogger.getHandlers()) {
+                if (loggerHandler instanceof FileHandler) {
+                    // no API for that, so we use reflection for tests and the field in the instrumentation
+                    try {
+                        File[] files = getField(loggerHandler,"files");
+                        return files[0].getAbsolutePath();
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to get log file path through reflection", e);
+                    }
+                }
+            }
+            throw new IllegalStateException("Couldn't find a FileHandler for logger " + julLogger.getName());
+        }
+    }
+
+    protected abstract static class AbstractJulLoggerFacade implements LoggerFacade {
 
         static {
             try {
@@ -89,33 +125,18 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
             }
         }
 
-        private Logger julLogger;
+        protected Logger julLogger;
+
+        protected abstract void resetRemovedHandler();
 
         @Override
         public void open() {
             julLogger = Logger.getLogger("Test-File-Logger");
 
-            boolean hasFileHandler = false;
-            boolean hasConsoleHanler = false;
-            for (Handler handler : julLogger.getHandlers()) {
-                hasFileHandler = hasFileHandler || handler instanceof FileHandler;
-                hasConsoleHanler = hasConsoleHanler || handler instanceof ConsoleHandler;
-            }
-
-            try {
-                if (!hasFileHandler) {
-                    // In case there is no FileHandler as it was removed through close().
-                    // The reason not to re-add through close() is that this deletes the file and sometimes we want to manually review the
-                    // original log file after the test ends.
-                    julLogger.addHandler(new FileHandler());
-                }
-                if (!hasConsoleHanler) {
-                    // same for console appender
-                    julLogger.addHandler(new ConsoleHandler());
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            // In case there is no file handler as it was removed through close().
+            // The reason not to re-add through close() is that this deletes the file and sometimes we want to manually review the
+            // original log file after the test ends.
+            resetRemovedHandler();
         }
 
         @Override
@@ -180,5 +201,10 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
             julLogger.log(CustomLevel.ERROR, message, throwable);
         }
 
+        protected <T extends Handler,X> X getField(T handler, String fieldName) throws IllegalAccessException, NoSuchFieldException {
+            Field field = handler.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return (X)field.get(handler);
+        }
     }
 }

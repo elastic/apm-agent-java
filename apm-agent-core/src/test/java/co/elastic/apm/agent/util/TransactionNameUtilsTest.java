@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 class TransactionNameUtilsTest extends AbstractInstrumentationTest {
 
@@ -40,7 +40,7 @@ class TransactionNameUtilsTest extends AbstractInstrumentationTest {
     @BeforeEach
     void beforeEach() {
         webConfig = config.getConfig(WebConfiguration.class);
-        when(webConfig.isUsePathAsName()).thenReturn(true);
+        doReturn(true).when(webConfig).isUsePathAsName();
     }
 
     @ParameterizedTest

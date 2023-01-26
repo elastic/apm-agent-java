@@ -25,6 +25,7 @@ import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.type.TypeDescription;
@@ -113,7 +114,7 @@ public abstract class AbstractJobTransactionNameInstrumentation extends TracerAw
 
         @Nullable
         private static Transaction createAndActivateTransaction(Class<?> originClass, String name) {
-            Transaction transaction = GlobalTracer.get().startRootTransaction(originClass.getClassLoader());
+            Transaction transaction = GlobalTracer.get().startRootTransaction(PrivilegedActionUtils.getClassLoader(originClass));
             if (transaction != null) {
                 transaction.withName(name)
                     .withType(AbstractJobTransactionNameInstrumentation.TRANSACTION_TYPE)

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.lettuce;
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,11 +29,11 @@ import java.util.List;
 @RunWith(Parameterized.class)
 public class Lettuce3VersionsIT {
 
-    private final TestClassWithDependencyRunner runner;
+    private final JUnit4TestClassWithDependencyRunner runner;
 
     public Lettuce3VersionsIT(List<String> dependencies) throws Exception {
         System.setProperty("io.lettuce.core.kqueue", "false");
-        runner = new TestClassWithDependencyRunner(dependencies, Lettuce3InstrumentationIT.class);
+        runner = new JUnit4TestClassWithDependencyRunner(dependencies, Lettuce3InstrumentationIT.class);
     }
 
     @Parameterized.Parameters(name= "{0}")

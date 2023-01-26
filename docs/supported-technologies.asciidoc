@@ -314,7 +314,13 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |Apache HttpClient
 |4.3+
 |
-| 0.7.0
+| 0.7.0 (4.3+)
+  1.8.0 (4.0+)
+
+|Apache HttpClient (Legacy)
+|3.0+
+| Requires setting <<config-instrument-ancient-bytecode, `instrument_ancient_bytecode`>> to `true`
+| 1.35.0
 
 |Apache HttpAsyncClient
 |4.0+
@@ -367,6 +373,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |5.2.3+
 |
 |1.33.0 (experimental), 1.34.0 (GA)
+
+|Finagle Http Client
+| 22+
+|
+| 1.35.0
 
 |===
 
@@ -532,31 +543,36 @@ NOTE: only classes from the quartz-jobs dependency will be instrumented automati
 [[supported-logging-frameworks]]
 === Logging frameworks
 
+There are multiple log-related features in the agent and their support depend on the logging framework:
+
+- *<<log-correlation-ids, Log Correlation>>*:
+    The agent automatically injects `trace.id`, `transaction.id` and `error.id` into the MDC implementation (see below for framework specific MDC implementations used. MDC = Mapped Diagnostic Context, a standard way to enrich log messages with additional information).
+
+- *<<log-error-capturing, Log Error capturing>>*:
+    Automatically captures exceptions for calls like `logger.error("message", exception)`.
+
+- *<<config-log-ecs-reformatting,ECS reformatting>>*:
+    When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
+    ECS-compatible format.
+
+- *<<ecs-logging-service-fields, ECS Logging service fields>>*: For users of `ecs-logging-java`, the agent sets the service name and version for the `EcsLayout` if not provided explicitly by the
+application.
+
 |===
 |Framework |Supported versions | Description | Since
 
 |slf4j
 |1.4.1+
-|Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0).
-When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
-
-|1.10.0
+|
+|Error capturing - 1.10.0
 
 |log4j2
 |Trace correlation - 2.0+
 
 ECS Reformatting - 2.6+
 
-|The agent adds https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entries for active `trace.id`,
-`transaction.id` and `error.id`.
+|https://logging.apache.org/log4j/2.x/manual/thread-context.html[`org.apache.logging.log4j.ThreadContext`] is used for correlation.
 
-The agent sets the service name for the `EcsLayout` if not provided explicitly (since 1.29.0).
-
-When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
-ECS-compatible format (since 1.22.0, experimental)
-
-Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
-When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
 |Trace correlation - 1.13.0
 
 Error capturing - 1.10.0
@@ -571,14 +587,8 @@ ECS Reformatting - 1.22.0
 
 ECS Reformatting - 1.2.17
 
-|The agent adds https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[MDC] entries for active `trace.id`,
-`transaction.id` and `error.id`.
+|https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[`org.apache.log4j.MDC`] is used for correlation.
 
-When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
-ECS-compatible format (since 1.22.0, experimental)
-
-Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
-When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well.
 |Trace correlation - 1.13.0
 
 ECS Reformatting - 1.22.0
@@ -587,27 +597,38 @@ Error capturing - 1.30.0
 
 |Logback
 |1.1.0+
-|The agent adds https://www.slf4j.org/api/org/slf4j/MDC.html[slf4j MDC] entries for active `trace.id`, `transaction.id` and `error.id`.
+|https://www.slf4j.org/api/org/slf4j/MDC.html[`org.slf4j.MDC`] is used for correlation.
 
-When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
-ECS-compatible format (since 1.22.0, experimental)
 |Trace correlation - 1.0.0
 
 ECS Reformatting - 1.22.0
 
 |JBoss Logging
 |3.0.0+
-|The agent adds http://javadox.com/org.jboss.logging/jboss-logging/3.3.0.Final/org/jboss/logging/MDC.html[MDC]
-entries for `trace.id`, `transaction.id` and `error.id`.
-|1.23.0
-
-JBoss LogManager - 1.30.0
+| http://javadox.com/org.jboss.logging/jboss-logging/3.3.0.Final/org/jboss/logging/MDC.html[`org.jboss.logging.MDC`] is used for correlation.
+|Trace correlation - 1.23.0 (LogManager 1.30.0)
 
 |JUL - `java.util.logging`
 |All supported Java versions
-|When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
-ECS-compatible format
-|1.31.0
+|Trace correlation is only supported when used ECS logging library or with ECS Reformatting as JUL does
+not provide any MDC implementation.
+|Trace correlation - 1.35.0 (only when using ECS format as there is no MDC in JUL)
+
+ECS Reformatting - 1.31.0
+
+Error capturing - 1.31.0
+
+| Tomcat JULI
+| 7.0.0+
+|Trace correlation is only supported when used ECS logging library or with ECS Reformatting as JUL does
+not provide any MDC implementation.
+
+Tomcat access logs are not supported.
+|Trace correlation - 1.35.0 (only when using ECS format as there is no MDC in JUL)
+
+ECS Reformatting - 1.35.0
+
+Error capturing - 1.35.0 (through JUL)
 
 |===
 
@@ -700,7 +721,7 @@ If you are seeing gaps in the span timeline and want to include additional metho
 |Set the configuration option <<config-capture-jmx-metrics, `capture_jmx_metrics`>> in order to monitor any JMX metric.
 |1.11.0
 
-|Micrometer (<<metrics-micrometer-beta-caveats,beta>>)
+|Micrometer
 |Automatically detects and reports the metrics of each `MeterRegistry`.
  See <<metrics-micrometer>> for more details.
 |1.18.0
@@ -711,6 +732,3 @@ If you are seeing gaps in the span timeline and want to include additional metho
 [[supported-technologies-caveats]]
 === Caveats
 * Other JVM languages, like Scala, Kotlin and Groovy have not been tested yet.
-* The agent does currently not support running on JVMs with an enabled `SecurityManager`.
-  You may see exceptions like this: `java.security.AccessControlException: access denied ("java.lang.RuntimePermission" "getProtectionDomain")`.
-  Try to grant `java.security.AllPermission` to the agent.

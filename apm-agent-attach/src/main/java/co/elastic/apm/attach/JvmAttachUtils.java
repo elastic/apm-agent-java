@@ -52,5 +52,4 @@ public class JvmAttachUtils {
             throw new IllegalStateException("Error during attachment using: " + accessor, e);
         }
     }
-
 }

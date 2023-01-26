@@ -59,7 +59,7 @@ class DiscoveryRules {
     }
 
     public void includePid(String pid) {
-        include(new PidMatcher(pid));
+        discoveryRules.add(new DiscoveryRule(new PidMatcher(pid), MatcherType.INCLUDE, false));
     }
 
     public void excludePid(String pid) {
@@ -72,6 +72,15 @@ class DiscoveryRules {
 
     public void excludeUser(String user) {
         exclude(new UserMatcher(user));
+    }
+
+    public boolean isDiscoveryRequired() {
+        for (DiscoveryRule discoveryRule : discoveryRules) {
+            if (discoveryRule.isDiscoveryRequired()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean isMatching(JvmInfo vm, UserRegistry userRegistry) {
@@ -122,11 +131,21 @@ class DiscoveryRules {
     public static class DiscoveryRule implements Matcher {
 
         private final Matcher matcher;
-
         private final MatcherType matcherType;
+
+        /**
+         * Defining whether this rule requires executing JVM discovery operations
+         */
+        private final boolean isDiscoveryRequired;
+
         private DiscoveryRule(Matcher matcher, MatcherType matcherType) {
+            this(matcher, matcherType, true);
+        }
+
+        private DiscoveryRule(Matcher matcher, MatcherType matcherType, boolean isDiscoveryRequired) {
             this.matcher = matcher;
             this.matcherType = matcherType;
+            this.isDiscoveryRequired = isDiscoveryRequired;
         }
 
         public static DiscoveryRule include(Matcher matcher) {
@@ -139,6 +158,10 @@ class DiscoveryRules {
 
         public MatcherType getMatchingType() {
             return matcherType;
+        }
+
+        public boolean isDiscoveryRequired() {
+            return isDiscoveryRequired;
         }
 
         @Override

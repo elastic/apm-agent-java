@@ -38,7 +38,7 @@ import javax.annotation.Nullable;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 @SuppressWarnings("ConstantConditions")
 class SpanTypeBreakdownTest {
@@ -78,7 +78,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_disabled() {
-        when(tracer.getConfig(CoreConfiguration.class).isBreakdownMetricsEnabled()).thenReturn(false);
+        doReturn(false).when(tracer.getConfig(CoreConfiguration.class)).isBreakdownMetricsEnabled();
         createTransaction()
             .end(30);
         tracer.getMetricRegistry().flipPhaseAndReport(metricSets -> {
