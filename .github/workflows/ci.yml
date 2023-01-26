@@ -32,9 +32,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/workflows/build
+      - uses: .github/workflows/build
         with:
-          goal: ./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
+          command: ./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
 
@@ -42,9 +42,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/workflows/build
+      - uses: .github/workflows/build
         with:
-          goal: ./mvnw test
+          command: ./mvnw test
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
       - name: Store test results
@@ -58,9 +58,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/workflows/build
+      - uses: .github/workflows/build
         with:
-          goal: ./mvnw -q -P ci-non-application-server-integration-tests verify
+          command: ./mvnw -q -P ci-non-application-server-integration-tests verify
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
       - name: Store test results
@@ -74,9 +74,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/workflows/build
+      - uses: .github/workflows/build
         with:
-          goal: ./mvnw -q -P ci-application-server-integration-tests verify
+          command: ./mvnw -q -P ci-application-server-integration-tests verify
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
       - name: Store test results
@@ -90,9 +90,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/workflows/build
+      - uses: .github/workflows/build
         with:
-          goal: ./mvnw compile javadoc:javadoc
+          command: ./mvnw compile javadoc:javadoc
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
 
@@ -100,12 +100,15 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/workflows/build
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v3
         with:
-          goal: ./mvnw test
-          shell: 'pwsh'
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
+          cache: 'maven'
+
+      - run: ./mvnw test
 
   comp-jdk-test:
     runs-on: ubuntu-latest
@@ -114,9 +117,9 @@ jobs:
         version: [11, 19]
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/workflows/build
+      - uses: .github/workflows/build
         with:
-          goal: ./mvnw test
+          command: ./mvnw test
           java-version: ${{ matrix.version }}
           distribution: ${{ env.JAVA_DIST }}
       - name: Store test results
