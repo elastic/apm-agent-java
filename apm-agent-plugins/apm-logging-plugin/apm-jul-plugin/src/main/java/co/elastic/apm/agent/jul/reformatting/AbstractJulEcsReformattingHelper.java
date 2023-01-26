@@ -21,19 +21,15 @@ package co.elastic.apm.agent.jul.reformatting;
 import co.elastic.apm.agent.jul.sending.JulLogSenderHandler;
 import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
-import co.elastic.apm.agent.loginstr.reformatting.Utils;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.LoggerUtils;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.logging.AdditionalField;
 import co.elastic.logging.jul.EcsFormatter;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -107,7 +103,7 @@ public abstract class AbstractJulEcsReformattingHelper<T extends Handler> extend
         String pattern = null;
 
         try {
-            if (originalHandler instanceof FileHandler) {
+            if (isFileHandler(originalHandler)) {
                 pattern = getShadeFilePatternAndCreateDir();
             } else if (originalHandler instanceof ConsoleHandler) {
                 pattern = getShadeConsolePatternAndCreateDir();

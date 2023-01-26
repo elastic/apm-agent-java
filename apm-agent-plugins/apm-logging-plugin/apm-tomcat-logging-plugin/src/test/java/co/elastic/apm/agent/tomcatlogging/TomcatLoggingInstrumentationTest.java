@@ -31,6 +31,7 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import java.util.logging.SimpleFormatter;
 
@@ -61,14 +62,16 @@ public class TomcatLoggingInstrumentationTest extends JulInstrumentationTest {
         @Override
         protected void resetRemovedHandler() {
             if (Arrays.stream(julLogger.getHandlers()).noneMatch(handler -> handler instanceof FileHandler)) {
-                try {
-                    FileHandler fileHandler = new FileHandler();
-                    fileHandler.setFormatter(new SimpleFormatter());
-                    julLogger.addHandler(fileHandler);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                FileHandler fileHandler = new FileHandler();
+                fileHandler.setFormatter(new SimpleFormatter());
+                julLogger.addHandler(fileHandler);
             }
+            if (Arrays.stream(julLogger.getHandlers()).noneMatch(handler -> handler instanceof ConsoleHandler)) {
+                ConsoleHandler consoleHandler = new ConsoleHandler();
+                consoleHandler.setFormatter(new SimpleFormatter());
+                julLogger.addHandler(consoleHandler);
+            }
+
         }
 
         @Override

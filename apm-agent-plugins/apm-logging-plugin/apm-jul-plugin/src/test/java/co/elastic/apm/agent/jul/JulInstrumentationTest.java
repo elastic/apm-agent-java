@@ -59,11 +59,6 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
         return super.getLogReformattingConsoleFilePath() + ".0";
     }
 
-    @Override
-    protected boolean isLogCorrelationSupported() {
-        return false;
-    }
-
     /**
      * Custom log levels that match other logging frameworks
      */
