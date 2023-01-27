@@ -287,7 +287,6 @@ pipeline {
               agent { label 'microbenchmarks-pool' }
               options { skipDefaultCheckout() }
               environment {
-                NO_BUILD = "true"
                 PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
               }
               when {
