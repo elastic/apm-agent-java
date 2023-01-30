@@ -18,17 +18,18 @@
  */
 package co.elastic.apm.agent.esrestclient;
 
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.IOUtils;
+import co.elastic.apm.agent.util.LoggerUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;
@@ -36,7 +37,6 @@ import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.ResponseListener;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -44,6 +44,8 @@ import java.util.concurrent.CancellationException;
 public class ElasticsearchRestClientInstrumentationHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelper.class);
+
+    private static final Logger queryExtractionErrorLogger = LoggerUtils.logOnce(logger);
     private static final ElasticsearchRestClientInstrumentationHelper INSTANCE = new ElasticsearchRestClientInstrumentationHelper(GlobalTracer.requireTracerImpl());
 
     public static final List<WildcardMatcher> QUERY_WILDCARD_MATCHERS = Arrays.asList(
@@ -104,8 +106,8 @@ public class ElasticsearchRestClientInstrumentationHelper {
                 if (httpEntity != null && httpEntity.isRepeatable()) {
                     try {
                         IOUtils.readUtf8Stream(httpEntity.getContent(), span.getContext().getDb().withStatementBuffer());
-                    } catch (IOException e) {
-                        logger.error("Failed to read Elasticsearch client query from request body", e);
+                    } catch (Exception e) {
+                        queryExtractionErrorLogger.error("Failed to read Elasticsearch client query from request body", e);
                     }
                 }
             }
