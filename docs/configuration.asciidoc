@@ -129,6 +129,7 @@ Click on a key to get more information.
 ** <<config-config-file>>
 ** <<config-plugins-dir>>
 ** <<config-use-elastic-traceparent-header>>
+** <<config-disable-outgoing-tracecontext-headers>>
 ** <<config-span-min-duration>>
 ** <<config-cloud-provider>>
 ** <<config-enable-public-api-annotation-inheritance>>
@@ -1325,6 +1326,32 @@ for backwards compatibility with older versions of Elastic APM agents.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.use_elastic_traceparent_header` | `use_elastic_traceparent_header` | `ELASTIC_APM_USE_ELASTIC_TRACEPARENT_HEADER`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-disable-outgoing-tracecontext-headers]]
+==== `disable_outgoing_tracecontext_headers` (added[1.37.0])
+
+Use this option to disable TraceContext headers injection to any outgoing communication. 
+
+NOTE: disabling TraceContext headers injection means that {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing] 
+will not work on downstream services.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.disable_outgoing_tracecontext_headers` | `disable_outgoing_tracecontext_headers` | `ELASTIC_APM_DISABLE_OUTGOING_TRACECONTEXT_HEADERS`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -3781,6 +3808,17 @@ Example: `5ms`.
 # Default value: true
 #
 # use_elastic_traceparent_header=true
+
+# Use this option to disable TraceContext headers injection to any outgoing communication. 
+# 
+# NOTE: disabling TraceContext headers injection means that {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing] 
+# will not work on downstream services.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# disable_outgoing_tracecontext_headers=false
 
 # Sets the minimum duration of spans.
 # Spans that execute faster than this threshold are attempted to be discarded.
