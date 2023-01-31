@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.util.Version;
+import co.elastic.apm.agent.common.util.Version;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonReader;
 import com.dslplatform.json.Nullable;

@@ -21,7 +21,7 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.report.ssl.SslUtils;
 import co.elastic.apm.agent.util.UrlConnectionUtils;
-import co.elastic.apm.agent.util.Version;
+import co.elastic.apm.agent.common.util.Version;
 import co.elastic.apm.agent.util.VersionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;

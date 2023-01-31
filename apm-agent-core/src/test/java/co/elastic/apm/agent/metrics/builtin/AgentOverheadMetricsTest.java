@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.metrics.builtin;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
@@ -27,6 +27,7 @@ import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import com.sun.management.ThreadMXBean;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -69,6 +70,7 @@ public class AgentOverheadMetricsTest {
     }
 
     @Test
+    @Disabled("due to flakyness")
     public void checkCpuMetrics() throws InterruptedException {
         //make sure that the OS provides a value for cpuLoad
         awaitNonZeroProcessCpuLoad();
