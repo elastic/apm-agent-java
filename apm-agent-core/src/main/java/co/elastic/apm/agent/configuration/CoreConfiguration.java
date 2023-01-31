@@ -704,8 +704,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key("disable_outgoing_tracecontext_headers")
         .tags("added[1.37.0]")
         .configurationCategory(CORE_CATEGORY)
-        .description("Use this option to disable TraceContext headers injection to any outgoing communication. \n\n" +
-            "NOTE: disabling TraceContext headers injection means that {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing] \n" +
+        .description("Use this option to disable `tracecontext` headers injection to any outgoing communication. \n\n" +
+            "NOTE: Disabling `tracecontext` headers injection means that {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing] \n" +
             "will not work on downstream services.")
         .dynamic(true)
         .buildWithDefault(false);
