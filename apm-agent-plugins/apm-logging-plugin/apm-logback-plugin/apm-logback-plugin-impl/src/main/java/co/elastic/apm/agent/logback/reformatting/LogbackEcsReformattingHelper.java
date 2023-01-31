@@ -113,7 +113,7 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
         if (originalAppender instanceof FileAppender) {
             FileAppender<ILoggingEvent> fileAppender = (FileAppender<ILoggingEvent>) originalAppender;
             appenderFile = fileAppender.getFile();
-        } else if (originalAppender instanceof ConsoleAppender) {
+        } else if (isConsoleAppender(originalAppender)) {
             ConsoleAppender<ILoggingEvent> consoleAppender = (ConsoleAppender<ILoggingEvent>) originalAppender;
             appenderFile = Utils.normalizeEcsConsoleFileName(consoleAppender.getTarget(), consoleAppender.getName());
         }
@@ -178,4 +178,8 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
         appender.doAppend(logEvent);
     }
 
+    @Override
+    protected boolean isConsoleAppender(Appender<ILoggingEvent> appender) {
+        return appender instanceof ConsoleAppender;
+    }
 }

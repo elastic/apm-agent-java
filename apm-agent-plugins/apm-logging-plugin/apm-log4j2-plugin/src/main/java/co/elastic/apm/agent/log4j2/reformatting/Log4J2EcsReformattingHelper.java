@@ -181,4 +181,9 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
     protected void append(LogEvent logEvent, Appender appender) {
         appender.append(logEvent);
     }
+
+    @Override
+    protected boolean isConsoleAppender(Appender appender) {
+        return CONSOLE_APPENDER.equals(appender.getClass().getName());
+    }
 }

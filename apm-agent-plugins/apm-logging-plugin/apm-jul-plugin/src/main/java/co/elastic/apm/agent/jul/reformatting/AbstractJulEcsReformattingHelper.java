@@ -43,7 +43,7 @@ import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.StreamHandler;
 
-public abstract class AbstractJulEcsReformattingHelper<T extends Handler> extends AbstractEcsReformattingHelper<T, T, Formatter, LogRecord> {
+public abstract class AbstractJulEcsReformattingHelper<T extends Handler> extends AbstractEcsReformattingHelper<T, Handler, Formatter, LogRecord> {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractJulEcsReformattingHelper.class);
     private static final Logger oneTimeLogFileLimitWarningLogger = LoggerUtils.logOnce(logger);
@@ -105,7 +105,7 @@ public abstract class AbstractJulEcsReformattingHelper<T extends Handler> extend
         try {
             if (isFileHandler(originalHandler)) {
                 pattern = getShadeFilePatternAndCreateDir();
-            } else if (originalHandler instanceof ConsoleHandler) {
+            } else if (isConsoleAppender(originalHandler)) {
                 pattern = getShadeConsolePatternAndCreateDir();
             }
 
@@ -162,5 +162,10 @@ public abstract class AbstractJulEcsReformattingHelper<T extends Handler> extend
     @Override
     protected void append(LogRecord logEvent, Handler appender) {
         appender.publish(logEvent);
+    }
+
+    @Override
+    protected boolean isConsoleAppender(Handler appender) {
+        return appender instanceof ConsoleHandler;
     }
 }

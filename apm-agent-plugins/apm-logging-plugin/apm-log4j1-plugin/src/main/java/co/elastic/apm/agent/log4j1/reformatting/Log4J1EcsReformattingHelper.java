@@ -125,4 +125,8 @@ class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAp
         appender.doAppend(logEvent);
     }
 
+    @Override
+    protected boolean isConsoleAppender(Appender appender) {
+        return appender instanceof ConsoleAppender;
+    }
 }

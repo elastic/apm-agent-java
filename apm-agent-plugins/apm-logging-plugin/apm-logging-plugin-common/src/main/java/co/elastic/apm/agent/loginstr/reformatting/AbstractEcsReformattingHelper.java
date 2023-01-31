@@ -37,6 +37,7 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nullable;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -215,7 +216,20 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
             if (reformattingConfig == LogEcsReformatting.SHADE || reformattingConfig == LogEcsReformatting.REPLACE) {
                 Object ecsAppender = originalAppender2ecsAppender.get(appender);
                 if (ecsAppender == null) {
-                    ecsAppender = createAndMapShadeAppenderFor(appender);
+
+                    String reformatingDir = loggingConfiguration.getLogEcsFormattingDestinationDir();
+                    boolean isAbsoluteDir = reformatingDir != null && !reformatingDir.isEmpty() && Paths.get(reformatingDir).isAbsolute();
+
+                    if (reformattingConfig == LogEcsReformatting.SHADE && isConsoleAppender(appender) && !isAbsoluteDir) {
+                        // Unlike file-based appenders, the console-based appenders do not have an existing path from which
+                        // we could derive an ECS-formatted log file. As a consequence shading console output is only
+                        // supported when using an absolute path, otherwise it would write to the current working
+                        // directory and could lead to unexpected location for the reformatted log file.
+                        logger.info("Console output will not be shaded unless an absolute path for 'log_ecs_reformatting_dir' is set.");
+                    } else {
+                        ecsAppender = createAndMapShadeAppenderFor(appender);
+                    }
+
                 }
                 // if ECS-reformatting is configured to REPLACE the original file, and there is a valid shade appender, then
                 // it is safe enough to skip execution. And since we skip, no need to worry about nested calls.
@@ -224,6 +238,12 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
         }
         return false;
     }
+
+    /**
+     * @param appender appender instance
+     * @return {@literal true} if provided appender instance is a console logger.
+     */
+    protected abstract boolean isConsoleAppender(B appender);
 
     /**
      * Starts overriding the given appender - replaces formatter in original appender and handles mapping
