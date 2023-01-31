@@ -26,6 +26,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 
 import javax.annotation.Nullable;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import static co.elastic.apm.agent.loginstr.reformatting.Utils.normalizeEcsConsoleFileName;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
@@ -35,7 +38,7 @@ public class UtilsTest extends AbstractInstrumentationTest {
     private static final String fileSeparator = System.getProperty("file.separator");
 
     @Nullable
-    private final String logEcsFormattingDestinationDir = config.getConfig(LoggingConfiguration.class).getLogEcsFormattingDestinationDir();
+    private final Path logEcsFormattingDestinationDir = config.getConfig(LoggingConfiguration.class).getLogEcsFormattingDestinationDir();
 
     private String computeReformattedLogFilePathWithConfiguredDir(String logFilePath) {
         return Utils.computeLogReformattingFilePath(logFilePath, logEcsFormattingDestinationDir);
@@ -59,7 +62,7 @@ public class UtilsTest extends AbstractInstrumentationTest {
 
     @Test
     void testAlternativeLogReformattingDestination_AbsolutePath() {
-        String reformattedDir = "/some/alt/location";
+        Path reformattedDir = Paths.get("some", "alt", "location").toAbsolutePath();
         assertThat(Utils.computeLogReformattingFilePath("/test/absolute/path/app.log", reformattedDir)).isEqualTo(replaceFileSeparator("/some/alt/location/app.ecs.json"));
         assertThat(Utils.computeLogReformattingFilePath("test/relative/path/app.log", reformattedDir)).isEqualTo(replaceFileSeparator("/some/alt/location/app.ecs.json"));
         assertThat(Utils.computeLogReformattingFilePath("/app.log", reformattedDir)).isEqualTo(replaceFileSeparator("/some/alt/location/app.ecs.json"));
@@ -68,7 +71,7 @@ public class UtilsTest extends AbstractInstrumentationTest {
 
     @Test
     void testAlternativeLogsReformattingDestination_RelativePath() {
-        String reformattedDir = "some/alt/location";
+        Path reformattedDir = Paths.get("some", "alt", "location");
         assertThat(Utils.computeLogReformattingFilePath("/test/absolute/path/app.log", reformattedDir)).isEqualTo(replaceFileSeparator("/test/absolute/path/some/alt/location/app.ecs.json"));
         assertThat(Utils.computeLogReformattingFilePath("test/relative/path/app.log", reformattedDir)).isEqualTo(replaceFileSeparator("test/relative/path/some/alt/location/app.ecs.json"));
         assertThat(Utils.computeLogReformattingFilePath("/app.log", reformattedDir)).isEqualTo(replaceFileSeparator("/some/alt/location/app.ecs.json"));

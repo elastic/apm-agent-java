@@ -44,6 +44,8 @@ import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -368,9 +370,9 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     }
 
     @Nullable
-    public String getLogEcsFormattingDestinationDir() {
+    public Path getLogEcsFormattingDestinationDir() {
         String logReformattingDestDir = logEcsFormattingDestinationDir.get().trim();
-        return (logReformattingDestDir.isEmpty()) ? null : logReformattingDestDir;
+        return (logReformattingDestDir.isEmpty()) ? null : Paths.get(logReformattingDestDir);
     }
 
     public long getLogFileSize() {

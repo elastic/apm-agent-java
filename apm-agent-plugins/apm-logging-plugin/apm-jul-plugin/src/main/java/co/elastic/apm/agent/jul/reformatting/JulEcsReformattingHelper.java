@@ -84,7 +84,7 @@ class JulEcsReformattingHelper<T extends Handler> extends AbstractJulEcsReformat
             true);
     }
 
-    static String computeEcsFileHandlerPattern(String pattern, Path originalFilePath, @Nullable String configuredReformattingDir,
+    static String computeEcsFileHandlerPattern(String pattern, Path originalFilePath, @Nullable Path configuredReformattingDir,
                                                boolean createDirs) throws IOException {
         pattern = Utils.replaceFileExtensionToEcsJson(pattern);
         // if the pattern does not contain rotation component, append one at the end

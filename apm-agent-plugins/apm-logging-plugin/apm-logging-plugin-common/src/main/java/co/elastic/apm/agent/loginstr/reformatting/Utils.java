@@ -34,7 +34,7 @@ public class Utils {
      * @param originalLogFile the log file to which an ECS file path is required
      * @return the ECS log file path
      */
-    public static String computeLogReformattingFilePath(String originalLogFile, @Nullable String configuredReformattingDestinationDir) {
+    public static String computeLogReformattingFilePath(String originalLogFile, @Nullable Path configuredReformattingDestinationDir) {
         Path originalFilePath = Paths.get(originalLogFile);
         Path logFileName = Paths.get(replaceFileExtensionToEcsJson(originalFilePath.getFileName().toString()));
         Path reformattingDir = computeLogReformattingDir(originalFilePath, configuredReformattingDestinationDir);
@@ -45,13 +45,13 @@ public class Utils {
     }
 
     @Nullable
-    public static Path computeLogReformattingDir(Path originalFilePath, @Nullable String configuredReformattingDestinationDir) {
+    public static Path computeLogReformattingDir(Path originalFilePath, @Nullable Path configuredReformattingDestinationDir) {
         Path ecsDir;
         Path logsDir = originalFilePath.getParent();
         if (configuredReformattingDestinationDir == null) {
             ecsDir = logsDir;
         } else {
-            ecsDir = Paths.get(configuredReformattingDestinationDir);
+            ecsDir = configuredReformattingDestinationDir;
             if (!ecsDir.isAbsolute() && logsDir != null) {
                 ecsDir = logsDir.resolve(ecsDir);
             }

@@ -37,6 +37,7 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nullable;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
@@ -105,7 +106,7 @@ import java.util.Map;
  * @param <L> logging-framework-specific log event
  */
 @GlobalState
-public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
+public abstract class AbstractEcsReformattingHelper<A extends B, B, F, L> {
 
     private static final String ECS_LOGGING_PACKAGE_NAME = "co.elastic.logging";
 
@@ -217,8 +218,8 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
                 Object ecsAppender = originalAppender2ecsAppender.get(appender);
                 if (ecsAppender == null) {
 
-                    String reformatingDir = loggingConfiguration.getLogEcsFormattingDestinationDir();
-                    boolean isAbsoluteDir = reformatingDir != null && !reformatingDir.isEmpty() && Paths.get(reformatingDir).isAbsolute();
+                    Path reformatingDir = loggingConfiguration.getLogEcsFormattingDestinationDir();
+                    boolean isAbsoluteDir = reformatingDir != null&& reformatingDir.isAbsolute();
 
                     if (reformattingConfig == LogEcsReformatting.SHADE && isConsoleAppender(appender) && !isAbsoluteDir) {
                         // Unlike file-based appenders, the console-based appenders do not have an existing path from which
@@ -337,7 +338,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
     }
 
     @Nullable
-    protected String getConfiguredReformattingDir() {
+    protected Path getConfiguredReformattingDir() {
         return loggingConfiguration.getLogEcsFormattingDestinationDir();
     }
 
