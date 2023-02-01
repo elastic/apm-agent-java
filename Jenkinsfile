@@ -284,7 +284,8 @@ pipeline {
              * The result JSON files are also archive into Jenkins.
              */
             stage('Benchmarks') {
-              agent { label 'microbenchmarks-pool' }
+              // As long as jdk17 is not available then let's pin the worker with jdk17
+              agent { label 'microbenchmarks-pool && worker-1799328' }
               options { skipDefaultCheckout() }
               environment {
                 NO_BUILD = "true"
