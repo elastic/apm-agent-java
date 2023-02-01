@@ -110,7 +110,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
                         // special case for hibernatesearch versions pre 6.0:
                         // those don't support httpEntity.getContent() and throw an UnsupportedException when called.
                         unsupportedOperationOnceLogger.error(
-                            "Failed to read Elasticsearch client query from request body due to unsupported operation", e);
+                            "Failed to read Elasticsearch client query from request body, most likely because you are using hibernatesearch pre 6.0", e);
                     } catch (Exception e) {
                         logger.error("Failed to read Elasticsearch client query from request body", e);
                     }
