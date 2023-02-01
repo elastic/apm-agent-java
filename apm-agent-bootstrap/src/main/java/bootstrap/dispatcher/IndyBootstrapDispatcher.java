@@ -39,6 +39,7 @@ import java.lang.reflect.Method;
 public class IndyBootstrapDispatcher {
 
     public static Method bootstrap;
+    public static Method logAdviceException;
 
     private static final MethodHandle VOID_NOOP;
 
@@ -80,6 +81,18 @@ public class IndyBootstrapDispatcher {
             callSite = new ConstantCallSite(noop);
         }
         return callSite;
+    }
+
+    public static void logAdviceException(Throwable exception) {
+        try {
+            if (logAdviceException != null) {
+                logAdviceException.invoke(null, exception);
+            } else {
+                exception.printStackTrace();
+            }
+        } catch (Throwable t) {
+            t.printStackTrace();
+        }
     }
 
     public static void voidNoop() {

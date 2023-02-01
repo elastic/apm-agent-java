@@ -210,15 +210,8 @@ public class IndyBootstrap {
     @Nullable
     static Method indyBootstrapMethod;
 
-    private static final MethodHandle adviceExceptionPrinter;
-
-    static {
-        try {
-            adviceExceptionPrinter = MethodHandles.lookup().findStatic(IndyBootstrap.class, "logExceptionThrownByAdvice", MethodType.methodType(void.class, Throwable.class));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
+    @Nullable
+    static Method bootstrapLoggingMethod;
 
     private static final CallDepth callDepth = CallDepth.get(IndyBootstrap.class);
 
@@ -232,6 +225,22 @@ public class IndyBootstrap {
                 .getField("bootstrap")
                 .set(null, IndyBootstrap.class.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, MethodType.class, Object[].class));
             return indyBootstrapMethod = indyBootstrapClass.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, MethodType.class, Object[].class);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    public static Method getExceptionHandlerMethod(final Logger logger) {
+        if (bootstrapLoggingMethod != null) {
+            return bootstrapLoggingMethod;
+        }
+        try {
+            Class<?> indyBootstrapClass = initIndyBootstrap(logger);
+            indyBootstrapClass
+                .getField("logAdviceException")
+                .set(null, IndyBootstrap.class.getMethod("logExceptionThrownByAdvice", Throwable.class));
+            return bootstrapLoggingMethod = indyBootstrapClass.getMethod("logAdviceException", Throwable.class);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -304,6 +313,10 @@ public class IndyBootstrap {
         MethodHandles.lookup()
             .findStatic(moduleSetterClass, "setJavaBaseModule", MethodType.methodType(void.class, Class.class))
             .invoke(targetClass);
+    }
+
+    public static void logExceptionThrownByAdvice(Throwable exception) {
+        LoggerFactory.getLogger(IndyBootstrap.class).error("Advice threw an exception, this should never happen!", exception);
     }
 
     /**
@@ -451,7 +464,6 @@ public class IndyBootstrap {
             MethodHandles.Lookup indyLookup = (MethodHandles.Lookup) lookupExposer.getMethod("getLookup").invoke(null);
             // When calling findStatic now, the lookup class will be one that is loaded by the plugin class loader
             MethodHandle methodHandle = indyLookup.findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
-            methodHandle = wrapWithExceptionCatcher(methodHandle);
             return new ConstantCallSite(methodHandle);
         } catch (Exception e) {
             // must not be a static field as it would initialize logging before it's ready
@@ -460,13 +472,6 @@ public class IndyBootstrap {
         } finally {
             callDepth.decrement();
         }
-    }
-
-    private static MethodHandle wrapWithExceptionCatcher(MethodHandle methodHandle) {
-        //The exception handler is required to have the same return type as the target method
-        MethodHandle defaultReturn = MethodHandles.constant(methodHandle.type().returnType(), null);
-        MethodHandle printerWithCorrectReturn = MethodHandles.filterReturnValue(adviceExceptionPrinter, defaultReturn);
-        return MethodHandles.catchException(methodHandle, Throwable.class, printerWithCorrectReturn);
     }
 
     /**
@@ -496,10 +501,6 @@ public class IndyBootstrap {
             return false;
         }
         return true;
-    }
-
-    private static void logExceptionThrownByAdvice(Throwable exception) {
-        LoggerFactory.getLogger(IndyBootstrap.class).error("Advice threw an exception, this should never happen!", exception);
     }
 
     private static List<String> getClassNamesFromBundledPlugin(String pluginPackage, ClassLoader adviceClassLoader) throws IOException, URISyntaxException {

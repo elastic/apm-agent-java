@@ -62,6 +62,8 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
+import net.bytebuddy.implementation.bytecode.StackManipulation;
+import net.bytebuddy.implementation.bytecode.member.MethodInvocation;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.pool.TypePool;
@@ -99,7 +101,6 @@ import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoa
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithNamePrefix;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.anyMatch;
-import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
@@ -327,7 +328,7 @@ public class ElasticApmAgent {
     public static boolean areModulesSupported() {
         return ModuleOpener.areModulesSupported();
     }
-    
+
     public static boolean openModule(Class<?> classFromTargetModule, ClassLoader openTo, Collection<String> packagesToOpen) {
         if (instrumentation == null) {
             throw new IllegalStateException("Can't open modules before the agent has been initialized");
@@ -511,10 +512,11 @@ public class ElasticApmAgent {
                 }
             }
         };
+        StackManipulation exceptionHandler = MethodInvocation.invoke(new MethodDescription.ForLoadedMethod(IndyBootstrap.getExceptionHandlerMethod(logger)));
         return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
             .advice(instrumentationStats.shouldMeasureMatching() ? statsCollectingMatcher : matcher, instrumentation.getAdviceClassName())
             .include(ClassLoader.getSystemClassLoader(), PrivilegedActionUtils.getClassLoader(instrumentation.getClass()))
-            .withExceptionHandler(PRINTING);
+            .withExceptionHandler(new Advice.ExceptionHandler.Simple(exceptionHandler));
     }
 
     /**
