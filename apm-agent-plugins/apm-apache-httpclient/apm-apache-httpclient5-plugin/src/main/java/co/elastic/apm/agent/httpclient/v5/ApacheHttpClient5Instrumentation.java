@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.httpclient.v5;
 
-import co.elastic.apm.agent.httpclient.common.ApacheHttpClientAdvice;
+import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpClientAdvice;
 import co.elastic.apm.agent.httpclient.v5.helper.ApacheHttpClient5ApiAdapter;
 import co.elastic.apm.agent.httpclient.v5.helper.RequestHeaderAccessor;
 import net.bytebuddy.asm.Advice;
@@ -43,7 +43,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class ApacheHttpClient5Instrumentation extends BaseApacheHttpClient5Instrumentation {
 
-    public static class HttpClient5Advice extends ApacheHttpClientAdvice {
+    public static class HttpClient5Advice extends AbstractApacheHttpClientAdvice {
         private static final ApacheHttpClient5ApiAdapter adapter = ApacheHttpClient5ApiAdapter.get();
 
         @Nullable

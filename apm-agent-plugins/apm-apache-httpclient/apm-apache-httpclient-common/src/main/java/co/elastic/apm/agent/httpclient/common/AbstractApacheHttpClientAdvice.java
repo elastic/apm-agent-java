@@ -12,7 +12,7 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 
 import java.net.URISyntaxException;
 
-public abstract class ApacheHttpClientAdvice {
+public abstract class AbstractApacheHttpClientAdvice {
 
     public static <RequestObject extends HttpRequest, HttpRequest, HttpHost, CloseableResponse, HeaderAccessor extends TextHeaderSetter<HttpRequest> & TextHeaderGetter<HttpRequest>> Object startSpan(final ApacheHttpClientApiAdapter<RequestObject, HttpRequest, HttpHost, CloseableResponse> adapter,
                                                                                                                                                                                                        final RequestObject request,

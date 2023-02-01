@@ -1,9 +1,7 @@
 package co.elastic.apm.agent.httpclient.v5;
 
-import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpAsyncClientAdvice;
 import co.elastic.apm.agent.httpclient.v5.helper.ApacheHttpAsyncClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -58,7 +56,7 @@ public class ApacheHttpAsyncClient5Instrumentation extends BaseApacheHttpClient5
             .and(takesArgument(3, named("org.apache.hc.core5.concurrent.FutureCallback")));
     }
 
-    public static class ApacheHttpAsyncClient5Advice {
+    public static class ApacheHttpAsyncClient5Advice extends AbstractApacheHttpAsyncClientAdvice {
 
         private static ApacheHttpAsyncClientHelper asyncHelper = new ApacheHttpAsyncClientHelper();
 
@@ -71,42 +69,13 @@ public class ApacheHttpAsyncClient5Instrumentation extends BaseApacheHttpClient5
         public static Object[] onBeforeExecute(@Advice.Argument(value = 0) AsyncRequestProducer asyncRequestProducer,
                                                @Advice.Argument(value = 2) HttpContext context,
                                                @Advice.Argument(value = 3) FutureCallback<?> futureCallback) {
-            AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
-            }
-            Span span = parent.createExitSpan();
-            AsyncRequestProducer wrappedProducer = asyncRequestProducer;
-            FutureCallback<?> wrappedFutureCallback = futureCallback;
-            boolean responseFutureWrapped = false;
-            if (span != null) {
-                span.withType(HttpClientHelper.EXTERNAL_TYPE)
-                    .withSubtype(HttpClientHelper.HTTP_SUBTYPE)
-                    .activate();
-
-                wrappedProducer = asyncHelper.wrapRequestProducer(asyncRequestProducer, span, parent);
-                wrappedFutureCallback = asyncHelper.wrapFutureCallback(futureCallback, context, span);
-                responseFutureWrapped = true;
-            } else {
-                wrappedProducer = asyncHelper.wrapRequestProducer(asyncRequestProducer, null, parent);
-            }
-            return new Object[]{wrappedProducer, wrappedFutureCallback, responseFutureWrapped, span};
+            return startSpan(asyncHelper, asyncRequestProducer, context, futureCallback);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Enter @Nullable Object[] enter,
                                           @Advice.Thrown @Nullable Throwable t) {
-            Span span = enter != null ? (Span) enter[3] : null;
-            if (span == null) {
-                return;
-            }
-            span.deactivate();
-
-            if (!((Boolean) enter[2])) {
-                // Listener is not wrapped - we need to end the span so to avoid leak and report error if occurred during method invocation
-                span.captureException(t);
-                span.end();
-            }
+            endSpan(enter, t);
         }
     }
 }

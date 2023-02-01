@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.httpclient.v4;
 
-import co.elastic.apm.agent.httpclient.common.ApacheHttpClientAdvice;
+import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpClientAdvice;
 import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpClient4ApiAdapter;
 import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
 import net.bytebuddy.asm.Advice;
@@ -46,7 +46,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 @SuppressWarnings("Duplicates")
 public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrumentation {
 
-    public static class ApacheHttpClient4Advice extends ApacheHttpClientAdvice {
+    public static class ApacheHttpClient4Advice extends AbstractApacheHttpClientAdvice {
 
         private static final ApacheHttpClient4ApiAdapter adapter = ApacheHttpClient4ApiAdapter.get();
 

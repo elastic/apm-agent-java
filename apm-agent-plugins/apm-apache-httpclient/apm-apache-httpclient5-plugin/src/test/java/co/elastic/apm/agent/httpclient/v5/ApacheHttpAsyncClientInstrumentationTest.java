@@ -71,8 +71,8 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
      *      throw new ProtocolException("Request URI authority contains deprecated userinfo component");
      *   }
      */
-//    @Override
-//    public String getBaseUserInfoPath() {
-//        return "http://localhost:";
-//    }
+    @Override
+    public String getBaseUserInfoPath() {
+        return "http://localhost:";
+    }
 }

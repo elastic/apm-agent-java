@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.httpclient.v5.helper;
 
+import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpAsyncClientHelper;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -31,7 +32,7 @@ import org.apache.hc.core5.http.protocol.HttpContext;
 
 import javax.annotation.Nullable;
 
-public class ApacheHttpAsyncClientHelper {
+public class ApacheHttpAsyncClientHelper implements AbstractApacheHttpAsyncClientHelper<AsyncRequestProducer, FutureCallback, HttpContext> {
 
     private static final int MAX_POOLED_ELEMENTS = 256;
 
@@ -73,9 +74,16 @@ public class ApacheHttpAsyncClientHelper {
         return requestProducerWrapperObjectPool.createInstance().with(requestProducer, span, parent);
     }
 
-    public <T> FutureCallback<T> wrapFutureCallback(FutureCallback<T> futureCallback, HttpContext context, Span span) {
-        return ((FutureCallbackWrapper<T>) futureCallbackWrapperObjectPool.createInstance()).with(futureCallback, context, span);
+    @Override
+    public FutureCallback wrapFutureCallback(FutureCallback futureCallback, HttpContext context, Span span) {
+        return futureCallbackWrapperObjectPool.createInstance().with(futureCallback, context, span);
     }
+
+//    @Override
+//    public <T> FutureCallback<T> wrapFutureCallback(FutureCallback<T> futureCallback, HttpContext context, Span span) {
+//        return ((FutureCallbackWrapper<T>) futureCallbackWrapperObjectPool.createInstance()).with(futureCallback, context, span);
+//    }
+
 
     public RequestChannelWrapper wrapRequestChannel(RequestChannel requestChannel, @Nullable Span span, @Nullable AbstractSpan<?> parent) {
         return requestChannelWrapperObjectPool.createInstance().with(requestChannel, span, parent);
