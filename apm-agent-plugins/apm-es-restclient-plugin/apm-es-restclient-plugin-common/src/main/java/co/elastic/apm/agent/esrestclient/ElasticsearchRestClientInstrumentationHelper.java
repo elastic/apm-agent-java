@@ -45,7 +45,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelper.class);
 
-    private static final Logger queryExtractionErrorLogger = LoggerUtils.logOnce(logger);
+    private static final Logger unsupportedOperationOnceLogger = LoggerUtils.logOnce(logger);
     private static final ElasticsearchRestClientInstrumentationHelper INSTANCE = new ElasticsearchRestClientInstrumentationHelper(GlobalTracer.requireTracerImpl());
 
     public static final List<WildcardMatcher> QUERY_WILDCARD_MATCHERS = Arrays.asList(
@@ -106,8 +106,13 @@ public class ElasticsearchRestClientInstrumentationHelper {
                 if (httpEntity != null && httpEntity.isRepeatable()) {
                     try {
                         IOUtils.readUtf8Stream(httpEntity.getContent(), span.getContext().getDb().withStatementBuffer());
+                    } catch (UnsupportedOperationException e) {
+                        // special case for hibernatesearch versions pre 6.0:
+                        // those don't support httpEntity.getContent() and throw an UnsupportedException when called.
+                        unsupportedOperationOnceLogger.error(
+                            "Failed to read Elasticsearch client query from request body due to unsupported operation", e);
                     } catch (Exception e) {
-                        queryExtractionErrorLogger.error("Failed to read Elasticsearch client query from request body", e);
+                        logger.error("Failed to read Elasticsearch client query from request body", e);
                     }
                 }
             }
