@@ -23,6 +23,7 @@ import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -105,7 +106,7 @@ public final class InstrumentationStats {
 
     private List<ElasticApmInstrumentation> getAllInstrumentationsSorted() {
         List<ElasticApmInstrumentation> sorted = new ArrayList<>(allInstrumentations);
-        sorted.sort(new Comparator<ElasticApmInstrumentation>() {
+        Collections.sort(sorted, new Comparator<ElasticApmInstrumentation>() {
             @Override
             public int compare(ElasticApmInstrumentation o1, ElasticApmInstrumentation o2) {
                 return o1.getClass().getName().compareTo(o2.getClass().getName());
