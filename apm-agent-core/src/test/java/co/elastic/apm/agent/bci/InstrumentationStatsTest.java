@@ -88,11 +88,12 @@ class InstrumentationStatsTest {
 
     @Test
     void testUsedAndUnusedInstrumentationsWithSameGroups() {
-        NoopInstrumentation instrumentation1 = new NoopInstrumentation(Set.of("a", "b"));
-        NoopInstrumentation instrumentation2 = new NoopInstrumentation(Set.of("c", "experimental"));
-        NoopInstrumentation instrumentation3 = new NoopInstrumentation(Set.of("c", "d"));
-        NoopInstrumentation instrumentation4 = new NoopInstrumentation(Set.of("a", "b"));
-        NoopInstrumentation instrumentation5 = new NoopInstrumentation(Set.of("a", "b", "f"));
+        //Anonymous classes to make the order deterministic
+        NoopInstrumentation instrumentation1 = new NoopInstrumentation(Set.of("a", "b")){};
+        NoopInstrumentation instrumentation2 = new NoopInstrumentation(Set.of("c", "experimental")){};
+        NoopInstrumentation instrumentation3 = new NoopInstrumentation(Set.of("c", "d")){};
+        NoopInstrumentation instrumentation4 = new NoopInstrumentation(Set.of("a", "b")){};
+        NoopInstrumentation instrumentation5 = new NoopInstrumentation(Set.of("a", "b", "f")){};
 
         instrumentationStats.addInstrumentation(instrumentation1);
         instrumentationStats.addInstrumentation(instrumentation2);
@@ -102,6 +103,6 @@ class InstrumentationStatsTest {
         instrumentationStats.addUsedInstrumentation(instrumentation1);
         instrumentationStats.addUsedInstrumentation(instrumentation2);
 
-        assertThat(instrumentationStats.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("b", "c", "experimental"));
+        assertThat(instrumentationStats.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("a", "c", "experimental"));
     }
 }
