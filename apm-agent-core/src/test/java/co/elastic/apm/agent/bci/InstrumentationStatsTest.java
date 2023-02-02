@@ -89,30 +89,15 @@ class InstrumentationStatsTest {
     @Test
     void testUsedAndUnusedInstrumentationsWithSameGroups() {
         //Anonymous classes to make the order deterministic
-        NoopInstrumentation instrumentation1 = new NoopInstrumentation(Set.of("a", "b")) {
-            public String toString() {
-                return "clazz1";
-            }
+        NoopInstrumentation instrumentation1 = new NoopInstrumentation(List.of("a", "b")) {
         };
-        NoopInstrumentation instrumentation2 = new NoopInstrumentation(Set.of("c", "experimental")) {
-            public String toString() {
-                return "clazz2";
-            }
+        NoopInstrumentation instrumentation2 = new NoopInstrumentation(List.of("c", "experimental")) {
         };
-        NoopInstrumentation instrumentation3 = new NoopInstrumentation(Set.of("c", "d")) {
-            public String toString() {
-                return "clazz3";
-            }
+        NoopInstrumentation instrumentation3 = new NoopInstrumentation(List.of("c", "d")) {
         };
-        NoopInstrumentation instrumentation4 = new NoopInstrumentation(Set.of("a", "b")) {
-            public String toString() {
-                return "clazz4";
-            }
+        NoopInstrumentation instrumentation4 = new NoopInstrumentation(List.of("a", "b")) {
         };
-        NoopInstrumentation instrumentation5 = new NoopInstrumentation(Set.of("a", "b", "f")) {
-            public String toString() {
-                return "clazz5";
-            }
+        NoopInstrumentation instrumentation5 = new NoopInstrumentation(List.of("a", "b", "f")) {
         };
 
         instrumentationStats.addInstrumentation(instrumentation1);
