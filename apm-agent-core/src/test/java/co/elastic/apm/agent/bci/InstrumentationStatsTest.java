@@ -89,11 +89,31 @@ class InstrumentationStatsTest {
     @Test
     void testUsedAndUnusedInstrumentationsWithSameGroups() {
         //Anonymous classes to make the order deterministic
-        NoopInstrumentation instrumentation1 = new NoopInstrumentation(Set.of("a", "b")){};
-        NoopInstrumentation instrumentation2 = new NoopInstrumentation(Set.of("c", "experimental")){};
-        NoopInstrumentation instrumentation3 = new NoopInstrumentation(Set.of("c", "d")){};
-        NoopInstrumentation instrumentation4 = new NoopInstrumentation(Set.of("a", "b")){};
-        NoopInstrumentation instrumentation5 = new NoopInstrumentation(Set.of("a", "b", "f")){};
+        NoopInstrumentation instrumentation1 = new NoopInstrumentation(Set.of("a", "b")) {
+            public String toString() {
+                return "clazz1";
+            }
+        };
+        NoopInstrumentation instrumentation2 = new NoopInstrumentation(Set.of("c", "experimental")) {
+            public String toString() {
+                return "clazz2";
+            }
+        };
+        NoopInstrumentation instrumentation3 = new NoopInstrumentation(Set.of("c", "d")) {
+            public String toString() {
+                return "clazz3";
+            }
+        };
+        NoopInstrumentation instrumentation4 = new NoopInstrumentation(Set.of("a", "b")) {
+            public String toString() {
+                return "clazz4";
+            }
+        };
+        NoopInstrumentation instrumentation5 = new NoopInstrumentation(Set.of("a", "b", "f")) {
+            public String toString() {
+                return "clazz5";
+            }
+        };
 
         instrumentationStats.addInstrumentation(instrumentation1);
         instrumentationStats.addInstrumentation(instrumentation2);
@@ -103,6 +123,6 @@ class InstrumentationStatsTest {
         instrumentationStats.addUsedInstrumentation(instrumentation1);
         instrumentationStats.addUsedInstrumentation(instrumentation2);
 
-        assertThat(instrumentationStats.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("a", "c", "experimental"));
+        assertThat(instrumentationStats.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("b", "c", "experimental"));
     }
 }
