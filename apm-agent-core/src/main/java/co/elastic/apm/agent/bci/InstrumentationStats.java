@@ -21,8 +21,11 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,7 +61,8 @@ public final class InstrumentationStats {
         for (ElasticApmInstrumentation instrumentation : usedInstrumentations.keySet()) {
             usedInstrumentationGroups.addAll(instrumentation.getInstrumentationGroupNames());
         }
-        for (ElasticApmInstrumentation instrumentation : allInstrumentations) {
+        List<ElasticApmInstrumentation> allDeterministic = getAllInstrumentationsSorted();
+        for (ElasticApmInstrumentation instrumentation : allDeterministic) {
             if (usedInstrumentations.containsKey(instrumentation)) {
                 continue;
             }
@@ -68,8 +72,46 @@ public final class InstrumentationStats {
             }
             usedInstrumentationGroups.removeAll(instrumentationGroups);
         }
+        //The loop above can accidentally disable actually used instrumentations so we add them back
+        for (ElasticApmInstrumentation instrumentation : allDeterministic) {
+            if (usedInstrumentations.containsKey(instrumentation)) {
+                Collection<String> groupNames = instrumentation.getInstrumentationGroupNames();
+                List<String> withoutExperimental = new ArrayList<>();
+                for (String groupName : groupNames) {
+                    if ("experimental".equals(groupName)) {
+                        usedInstrumentationGroups.add("experimental");
+                    } else {
+                        withoutExperimental.add(groupName);
+                    }
+                }
+                if (!withoutExperimental.isEmpty() && !containsAny(usedInstrumentationGroups, withoutExperimental)) {
+                    //add the last group name because that is usually the most specific
+                    usedInstrumentationGroups.add(withoutExperimental.get(withoutExperimental.size() - 1));
+                }
+            }
+        }
 
         return usedInstrumentationGroups;
+    }
+
+    private static <T> boolean containsAny(Set<T> set, Collection<T> toCheck) {
+        for (T element : toCheck) {
+            if (set.contains(element)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<ElasticApmInstrumentation> getAllInstrumentationsSorted() {
+        List<ElasticApmInstrumentation> sorted = new ArrayList<>(allInstrumentations);
+        sorted.sort(new Comparator<ElasticApmInstrumentation>() {
+            @Override
+            public int compare(ElasticApmInstrumentation o1, ElasticApmInstrumentation o2) {
+                return o1.getClass().getName().compareTo(o2.getClass().getName());
+            }
+        });
+        return sorted;
     }
 
     MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {
