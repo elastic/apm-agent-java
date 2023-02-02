@@ -35,7 +35,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinTask;
+import java.util.function.BiConsumer;
 
 // Not strictly necessary as AbstractJavaConcurrentInstrumentation returns an empty collection for pluginClassLoaderRootPackages
 // but this signals the intent that this class must not be loaded from the IndyBootstrapClassLoader so that the state in this class applies globally
@@ -161,6 +163,36 @@ public class JavaConcurrent {
         }
         captureContext(task, active);
         return task;
+    }
+
+    @Nullable
+    public static <T> CompletableFuture<T> withContext(CompletableFuture<T> completableFuture, Tracer tracer){
+        if (shouldAvoidContextPropagation(completableFuture)) {
+            return completableFuture;
+        }
+        needsContext.set(Boolean.FALSE);
+        AbstractSpan<?> active = tracer.getActive();
+        if (active == null) {
+            return completableFuture;
+        }
+
+        CompletableFuture<T> wrapped = new CompletableFuture<T>();
+        wrapped.whenComplete(new BiConsumer<T, Throwable>() {
+            @Override
+            public void accept(T value, @Nullable Throwable thrown) {
+                try {
+                    active.activate();
+                    if(thrown != null){
+                        completableFuture.completeExceptionally(thrown);
+                    } else {
+                        completableFuture.complete(value);
+                    }
+                } finally {
+                    active.deactivate();
+                }
+            }
+        });
+        return wrapped;
     }
 
     public static void doFinally(@Nullable Throwable thrown, @Nullable Object contextObject) {
