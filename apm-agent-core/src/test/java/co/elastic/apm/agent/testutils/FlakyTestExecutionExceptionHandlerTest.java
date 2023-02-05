@@ -21,11 +21,16 @@ package co.elastic.apm.agent.testutils;
 
 import org.junit.jupiter.api.Test;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 class FlakyTestExecutionExceptionHandlerTest {
 
     @Flaky
     @Test
     void testFlaky() {
-        throw new RuntimeException("This test is expected to be green as the @Flaky annotation ignores failures");
+        assertThat(false)
+            .describedAs("This test is expected to be green as the @Flaky annotation ignores failures")
+            .isTrue()
+        ;
     }
 }
