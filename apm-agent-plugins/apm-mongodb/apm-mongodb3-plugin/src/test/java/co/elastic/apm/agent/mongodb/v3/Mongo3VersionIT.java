@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.mongodb.v3;
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationIT;
 import org.junit.After;
 import org.junit.Test;
@@ -32,13 +32,13 @@ import java.util.List;
 @RunWith(Parameterized.class)
 public class Mongo3VersionIT {
 
-    private final TestClassWithDependencyRunner runner;
+    private final JUnit4TestClassWithDependencyRunner runner;
 
     public Mongo3VersionIT(String version) throws Exception {
         List<String> dependencies = Collections.singletonList("org.mongodb:mongo-java-driver:" + version);
         Class<?> testClass = Mongo3SyncIT.class;
 
-        runner = new TestClassWithDependencyRunner(dependencies,
+        runner = new JUnit4TestClassWithDependencyRunner(dependencies,
             testClass, AbstractMongoClientInstrumentationIT.class);
     }
 

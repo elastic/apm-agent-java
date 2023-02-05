@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.34.1-SNAPSHOT</version>
+        <version>1.36.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -42,7 +42,7 @@
         <dependency>
             <groupId>co.elastic.logging</groupId>
             <artifactId>log4j2-ecs-layout</artifactId>
-            <version>${version.log4j2-ecs-layout}</version>
+            <version>${version.ecs.logging}</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>

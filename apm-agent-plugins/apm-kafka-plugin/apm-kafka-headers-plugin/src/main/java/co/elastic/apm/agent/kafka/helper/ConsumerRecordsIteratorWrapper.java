@@ -24,7 +24,8 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.record.TimestampType;
@@ -74,7 +75,7 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
         try {
             String topic = record.topic();
             if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic)) {
-                Transaction transaction = tracer.startChildTransaction(record, KafkaRecordHeaderAccessor.instance(), ConsumerRecordsIteratorWrapper.class.getClassLoader());
+                Transaction transaction = tracer.startChildTransaction(record, KafkaRecordHeaderAccessor.instance(), PrivilegedActionUtils.getClassLoader(ConsumerRecordsIteratorWrapper.class));
                 if (transaction != null) {
                     transaction.withType("messaging").withName("Kafka record from " + topic).activate();
                     transaction.setFrameworkName(FRAMEWORK_NAME);

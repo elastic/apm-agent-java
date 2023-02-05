@@ -25,11 +25,13 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import software.amazon.awssdk.core.SdkRequest;
+import software.amazon.awssdk.core.SdkResponse;
 import software.amazon.awssdk.core.client.handler.ClientExecutionParams;
 import software.amazon.awssdk.core.http.ExecutionContext;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
@@ -112,6 +114,11 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, Exec
         return null;
     }
 
+    @Override
+    protected boolean isReceiveMessageRequest(SdkRequest request) {
+        return request instanceof ReceiveMessageRequest;
+    }
+
     public void modifyRequestObject(@Nullable Span span, ClientExecutionParams clientExecutionParams, ExecutionContext executionContext) {
         SdkRequest sdkRequest = clientExecutionParams.getInput();
         SdkRequest newRequestObj = null;
@@ -169,6 +176,12 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, Exec
             if (value != null && value.dataType().equals(ATTRIBUTE_DATA_TYPE_STRING)) {
                 consumer.accept(value.stringValue(), state);
             }
+        }
+    }
+
+    public void handleReceivedMessages(Span span, @Nullable SdkRequest sdkRequest, @Nullable SdkResponse sdkResponse) {
+        if (sdkResponse instanceof ReceiveMessageResponse && sdkRequest instanceof ReceiveMessageRequest) {
+            SQSHelper.getInstance().handleReceivedMessages(span, ((ReceiveMessageRequest) sdkRequest).queueUrl(), ((ReceiveMessageResponse) sdkResponse).messages());
         }
     }
 }

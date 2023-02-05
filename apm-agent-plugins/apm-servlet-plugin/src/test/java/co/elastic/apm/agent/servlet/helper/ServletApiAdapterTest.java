@@ -24,9 +24,9 @@ import org.junit.jupiter.api.Test;
 import javax.servlet.ServletContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class ServletApiAdapterTest {
 
@@ -42,7 +42,7 @@ public class ServletApiAdapterTest {
 
         servletContext = mock(ServletContext.class);
         ClassLoader cl = mock(ClassLoader.class);
-        when(servletContext.getClassLoader()).thenReturn(cl);
+        doReturn(cl).when(servletContext).getClassLoader();
         assertThat(adapter.getClassLoader(servletContext)).isSameAs(cl);
     }
 }

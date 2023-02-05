@@ -21,6 +21,7 @@ package co.elastic.apm.agent.rabbitmq;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.Envelope;
@@ -100,7 +101,7 @@ public class ConsumerInstrumentation extends RabbitmqBaseInstrumentation {
                 return null;
             }
 
-            transaction = tracer.startChildTransaction(properties, RabbitMQTextHeaderGetter.INSTANCE, originClazz.getClassLoader());
+            transaction = tracer.startChildTransaction(properties, RabbitMQTextHeaderGetter.INSTANCE, PrivilegedActionUtils.getClassLoader(originClazz));
             if (transaction == null) {
                 return null;
             }

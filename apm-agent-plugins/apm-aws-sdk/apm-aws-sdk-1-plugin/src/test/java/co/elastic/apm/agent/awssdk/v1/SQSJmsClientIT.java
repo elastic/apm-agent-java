@@ -41,6 +41,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 
+import javax.annotation.Nullable;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
@@ -52,7 +53,7 @@ import javax.jms.TextMessage;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class SQSJmsClientIT extends AbstractAwsClientIT {
     AmazonSQSMessagingClientWrapper client;
@@ -153,7 +154,7 @@ public class SQSJmsClientIT extends AbstractAwsClientIT {
 
     @Test
     public void testReceiveOutsideTransaction() throws JMSException {
-        when(messagingConfiguration.getMessagePollingTransactionStrategy()).thenReturn(MessagingConfiguration.JmsStrategy.POLLING);
+        doReturn(MessagingConfiguration.JmsStrategy.POLLING).when(messagingConfiguration).getMessagePollingTransactionStrategy();
         client.createQueue(SQS_QUEUE_NAME);
 
         // SEND message
@@ -272,6 +273,17 @@ public class SQSJmsClientIT extends AbstractAwsClientIT {
     @Override
     protected String type() {
         return "messaging";
+    }
+
+    @Override
+    protected String subtype() {
+        return "sqs";
+    }
+
+    @Nullable
+    @Override
+    protected String expectedTargetName(@Nullable String entityName) {
+        return entityName; //entityName is queue name
     }
 
     @Override

@@ -11,7 +11,7 @@ pipeline {
     NEXUS_SECRET = 'secret/apm-team/ci/nexus'
     MAVEN_CONFIG = '-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dmaven.repo.local=.m2'
     HOME = "${env.WORKSPACE}"
-    JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+    JAVA_HOME = "${env.HUDSON_HOME}/.java/jdk17"
     PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
     SLACK_CHANNEL = '#apm-agent-java'
     NOTIFY_TO = 'build-apm+apm-agent-java@elastic.co'
@@ -30,7 +30,17 @@ pipeline {
   parameters {
     string(name: 'branch_specifier', defaultValue: 'stable', description: "What branch to release from?")
     booleanParam(name: 'check_branch_ci_status', defaultValue: true, description: "Check for failing tests in the given branch (if no stable branch)?")
+    booleanParam(name: 'check_oss_sonatype_org', defaultValue: true, description: "Check for the oss.sonatype.org?")
+    booleanParam(name: 'check_changelog', defaultValue: true, description: "Check if the CHANGELOG.asciidoc has been updated?")
+    booleanParam(name: 'set_release', defaultValue: true, description: "Set the release version?")
+    booleanParam(name: 'create_update_major_branch', defaultValue: true, description: "Create or update Major Branch?")
+    booleanParam(name: 'create_github_draft', defaultValue: true, description: "Create the GitHub release draft?")
+    booleanParam(name: 'check_artifact_maven_central', defaultValue: true, description: "Check for artifacts are available in the Maven Central?")
     booleanParam(name: 'publish_aws_lambda', defaultValue: true, description: "Whether to upload the AWS lambda")
+    booleanParam(name: 'update_cloudfoundry', defaultValue: true, description: "Upload to Cloudfoundry?")
+    booleanParam(name: 'build_push_docker', defaultValue: true, description: "Build and Publish docker images?")
+    booleanParam(name: 'publish_github_release', defaultValue: true, description: "Publish the GitHub release?")
+    booleanParam(name: 'opbeans', defaultValue: true, description: "Update opbeans-java?")
   }
   stages {
     stage('Initializing'){
@@ -58,6 +68,21 @@ pipeline {
             deleteDir()
             dir("${BASE_DIR}") {
               unstash 'source'
+              script {
+                env.SNAPSHOT_VERSION = mvnVersion(showQualifiers: true)
+                env.RELEASE_VERSION_NO_SNAPSHOT = snapshot_version.minus('-SNAPSHOT')
+                env.USER_RELEASE_VERSION = input(message: "Please enter version to release:", parameters: [[
+                    $class: 'StringParameterDefinition',
+                    name: 'Release version',
+                    defaultValue: "${env.RELEASE_VERSION_NO_SNAPSHOT}",
+                    description: "Current project version is ${env.SNAPSHOT_VERSION}, will be released as ${env.RELEASE_VERSION_NO_SNAPSHOT} if unchanged. Input release version without '-SNAPSHOT' suffix"
+                  ]])
+                env.RELEASE_TAG = "v" + env.USER_RELEASE_VERSION
+                env.RELEASE_VERSION = env.USER_RELEASE_VERSION
+                env.BRANCH_DOT_X = env.USER_RELEASE_VERSION.substring(0, env.USER_RELEASE_VERSION.indexOf('.'))+'.x'
+                env.RELEASE_AWS_LAMBDA_VERSION = '-ver-' + env.USER_RELEASE_VERSION.replaceAll('\\.', '-')
+                env.SAME_VERSION = env.RELEASE_VERSION_NO_SNAPSHOT.equals(env.USER_RELEASE_VERSION)
+              }
             }
           }
         }
@@ -67,6 +92,7 @@ pipeline {
       options { skipDefaultCheckout () }
       stages{
         stage('Check oss.sonatype.org') {
+          when { expression { params.check_oss_sonatype_org } }
           steps {
             // If this fails, an exception should be thrown and execution will halt
             dir("${BASE_DIR}"){
@@ -96,6 +122,7 @@ pipeline {
           }
         }
         stage('Require confirmation that CHANGELOG.asciidoc has been updated') {
+          when { expression { params.check_changelog } }
           steps {
             input(message: """
             Update CHANGELOG.asciidoc to reflect the new version release:
@@ -111,32 +138,18 @@ pipeline {
           }
         }
         stage('Set release version') {
+          when { expression { params.set_release } }
           steps {
             dir("${BASE_DIR}"){
-              script {
-                def snapshot_version = mvnVersion(showQualifiers: true)
-                def release_version = snapshot_version.minus('-SNAPSHOT')
-                def user_release_version = input(message: "Please enter version to release:", parameters: [[
-                    $class: 'StringParameterDefinition',
-                    name: 'Release version',
-                    defaultValue: "${release_version}",
-                    description: "Current project version is ${snapshot_version}, will be released as ${release_version} if unchanged. Input release version without '-SNAPSHOT' suffix"
-                  ]])
-
-                if( release_version.equals(user_release_version) ) {
-                    echo "changing project version '${snapshot_version}' not required to release ${release_version}"
-                } else {
-                    echo "changing project version from '${snapshot_version}' to '${user_release_version}' to prepare release ${user_release_version}."
-                    sh(label: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${user_release_version}-SNAPSHOT")
-                    sh(script: "git commit -a -m 'Version bump ${user_release_version}'")
-                    sh(label: 'debug git user', script: 'git --no-pager log -1')
-                    gitPush()
-                }
-
-                env.RELEASE_TAG = "v" + user_release_version
-                env.RELEASE_VERSION = user_release_version
-                env.BRANCH_DOT_X = user_release_version.substring(0, user_release_version.indexOf('.'))+'.x'
-                env.RELEASE_AWS_LAMBDA_VERSION = '-ver-' + user_release_version.replaceAll('\\.', '-')
+              whenTrue(env.SAME_VERSION.equals('true')) {
+                echo "changing project version '${snapshot_version}' not required to release ${release_version}"
+              }
+              whenFalse(env.SAME_VERSION.equals('true')) {
+                echo "changing project version from '${snapshot_version}' to '${user_release_version}' to prepare release ${user_release_version}."
+                sh(label: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${user_release_version}-SNAPSHOT")
+                sh(script: "git commit -a -m 'Version bump ${user_release_version}'")
+                sh(label: 'debug git user', script: 'git --no-pager log -1')
+                gitPush()
               }
             }
           }
@@ -156,6 +169,7 @@ pipeline {
           }
         }
         stage('Major Branch create/update') {
+          when { expression { params.create_update_major_branch } }
           steps {
             dir("${BASE_DIR}") {
               script {
@@ -171,9 +185,7 @@ pipeline {
           }
         }
         stage('Publish AWS Lambda') {
-          when {
-            expression { params.publish_aws_lambda }
-          }
+          when { expression { params.publish_aws_lambda } }
           environment {
             SOURCE_AWS_FILE = "elastic-apm-java-aws-lambda-layer-${RELEASE_VERSION}.zip"
             PATH_PREFIX = 'jobs/elastic+apm-agent-java+release/src/github.com/elastic/apm-agent-java/target/checkout/elastic-apm-agent/target'
@@ -200,6 +212,7 @@ pipeline {
           }
         }
         stage('Create GitHub release draft') {
+          when { expression { params.create_github_draft } }
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -221,6 +234,7 @@ pipeline {
           }
         }
         stage('Wait for artifact to be available in Maven Central') {
+          when { expression { params.check_artifact_maven_central } }
           steps {
             dir("${BASE_DIR}"){
               script {
@@ -236,6 +250,7 @@ pipeline {
           }
         }
         stage('Update Cloudfoundry') {
+          when { expression { params.update_cloudfoundry } }
           steps {
             dir("${BASE_DIR}"){
               sh(script: ".ci/release/update_cloudfoundry.sh ${RELEASE_VERSION}")
@@ -244,6 +259,7 @@ pipeline {
           }
         }
         stage('Build and push Docker images') {
+          when { expression { params.build_push_docker } }
           steps {
             dir("${BASE_DIR}"){
               // fetch agent artifact from remote repository
@@ -257,6 +273,7 @@ pipeline {
           }
         }
         stage('Publish release on GitHub') {
+          when { expression { params.publish_github_release } }
           steps {
             dir("${BASE_DIR}"){
               waitUntil(initialRecurrencePeriod: 60000) {
@@ -272,6 +289,7 @@ pipeline {
           }
         }
         stage('Opbeans') {
+          when { expression { params.opbeans } }
           environment {
             // The gitPush and gitCreateTag steps require this env variable
             REPO_NAME = 'opbeans-java'

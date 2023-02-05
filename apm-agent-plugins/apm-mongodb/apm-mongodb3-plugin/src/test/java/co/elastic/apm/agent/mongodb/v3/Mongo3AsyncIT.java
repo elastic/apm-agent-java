@@ -59,6 +59,12 @@ public class Mongo3AsyncIT extends AbstractMongoClientInstrumentationIT {
         executeAndGet(execution);
     }
 
+    @Override
+    protected boolean canAlwaysCaptureStatement() {
+        // in 3.x, not all drivers will allow capturing the statement
+        return false;
+    }
+
     private static <T> T executeAndGet(Consumer<SingleResultCallback<T>> execution) throws ExecutionException, TimeoutException, InterruptedException {
         CompletableFuture<T> future = new CompletableFuture<>();
         SingleResultCallback<T> callback = getCallback(future);

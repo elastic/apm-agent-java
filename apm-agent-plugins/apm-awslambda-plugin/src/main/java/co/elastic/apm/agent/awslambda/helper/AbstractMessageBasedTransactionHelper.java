@@ -23,6 +23,7 @@ import co.elastic.apm.agent.impl.context.CloudOrigin;
 import co.elastic.apm.agent.impl.context.ServiceOrigin;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import com.amazonaws.services.lambda.runtime.Context;
 
 import javax.annotation.Nullable;
@@ -50,7 +51,7 @@ public abstract class AbstractMessageBasedTransactionHelper<I, O, R> extends Abs
     @Nullable
     @Override
     protected Transaction doStartTransaction(I event, Context lambdaContext) {
-        Transaction transaction = tracer.startRootTransaction(lambdaContext.getClass().getClassLoader());
+        Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(lambdaContext.getClass()));
         if (null != transaction) {
             addSpanLinks(transaction, event);
         }

@@ -38,7 +38,7 @@
             disable: false
             recursive: true
             parent-credentials: true
-            timeout: 100
+            timeout: 120
             ## reference-repo is *Nix based so it causes problems when running for Windows
             ## reference-repo: /var/lib/jenkins/.git-references/apm-agent-java.git
             use-author: true

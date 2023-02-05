@@ -20,7 +20,6 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
@@ -38,7 +37,7 @@ import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
@@ -91,11 +90,12 @@ public class ElasticApmTracer implements Tracer {
     private final ThreadLocal<ActiveStack> activeStack = new ThreadLocal<ActiveStack>() {
         @Override
         protected ActiveStack initialValue() {
-            return new ActiveStack(coreConfiguration.getTransactionMaxSpans());
+            return new ActiveStack(transactionMaxSpans);
         }
     };
 
     private final CoreConfiguration coreConfiguration;
+    private final int transactionMaxSpans;
     private final SpanConfiguration spanConfiguration;
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
@@ -116,9 +116,9 @@ public class ElasticApmTracer implements Tracer {
     private final String ephemeralId;
     private final MetaDataFuture metaDataFuture;
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory,
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, MetricRegistry metricRegistry, Reporter reporter, ObjectPoolFactory poolFactory,
                      ApmServerClient apmServerClient, final String ephemeralId, MetaDataFuture metaDataFuture) {
-        this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class), configurationRegistry.getConfig(MetricsConfiguration.class));
+        this.metricRegistry = metricRegistry;
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
@@ -127,6 +127,7 @@ public class ElasticApmTracer implements Tracer {
         this.metaDataFuture = metaDataFuture;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
+        transactionMaxSpans = coreConfiguration.getTransactionMaxSpans();
         spanConfiguration = configurationRegistry.getConfig(SpanConfiguration.class);
 
         TracerConfiguration tracerConfiguration = configurationRegistry.getConfig(TracerConfiguration.class);

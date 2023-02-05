@@ -18,19 +18,16 @@
  */
 package co.elastic.apm.agent.awssdk.v2;
 
-import co.elastic.apm.agent.awssdk.common.IAwsSdkDataSource;
 import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
-import co.elastic.apm.agent.awssdk.v2.helper.SdkV2DataSource;
 import co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper.MessageListWrapper;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.reactivestreams.Publisher;
 import software.amazon.awssdk.core.Response;
 import software.amazon.awssdk.core.SdkRequest;
+import software.amazon.awssdk.core.SdkResponse;
 import software.amazon.awssdk.core.internal.http.TransformingAsyncResponseHandler;
 import software.amazon.awssdk.http.SdkHttpResponse;
-import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
-import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
@@ -42,8 +39,10 @@ public class ResponseHandlerWrapper<T> implements TransformingAsyncResponseHandl
     @Nullable
     private final Span span;
     private final SdkRequest sdkRequest;
+    private final String awsService;
 
-    public ResponseHandlerWrapper(TransformingAsyncResponseHandler<Response<T>> delegate, SdkRequest request, @Nullable Span span) {
+    public ResponseHandlerWrapper(String awsService, TransformingAsyncResponseHandler<Response<T>> delegate, SdkRequest request, @Nullable Span span) {
+        this.awsService = awsService;
         this.delegate = delegate;
         this.span = span;
         this.sdkRequest = request;
@@ -65,16 +64,17 @@ public class ResponseHandlerWrapper<T> implements TransformingAsyncResponseHandl
                     span.withOutcome(Outcome.SUCCESS);
                 }
 
-                if (response instanceof ReceiveMessageResponse && sdkRequest instanceof ReceiveMessageRequest) {
-                    SQSHelper.getInstance().handleReceivedMessages(span, ((ReceiveMessageRequest) sdkRequest).queueUrl(), ((ReceiveMessageResponse) response).messages());
+                if ("Sqs".equalsIgnoreCase(awsService) && response instanceof SdkResponse) {
+                    SQSHelper.getInstance().handleReceivedMessages(span, sdkRequest, (SdkResponse) response);
                 }
+
                 span.end();
             }
-            if (response instanceof ReceiveMessageResponse && sdkRequest instanceof ReceiveMessageRequest) {
-                MessageListWrapper.registerWrapperListForResponse((ReceiveMessageResponse) response,
-                    SdkV2DataSource.getInstance().getFieldValue(IAwsSdkDataSource.QUEUE_NAME_FIELD, sdkRequest),
-                    SQSHelper.getInstance().getTracer());
+
+            if ("Sqs".equalsIgnoreCase(awsService) && response instanceof SdkResponse) {
+                MessageListWrapper.registerWrapperListForResponse(sdkRequest, (SdkResponse) response, SQSHelper.getInstance().getTracer());
             }
+
         });
 
         return delegateFuture;

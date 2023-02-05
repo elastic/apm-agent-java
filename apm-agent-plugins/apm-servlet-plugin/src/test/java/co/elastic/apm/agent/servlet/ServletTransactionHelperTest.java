@@ -22,27 +22,23 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nonnull;
-import javax.security.auth.Subject;
 import java.security.Principal;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class ServletTransactionHelperTest extends AbstractInstrumentationTest {
 
@@ -71,11 +67,11 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
 
     @Test
     void testGroupUrls() {
-        when(webConfig.isUsePathAsName()).thenReturn(true);
-        when(webConfig.getUrlGroups()).thenReturn(List.of(
+        doReturn(true).when(webConfig).isUsePathAsName();
+        doReturn(List.of(
             WildcardMatcher.valueOf("/foo/bar/*/qux"),
             WildcardMatcher.valueOf("/foo/bar/*")
-        ));
+        )).when(webConfig).getUrlGroups();
 
         assertThat(getTransactionName("GET", "/foo/bar/baz")).isEqualTo("GET /foo/bar/*");
         assertThat(getTransactionName("POST", "/foo/bar/baz/qux")).isEqualTo("POST /foo/bar/*/qux");
@@ -85,10 +81,10 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
 
     @Test
     void testGroupUrlsOverridesServletName() {
-        when(webConfig.isUsePathAsName()).thenReturn(true);
-        when(webConfig.getUrlGroups()).thenReturn(List.of(
+        doReturn(true).when(webConfig).isUsePathAsName();
+        doReturn(List.of(
             WildcardMatcher.valueOf("/foo/bar/*")
-        ));
+        )).when(webConfig).getUrlGroups();
 
         Transaction transaction = new Transaction(MockTracer.create());
         TransactionNameUtils.setTransactionNameByServletClass("GET", ServletTransactionHelperTest.class, transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK));

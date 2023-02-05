@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -52,23 +51,27 @@ public class HttpClientHelper {
 
     @Nullable
     public static Span startHttpClientSpan(AbstractSpan<?> parent, String method, @Nullable String uri,
-                                           String scheme, CharSequence hostName, int port) {
+                                           @Nullable String scheme, @Nullable CharSequence hostName, int port) {
         Span span = parent.createExitSpan();
         if (span != null) {
-            span.withType(EXTERNAL_TYPE)
-                .withSubtype(HTTP_SUBTYPE)
-                .appendToName(method).appendToName(" ").appendToName(hostName);
-
-            span.getContext().getHttp()
-                .withUrl(uri)
-                .withMethod(method);
-
-            setDestinationServiceDetails(span, scheme, hostName, port);
+            updateHttpSpanNameAndContext(span, method, uri, scheme, hostName, port);
         }
         if (logger.isTraceEnabled()) {
             logger.trace("Created an HTTP exit span: {} for URI: {}. Parent span: {}", span, uri, parent);
         }
         return span;
+    }
+
+    public static void updateHttpSpanNameAndContext(Span span, String method, @Nullable String uri, String scheme, CharSequence hostName, int port) {
+        span.withType(EXTERNAL_TYPE)
+            .withSubtype(HTTP_SUBTYPE)
+            .withName(method).appendToName(" ").appendToName(hostName != null ? hostName : "unknown host");
+
+        span.getContext().getHttp()
+            .withUrl(uri)
+            .withMethod(method);
+
+        setDestinationServiceDetails(span, scheme, hostName, port);
     }
 
     public static void setDestinationServiceDetails(Span span, @Nullable String scheme, @Nullable CharSequence host, int port) {

@@ -23,7 +23,8 @@ import java.util.List;
 
 /**
  * A check that gets executed when the agent starts up.
- * If any check fails, the agent won't start unless the {@code elastic.apm.disable_bootstrap_checks} system property is set to true.
+ * If any check fails, the agent won't start unless the {@code elastic.apm.disable_bootstrap_checks} system property, or
+ * the {@code ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS} environment variable, are set to true.
  */
 public interface BootstrapCheck {
 

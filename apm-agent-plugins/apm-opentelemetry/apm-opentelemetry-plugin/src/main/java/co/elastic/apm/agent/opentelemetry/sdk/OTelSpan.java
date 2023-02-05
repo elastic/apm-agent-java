@@ -109,7 +109,7 @@ public class OTelSpan implements Span {
 
     @Override
     public Span updateName(String name) {
-        span.withName(name);
+        span.withName(name, AbstractSpan.PRIO_USER_SUPPLIED);
         return this;
     }
 

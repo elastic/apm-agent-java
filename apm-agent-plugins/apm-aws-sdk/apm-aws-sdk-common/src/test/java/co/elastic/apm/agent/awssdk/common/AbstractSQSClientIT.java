@@ -23,7 +23,7 @@ import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -32,7 +32,7 @@ import java.util.Collections;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
     protected CoreConfiguration coreConfiguration;
@@ -47,7 +47,7 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
     @ParameterizedTest
     @ValueSource(strings = {"sync", "async"})
     public void testReceiveOneMessageWithinTransaction(String clientType) {
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
 
         String queueUrl = setupQueue();
 
@@ -94,7 +94,7 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
     @ParameterizedTest
     @ValueSource(strings = {"sync", "async"})
     public void testReceiveOneMessageOutsideATransaction(String clientType) {
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
 
         String queueUrl = setupQueue();
 
@@ -138,7 +138,7 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
     @ParameterizedTest
     @ValueSource(strings = {"sync", "async"})
     public void testReceiveMultipleMessagesOutsideATransaction(String clientType) {
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
 
         String queueUrl = setupQueue();
 
@@ -180,7 +180,7 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
     @ParameterizedTest
     @ValueSource(strings = {"sync", "async"})
     public void testReceiveMultipleMessagesWithinATransaction(String clientType) {
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
 
         String queueUrl = setupQueue();
 
@@ -223,7 +223,7 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
     @ParameterizedTest
     @ValueSource(strings = {"sync", "async"})
     public void testQueueExclusion(String clientType) {
-        when(messagingConfiguration.getIgnoreMessageQueues()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf(SQS_IGNORED_QUEUE_NAME)));
+        doReturn(Collections.singletonList(WildcardMatcher.valueOf(SQS_IGNORED_QUEUE_NAME))).when(messagingConfiguration).getIgnoreMessageQueues();
 
         String queueUrl = setupQueue();
         String ignoredQueueUrl = setupIgnoreQueue();

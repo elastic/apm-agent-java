@@ -97,6 +97,10 @@ public interface PayloadSerializer {
 
     void writeBytes(byte[] bytes, int len);
 
+    void serializeLogNdJson(String stringLog);
+
+    void serializeLogNdJson(byte[] bytesLog);
+
     class UninitializedException extends Exception {
         public UninitializedException(String message) {
             super(message);

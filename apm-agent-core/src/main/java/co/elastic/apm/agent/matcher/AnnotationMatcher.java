@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.matcher;
 
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import net.bytebuddy.description.annotation.AnnotationSource;
 import net.bytebuddy.matcher.ElementMatcher;
 

@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-spring-webflux</artifactId>
-        <version>1.34.1-SNAPSHOT</version>
+        <version>1.36.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-spring-webflux-plugin</artifactId>
@@ -91,7 +91,6 @@
             <version>${version.reactor}</version>
             <scope>test</scope>
         </dependency>
-
 
     </dependencies>
 
