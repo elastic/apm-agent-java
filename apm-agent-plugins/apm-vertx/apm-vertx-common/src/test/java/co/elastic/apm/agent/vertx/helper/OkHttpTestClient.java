@@ -60,8 +60,8 @@ public class OkHttpTestClient {
                 .hostnameVerifier(SslUtils.getTrustAllHostnameVerifier());
         }
 
-        builder.readTimeout(0, TimeUnit.SECONDS)
-            .connectTimeout(0, TimeUnit.SECONDS)
+        builder.readTimeout(5, TimeUnit.SECONDS)
+            .connectTimeout(5, TimeUnit.SECONDS)
             .retryOnConnectionFailure(false)
             .build();
 

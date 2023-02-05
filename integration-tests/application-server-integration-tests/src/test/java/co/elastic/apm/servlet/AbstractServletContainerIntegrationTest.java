@@ -21,6 +21,7 @@ package co.elastic.apm.servlet;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.test.AgentFileAccessor;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import co.elastic.apm.servlet.tests.TestApp;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -45,8 +46,8 @@ import org.testcontainers.utility.MountableFile;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,6 +55,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -85,9 +87,12 @@ import static org.mockserver.model.HttpRequest.request;
 public abstract class AbstractServletContainerIntegrationTest {
     private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
 
-    private static final String pathToJavaagent;
-    private static final String pathToAttach;
-    private static final String pathToSlimAttach;
+    public static final String AGENT_JAR_PATH_IN_CONTAINER = "/elastic-apm-agent.jar";
+    public static final String TEST_POLICY_FILE_PATH_IN_CONTAINER = "/test.policy";
+
+    private static final Path pathToJavaagent;
+    private static final Path pathToAttach;
+    private static final Path pathToSlimAttach;
 
     static boolean ENABLE_DEBUGGING = false;
     static boolean ENABLE_RUNTIME_ATTACH = true;
@@ -103,6 +108,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     private static MockServerContainer mockServerContainer = new MockServerContainer()
         //.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockServerContainer.class))
         .withNetworkAliases("apm-server")
+        .waitingFor(Wait.forHttp(MockServerContainer.HEALTH_ENDPOINT).forStatusCode(200))
         .withNetwork(Network.SHARED);
     private static OkHttpClient httpClient;
 
@@ -116,12 +122,9 @@ public abstract class AbstractServletContainerIntegrationTest {
             .addInterceptor(loggingInterceptor)
             .readTimeout(ENABLE_DEBUGGING ? 0 : 10, TimeUnit.SECONDS)
             .build();
-        pathToJavaagent = AgentFileAccessor.getPathToJavaagent();
-        pathToAttach = AgentFileAccessor.getPathToAttacher();
-        pathToSlimAttach = AgentFileAccessor.getPathToSlimAttacher();
-        checkFilePresent(pathToJavaagent);
-        checkFilePresent(pathToAttach);
-        checkFilePresent(pathToSlimAttach);
+        pathToJavaagent = checkFilePresent(AgentFileAccessor.getPathToJavaagent());
+        pathToAttach = checkFilePresent(AgentFileAccessor.getPathToAttacher());
+        pathToSlimAttach = checkFilePresent(AgentFileAccessor.getPathToSlimAttacher());
     }
 
     private final MockReporter mockReporter = new MockReporter();
@@ -144,7 +147,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
         if (runtimeAttachSupported() && !ENABLE_RUNTIME_ATTACH) {
             // If runtime attach is off for Servlet containers that support that, we need to add the javaagent here
-            appendToEnvVariable(servletContainer, getJavaagentEnvVariable(), "-javaagent:/elastic-apm-agent.jar");
+            appendToEnvVariable(servletContainer, getJavaagentEnvVariable(), "-javaagent:" + AGENT_JAR_PATH_IN_CONTAINER);
         }
         this.expectedDefaultServiceName = expectedDefaultServiceName;
         this.containerName = containerName;
@@ -178,7 +181,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_APPLICATION_PACKAGES", "co.elastic") // allows to use API annotations, we have to use a broad package due to multiple apps
             .withEnv("ELASTIC_APM_SPAN_COMPRESSION_ENABLED", "false")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
-            .withCopyFileToContainer(MountableFile.forHostPath(pathToJavaagent), "/elastic-apm-agent.jar")
+            .withCopyFileToContainer(MountableFile.forHostPath(pathToJavaagent), AGENT_JAR_PATH_IN_CONTAINER)
             .withCopyFileToContainer(MountableFile.forHostPath(pathToAttach), "/apm-agent-attach-cli.jar")
             .withCopyFileToContainer(MountableFile.forHostPath(pathToSlimAttach), "/apm-agent-attach-cli-slim.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
@@ -191,7 +194,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             testApp.getAdditionalEnvVariables().forEach(servletContainer::withEnv);
             try {
                 testApp.getAdditionalFilesToBind().forEach((pathToFile, containerPath) -> {
-                    checkFilePresent(pathToFile);
+                    checkFilePresent(Path.of(pathToFile));
                     servletContainer.withCopyFileToContainer(MountableFile.forHostPath(pathToFile), containerPath);
                 });
             } catch (Exception e) {
@@ -200,10 +203,18 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
         for (TestApp testApp : getTestApps()) {
             String pathToAppFile = testApp.getAppFilePath();
-            checkFilePresent(pathToAppFile);
+            checkFilePresent(Path.of(pathToAppFile));
             servletContainer.withCopyFileToContainer(MountableFile.forHostPath(pathToAppFile), deploymentPath + "/" + testApp.getAppFileName());
         }
         this.servletContainer.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
+
+        if (isSecurityManagerEnabled()) {
+            // setting up security manager prerequisites
+            String localPolicyFilePath = Objects.requireNonNull(getLocalPolicyFilePath());
+            servletContainer.withCopyFileToContainer(MountableFile.forHostPath(localPolicyFilePath), TEST_POLICY_FILE_PATH_IN_CONTAINER);
+            enableSecurityManager(servletContainer, TEST_POLICY_FILE_PATH_IN_CONTAINER);
+        }
+
         this.servletContainer.start();
         if (runtimeAttachSupported() && ENABLE_RUNTIME_ATTACH) {
             try {
@@ -211,7 +222,7 @@ public abstract class AbstractServletContainerIntegrationTest {
                 if (AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN != null) {
                     cliArgs = new String[]{"java", "-jar", "/apm-agent-attach-cli-slim.jar", "--download-agent-version", AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN, "--include-all"};
                 } else {
-                    cliArgs = new String[]{"java", "-jar", "/apm-agent-attach-cli-slim.jar", "--include-all", "--agent-jar", "/elastic-apm-agent.jar"};
+                    cliArgs = new String[]{"java", "-jar", "/apm-agent-attach-cli-slim.jar", "--include-all", "--agent-jar", AGENT_JAR_PATH_IN_CONTAINER};
                 }
                 Container.ExecResult result = this.servletContainer.execInContainer(cliArgs);
                 System.out.println(result.getStdout());
@@ -261,15 +272,46 @@ public abstract class AbstractServletContainerIntegrationTest {
             "argument properly to the command line");
     }
 
-    private static void checkFilePresent(String pathToFile) {
-        final File file = new File(pathToFile);
-        logger.info("Check file {}", file.getAbsolutePath());
-        assertThat(file).exists();
-        assertThat(file).isFile();
-        assertThat(file.length()).isGreaterThan(0);
+    private static Path checkFilePresent(Path file) {
+        logger.info("Check file {}", file.toAbsolutePath());
+        assertThat(file).exists().isNotEmptyFile();
+        return file;
     }
 
     protected void enableDebugging(GenericContainer<?> servletContainer) {
+    }
+
+    /**
+     * By default, we test without the security manager.
+     * In order to enable tests with it, subclasses must return {@code true} and implement both {@link #getLocalPolicyFilePath()}
+     * and {@link #enableSecurityManager(GenericContainer, String)}
+     * @return whether the security manager is enabled within this servlet container test or not
+     */
+    protected boolean isSecurityManagerEnabled() {
+        return false;
+    }
+
+    /**
+     * By default, we test without the security manager.
+     * If a subclass is to enable security manager, it must provide a path to a policy file that grants full
+     * permissions to the agent jar, as well as everything else required in order to execute the tests.
+     *
+     * @return the path to the policy file, or {@code null} if this servlet container test does not enable the security manager
+     */
+    @Nullable
+    protected String getLocalPolicyFilePath() {
+        return null;
+    }
+
+    /**
+     * By default, we test without the security manager, but any subclass may override this method to enable it.
+     * If it does, it must also set the {@code java.security.policy} system property to point to the provided
+     * {@code policyFilePathWithinContainer}
+     *
+     * @param servletContainer the servlet container instance
+     * @param policyFilePathWithinContainer the policy file path within the container
+     */
+    protected void enableSecurityManager(GenericContainer<?> servletContainer, String policyFilePathWithinContainer) {
     }
 
     @After
@@ -568,10 +610,13 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
         JsonNode contextService = event.get("context").get("service");
         assertThat(contextService)
-            .withFailMessage("No service context available.")
+            .describedAs("No service context available.")
             .isNotNull();
         if (expectedServiceName != null) {
-            assertThat(contextService.get("name").textValue())
+            assertThat(contextService.get("name"))
+                .describedAs("Event has missing service name %s", event)
+                .isNotNull();
+            assertThat(contextService.get("name").asText())
                 .describedAs("Event has unexpected service name %s", event)
                 .isEqualTo(expectedServiceName);
         }

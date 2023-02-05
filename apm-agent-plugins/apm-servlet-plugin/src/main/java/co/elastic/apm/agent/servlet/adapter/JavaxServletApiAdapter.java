@@ -194,6 +194,7 @@ public class JavaxServletApiAdapter implements ServletApiAdapter<HttpServletRequ
     }
 
     @Override
+    @Nullable
     public String getPathInfo(HttpServletRequest servletRequest) {
         return servletRequest.getPathInfo();
     }

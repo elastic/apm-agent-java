@@ -44,7 +44,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
 
@@ -54,7 +54,8 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPE
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(ApiGatewayV2LambdaFunction.class.getName());
+        Objects.requireNonNull(serverlessConfiguration);
+        doReturn(ApiGatewayV2LambdaFunction.class.getName()).when(serverlessConfiguration).getAwsLambdaHandler();
         AbstractLambdaTest.initInstrumentation();
     }
 
@@ -95,7 +96,7 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPE
 
     @Test
     public void testBasicCall() {
-        when(config.getConfig(CoreConfiguration.class).getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(config.getConfig(CoreConfiguration.class)).getCaptureBody();
         getFunction().handleRequest(createInput(), context);
 
         reporter.awaitTransactionCount(1);
@@ -240,7 +241,7 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPE
 
     @Test
     public void testTransactionNameWithUsePathAsName() {
-        when(config.getConfig(WebConfiguration.class).isUsePathAsName()).thenReturn(true);
+        doReturn(true).when(config.getConfig(WebConfiguration.class)).isUsePathAsName();
         getFunction().handleRequest(createInput("PUT", "/prod/proxy-test/12345", "$default", "prod"), context);
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);

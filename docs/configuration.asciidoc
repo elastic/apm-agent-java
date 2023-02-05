@@ -67,7 +67,7 @@ An example configuration looks like this:
 ----
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example,org.another.example
--Delastic.apm.server_url=http://localhost:8200
+-Delastic.apm.server_url=http://127.0.0.1:8200
 ----
 
 [source,properties]
@@ -75,7 +75,7 @@ An example configuration looks like this:
 ----
 service_name=my-cool-service
 application_packages=org.example,org.another.example
-server_url=http://localhost:8200
+server_url=http://127.0.0.1:8200
 ----
 
 [source,bash]
@@ -83,7 +83,7 @@ server_url=http://localhost:8200
 ----
 ELASTIC_APM_SERVICE_NAME=my-cool-service
 ELASTIC_APM_APPLICATION_PACKAGES=org.example,org.another.example
-ELASTIC_APM_SERVER_URL=http://localhost:8200
+ELASTIC_APM_SERVER_URL=http://127.0.0.1:8200
 ----
 
 [float]
@@ -120,6 +120,7 @@ Click on a key to get more information.
 ** <<config-capture-body>>
 ** <<config-capture-headers>>
 ** <<config-global-labels>>
+** <<config-instrument-ancient-bytecode>>
 ** <<config-classes-excluded-from-instrumentation>>
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
@@ -128,9 +129,12 @@ Click on a key to get more information.
 ** <<config-config-file>>
 ** <<config-plugins-dir>>
 ** <<config-use-elastic-traceparent-header>>
+** <<config-disable-outgoing-tracecontext-headers>>
 ** <<config-span-min-duration>>
 ** <<config-cloud-provider>>
 ** <<config-enable-public-api-annotation-inheritance>>
+** <<config-transaction-name-groups>>
+** <<config-trace-continuation-strategy>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
 ** <<config-transaction-ignore-urls>>
@@ -150,7 +154,6 @@ Click on a key to get more information.
 * <<config-logging>>
 ** <<config-log-level>>
 ** <<config-log-file>>
-** <<config-enable-log-correlation>>
 ** <<config-log-ecs-reformatting>>
 ** <<config-log-ecs-reformatting-additional-fields>>
 ** <<config-log-ecs-formatter-allow-list>>
@@ -158,10 +161,17 @@ Click on a key to get more information.
 ** <<config-log-file-size>>
 ** <<config-log-format-sout>>
 ** <<config-log-format-file>>
+** <<config-log-sending>>
 * <<config-messaging>>
 ** <<config-ignore-message-queues>>
+** <<config-jms-listener-packages>>
 * <<config-metrics>>
 ** <<config-dedot-custom-metrics>>
+** <<config-metric-set-limit>>
+** <<config-agent-reporter-health-metrics>>
+** <<config-agent-background-overhead-metrics>>
+* <<config-mongodb>>
+** <<config-mongodb-capture-statement-commands>>
 * <<config-profiling>>
 ** <<config-profiling-inferred-spans-enabled>>
 ** <<config-profiling-inferred-spans-sampling-interval>>
@@ -193,12 +203,15 @@ Click on a key to get more information.
 
 [[config-circuit-breaker]]
 === Circuit-Breaker configuration options
+
+++++
+<titleabbrev>Circuit-Breaker</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-circuit-breaker-enabled]]
-==== `circuit_breaker_enabled` (added[1.14.0] performance experimental)
-
-NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+==== `circuit_breaker_enabled` (added[1.14.0] performance)
 
 A boolean specifying whether the circuit breaker should be enabled or not. 
 When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
@@ -382,6 +395,11 @@ monitor to decide that the CPU stress has been relieved.
 
 [[config-core]]
 === Core configuration options
+
+++++
+<titleabbrev>Core</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-recording]]
@@ -667,7 +685,7 @@ You must use the query bar to filter for a specific environment in versions prio
 [[config-transaction-sample-rate]]
 ==== `transaction_sample_rate` (performance)
 
-By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
+By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. (For pre-8.0 servers the agent still records and sends overall time and the result for unsampled transactions, but no context information, labels, or spans. When connecting to 8.0+ servers, the unsampled requests are not sent at all).
 
 Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`
 
@@ -746,7 +764,7 @@ you should add an additional entry to this list (make sure to also include the d
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `password, passwd, pwd, secret, *key, *token*, *session*, *credit*, *card*, *auth*, set-cookie` | List | true
+| `password, passwd, pwd, secret, *key, *token*, *session*, *credit*, *card*, *auth*, *principal*, set-cookie` | List | true
 |============
 
 
@@ -762,7 +780,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `enable_instrumentations` (added[1.28.0])
 
 A list of instrumentations which should be selectively enabled.
-Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `jul-error`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `tomcat-ecs`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 
@@ -790,7 +808,7 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `jul-error`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `tomcat-ecs`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -996,6 +1014,29 @@ NOTE: This feature requires APM Server 7.2+
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.global_labels` | `global_labels` | `ELASTIC_APM_GLOBAL_LABELS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-instrument-ancient-bytecode]]
+==== `instrument_ancient_bytecode` (added[1.35.0])
+
+A boolean specifying if the agent should instrument pre-Java-1.4 bytecode.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.instrument_ancient_bytecode` | `instrument_ancient_bytecode` | `ELASTIC_APM_INSTRUMENT_ANCIENT_BYTECODE`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1289,6 +1330,32 @@ for backwards compatibility with older versions of Elastic APM agents.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[[config-disable-outgoing-tracecontext-headers]]
+==== `disable_outgoing_tracecontext_headers` (added[1.37.0])
+
+Use this option to disable `tracecontext` headers injection to any outgoing communication. 
+
+NOTE: Disabling `tracecontext` headers injection means that {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing] 
+will not work on downstream services.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.disable_outgoing_tracecontext_headers` | `disable_outgoing_tracecontext_headers` | `ELASTIC_APM_DISABLE_OUTGOING_TRACECONTEXT_HEADERS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
 [[config-span-min-duration]]
 ==== `span_min_duration` (added[1.16.0])
 
@@ -1353,7 +1420,7 @@ Valid options: `AUTO`, `AWS`, `GCP`, `AZURE`, `NONE`
 [[config-enable-public-api-annotation-inheritance]]
 ==== `enable_public_api_annotation_inheritance` (performance)
 
-A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).
+A boolean specifying if the agent should search the class hierarchy for public api annotations (`@CaptureTransaction`, `@CaptureSpan`, `@Traced`).
  When set to `false`, a method is instrumented if it is annotated with a public api annotation.
   When set to `true` methods overriding annotated methods will be instrumented as well.
  Either way, methods will only be instrumented if they are included in the configured <<config-application-packages>>.
@@ -1374,8 +1441,83 @@ A boolean specifying if the agent should search the class hierarchy for public a
 | `elastic.apm.enable_public_api_annotation_inheritance` | `enable_public_api_annotation_inheritance` | `ELASTIC_APM_ENABLE_PUBLIC_API_ANNOTATION_INHERITANCE`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-transaction-name-groups]]
+==== `transaction_name_groups` (added[1.33.0])
+
+With this option,
+you can group transaction names that contain dynamic parts with a wildcard expression.
+For example,
+the pattern `GET /user/*/cart` would consolidate transactions,
+such as `GET /users/42/cart` and `GET /users/73/cart` into a single transaction name `GET /users/*/cart`,
+hence reducing the transaction name cardinality.
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.transaction_name_groups` | `transaction_name_groups` | `ELASTIC_APM_TRANSACTION_NAME_GROUPS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-trace-continuation-strategy]]
+==== `trace_continuation_strategy` (added[1.34.0])
+
+This option allows some control over how the APM agent handles W3C trace-context headers on incoming requests. By default, the `traceparent` and `tracestate` headers are used per W3C spec for distributed tracing. However, in certain cases it can be helpful to not use the incoming `traceparent` header. Some example use cases:
+
+* An Elastic-monitored service is receiving requests with `traceparent` headers from unmonitored services.
+* An Elastic-monitored service is publicly exposed, and does not want tracing data (trace-ids, sampling decisions) to possibly be spoofed by user requests.
+
+Valid values are:
+
+* 'continue': The default behavior. An incoming `traceparent` value is used to continue the trace and determine the sampling decision.
+* 'restart': Always ignores the `traceparent` header of incoming requests. A new trace-id will be generated and the sampling decision will be made based on transaction_sample_rate. A span link will be made to the incoming `traceparent`.
+* 'restart_external': If an incoming request includes the `es` vendor flag in `tracestate`, then any `traceparent` will be considered internal and will be handled as described for 'continue' above. Otherwise, any `traceparent` is considered external and will be handled as described for 'restart' above.
+
+Starting with Elastic Observability 8.2, span links are visible in trace views.
+
+This option is case-insensitive.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+Valid options: `continue`, `restart`, `restart_external`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `CONTINUE` | TraceContinuationStrategy | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.trace_continuation_strategy` | `trace_continuation_strategy` | `ELASTIC_APM_TRACE_CONTINUATION_STRATEGY`
+|============
+
 [[config-http]]
 === HTTP configuration options
+
+++++
+<titleabbrev>HTTP</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-capture-body-content-types]]
@@ -1472,9 +1614,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-use-path-as-transaction-name]]
-==== `use_path_as_transaction_name` (experimental added[1.0.0,Changing this value at runtime is possible since version 1.22.0])
-
-NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+==== `use_path_as_transaction_name` (added[1.0.0,Changing this value at runtime is possible since version 1.22.0])
 
 If set to `true`,
 transaction names of unsupported or partially-supported frameworks will be in the form of `$method $path` instead of just `$method unknown route`.
@@ -1482,7 +1622,7 @@ transaction names of unsupported or partially-supported frameworks will be in th
 WARNING: If your URLs contain path parameters like `/user/$userId`,
 you should be very careful when enabling this flag,
 as it can lead to an explosion of transaction groups.
-Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
+Take a look at the <<config-transaction-name-groups,`transaction_name_groups`>> option on how to mitigate this problem by grouping URLs together.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -1503,7 +1643,9 @@ Take a look at the `url_groups` option on how to mitigate this problem by groupi
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-url-groups]]
-==== `url_groups`
+==== `url_groups` (deprecated)
+
+Deprecated in favor of <<config-transaction-name-groups,`transaction_name_groups`>>.
 
 This option is only considered, when `use_path_as_transaction_name` is active.
 
@@ -1532,6 +1674,11 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 [[config-huge-traces]]
 === Huge Traces configuration options
+
+++++
+<titleabbrev>Huge Traces</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-span-compression-enabled]]
@@ -1635,6 +1782,11 @@ Example: `0ms`.
 
 [[config-jax-rs]]
 === JAX-RS configuration options
+
+++++
+<titleabbrev>JAX-RS</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-enable-jaxrs-annotation-inheritance]]
@@ -1686,6 +1838,11 @@ If you want to use the URI template from the `@Path` annotation, set the value t
 
 [[config-jmx]]
 === JMX configuration options
+
+++++
+<titleabbrev>JMX</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-capture-jmx-metrics]]
@@ -1811,6 +1968,11 @@ The resulting documents in Elasticsearch look similar to this:
 
 [[config-logging]]
 === Logging configuration options
+
+++++
+<titleabbrev>Logging</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-log-level]]
@@ -1873,39 +2035,19 @@ When logging to std out, the log will be formatted as plain-text.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-enable-log-correlation]]
-==== `enable_log_correlation`
-
-DEPRECATED - since agent version 1.30.0, log correlation is on by default. If you wish to disable it, 
-this can be done through the <<config-disable-instrumentations>> config.
-
-
-
-
-[options="header"]
-|============
-| Default                          | Type                | Dynamic
-| `true` | Boolean | false
-|============
-
-
-[options="header"]
-|============
-| Java System Properties      | Property file   | Environment
-| `elastic.apm.enable_log_correlation` | `enable_log_correlation` | `ELASTIC_APM_ENABLE_LOG_CORRELATION`
-|============
-
-// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
-[float]
 [[config-log-ecs-reformatting]]
 ==== `log_ecs_reformatting` (added[1.22.0] experimental)
 
 NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
 
 Specifying whether and how the agent should automatically reformat application logs 
-into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
-further Log analysis. This functionality is available for log4j1, log4j2 and Logback. 
+into {ecs-logging-ref}/intro.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
+further Log analysis. This functionality is available for log4j1, log4j2, Logback and `java.util.logging`. 
 The ECS log lines will include active trace/transaction/error IDs, if there are such. 
+
+This option only applies to pattern layouts/formatters by default.
+See also <<config-log-ecs-formatter-allow-list, `log_ecs_formatter_allow_list`>>.
+To properly ingest and parse ECS JSON logs, follow the {ecs-logging-java-ref}/setup.html#setup-step-2[getting started guide].
 
 Available options:
 
@@ -1923,7 +2065,8 @@ Available options:
  - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. 
 
 NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option 
-is also valid for other appenders, like System out and console
+is also valid for other appenders, like System out and console.
+
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -1990,7 +2133,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `*PatternLayout*, org.apache.log4j.SimpleLayout, ch.qos.logback.core.encoder.EchoEncoder` | List | false
+| `*PatternLayout*, org.apache.log4j.SimpleLayout, ch.qos.logback.core.encoder.EchoEncoder, java.util.logging.SimpleFormatter, org.apache.juli.OneLineFormatter, org.springframework.boot.logging.java.SimpleFormatter` | List | false
 |============
 
 
@@ -2092,7 +2235,6 @@ where each log event is serialized as a single line.
 
 
 
-
 Valid options: `PLAIN_TEXT`, `JSON`
 
 [options="header"]
@@ -2108,8 +2250,45 @@ Valid options: `PLAIN_TEXT`, `JSON`
 | `elastic.apm.log_format_file` | `log_format_file` | `ELASTIC_APM_LOG_FORMAT_FILE`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-sending]]
+==== `log_sending` (added[1.36.0] experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+Sends agent and application logs directly to APM Server.
+
+Note that logs can get lost if the agent can't keep up with the logs,
+if APM Server is not available,
+or if Elasticsearch can't index the logs fast enough.
+
+For better delivery guarantees, it's recommended to ship ECS JSON log files with Filebeat
+See also <<config-log-ecs-reformatting,`log_ecs_reformatting`>>.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_sending` | `log_sending` | `ELASTIC_APM_LOG_SENDING`
+|============
+
 [[config-messaging]]
 === Messaging configuration options
+
+++++
+<titleabbrev>Messaging</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-ignore-message-queues]]
@@ -2141,8 +2320,38 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | `elastic.apm.ignore_message_queues` | `ignore_message_queues` | `ELASTIC_APM_IGNORE_MESSAGE_QUEUES`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-jms-listener-packages]]
+==== `jms_listener_packages` (performance added[1.36.0])
+
+Defines which packages contain JMS MessageListener implementations for instrumentation.
+When set to a non-empty value, only the classes matching configuration will be instrumented.
+This configuration option helps to make MessageListener type matching faster and improve application startup performance.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | Collection | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.jms_listener_packages` | `jms_listener_packages` | `ELASTIC_APM_JMS_LISTENER_PACKAGES`
+|============
+
 [[config-metrics]]
 === Metrics configuration options
+
+++++
+<titleabbrev>Metrics</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-dedot-custom-metrics]]
@@ -2170,8 +2379,125 @@ The first metric maps `foo` to a number and the second metric maps `foo` as an o
 | `elastic.apm.dedot_custom_metrics` | `dedot_custom_metrics` | `ELASTIC_APM_DEDOT_CUSTOM_METRICS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-metric-set-limit]]
+==== `metric_set_limit` (added[1.33.0])
+
+Limits the number of active metric sets.
+The metrics sets have associated labels, and the metrics sets are held internally in a map using the labels as keys. The map is limited in size by this option to prevent unbounded growth. If you hit the limit, you'll receive a warning in the agent log.
+The recommended option to workaround the limit is to try to limit the cardinality of the labels, eg naming your transactions so that there are fewer distinct transaction names.
+But if you must, you can use this option to increase the limit.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `1000` | Integer | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.metric_set_limit` | `metric_set_limit` | `ELASTIC_APM_METRIC_SET_LIMIT`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-agent-reporter-health-metrics]]
+==== `agent_reporter_health_metrics` (added[1.35.0] experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+Enables metrics which capture the health state of the agent's event reporting mechanism.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.agent_reporter_health_metrics` | `agent_reporter_health_metrics` | `ELASTIC_APM_AGENT_REPORTER_HEALTH_METRICS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-agent-background-overhead-metrics]]
+==== `agent_background_overhead_metrics` (added[1.35.0] experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+Enables metrics which capture the resource consumption of agent background tasks.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.agent_background_overhead_metrics` | `agent_background_overhead_metrics` | `ELASTIC_APM_AGENT_BACKGROUND_OVERHEAD_METRICS`
+|============
+
+[[config-mongodb]]
+=== MongoDB configuration options
+
+++++
+<titleabbrev>MongoDB</titleabbrev>
+++++
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-mongodb-capture-statement-commands]]
+==== `mongodb_capture_statement_commands`
+
+MongoDB command names for which the command document will be captured, limited to common read-only operations by default.
+Set to ` ""` (empty) to disable capture, and `"*"` to capture all (which is discouraged as it may lead to sensitive information capture).
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `find, aggregate, count, distinct, mapReduce` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.mongodb_capture_statement_commands` | `mongodb_capture_statement_commands` | `ELASTIC_APM_MONGODB_CAPTURE_STATEMENT_COMMANDS`
+|============
+
 [[config-profiling]]
 === Profiling configuration options
+
+++++
+<titleabbrev>Profiling</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-profiling-inferred-spans-enabled]]
@@ -2348,6 +2674,11 @@ If unset, the value of the `java.io.tmpdir` system property will be used.
 
 [[config-reporter]]
 === Reporter configuration options
+
+++++
+<titleabbrev>Reporter</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-secret-token]]
@@ -2358,13 +2689,13 @@ This string is used to ensure that only your agents can send data to your APM se
 Both the agents and the APM server have to be configured with the same secret token.
 Use if APM Server requires a token.
 
-
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<none>` | String | false
+| `<none>` | String | true
 |============
 
 
@@ -2385,13 +2716,13 @@ Agents can use API keys as a replacement of secret token, APM server can have mu
 When both secret token and API key are used, API key has priority and secret token is ignored.
 Use if APM Server requires an API key.
 
-
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<none>` | String | false
+| `<none>` | String | true
 |============
 
 
@@ -2424,7 +2755,7 @@ NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `http://localhost:8200` | URL | true
+| `http://127.0.0.1:8200` | URL | true
 |============
 
 
@@ -2667,7 +2998,8 @@ Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
 [[config-metrics-interval]]
 ==== `metrics_interval` (added[1.3.0])
 
-The interval at which the agent sends metrics to the APM Server.
+The interval at which the agent sends metrics to the APM Server, rounded down to the nearest second (ie 3783ms would be applied as 3000ms).
+If there is an interval (step) defined in the Meter, that interval (to the nearest second) will instead be used, for that Meter. If the Meter step interval is less than 1 second, the meter will not be reported.
 Must be at least `1s`.
 Set to `0s` to deactivate.
 
@@ -2721,6 +3053,11 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 [[config-serverless]]
 === Serverless configuration options
+
+++++
+<titleabbrev>Serverless</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-aws-lambda-handler]]
@@ -2772,6 +3109,11 @@ For serverless functions, APM data is written in a synchronous way, thus, blocki
 
 [[config-stacktrace]]
 === Stacktrace configuration options
+
+++++
+<titleabbrev>Stacktrace</titleabbrev>
+++++
+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-application-packages]]
@@ -3122,7 +3464,7 @@ Example: `5ms`.
 #
 # environment=
 
-# By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
+# By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. (For pre-8.0 servers the agent still records and sends overall time and the result for unsampled transactions, but no context information, labels, or spans. When connecting to 8.0+ servers, the unsampled requests are not sent at all).
 # 
 # Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`
 #
@@ -3167,12 +3509,12 @@ Example: `5ms`.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,*auth*,set-cookie
+# Default value: password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,*auth*,*principal*,set-cookie
 #
-# sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,*auth*,set-cookie
+# sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,*auth*,*principal*,set-cookie
 
 # A list of instrumentations which should be selectively enabled.
-# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `jul-error`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `tomcat-ecs`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 # When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 # When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 # 
@@ -3185,7 +3527,7 @@ Example: `5ms`.
 # enable_instrumentations=
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `jul-error`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `tomcat-ecs`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 # For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -3292,6 +3634,14 @@ Example: `5ms`.
 # Default value: 
 #
 # global_labels=
+
+# A boolean specifying if the agent should instrument pre-Java-1.4 bytecode.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# instrument_ancient_bytecode=false
 
 # Use to exclude specific classes from being instrumented. In order to exclude entire packages, 
 # use wildcards, as in: `com.project.exclude.*`
@@ -3459,6 +3809,17 @@ Example: `5ms`.
 #
 # use_elastic_traceparent_header=true
 
+# Use this option to disable `tracecontext` headers injection to any outgoing communication. 
+# 
+# NOTE: Disabling `tracecontext` headers injection means that {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing] 
+# will not work on downstream services.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# disable_outgoing_tracecontext_headers=false
+
 # Sets the minimum duration of spans.
 # Spans that execute faster than this threshold are attempted to be discarded.
 # 
@@ -3489,7 +3850,7 @@ Example: `5ms`.
 #
 # cloud_provider=AUTO
 
-# A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).
+# A boolean specifying if the agent should search the class hierarchy for public api annotations (`@CaptureTransaction`, `@CaptureSpan`, `@Traced`).
 #  When set to `false`, a method is instrumented if it is annotated with a public api annotation.
 #   When set to `true` methods overriding annotated methods will be instrumented as well.
 #  Either way, methods will only be instrumented if they are included in the configured <<config-application-packages>>.
@@ -3499,6 +3860,46 @@ Example: `5ms`.
 # Default value: false
 #
 # enable_public_api_annotation_inheritance=false
+
+# With this option,
+# you can group transaction names that contain dynamic parts with a wildcard expression.
+# For example,
+# the pattern `GET /user/*/cart` would consolidate transactions,
+# such as `GET /users/42/cart` and `GET /users/73/cart` into a single transaction name `GET /users/*/cart`,
+# hence reducing the transaction name cardinality.
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
+#
+# transaction_name_groups=
+
+# This option allows some control over how the APM agent handles W3C trace-context headers on incoming requests. By default, the `traceparent` and `tracestate` headers are used per W3C spec for distributed tracing. However, in certain cases it can be helpful to not use the incoming `traceparent` header. Some example use cases:
+# 
+# * An Elastic-monitored service is receiving requests with `traceparent` headers from unmonitored services.
+# * An Elastic-monitored service is publicly exposed, and does not want tracing data (trace-ids, sampling decisions) to possibly be spoofed by user requests.
+# 
+# Valid values are:
+# 
+# * 'continue': The default behavior. An incoming `traceparent` value is used to continue the trace and determine the sampling decision.
+# * 'restart': Always ignores the `traceparent` header of incoming requests. A new trace-id will be generated and the sampling decision will be made based on transaction_sample_rate. A span link will be made to the incoming `traceparent`.
+# * 'restart_external': If an incoming request includes the `es` vendor flag in `tracestate`, then any `traceparent` will be considered internal and will be handled as described for 'continue' above. Otherwise, any `traceparent` is considered external and will be handled as described for 'restart' above.
+# 
+# Starting with Elastic Observability 8.2, span links are visible in trace views.
+# 
+# This option is case-insensitive.
+#
+# Valid options: continue, restart, restart_external
+# This setting can be changed at runtime
+# Type: TraceContinuationStrategy
+# Default value: CONTINUE
+#
+# trace_continuation_strategy=CONTINUE
 
 ############################################
 # HTTP                                     #
@@ -3558,7 +3959,7 @@ Example: `5ms`.
 # WARNING: If your URLs contain path parameters like `/user/$userId`,
 # you should be very careful when enabling this flag,
 # as it can lead to an explosion of transaction groups.
-# Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
+# Take a look at the <<config-transaction-name-groups,`transaction_name_groups`>> option on how to mitigate this problem by grouping URLs together.
 #
 # This setting can be changed at runtime
 # Type: Boolean
@@ -3566,6 +3967,8 @@ Example: `5ms`.
 #
 # use_path_as_transaction_name=false
 
+# Deprecated in favor of <<config-transaction-name-groups,`transaction_name_groups`>>.
+# 
 # This option is only considered, when `use_path_as_transaction_name` is active.
 # 
 # With this option, you can group several URL paths together by using a wildcard expression like `/user/*`.
@@ -3792,19 +4195,14 @@ Example: `5ms`.
 #
 # log_file=System.out
 
-# DEPRECATED - since agent version 1.30.0, log correlation is on by default. If you wish to disable it, 
-# this can be done through the <<config-disable-instrumentations>> config.
-#
-# This setting can not be changed at runtime. Changes require a restart of the application.
-# Type: Boolean
-# Default value: true
-#
-# enable_log_correlation=true
-
 # Specifying whether and how the agent should automatically reformat application logs 
-# into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
-# further Log analysis. This functionality is available for log4j1, log4j2 and Logback. 
+# into {ecs-logging-ref}/intro.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
+# further Log analysis. This functionality is available for log4j1, log4j2, Logback and `java.util.logging`. 
 # The ECS log lines will include active trace/transaction/error IDs, if there are such. 
+# 
+# This option only applies to pattern layouts/formatters by default.
+# See also <<config-log-ecs-formatter-allow-list, `log_ecs_formatter_allow_list`>>.
+# To properly ingest and parse ECS JSON logs, follow the {ecs-logging-java-ref}/setup.html#setup-step-2[getting started guide].
 # 
 # Available options:
 # 
@@ -3822,7 +4220,8 @@ Example: `5ms`.
 #  - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. 
 # 
 # NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option 
-# is also valid for other appenders, like System out and console
+# is also valid for other appenders, like System out and console.
+# 
 #
 # Valid options: OFF, SHADE, REPLACE, OVERRIDE
 # This setting can be changed at runtime
@@ -3855,9 +4254,9 @@ Example: `5ms`.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: comma separated list
-# Default value: *PatternLayout*,org.apache.log4j.SimpleLayout,ch.qos.logback.core.encoder.EchoEncoder
+# Default value: *PatternLayout*,org.apache.log4j.SimpleLayout,ch.qos.logback.core.encoder.EchoEncoder,java.util.logging.SimpleFormatter,org.apache.juli.OneLineFormatter,org.springframework.boot.logging.java.SimpleFormatter
 #
-# log_ecs_formatter_allow_list=*PatternLayout*,org.apache.log4j.SimpleLayout,ch.qos.logback.core.encoder.EchoEncoder
+# log_ecs_formatter_allow_list=*PatternLayout*,org.apache.log4j.SimpleLayout,ch.qos.logback.core.encoder.EchoEncoder,java.util.logging.SimpleFormatter,org.apache.juli.OneLineFormatter,org.springframework.boot.logging.java.SimpleFormatter
 
 # If <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to `SHADE` or `REPLACE`, 
 # the shade log files will be written alongside the original logs in the same directory by default. 
@@ -3898,7 +4297,6 @@ Example: `5ms`.
 # 
 # When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
 # where each log event is serialized as a single line.
-# 
 #
 # Valid options: PLAIN_TEXT, JSON
 # This setting can not be changed at runtime. Changes require a restart of the application.
@@ -3906,6 +4304,21 @@ Example: `5ms`.
 # Default value: PLAIN_TEXT
 #
 # log_format_file=PLAIN_TEXT
+
+# Sends agent and application logs directly to APM Server.
+# 
+# Note that logs can get lost if the agent can't keep up with the logs,
+# if APM Server is not available,
+# or if Elasticsearch can't index the logs fast enough.
+# 
+# For better delivery guarantees, it's recommended to ship ECS JSON log files with Filebeat
+# See also <<config-log-ecs-reformatting,`log_ecs_reformatting`>>.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# log_sending=false
 
 ############################################
 # Messaging                                #
@@ -3927,6 +4340,16 @@ Example: `5ms`.
 #
 # ignore_message_queues=
 
+# Defines which packages contain JMS MessageListener implementations for instrumentation.
+# When set to a non-empty value, only the classes matching configuration will be instrumented.
+# This configuration option helps to make MessageListener type matching faster and improve application startup performance.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: comma separated list
+# Default value: 
+#
+# jms_listener_packages=
+
 ############################################
 # Metrics                                  #
 ############################################
@@ -3942,6 +4365,51 @@ Example: `5ms`.
 # Default value: true
 #
 # dedot_custom_metrics=true
+
+# Limits the number of active metric sets.
+# The metrics sets have associated labels, and the metrics sets are held internally in a map using the labels as keys. The map is limited in size by this option to prevent unbounded growth. If you hit the limit, you'll receive a warning in the agent log.
+# The recommended option to workaround the limit is to try to limit the cardinality of the labels, eg naming your transactions so that there are fewer distinct transaction names.
+# But if you must, you can use this option to increase the limit.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Integer
+# Default value: 1000
+#
+# metric_set_limit=1000
+
+# Enables metrics which capture the health state of the agent's event reporting mechanism.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# agent_reporter_health_metrics=false
+
+# Enables metrics which capture the resource consumption of agent background tasks.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# agent_background_overhead_metrics=false
+
+############################################
+# MongoDB                                  #
+############################################
+
+# MongoDB command names for which the command document will be captured, limited to common read-only operations by default.
+# Set to ` ""` (empty) to disable capture, and `"*"` to capture all (which is discouraged as it may lead to sensitive information capture).
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: find,aggregate,count,distinct,mapReduce
+#
+# mongodb_capture_statement_commands=find,aggregate,count,distinct,mapReduce
 
 ############################################
 # Profiling                                #
@@ -4036,7 +4504,7 @@ Example: `5ms`.
 # Both the agents and the APM server have to be configured with the same secret token.
 # Use if APM Server requires a token.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: String
 # Default value: 
 #
@@ -4048,7 +4516,7 @@ Example: `5ms`.
 # When both secret token and API key are used, API key has priority and secret token is ignored.
 # Use if APM Server requires an API key.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: String
 # Default value: 
 #
@@ -4070,9 +4538,9 @@ Example: `5ms`.
 #
 # This setting can be changed at runtime
 # Type: URL
-# Default value: http://localhost:8200
+# Default value: http://127.0.0.1:8200
 #
-# server_url=http://localhost:8200
+# server_url=http://127.0.0.1:8200
 
 # The URLs for your APM Servers
 #
@@ -4184,7 +4652,8 @@ Example: `5ms`.
 #
 # api_request_size=768kb
 
-# The interval at which the agent sends metrics to the APM Server.
+# The interval at which the agent sends metrics to the APM Server, rounded down to the nearest second (ie 3783ms would be applied as 3000ms).
+# If there is an interval (step) defined in the Meter, that interval (to the nearest second) will instead be used, for that Meter. If the Meter step interval is less than 1 second, the meter will not be reported.
 # Must be at least `1s`.
 # Set to `0s` to deactivate.
 #

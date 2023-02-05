@@ -43,7 +43,8 @@ public class Log4j2LoggerErrorCapturingInstrumentation extends AbstractLoggerErr
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("fatal").and(takesArgument(1, named("java.lang.Throwable"))).or(super.getMethodMatcher());
+        return named("fatal").and(takesArgument(1, named("java.lang.Throwable")))
+            .or(super.getMethodMatcher());
     }
 
     @Override

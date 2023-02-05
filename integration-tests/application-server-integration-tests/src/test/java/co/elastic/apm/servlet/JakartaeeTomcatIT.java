@@ -42,8 +42,7 @@ public class JakartaeeTomcatIT extends AbstractTomcatIT {
             {"10.0.10-jdk11"},
             {"10.0.10-jdk8-adoptopenjdk-openj9"},
             {"10.0.10-jdk11-adoptopenjdk-openj9"},
-            {"10.0.10-jdk8-adoptopenjdk-hotspot"},
-            {"10.0.10-jdk11-adoptopenjdk-hotspot"},
+            {"10.0.10-jdk8-adoptopenjdk-hotspot"}
         });
     }
 

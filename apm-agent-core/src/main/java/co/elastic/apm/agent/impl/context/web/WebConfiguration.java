@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.context.web;
 
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -96,22 +96,25 @@ public class WebConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Boolean> usePathAsName = ConfigurationOption.booleanOption()
         .key("use_path_as_transaction_name")
         .configurationCategory(HTTP_CATEGORY)
-        .tags("experimental", "added[1.0.0,Changing this value at runtime is possible since version 1.22.0]")
+        .tags("added[1.0.0,Changing this value at runtime is possible since version 1.22.0]")
         .description("If set to `true`,\n" +
             "transaction names of unsupported or partially-supported frameworks will be in the form of `$method $path` instead of just `$method unknown route`.\n" +
             "\n" +
             "WARNING: If your URLs contain path parameters like `/user/$userId`,\n" +
             "you should be very careful when enabling this flag,\n" +
             "as it can lead to an explosion of transaction groups.\n" +
-            "Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.")
+            "Take a look at the <<config-transaction-name-groups,`transaction_name_groups`>> option on how to mitigate this problem by grouping URLs together.")
         .dynamic(true)
         .buildWithDefault(false);
 
     private final ConfigurationOption<List<WildcardMatcher>> urlGroups = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("url_groups")
+        .tags("deprecated")
         .configurationCategory(HTTP_CATEGORY)
-        .description("This option is only considered, when `use_path_as_transaction_name` is active.\n" +
+        .description("Deprecated in favor of <<config-transaction-name-groups,`transaction_name_groups`>>.\n" +
+            "\n" +
+            "This option is only considered, when `use_path_as_transaction_name` is active.\n" +
             "\n" +
             "With this option, you can group several URL paths together by using a wildcard expression like `/user/*`.\n" +
             "\n" +

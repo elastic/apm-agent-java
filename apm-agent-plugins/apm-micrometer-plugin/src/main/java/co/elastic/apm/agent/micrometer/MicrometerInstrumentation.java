@@ -18,22 +18,15 @@
  */
 package co.elastic.apm.agent.micrometer;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import io.micrometer.core.instrument.MeterRegistry;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Collection;
-import java.util.Collections;
-
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class MicrometerInstrumentation extends TracerAwareInstrumentation {
-
-    private static final MicrometerMetricsReporter reporter = new MicrometerMetricsReporter(GlobalTracer.requireTracerImpl());
+public class MicrometerInstrumentation extends AbstractMicrometerInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -43,16 +36,6 @@ public class MicrometerInstrumentation extends TracerAwareInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("registerMeterIfNecessary");
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("micrometer");
-    }
-
-    @Override
-    public boolean includeWhenInstrumentationIsDisabled() {
-        return true;
     }
 
     public static class AdviceClass {

@@ -56,7 +56,7 @@ import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 @DisabledOnOs(OS.WINDOWS)
 @DisabledOnAppleSilicon
@@ -72,7 +72,7 @@ class CallTreeTest {
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         // disable scheduled profiling to not interfere with this test
         profilerConfig = config.getConfig(ProfilingConfiguration.class);
-        when(profilerConfig.isProfilingEnabled()).thenReturn(false);
+        doReturn(true).when(profilerConfig).isProfilingEnabled();
         tracer = MockTracer.createRealTracer(reporter, config);
     }
 
@@ -706,7 +706,7 @@ class CallTreeTest {
 
     @Test
     void testCallTreeActivationAsChildOfFastSpan() throws Exception {
-        when(profilerConfig.getInferredSpansMinDuration()).thenReturn(TimeDuration.of("50ms"));
+        doReturn(TimeDuration.of("50ms")).when(profilerConfig).getInferredSpansMinDuration();
         assertCallTree(new String[]{
             "   c  c   ",
             "   b  b   ",
@@ -753,7 +753,7 @@ class CallTreeTest {
 
     @Test
     void testCallTreeMultipleActivationsAsLeafWithExcludedParent() throws Exception {
-        when(profilerConfig.getInferredSpansMinDuration()).thenReturn(TimeDuration.of("50ms"));
+        doReturn(TimeDuration.of("50ms")).when(profilerConfig).getInferredSpansMinDuration();
         // min duration 4
         assertCallTree(new String[]{
             "  b  b c  c  ",

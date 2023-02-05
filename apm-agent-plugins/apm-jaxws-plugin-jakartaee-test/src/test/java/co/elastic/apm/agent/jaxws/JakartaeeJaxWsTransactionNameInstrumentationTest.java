@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.jaxws;
 
-import jakarta.jws.WebMethod;
 import jakarta.jws.WebService;
 import jakarta.jws.soap.SOAPBinding;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,8 +32,6 @@ class JakartaeeJaxWsTransactionNameInstrumentationTest extends AbstractJaxWsInst
     @SOAPBinding(style = SOAPBinding.Style.RPC)
     @WebService(targetNamespace = "elastic")
     public interface HelloWorldService extends BaseHelloWorldService {
-        @WebMethod
-        String sayHello();
     }
 
     @WebService(serviceName = "HelloWorldService", portName = "HelloWorld", name = "HelloWorld",

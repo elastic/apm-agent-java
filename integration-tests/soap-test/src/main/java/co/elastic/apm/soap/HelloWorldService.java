@@ -18,13 +18,10 @@
  */
 package co.elastic.apm.soap;
 
-import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.jws.soap.SOAPBinding;
 
 @SOAPBinding(style = SOAPBinding.Style.RPC)
 @WebService(targetNamespace = "elastic")
-public interface HelloWorldService {
-    @WebMethod
-    String sayHello();
+public interface HelloWorldService extends BaseHelloWorldService {
 }

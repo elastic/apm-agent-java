@@ -18,9 +18,10 @@
  */
 package co.elastic.apm.agent.logging;
 
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.apache.logging.log4j.Level;
@@ -29,6 +30,7 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.core.config.LoggerConfig;
+import org.apache.logging.log4j.core.config.plugins.util.PluginManager;
 import org.apache.logging.log4j.core.impl.Log4jContextFactory;
 import org.apache.logging.log4j.core.selector.ContextSelector;
 import org.apache.logging.log4j.spi.LoggerContextFactory;
@@ -75,7 +77,6 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     static final String DEPRECATED_LOG_LEVEL_KEY = "logging.log_level";
     static final String DEPRECATED_LOG_FILE_KEY = "logging.log_file";
     public static final String DEFAULT_MAX_SIZE = "50mb";
-    static final String SHIP_AGENT_LOGS = "ship_agent_logs";
     static final String LOG_FORMAT_SOUT_KEY = "log_format_sout";
     public static final String LOG_FORMAT_FILE_KEY = "log_format_file";
     static final String INITIAL_LISTENERS_LEVEL = "log4j2.StatusLogger.level";
@@ -88,10 +89,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
      * However, the registry initializes logging by declaring a static final logger variable.
      * In order to break up the cyclic dependency and to not accidentally initialize logging before we had the chance to configure the logging,
      * we manually resolve these options.
-     *
+     * <p>
      * NOTE: on top of the above, this specific option should never be accessed through the ConfigurationOption as it
      * allows {@link LogLevel} that are effectively mapped to other values.
-     *
+     * <p>
      * See {@link Log4j2ConfigurationFactory#getValue}
      */
     @SuppressWarnings("unused")
@@ -117,6 +118,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     /**
      * Maps a {@link LogLevel} that is supported by the agent to a value that is also supported by the underlying
      * logging framework.
+     *
      * @param original the agent-supported {@link LogLevel}
      * @return a {@link LogLevel} that is both supported by the agent and the underlying logging framework
      */
@@ -149,22 +151,19 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(DEFAULT_LOG_FILE);
 
-    private final ConfigurationOption<Boolean> logCorrelationEnabled = ConfigurationOption.booleanOption()
-        .key("enable_log_correlation")
-        .configurationCategory(LOGGING_CATEGORY)
-        .description("DEPRECATED - since agent version 1.30.0, log correlation is on by default. If you wish to disable it, \n" +
-            "this can be done through the <<config-disable-instrumentations>> config.")
-        .dynamic(false)
-        .buildWithDefault(true);
-
     private final ConfigurationOption<LogEcsReformatting> logEcsReformatting = ConfigurationOption.enumOption(LogEcsReformatting.class)
         .key("log_ecs_reformatting")
         .configurationCategory(LOGGING_CATEGORY)
         .tags("added[1.22.0]", "experimental")
         .description("Specifying whether and how the agent should automatically reformat application logs \n" +
-            "into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for \n" +
-            "further Log analysis. This functionality is available for log4j1, log4j2 and Logback. \n" +
+            "into {ecs-logging-ref}/intro.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for \n" +
+            "further Log analysis. This functionality is available for log4j1, log4j2, Logback and `java.util.logging`. \n" +
             "The ECS log lines will include active trace/transaction/error IDs, if there are such. \n" +
+            "\n" +
+            "This option only applies to pattern layouts/formatters by default.\n" +
+            "See also <<config-log-ecs-formatter-allow-list, `log_ecs_formatter_allow_list`>>." +
+            "\n" +
+            "To properly ingest and parse ECS JSON logs, follow the {ecs-logging-java-ref}/setup.html#setup-step-2[getting started guide].\n" +
             "\n" +
             "Available options:\n" +
             "\n" +
@@ -182,7 +181,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             " - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. \n" +
             "\n" +
             "NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option \n" +
-            "is also valid for other appenders, like System out and console")
+            "is also valid for other appenders, like System out and console.\n")
         .dynamic(true)
         .buildWithDefault(LogEcsReformatting.OFF);
 
@@ -213,7 +212,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(Arrays.asList(
             WildcardMatcher.valueOf("*PatternLayout*"),
             WildcardMatcher.valueOf("org.apache.log4j.SimpleLayout"),
-            WildcardMatcher.valueOf("ch.qos.logback.core.encoder.EchoEncoder")
+            WildcardMatcher.valueOf("ch.qos.logback.core.encoder.EchoEncoder"),
+            WildcardMatcher.valueOf("java.util.logging.SimpleFormatter"),
+            WildcardMatcher.valueOf("org.apache.juli.OneLineFormatter"),
+            WildcardMatcher.valueOf("org.springframework.boot.logging.java.SimpleFormatter")
         ));
 
     private final ConfigurationOption<String> logEcsFormattingDestinationDir = ConfigurationOption.stringOption()
@@ -239,32 +241,6 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.17.0]")
         .buildWithDefault(ByteValue.of(DEFAULT_MAX_SIZE));
 
-    private final ConfigurationOption<Boolean> shipAgentLogs = ConfigurationOption.booleanOption()
-        .key(SHIP_AGENT_LOGS)
-        .configurationCategory(LOGGING_CATEGORY)
-        .description("This helps you to centralize your agent logs by automatically sending them to APM Server (requires APM Server 7.9+).\n" +
-            "Use the Kibana Logs App to see the logs from all of your agents.\n" +
-            "\n" +
-            "If <<config-log-file,`log_file`>> is set to a real file location (as opposed to `System.out`),\n" +
-            "this file will be shipped to the APM Server by the agent.\n" +
-            "Note that <<config-log-format-file,`log_format_file`>> needs to be set to `JSON` when this option is enabled.\n" +
-            "\n" +
-            "If APM Server is temporarily not available, the agent will resume sending where it left off as soon as the server is back up again.\n" +
-            "The amount of logs that can be buffered is at least <<config-log-file-size,`log_file_size`>>.\n" +
-            "If the application crashes or APM Server is not available when shutting down,\n" +
-            "the agent will resume shipping the log file when the application restarts.\n" +
-            "\n" +
-            "Resume on restart does not work when the log is inside an ephemeral container.\n" +
-            "Consider mounting the log file to the host or use Filebeat if you need the extra reliability in this case.\n" +
-            "\n" +
-            "If <<config-log-file,`log_file`>> is set to `System.out`,\n" +
-            "the agent will additionally log into a temp file which is then sent to APM Server.\n" +
-            "This log's size is determined by <<config-log-file-size,`log_file_size`>> and will be deleted on shutdown.\n" +
-            "This means that logs that could not be sent before the application terminates are lost.")
-        .dynamic(false)
-        .tags("added[not officially added yet]", "internal")
-        .buildWithDefault(false);
-
     @SuppressWarnings("unused")
     public ConfigurationOption<LogFormat> logFormatSout = ConfigurationOption.enumOption(LogFormat.class)
         .key(LOG_FORMAT_SOUT_KEY)
@@ -283,13 +259,25 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .description("Defines the log format when logging to a file.\n" +
             "\n" +
             "When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]\n" +
-            "where each log event is serialized as a single line.\n"
-            //+ "\n" +
-            //"If <<config-ship-agent-logs,`ship_agent_logs`>> is enabled,\n" +
-            //"the value has to be `JSON`."
+            "where each log event is serialized as a single line."
         )
         .tags("added[1.17.0]")
         .buildWithDefault(LogFormat.PLAIN_TEXT);
+
+    private final ConfigurationOption<Boolean> sendLogs = ConfigurationOption.booleanOption()
+        .key("log_sending")
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("Sends agent and application logs directly to APM Server.\n" +
+            "\n" +
+            "Note that logs can get lost if the agent can't keep up with the logs,\n" +
+            "if APM Server is not available,\n" +
+            "or if Elasticsearch can't index the logs fast enough.\n" +
+            "\n" +
+            "For better delivery guarantees, it's recommended to ship ECS JSON log files with Filebeat\n" +
+            "See also <<config-log-ecs-reformatting,`log_ecs_reformatting`>>.")
+        .dynamic(true)
+        .tags("added[1.36.0]", "experimental")
+        .buildWithDefault(false);
 
     public static void init(List<ConfigurationSource> sources, String ephemeralId) {
         // The initialization of log4j may produce errors if the traced application uses log4j settings (for
@@ -310,9 +298,13 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             // example through org.apache.logging.log4j.core.config.Configurator, means that loggers in non-initialized
             // contexts will either get the app-configuration for log4j, if such exists, or none.
             ConfigurationFactory.setConfigurationFactory(new Log4j2ConfigurationFactory(sources, ephemeralId));
+
+            // required to add the apm server appender to plugins
+            PluginManager.addPackage(ApmServerLogAppender.class.getPackage().getName());
+
             LoggerFactory.initialize(new Log4jLoggerFactoryBridge());
         } catch (Throwable throwable) {
-            System.err.println("[elastic-apm-agent] ERROR Failure during initialization of agent's log4j system: " + throwable.getMessage());
+            SystemStandardOutputLogger.stdErrError("Failure during initialization of agent's log4j system: " + throwable.getMessage());
         } finally {
             restoreSystemProperty(INITIAL_LISTENERS_LEVEL, initialListenersLevel);
             restoreSystemProperty(INITIAL_STATUS_LOGGER_LEVEL, initialStatusLoggerLevel);
@@ -348,10 +340,8 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             for (LoggerContext loggerContext : selector.getLoggerContexts()) {
                 // Taken from org.apache.logging.log4j.core.config.Configurator#setRootLevel()
                 final LoggerConfig loggerConfig = loggerContext.getConfiguration().getRootLogger();
-                if (!loggerConfig.getLevel().equals(log4jLevel)) {
-                    loggerConfig.setLevel(log4jLevel);
-                    loggerContext.updateLoggers();
-                }
+                loggerConfig.setLevel(log4jLevel);
+                loggerContext.updateLoggers();
             }
         } else {
             // it should be safe to obtain a logger here
@@ -387,11 +377,11 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         return logFileSize.get().getBytes();
     }
 
-    public boolean isShipAgentLogs() {
-        return shipAgentLogs.get();
+    public long getDefaultLogFileSize() {
+        return logFileSize.getValueConverter().convert(logFileSize.getDefaultValueAsString()).getBytes();
     }
 
-    public LogFormat getLogFormatFile() {
-        return logFormatFile.get();
+    public boolean getSendLogs() {
+        return sendLogs.get();
     }
 }

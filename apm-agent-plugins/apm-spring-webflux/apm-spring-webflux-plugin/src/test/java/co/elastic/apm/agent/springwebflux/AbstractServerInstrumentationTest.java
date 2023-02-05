@@ -25,9 +25,10 @@ import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
 import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
+import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.AfterAll;
@@ -39,6 +40,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
@@ -49,7 +51,6 @@ import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 public abstract class AbstractServerInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -62,6 +63,9 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     @BeforeAll
     static void startApp() {
         app = WebFluxApplication.run(-1, "netty", true);
+
+        // make reactor debugging easier
+        Hooks.onOperatorDebug();
     }
 
     @AfterAll
@@ -89,6 +93,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     protected abstract GreetingWebClient getClient();
 
     @Test
+    @DisabledOnAppleSilicon
     void dispatchError() {
         StepVerifier.create(client.getHandlerError())
             .expectErrorMatches(expectClientError(500))
@@ -374,7 +379,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void testIgnoreUrlsConfig() {
-        when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(List.of(WildcardMatcher.valueOf("*/empty-mono")));
+        doReturn(List.of(WildcardMatcher.valueOf("*/empty-mono"))).when(config.getConfig(WebConfiguration.class)).getIgnoreUrls();
 
         StepVerifier.create(client.getMonoEmpty()).verifyComplete();
 
@@ -383,7 +388,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void testIgnoreUserAgentsConfig() {
-        when(config.getConfig(WebConfiguration.class).getIgnoreUserAgents()).thenReturn(List.of(WildcardMatcher.valueOf("ignored-ua")));
+        doReturn(List.of(WildcardMatcher.valueOf("ignored-ua"))).when(config.getConfig(WebConfiguration.class)).getIgnoreUserAgents();
         client.setHeader("User-Agent", "ignored-ua");
 
         StepVerifier.create(client.getMonoEmpty()).verifyComplete();

@@ -19,6 +19,7 @@
 package co.elastic.apm.attach;
 
 import co.elastic.apm.agent.common.util.ResourceExtractionUtil;
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import net.bytebuddy.agent.ByteBuddyAgent;
 
 import javax.annotation.Nullable;
@@ -83,7 +84,7 @@ public class ElasticApmAttacher {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            SystemStandardOutputLogger.printStackTrace(e);
         }
         return propertyMap;
     }
@@ -124,7 +125,7 @@ public class ElasticApmAttacher {
                     properties.store(outputStream, null);
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                SystemStandardOutputLogger.printStackTrace(e);
             }
         }
         return tempFile;
@@ -170,11 +171,11 @@ public class ElasticApmAttacher {
                 ByteBuddyAgent.attach(agentJarFile, pid, agentArgs, ElasticAttachmentProvider.getFallback());
             } catch (RuntimeException e2) {
                 // output the two exceptions for debugging
-                System.err.println("Unable to attach with fallback provider:");
-                e2.printStackTrace();
+                SystemStandardOutputLogger.stdErrInfo("Unable to attach with fallback provider:");
+                SystemStandardOutputLogger.printStackTrace(e2);
 
-                System.err.println("Unable to attach with regular provider:");
-                e1.printStackTrace();
+                SystemStandardOutputLogger.stdErrInfo("Unable to attach with regular provider:");
+                SystemStandardOutputLogger.printStackTrace(e1);
             }
         }
     }
@@ -202,10 +203,14 @@ public class ElasticApmAttacher {
         final File agentJarFile = getAgentJarFile();
 
         private static File getAgentJarFile() {
-            if (ElasticApmAttacher.class.getResource("/elastic-apm-agent.jar") == null) {
-                return null;
+            if (ElasticApmAttacher.class.getResource("/elastic-apm-agent.jar") != null) {
+                // packaged agent as resource
+                return ResourceExtractionUtil.extractResourceToTempDirectory("elastic-apm-agent.jar", "elastic-apm-agent", ".jar").toFile();
             }
-            return ResourceExtractionUtil.extractResourceToTempDirectory("elastic-apm-agent.jar", "elastic-apm-agent", ".jar").toFile();
+
+            // Running attacher without proper packaging is quite common when running it from the IDE without having
+            // it packaged from CLI beforehand
+            throw new IllegalStateException("unable to get packaged agent within attacher jar, make sure to execute 'mvn clean package' first.");
         }
     }
 

@@ -25,6 +25,7 @@ import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -80,7 +81,7 @@ public abstract class ApmSpanBuilderInstrumentation extends OpenTracingBridgeIns
                 if (parentContext instanceof AbstractSpan<?>) {
                     parent = (AbstractSpan<?>) parentContext;
                 }
-                return doCreateTransactionOrSpan(parent, tags, operationName, microseconds, baggage, spanBuilderClass.getClassLoader());
+                return doCreateTransactionOrSpan(parent, tags, operationName, microseconds, baggage, PrivilegedActionUtils.getClassLoader(spanBuilderClass));
             }
 
             @Nullable

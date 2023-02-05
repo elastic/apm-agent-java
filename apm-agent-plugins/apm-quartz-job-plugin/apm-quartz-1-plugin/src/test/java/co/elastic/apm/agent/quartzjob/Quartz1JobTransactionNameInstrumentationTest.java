@@ -36,7 +36,7 @@ class Quartz1JobTransactionNameInstrumentationTest extends AbstractJobTransactio
 
     @Override
     public Transaction verifyTransactionFromJobDetails(JobDetail job, Outcome expectedOutcome) {
-        reporter.awaitTransactionCount(1);
+        reporter.awaitTransactionCount(1, 2000);
 
         Transaction transaction = reporter.getFirstTransaction();
         await().untilAsserted(() -> assertThat(reporter.getTransactions().size()).isEqualTo(1));

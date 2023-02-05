@@ -237,13 +237,13 @@ and <<api-transaction-end, `transaction.end()`>>
 Annotating a method with `@CaptureSpan` creates a span as the child of the currently active span or transaction
 (<<api-current-span>>).
 
-When there is no current span,
-no span will be created.
+When there is no current span or transaction, no span will be created.
 
 * `value`: The name of the span. Defaults to `ClassName#methodName`
 * `type`: The type of the span, e.g. `db` for DB span. Defaults to `app`
 * `subtype`: The subtype of the span, e.g. `mysql` for DB span. Defaults to empty string
 * `action`: The action related to the span, e.g. `query` for DB spans. Defaults to empty string
+* `discardable`: By default, spans may be discarded in certain scenarios. Set this attribute to `false` to make this span non-discardable.
 
 NOTE: Using this annotation implicitly creates a Span and activates it when entering the annotated
 method. It also implicitly ends it and deactivates it before exiting the annotated method.
@@ -255,8 +255,7 @@ See <<api-span-start-span, `startSpan()`>>, <<api-span-start-span-with-type, `st
 ==== `@Traced`  added[1.11.0]
 Annotating a method with `@Traced` creates a span as the child of the currently active span or transaction.
 
-When there is no current span,
-a transaction will be created instead.
+When there is no current span, a transaction will be created instead.
 
 Use this annotation over <<api-capture-span>> or <<api-capture-transaction>> if a method can both be an entry point (a transaction)
 or a unit of work within a transaction (a span).
@@ -265,6 +264,8 @@ or a unit of work within a transaction (a span).
 * `type`: The type of the span or transaction. Defaults to `request` for transactions and `app` for spans
 * `subtype`: The subtype of the span, e.g. `mysql` for DB span. Defaults to empty string. Has no effect when a transaction is created.
 * `action`: The action related to the span, e.g. `query` for DB spans. Defaults to empty string. Has no effect when a transaction is created.
+* `discardable`: By default, spans may be discarded in certain scenarios. Set this attribute to `false` to make this span non-discardable.
+This attribute has no effect if the created event is a Transaction.
 
 NOTE: Using this annotation implicitly creates a span or transaction and activates it when entering the annotated
 method. It also implicitly ends it and deactivates it before exiting the annotated method.
@@ -501,7 +502,7 @@ preferably before other JS libraries:
 <script>
   elasticApm.init({
     serviceName: "service-name",
-    serverUrl: "http://localhost:8200",
+    serverUrl: "http://127.0.0.1:8200",
     pageLoadTraceId: "${transaction.traceId}",
     pageLoadSpanId: "${transaction.ensureParentId()}",
     pageLoadSampled: ${transaction.sampled}
@@ -552,9 +553,9 @@ See <<api-span-activate, `span.activate()`>> on how to achieve that.
 
 Start and return a new exit span with a type, a subtype and an action, as a child of this transaction.
 
-Similar to <<api-transaction-start-span-with-type, `startSpan(String, String, String)`>>, but the created span will be used to create a node in the Service Map and a downstream service in the Dependencies Table.
-The provided subtype will be used as the downstream service name, unless the `destination.service.resource` field is explicitly set through
-<<api-span-set-destination-resource, `setDestinationService(String resource)`>>.
+Similar to <<api-span-start-span-with-type, `startSpan(String, String, String)`>>, but the created span will be used to create a node in the Service Map and a downstream service in the Dependencies Table.
+The provided subtype will be used as the downstream service name, unless the `service.target.type` and `service.target.name` fields are explicitly set through
+<<api-span-set-service-target, `setServiceTarget(String type, String name)`>>.
 
 [float]
 [[api-transaction-start-span]]
@@ -801,12 +802,28 @@ Any value set through this method will take precedence over the automatically in
 Using `null` or empty resource string will result in the omission of this field from the span context.
 
 [float]
+[[api-span-set-non-discardable]]
+==== `Span setNonDiscardable()` added[1.32.0]
+Makes this span non-discardable. In some cases, spans may be discarded, for example if <<config-span-min-duration>> is set and the span
+does not exceed the configured threshold. Use this method to make sure the current span is not discarded.
+
+NOTE: making a span non-discardable implicitly makes the entire stack of active spans non-discardable as well. Child spans can still be
+discarded.
+
+[float]
 [[api-span-set-destination-address]]
 ==== `Span setDestinationAddress(String address, int port)` added[1.25.0]
 Provides a way to manually set the span's `destination.address` and `destination.port` fields.
 Values set through this method will take precedence over the automatically discovered ones.
 Using `null` or empty address or non-positive port will result in the omission of the corresponding field from the
 span context.
+
+[float]
+[[api-span-set-service-target]]
+==== `Span setServiceTarget(String type, String name)` added[1.32.0]
+Provides a way to manually set the span `service.target.type` and `service.target.name` fields.
+Values set through this method will take precedence over the automatically discovered ones.
+Using `null` or empty string values will result in the omission of those fields from the span context.
 
 [float]
 [[api-span-end]]
@@ -873,8 +890,8 @@ See <<api-span-activate, `span.activate()`>> on how to achieve that.
 Start and return a new exit span with a type, a subtype and an action, as a child of this span.
 
 Similar to <<api-span-start-span-with-type, `startSpan(String, String, String)`>>, but the created span will be used to create a node in the Service Map and a downstream service in the Dependencies Table.
-The provided subtype will be used as the downstream service name, unless the `destination.service.resource` field is explicitly set through
-<<api-span-set-destination-resource, `setDestinationService(String resource)`>>.
+The provided subtype will be used as the downstream service name, unless the `service.target.type` and `service.target.name` fields are explicitly set through
+<<api-span-set-service-target, `setServiceTarget(String type, String name)`>>.
 
 If invoked on a span which is already an exit span, this method will return a noop span.
 

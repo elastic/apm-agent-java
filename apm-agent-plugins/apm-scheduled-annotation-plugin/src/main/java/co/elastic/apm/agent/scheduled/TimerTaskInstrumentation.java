@@ -24,6 +24,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -38,8 +39,10 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperClass;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class TimerTaskInstrumentation extends TracerAwareInstrumentation {
     private static final String FRAMEWORK_NAME = "TimerTask";
@@ -59,7 +62,7 @@ public class TimerTaskInstrumentation extends TracerAwareInstrumentation {
                                                  @Advice.Origin Class<?> clazz) {
             AbstractSpan<?> active = tracer.getActive();
             if (active == null) {
-                Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
                 if (transaction != null) {
                     transaction.withName(signature)
                         .withType("scheduled")
@@ -88,7 +91,8 @@ public class TimerTaskInstrumentation extends TracerAwareInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>none())
-            .and(hasSuperClass(named("java.util.TimerTask")));
+            .and(hasSuperClass(named("java.util.TimerTask")))
+            .and(not(isProxy()));
     }
 
     @Override

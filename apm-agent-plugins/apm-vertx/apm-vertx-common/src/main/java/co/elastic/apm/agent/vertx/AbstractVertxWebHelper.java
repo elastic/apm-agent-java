@@ -24,6 +24,7 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.cookie.Cookie;
@@ -65,7 +66,7 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
         if (transaction != null) {
             return transaction;
         } else if (!serverHelper.isRequestExcluded(httpServerRequest.uri(), httpServerRequest.headers().get(USER_AGENT_HEADER))) {
-            transaction = tracer.startChildTransaction(httpServerRequest.headers(), headerGetter, httpServerRequest.getClass().getClassLoader());
+            transaction = tracer.startChildTransaction(httpServerRequest.headers(), headerGetter, PrivilegedActionUtils.getClassLoader(httpServerRequest.getClass()));
         }
         return transaction;
     }
@@ -75,26 +76,33 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
 
     protected void setRouteBasedTransactionName(Transaction transaction, RoutingContext routingContext) {
         if (!webConfiguration.isUsePathAsName()) {
-            StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK);
-            if (transactionName != null) {
-                transactionName.append(routingContext.request().method().name())
-                    .append(" ").append(routingContext.currentRoute().getPath());
+            String path = routingContext.currentRoute().getPath();
+            if (path != null) {
+                // Conceptually, Vert.x-based transactions are low level, but since it can be used with servlet filters, it should get a
+                // bit higher priority
+                StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK + 1);
+                if (transactionName != null) {
+                    transactionName.append(routingContext.request().method().name())
+                        .append(" ").append(path);
+                }
             }
         }
     }
 
-    public void finalizeTransaction(HttpServerResponse httpServerResponse, Transaction transaction) {
+    public void finalizeTransaction(@Nullable HttpServerResponse httpServerResponse, Transaction transaction) {
         try {
-            final Response response = transaction.getContext().getResponse();
-            int status = httpServerResponse.getStatusCode();
-            setResponseHeaders(transaction, httpServerResponse, response);
+            if (httpServerResponse != null) {
+                final Response response = transaction.getContext().getResponse();
+                int status = httpServerResponse.getStatusCode();
+                setResponseHeaders(transaction, httpServerResponse, response);
 
-            fillResponse(response, null, status);
-            transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
-
-            transaction.end();
+                fillResponse(response, null, status);
+                transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
+            }
         } catch (Throwable e) {
             logger.warn("Exception while capturing Elastic APM transaction", e);
+        } finally {
+            transaction.end();
         }
     }
 

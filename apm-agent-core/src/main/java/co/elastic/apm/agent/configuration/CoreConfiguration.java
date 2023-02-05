@@ -27,17 +27,26 @@ import co.elastic.apm.agent.configuration.validation.RegexValidator;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.AbstractValueConverter;
 import org.stagemonitor.configuration.converter.MapValueConverter;
 import org.stagemonitor.configuration.converter.SetValueConverter;
 import org.stagemonitor.configuration.converter.StringValueConverter;
+import org.stagemonitor.configuration.converter.ValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -52,7 +61,10 @@ import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACE
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
     public static final String INSTRUMENT = "instrument";
+    public static final String INSTRUMENT_ANCIENT_BYTECODE = "instrument_ancient_bytecode";
     public static final String SERVICE_NAME = "service_name";
     public static final String SERVICE_NODE_NAME = "service_node_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
@@ -219,7 +231,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("performance")
         .description("By default, the agent will sample every transaction (e.g. request to your service). " +
             "To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. " +
-            "We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.\n\n" +
+            "(For pre-8.0 servers the agent still records and sends overall time and the result for unsampled transactions, but no context information, labels, or spans." +
+            " When connecting to 8.0+ servers, the unsampled requests are not sent at all).\n\n" +
             "Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`")
         .dynamic(true)
         .addValidator(isInRange(0d, 1d))
@@ -232,7 +245,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("Limits the amount of spans that are recorded per transaction.\n\n" +
             "This is helpful in cases where a transaction creates a very high amount of spans (e.g. thousands of SQL queries).\n\n" +
             "Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.\n\n" +
-            "A message will be logged when the max number of spans has been exceeded but only at a rate of once every " + TimeUnit.MICROSECONDS.toMinutes(Span.MAX_LOG_INTERVAL_MICRO_SECS)  + " minutes to ensure performance is not impacted.")
+            "A message will be logged when the max number of spans has been exceeded but only at a rate of once every " + TimeUnit.MICROSECONDS.toMinutes(Span.MAX_LOG_INTERVAL_MICRO_SECS) + " minutes to ensure performance is not impacted.")
         .dynamic(true)
         .buildWithDefault(500);
 
@@ -241,20 +254,20 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key("sanitize_field_names")
         .configurationCategory(CORE_CATEGORY)
         .description("Sometimes it is necessary to sanitize the data sent to Elastic APM,\n" +
-            "e.g. remove sensitive data.\n" +
-            "\n" +
-            "Configure a list of wildcard patterns of field names which should be sanitized.\n" +
-            "These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.\n" +
-            "\n" +
-            WildcardMatcher.DOCUMENTATION + "\n" +
-            "\n" +
-            "NOTE: Data in the query string is considered non-sensitive,\n" +
-            "as sensitive information should not be sent in the query string.\n" +
-            "See https://www.owasp.org/index.php/Information_exposure_through_query_strings_in_url for more information\n" +
-            "\n" +
-            "NOTE: Review the data captured by Elastic APM carefully to make sure it does not capture sensitive information.\n" +
-            "If you do find sensitive data in the Elasticsearch index,\n" +
-            "you should add an additional entry to this list (make sure to also include the default entries)."
+                "e.g. remove sensitive data.\n" +
+                "\n" +
+                "Configure a list of wildcard patterns of field names which should be sanitized.\n" +
+                "These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.\n" +
+                "\n" +
+                WildcardMatcher.DOCUMENTATION + "\n" +
+                "\n" +
+                "NOTE: Data in the query string is considered non-sensitive,\n" +
+                "as sensitive information should not be sent in the query string.\n" +
+                "See https://www.owasp.org/index.php/Information_exposure_through_query_strings_in_url for more information\n" +
+                "\n" +
+                "NOTE: Review the data captured by Elastic APM carefully to make sure it does not capture sensitive information.\n" +
+                "If you do find sensitive data in the Elasticsearch index,\n" +
+                "you should add an additional entry to this list (make sure to also include the default entries)."
             /* A disadvantage of this approach is when a user adds a custom value,
              * they don't automatically pick up new default values.
              * But the possibility to remove default values which are leading to false positive for the user
@@ -276,6 +289,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("*credit*"),
             WildcardMatcher.valueOf("*card*"),
             WildcardMatcher.valueOf("*auth*"),
+            WildcardMatcher.valueOf("*principal*"),
             // HTTP response header which can contain session ids
             WildcardMatcher.valueOf("set-cookie")
         ));
@@ -425,6 +439,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("When enabled, configures Byte Buddy to use a type pool cache.")
         .buildWithDefault(true);
 
+    private final ConfigurationOption<Boolean> instrumentAncientBytecode = ConfigurationOption.booleanOption()
+        .key(INSTRUMENT_ANCIENT_BYTECODE)
+        .configurationCategory(CORE_CATEGORY)
+        .description("A boolean specifying if the agent should instrument pre-Java-1.4 bytecode.")
+        .dynamic(false)
+        .tags("added[1.35.0]")
+        .buildWithDefault(false);
+
     private final ConfigurationOption<Boolean> warmupByteBuddy = ConfigurationOption.booleanOption()
         .key("warmup_byte_buddy")
         .configurationCategory(CORE_CATEGORY)
@@ -460,7 +482,34 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(true);
 
     private final ConfigurationOption<List<WildcardMatcher>> classesExcludedFromInstrumentation = ConfigurationOption
-        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .builder(new ValueConverter<List<WildcardMatcher>>() {
+
+            private final ValueConverter<List<WildcardMatcher>> delegate = new ListValueConverter<>(new WildcardMatcherValueConverter());
+
+            @Override
+            public List<WildcardMatcher> convert(String s) {
+                List<WildcardMatcher> result = new ArrayList<>();
+                for (WildcardMatcher matcher : delegate.convert(s)) {
+                    if (matcher.matches("co.elastic.apm.")) {
+                        logger.warn("Ignoring exclude '{}' for instrumentation because ignoring 'co.elastic.apm' can lead to unwanted side effects", matcher);
+                    } else {
+                        result.add(matcher);
+                    }
+                }
+                return result;
+            }
+
+            @Override
+            public String toString(List<WildcardMatcher> value) {
+                return delegate.toString(value);
+            }
+
+            @Override
+            public String toSafeString(List<WildcardMatcher> value) {
+                return delegate.toSafeString(value);
+            }
+
+        }, List.class)
         .key("classes_excluded_from_instrumentation")
         .configurationCategory(CORE_CATEGORY)
         .description("Use to exclude specific classes from being instrumented. In order to exclude entire packages, \n" +
@@ -651,6 +700,16 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(true);
 
+    private final ConfigurationOption<Boolean> disableOutgoingTraceContextHeaders = ConfigurationOption.booleanOption()
+        .key("disable_outgoing_tracecontext_headers")
+        .tags("added[1.37.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Use this option to disable `tracecontext` headers injection to any outgoing communication. \n\n" +
+            "NOTE: Disabling `tracecontext` headers injection means that {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing] \n" +
+            "will not work on downstream services.")
+        .dynamic(true)
+        .buildWithDefault(false);
+
     private final ConfigurationOption<Integer> tracestateHeaderSizeLimit = ConfigurationOption.integerOption()
         .key("tracestate_header_size_limit")
         .tags("added[1.14.0]")
@@ -707,12 +766,48 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.25.0]")
         .configurationCategory(CORE_CATEGORY)
         .tags("performance")
-        .description("A boolean specifying if the agent should search the class hierarchy for public api annotations (@CaptureTransaction, @CaptureSpan, @Traced)).\n " +
+        .description("A boolean specifying if the agent should search the class hierarchy for public api annotations (`@CaptureTransaction`, `@CaptureSpan`, `@Traced`).\n " +
             "When set to `false`, a method is instrumented if it is annotated with a public api annotation.\n  " +
             "When set to `true` methods overriding annotated methods will be instrumented as well.\n " +
             "Either way, methods will only be instrumented if they are included in the configured <<config-application-packages>>.")
         .dynamic(false)
         .buildWithDefault(false);
+
+    private final ConfigurationOption<List<WildcardMatcher>> transactionNameGroups = ConfigurationOption
+        .builder(new org.stagemonitor.configuration.converter.ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("transaction_name_groups")
+        .tags("added[1.33.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("With this option,\n" +
+            "you can group transaction names that contain dynamic parts with a wildcard expression.\n" +
+            "For example,\n" +
+            "the pattern `GET /user/*/cart` would consolidate transactions,\n" +
+            "such as `GET /users/42/cart` and `GET /users/73/cart` into a single transaction name `GET /users/*/cart`,\n" +
+            "hence reducing the transaction name cardinality.\n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION)
+        .dynamic(true)
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
+
+    private final ConfigurationOption<TraceContinuationStrategy> traceContinuationStrategy = ConfigurationOption.enumOption(TraceContinuationStrategy.class)
+        .key("trace_continuation_strategy")
+        .tags("added[1.34.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("This option allows some control over how the APM agent handles W3C trace-context headers on incoming requests. " +
+            "By default, the `traceparent` and `tracestate` headers are used per W3C spec for distributed tracing. " +
+            "However, in certain cases it can be helpful to not use the incoming `traceparent` header. Some example use cases:\n\n" +
+            "* An Elastic-monitored service is receiving requests with `traceparent` headers from unmonitored services.\n" +
+            "* An Elastic-monitored service is publicly exposed, and does not want tracing data (trace-ids, sampling decisions) to possibly be spoofed by user requests.\n\n" +
+            "Valid values are:\n\n" +
+            "* 'continue': The default behavior. An incoming `traceparent` value is used to continue the trace and determine the sampling decision.\n" +
+            "* 'restart': Always ignores the `traceparent` header of incoming requests. A new trace-id will be generated and the sampling decision" +
+            " will be made based on transaction_sample_rate. A span link will be made to the incoming `traceparent`.\n" +
+            "* 'restart_external': If an incoming request includes the `es` vendor flag in `tracestate`, then any `traceparent` will be considered " +
+            "internal and will be handled as described for 'continue' above. Otherwise, any `traceparent` is considered external and will be handled as described for 'restart' above.\n\n" +
+            "Starting with Elastic Observability 8.2, span links are visible in trace views.\n\n" +
+            "This option is case-insensitive.")
+        .dynamic(true)
+        .buildWithDefault(TraceContinuationStrategy.CONTINUE);
 
     public boolean isEnabled() {
         return enabled.get();
@@ -814,7 +909,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return unnestExceptions.get();
     }
 
-    public List<WildcardMatcher> getIgnoreExceptions(){
+    public List<WildcardMatcher> getIgnoreExceptions() {
         return ignoreExceptions.get();
     }
 
@@ -828,6 +923,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isTypePoolCacheEnabled() {
         return typePoolCache.get();
+    }
+
+    public boolean isInstrumentAncientBytecode() {
+        return instrumentAncientBytecode.get();
     }
 
     public boolean shouldWarmupByteBuddy() {
@@ -883,6 +982,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return useElasticTraceparentHeader.get();
     }
 
+    public boolean isOutgoingTraceContextHeadersInjectionDisabled() {
+        return disableOutgoingTraceContextHeaders.get();
+    }
+
     public int getTracestateSizeLimit() {
         return tracestateHeaderSizeLimit.get();
     }
@@ -931,6 +1034,29 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         }
     }
 
+    public int getExternalPluginsCount() {
+        String pathString = getPluginsDir();
+        if (pathString == null) {
+            return 0;
+        }
+        Path pluginsDir = Paths.get(pathString);
+        if (!Files.isDirectory(pluginsDir)) {
+            return 0;
+        }
+
+        int count = 0;
+        try (DirectoryStream<Path> paths = Files.newDirectoryStream(pluginsDir)) {
+            for (Path p : paths) {
+                if (p.getFileName().endsWith(".jar")) {
+                    count++;
+                }
+            }
+        } catch (IOException e) {
+            // silently ignored
+        }
+        return count;
+    }
+
     public long getMetadataDiscoveryTimeoutMs() {
         return metadataTimeoutMs.get().getMillis();
     }
@@ -941,6 +1067,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isEnablePublicApiAnnotationInheritance() {
         return enablePublicApiAnnotationInheritance.get();
+    }
+
+    public List<WildcardMatcher> getTransactionNameGroups() {
+        return transactionNameGroups.get();
+    }
+
+    public TraceContinuationStrategy getTraceContinuationStrategy() {
+        return traceContinuationStrategy.get();
     }
 
     public enum EventType {
@@ -973,5 +1107,16 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         GCP,
         AZURE,
         NONE
+    }
+
+    public enum TraceContinuationStrategy {
+        CONTINUE,
+        RESTART,
+        RESTART_EXTERNAL;
+
+        @Override
+        public String toString() {
+            return name().toLowerCase();
+        }
     }
 }

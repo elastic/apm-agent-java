@@ -21,6 +21,7 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.configuration.AgentArgumentsConfigurationSource;
 import co.elastic.apm.agent.configuration.ApmServerConfigurationSource;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.PrefixingConfigurationSourceWrapper;
 import co.elastic.apm.agent.configuration.source.ConfigSources;
 import co.elastic.apm.agent.configuration.source.SystemPropertyConfigurationSource;
@@ -30,16 +31,18 @@ import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.metrics.builtin.AgentReporterMetrics;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.ReporterFactory;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
-import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
-import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.ConfigurationSource;
@@ -75,6 +78,9 @@ public class ElasticApmTracerBuilder {
     private final List<LifecycleListener> extraLifecycleListeners;
 
     private final List<ConfigurationSource> configSources;
+
+    @Nullable
+    private ApmServerClient apmServerClient;
 
     /**
      * Constructs a new builder instance with default configuration sources
@@ -118,6 +124,11 @@ public class ElasticApmTracerBuilder {
         return this;
     }
 
+    public ElasticApmTracerBuilder withApmServerClient(ApmServerClient apmServerClient) {
+        this.apmServerClient = apmServerClient;
+        return this;
+    }
+
     public ElasticApmTracer build() {
         return build(false);
     }
@@ -142,7 +153,10 @@ public class ElasticApmTracerBuilder {
             lifecycleListeners.add(scheduleReloadAtRate(configurationRegistry, 30, TimeUnit.SECONDS));
         }
 
-        ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class), configurationRegistry.getConfig(CoreConfiguration.class));
+        if (apmServerClient == null) {
+            apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class), configurationRegistry.getConfig(CoreConfiguration.class));
+        }
+
         MetaDataFuture metaDataFuture = MetaData.create(configurationRegistry, ephemeralId);
         if (addApmServerConfigSource) {
             // adding remote configuration source last will make it highest priority
@@ -160,11 +174,15 @@ public class ElasticApmTracerBuilder {
             lifecycleListeners.add(configurationSource);
         }
 
+        MetricsConfiguration metricsConfig = configurationRegistry.getConfig(MetricsConfiguration.class);
+        MetricRegistry metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class), metricsConfig);
+
         if (reporter == null) {
-            reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaDataFuture);
+            AgentReporterMetrics healthMetrics = new AgentReporterMetrics(metricRegistry, metricsConfig);
+            reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaDataFuture, healthMetrics);
         }
 
-        ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, reporter, objectPoolFactory, apmServerClient, ephemeralId, metaDataFuture);
+        ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, metricRegistry, reporter, objectPoolFactory, apmServerClient, ephemeralId, metaDataFuture);
         lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class, tracer));
         lifecycleListeners.addAll(extraLifecycleListeners);
         tracer.init(lifecycleListeners);

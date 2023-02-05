@@ -30,12 +30,12 @@ class Log4j1LoggerErrorCapturingInstrumentationTest extends AbstractErrorLogging
     @Test
     void captureErrorExceptionWithStringMessage() {
         logger.error("exception captured", new RuntimeException("some business exception"));
-        verifyThatExceptionCaptured(1, "some business exception", RuntimeException.class);
+        verifyExceptionCaptured("some business exception", RuntimeException.class);
     }
 
     @Test
     void captureFatalException() {
         logger.fatal("exception captured", new RuntimeException("some business exception"));
-        verifyThatExceptionCaptured(1, "some business exception", RuntimeException.class);
+        verifyExceptionCaptured("some business exception", RuntimeException.class);
     }
 }

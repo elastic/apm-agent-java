@@ -24,7 +24,6 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -107,7 +106,7 @@ public final class VersionUtils {
         if (jarFile == null) {
             return null;
         }
-        try (JarInputStream jarInputStream = new JarInputStream(new FileInputStream(jarFile))) {
+        try (JarInputStream jarInputStream = new JarInputStream(PrivilegedActionUtils.newFileInputStream(jarFile))) {
             return jarInputStream.getManifest().getMainAttributes().getValue(manifestAttribute);
         } catch (IOException e) {
             return null;

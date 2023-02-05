@@ -21,14 +21,13 @@ package co.elastic.apm.agent.kafka;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -55,11 +54,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 /**
  * Tests newer client with a 0.10.2.2 version.
@@ -216,7 +214,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
 
     @Test
     public void testDestinationAddressCollectionDisabled() {
-        when(messagingConfiguration.shouldCollectQueueAddress()).thenReturn(false);
+        doReturn(false).when(messagingConfiguration).shouldCollectQueueAddress();
         testScenario = TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         reporter.disableCheckDestinationAddress();
@@ -226,7 +224,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
 
     @Test
     public void testIgnoreTopic() {
-        when(messagingConfiguration.getIgnoreMessageQueues()).thenReturn(List.of(WildcardMatcher.valueOf(REQUEST_TOPIC)));
+        doReturn(List.of(WildcardMatcher.valueOf(REQUEST_TOPIC))).when(messagingConfiguration).getIgnoreMessageQueues();
         testScenario = TestScenario.IGNORE_REQUEST_TOPIC;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
@@ -315,8 +313,11 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
         assertThat(pollSpan.getSubtype()).isEqualTo("kafka");
         assertThat(pollSpan.getAction()).isEqualTo("poll");
         assertThat(pollSpan.getNameAsString()).isEqualTo("KafkaConsumer#poll");
-        Destination.Service service = pollSpan.getContext().getDestination().getService();
-        assertThat(service.getResource().toString()).isEqualTo("kafka");
+
+        assertThat(pollSpan.getContext().getServiceTarget())
+            .hasType("kafka")
+            .hasNoName()
+            .hasDestinationResource("kafka");
     }
 
     private void verifySendSpanContents(Span sendSpan, String topicName) {
@@ -327,8 +328,11 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
         SpanContext context = sendSpan.getContext();
         Message message = context.getMessage();
         assertThat(message.getQueueName()).isEqualTo(topicName);
-        Destination.Service service = context.getDestination().getService();
-        assertThat(service.getResource().toString()).isEqualTo("kafka/" + topicName);
+
+        assertThat(context.getServiceTarget())
+            .hasType("kafka")
+            .hasName(topicName)
+            .hasDestinationResource("kafka/" + topicName);
     }
 
     private void verifyKafkaTransactionContents(Transaction transaction, @Nullable Span parentSpan,

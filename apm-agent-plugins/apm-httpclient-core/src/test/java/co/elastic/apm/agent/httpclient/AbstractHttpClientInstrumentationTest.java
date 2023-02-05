@@ -19,6 +19,8 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Http;
@@ -36,6 +38,7 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import org.awaitility.Awaitility;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -50,6 +53,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static co.elastic.apm.agent.impl.transaction.TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor;
@@ -57,12 +61,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.seeOther;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 
 public abstract class AbstractHttpClientInstrumentationTest extends AbstractInstrumentationTest {
 
     @Rule
-    public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort(), false);
+    public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort().dynamicHttpsPort(), false);
 
     @Before
     public final void setUpWiremock() {
@@ -94,22 +98,24 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(transaction).isNotNull();
         transaction.deactivate().end();
         assertThat(reporter.getTransactions()).hasSize(1);
-    }
 
-    protected boolean isIpv6Supported() {
-        return true;
-    }
-
-    protected boolean isErrorOnCircularRedirectSupported(){
-        return true;
+        // reset reporter to avoid error state to propagate to the next test
+        reporter.reset();
     }
 
     @Test
     public void testHttpCall() {
         String path = "/";
         performGetWithinTransaction(path);
-
         verifyHttpSpan(path);
+    }
+
+    @Test
+    public void testDisabledOutgoingHeaders() {
+        doReturn(true).when(config.getConfig(CoreConfiguration.class)).isOutgoingTraceContextHeadersInjectionDisabled();
+        String path = "/";
+        performGetWithinTransaction(path);
+        verifyHttpSpan("localhost", path, 200, true, false, false);
     }
 
     @Test
@@ -119,7 +125,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         try {
             exitSpan.withType("custom").withSubtype("exit");
             exitSpan.getContext().getDestination().withAddress("test-host").withPort(6000);
-            exitSpan.getContext().getDestination().getService().withResource("test-resource");
+            exitSpan.getContext().getServiceTarget().withType("test-resource");
             exitSpan.activate();
             performGetWithinTransaction(path);
             verifyTraceContextHeaders(exitSpan, path);
@@ -131,6 +137,8 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Test
     public void testHttpCallWithUserInfo() throws Exception {
+        Assume.assumeTrue(isTestHttpCallWithUserInfoEnabled());
+
         performGet("http://user:passwd@localhost:" + wireMockRule.port() + "/");
         verifyHttpSpan("/");
     }
@@ -143,12 +151,101 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Test
     public void testHttpCallWithIpv6() throws Exception {
-        if (!isIpv6Supported()) {
-            return;
-        }
+        Assume.assumeTrue(isIpv6Supported());
+
         performGet(String.format("http://[::1]:%d/", wireMockRule.port()));
         verifyHttpSpan("[::1]", "/");
     }
+
+    @Test
+    public void testNonExistingHttpCall() {
+        String path = "/non-existing";
+        performGetWithinTransaction(path);
+
+        verifyHttpSpan("localhost", path, 404);
+    }
+
+    @Test
+    public void testErrorHttpCall() {
+        String path = "/error";
+        performGetWithinTransaction(path);
+
+        verifyHttpSpan("localhost", path, 515);
+    }
+
+    @Test
+    public void testHttpCallRedirect() {
+        Assume.assumeTrue(isRedirectFollowingSupported());
+
+        String path = "/redirect";
+        performGetWithinTransaction(path);
+
+        Span span = verifyHttpSpan(path);
+
+        verifyTraceContextHeaders(span, "/redirect");
+        verifyTraceContextHeaders(span, "/");
+    }
+
+    @Test
+    public void testHttpCallCircularRedirect() {
+        Assume.assumeTrue(isErrorOnCircularRedirectSupported());
+
+        String path = "/circular-redirect";
+        performGetWithinTransaction(path);
+
+        Span span = reporter.getFirstSpan(500);
+        assertThat(span).isNotNull();
+
+        assertThat(reporter.getSpans()).hasSize(1);
+        if (isRequireCheckErrorWhenCircularRedirect()) {
+            assertThat(reporter.getErrors()).hasSize(1);
+            assertThat(reporter.getFirstError().getException()).isNotNull();
+            assertThat(reporter.getFirstError().getException().getClass()).isNotNull();
+            assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
+        }
+
+        verifyTraceContextHeaders(span, "/circular-redirect");
+    }
+
+    // assumption
+    protected boolean isIpv6Supported() {
+        return true;
+    }
+
+    // assumption
+    protected boolean isRedirectFollowingSupported() {
+        return true;
+    }
+
+    // assumption
+    protected boolean isErrorOnCircularRedirectSupported() {
+        return isRedirectFollowingSupported();
+    }
+
+    // assumption
+    public boolean isTestHttpCallWithUserInfoEnabled() {
+        return true;
+    }
+
+    // some http clients does not capture error
+    public boolean isRequireCheckErrorWhenCircularRedirect() {
+        return true;
+    }
+
+    protected String getBaseUrl() {
+        return "http://localhost:" + wireMockRule.port();
+    }
+
+    protected void performGetWithinTransaction(String path) {
+        try {
+            performGet(getBaseUrl() + path);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @SuppressWarnings("NullableProblems")
+    protected abstract void performGet(String path) throws Exception;
 
     protected Span verifyHttpSpan(String path) {
         return verifyHttpSpan("localhost", path);
@@ -159,13 +256,18 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted) {
+        return verifyHttpSpan(host, path, status, requestExecuted, false, requestExecuted);
+    }
+
+    protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted, boolean isHttps, boolean expectTraceContextHeaders) {
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         Span span = reporter.getSpans().get(0);
 
-        int port = wireMockRule.port();
+        int port = isHttps ? wireMockRule.httpsPort() : wireMockRule.port();
 
-        String baseUrl = String.format("http://%s:%d", host, port);
+        String schema = isHttps ? "https" : "http";
+        String baseUrl = String.format("%s://%s:%d", schema, host, port);
 
         Http httpContext = span.getContext().getHttp();
 
@@ -188,10 +290,20 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
         assertThat(destination.getAddress().toString()).isEqualTo(host.substring(addressStartIndex, addressEndIndex));
         assertThat(destination.getPort()).isEqualTo(port);
-        assertThat(destination.getService().getResource().toString()).isEqualTo("%s:%d", host, port);
+
+        assertThat(span.getContext().getServiceTarget())
+            .hasName(String.format("%s:%d", host, port))
+            .hasType("http")
+            .hasNameOnlyDestinationResource();
 
         if (requestExecuted) {
-            verifyTraceContextHeaders(span, path);
+            if (expectTraceContextHeaders) {
+                verifyTraceContextHeaders(span, path);
+            } else {
+                findLoggedRequests(path).forEach(request ->
+                    assertThat(TraceContext.containsTraceContextTextHeaders(request, HeaderAccessor.INSTANCE)).isFalse()
+                );
+            }
         }
 
         return span;
@@ -205,16 +317,8 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         Map<String, String> headerMap = new HashMap<>();
         span.propagateTraceContext(headerMap, TextHeaderMapAccessor.INSTANCE);
         assertThat(headerMap).isNotEmpty();
-        final AtomicReference<List<LoggedRequest>> loggedRequests = new AtomicReference<>();
-        Awaitility.await()
-            .pollInterval(1, TimeUnit.MILLISECONDS)
-            .timeout(1000, TimeUnit.MILLISECONDS)
-            .untilAsserted(() -> {
-                List<LoggedRequest> tmp = wireMockRule.findAll(anyRequestedFor(urlPathEqualTo(path)));
-                loggedRequests.set(tmp);
-                assertThat(tmp).isNotEmpty();
-            });
-        loggedRequests.get().forEach(request -> {
+        final List<LoggedRequest> loggedRequests = findLoggedRequests(path);
+        loggedRequests.forEach(request -> {
             assertThat(TraceContext.containsTraceContextTextHeaders(request, HeaderAccessor.INSTANCE)).isTrue();
             AtomicInteger headerCount = new AtomicInteger();
             HeaderAccessor.INSTANCE.forEach(
@@ -232,69 +336,18 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         });
     }
 
-    @Test
-    public void testNonExistingHttpCall() {
-        String path = "/non-existing";
-        performGetWithinTransaction(path);
-
-        verifyHttpSpan("localhost", path, 404);
+    private List<LoggedRequest> findLoggedRequests(String path) {
+        final AtomicReference<List<LoggedRequest>> loggedRequests = new AtomicReference<>();
+        Awaitility.await()
+            .pollInterval(1, TimeUnit.MILLISECONDS)
+            .timeout(1000, TimeUnit.MILLISECONDS)
+            .untilAsserted(() -> {
+                List<LoggedRequest> tmp = wireMockRule.findAll(anyRequestedFor(urlPathEqualTo(path)));
+                loggedRequests.set(tmp);
+                assertThat(tmp).isNotEmpty();
+            });
+        return loggedRequests.get();
     }
-
-    @Test
-    public void testErrorHttpCall() {
-        String path = "/error";
-        performGetWithinTransaction(path);
-
-        verifyHttpSpan("localhost", path, 515);
-    }
-
-    @Test
-    public void testHttpCallRedirect() {
-        String path = "/redirect";
-        performGetWithinTransaction(path);
-
-        Span span = verifyHttpSpan(path);
-
-        verifyTraceContextHeaders(span, "/redirect");
-        verifyTraceContextHeaders(span, "/");
-    }
-
-    @Test
-    public void testHttpCallCircularRedirect() {
-        if (!isErrorOnCircularRedirectSupported()) {
-            return;
-        }
-
-        String path = "/circular-redirect";
-        performGetWithinTransaction(path);
-
-        Span span = reporter.getFirstSpan(500);
-        assertThat(span).isNotNull();
-
-        assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getErrors()).hasSize(1);
-        assertThat(reporter.getFirstError().getException()).isNotNull();
-        assertThat(reporter.getFirstError().getException().getClass()).isNotNull();
-        assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
-
-        verifyTraceContextHeaders(span, "/circular-redirect");
-    }
-
-    protected String getBaseUrl() {
-        return "http://localhost:" + wireMockRule.port();
-    }
-
-    protected void performGetWithinTransaction(String path) {
-        try {
-            performGet(getBaseUrl() + path);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    @SuppressWarnings("NullableProblems")
-    protected abstract void performGet(String path) throws Exception;
 
     private static class HeaderAccessor implements TextHeaderGetter<LoggedRequest> {
 

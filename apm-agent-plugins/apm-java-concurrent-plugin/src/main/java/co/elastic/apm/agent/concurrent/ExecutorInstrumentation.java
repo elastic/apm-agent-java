@@ -20,6 +20,7 @@ package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
@@ -99,7 +100,8 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
     }
 
     private static boolean isExcluded(@Advice.This Executor executor) {
-        return excludedClasses.contains(executor.getClass().getName());
+        return excludedClasses.contains(executor.getClass().getName()) ||
+            ExecutorUtils.isAgentExecutor(executor);
     }
 
     public static class ExecutorRunnableInstrumentation extends ExecutorInstrumentation {

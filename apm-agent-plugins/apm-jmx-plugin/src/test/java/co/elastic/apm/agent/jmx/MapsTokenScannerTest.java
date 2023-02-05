@@ -99,9 +99,23 @@ class MapsTokenScannerTest {
 
     @Test
     void testBracketWithinValue() {
-        assertThatThrownBy(() -> new MapsTokenScanner("foo[b[a]r]").scanMap())
+        MapsTokenScanner scanner = new MapsTokenScanner("foo[b[a]r]");
+        assertThat(scanner.scanKey()).isEqualTo("foo");
+        assertThat(scanner.scanValue()).isEqualTo("b[a]r");
+    }
+
+    @Test
+    void testMultipleBracketWithinValue() {
+        MapsTokenScanner scanner = new MapsTokenScanner("foo[b[[a]r]]");
+        assertThat(scanner.scanKey()).isEqualTo("foo");
+        assertThat(scanner.scanValue()).isEqualTo("b[[a]r]");
+    }
+
+    @Test
+    void testInvalidBracketWithinValue() {
+        assertThatThrownBy(() -> new MapsTokenScanner("foo[b[[a]r]").scanMap())
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Invalid char '[' within a value");
+            .hasMessageContaining("Expected end value token ']' at pos");
     }
 
     @Test

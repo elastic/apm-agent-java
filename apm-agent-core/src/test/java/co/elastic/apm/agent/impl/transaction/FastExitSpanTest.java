@@ -27,8 +27,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 class FastExitSpanTest {
 
@@ -42,9 +44,9 @@ class FastExitSpanTest {
         reporter = mockInstrumentationSetup.getReporter();
 
         SpanConfiguration spanConfiguration = mockInstrumentationSetup.getConfig().getConfig(SpanConfiguration.class);
-        when(spanConfiguration.isSpanCompressionEnabled()).thenReturn(true);
-        when(spanConfiguration.getSpanCompressionExactMatchMaxDuration()).thenReturn(TimeDuration.of("50ms"));
-        when(spanConfiguration.getExitSpanMinDuration()).thenReturn(TimeDuration.of("50ms"));
+        doReturn(true).when(spanConfiguration).isSpanCompressionEnabled();
+        doReturn(TimeDuration.of("50ms")).when(spanConfiguration).getSpanCompressionExactMatchMaxDuration();
+        doReturn(TimeDuration.of("50ms")).when(spanConfiguration).getExitSpanMinDuration();
 
         assertThat(tracer.isRunning()).isTrue();
     }
@@ -58,7 +60,17 @@ class FastExitSpanTest {
     void testExitSpanBelowDuration() {
         Transaction transaction = startTransaction();
         try {
-            startExitSpan(transaction, 0L).end(49_999L);
+            // each combination of (outcome,service target type, service target name) should have its own bucket
+            for (Outcome outcome : Outcome.values()) {
+                // without service target name
+                startExitSpan(transaction, 0L).withOutcome(outcome).end(49_999L);
+
+                // with service target name
+                Span spanWithServiceTargetName = startExitSpan(transaction, 0L).withOutcome(outcome);
+                spanWithServiceTargetName.getContext().getDb().withInstance("db-name");
+                spanWithServiceTargetName.end(49_999L);
+            }
+
         } finally {
             transaction.end();
         }
@@ -67,15 +79,25 @@ class FastExitSpanTest {
 
         SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
         assertThat(spanCount.getReported().get()).isEqualTo(0);
-        assertThat(spanCount.getDropped().get()).isEqualTo(1);
+        assertThat(spanCount.getDropped().get()).isEqualTo(6);
 
         DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
-        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS).getCount()).isEqualTo(1);
-        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS).getSum()).isEqualTo(49_999L);
+
+        for (Outcome outcome : Outcome.values()) {
+            Arrays.asList("db-name", null).forEach(v ->{
+                DroppedSpanStats.Stats stats = droppedSpanStats.getStats("postgresql", v, outcome);
+                assertThat(stats).isNotNull();
+                assertThat(stats.getCount()).isEqualTo(1);
+                assertThat(stats.getSum()).isEqualTo(49_999L);
+            });
+        }
+
     }
 
+
+
     @Test
-    void testCompositeExitSpanBelowDuration() {
+    void testCompositeExitSpanBelowDurationAndMoreThanOneDroppedSpanStatsEntry() {
         Transaction transaction = startTransaction();
         try {
             Span span = startExitSpan(transaction, 0L);
@@ -83,6 +105,11 @@ class FastExitSpanTest {
             startExitSpan(transaction, 10_000L).end(20_000L);
             startExitSpan(transaction, 20_000L).end(30_000L);
             assertThat(span.isComposite()).isTrue();
+            //second span destination to ensure more than one dropped span stats entry
+            Span span2 = startExitSpan(transaction, 30_000L, "mysql");
+            span2.end(40_000L);
+            startExitSpan(transaction, 40_000L, "mysql").end(50_000L);
+            assertThat(span2.isComposite()).isTrue();
         } finally {
             transaction.end();
         }
@@ -91,11 +118,12 @@ class FastExitSpanTest {
 
         SpanCount spanCount = reporter.getFirstTransaction().getSpanCount();
         assertThat(spanCount.getReported().get()).isEqualTo(0);
-        assertThat(spanCount.getDropped().get()).isEqualTo(3);
+        assertThat(spanCount.getDropped().get()).isEqualTo(5);
 
         DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
-        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS).getCount()).isEqualTo(3);
-        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS).getSum()).isEqualTo(30_000L);
+
+        assertThat(droppedSpanStats.getStats("postgresql", null, Outcome.SUCCESS).getCount()).isEqualTo(3);
+        assertThat(droppedSpanStats.getStats("postgresql", null, Outcome.SUCCESS).getSum()).isEqualTo(30_000L);
     }
 
     @Test
@@ -114,7 +142,7 @@ class FastExitSpanTest {
         assertThat(spanCount.getDropped().get()).isEqualTo(0);
 
         DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
-        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS)).isNull();
+        assertThat(droppedSpanStats.getStats("postgresql", null, Outcome.SUCCESS)).isNull();
     }
 
     @Test
@@ -137,7 +165,8 @@ class FastExitSpanTest {
         assertThat(spanCount.getDropped().get()).isEqualTo(2);
 
         DroppedSpanStats droppedSpanStats = reporter.getFirstTransaction().getDroppedSpanStats();
-        assertThat(droppedSpanStats.getStats("postgresql", Outcome.SUCCESS)).isNull();
+
+        assertThat(droppedSpanStats.getStats("postgresql", null, Outcome.SUCCESS)).isNull();
     }
 
     private Transaction startTransaction() {
@@ -145,7 +174,11 @@ class FastExitSpanTest {
     }
 
     protected Span startExitSpan(AbstractSpan<?> parent, long startTimestamp) {
-        Span span = parent.createExitSpan().withName("Some Name").withType("db").withSubtype("postgresql");
+        return startExitSpan(parent, startTimestamp, "postgresql");
+    }
+
+    protected Span startExitSpan(AbstractSpan<?> parent, long startTimestamp, String subtype) {
+        Span span = parent.createExitSpan().withName("Some Name").withType("db").withSubtype(subtype);
         span.getContext().getDestination().withAddress("127.0.0.1").withPort(5432);
         span.setStartTimestamp(startTimestamp);
 

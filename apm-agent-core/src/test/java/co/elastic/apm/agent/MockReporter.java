@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.report.ReporterMonitor;
 import co.elastic.apm.agent.report.ReportingEvent;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.dslplatform.json.JsonWriter;
@@ -44,6 +45,7 @@ import specs.TestJsonSpec;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -59,10 +61,10 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 
 public class MockReporter implements Reporter {
@@ -75,12 +77,14 @@ public class MockReporter implements Reporter {
     private static final Map<String, Collection<String>> SPAN_ACTIONS_WITHOUT_ADDRESS;
     // And for any case the disablement of the check cannot rely on subtype (eg Redis, where Jedis supports and Lettuce does not)
     private boolean checkDestinationAddress = true;
-    // All external spans coming from internal plugins should have a valid 'destination.resource' field. However, custom spans may not have it
-    private boolean checkDestinationService = true;
+    // All exit spans coming from internal plugins should have a valid service target
+    private boolean checkServiceTarget = true;
     // Allows optional opt-out for unknown outcome
     private boolean checkUnknownOutcomes = true;
-    // Allows optional opt-out from strick span type/sub-type checking
+    // Allows optional opt-out from strict span type/sub-type checking
     private boolean checkStrictSpanType = true;
+    //Instead of recording data, they are recycled immediately. Mainly used in repeated tests to uncover issues with premature recycling.
+    private boolean enabledImmediateRecycling = false;
 
     /**
      * If set to {@code true}, the reporter will attempt to execute gc when asserting that all objects were properly
@@ -92,10 +96,14 @@ public class MockReporter implements Reporter {
     private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
     private final List<ErrorCapture> errors = Collections.synchronizedList(new ArrayList<>());
     private final List<byte[]> bytes = new CopyOnWriteArrayList<>();
+    private final List<String> logs = Collections.synchronizedList(new ArrayList<>());
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
 
     private boolean closed;
+
+    // we have to use a longer timeout on Windows to help reduce flakyness
+    private static final long DEFAULT_ASSERTION_TIMEOUT = System.getProperty("os.name").startsWith("Windows") ? 3000 : 1000;
 
     private static final JsonNode SPAN_TYPES_SPEC = TestJsonSpec.getJson("span_types.json");
 
@@ -121,7 +129,7 @@ public class MockReporter implements Reporter {
      */
     public void resetChecks() {
         checkDestinationAddress = true;
-        checkDestinationService = true;
+        checkServiceTarget = true;
         checkUnknownOutcomes = true;
         checkStrictSpanType = true;
         gcWhenAssertingRecycling = false;
@@ -144,8 +152,8 @@ public class MockReporter implements Reporter {
     /**
      * Disables destination service check
      */
-    public void disableCheckDestinationService() {
-        checkDestinationService = false;
+    public void disableCheckServiceTarget() {
+        checkServiceTarget = false;
     }
 
     public boolean checkDestinationAddress() {
@@ -165,6 +173,15 @@ public class MockReporter implements Reporter {
      */
     public void enableGcWhenAssertingObjectRecycling() {
         gcWhenAssertingRecycling = true;
+    }
+
+    /**
+     * If set to true, spans & transactions will not be recorded but instead immediately recycled.
+     *
+     * @param enable true to enable immediate recycling
+     */
+    public void setImmediateRecycling(boolean enable) {
+        this.enabledImmediateRecycling = enable;
     }
 
     @Override
@@ -187,7 +204,11 @@ public class MockReporter implements Reporter {
         }
 
         verifyTransactionSchema(transaction);
-        transactions.add(transaction);
+        if (enabledImmediateRecycling) {
+            transaction.decrementReferences();
+        } else {
+            transactions.add(transaction);
+        }
     }
 
     @Override
@@ -200,6 +221,7 @@ public class MockReporter implements Reporter {
             verifySpanSchema(span);
             verifySpanType(span);
             verifyDestinationFields(span);
+            verifyServiceTarget(span);
 
             if (checkUnknownOutcomes) {
                 assertThat(span.getOutcome())
@@ -211,8 +233,11 @@ public class MockReporter implements Reporter {
             e.printStackTrace(System.err);
             throw e;
         }
-
-        spans.add(span);
+        if (enabledImmediateRecycling) {
+            span.decrementReferences();
+        } else {
+            spans.add(span);
+        }
     }
 
 
@@ -264,10 +289,20 @@ public class MockReporter implements Reporter {
                 assertThat(destination.getPort()).describedAs("destination port is required").isGreaterThan(0);
             }
         }
-        Destination.Service service = destination.getService();
-        if (checkDestinationService) {
-            assertThat(service.getResource()).describedAs("service resource is required").isNotEmpty();
+    }
+
+    private void verifyServiceTarget(Span span) {
+        if (!span.isExit() || !checkServiceTarget) {
+            return;
         }
+
+        assertThat(span.getContext().getServiceTarget())
+            .describedAs("service target is required")
+            .isNotEmpty();
+
+        assertThat(span.getContext().getServiceTarget().getDestinationResource())
+            .describedAs("legacy destination service resource is required")
+            .isNotEmpty();
     }
 
     /**
@@ -383,7 +418,7 @@ public class MockReporter implements Reporter {
     }
 
     public void assertNoTransaction(long timeoutMs) {
-        awaitUntilAsserted(timeoutMs, this::assertNoTransaction);
+        awaitUntilTimeout(timeoutMs, this::assertNoTransaction);
     }
 
     public Span getFirstSpan(long timeoutMs) {
@@ -403,13 +438,17 @@ public class MockReporter implements Reporter {
     }
 
     public void assertNoSpan(long timeoutMs) {
-        awaitUntilAsserted(timeoutMs, () -> assertThat(getSpans()).isEmpty());
-
-        assertNoSpan();
+        awaitUntilTimeout(timeoutMs, this::assertNoSpan);
     }
 
     public void awaitTransactionCount(int count) {
         awaitUntilAsserted(() -> assertThat(getNumReportedTransactions())
+            .describedAs("expecting %d transactions, transactions = %s", count, transactions)
+            .isEqualTo(count));
+    }
+
+    public void awaitTransactionCount(int count, long timeoutMs) {
+        awaitUntilAsserted(timeoutMs, () -> assertThat(getNumReportedTransactions())
             .describedAs("expecting %d transactions, transactions = %s", count, transactions)
             .isEqualTo(count));
     }
@@ -426,6 +465,12 @@ public class MockReporter implements Reporter {
             .isEqualTo(count));
     }
 
+    public void awaitLogsCount(int count) {
+        awaitUntilAsserted(() -> assertThat(getNumReportedLogs())
+            .describedAs("expecting %d logs", count)
+            .isEqualTo(count));
+    }
+
     @Override
     public synchronized void report(ErrorCapture error) {
         if (closed) {
@@ -436,11 +481,26 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public synchronized void report(JsonWriter jsonWriter) {
+    public synchronized void reportMetrics(JsonWriter jsonWriter) {
         if (closed) {
             return;
         }
         this.bytes.add(jsonWriter.toByteArray());
+    }
+
+    @Override
+    public void reportLog(String log) {
+        this.logs.add(log);
+    }
+
+    @Override
+    public void reportLog(byte[] log) {
+        this.logs.add(new String(log, StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public void reportAgentLog(byte[] log) {
+        this.logs.add(new String(log, StandardCharsets.UTF_8));
     }
 
     @Override
@@ -457,6 +517,19 @@ public class MockReporter implements Reporter {
 
     public synchronized List<Span> getSpans() {
         return Collections.unmodifiableList(spans);
+    }
+
+    public synchronized JsonNode getFirstLog() {
+        assertThat(logs)
+            .describedAs("at least one log expected, none have been reported")
+            .isNotEmpty();
+        return asJson(logs.get(0));
+    }
+
+    public synchronized List<JsonNode> getLogs() {
+        return logs.stream()
+            .map(log -> asJson(log))
+            .collect(Collectors.toList());
     }
 
     public Span getSpanByName(String name) {
@@ -478,6 +551,10 @@ public class MockReporter implements Reporter {
 
     public synchronized int getNumReportedErrors() {
         return errors.size();
+    }
+
+    public synchronized int getNumReportedLogs() {
+        return logs.size();
     }
 
     public synchronized ErrorCapture getFirstError() {
@@ -555,36 +632,45 @@ public class MockReporter implements Reporter {
         if (gcWhenAssertingRecycling) {
             System.gc();
         }
-        awaitUntilAsserted(() -> {
-            spans.forEach(s -> {
-                assertThat(s.isReferenced())
-                    .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
-                    .isFalse();
-                assertThat(hasEmptyTraceContext(s))
-                    .describedAs("should have empty trace context : %s", s)
-                    .isTrue();
+
+        try {
+            awaitUntilAsserted(() -> {
+                spans.forEach(s -> {
+                    assertThat(s.isReferenced())
+                        .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
+                        .isFalse();
+                    assertThat(hasEmptyTraceContext(s))
+                        .describedAs("should have empty trace context : %s", s)
+                        .isTrue();
+                });
+                transactions.forEach(t -> {
+                    assertThat(t.isReferenced())
+                        .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
+                        .isFalse();
+                    assertThat(hasEmptyTraceContext(t))
+                        .describedAs("should have empty trace context : %s", t)
+                        .isTrue();
+                });
             });
-            transactions.forEach(t -> {
-                assertThat(t.isReferenced())
-                    .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
-                    .isFalse();
-                assertThat(hasEmptyTraceContext(t))
-                    .describedAs("should have empty trace context : %s", t)
-                    .isTrue();
-            });
-        });
+        } catch (AssertionError e) {
+            // clear collections when assertion fails to prevent a test failure to affect following tests
+            this.transactions.clear();
+            this.spans.clear();
+            throw e;
+        }
+
 
         // errors are recycled directly because they have no reference counter
         errors.forEach(ErrorCapture::recycle);
     }
 
     /**
-     * Uses a timeout of 1s
+     * Uses the default timeout (see {@link  #DEFAULT_ASSERTION_TIMEOUT})
      *
      * @see #awaitUntilAsserted(long, ThrowingRunnable)
      */
     public void awaitUntilAsserted(ThrowingRunnable runnable) {
-        awaitUntilAsserted(1000, runnable);
+        awaitUntilAsserted(DEFAULT_ASSERTION_TIMEOUT, runnable);
     }
 
     /**
@@ -592,21 +678,34 @@ public class MockReporter implements Reporter {
      * This is an issue when testing instrumentations that instrument {@link java.util.concurrent.Executor}.
      *
      * @param timeoutMs the timeout of the condition
-     * @param runnable  a runnable that trows an exception if the condition is not met
+     * @param runnable  a runnable that throws an exception if the condition is not met
      */
     public void awaitUntilAsserted(long timeoutMs, ThrowingRunnable runnable) {
         Throwable thrown = null;
         for (int i = 0; i < timeoutMs; i += 5) {
             try {
                 runnable.run();
-                thrown = null;
+                return;
             } catch (Throwable e) {
                 thrown = e;
                 LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5));
             }
         }
-        if (thrown != null) {
-            throw new RuntimeException(String.format("Condition not fulfilled within %d ms", timeoutMs), thrown);
+        throw new RuntimeException(String.format("Condition not fulfilled within %d ms", timeoutMs), thrown);
+    }
+
+    /**
+     * @param timeoutMs timeout of the condition
+     * @param runnable  a runnable that throws an exception when the condition is not met
+     */
+    public void awaitUntilTimeout(long timeoutMs, ThrowingRunnable runnable) {
+        for (int i = 0; i < timeoutMs; i += 5) {
+            try {
+                runnable.run();
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5));
+            } catch (Throwable e) {
+                throw new RuntimeException(String.format("Condition not fulfilled within %d ms (timeout at %d ms)", i, timeoutMs), e);
+            }
         }
     }
 
@@ -669,12 +768,12 @@ public class MockReporter implements Reporter {
 
             Future<MetaData> metaData = MetaData.create(spyConfig, null);
             ApmServerClient client = mock(ApmServerClient.class);
-            when(client.isAtLeast(any())).thenReturn(isLatest);
+            doReturn(isLatest).when(client).isAtLeast(any());
 
             // The oldest server does not support any of those features, the current server supports all of them
-            when(client.supportsNumericUrlPort()).thenReturn(isLatest);
-            when(client.supportsNonStringLabels()).thenReturn(isLatest);
-            when(client.supportsLogsEndpoint()).thenReturn(isLatest);
+            doReturn(isLatest).when(client).supportsNumericUrlPort();
+            doReturn(isLatest).when(client).supportsNonStringLabels();
+            doReturn(isLatest).when(client).supportsLogsEndpoint();
 
             this.serializer = new DslJsonSerializer(stacktraceConfiguration, client, metaData);
         }
@@ -683,6 +782,10 @@ public class MockReporter implements Reporter {
             InputStream input = Objects.requireNonNull(MockReporter.class.getResourceAsStream(resource), "missing resource " + resource);
             return JsonSchemaFactory.getInstance().getSchema(input);
         }
+    }
+
+    public void setReporterMonitor(ReporterMonitor monitor) {
+        throw new UnsupportedOperationException();
     }
 
 }

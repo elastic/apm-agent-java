@@ -73,7 +73,7 @@ public class MetricRegistryReporter extends AbstractLifecycleListener implements
             for (MetricSet metricSet : metricSets.values()) {
                 JsonWriter jw = serializer.serialize(metricSet, serviceInfos);
                 if (jw != null) {
-                    reporter.report(jw);
+                    reporter.reportMetrics(jw);
                 }
             }
         }
