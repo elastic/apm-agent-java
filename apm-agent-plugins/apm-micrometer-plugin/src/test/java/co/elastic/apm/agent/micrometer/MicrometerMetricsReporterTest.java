@@ -22,7 +22,7 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;

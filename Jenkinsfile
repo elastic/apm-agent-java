@@ -104,7 +104,6 @@ pipeline {
                 }
               }
               stashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
-              stash(allowEmpty: true, name: 'snapshoty', includes: "${BASE_DIR}/.ci/snapshoty.yml,${BASE_DIR}/elastic-apm-agent/target/*,${BASE_DIR}/apm-agent-attach/target/*,${BASE_DIR}/apm-agent-attach-cli/target/*,${BASE_DIR}/apm-agent-api/target/*", useDefaultExcludes: false)
             }
           }
         }
@@ -147,30 +146,6 @@ pipeline {
                 artifacts: "${BASE_DIR}/${RESULT_FILE}",
                 onlyIfSuccessful: false)
               sendBenchmarks(file: "${BASE_DIR}/${BULK_UPLOAD_FILE}", index: "benchmark-java")
-            }
-          }
-        }
-        stage('Publish snapshots') {
-          options { skipDefaultCheckout() }
-          environment {
-            BUCKET_NAME = 'oblt-artifacts'
-            DOCKER_REGISTRY = 'docker.elastic.co'
-            DOCKER_REGISTRY_SECRET = 'secret/observability-team/ci/docker-registry/prod'
-            GCS_ACCOUNT_SECRET = 'secret/observability-team/ci/snapshoty'
-          }
-          when { branch 'main' }
-          steps {
-            withGithubNotify(context: 'Publish snapshot packages') {
-              deleteDir()
-              unstash(name: 'snapshoty')
-              dir(env.BASE_DIR) {
-                snapshoty(
-                  bucket: env.BUCKET_NAME,
-                  gcsAccountSecret: env.GCS_ACCOUNT_SECRET,
-                  dockerRegistry: env.DOCKER_REGISTRY,
-                  dockerSecret: env.DOCKER_REGISTRY_SECRET
-                )
-              }
             }
           }
         }

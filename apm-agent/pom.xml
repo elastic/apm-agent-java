@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.35.1-SNAPSHOT</version>
+        <version>1.36.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent</artifactId>
@@ -370,10 +370,14 @@
             <artifactId>apm-aws-sdk-2-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-finagle-httpclient-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-java-ldap-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 
