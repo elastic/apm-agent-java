@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import co.elastic.apm.agent.report.ApmServerClient;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -42,7 +43,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import javax.annotation.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public abstract class AbstractInstrumentationTest {
 
@@ -60,6 +61,7 @@ public abstract class AbstractInstrumentationTest {
     protected static MockReporter reporter;
     protected static ConfigurationRegistry config;
     protected static TestObjectPoolFactory objectPoolFactory;
+    protected static ApmServerClient apmServerClient;
     private boolean validateRecycling = true;
 
     @BeforeAll
@@ -75,6 +77,7 @@ public abstract class AbstractInstrumentationTest {
         config = mockInstrumentationSetup.getConfig();
         objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
         reporter = mockInstrumentationSetup.getReporter();
+        apmServerClient = mockInstrumentationSetup.getApmServerClient();
 
         assertThat(tracer.isRunning()).isTrue();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
@@ -83,7 +86,7 @@ public abstract class AbstractInstrumentationTest {
     @Before
     @BeforeEach
     public void disableSpanCompression() {
-        when(config.getConfig(SpanConfiguration.class).isSpanCompressionEnabled()).thenReturn(false);
+        doReturn(false).when(config.getConfig(SpanConfiguration.class)).isSpanCompressionEnabled();
     }
 
     @AfterAll

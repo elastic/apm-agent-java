@@ -196,6 +196,7 @@ public class JakartaServletApiAdapter implements ServletApiAdapter<HttpServletRe
     }
 
     @Override
+    @Nullable
     public String getPathInfo(HttpServletRequest servletRequest) {
         return servletRequest.getPathInfo();
     }

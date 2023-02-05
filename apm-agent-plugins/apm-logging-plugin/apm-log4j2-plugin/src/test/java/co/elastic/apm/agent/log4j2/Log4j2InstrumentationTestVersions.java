@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.log4j2;
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.junit.After;
@@ -33,7 +33,7 @@ import java.util.List;
 
 /**
  * This class only delegates tests to the current-version log4j2 tests through JUnit 4, so that it can be ran using
- * {@link TestClassWithDependencyRunner} in a dedicated CL where an older log4j2 version is loaded.
+ * {@link JUnit4TestClassWithDependencyRunner} in a dedicated CL where an older log4j2 version is loaded.
  * This is required because the agent is using log4j2 and in tests they retain their original packages (relocation only
  * takes place during packaging).
  */

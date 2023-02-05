@@ -97,7 +97,7 @@ public abstract class ServletContainerInitializerServiceNameInstrumentation exte
 
         @Override
         public Constants.ServletImpl getImplConstants() {
-            return Constants.ServletImpl.JAVAX;
+            return Constants.ServletImpl.JAKARTA;
         }
 
         public static class AdviceClass {

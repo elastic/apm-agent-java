@@ -18,9 +18,10 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderSetter;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
@@ -252,6 +253,13 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                 Connection connection = channel.getConnection();
                 RabbitMqHelper.captureDestination(exchange, connection.getAddress(), connection.getPort(), span);
 
+                if (properties != null) {
+                    span.addSpanLink(
+                        TraceContext.<AMQP.BasicProperties>getFromTraceContextTextHeaders(),
+                        RabbitMQTextHeaderGetter.INSTANCE,
+                        properties);
+                }
+
                 span.captureException(thrown)
                     .deactivate()
                     .end();
@@ -291,18 +299,14 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
          * @param span          span
          */
         public static void captureDestination(String exchange, InetAddress brokerAddress, int port, Span span) {
-            Destination destination = span.getContext().getDestination();
+            span.getContext().getDestination()
+                .withInetAddress(brokerAddress)
+                .withPort(port);
 
-            Destination.Service service = destination.getService();
-            service.withType("messaging")
-                .withName("rabbitmq")
-                .withResource("rabbitmq");
+            span.getContext().getServiceTarget()
+                .withType("rabbitmq")
+                .withName(exchange);
 
-
-            service.getResource().append("/").append(exchange);
-
-            destination.withInetAddress(brokerAddress);
-            destination.withPort(port);
         }
     }
 }

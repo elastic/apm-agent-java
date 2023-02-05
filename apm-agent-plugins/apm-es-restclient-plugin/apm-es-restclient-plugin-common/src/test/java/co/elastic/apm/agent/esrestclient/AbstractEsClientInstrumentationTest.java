@@ -32,16 +32,19 @@ import org.junit.Before;
 import org.junit.runners.Parameterized;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.ELASTICSEARCH;
 import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.SPAN_ACTION;
 import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.SPAN_TYPE;
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 public abstract class AbstractEsClientInstrumentationTest extends AbstractInstrumentationTest {
 
+    @Nullable
     protected static ElasticsearchContainer container;
 
     protected static final String INDEX = "my-index";
@@ -110,11 +113,13 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(errorCapture.getException()).isNotNull();
     }
 
-    protected void validateSpanContentWithoutContext(Span span, String expectedName, int statusCode, String method) {
-        assertThat(span.getType()).isEqualTo(SPAN_TYPE);
-        assertThat(span.getSubtype()).isEqualTo(ELASTICSEARCH);
-        assertThat(span.getAction()).isEqualTo(SPAN_ACTION);
-        assertThat(span.getNameAsString()).isEqualTo(expectedName);
+    protected void validateSpanContentWithoutContext(Span span, String expectedName) {
+        assertThat(span)
+            .hasType(SPAN_TYPE)
+            .hasSubType(ELASTICSEARCH)
+            .hasAction(SPAN_ACTION)
+            .hasName(expectedName);
+
         assertThat(span.getContext().getDb().getType()).isEqualTo(ELASTICSEARCH);
         if (!expectedName.contains(SEARCH_QUERY_PATH_SUFFIX) && !expectedName.contains(MSEARCH_QUERY_PATH_SUFFIX) && !expectedName.contains(COUNT_QUERY_PATH_SUFFIX)) {
             assertThat((CharSequence) (span.getContext().getDb().getStatementBuffer())).isNull();
@@ -122,27 +127,34 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     protected void validateDbContextContent(Span span, String statement) {
+        validateDbContextContent(span, Collections.singletonList(statement));
+    }
+
+    protected void validateDbContextContent(Span span, List<String> possibleContents) {
         Db db = span.getContext().getDb();
         assertThat(db.getType()).isEqualTo(ELASTICSEARCH);
         assertThat((CharSequence) db.getStatementBuffer()).isNotNull();
-        assertThat(db.getStatementBuffer().toString()).isEqualTo(statement);
+
+        assertThat(db.getStatementBuffer().toString()).isIn(possibleContents);
     }
 
     protected void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
-        validateSpanContentWithoutContext(span, expectedName, statusCode, method);
+        validateSpanContentWithoutContext(span, expectedName);
         validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
         validateDestinationContextContent(span.getContext().getDestination());
+
+        assertThat(span.getContext().getServiceTarget())
+            .hasType(ELASTICSEARCH)
+            .hasNoName() // we can't validate cluster name here as there is no simple way to inject that without reverse-proxy
+            .hasDestinationResource(ELASTICSEARCH);
     }
 
     private void validateDestinationContextContent(Destination destination) {
         assertThat(destination).isNotNull();
-
         if (reporter.checkDestinationAddress()) {
             assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());
             assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
         }
-
-        assertThat(destination.getService().getResource().toString()).isEqualTo(ELASTICSEARCH);
     }
 
     private void validateHttpContextContent(Http http, int statusCode, String method) {

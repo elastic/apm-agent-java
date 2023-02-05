@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -27,10 +27,10 @@ import java.util.Arrays;
 
 @RunWith(Parameterized.class)
 public class KafkaClientVersionsIT {
-    private final TestClassWithDependencyRunner runner;
+    private final JUnit4TestClassWithDependencyRunner runner;
 
     public KafkaClientVersionsIT(String version) throws Exception {
-        runner = new TestClassWithDependencyRunner("org.apache.kafka", "kafka-clients", version,
+        runner = new JUnit4TestClassWithDependencyRunner("org.apache.kafka", "kafka-clients", version,
             KafkaIT.class, KafkaIT.Consumer.class, KafkaIT.RecordIterationMode.class, KafkaIT.TestScenario.class,
             KafkaIT.ConsumerRecordConsumer.class);
     }
@@ -44,7 +44,7 @@ public class KafkaClientVersionsIT {
             // dependency version, probably due to some static initializations done by the first one loaded.
             // We use this test runner framework only so it runs from a class loader that is not the app class loader,
             // in order to verify that we don't have class visibility problems.
-            {"2.4.0"}
+            {"3.1.0"}
         });
     }
 

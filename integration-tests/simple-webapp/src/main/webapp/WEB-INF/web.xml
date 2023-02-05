@@ -27,6 +27,15 @@
         <url-pattern>/servlet</url-pattern>
     </servlet-mapping>
 
+    <servlet-mapping>
+        <!--
+        allows testing servlet mapping with wildcard, can make servlet path to be empty/null according to spec
+        but in practice this behavior relies on app server implementation and might differ.
+        -->
+        <servlet-name>TestServlet</servlet-name>
+        <url-pattern>/test-servlet/*</url-pattern>
+    </servlet-mapping>
+
     <servlet>
         <servlet-name>AsyncDispatchServlet</servlet-name>
         <servlet-class>co.elastic.webapp.AsyncDispatchTestServlet</servlet-class>

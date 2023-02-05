@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.awslambda;
 
 import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
+import co.elastic.apm.agent.awslambda.lambdas.S3EventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.SNSEventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
-import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -32,13 +32,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nonnull;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
 
@@ -47,7 +47,7 @@ public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(SNSEventLambdaFunction.class.getName());
+        doReturn(SNSEventLambdaFunction.class.getName()).when(Objects.requireNonNull(serverlessConfiguration)).getAwsLambdaHandler();
         AbstractLambdaTest.initInstrumentation();
     }
 
@@ -59,12 +59,12 @@ public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
     @Override
     protected SNSEvent createInput() {
         SNSEvent snsEvent = new SNSEvent();
-        snsEvent.setRecords(List.of(createSnsRecord()));
+        snsEvent.setRecords(List.of(createSnsRecord(true)));
         return snsEvent;
     }
 
     @Nonnull
-    private SNSEvent.SNSRecord createSnsRecord() {
+    private SNSEvent.SNSRecord createSnsRecord(boolean useDefaultTraceparent) {
         SNSEvent.SNS sns = new SNSEvent.SNS();
         sns.setMessageId(MESSAGE_ID);
         sns.setMessage(MESSAGE_BODY);
@@ -75,7 +75,7 @@ public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
         SNSEvent.MessageAttribute header_2_Attribute = new SNSEvent.MessageAttribute();
         header_2_Attribute.setValue(HEADER_2_VALUE);
         SNSEvent.MessageAttribute traceparent_Attribute = new SNSEvent.MessageAttribute();
-        traceparent_Attribute.setValue(TRACEPARENT_EXAMPLE);
+        traceparent_Attribute.setValue(useDefaultTraceparent ? TRACEPARENT_EXAMPLE : TRACEPARENT_EXAMPLE_2);
         SNSEvent.MessageAttribute tracestate_Attribute = new SNSEvent.MessageAttribute();
         tracestate_Attribute.setValue(TRACESTATE_EXAMPLE);
         sns.setMessageAttributes(Map.of(
@@ -93,12 +93,29 @@ public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
         return record;
     }
 
+    @Override
+    protected void verifyDistributedTracing(TraceContext traceContext) {
+        // batch processing root transaction, distributed tracing is supported through span links
+        assertThat(traceContext.getParentId().isEmpty()).isTrue();
+        assertThat(traceContext.getTraceState().getSampleRate()).isEqualTo(1d);
+    }
 
     @Test
     public void testBasicCall() {
-        long beforeFunctionTimestamp = System.currentTimeMillis();
         getFunction().handleRequest(createInput(), context);
-        long afterFunctionTimestamp = System.currentTimeMillis();
+        verifyTransactionDetails();
+        verifySpanLink(TRACE_ID_EXAMPLE, PARENT_ID_EXAMPLE);
+    }
+
+    private void verifySpanLink(String traceId, String parentId) {
+        Transaction transaction = reporter.getFirstTransaction();
+        List<TraceContext> spanLinks = transaction.getSpanLinks();
+        List<TraceContext> matchedSpanLinks = spanLinks.stream().filter(spanLink -> spanLink.getParentId().toString().equals(parentId)).collect(Collectors.toList());
+        assertThat(matchedSpanLinks).hasSize(1);
+        assertThat(matchedSpanLinks.get(0).getTraceId().toString()).isEqualTo(traceId);
+    }
+
+    private void verifyTransactionDetails() {
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
@@ -111,17 +128,7 @@ public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
         assertThat(transaction.getResult()).isEqualTo("success");
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
-        assertThat(transaction.getContext().getMessage().hasContent()).isTrue();
-        assertThat(transaction.getContext().getMessage().getQueueName()).isEqualTo(SNS_TOPIC);
-        assertThat(transaction.getContext().getMessage().getBodyForRead()).isNull();
-        assertThat(transaction.getContext().getMessage().getHeaders().isEmpty()).isFalse();
-        Map<String, String> attributesMap = new HashMap<>();
-        for (Headers.Header header : transaction.getContext().getMessage().getHeaders()) {
-            attributesMap.put(header.getKey(), Objects.requireNonNull(header.getValue()).toString());
-        }
-        assertThat(attributesMap.get(HEADER_1_KEY)).isEqualTo(HEADER_1_VALUE);
-        assertThat(attributesMap.get(HEADER_2_KEY)).isEqualTo(HEADER_2_VALUE);
-        assertThat(transaction.getContext().getMessage().getAge()).isBetween(MESSAGE_AGE, MESSAGE_AGE + (afterFunctionTimestamp - beforeFunctionTimestamp));
+        assertThat(transaction.getContext().getMessage().hasContent()).isFalse();
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isTrue();
         assertThat(transaction.getContext().getServiceOrigin().getName().toString()).isEqualTo(SNS_TOPIC);
@@ -138,7 +145,6 @@ public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
         assertThat(faas.getId()).isEqualTo(TestContext.FUNCTION_ARN);
         assertThat(faas.getTrigger().getType()).isEqualTo("pubsub");
-        assertThat(faas.getTrigger().getRequestId()).isEqualTo(MESSAGE_ID);
     }
 
     @Test
@@ -173,10 +179,11 @@ public class SNSEventLambdaTest extends AbstractLambdaTest<SNSEvent, Void> {
     @Test
     public void testCallWithMultipleMessagesPerEvent() {
         SNSEvent snsEvent = new SNSEvent();
-        snsEvent.setRecords(List.of(createSnsRecord(), createSnsRecord()));
+        snsEvent.setRecords(List.of(createSnsRecord(true), createSnsRecord(false)));
         getFunction().handleRequest(snsEvent, context);
-
-        validateResultsForUnspecifiedRecord();
+        verifyTransactionDetails();
+        verifySpanLink(TRACE_ID_EXAMPLE, PARENT_ID_EXAMPLE);
+        verifySpanLink(TRACE_ID_EXAMPLE_2, PARENT_ID_EXAMPLE_2);
     }
 
     @Test

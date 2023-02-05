@@ -18,7 +18,9 @@
  */
 package co.elastic.apm.agent.bci.classloading;
 
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
+import net.bytebuddy.dynamic.loading.PackageDefinitionStrategy;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
@@ -41,8 +43,14 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
 
     public IndyPluginClassLoader(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
         // See getResource on why we're using PersistenceHandler.LATENT over PersistenceHandler.MANIFEST
-        super(getParent(targetClassLoader, agentClassLoader), true, typeDefinitions, PersistenceHandler.LATENT);
+        super(getParent(targetClassLoader, agentClassLoader),
+            true,
+            typeDefinitions,
+            PrivilegedActionUtils.getProtectionDomain(agentClassLoader.getClass()), // inherit protection domain from agent CL
+            PersistenceHandler.LATENT,
+            PackageDefinitionStrategy.Trivial.INSTANCE);
     }
+
 
     private static ClassLoader getParent(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader) {
         if (targetClassLoader == null) {

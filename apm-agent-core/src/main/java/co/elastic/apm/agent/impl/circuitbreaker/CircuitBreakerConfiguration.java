@@ -31,7 +31,7 @@ public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Boolean> circuitBreakerEnabled = ConfigurationOption.booleanOption()
         .key("circuit_breaker_enabled")
-        .tags("added[1.14.0]", "performance",  "experimental")
+        .tags("added[1.14.0]", "performance")
         .configurationCategory(CIRCUIT_BREAKER_CATEGORY)
         .description("A boolean specifying whether the circuit breaker should be enabled or not. \n" +
             "When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. \n" +

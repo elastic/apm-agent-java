@@ -45,7 +45,7 @@ public class Utils {
     }
 
     @Nullable
-    private static Path computeLogReformattingDir(Path originalFilePath, @Nullable String configuredReformattingDestinationDir) {
+    public static Path computeLogReformattingDir(Path originalFilePath, @Nullable String configuredReformattingDestinationDir) {
         Path ecsDir;
         Path logsDir = originalFilePath.getParent();
         if (configuredReformattingDestinationDir == null) {
@@ -59,7 +59,7 @@ public class Utils {
         return ecsDir;
     }
 
-    static String replaceFileExtensionToEcsJson(String originalFileName) {
+    public static String replaceFileExtensionToEcsJson(String originalFileName) {
         int extensionIndex = originalFileName.lastIndexOf('.');
         if (extensionIndex > 0) {
             originalFileName = originalFileName.substring(0, extensionIndex);

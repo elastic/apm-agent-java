@@ -27,7 +27,7 @@ import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.servlet.adapter.ServletContextAdapter;
@@ -35,8 +35,10 @@ import co.elastic.apm.agent.servlet.adapter.ServletRequestAdapter;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 
 import javax.annotation.Nullable;
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -137,6 +139,47 @@ public class ServletTransactionHelper {
         }
     }
 
+    @Nullable
+    public static String getUserFromPrincipal(@Nullable Principal principal) {
+        if (principal == null) {
+            return null;
+        }
+
+        String userName;
+        if (principal instanceof Map) {
+            // Microsoft/Azure SSO fallback
+            // https://docs.microsoft.com/en-us/azure/active-directory/develop/access-tokens
+
+            Map<?, ?> map = ((Map<?, ?>) principal);
+
+            userName = getFirstClaim(map, "preferred_username");
+            if (userName == null) {
+                userName = getFirstClaim(map, "name");
+            }
+        } else {
+            userName = principal.getName();
+        }
+
+        return userName;
+    }
+
+    @Nullable
+    private static String getFirstClaim(Map<?, ?> map, String key) {
+        // entries are stored in nested collection, even when there is a single entry
+        // https://docs.microsoft.com/en-us/azure/app-service/configure-language-java?pivots=platform-linux#tomcat-1
+        Object entry = map.get(key);
+        if (entry instanceof List) {
+            List<?> list = (List<?>) entry;
+            if (!list.isEmpty()) {
+                Object first = ((List<?>) entry).get(0);
+                if (first != null) {
+                    return first.toString();
+                }
+            }
+        }
+        return null;
+    }
+
     public static void setUsernameIfUnset(@Nullable String userName, TransactionContext context) {
         // only set username if not manually set
         if (context.getUser().getUsername() == null) {
@@ -144,13 +187,45 @@ public class ServletTransactionHelper {
         }
     }
 
+    public String normalizeServletPath(String requestURI, @Nullable String contextPath, @Nullable String servletPath, @Nullable String pathInfo) {
+        String path = servletPath;
+        if (path != null && !path.isEmpty()) {
+            return path;
+        }
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("Empty servlet path fallback applied. requestURI = {}, contextPath = {}, servletPath = {}, pathInfo = {}", requestURI, contextPath, servletPath, pathInfo);
+        }
+
+        int start = 0;
+        int end = requestURI.length();
+        boolean hasPathInfo = false;
+
+        if (pathInfo != null && pathInfo.length() > 0) {
+            end -= pathInfo.length();
+            hasPathInfo = true;
+        }
+
+        if (contextPath != null && contextPath.length() > 0) {
+            if (!contextPath.equals("/")) {
+                start = contextPath.length();
+            }
+        }
+
+        if (hasPathInfo || end != start) {
+            path = requestURI.substring(start, end);
+        } else {
+            path = requestURI;
+        }
+
+        logger.debug("servlet path normalized to {}", path);
+
+        return path;
+    }
+
     public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status,
                         boolean overrideStatusCodeOnThrowable, String method, @Nullable Map<String, String[]> parameterMap,
                         @Nullable String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader, boolean deactivate) {
-        if (servletPath == null) {
-            // the servlet path is specified as non-null but WebLogic does return null...
-            servletPath = "";
-        }
         try {
             // thrown the first time a JSP is invoked in order to register it
             if (exception != null && "weblogic.servlet.jsp.AddToMapException".equals(exception.getClass().getName())) {
@@ -190,10 +265,7 @@ public class ServletTransactionHelper {
             // should override ServletName#doGet
             TransactionNameUtils.setNameFromHttpRequestPath(method, servletPath, pathInfo, transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1), webConfiguration.getUrlGroups());
         } else {
-            StringBuilder transactionName = transaction.getAndOverrideName(PRIO_DEFAULT);
-            if (transactionName != null) {
-                transactionName.append(method).append(" unknown route");
-            }
+            TransactionNameUtils.setNameUnknownRoute(method, transaction.getAndOverrideName(PRIO_DEFAULT));
         }
     }
 

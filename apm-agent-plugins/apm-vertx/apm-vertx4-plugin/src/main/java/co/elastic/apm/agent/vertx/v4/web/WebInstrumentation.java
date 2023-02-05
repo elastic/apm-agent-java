@@ -55,12 +55,13 @@ public abstract class WebInstrumentation extends Vertx4Instrumentation {
     }
 
     /**
-     * Instruments {@link io.vertx.core.impl.ContextImpl#tracer}} to return a noop tracer in case no tracer has been specified.
+     * Instruments {@code io.vertx.core.impl.ContextImpl#tracer}} to return a noop tracer in case no tracer has been specified.
      */
     public static class ContextImplTracerInstrumentation extends WebInstrumentation {
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return named("io.vertx.core.impl.ContextImpl")
+            return named("io.vertx.core.impl.ContextImpl") // vertx 4.0 until 4.3.2
+                .or(named("io.vertx.core.impl.ContextBase")) // vertx 4.3.2 and later
                 .and(not(isInterface()));
         }
 

@@ -27,10 +27,12 @@ import org.testcontainers.containers.GenericContainer;
  */
 public class MockServerContainer extends GenericContainer<MockServerContainer> {
 
+    public static final String HEALTH_ENDPOINT = "/mockserver/status";
     private MockServerClient client;
 
     public MockServerContainer() {
-        super("jamesdbloom/mockserver:mockserver-5.4.1");
+        super("mockserver/mockserver:5.14.0");
+        addEnv("MOCKSERVER_LIVENESS_HTTP_GET_PATH", HEALTH_ENDPOINT);
         addExposedPorts(1080);
     }
 

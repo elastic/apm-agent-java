@@ -21,7 +21,7 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.report.ssl.SslUtils;
 import co.elastic.apm.agent.util.UrlConnectionUtils;
-import co.elastic.apm.agent.util.Version;
+import co.elastic.apm.agent.common.util.Version;
 import co.elastic.apm.agent.util.VersionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -70,8 +70,8 @@ public class ApmServerClient {
     private static final Version VERSION_6_7 = Version.of("6.7.0");
     private static final Version VERSION_7_0 = Version.of("7.0.0");
     private static final Version VERSION_7_4 = Version.of("7.4.0");
-    private static final Version VERSION_7_9 = Version.of("7.9.0");
     private static final Version VERSION_8_0 = Version.of("8.0.0");
+    private static final Version VERSION_8_6 = Version.of("8.6.0");
 
     private final ReporterConfiguration reporterConfiguration;
     @Nullable
@@ -336,12 +336,12 @@ public class ApmServerClient {
     }
 
     public boolean supportsLogsEndpoint() {
-        return isAtLeast(VERSION_7_9);
+        return isAtLeast(VERSION_8_6);
     }
 
     public boolean supportsKeepingUnsampledTransaction() {
-        // supportsKeepingUnsampledTransaction is called from application threads
-        // return true instead of blocking the thread
+        // Method is called from application threads thus we have to return fast to avoid blocking application threads
+        // When server version is not known we assume that it's a 7.x or earlier and keep sending unsampled.
         if (apmServerVersion != null && !apmServerVersion.isDone()) {
             return true;
         }

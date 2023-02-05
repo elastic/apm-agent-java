@@ -26,17 +26,15 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import io.vertx.core.http.HttpServer;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
@@ -107,12 +105,7 @@ public abstract class AbstractHttpTransactionHelper {
                 transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1 + priorityOffset),
                 webConfiguration.getUrlGroups());
         } else {
-            TransactionNameUtils.setNameFromHttpRequestPath(
-                method,
-                "unknown route",
-                null,
-                transaction.getAndOverrideName(PRIO_DEFAULT),
-                webConfiguration.getUrlGroups());
+            TransactionNameUtils.setNameUnknownRoute(method, transaction.getAndOverrideName(PRIO_DEFAULT));
         }
     }
 

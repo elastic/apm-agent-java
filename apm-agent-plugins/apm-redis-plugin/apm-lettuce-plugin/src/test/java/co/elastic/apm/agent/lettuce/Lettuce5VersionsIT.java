@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.lettuce;
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,11 +29,11 @@ import java.util.List;
 @RunWith(Parameterized.class)
 public class Lettuce5VersionsIT {
 
-    private final TestClassWithDependencyRunner runner;
+    private final JUnit4TestClassWithDependencyRunner runner;
 
     public Lettuce5VersionsIT(List<String> dependencies) throws Exception {
         System.setProperty("io.lettuce.core.kqueue", "false");
-        runner = new TestClassWithDependencyRunner(dependencies, Lettuce5InstrumentationIT.class);
+        runner = new JUnit4TestClassWithDependencyRunner(dependencies, Lettuce5InstrumentationIT.class);
     }
 
     @Parameterized.Parameters(name= "{0}")
@@ -41,7 +41,7 @@ public class Lettuce5VersionsIT {
         return Arrays.asList(new Object[][] {
             { List.of("io.lettuce:lettuce-core:5.2.1.RELEASE", "io.netty:netty-all:4.1.43.Final") },
             { List.of("io.lettuce:lettuce-core:5.1.8.RELEASE", "io.netty:netty-all:4.1.38.Final") },
-            { List.of("io.lettuce:lettuce-core:5.0.5.RELEASE", "io.netty:netty-all:4.1.28.Final") },
+            { List.of("io.lettuce:lettuce-core:5.0.5.RELEASE", "io.netty:netty-all:4.1.28.Final", "io.projectreactor:reactor-core:3.1.6.RELEASE") },
         });
     }
 

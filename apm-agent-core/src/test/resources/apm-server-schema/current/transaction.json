@@ -354,14 +354,14 @@
               "description": "DecodedBodySize holds the size of the decoded payload.",
               "type": [
                 "null",
-                "number"
+                "integer"
               ]
             },
             "encoded_body_size": {
               "description": "EncodedBodySize holds the size of the encoded payload.",
               "type": [
                 "null",
-                "number"
+                "integer"
               ]
             },
             "finished": {
@@ -409,7 +409,7 @@
               "description": "TransferSize holds the total size of the payload.",
               "type": [
                 "null",
-                "number"
+                "integer"
               ]
             }
           }
@@ -486,6 +486,13 @@
                   "maxLength": 1024
                 }
               }
+            },
+            "id": {
+              "description": "ID holds a unique identifier for the service.",
+              "type": [
+                "null",
+                "string"
+              ]
             },
             "language": {
               "description": "Language holds information about the programming language of the monitored service.",
@@ -593,11 +600,49 @@
                 }
               }
             },
-            "string": {
-              "description": "ID holds a unique identifier for the service.",
+            "target": {
+              "description": "Target holds information about the outgoing service in case of an outgoing event",
               "type": [
                 "null",
-                "string"
+                "object"
+              ],
+              "properties": {
+                "name": {
+                  "description": "Immutable name of the target service for the event",
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "type": {
+                  "description": "Immutable type of the target service for the event",
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                }
+              },
+              "anyOf": [
+                {
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                {
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ]
+                }
               ]
             },
             "version": {
@@ -733,6 +778,22 @@
               "unknown",
               null
             ]
+          },
+          "service_target_name": {
+            "description": "ServiceTargetName identifies the instance name of the target service being operated on",
+            "type": [
+              "null",
+              "string"
+            ],
+            "maxLength": 512
+          },
+          "service_target_type": {
+            "description": "ServiceTargetType identifies the type of the target service being operated on e.g. 'oracle', 'rabbitmq'",
+            "type": [
+              "null",
+              "string"
+            ],
+            "maxLength": 512
           }
         }
       },
@@ -1061,10 +1122,10 @@
     }
   },
   "required": [
-    "duration",
-    "id",
-    "span_count",
     "trace_id",
-    "type"
+    "id",
+    "type",
+    "span_count",
+    "duration"
   ]
 }

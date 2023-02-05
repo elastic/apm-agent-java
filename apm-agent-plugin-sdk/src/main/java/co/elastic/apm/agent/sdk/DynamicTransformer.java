@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.sdk;
 
+import co.elastic.apm.agent.sdk.internal.InternalUtil;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -28,12 +29,7 @@ public class DynamicTransformer {
     private static final DynamicTransformerProvider transformer;
 
     static {
-        ClassLoader classLoader = DynamicTransformer.class.getClassLoader();
-        if (classLoader == null) {
-            classLoader = ClassLoader.getSystemClassLoader();
-        }
-        // loads the implementation provided by the core module without depending on the class or class name
-        transformer = ServiceLoader.load(DynamicTransformerProvider.class, classLoader).iterator().next();
+        transformer = InternalUtil.getServiceProvider(DynamicTransformerProvider.class);
     }
 
     /**

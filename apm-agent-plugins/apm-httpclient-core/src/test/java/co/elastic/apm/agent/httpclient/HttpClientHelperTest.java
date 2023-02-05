@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 @SuppressWarnings("ConstantConditions")
 class HttpClientHelperTest extends AbstractInstrumentationTest {
@@ -50,7 +50,11 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
         Span httpSpan = reporter.getFirstSpan();
         assertThat(httpSpan.getContext().getHttp().getUrl().toString()).isEqualTo("http://testing.local:1234/path?query");
         Destination destination = httpSpan.getContext().getDestination();
-        assertThat(destination.getService().getResource().toString()).isEqualTo("testing.local:1234");
+        assertThat(httpSpan.getContext().getServiceTarget())
+            .hasType("http")
+            .hasName("testing.local:1234")
+            .hasNameOnlyDestinationResource();
+
         assertThat(destination.getAddress().toString()).isEqualTo("testing.local");
         assertThat(destination.getPort()).isEqualTo(1234);
     }
@@ -62,7 +66,10 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
         Span httpSpan = reporter.getFirstSpan();
         assertThat(httpSpan.getContext().getHttp().getUrl().toString()).isEqualTo("https://www.elastic.co:443/products/apm");
         Destination destination = httpSpan.getContext().getDestination();
-        assertThat(destination.getService().getResource().toString()).isEqualTo("www.elastic.co:443");
+        assertThat(httpSpan.getContext().getServiceTarget())
+            .hasType("http")
+            .hasName("www.elastic.co:443")
+            .hasNameOnlyDestinationResource();
         assertThat(destination.getAddress().toString()).isEqualTo("www.elastic.co");
         assertThat(destination.getPort()).isEqualTo(443);
     }
@@ -73,8 +80,11 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
         assertThat(reporter.getSpans()).hasSize(1);
         Span httpSpan = reporter.getFirstSpan();
         assertThat(httpSpan.getContext().getHttp().getUrl().toString()).isEqualTo("https://www.elastic.co/products/apm");
+        assertThat(httpSpan.getContext().getServiceTarget())
+            .hasType("http")
+            .hasName("www.elastic.co:443")
+            .hasNameOnlyDestinationResource();
         Destination destination = httpSpan.getContext().getDestination();
-        assertThat(destination.getService().getResource().toString()).isEqualTo("www.elastic.co:443");
         assertThat(destination.getAddress().toString()).isEqualTo("www.elastic.co");
         assertThat(destination.getPort()).isEqualTo(443);
     }
@@ -85,8 +95,11 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
         assertThat(reporter.getSpans()).hasSize(1);
         Span httpSpan = reporter.getFirstSpan();
         assertThat(httpSpan.getContext().getHttp().getUrl().toString()).isEqualTo("https://151.101.114.217/index.html");
+        assertThat(httpSpan.getContext().getServiceTarget())
+            .hasType("http")
+            .hasName("151.101.114.217:443")
+            .hasNameOnlyDestinationResource();
         Destination destination = httpSpan.getContext().getDestination();
-        assertThat(destination.getService().getResource().toString()).isEqualTo("151.101.114.217:443");
         assertThat(destination.getAddress().toString()).isEqualTo("151.101.114.217");
         assertThat(destination.getPort()).isEqualTo(443);
     }
@@ -98,9 +111,12 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
         Span httpSpan = reporter.getFirstSpan();
         assertThat(httpSpan.getContext().getHttp().getUrl().toString()).isEqualTo("http://[2001:db8:a0b:12f0::1]/index.html");
         Destination destination = httpSpan.getContext().getDestination();
-        assertThat(destination.getService().getResource().toString()).isEqualTo("[2001:db8:a0b:12f0::1]:80");
         assertThat(destination.getAddress().toString()).isEqualTo("2001:db8:a0b:12f0::1");
         assertThat(destination.getPort()).isEqualTo(80);
+        assertThat(httpSpan.getContext().getServiceTarget())
+            .hasType("http")
+            .hasName("[2001:db8:a0b:12f0::1]:80")
+            .hasNameOnlyDestinationResource();
     }
 
     private void createSpanWithUrl(String s) throws URISyntaxException {

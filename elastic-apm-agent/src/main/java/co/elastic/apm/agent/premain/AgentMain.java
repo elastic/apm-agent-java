@@ -20,6 +20,7 @@ package co.elastic.apm.agent.premain;
 
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.common.ThreadUtils;
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 
 import java.io.File;
 import java.lang.instrument.Instrumentation;
@@ -85,7 +86,7 @@ public class AgentMain {
             try {
                 delayAgentInitMs = Long.parseLong(delayAgentInitMsProperty.trim());
             } catch (NumberFormatException numberFormatException) {
-                System.err.println("[elastic-apm-agent] WARN The value of the \"elastic.apm.delay_agent_premain_ms\" System property must be a number");
+                SystemStandardOutputLogger.stdErrWarn("The value of the \"elastic.apm.delay_agent_premain_ms\" System property must be a number");
             }
         }
         if (premain && shouldDelayOnPremain()) {
@@ -122,7 +123,7 @@ public class AgentMain {
     private static void delayAndInitAgentAsync(final String agentArguments, final Instrumentation instrumentation,
                                                final boolean premain, final long delayAgentInitMs) {
 
-        System.out.println("[elastic-apm-agent] INFO Delaying Elastic APM Agent initialization by " + delayAgentInitMs + " milliseconds.");
+        SystemStandardOutputLogger.stdOutInfo("Delaying Elastic APM Agent initialization by " + delayAgentInitMs + " milliseconds.");
         Thread initThread = new Thread(ThreadUtils.addElasticApmThreadPrefix("agent-initialization")) {
             @Override
             public void run() {
@@ -134,11 +135,11 @@ public class AgentMain {
                         loadAndInitializeAgent(agentArguments, instrumentation, premain);
                     }
                 } catch (InterruptedException e) {
-                    System.err.println("[elastic-apm-agent] ERROR " + getName() + " thread was interrupted, the agent will not be attached to this JVM.");
-                    e.printStackTrace();
+                    SystemStandardOutputLogger.stdErrError(getName() + " thread was interrupted, the agent will not be attached to this JVM.");
+                    SystemStandardOutputLogger.printStackTrace(e);
                 } catch (Throwable throwable) {
-                    System.err.println("[elastic-apm-agent] ERROR Elastic APM Agent initialization failed: " + throwable.getMessage());
-                    throwable.printStackTrace();
+                    SystemStandardOutputLogger.stdErrError("Elastic APM Agent initialization failed: " + throwable.getMessage());
+                    SystemStandardOutputLogger.printStackTrace(throwable);
                 }
             }
         };
@@ -160,8 +161,8 @@ public class AgentMain {
                 .invoke(null, agentArguments, instrumentation, agentJar, premain);
             System.setProperty("ElasticApm.attached", Boolean.TRUE.toString());
         } catch (Exception | LinkageError e) {
-            System.err.println("[elastic-apm-agent] ERROR Failed to start agent");
-            e.printStackTrace();
+            SystemStandardOutputLogger.stdErrError("Failed to start agent");
+            SystemStandardOutputLogger.printStackTrace(e);
         }
     }
 
@@ -176,10 +177,10 @@ public class AgentMain {
             sm.checkPermission(new AllPermission());
         } catch (SecurityException e) {
             // note: we can't get the actual path of the agent here as the Security Manager might prevent us from finding our own jar.
-            System.err.println("[elastic-apm-agent] WARN Security manager without agent grant-all permission, adding the following snippet to security policy is recommended:");
-            System.err.println("[elastic-apm-agent] WARN grant codeBase \"file:/path/to/elastic-apm-agent.jar\" {");
-            System.err.println("[elastic-apm-agent] WARN     permission java.security.AllPermission;");
-            System.err.println("[elastic-apm-agent] WARN };");
+            SystemStandardOutputLogger.stdErrWarn("Security manager without agent grant-all permission, adding the following snippet to security policy is recommended:");
+            SystemStandardOutputLogger.stdErrWarn("grant codeBase \"file:/path/to/elastic-apm-agent.jar\" {");
+            SystemStandardOutputLogger.stdErrWarn("    permission java.security.AllPermission;");
+            SystemStandardOutputLogger.stdErrWarn("};");
         }
     }
 
@@ -209,8 +210,8 @@ public class AgentMain {
             agentClassLoader = null;
             System.setProperty("ElasticApm.attached", Boolean.FALSE.toString());
         } catch (Exception e) {
-            System.err.println("[elastic-apm-agent] ERROR Failed to detach agent");
-            e.printStackTrace();
+            SystemStandardOutputLogger.stdErrError("ERROR Failed to detach agent");
+            SystemStandardOutputLogger.printStackTrace(e);
         }
     }
 

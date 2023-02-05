@@ -20,6 +20,7 @@ package co.elastic.apm.agent.report.ssl;
 
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.HostnameVerifier;
@@ -30,6 +31,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -164,7 +166,7 @@ public class SslUtils {
         char[] pwd = keyStorePassword != null ? keyStorePassword.toCharArray() : null;
 
         KeyStore ks = null;
-        try (FileInputStream input = new FileInputStream(keyStore)) {
+        try (FileInputStream input = PrivilegedActionUtils.newFileInputStream(new File(keyStore))) {
             if (keyStoreType != null) {
                 ks = keyStoreProvider == null ?
                     KeyStore.getInstance(keyStoreType) :

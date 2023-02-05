@@ -136,11 +136,16 @@ class LoggingConfigurationTest {
 
         // stagemonitor relies on slf4j, which should be bridged to the same log4j registries and get the same configuration
         assertThat(configOptionLogger.isTraceEnabled()).isFalse();
-        assertThat(testLog4jContextFactory.getContext(configOptionLogger.getName())).isEqualTo(agentLoggerContext);
+        assertThat(testLog4jContextFactory.getContext(configOptionLogger.getName()))
+            .describedAs("configuration logger context should be the same as the agent logger context")
+            .isEqualTo(agentLoggerContext);
 
         LoggerContext pluginLoggerContext = testLog4jContextFactory.getContext(pluginLogger.getName());
         assertThat(pluginLoggerContext).isNotNull();
-        assertThat(pluginLoggerContext).isNotEqualTo(agentLoggerContext);
+        assertThat(pluginLoggerContext)
+            .describedAs("plugin logger context should be distinct from agent logger context")
+            .isNotEqualTo(agentLoggerContext);
+
         assertThat(pluginLoggerContext.getName()).startsWith(IndyPluginClassLoader.class.getName());
         assertThat(pluginLogger.isTraceEnabled()).isFalse();
 
@@ -231,7 +236,7 @@ class LoggingConfigurationTest {
             private final Map<ClassLoader, LoggerContext> contextMap = new HashMap<>();
 
             @Override
-            public LoggerContext getContext(String fqcn, ClassLoader loader, boolean currentContext) {
+            public LoggerContext getContext(String fqcn, @Nullable ClassLoader loader, boolean currentContext) {
                 if (loader == null) {
                     loader = ClassLoader.getSystemClassLoader();
                 }

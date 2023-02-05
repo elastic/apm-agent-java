@@ -18,12 +18,15 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.util.CharSequenceUtils;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
+import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
@@ -35,21 +38,51 @@ import java.util.concurrent.atomic.AtomicLong;
 public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.StatsKey, DroppedSpanStats.Stats>>, Recyclable {
 
     public static class StatsKey implements Recyclable {
-        private String destinationServiceResource;
+
+        // attribute is technically nullable, but not after 'init' method is called
+        @Nullable
+        private String serviceType;
+
+        private final StringBuilder serviceName;
+
+        private final StringBuilder destinationResource;
+
         private Outcome outcome;
 
-        public StatsKey() {
+        private int cachedHashCode;
 
+        public StatsKey() {
+            this.serviceName = new StringBuilder();
+            this.destinationResource = new StringBuilder();
+            this.outcome = Outcome.UNKNOWN;
+            cachedHashCode = Integer.MIN_VALUE;
         }
 
-        public StatsKey init(CharSequence destinationServiceResource, Outcome outcome) {
-            this.destinationServiceResource = destinationServiceResource.toString();
+        public StatsKey init(ServiceTarget serviceTarget, Outcome outcome) {
+            resetState();
+            // we have to use a copy as argument is mutable will be recycled
+            this.serviceType = Objects.requireNonNull(serviceTarget.getType());
+            CharSequence name = serviceTarget.getName();
+            if(name != null) {
+                this.serviceName.append(name);
+            }
+            this.destinationResource.append(Objects.requireNonNull(serviceTarget.getDestinationResource()));
             this.outcome = outcome;
             return this;
         }
 
-        public String getDestinationServiceResource() {
-            return destinationServiceResource;
+        @Nullable
+        public CharSequence getDestinationServiceResource() {
+            return destinationResource;
+        }
+
+        public String getServiceType() {
+            return Objects.requireNonNull(serviceType);
+        }
+
+        @Nullable
+        public CharSequence getServiceName() {
+            return serviceName;
         }
 
         public Outcome getOutcome() {
@@ -58,22 +91,41 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
 
         @Override
         public void resetState() {
-            destinationServiceResource = null;
-            outcome = null;
+            serviceType = null;
+            serviceName.setLength(0);
+            destinationResource.setLength(0);
+            outcome = Outcome.UNKNOWN;
+            cachedHashCode = Integer.MIN_VALUE;
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
+
             StatsKey statsKey = (StatsKey) o;
-            return destinationServiceResource.equals(statsKey.destinationServiceResource) && outcome == statsKey.outcome;
+
+            if (serviceType != null ? !serviceType.equals(statsKey.serviceType) : statsKey.serviceType != null)
+                return false;
+            if (!CharSequenceUtils.equals(serviceName, statsKey.serviceName)) return false;
+            if (!CharSequenceUtils.equals(destinationResource, statsKey.destinationResource)) return false;
+            return outcome == statsKey.outcome;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(destinationServiceResource, outcome);
+            // caching hashcode as multiple calls are expected to this method and we can avoid expensive re-computation
+            if (cachedHashCode != Integer.MIN_VALUE) {
+                return cachedHashCode;
+            }
+            int result = serviceType != null ? serviceType.hashCode() : 0;
+            result = 31 * result + CharSequenceUtils.hashCode(serviceName);
+            result = 31 * result + CharSequenceUtils.hashCode(destinationResource);
+            result = 31 * result + outcome.hashCode();
+            cachedHashCode = result;
+            return result;
         }
+
     }
 
     public static class Stats implements Recyclable {
@@ -102,7 +154,7 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
         }
     });
 
-    private static ObjectPool<Stats> statsObjectPool = QueueBasedObjectPool.<Stats>ofRecyclable(new MpmcAtomicArrayQueue<Stats>(512), false, new Allocator<Stats>() {
+    private static final ObjectPool<Stats> statsObjectPool = QueueBasedObjectPool.<Stats>ofRecyclable(new MpmcAtomicArrayQueue<Stats>(512), false, new Allocator<Stats>() {
         @Override
         public Stats createInstance() {
             return new Stats();
@@ -111,21 +163,20 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
 
     private final ConcurrentMap<StatsKey, Stats> statsMap = new ConcurrentHashMap<>();
 
-    //only used during testing
-    Stats getStats(String destinationServiceResource, Outcome outcome) {
-        return statsMap.get(new StatsKey().init(destinationServiceResource, outcome));
+    // only used during testing
+    @Nullable
+    Stats getStats(String serviceType, @Nullable String serviceName, Outcome outcome){
+        ServiceTarget st = new ServiceTarget().withType(serviceType).withName(serviceName);
+        return statsMap.get(new StatsKey().init(st, outcome));
     }
 
     public void captureDroppedSpan(Span span) {
-        StringBuilder resource = span.getContext().getDestination().getService().getResource();
-        if (!span.isExit() || resource.length() == 0) {
+        ServiceTarget serviceTarget = span.getContext().getServiceTarget();
+        if (!span.isExit() || !serviceTarget.hasContent() ) {
             return;
         }
 
-        Stats stats = getOrCreateStats(resource.toString(), span.getOutcome());
-        if (stats == null) {
-            return;
-        }
+        Stats stats = getOrCreateStats(serviceTarget, span.getOutcome());
 
         if (span.isComposite()) {
             stats.count.addAndGet(span.getComposite().getCount());
@@ -135,8 +186,8 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
         stats.sum.addAndGet(span.getDuration());
     }
 
-    private Stats getOrCreateStats(String resource, Outcome oucome) {
-        StatsKey statsKey = statsKeyObjectPool.createInstance().init(resource, oucome);
+    private Stats getOrCreateStats(ServiceTarget serviceTarget, Outcome outcome) {
+        StatsKey statsKey = statsKeyObjectPool.createInstance().init(serviceTarget, outcome);
         Stats stats = statsMap.get(statsKey);
         if (stats != null || statsMap.size() > 127) {
             statsKeyObjectPool.recycle(statsKey);

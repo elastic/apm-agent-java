@@ -24,9 +24,9 @@ import javax.annotation.Nullable;
 import javax.servlet.Servlet;
 import javax.servlet.ServletConfig;
 
-public abstract class JavaxServletVersionInstrumentation extends ServletVersionInstrumentation {
+public abstract class JavaxServletVersionInstrumentation {
 
-    public static class JavaxInit extends Init {
+    public static class JavaxInit extends ServletVersionInstrumentation.Init {
 
         @Override
         public Constants.ServletImpl getImplConstants() {
@@ -37,13 +37,15 @@ public abstract class JavaxServletVersionInstrumentation extends ServletVersionI
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
             public static void onEnter(@Advice.Argument(0) @Nullable ServletConfig servletConfig) {
-                logServletVersion(JavaxUtil.getInfoFromServletContext(servletConfig));
+                if (isLogEnabled()) {
+                    logServletVersion(JavaxUtil.getInfoFromServletContext(servletConfig));
+                }
             }
         }
 
     }
 
-    public static class JavaxService extends Service {
+    public static class JavaxService extends ServletVersionInstrumentation.Service {
 
         @Override
         public Constants.ServletImpl getImplConstants() {
@@ -53,10 +55,10 @@ public abstract class JavaxServletVersionInstrumentation extends ServletVersionI
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onEnter(@Advice.This Servlet servlet) {
-                logServletVersion(JavaxUtil.getInfoFromServletContext(servlet.getServletConfig()));
+                if (isLogEnabled()) {
+                    logServletVersion(JavaxUtil.getInfoFromServletContext(servlet.getServletConfig()));
+                }
             }
         }
-
     }
-
 }

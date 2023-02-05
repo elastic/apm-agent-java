@@ -21,7 +21,6 @@ package co.elastic.apm.agent.awslambda;
 import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.SQSEventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
-import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -31,13 +30,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nonnull;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
 
@@ -46,7 +45,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(SQSEventLambdaFunction.class.getName());
+        doReturn(SQSEventLambdaFunction.class.getName()).when(Objects.requireNonNull(serverlessConfiguration)).getAwsLambdaHandler();
         AbstractLambdaTest.initInstrumentation();
     }
 
@@ -58,12 +57,12 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
     @Override
     protected SQSEvent createInput() {
         SQSEvent sqsEvent = new SQSEvent();
-        sqsEvent.setRecords(List.of(createSqsMessage()));
+        sqsEvent.setRecords(List.of(createSqsMessage(true)));
         return sqsEvent;
     }
 
     @Nonnull
-    private SQSEvent.SQSMessage createSqsMessage() {
+    private SQSEvent.SQSMessage createSqsMessage(boolean useDefaultTraceparent) {
         SQSEvent.SQSMessage sqsMessage = new SQSEvent.SQSMessage();
         sqsMessage.setEventSourceArn(SQS_EVENT_SOURCE_ARN);
         sqsMessage.setMessageId(MESSAGE_ID);
@@ -73,7 +72,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
         SQSEvent.MessageAttribute header_1_Attribute = new SQSEvent.MessageAttribute();
         header_1_Attribute.setStringValue(HEADER_1_VALUE);
         SQSEvent.MessageAttribute traceparent_Attribute = new SQSEvent.MessageAttribute();
-        traceparent_Attribute.setStringValue(TRACEPARENT_EXAMPLE);
+        traceparent_Attribute.setStringValue(useDefaultTraceparent ? TRACEPARENT_EXAMPLE : TRACEPARENT_EXAMPLE_2);
         SQSEvent.MessageAttribute tracestate_Attribute = new SQSEvent.MessageAttribute();
         tracestate_Attribute.setStringValue(TRACESTATE_EXAMPLE);
         sqsMessage.setMessageAttributes(Map.of(
@@ -89,16 +88,32 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
     private SQSEvent createSQSEventWithNulls() {
         SQSEvent sqsEvent = new SQSEvent();
         sqsEvent.setRecords(List.of(new SQSEvent.SQSMessage()));
-
         return sqsEvent;
     }
 
+    @Override
+    protected void verifyDistributedTracing(TraceContext traceContext) {
+        // batch processing root transaction, distributed tracing is supported through span links
+        assertThat(traceContext.getParentId().isEmpty()).isTrue();
+        assertThat(traceContext.getTraceState().getSampleRate()).isEqualTo(1d);
+    }
 
     @Test
     public void testBasicCall() {
-        long beforeFunctionTimestamp = System.currentTimeMillis();
         getFunction().handleRequest(createInput(), context);
-        long afterFunctionTimestamp = System.currentTimeMillis();
+        verifyTransactionDetails();
+        verifySpanLink(TRACE_ID_EXAMPLE, PARENT_ID_EXAMPLE);
+    }
+
+    private void verifySpanLink(String traceId, String parentId) {
+        Transaction transaction = reporter.getFirstTransaction();
+        List<TraceContext> spanLinks = transaction.getSpanLinks();
+        List<TraceContext> matchedSpanLinks = spanLinks.stream().filter(spanLink -> spanLink.getParentId().toString().equals(parentId)).collect(Collectors.toList());
+        assertThat(matchedSpanLinks).hasSize(1);
+        assertThat(matchedSpanLinks.get(0).getTraceId().toString()).isEqualTo(traceId);
+    }
+
+    private void verifyTransactionDetails() {
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
@@ -106,22 +121,12 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
         Transaction transaction = reporter.getFirstTransaction();
         printTransactionJson(transaction);
 
+        assertThat(transaction.getContext().getMessage().hasContent()).isFalse();
+
         assertThat(transaction.getNameAsString()).isEqualTo("RECEIVE " + SQS_QUEUE);
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getResult()).isEqualTo("success");
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
-
-        assertThat(transaction.getContext().getMessage().hasContent()).isTrue();
-        assertThat(transaction.getContext().getMessage().getQueueName()).isEqualTo(SQS_QUEUE);
-        assertThat(transaction.getContext().getMessage().getBodyForRead()).isNull();
-        assertThat(transaction.getContext().getMessage().getHeaders().isEmpty()).isFalse();
-        Map<String, String> attributesMap = new HashMap<>();
-        for (Headers.Header header : transaction.getContext().getMessage().getHeaders()) {
-            attributesMap.put(header.getKey(), Objects.requireNonNull(header.getValue()).toString());
-        }
-        assertThat(attributesMap.get(HEADER_1_KEY)).isEqualTo(HEADER_1_VALUE);
-        assertThat(attributesMap.containsKey("SentTimestamp")).isTrue();
-        assertThat(transaction.getContext().getMessage().getAge()).isBetween(MESSAGE_AGE, MESSAGE_AGE + (afterFunctionTimestamp - beforeFunctionTimestamp));
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isTrue();
         assertThat(transaction.getContext().getServiceOrigin().getName().toString()).isEqualTo(SQS_QUEUE);
@@ -138,7 +143,6 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
         assertThat(faas.getId()).isEqualTo(TestContext.FUNCTION_ARN);
         assertThat(faas.getTrigger().getType()).isEqualTo("pubsub");
-        assertThat(faas.getTrigger().getRequestId()).isEqualTo(MESSAGE_ID);
     }
 
     @Test
@@ -173,10 +177,11 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
     @Test
     public void testCallWithMultipleMessagesPerEvent() {
         SQSEvent sqsEvent = new SQSEvent();
-        sqsEvent.setRecords(List.of(createSqsMessage(), createSqsMessage()));
+        sqsEvent.setRecords(List.of(createSqsMessage(true), createSqsMessage(false)));
         getFunction().handleRequest(sqsEvent, context);
-
-        validateResultsForUnspecifiedMessage();
+        verifyTransactionDetails();
+        verifySpanLink(TRACE_ID_EXAMPLE, PARENT_ID_EXAMPLE);
+        verifySpanLink(TRACE_ID_EXAMPLE_2, PARENT_ID_EXAMPLE_2);
     }
 
     @Test

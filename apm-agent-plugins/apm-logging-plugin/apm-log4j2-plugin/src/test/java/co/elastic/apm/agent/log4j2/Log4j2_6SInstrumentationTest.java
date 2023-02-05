@@ -18,13 +18,16 @@
  */
 package co.elastic.apm.agent.log4j2;
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.util.List;
 
+@DisabledOnOs(OS.WINDOWS)
 public class Log4j2_6SInstrumentationTest {
-    private final TestClassWithDependencyRunner runner;
+    private final JUnit4TestClassWithDependencyRunner runner;
 
     public Log4j2_6SInstrumentationTest() throws Exception {
         List<String> dependencies = List.of(
@@ -32,7 +35,7 @@ public class Log4j2_6SInstrumentationTest {
             "org.apache.logging.log4j:log4j-api:2.6",
             "co.elastic.logging:log4j2-ecs-layout:1.3.2"
         );
-        runner = new TestClassWithDependencyRunner(dependencies, Log4j2InstrumentationTestVersions.class, Log4j2InstrumentationTest.class,
+        runner = new JUnit4TestClassWithDependencyRunner(dependencies, Log4j2InstrumentationTestVersions.class, Log4j2InstrumentationTest.class,
             Log4j2InstrumentationTest.Log4j2LoggerFacade.class);
     }
 

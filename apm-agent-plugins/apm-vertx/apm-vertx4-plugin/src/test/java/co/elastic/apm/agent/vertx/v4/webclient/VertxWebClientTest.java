@@ -22,6 +22,7 @@ import co.elastic.apm.agent.vertx.webclient.AbstractVertxWebClientTest;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.VertxTestContext;
 
 
@@ -35,6 +36,11 @@ public class VertxWebClientTest extends AbstractVertxWebClientTest {
     @Override
     protected void close(Vertx vertx) {
         vertx.close();
+    }
+
+    @Override
+    protected void closeWebClient(WebClient client) {
+        client.close();
     }
 
     @Override

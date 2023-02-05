@@ -24,14 +24,9 @@ import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 
-public abstract class JakartaServletVersionInstrumentation extends ServletVersionInstrumentation {
+public abstract class JakartaServletVersionInstrumentation {
 
-    @Override
-    public Constants.ServletImpl getImplConstants() {
-        return Constants.ServletImpl.JAKARTA;
-    }
-
-    public static class JakartaInit extends Init {
+    public static class JakartaInit extends ServletVersionInstrumentation.Init {
 
         @Override
         public Constants.ServletImpl getImplConstants() {
@@ -42,13 +37,15 @@ public abstract class JakartaServletVersionInstrumentation extends ServletVersio
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
             public static void onEnter(@Advice.Argument(0) @Nullable ServletConfig servletConfig) {
-                logServletVersion(JakartaUtil.getInfoFromServletContext(servletConfig));
+                if (isLogEnabled()) {
+                    logServletVersion(JakartaUtil.getInfoFromServletContext(servletConfig));
+                }
             }
         }
 
     }
 
-    public static class JakartaService extends Service {
+    public static class JakartaService extends ServletVersionInstrumentation.Service {
 
         @Override
         public Constants.ServletImpl getImplConstants() {
@@ -58,10 +55,10 @@ public abstract class JakartaServletVersionInstrumentation extends ServletVersio
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void onEnter(@Advice.This Servlet servlet) {
-                logServletVersion(JakartaUtil.getInfoFromServletContext(servlet.getServletConfig()));
+                if (isLogEnabled()) {
+                    logServletVersion(JakartaUtil.getInfoFromServletContext(servlet.getServletConfig()));
+                }
             }
         }
-
     }
-
 }

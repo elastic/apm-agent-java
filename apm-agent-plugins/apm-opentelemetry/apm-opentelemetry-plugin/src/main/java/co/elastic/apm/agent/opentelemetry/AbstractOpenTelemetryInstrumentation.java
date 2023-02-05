@@ -40,6 +40,6 @@ public abstract class AbstractOpenTelemetryInstrumentation extends TracerAwareIn
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("opentelemetry", "experimental");
+        return Arrays.asList("opentelemetry");
     }
 }

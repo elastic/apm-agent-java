@@ -27,13 +27,14 @@ import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.ServiceFactory;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -90,7 +91,7 @@ import java.util.Map;
  *          * only relevant to log4j2, see {@code co.elastic.apm.agent.log4j2.Log4j2AppenderGetLayoutAdvice} for details
  *          if OVERRIDE:
  *              return the ECS-formatter instead of the original formatter
- *      {@link #onAppendExit(Object) on append() exit}:
+ *      {@link #onAppendExit(Object, Object) on append() exit}:
  *          if SHADE or REPLACE:
  *              invoke append() on ECS-appender
  *          clear log_ecs_reformatting config from thread local
@@ -98,10 +99,12 @@ import java.util.Map;
  * <br>
  *
  * @param <A> logging-framework-specific Appender type
+ * @param <B> logging-framework-specific Appender base type
  * @param <F> logging-framework-specific formatter type ({@code Layout} in Log4j, {@code Encoder} in Logback)
+ * @param <L> logging-framework-specific log event
  */
 @GlobalState
-public abstract class AbstractEcsReformattingHelper<A, F> {
+public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
 
     private static final String ECS_LOGGING_PACKAGE_NAME = "co.elastic.logging";
 
@@ -118,27 +121,30 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
 
     /**
      * A mapping between original appender and the corresponding ECS-appender.
-     * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
+     * Used when {@link LoggingConfiguration#logEcsReformatting} is set to
      * {@link LogEcsReformatting#SHADE SHADE} or {@link LogEcsReformatting#REPLACE REPLACE}.
      */
+    @SuppressWarnings("JavadocReference")
     private static final WeakMap<Object, Object> originalAppender2ecsAppender = WeakConcurrent.buildMap();
 
     /**
      * A mapping between original appender and the formatter that it had originally.
-     * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
-     * {@link LogEcsReformatting#OVERRIDE OVERRIDE}.
+     * Used when {@link LoggingConfiguration#logEcsReformatting} is set to {@link LogEcsReformatting#OVERRIDE OVERRIDE}.
      */
+    @SuppressWarnings("JavadocReference")
     private static final WeakMap<Object, Object> originalAppender2originalFormatter = WeakConcurrent.buildMap();
 
     /**
      * A mapping between original appender and the corresponding ECS-formatter.
-     * Used when {@link LoggingConfiguration#logEcsReformatting log_ecs_reformatting} is set to
-     * {@link LogEcsReformatting#OVERRIDE OVERRIDE}, currently only for the log4j2 instrumentation.
+     * Used when {@link LoggingConfiguration#logEcsReformatting} is set to {@link LogEcsReformatting#OVERRIDE OVERRIDE},
      */
+    @SuppressWarnings("JavadocReference")
     private static final WeakMap<Object, Object> originalAppender2ecsFormatter = WeakConcurrent.buildMap();
 
+    private static final WeakMap<Object, Object> originalAppender2sendingAppender = WeakConcurrent.buildMap();
+
     /**
-     * This state is set at the beginning of {@link #onAppendEnter(Object)} and cleared at the end of {@link #onAppendExit(Object)}.
+     * This state is set at the beginning of {@link #onAppendEnter(Object)} and cleared at the end of {@link #onAppendExit(Object, Object)}.
      * This ensures consistency during the entire handling of each log events and guarantees that each log event is being
      * logged exactly once.
      * No need to use {@link DetachedThreadLocalImpl} because we already annotate the class
@@ -149,13 +155,17 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     private final LoggingConfiguration loggingConfiguration;
 
     @Nullable
-    private final String configuredServiceName;
+    private final String globalServiceName;
+
+    @Nullable
+    private final String globalServiceVersion;
 
     @Nullable
     private final String configuredServiceNodeName;
 
     @Nullable
     private final Map<String, String> additionalFields;
+    private final Reporter reporter;
 
     public AbstractEcsReformattingHelper() {
         ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
@@ -166,12 +176,14 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
             "",
             tracer.getConfig(ServerlessConfiguration.class)
         );
-        configuredServiceName = service.getName();
+        globalServiceName = service.getName();
+        globalServiceVersion = service.getVersion();
         if (service.getNode() != null) {
             configuredServiceNodeName = service.getNode().getName();
         } else {
             configuredServiceNodeName = null;
         }
+        reporter = tracer.getReporter();
     }
 
     /**
@@ -226,13 +238,8 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
             Object ecsFormatter = NULL_FORMATTER;
             try {
                 if (shouldApplyEcsReformatting(originalAppender)) {
-                    F originalFormatter = getFormatterFrom(originalAppender);
-                    mappedFormatter = originalFormatter;
-                    String serviceName = getServiceName();
-                    F createdEcsFormatter = createEcsFormatter(
-                        getEventDataset(originalAppender, serviceName), serviceName, configuredServiceNodeName,
-                        additionalFields, originalFormatter
-                    );
+                    mappedFormatter = getFormatterFrom(originalAppender);
+                    F createdEcsFormatter = createEcsFormatter(originalAppender);
                     setFormatter(originalAppender, createdEcsFormatter);
                     ecsFormatter = createdEcsFormatter;
                 }
@@ -271,34 +278,65 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
      * Must be called exactly once at the exit from each {@code append()} method (or equivalent) invocation. This method checks
      * whether the current {@code append()} execution should result with an appended shaded event based on the configuration
      * AND whether this is the outermost execution in nested {@code append()} calls.
+     *
+     * @param logEvent log event
      * @param appender the instrumented appender
-     * @return an ECS-appender to append the current event if required and such exists; {@code null} otherwise
      */
-    @Nullable
-    public A onAppendExit(A appender) {
+    public void onAppendExit(L logEvent, A appender) {
         // If this is a nested append() invocation, do not shade now, only at the outermost invocation
         if (callDepth.isNestedCallAndDecrement()) {
-            return null;
+            return;
         }
 
-        A ecsAppender = null;
         try {
             LogEcsReformatting logEcsReformatting = configForCurrentLogEvent.get();
             if (logEcsReformatting == LogEcsReformatting.SHADE || logEcsReformatting == LogEcsReformatting.REPLACE) {
                 Object mappedAppender = originalAppender2ecsAppender.get(appender);
-                if (mappedAppender != null && mappedAppender != NULL_APPENDER) {
-                    ecsAppender = (A) mappedAppender;
+                invokeAppender(logEvent, mappedAppender);
+            }
+            if (loggingConfiguration.getSendLogs()) {
+                Object mappedAppender = originalAppender2sendingAppender.get(appender);
+                if (mappedAppender == null) {
+                    mappedAppender = createAndMapSendingAppenderFor(appender);
                 }
+                invokeAppender(logEvent, mappedAppender);
             }
         } finally {
             configForCurrentLogEvent.remove();
         }
-        return ecsAppender;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void invokeAppender(L logEvent, @Nullable Object mappedAppender) {
+        if (mappedAppender != null && mappedAppender != NULL_APPENDER) {
+            append(logEvent, (B) mappedAppender);
+        }
     }
 
     @Nullable
     protected String getConfiguredReformattingDir() {
         return loggingConfiguration.getLogEcsFormattingDestinationDir();
+    }
+
+    private Object createAndMapSendingAppenderFor(final A originalAppender) {
+        synchronized (originalAppender2sendingAppender) {
+            Object sendingAppender = originalAppender2sendingAppender.get(originalAppender);
+            if (sendingAppender != null) {
+                return sendingAppender;
+            }
+            sendingAppender = NULL_APPENDER;
+            try {
+                sendingAppender = createAndStartLogSendingAppender(reporter, createEcsFormatter(originalAppender));
+                originalAppender2sendingAppender.put(originalAppender, sendingAppender);
+            } catch (Throwable throwable) {
+                logger.warn(String.format("Failed to create ECS shipper appender for log appender %s.%s. " +
+                        "Log events for this appender will not be shaded.",
+                    originalAppender.getClass().getName(), getAppenderName(originalAppender)), throwable);
+            } finally {
+                originalAppender2sendingAppender.put(originalAppender, sendingAppender);
+            }
+            return sendingAppender;
+        }
     }
 
     private Object createAndMapShadeAppenderFor(final A originalAppender) {
@@ -311,11 +349,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
             ecsAppender = NULL_APPENDER;
             try {
                 if (shouldApplyEcsReformatting(originalAppender)) {
-                    String serviceName = getServiceName();
-                    F ecsFormatter = createEcsFormatter(
-                        getEventDataset(originalAppender, serviceName), serviceName, configuredServiceNodeName,
-                        additionalFields, getFormatterFrom(originalAppender)
-                    );
+                    F ecsFormatter = createEcsFormatter(originalAppender);
                     ecsAppender = createAndStartEcsAppender(originalAppender, ECS_SHADE_APPENDER_NAME, ecsFormatter);
                     if (ecsAppender == null) {
                         ecsAppender = NULL_APPENDER;
@@ -330,6 +364,14 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
             }
             return ecsAppender;
         }
+    }
+
+    private F createEcsFormatter(A originalAppender) {
+        String serviceName = getServiceName();
+        return createEcsFormatter(
+            getEventDataset(originalAppender, serviceName), serviceName, getServiceVersion(),
+            configuredServiceNodeName, additionalFields, getFormatterFrom(originalAppender)
+        );
     }
 
     private boolean shouldApplyEcsReformatting(A originalAppender) {
@@ -378,7 +420,7 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
 
     /**
      * Checks whether the given appender is a shading appender, so to avoid recursive reformatting
-     * @return true if the provide appender is a shading appender; false otherwise
+     * @return true if the provided appender is a shading appender; false otherwise
      */
     private boolean isShadingAppender(A appender) {
         //noinspection StringEquality
@@ -422,21 +464,35 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
     @Nullable
     protected abstract A createAndStartEcsAppender(A originalAppender, String ecsAppenderName, F ecsFormatter);
 
-    protected abstract F createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceNodeName,
-                                            @Nullable Map<String, String> additionalFields, F originalFormatter);
+    @Nullable
+    protected abstract F createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceVersion,
+                                            @Nullable String serviceNodeName, @Nullable Map<String, String> additionalFields,
+                                            @Nullable F originalFormatter);
 
     /**
      * We currently get the same service name that is reported in the metadata document.
-     * This may mismatch automatically-discovered service names (if not configured). However, we only set it
-     * once when configuring our appender, so we can have only one service name. In addition, if we use the
-     * in-context service name (eg through MDC), all log events that will not occur within a traced transaction
-     * will get a the global service name.
+     * This would mismatch automatically-discovered service names (if not configured) when relying on multi-service auto-discovery.
+     * However, we only set it once when configuring our appender, so we can have only one service name. In addition, if we use the
+     * in-context service name (eg through MDC), all log events that will not occur within a traced transaction will get the global
+     * service name.
      *
      * @return the configured service name or the globally-automatically-discovered one (not one that is context-dependent)
      */
     @Nullable
     private String getServiceName() {
-        return configuredServiceName;
+        return globalServiceName;
+    }
+
+    /**
+     * We currently get the same service version that is reported in the metadata document.
+     * This would mismatch automatically-discovered service version (if not configured) when relying on multi-service auto-discovery.
+     * However, we only set it once when configuring our appender, so we can have only one service version.
+     *
+     * @return the configured service version or the globally-automatically-discovered one (not one that is context-dependent)
+     */
+    @Nullable
+    private String getServiceVersion() {
+        return globalServiceVersion;
     }
 
     /**
@@ -462,5 +518,13 @@ public abstract class AbstractEcsReformattingHelper<A, F> {
         return loggingConfiguration.getLogFileSize();
     }
 
+    protected long getDefaultMaxLogFileSize() {
+        return loggingConfiguration.getDefaultLogFileSize();
+    }
+
     protected abstract void closeShadeAppender(A shadeAppender);
+
+    protected abstract B createAndStartLogSendingAppender(Reporter reporter, F formatter);
+
+    protected abstract void append(L logEvent, B appender);
 }

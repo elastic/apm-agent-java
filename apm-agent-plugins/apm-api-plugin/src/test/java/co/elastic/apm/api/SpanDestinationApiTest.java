@@ -19,7 +19,6 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractApiTest;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +26,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Objects;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 class SpanDestinationApiTest extends AbstractApiTest {
 
@@ -40,20 +39,32 @@ class SpanDestinationApiTest extends AbstractApiTest {
 
     @BeforeEach
     void setUp() {
+
         reporter.disableCheckDestinationAddress();
         internalTransaction = Objects.requireNonNull(tracer.startRootTransaction(null)).activate();
         internalSpan = Objects.requireNonNull(internalTransaction.createExitSpan())
             .withType("custom")
             .withSubtype("test")
             .activate();
+
         setDestinationDetailsThroughInternalApi();
+
+        // test defaults set from internal API
+        assertThat(internalSpan.getContext().getServiceTarget())
+            .hasDestinationResource(INTERNAL_RESOURCE);
+        assertThat(internalSpan.getContext().getDestination())
+            .hasAddress(INTERNAL_ADDRESS)
+            .hasPort(INTERNAL_PORT);
     }
 
     private void setDestinationDetailsThroughInternalApi() {
         internalSpan.getContext().getDestination()
             .withAddress(INTERNAL_ADDRESS)
-            .withPort(INTERNAL_PORT)
-            .getService().withResource(INTERNAL_RESOURCE);
+            .withPort(INTERNAL_PORT);
+
+        internalSpan.getContext().getServiceTarget()
+            // using only the type in the resource name
+            .withType(INTERNAL_RESOURCE);
     }
 
     @AfterEach
@@ -64,7 +75,8 @@ class SpanDestinationApiTest extends AbstractApiTest {
     @Test
     void testSetDestinationAddressWithNonNullValues() {
         ElasticApm.currentSpan().setDestinationAddress("address", 80);
-        assertDestinationDetails("address", 80, INTERNAL_RESOURCE);
+
+        assertThat(getSpan().getContext().getDestination()).hasAddress("address").hasPort(80);
     }
 
     @Test
@@ -72,13 +84,13 @@ class SpanDestinationApiTest extends AbstractApiTest {
         ElasticApm.currentSpan().setDestinationAddress("address", 80);
         setDestinationDetailsThroughInternalApi();
         // Address details set through public API should be preferred even if set before internal setting
-        assertDestinationDetails("address", 80, INTERNAL_RESOURCE);
+        assertThat(getSpan().getContext().getDestination()).hasAddress("address").hasPort(80);
     }
 
     @Test
     void testSetDestinationAddressWithNegativePort() {
         ElasticApm.currentSpan().setDestinationAddress("address", -1);
-        assertDestinationDetails("address", -1, INTERNAL_RESOURCE);
+        assertThat(getSpan().getContext().getDestination()).hasAddress("address").hasNoPort();
     }
 
     @Test
@@ -86,63 +98,112 @@ class SpanDestinationApiTest extends AbstractApiTest {
         ElasticApm.currentSpan().setDestinationAddress("address", -1);
         setDestinationDetailsThroughInternalApi();
         // using invalid port should unset original setting even if internal used last
-        assertDestinationDetails("address", -1, INTERNAL_RESOURCE);
+        assertThat(getSpan().getContext().getDestination()).hasAddress("address").hasNoPort();
     }
 
     @Test
     void testSetDestinationAddressWithNullAddress() {
         ElasticApm.currentSpan().setDestinationAddress(null, 80);
-        assertDestinationDetails("", 80, INTERNAL_RESOURCE );
+        assertThat(getSpan().getContext().getDestination()).hasEmptyAddress().hasPort(80);
     }
 
     @Test
     void testInternalSetAddressAfterApiInvalidAddress() {
         ElasticApm.currentSpan().setDestinationAddress(null, 80);
         setDestinationDetailsThroughInternalApi();
-        assertDestinationDetails("", 80, INTERNAL_RESOURCE);
+        assertThat(getSpan().getContext().getDestination()).hasEmptyAddress().hasPort(80);
     }
 
     @Test
+    @SuppressWarnings("deprecation") // testing deprecated API
     void testSetDestinationServiceWithNonEmptyValue() {
         ElasticApm.currentSpan().setDestinationService("service-resource");
-        assertDestinationDetails(INTERNAL_ADDRESS, INTERNAL_PORT, "service-resource");
+
+        assertThat(getSpan().getContext().getServiceTarget())
+            .isSetByUser()
+            .hasType("internal-resource") // should reuse the already set value
+            .hasName("service-resource")
+            .hasDestinationResource("service-resource");
     }
 
     @Test
+    @SuppressWarnings("deprecation") // testing deprecated API
     void testInternalSetServiceAfterApiValid() {
         ElasticApm.currentSpan().setDestinationService("service-resource");
         setDestinationDetailsThroughInternalApi();
-        assertDestinationDetails(INTERNAL_ADDRESS, INTERNAL_PORT, "service-resource");
+        assertThat(getSpan().getContext().getServiceTarget()).isSetByUser().hasDestinationResource("service-resource");
     }
 
     @Test
+    @SuppressWarnings("deprecation") // testing deprecated API
     void testSetDestinationServiceWithNullServiceResource() {
-        reporter.disableCheckDestinationService();
+        // opt-out of service target check as internal plugins have to set it for exit spans
+        reporter.disableCheckServiceTarget();
+
         ElasticApm.currentSpan().setDestinationService(null);
-        assertDestinationDetails(INTERNAL_ADDRESS, INTERNAL_PORT, "");
+        assertThat(getSpan().getContext().getServiceTarget()).isSetByUser().isEmpty();
     }
 
     @Test
+    @SuppressWarnings("deprecation") // testing deprecated API
     void testInternalSetServiceAfterApiNull() {
-        reporter.disableCheckDestinationService();
+        // opt-out of service target check as internal plugins have to set it for exit spans
+        reporter.disableCheckServiceTarget();
+
         ElasticApm.currentSpan().setDestinationService(null);
         setDestinationDetailsThroughInternalApi();
-        assertDestinationDetails(INTERNAL_ADDRESS, INTERNAL_PORT, "");
+        assertThat(getSpan().getContext().getServiceTarget()).isSetByUser().isEmpty();
     }
 
     @Test
+    @SuppressWarnings("deprecation") // testing deprecated API
     void testSetDestinationServiceWithEmptyServiceResource() {
-        reporter.disableCheckDestinationService();
+        // opt-out of service target check as internal plugins have to set it for exit spans
+        reporter.disableCheckServiceTarget();
+
         ElasticApm.currentSpan().setDestinationService("");
-        assertDestinationDetails(INTERNAL_ADDRESS, INTERNAL_PORT, "");
+        assertThat(getSpan().getContext().getServiceTarget()).isSetByUser().isEmpty();
     }
 
-    private void assertDestinationDetails(String expectedAddress, int expectedPort, String expectedResource) {
-        internalSpan.deactivate().end();
-        Span span = reporter.getFirstSpan();
-        Destination destination = span.getContext().getDestination();
-        assertThat(destination.getAddress().toString()).isEqualTo(expectedAddress);
-        assertThat(destination.getPort()).isEqualTo(expectedPort);
-        assertThat(destination.getService().getResource().toString()).isEqualTo(expectedResource);
+    @Test
+    @SuppressWarnings("deprecation") // testing deprecated API
+    void testSetServiceResource() {
+
+        // test implementation detail: we have to discard service target state otherwise type is already set
+        ElasticApm.currentSpan().setDestinationService(null);
+
+        ElasticApm.currentSpan().setDestinationService("my-service");
+        assertThat(getSpan().getContext().getServiceTarget())
+            .isSetByUser()
+            .hasType("") // using an empty type for calls to the legacy API.
+            .hasName("my-service")
+            .hasDestinationResource("my-service");
     }
+
+    @Test
+    void testSetServiceTargetTypeAndName() {
+        ElasticApm.currentSpan().setServiceTarget("my-type", "my-name");
+        assertThat(getSpan().getContext().getServiceTarget())
+            .isSetByUser()
+            .hasType("my-type")
+            .hasName("my-name")
+            .hasDestinationResource("my-type/my-name"); // default format unless using destination resource
+    }
+
+    @Test
+    @SuppressWarnings("deprecation") // testing deprecated API
+    void testSetServiceTargetTypeNameAndServiceResource() {
+        ElasticApm.currentSpan().setServiceTarget("my-type", "my-name").setDestinationService("my-resource");
+        assertThat(getSpan().getContext().getServiceTarget())
+            .isSetByUser()
+            .hasType("my-type")
+            .hasName("my-resource") // in this case the original name is overridden as we store resource in name
+            .hasDestinationResource("my-resource");
+    }
+
+    private Span getSpan() {
+        internalSpan.deactivate().end();
+        return reporter.getFirstSpan();
+    }
+
 }

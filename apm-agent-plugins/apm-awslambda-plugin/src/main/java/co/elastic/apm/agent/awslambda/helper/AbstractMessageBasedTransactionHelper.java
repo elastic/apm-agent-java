@@ -18,18 +18,15 @@
  */
 package co.elastic.apm.agent.awslambda.helper;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.CloudOrigin;
-import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.ServiceOrigin;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import com.amazonaws.services.lambda.runtime.Context;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
 
 public abstract class AbstractMessageBasedTransactionHelper<I, O, R> extends AbstractLambdaTransactionHelper<I, O> {
     protected static final String TRANSACTION_TYPE = "messaging";
@@ -38,62 +35,30 @@ public abstract class AbstractMessageBasedTransactionHelper<I, O, R> extends Abs
         super(tracer);
     }
 
-    protected abstract TextHeaderGetter<R> getTextHeaderGetter();
-
     protected abstract String getAWSService();
 
     @Nullable
     protected abstract String getQueueArn(R record);
 
-    protected abstract long getMessageTimestampMs(R record);
-
-    @Nullable
-    protected abstract String getBody(R record);
-
-    @Nullable
-    protected abstract String getMessageId(R record);
-
     @Nullable
     protected abstract String getRegion(R record);
-
-    protected abstract Collection<String> getHeaderNames(R record);
-
-    @Nullable
-    protected abstract String getHeaderValue(R record, String key);
 
     @Nullable
     protected abstract String getVersion(R record);
 
-    protected abstract R getRecord(I event);
-
+    protected abstract R getFirstRecord(I event);
 
     @Nullable
     @Override
     protected Transaction doStartTransaction(I event, Context lambdaContext) {
-        R record = getRecord(event);
-
-        Transaction transaction = tracer.startChildTransaction(record, getTextHeaderGetter(), lambdaContext.getClass().getClassLoader());
-
+        Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(lambdaContext.getClass()));
         if (null != transaction) {
-            // Setting the queue name only later when parsing it from the full ARN
-            Message messageCtx = transaction.getContext().getMessage();
-            long messageTimestampMs = getMessageTimestampMs(record);
-            long transactionTimestampMs = transaction.getTimestamp() / 1000L;
-            if (messageTimestampMs > 0 && transactionTimestampMs > messageTimestampMs) {
-                messageCtx.withAge(transactionTimestampMs - messageTimestampMs);
-            }
-            if (coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF) {
-                messageCtx.withBody(getBody(record));
-            }
-            if (coreConfiguration.isCaptureHeaders()) {
-                for (String headerName : getHeaderNames(record)) {
-                    messageCtx.addHeader(headerName, getHeaderValue(record, headerName));
-                }
-            }
+            addSpanLinks(transaction, event);
         }
-
         return transaction;
     }
+
+    protected abstract void addSpanLinks(Transaction transaction, I event);
 
     @Override
     public void captureOutputForTransaction(Transaction transaction, O output) {
@@ -102,12 +67,10 @@ public abstract class AbstractMessageBasedTransactionHelper<I, O, R> extends Abs
 
     @Override
     protected void setTransactionTriggerData(Transaction transaction, I event) {
-        R record = getRecord(event);
+        R record = getFirstRecord(event);
 
         transaction.withType(TRANSACTION_TYPE);
-
-        transaction.getFaas().getTrigger().withType("pubsub").withRequestId(getMessageId(record));
-
+        transaction.getFaas().getTrigger().withType("pubsub");
         ServiceOrigin serviceOrigin = transaction.getContext().getServiceOrigin();
 
         CloudOrigin cloudOrigin = transaction.getContext().getCloudOrigin();
@@ -130,7 +93,6 @@ public abstract class AbstractMessageBasedTransactionHelper<I, O, R> extends Abs
             }
 
             updateTransactionName(transaction, queueName);
-            transaction.getContext().getMessage().withQueue(queueName);
 
             serviceOrigin.withId(queueArn);
             serviceOrigin.withName(queueName);

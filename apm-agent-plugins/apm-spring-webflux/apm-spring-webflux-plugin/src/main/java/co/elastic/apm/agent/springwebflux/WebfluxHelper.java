@@ -1,4 +1,4 @@
- /*
+/*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -27,18 +27,17 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.util.LoggerUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import org.reactivestreams.Publisher;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.server.RequestPath;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.MultiValueMap;
@@ -65,6 +64,7 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.M
 public class WebfluxHelper {
 
     private static final Logger log = LoggerFactory.getLogger(WebfluxHelper.class);
+    private static final Logger oneTimeResponseCodeErrorLogger = LoggerUtils.logOnce(log);
 
     public static final String TRANSACTION_ATTRIBUTE = WebfluxHelper.class.getName() + ".transaction";
     private static final String SUBSCRIBER_ATTRIBUTE = WebfluxHelper.class.getName() + ".wrapped_subscriber";
@@ -97,7 +97,7 @@ public class WebfluxHelper {
         String path = exchange.getRequest().getPath().value();
         String userAgent = exchange.getRequest().getHeaders().getFirst("User-Agent");
         if (!fromServlet && !serverHelper.isRequestExcluded(path, userAgent)) {
-            transaction = tracer.startChildTransaction(exchange.getRequest().getHeaders(), HEADER_GETTER, ServerWebExchange.class.getClassLoader());
+            transaction = tracer.startChildTransaction(exchange.getRequest().getHeaders(), HEADER_GETTER, PrivilegedActionUtils.getClassLoader(ServerWebExchange.class));
         }
 
         if (transaction == null) {
@@ -165,8 +165,28 @@ public class WebfluxHelper {
             return;
         }
 
+        transaction.captureException(thrown);
+
+        // Fill request/response details if they haven't been already by another HTTP plugin (servlet or other).
+        if (!transaction.getContext().getRequest().hasContent()) {
+            fillRequest(transaction, exchange);
+            fillResponse(transaction, exchange);
+        }
+
+        // In case transaction has been created by Servlet, we should not terminate it as the Servlet instrumentation
+        // will take care of this.
+        if (!WebfluxHelper.isServletTransaction(exchange)) {
+            transaction.end();
+        }
+    }
+
+    public static void setTransactionName(@Nullable Transaction transaction, ServerWebExchange exchange) {
+        if (transaction == null) {
+            return;
+        }
+
         int namePriority;
-        String path;
+        String path = null;
         PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
         if (pattern != null) {
             namePriority = PRIO_HIGH_LEVEL_FRAMEWORK;
@@ -175,30 +195,22 @@ public class WebfluxHelper {
             namePriority = PRIO_LOW_LEVEL_FRAMEWORK + 1;
             if (webConfig.isUsePathAsName()) {
                 path = exchange.getRequest().getPath().value();
-            } else {
-                path = "unknown route";
             }
         }
+        String method = exchange.getRequest().getMethodValue();
+        StringBuilder transactionName = transaction.getAndOverrideName(namePriority, false);
 
-        TransactionNameUtils.setNameFromHttpRequestPath(
-            exchange.getRequest().getMethodValue(),
-            path,
-            transaction.getAndOverrideName(namePriority, false),
-            webConfig.getUrlGroups()
-        );
-
-        // Fill request/response details if they haven't been already by another HTTP plugin (servlet or other).
-        if (!transaction.getContext().getRequest().hasContent()) {
-            fillRequest(transaction, exchange);
-            fillResponse(transaction, exchange);
-        }
-
-        transaction.captureException(thrown);
-
-        // In case transaction has been created by Servlet, we should not terminate it as the Servlet instrumentation
-        // will take care of this.
-        if (!WebfluxHelper.isServletTransaction(exchange)) {
-            transaction.end();
+        if (path != null) {
+            TransactionNameUtils.setNameFromHttpRequestPath(
+                method,
+                path,
+                transactionName,
+                webConfig.getUrlGroups()
+            );
+        } else {
+            TransactionNameUtils.setNameUnknownRoute(
+                method,
+                transactionName);
         }
     }
 
@@ -259,8 +271,12 @@ public class WebfluxHelper {
 
     private static void fillResponse(Transaction transaction, ServerWebExchange exchange) {
         ServerHttpResponse serverResponse = exchange.getResponse();
-        HttpStatus statusCode = serverResponse.getStatusCode();
-        int status = statusCode != null ? statusCode.value() : 200;
+        int status = 0;
+        try {
+            status = SpringWebVersionUtils.getStatusCode(serverResponse);
+        } catch (Exception e) {
+            oneTimeResponseCodeErrorLogger.error("Failed to get response code", e);
+        }
 
         transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
 

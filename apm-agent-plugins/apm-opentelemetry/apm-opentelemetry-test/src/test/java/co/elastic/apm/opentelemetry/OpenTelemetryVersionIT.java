@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.opentelemetry;
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,15 +28,16 @@ import java.util.List;
 
 @RunWith(Parameterized.class)
 public class OpenTelemetryVersionIT {
-    private final TestClassWithDependencyRunner runner;
+    private final JUnit4TestClassWithDependencyRunner runner;
 
     public OpenTelemetryVersionIT(String version) throws Exception {
         List<String> dependencies = List.of(
             "io.opentelemetry:opentelemetry-api:" + version,
             "io.opentelemetry:opentelemetry-context:" + version,
             "io.opentelemetry:opentelemetry-semconv:" + version + "-alpha");
-        runner = new TestClassWithDependencyRunner(dependencies,
+        runner = new JUnit4TestClassWithDependencyRunner(dependencies,
             "co.elastic.apm.agent.opentelemetry.sdk.ElasticOpenTelemetryTest",
+            "co.elastic.apm.agent.opentelemetry.sdk.AbstractOpenTelemetryTest",
             "co.elastic.apm.agent.opentelemetry.sdk.ElasticOpenTelemetryTest$MapGetter");
     }
 
@@ -53,7 +54,13 @@ public class OpenTelemetryVersionIT {
             {"1.7.1"},
             {"1.9.0"},
             {"1.10.1"},
-            {"1.11.0"}
+            {"1.11.0"},
+            {"1.12.0"},
+            {"1.13.0"},
+            {"1.14.0"},
+            {"1.15.0"},
+            {"1.16.0"},
+            {"1.17.0"}
         });
     }
 
