@@ -25,8 +25,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 
 /**
  * Indy bootstrap dispatcher
@@ -99,28 +97,18 @@ public class IndyBootstrapDispatcher {
 
     /**
      * Replicates the logic from SystemStandardOutputLogger, as it cannot be directly accessed here.
+     * Note that we don't log anything if the security manager is enabled, as we don't want to deal
+     * with doPrivileged() here.
      *
      * @param t the throwable to print
      */
     private static void printStackTrace(Throwable t) {
-        boolean loggingDisabled;
         if (System.getSecurityManager() == null) {
-            loggingDisabled = isDisabledThroughConfiguration();
-        } else {
-            loggingDisabled = AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
-                @Override
-                public Boolean run() {
-                    return isDisabledThroughConfiguration();
-                }
-            });
+            boolean loggingDisabled = System.getProperty("elastic.apm.system_output_disabled") != null || System.getenv("ELASTIC_APM_SYSTEM_OUTPUT_DISABLED") != null;
+            if (!loggingDisabled) {
+                t.printStackTrace();
+            }
         }
-        if (!loggingDisabled) {
-            t.printStackTrace();
-        }
-    }
-
-    private static boolean isDisabledThroughConfiguration() {
-        return System.getProperty("elastic.apm.system_output_disabled") != null || System.getenv("ELASTIC_APM_SYSTEM_OUTPUT_DISABLED") != null;
     }
 
     public static void voidNoop() {
