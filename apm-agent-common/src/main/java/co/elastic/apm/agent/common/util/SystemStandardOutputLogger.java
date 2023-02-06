@@ -25,6 +25,8 @@ import java.security.PrivilegedAction;
  * A utility for writing to System standard output and standard error output streams.
  * Prints can be disabled through the {@code elastic.apm.system_output_disabled} system property or the corresponding
  * {@code ELASTIC_APM_SYSTEM_OUTPUT_DISABLED} environment variable.
+ * <p>
+ * Important: The logic here is replicated in IndyBootstrapDispatcher, as it cannot access this class directly.
  */
 public class SystemStandardOutputLogger {
     private static final String DISABLED_SYSTEM_PROPERTY = "elastic.apm.system_output_disabled";
