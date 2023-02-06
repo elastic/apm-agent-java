@@ -64,7 +64,6 @@ public final class InstrumentationStats {
         }
         List<ElasticApmInstrumentation> allDeterministic = getAllInstrumentationsSorted();
         for (ElasticApmInstrumentation instrumentation : allDeterministic) {
-            System.out.println("Instrumentation in order: " + instrumentation.getClass().getName());
             if (usedInstrumentations.containsKey(instrumentation)) {
                 continue;
             }
