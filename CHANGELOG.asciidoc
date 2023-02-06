@@ -39,8 +39,9 @@ endif::[]
 
 [float]
 ===== Features
-* Added the <<config-disable-outgoing-tracecontext-headers>> config option to disable injection of `tracecontext` on outgoing
+* Add the <<config-disable-outgoing-tracecontext-headers>> config option to disable injection of `tracecontext` on outgoing
 communication - {pull}2996[#2996]
+* Add the <<config-profiling-inferred-spans-logging-enabled>> config option to suppress async profiler warning messages - {pull}3002[#3002]
 
 [float]
 ===== Bug fixes
