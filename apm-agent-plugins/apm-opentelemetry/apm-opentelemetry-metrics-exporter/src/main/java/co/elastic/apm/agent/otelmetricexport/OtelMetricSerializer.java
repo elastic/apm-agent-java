@@ -49,7 +49,7 @@ public class OtelMetricSerializer {
 
     private final Set<String> metricsWithBadAggregations = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    private final Map<InstrumentationScopeAndTimestamp, Map<Attributes, MetricSetGenerator>> metricSets;
+    private final Map<InstrumentationScopeAndTimestamp, Map<Attributes, MetricSetSerializer>> metricSets;
 
     @Nullable
     private InstrumentationScopeAndTimestamp lastCreatedInstrScopeAndTimestamp;
@@ -108,7 +108,7 @@ public class OtelMetricSerializer {
     private void addHistogramValues(CharSequence name, CharSequence instrScopeName, HistogramData histogramData) {
         for (HistogramPointData histo : histogramData.getPoints()) {
             long timestampMicros = histo.getEpochNanos() / 1000L;
-            MetricSetGenerator metricSet = getOrCreateMetricSet(instrScopeName, timestampMicros, histo.getAttributes());
+            MetricSetSerializer metricSet = getOrCreateMetricSet(instrScopeName, timestampMicros, histo.getAttributes());
             metricSet.addExplicitBucketHistogram(name, histo.getBoundaries(), histo.getCounts());
         }
     }
@@ -117,7 +117,7 @@ public class OtelMetricSerializer {
         for (DoublePointData data : metricValues.getPoints()) {
             long timestampMicros = data.getEpochNanos() / 1000L;
             if (!omitZeroes || data.getValue() != 0) {
-                MetricSetGenerator metricSet = getOrCreateMetricSet(instrScopeName, timestampMicros, data.getAttributes());
+                MetricSetSerializer metricSet = getOrCreateMetricSet(instrScopeName, timestampMicros, data.getAttributes());
                 metricSet.addValue(name, data.getValue());
             }
         }
@@ -127,14 +127,14 @@ public class OtelMetricSerializer {
         for (LongPointData data : metricValues.getPoints()) {
             if (!omitZeroes || data.getValue() != 0) {
                 long timestampMicros = data.getEpochNanos() / 1000L;
-                MetricSetGenerator metricSet = getOrCreateMetricSet(instrScopeName, timestampMicros, data.getAttributes());
+                MetricSetSerializer metricSet = getOrCreateMetricSet(instrScopeName, timestampMicros, data.getAttributes());
                 metricSet.addValue(name, data.getValue());
             }
         }
     }
 
 
-    private MetricSetGenerator getOrCreateMetricSet(CharSequence instrScopeName, long timestampMicros, Attributes attributes) {
+    private MetricSetSerializer getOrCreateMetricSet(CharSequence instrScopeName, long timestampMicros, Attributes attributes) {
         //This function is often called in a loop with the same instrumentation scope name and timestamp
         //In order to minimize allocations, we make use of this fact and remember the map key from the last iteration and reuse it if possible
         InstrumentationScopeAndTimestamp key;
@@ -145,23 +145,23 @@ public class OtelMetricSerializer {
             lastCreatedInstrScopeAndTimestamp = key;
         }
 
-        Map<Attributes, MetricSetGenerator> timestampMetricSets = metricSets.get(key);
+        Map<Attributes, MetricSetSerializer> timestampMetricSets = metricSets.get(key);
         if (timestampMetricSets == null) {
             timestampMetricSets = new HashMap<>();
             metricSets.put(key, timestampMetricSets);
         }
 
-        MetricSetGenerator ms = timestampMetricSets.get(attributes);
+        MetricSetSerializer ms = timestampMetricSets.get(attributes);
         if (ms == null) {
-            ms = new MetricSetGenerator(attributes, key.instrumentationScopeName, key.timestamp, serializationTempBuilder);
+            ms = new MetricSetSerializer(attributes, key.instrumentationScopeName, key.timestamp, serializationTempBuilder);
             timestampMetricSets.put(attributes, ms);
         }
         return ms;
     }
 
     public void flushAndReset(Reporter reporter) {
-        for (Map<?, MetricSetGenerator> map : metricSets.values()) {
-            for (MetricSetGenerator metricSet : map.values()) {
+        for (Map<?, MetricSetSerializer> map : metricSets.values()) {
+            for (MetricSetSerializer metricSet : map.values()) {
                 metricSet.finishAndReport(reporter);
             }
         }

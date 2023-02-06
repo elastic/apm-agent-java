@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonIgnoreProperties({"faas", "service", "span", "transaction"})
 public class MetricsetJson {
 
     @Nullable

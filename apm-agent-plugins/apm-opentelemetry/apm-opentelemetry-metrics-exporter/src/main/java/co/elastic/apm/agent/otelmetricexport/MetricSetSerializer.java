@@ -20,8 +20,6 @@ package co.elastic.apm.agent.otelmetricexport;
 
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
@@ -40,9 +38,7 @@ import static com.dslplatform.json.JsonWriter.COMMA;
 import static com.dslplatform.json.JsonWriter.OBJECT_END;
 import static com.dslplatform.json.JsonWriter.OBJECT_START;
 
-class MetricSetGenerator {
-
-    private static final Logger logger = LoggerFactory.getLogger(MetricSetGenerator.class);
+class MetricSetSerializer {
 
     private static final byte NEW_LINE = '\n';
 
@@ -54,7 +50,7 @@ class MetricSetGenerator {
     private final JsonWriter jw;
     private boolean anySamplesWritten;
 
-    public MetricSetGenerator(Attributes attributes, CharSequence instrumentationScopeName, long epochMicros, StringBuilder replaceBuilder) {
+    public MetricSetSerializer(Attributes attributes, CharSequence instrumentationScopeName, long epochMicros, StringBuilder replaceBuilder) {
         this.replaceBuilder = replaceBuilder;
         anySamplesWritten = false;
         jw = DSL_JSON.newWriter(INITIAL_BUFFER_SIZE);
