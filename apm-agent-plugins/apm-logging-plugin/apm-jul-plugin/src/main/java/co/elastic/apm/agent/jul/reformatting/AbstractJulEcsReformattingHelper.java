@@ -18,8 +18,10 @@
  */
 package co.elastic.apm.agent.jul.reformatting;
 
+import co.elastic.apm.agent.jul.sending.JulLogSenderHandler;
 import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
+import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.LoggerUtils;
@@ -28,32 +30,36 @@ import co.elastic.logging.jul.EcsFormatter;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
+import java.util.logging.LogRecord;
 import java.util.logging.StreamHandler;
 
-public abstract class AbstractJulEcsReformattingHelper extends AbstractEcsReformattingHelper<Handler, Formatter> {
+public abstract class AbstractJulEcsReformattingHelper<T extends Handler> extends AbstractEcsReformattingHelper<T, T, Formatter, LogRecord> {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractJulEcsReformattingHelper.class);
-    private static final Logger  oneTimeLogFileLimitWarningLogger = LoggerUtils.logOnce(logger);
+    private static final Logger oneTimeLogFileLimitWarningLogger = LoggerUtils.logOnce(logger);
 
     @Nullable
     @Override
-    protected Formatter getFormatterFrom(Handler handler) {
+    protected Formatter getFormatterFrom(T handler) {
         return handler.getFormatter();
     }
 
     @Override
-    protected void setFormatter(Handler handler, Formatter formatter) {
+    protected void setFormatter(T handler, Formatter formatter) {
         handler.setFormatter(formatter);
     }
 
     @Override
-    protected void closeShadeAppender(Handler handler) {
+    protected void closeShadeAppender(T handler) {
         handler.close();
     }
 
@@ -103,7 +109,7 @@ public abstract class AbstractJulEcsReformattingHelper extends AbstractEcsReform
                         "use int to configure the file size limit. Consider reducing the log max size configuration to a value below " +
                         "Integer#MAX_VALUE. Defaulting to {} bytes.", getMaxLogFileSize(), maxLogFileSize);
                 }
-                shadeHandler = new FileHandler(pattern, maxLogFileSize, 2, true);
+                shadeHandler = createFileHandler(pattern, maxLogFileSize);
                 shadeHandler.setFormatter(ecsFormatter);
             } catch (Exception e) {
                 logger.error("Failed to create Log shading FileAppender. Auto ECS reformatting will not work.", e);
@@ -112,6 +118,39 @@ public abstract class AbstractJulEcsReformattingHelper extends AbstractEcsReform
         return shadeHandler;
     }
 
+    private static FileHandler createFileHandler(final String pattern, final int maxLogFileSize) throws IOException {
+        if (System.getSecurityManager() == null) {
+            return doCreateFileHandler(pattern, maxLogFileSize);
+        }
+        try {
+            return AccessController.doPrivileged(new PrivilegedExceptionAction<FileHandler>() {
+                @Override
+                public FileHandler run() throws Exception {
+                    return doCreateFileHandler(pattern, maxLogFileSize);
+                }
+            });
+        } catch (PrivilegedActionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            }
+            throw new RuntimeException(cause);
+        }
+    }
+
+    private static FileHandler doCreateFileHandler(String pattern, int maxLogFileSize) throws IOException {
+        return new FileHandler(pattern, maxLogFileSize, 2, true);
+    }
+
     protected abstract boolean isFileHandler(Handler originalHandler);
 
+    @Override
+    protected T createAndStartLogSendingAppender(Reporter reporter, Formatter formatter) {
+        return (T) new JulLogSenderHandler(reporter, formatter);
+    }
+
+    @Override
+    protected void append(LogRecord logEvent, Handler appender) {
+        appender.publish(logEvent);
+    }
 }

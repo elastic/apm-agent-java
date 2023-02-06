@@ -18,16 +18,16 @@
  */
 package co.elastic.apm.agent.micrometer;
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import org.junit.Test;
 
 public class MicrometerInstrumentationVersionsIT {
 
-    private final TestClassWithDependencyRunner runner;
+    private final JUnit4TestClassWithDependencyRunner runner;
 
     public MicrometerInstrumentationVersionsIT() throws Exception {
-        this.runner = new TestClassWithDependencyRunner("io.micrometer", "micrometer-core", "1.0.1",
-            MicrometerInstrumentationTest.class
+        this.runner = new JUnit4TestClassWithDependencyRunner("io.micrometer", "micrometer-core", "1.0.1",
+            MicrometerInstrumentationTest.class, MicrometerInstrumentationTest.OneSecondStepSimpleConfig.class
         );
     }
 

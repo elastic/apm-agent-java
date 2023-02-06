@@ -307,7 +307,7 @@ public interface Transaction extends Span {
      * <script>
      *   elasticApm.init({
      *     serviceName: "service-name",
-     *     serverUrl: "http://localhost:8200",
+     *     serverUrl: "http://127.0.0.1:8200",
      *     pageLoadTraceId: "${transaction.traceId}",
      *     pageLoadSpanId: "${transaction.ensureParentId()}",
      *     pageLoadSampled: ${transaction.sampled}

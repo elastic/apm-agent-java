@@ -19,24 +19,26 @@
 package co.elastic.apm.agent.jul.reformatting;
 
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 
-class JulEcsReformattingHelper extends AbstractJulEcsReformattingHelper {
+class JulEcsReformattingHelper<T extends Handler> extends AbstractJulEcsReformattingHelper<T> {
+
 
     private static final ThreadLocal<String> currentPattern = new ThreadLocal<>();
     private static final ThreadLocal<Path> currentExampleLogFile = new ThreadLocal<>();
 
-    JulEcsReformattingHelper() {}
+    JulEcsReformattingHelper() {
+    }
 
-    public boolean onAppendEnter(FileHandler fileHandler, String pattern, File exampleLogFile) {
+    public boolean onAppendEnter(T fileHandler, String pattern, File exampleLogFile) {
         try {
             currentPattern.set(pattern);
             currentExampleLogFile.set(exampleLogFile.toPath());
@@ -48,7 +50,7 @@ class JulEcsReformattingHelper extends AbstractJulEcsReformattingHelper {
     }
 
     @Override
-    protected String getAppenderName(Handler handler) {
+    protected String getAppenderName(T handler) {
         if (handler instanceof FileHandler) {
             return "FILE";
         } else if (handler instanceof ConsoleHandler) {
@@ -86,8 +88,8 @@ class JulEcsReformattingHelper extends AbstractJulEcsReformattingHelper {
         }
         Path logReformattingDir = Utils.computeLogReformattingDir(originalFilePath, configuredReformattingDir);
         if (logReformattingDir != null) {
-            if (createDirs && !Files.exists(logReformattingDir)) {
-                Files.createDirectories(logReformattingDir);
+            if (createDirs) {
+                PrivilegedActionUtils.createDirectories(logReformattingDir);
             }
             pattern = logReformattingDir.resolve(pattern).toString();
         }

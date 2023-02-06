@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.metrics;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,9 +31,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 class MetricRegistryTest {
 
@@ -50,7 +50,7 @@ class MetricRegistryTest {
 
     @Test
     void testDisabledMetrics() {
-        when(reporterConfiguration.getDisableMetrics()).thenReturn(List.of(WildcardMatcher.valueOf("jvm.gc.*")));
+        doReturn(List.of(WildcardMatcher.valueOf("jvm.gc.*"))).when(reporterConfiguration).getDisableMetrics();
         final DoubleSupplier problematicMetric = () -> {
             throw new RuntimeException("Huston, we have a problem");
         };
@@ -144,7 +144,7 @@ class MetricRegistryTest {
 
     @Test
     void testLimitTimersWithCustomValue() {
-        when(metricsConfiguration.getMetricSetLimit()).thenReturn(2000);
+        doReturn(2000).when(metricsConfiguration).getMetricSetLimit();
         metricRegistry = new MetricRegistry(reporterConfiguration, metricsConfiguration);
         IntStream.range(1, 505).forEach(i -> metricRegistry.updateTimer("timer" + i, Labels.Mutable.of("foo", Integer.toString(i)), 1));
         IntStream.range(1, 505).forEach(i -> metricRegistry.updateTimer("timer" + i, Labels.Mutable.of("bar", Integer.toString(i)), 1));

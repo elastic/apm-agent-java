@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.matcher;
 
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import org.stagemonitor.util.StringUtils;
 
 import javax.annotation.Nullable;
@@ -28,7 +29,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static co.elastic.apm.agent.matcher.AnnotationMatcher.annotationMatcher;
-import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
+import static co.elastic.apm.agent.common.util.WildcardMatcher.caseSensitiveMatcher;
 
 public class MethodMatcher {
 

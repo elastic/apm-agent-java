@@ -30,6 +30,8 @@ import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,7 +56,6 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 public abstract class LoggingInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -86,6 +87,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         utcTimestampFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
+    @Before
     @BeforeEach
     public void setup() throws Exception {
         doReturn(SERVICE_VERSION).when(config.getConfig(CoreConfiguration.class)).getServiceVersion();
@@ -108,11 +110,12 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     }
 
     private void initializeReformattingDir(String dirName) throws IOException {
-        when(loggingConfig.getLogEcsFormattingDestinationDir()).thenReturn(dirName);
+        doReturn(dirName).when(loggingConfig).getLogEcsFormattingDestinationDir();
         Files.deleteIfExists(Paths.get(getLogReformattingFilePath()));
         Files.deleteIfExists(Paths.get(getLogReformattingFilePath() + ".1"));
     }
 
+    @After
     @AfterEach
     public void closeLogger() {
         childSpan.deactivate().end();
@@ -226,8 +229,27 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         logger.error(ERROR_MESSAGE, new Throwable());
 
         ArrayList<JsonNode> overriddenLogEvents = TestUtils.readJsonFile(getOriginalLogFilePath().toString());
-        assertThat(overriddenLogEvents).hasSize(4);
         for (JsonNode ecsLogLineTree : overriddenLogEvents) {
+            verifyEcsLogLine(ecsLogLineTree);
+        }
+    }
+
+    @Test
+    public void testSendLogs() {
+        doReturn(Boolean.TRUE).when(loggingConfig).getSendLogs();
+
+        logger.trace(TRACE_MESSAGE);
+        logger.debug(DEBUG_MESSAGE);
+        logger.warn(WARN_MESSAGE);
+        logger.error(ERROR_MESSAGE, new Throwable());
+
+        List<JsonNode> logs = reporter.getLogs()
+            .stream()
+            // running test with surefire and within IDE do not produce the same 'event.dataset'
+            .filter(log -> log.get("event.dataset").textValue().endsWith(".FILE"))
+            .collect(Collectors.toList());
+        assertThat(logs).hasSize(4);
+        for (JsonNode ecsLogLineTree : logs) {
             verifyEcsLogLine(ecsLogLineTree);
         }
     }
@@ -408,13 +430,14 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
      * is a notorious way to make tests flaky. If that proves to be the case, this test can be disabled, as its
      * importance for regression testing is not crucial. It would be very useful if we decide to modify anything in
      * our logging configuration, for example - change the rolling decision strategy.
+     *
      * @throws IOException thrown if we fail to read the shade log file
      */
     @Test
     public void testReformattedLogRolling() throws IOException {
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
         initializeReformattingDir("rolling");
-        when(loggingConfig.getLogFileSize()).thenReturn(100L);
+        doReturn(100L).when(loggingConfig).getLogFileSize();
         logger.trace("First line");
         waitForFileRolling();
         logger.debug("Second Line");

@@ -114,6 +114,11 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, Exec
         return null;
     }
 
+    @Override
+    protected boolean isReceiveMessageRequest(SdkRequest request) {
+        return request instanceof ReceiveMessageRequest;
+    }
+
     public void modifyRequestObject(@Nullable Span span, ClientExecutionParams clientExecutionParams, ExecutionContext executionContext) {
         SdkRequest sdkRequest = clientExecutionParams.getInput();
         SdkRequest newRequestObj = null;

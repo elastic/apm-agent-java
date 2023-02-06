@@ -31,6 +31,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import specs.TestJsonSpec;
 
 import javax.annotation.Nullable;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Spliterator;
@@ -111,9 +113,9 @@ public class ServiceResourceTest {
             SpanContext context = span.getContext();
             JsonNode dbJson = contextJson.get("db");
             if (dbJson != null) {
-                Db db = context.getDb();
-                db.withType(getTextValueOrNull(dbJson, "type"));
-                db.withInstance(getTextValueOrNull(dbJson, "instance"));
+                context.getDb()
+                    .withType(getTextValueOrNull(dbJson, "type"))
+                    .withInstance(getTextValueOrNull(dbJson, "instance"));
             }
             JsonNode messageJson = contextJson.get("message");
             if (messageJson != null) {
@@ -126,13 +128,13 @@ public class ServiceResourceTest {
             }
             JsonNode httpJson = contextJson.get("http");
             if (httpJson != null) {
-                JsonNode urlJson = httpJson.get("url");
-                if (urlJson != null) {
+                String urlValue = getTextValueOrNull(httpJson, "url");
+                if (urlValue != null) {
                     Url url = context.getHttp().getInternalUrl();
-                    url.withHostname(getTextValueOrNull(urlJson, "host"));
-                    JsonNode portJson = urlJson.get("port");
-                    if (portJson != null) {
-                        url.withPort(portJson.intValue());
+                    try {
+                        url.fillFrom(new URI(urlValue));
+                    } catch (URISyntaxException e) {
+                        throw new RuntimeException(e);
                     }
                 }
             }

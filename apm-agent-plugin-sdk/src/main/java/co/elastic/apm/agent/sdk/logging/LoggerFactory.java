@@ -21,8 +21,6 @@ package co.elastic.apm.agent.sdk.logging;
 import javax.annotation.Nullable;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.Iterator;
-import java.util.ServiceLoader;
 
 public class LoggerFactory {
 
@@ -62,12 +60,18 @@ public class LoggerFactory {
             return null;
         }
 
-        Logger logger = AccessController.doPrivileged(new PrivilegedAction<Logger>() {
-            @Override
-            public Logger run() {
-                return iLoggerFactory.getLogger(name);
-            }
-        });
+        Logger logger;
+        if (System.getSecurityManager() == null) {
+            logger = iLoggerFactory.getLogger(name);
+        } else {
+            logger = AccessController.doPrivileged(new PrivilegedAction<Logger>() {
+                @Override
+                public Logger run() {
+                    return iLoggerFactory.getLogger(name);
+                }
+            });
+        }
+
         // in case the factory is unable to provide a logger, we return Noop impl to prevent further calls to the factory
         return logger != null ? logger : NoopLogger.INSTANCE;
     }

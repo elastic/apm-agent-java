@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class DiscardSpanTest {
     private ElasticApmTracer tracer;
@@ -120,7 +120,7 @@ public class DiscardSpanTest {
 
     @Test
     void testDiscardSpanLimit() {
-        when(tracer.getConfigurationRegistry().getConfig(CoreConfiguration.class).getTransactionMaxSpans()).thenReturn(2);
+        doReturn(2).when(tracer.getConfigurationRegistry().getConfig(CoreConfiguration.class)).getTransactionMaxSpans();
         Transaction transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();
         try {
@@ -139,7 +139,7 @@ public class DiscardSpanTest {
 
     @Test
     void testDiscardSpanLimitNesting() {
-        when(tracer.getConfigurationRegistry().getConfig(CoreConfiguration.class).getTransactionMaxSpans()).thenReturn(2);
+        doReturn(2).when(tracer.getConfigurationRegistry().getConfig(CoreConfiguration.class)).getTransactionMaxSpans();
         Transaction transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();
         try {
@@ -165,7 +165,7 @@ public class DiscardSpanTest {
 
     @Test
     void testDiscardSpanLimitNesting2() {
-        when(tracer.getConfigurationRegistry().getConfig(CoreConfiguration.class).getTransactionMaxSpans()).thenReturn(2);
+        doReturn(2).when(tracer.getConfigurationRegistry().getConfig(CoreConfiguration.class)).getTransactionMaxSpans();
         Transaction transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();
         try {

@@ -43,7 +43,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import javax.annotation.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public abstract class AbstractInstrumentationTest {
 
@@ -86,7 +86,7 @@ public abstract class AbstractInstrumentationTest {
     @Before
     @BeforeEach
     public void disableSpanCompression() {
-        when(config.getConfig(SpanConfiguration.class).isSpanCompressionEnabled()).thenReturn(false);
+        doReturn(false).when(config.getConfig(SpanConfiguration.class)).isSpanCompressionEnabled();
     }
 
     @AfterAll

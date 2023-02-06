@@ -18,7 +18,7 @@ pipeline {
     JOB_GCS_CREDENTIALS = 'apm-ci-gcs-plugin'
   }
   options {
-    timeout(time: 90, unit: 'MINUTES')
+    timeout(time: 120, unit: 'MINUTES')
     buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '20', daysToKeepStr: '30'))
     timestamps()
     ansiColor('xterm')
@@ -31,7 +31,7 @@ pipeline {
     issueCommentTrigger("(${obltGitHubComments()}|^run (jdk compatibility|benchmark|integration|windows) tests)")
   }
   parameters {
-    string(name: 'JAVA_VERSION', defaultValue: 'java11', description: 'Java version to build & test')
+    string(name: 'JAVA_VERSION', defaultValue: 'jdk17', description: 'Java version to build & test')
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
 
     // Note about GH checks and optional steps
@@ -284,7 +284,8 @@ pipeline {
              * The result JSON files are also archive into Jenkins.
              */
             stage('Benchmarks') {
-              agent { label 'microbenchmarks-pool' }
+              // As long as jdk17 is not available then let's pin the worker with jdk17
+              agent { label 'microbenchmarks-pool && worker-1799328' }
               options { skipDefaultCheckout() }
               environment {
                 NO_BUILD = "true"
@@ -361,21 +362,21 @@ pipeline {
               }
             }
           }
-          environment {
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-          }
           matrix {
             agent { label 'linux && immutable' }
             axes {
               axis {
-                // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
+                // the list of supported java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
                 name 'JDK_VERSION'
-                // 'openjdk18'  disabled for now see https://github.com/elastic/apm-agent-java/issues/2328
-                values 'openjdk17'
+                values 'java11', 'jdk19'
               }
             }
             stages {
               stage('JDK Unit Tests') {
+                environment {
+                  JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JDK_VERSION}"
+                  PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+                }
                 steps {
                   withGithubNotify(context: "${STAGE_NAME} ${JDK_VERSION}", tab: 'tests') {
                     deleteDir()

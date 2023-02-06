@@ -21,6 +21,7 @@ package co.elastic.apm.agent.impl.metadata;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.UrlConnectionUtils;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonReader;
@@ -68,7 +69,7 @@ public class CloudMetadataProvider {
 
         if (serverlessConfiguration.runsOnAwsLambda()) {
             CloudProviderInfo awsLambdaInfo = new CloudProviderInfo("aws");
-            awsLambdaInfo.setRegion(System.getenv("AWS_REGION"));
+            awsLambdaInfo.setRegion(PrivilegedActionUtils.getEnv("AWS_REGION"));
             awsLambdaInfo.setService(new CloudProviderInfo.Service("lambda"));
             return awsLambdaInfo;
         }

@@ -28,7 +28,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -66,7 +66,6 @@ import java.util.concurrent.Future;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 /**
  * A duplicate of {@link KafkaIT}, only uses a real reporter and initializes instrumentations instead of extending
@@ -128,7 +127,7 @@ public class KafkaIT_RealReporter {
 
         config = SpyConfiguration.createSpyConfig();
         StacktraceConfiguration stacktraceConfiguration = config.getConfig(StacktraceConfiguration.class);
-        when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(30);
+        doReturn(30).when(stacktraceConfiguration).getStackTraceLimit();
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .buildAndStart();
@@ -231,7 +230,7 @@ public class KafkaIT_RealReporter {
 
     @Test
     public void testHeaderCaptureDisabled() {
-        when(coreConfiguration.isCaptureHeaders()).thenReturn(false);
+        doReturn(false).when(coreConfiguration).isCaptureHeaders();
         testScenario = TestScenario.HEADERS_CAPTURE_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
@@ -253,7 +252,7 @@ public class KafkaIT_RealReporter {
 
     @Test
     public void testDestinationAddressCollectionDisabled() {
-        when(messagingConfiguration.shouldCollectQueueAddress()).thenReturn(false);
+        doReturn(false).when(messagingConfiguration).shouldCollectQueueAddress();
         testScenario = TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
@@ -261,7 +260,7 @@ public class KafkaIT_RealReporter {
 
     @Test
     public void testIgnoreTopic() {
-        when(messagingConfiguration.getIgnoreMessageQueues()).thenReturn(List.of(WildcardMatcher.valueOf(REQUEST_TOPIC)));
+        doReturn(List.of(WildcardMatcher.valueOf(REQUEST_TOPIC))).when(messagingConfiguration).getIgnoreMessageQueues();
         testScenario = TestScenario.IGNORE_REQUEST_TOPIC;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
