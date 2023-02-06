@@ -48,7 +48,7 @@ if [ ${WORKERS+x} ]  # We are on a CI worker
 then
   retry $RETRIES docker push $DOCKER_PUSH_IMAGE || echo "Push failed after $RETRIES retries"
 else  # We are in a local (non-CI) environment
-  docker push $DOCKER_PUSH_IMAGE || echo "You may need to run 'docker login' first and then re-run this script"
+  docker push $DOCKER_PUSH_IMAGE || { echo "You may need to run 'docker login' first and then re-run this script"; exit 1; }
 fi
 
 readonly LATEST_TAG=$(git tag --list --sort=version:refname "v*" | grep -v RC | sed s/^v// | tail -n 1)
@@ -62,6 +62,6 @@ then
   then
     retry $RETRIES docker push $DOCKER_PUSH_IMAGE_LATEST || echo "Push failed after $RETRIES retries"
   else  # We are in a local (non-CI) environment
-    docker push $DOCKER_PUSH_IMAGE_LATEST || echo "You may need to run 'docker login' first and then re-run this script"
+    docker push $DOCKER_PUSH_IMAGE_LATEST || { echo "You may need to run 'docker login' first and then re-run this script"; exit 1; }
   fi
 fi
