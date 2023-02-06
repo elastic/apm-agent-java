@@ -2358,7 +2358,7 @@ This configuration option helps to make MessageListener type matching faster and
 [[config-dedot-custom-metrics]]
 ==== `dedot_custom_metrics` (added[1.22.0])
 
-Replaces dots with underscores in the metric names for custom metrics, such as Micrometer metrics.
+Replaces dots with underscores in the metric names for Micrometer metrics.
 
 WARNING: Setting this to `false` can lead to mapping conflicts as dots indicate nesting in Elasticsearch.
 An example of when a conflict happens is two metrics with the name `foo` and `foo.bar`.
@@ -2383,7 +2383,7 @@ The first metric maps `foo` to a number and the second metric maps `foo` as an o
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-custom-metrics-histogram-boundaries]]
-==== `custom_metrics_histogram_boundaries` (added[1.36.0] experimental)
+==== `custom_metrics_histogram_boundaries` (added[1.37.0] experimental)
 
 NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
 
@@ -4380,7 +4380,7 @@ Example: `5ms`.
 # Metrics                                  #
 ############################################
 
-# Replaces dots with underscores in the metric names for custom metrics, such as Micrometer metrics.
+# Replaces dots with underscores in the metric names for Micrometer metrics.
 # 
 # WARNING: Setting this to `false` can lead to mapping conflicts as dots indicate nesting in Elasticsearch.
 # An example of when a conflict happens is two metrics with the name `foo` and `foo.bar`.
