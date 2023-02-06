@@ -19,12 +19,13 @@
 package co.elastic.apm.agent.util;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.AccessController;
@@ -37,6 +38,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@EnabledForJreRange(max = JRE.JAVA_17, disabledReason = "SecurityManager is not supported anymore")
 class PrivilegedActionUtilsTest {
 
     private static final AtomicBoolean enabled = new AtomicBoolean(false);

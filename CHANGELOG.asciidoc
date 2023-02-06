@@ -24,24 +24,66 @@ endif::[]
 ==== x.x.x - YYYY/MM/DD
 
 [float]
+===== Breaking changes
+
+[float]
 ===== Features
-* Add experimental log sending from the agent with `log_sending` - {pull}2694[#2694]
+
+* Cool new feature: {pull}2526[#2526]
 
 [float]
 ===== Bug fixes
-* Use `127.0.0.1` as defaut for `server_url` to prevent ipv6 ambiguity - {pull}2927[#2927]
-* Fix some span-compression concurrency issues - {pull}2865[#2865]
-* Add warning when agent is accidentally started on a JVM/JDK command-line tool - {pull}2924[#2924]
-* Fix `NullPointerException` caused by the Elasticsearch REST client instrumentation when collecting dropped span metrics - {pull}2959[#2959]
+
+[[release-notes-1.37.0]]
+==== 1.37.0 - YYYY/MM/DD
+
+[float]
+===== Features
+* Added the <<config-disable-outgoing-tracecontext-headers>> config option to disable injection of `tracecontext` on outgoing
+communication - {pull}2996[#2996]
+
+[float]
+===== Bug fixes
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
+
+[[release-notes-1.36.0]]
+==== 1.36.0 - 2023/01/27
+
+===== Potentially breaking changes
+* Previously, agent instrumented all implementations of `javax.jms.MessageListener`, which could cause performance issues.
+From now on, the instrumentation is limited to implementations that fit at least one of the following criteria:
+** have `Message` or `Listener` in their class name
+** is an anonymous inner class or a lambda
+** is within a package provided by the `jms_listener_packages` configuration.
+* The `context.destination.service.resource` span field has been changed for AWS S3, SQS and DynamoDB.
+As a result, the history of metrics relying on this field might break. - {pull}2947[#2947]
+
+[float]
+===== Features
+* Add experimental log sending from the agent with `log_sending` - {pull}2694[#2694]
+* Add bootstrap checks that enable <<jvm-filtering>> on startup - {pull}2951[#2951]
+* Added support for LDAP - {pull}2977[#2977]
+
+[float]
+===== Bug fixes
+* Use `127.0.0.1` as default for `server_url` to prevent ipv6 ambiguity - {pull}2927[#2927]
+* Fix some span-compression concurrency issues - {pull}2865[#2865]
+* Add warning when agent is accidentally started on a JVM/JDK command-line tool - {pull}2924[#2924]
+* Fix `NullPointerException` caused by the Elasticsearch REST client instrumentation when collecting dropped span metrics - {pull}2959[#2959]
+* Fix SQS Instrumentation for Non-MessageReceive actions to avoid NoSuchElementException - {pull}2979[#2979]
+* Fix `java.lang.NoSuchMethodError` when using the agent with WebFlux and Spring 6.x/Spring Boot 3.x - {pull}2935[#2935]
+* Optimize JMS listener matcher - {pull}2930[#2930]
+* Handle Corretto causing a sigsegv when accessing Throwables inside some instrumentation with AWS - {pull}2958[#2958]
+* Change Micrometer logs to DEBUG from INFO - {pull}2914[#2914]
 
 [[release-notes-1.35.0]]
 ==== 1.35.0 - 2022/12/06
 
 [float]
 ===== Features
+
 * Add support for log correlation for `java.util.logging` (JUL) - {pull}2724[#2724]
 * Add support for spring-kafka batch listeners - {pull}2815[#2815]
 * Improved instrumentation for legacy Apache HttpClient (when not using an `HttpUriRequest`, such as `BasicHttpRequest`)

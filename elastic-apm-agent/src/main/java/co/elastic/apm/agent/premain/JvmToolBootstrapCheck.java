@@ -63,7 +63,8 @@ public class JvmToolBootstrapCheck implements BootstrapCheck {
             result.addWarn("Unexpected JVM command line syntax: " + jvmCmd);
         }
         if (isJdkTool) {
-            result.addWarn(String.format("JVM tool detected: '%s', agent instrumentation on JVM tools adds unnecessary performance overhead", jvmCmd));
+            result.addError(String.format("JVM tool detected: '%s', agent instrumentation on JVM tools adds unnecessary performance overhead",
+                jvmCmd));
         }
     }
 }

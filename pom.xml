@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.35.1-SNAPSHOT</version>
+    <version>1.36.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -119,7 +119,7 @@
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.json-schema-validator>1.0.72</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.12.20</version.byte-buddy>
+        <version.byte-buddy>1.12.22</version.byte-buddy>
         <version.asm>9.4</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
@@ -220,6 +220,17 @@
               </plugin>
             </plugins>
           </build>
+        </profile>
+        <profile>
+          <!-- this profile should actually be active whenever running on Java 17 or higher, but since the only pre-Java-17 version we
+          test with is 11, this should be sufficient -->
+          <id>non-java-11</id>
+          <activation>
+              <jdk>!11</jdk>
+          </activation>
+          <modules>
+              <module>apm-agent-java-17</module>
+          </modules>
         </profile>
         <profile>
             <id>no-errorprone</id>
@@ -520,7 +531,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.7</version>
+                    <version>0.8.8</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -539,7 +550,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>3.2.4</version>
+                    <version>3.3.0</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-clean-plugin</artifactId>

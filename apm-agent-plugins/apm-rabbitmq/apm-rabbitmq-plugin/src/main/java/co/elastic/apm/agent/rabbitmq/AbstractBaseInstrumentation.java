@@ -24,7 +24,7 @@ import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 
 import javax.annotation.Nullable;
 import java.util.Date;

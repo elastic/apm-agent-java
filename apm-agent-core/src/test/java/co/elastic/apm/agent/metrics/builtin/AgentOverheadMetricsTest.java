@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.metrics.builtin;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
@@ -35,9 +35,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.lang.management.ManagementFactory;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -49,7 +51,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
-@Disabled
 public class AgentOverheadMetricsTest {
 
     private MetricRegistry metricRegistry;
@@ -69,6 +70,7 @@ public class AgentOverheadMetricsTest {
     }
 
     @Test
+    @Disabled("due to flakyness")
     public void checkCpuMetrics() throws InterruptedException {
         //make sure that the OS provides a value for cpuLoad
         awaitNonZeroProcessCpuLoad();
@@ -89,14 +91,15 @@ public class AgentOverheadMetricsTest {
             }
         };
 
-        ThreadFactory singleNamedThreadFactory = new ExecutorUtils.SingleNamedThreadFactory("start-before");
+        ThreadFactory singleNamedThreadFactory = new ExecutorUtils.SingleNamedThreadFactory("cpu-start-before");
         Thread t1 = singleNamedThreadFactory.newThread(threadTask);
         t1.start();
+        await().atMost(Duration.ofSeconds(10)).until(() -> t1.getState() == Thread.State.WAITING);
 
         doReturn(true).when(spyMetricsConfig).isOverheadMetricsEnabled();
         overheadMetrics.bindTo(metricRegistry, spyMetricsConfig);
 
-        ThreadFactory namedThreadFactory = new ExecutorUtils.NamedThreadFactory("start-after");
+        ThreadFactory namedThreadFactory = new ExecutorUtils.NamedThreadFactory("cpu-start-after");
         Thread t2 = namedThreadFactory.newThread(threadTask);
         t2.start();
         Thread t3 = namedThreadFactory.newThread(threadTask);
@@ -105,28 +108,25 @@ public class AgentOverheadMetricsTest {
         startLatch.countDown();
         finish1.await();
 
-        //also burn some CPU here to make sure not 100% is accounted to the test threads
-        consumeCpu();
-
         reportAndCheckMetrics(metrics -> {
             assertThat(metrics).containsKeys(
-                Labels.Mutable.of("task", "start-before"),
-                Labels.Mutable.of("task", "start-after")
+                Labels.Mutable.of("task", "cpu-start-before"),
+                Labels.Mutable.of("task", "cpu-start-after")
             );
 
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-before")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "cpu-start-before")).getRawMetrics())
                 .hasEntrySatisfying("agent.background.cpu.overhead.pct", val -> assertThat(val).isStrictlyBetween(0.0, 1.0))
                 .hasEntrySatisfying("agent.background.cpu.total.pct", val -> assertThat(val).isStrictlyBetween(0.0, 1.0))
                 .satisfies(rawValues ->
                     assertThat(rawValues.get("agent.background.cpu.overhead.pct"))
-                        .isGreaterThan(rawValues.get("agent.background.cpu.total.pct"))
+                        .isGreaterThanOrEqualTo(rawValues.get("agent.background.cpu.total.pct"))
                 );
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-after")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "cpu-start-after")).getRawMetrics())
                 .hasEntrySatisfying("agent.background.cpu.overhead.pct", val -> assertThat(val).isStrictlyBetween(0.0, 1.0))
                 .hasEntrySatisfying("agent.background.cpu.total.pct", val -> assertThat(val).isStrictlyBetween(0.0, 1.0))
                 .satisfies(rawValues ->
                     assertThat(rawValues.get("agent.background.cpu.overhead.pct"))
-                        .isGreaterThan(rawValues.get("agent.background.cpu.total.pct"))
+                        .isGreaterThanOrEqualTo(rawValues.get("agent.background.cpu.total.pct"))
                 );
         });
 
@@ -135,40 +135,36 @@ public class AgentOverheadMetricsTest {
         t2.join();
         t3.join();
 
-        //also burn some CPU here to make sure not 100% is accounted to the test threads
-        consumeCpu();
-
         //ensure that died threads are also counted
         reportAndCheckMetrics(metrics -> {
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-before")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "cpu-start-before")).getRawMetrics())
                 .hasEntrySatisfying("agent.background.cpu.overhead.pct", val -> assertThat(val).isStrictlyBetween(0.0, 1.0))
                 .hasEntrySatisfying("agent.background.cpu.total.pct", val -> assertThat(val).isStrictlyBetween(0.0, 1.0))
                 .satisfies(rawValues ->
                     assertThat(rawValues.get("agent.background.cpu.overhead.pct"))
-                        .isGreaterThan(rawValues.get("agent.background.cpu.total.pct"))
+                        .isGreaterThanOrEqualTo(rawValues.get("agent.background.cpu.total.pct"))
                 );
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-after")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "cpu-start-after")).getRawMetrics())
                 .hasEntrySatisfying("agent.background.cpu.overhead.pct", val -> assertThat(val).isStrictlyBetween(0.0, 1.0))
                 .hasEntrySatisfying("agent.background.cpu.total.pct", val -> assertThat(val).isStrictlyBetween(0.0, 1.0))
                 .satisfies(rawValues ->
                     assertThat(rawValues.get("agent.background.cpu.overhead.pct"))
-                        .isGreaterThan(rawValues.get("agent.background.cpu.total.pct"))
+                        .isGreaterThanOrEqualTo(rawValues.get("agent.background.cpu.total.pct"))
                 );
         });
 
 
         //and that died threads are finally cleaned up
         reportAndCheckMetrics(metrics -> {
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-before")).getRawMetrics()).isEmpty();
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-after")).getRawMetrics()).isEmpty();
+            assertThat(metrics.get(Labels.Mutable.of("task", "cpu-start-before")).getRawMetrics()).isEmpty();
+            assertThat(metrics.get(Labels.Mutable.of("task", "cpu-start-after")).getRawMetrics()).isEmpty();
         });
 
     }
 
     @Test
     public void checkAllocationMetric() throws InterruptedException {
-
-        final List<Object> blackHole = new ArrayList<>();
+        final Collection<Object> blackHole = new ConcurrentLinkedQueue<>();
 
         CountDownLatch finish1 = new CountDownLatch(3);
 
@@ -186,14 +182,15 @@ public class AgentOverheadMetricsTest {
             }
         };
 
-        ThreadFactory singleNamedThreadFactory = new ExecutorUtils.SingleNamedThreadFactory("start-before");
+        ThreadFactory singleNamedThreadFactory = new ExecutorUtils.SingleNamedThreadFactory("alloc-start-before");
         Thread t1 = singleNamedThreadFactory.newThread(threadTask);
         t1.start();
+        await().atMost(Duration.ofSeconds(10)).until(() -> t1.getState() == Thread.State.WAITING);
 
         doReturn(true).when(spyMetricsConfig).isOverheadMetricsEnabled();
         overheadMetrics.bindTo(metricRegistry, spyMetricsConfig);
 
-        ThreadFactory namedThreadFactory = new ExecutorUtils.NamedThreadFactory("start-after");
+        ThreadFactory namedThreadFactory = new ExecutorUtils.NamedThreadFactory("alloc-start-after");
         Thread t2 = namedThreadFactory.newThread(threadTask);
         t2.start();
         Thread t3 = namedThreadFactory.newThread(threadTask);
@@ -202,24 +199,30 @@ public class AgentOverheadMetricsTest {
         startLatch.countDown();
         finish1.await();
 
+        //wait until all threads are fully parked for the check below for threads without allocations
+        //this is required because allocateAgainLatch.await() seems to occasionally cause an allocation
+        await().atMost(Duration.ofSeconds(10)).until(() ->
+            t1.getState() == Thread.State.WAITING && t2.getState() == Thread.State.WAITING && t3.getState() == Thread.State.WAITING
+        );
+
         reportAndCheckMetrics(metrics -> {
             assertThat(metrics).containsKeys(
-                Labels.Mutable.of("task", "start-before"),
-                Labels.Mutable.of("task", "start-after")
+                Labels.Mutable.of("task", "alloc-start-before"),
+                Labels.Mutable.of("task", "alloc-start-after")
             );
 
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-before")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "alloc-start-before")).getRawMetrics())
                 .hasEntrySatisfying("agent.background.memory.allocation.bytes", val -> assertThat(val).isGreaterThan(1_000_000));
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-after")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "alloc-start-after")).getRawMetrics())
                 .hasEntrySatisfying("agent.background.memory.allocation.bytes", val -> assertThat(val).isGreaterThan(1_000_000));
         });
 
         //make sure that threads without allocations are not reported
         Thread.sleep(100);
         reportAndCheckMetrics(metrics -> {
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-before")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "alloc-start-before")).getRawMetrics())
                 .doesNotContainKey("agent.background.memory.allocation.bytes");
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-after")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "alloc-start-after")).getRawMetrics())
                 .doesNotContainKey("agent.background.memory.allocation.bytes");
         });
 
@@ -230,16 +233,16 @@ public class AgentOverheadMetricsTest {
 
         //ensure that died threads are also counted
         reportAndCheckMetrics(metrics -> {
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-before")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "alloc-start-before")).getRawMetrics())
                 .hasEntrySatisfying("agent.background.memory.allocation.bytes", val -> assertThat(val).isGreaterThan(1_000_000));
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-after")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "alloc-start-after")).getRawMetrics())
                 .hasEntrySatisfying("agent.background.memory.allocation.bytes", val -> assertThat(val).isGreaterThan(1_000_000));
         });
 
         //and that died threads are finally cleaned up
         reportAndCheckMetrics(metrics -> {
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-before")).getRawMetrics()).isEmpty();
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-after")).getRawMetrics()).isEmpty();
+            assertThat(metrics.get(Labels.Mutable.of("task", "alloc-start-before")).getRawMetrics()).isEmpty();
+            assertThat(metrics.get(Labels.Mutable.of("task", "alloc-start-after")).getRawMetrics()).isEmpty();
         });
     }
 
@@ -258,7 +261,7 @@ public class AgentOverheadMetricsTest {
             }
         };
 
-        ThreadFactory singleNamedThreadFactory = new ExecutorUtils.SingleNamedThreadFactory("start-before");
+        ThreadFactory singleNamedThreadFactory = new ExecutorUtils.SingleNamedThreadFactory("count-start-before");
         Thread t1 = singleNamedThreadFactory.newThread(threadTask);
         t1.start();
         await().atMost(Duration.ofSeconds(10)).untilAtomic(startedCount, equalTo(1));
@@ -266,20 +269,20 @@ public class AgentOverheadMetricsTest {
         doReturn(true).when(spyMetricsConfig).isOverheadMetricsEnabled();
         overheadMetrics.bindTo(metricRegistry, spyMetricsConfig);
 
-        ThreadFactory namedThreadFactory = new ExecutorUtils.NamedThreadFactory("start-after");
+        ThreadFactory namedThreadFactory = new ExecutorUtils.NamedThreadFactory("count-start-after");
         Thread t2 = namedThreadFactory.newThread(threadTask);
         t2.start();
         await().atMost(Duration.ofSeconds(10)).untilAtomic(startedCount, equalTo(2));
 
         reportAndCheckMetrics(metrics -> {
             assertThat(metrics).containsKeys(
-                Labels.Mutable.of("task", "start-before"),
-                Labels.Mutable.of("task", "start-after")
+                Labels.Mutable.of("task", "count-start-before"),
+                Labels.Mutable.of("task", "count-start-after")
             );
 
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-before")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-before")).getRawMetrics())
                 .containsEntry("agent.background.threads.count", 1.0);
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-after")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-after")).getRawMetrics())
                 .containsEntry("agent.background.threads.count", 1.0);
         });
 
@@ -288,9 +291,9 @@ public class AgentOverheadMetricsTest {
         await().atMost(Duration.ofSeconds(10)).untilAtomic(startedCount, equalTo(3));
 
         reportAndCheckMetrics(metrics -> {
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-before")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-before")).getRawMetrics())
                 .containsEntry("agent.background.threads.count", 1.0);
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-after")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-after")).getRawMetrics())
                 .containsEntry("agent.background.threads.count", 2.0);
         });
 
@@ -300,26 +303,27 @@ public class AgentOverheadMetricsTest {
         t3.join();
 
 
-        ThreadFactory shortLivedFactory = new ExecutorUtils.SingleNamedThreadFactory("short-lived");
-        Thread t4 = shortLivedFactory.newThread(() -> {});
+        ThreadFactory shortLivedFactory = new ExecutorUtils.SingleNamedThreadFactory("count-short-lived");
+        Thread t4 = shortLivedFactory.newThread(() -> {
+        });
         t4.start();
         t4.join();
 
         //ensure that died threads are also counted for the time interval in which they died
         reportAndCheckMetrics(metrics -> {
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-before")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-before")).getRawMetrics())
                 .containsEntry("agent.background.threads.count", 1.0);
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-after")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-after")).getRawMetrics())
                 .containsEntry("agent.background.threads.count", 2.0);
-            assertThat(metrics.get(Labels.Mutable.of("task", "short-lived")).getRawMetrics())
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-short-lived")).getRawMetrics())
                 .containsEntry("agent.background.threads.count", 1.0);
         });
 
         //and that died threads are finally cleaned up after the last report
         reportAndCheckMetrics(metrics -> {
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-before")).getRawMetrics()).isEmpty();
-            assertThat(metrics.get(Labels.Mutable.of("task", "start-after")).getRawMetrics()).isEmpty();
-            assertThat(metrics.get(Labels.Mutable.of("task", "short-lived")).getRawMetrics()).isEmpty();
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-before")).getRawMetrics()).isEmpty();
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-start-after")).getRawMetrics()).isEmpty();
+            assertThat(metrics.get(Labels.Mutable.of("task", "count-short-lived")).getRawMetrics()).isEmpty();
         });
     }
 
@@ -403,7 +407,7 @@ public class AgentOverheadMetricsTest {
         assertThat(result).isGreaterThan(0); //just to consume the value
     }
 
-    private void allocate(List<Object> blackHole, int atLeastMegabytes) {
+    private void allocate(Collection<Object> blackHole, int atLeastMegabytes) {
         //we only allocate 1kb per object to have "normal" object sizes (no humongous allocations)
         for (int i = 0; i < 1024 * atLeastMegabytes; i++) {
             blackHole.add(new byte[1024]);

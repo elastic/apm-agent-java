@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.otelmetricexport;
 
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;

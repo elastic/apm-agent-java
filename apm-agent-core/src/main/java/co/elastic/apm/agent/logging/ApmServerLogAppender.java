@@ -46,13 +46,14 @@ public class ApmServerLogAppender extends AbstractAppender {
     private static ApmServerLogAppender INSTANCE;
 
     @Nullable
-    private LoggingConfiguration config;
+    private volatile LoggingConfiguration config;
     @Nullable
-    private Reporter reporter;
+    private volatile Reporter reporter;
 
     private final ArrayList<LogEvent> buffer;
 
-    private ApmServerLogAppender(String name, Layout<?> layout) {
+    // package protected for testing
+    ApmServerLogAppender(String name, Layout<?> layout) {
         // recursive calls filtering is done through a filter on the appender ref, not on the appender itself
         super(name, null , layout, true, null);
         this.buffer = new ArrayList<>();
@@ -75,7 +76,7 @@ public class ApmServerLogAppender extends AbstractAppender {
             INSTANCE = new ApmServerLogAppender(name, layout);
         }
 
-        return new ApmServerLogAppender(name, layout);
+        return INSTANCE;
     }
 
     @Override

@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.otelmetricsdk;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.testutils.DisabledIfNotOnClasspath;
 import co.elastic.apm.agent.util.AtomicDouble;
@@ -156,7 +156,7 @@ public abstract class AbstractOtelMetricsTest extends AbstractInstrumentationTes
                     .containsValueMetric("my_counter", 42)
             );
     }
-    
+
     @Test
     public void testTimestampPresent() {
         Meter testMeter = createMeter("test");
