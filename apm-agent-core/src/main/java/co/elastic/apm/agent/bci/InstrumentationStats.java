@@ -64,6 +64,7 @@ public final class InstrumentationStats {
         }
         List<ElasticApmInstrumentation> allDeterministic = getAllInstrumentationsSorted();
         for (ElasticApmInstrumentation instrumentation : allDeterministic) {
+            System.out.println("Instrumentation in order: " + instrumentation.getClass().getName());
             if (usedInstrumentations.containsKey(instrumentation)) {
                 continue;
             }
@@ -109,7 +110,9 @@ public final class InstrumentationStats {
         Collections.sort(sorted, new Comparator<ElasticApmInstrumentation>() {
             @Override
             public int compare(ElasticApmInstrumentation o1, ElasticApmInstrumentation o2) {
-                return o1.getClass().getName().compareTo(o2.getClass().getName());
+                String name1 = o1.getClass().getName();
+                String name2 = o2.getClass().getName();
+                return name1.compareTo(name2);
             }
         });
         return sorted;
