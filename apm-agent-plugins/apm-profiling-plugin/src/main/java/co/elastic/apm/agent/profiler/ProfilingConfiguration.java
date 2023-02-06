@@ -54,14 +54,14 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.15.0]", "experimental")
         .buildWithDefault(false);
 
-    private final ConfigurationOption<Boolean> disableProfilingLogging = ConfigurationOption.<Boolean>booleanOption()
-        .key("profiling_logging_disabled")
+    private final ConfigurationOption<Boolean> profilerLoggingEnabled = ConfigurationOption.<Boolean>booleanOption()
+        .key("profiling_inferred_spans_logging_enabled")
         .configurationCategory(PROFILING_CATEGORY)
         .description("By default, async profiler prints warning messages about missing JVM symbols to standard output. \n" +
             "Set this option to `true` to suppress such messages")
         .dynamic(true)
         .tags("added[1.37.0]")
-        .buildWithDefault(false);
+        .buildWithDefault(true);
 
     private final ConfigurationOption<Boolean> backupDiagnosticFiles = ConfigurationOption.<Boolean>booleanOption()
         .key("profiling_inferred_spans_backup_diagnostic_files")
@@ -191,8 +191,8 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         return profilingEnabled.get();
     }
 
-    public boolean isProfilingLoggingDisabled() {
-        return disableProfilingLogging.get();
+    public boolean isProfilingLoggingEnabled() {
+        return profilerLoggingEnabled.get();
     }
 
     public int getAsyncProfilerSafeMode() {

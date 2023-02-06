@@ -429,7 +429,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             .append(config.getSamplingInterval().getMillis()).append("ms,filter,file=")
             .append(jfrFile)
             .append(",safemode=").append(config.getAsyncProfilerSafeMode());
-        if (config.isProfilingLoggingDisabled()) {
+        if (!config.isProfilingLoggingEnabled()) {
             startCommand.append(",log=none");
         }
         return startCommand.toString();

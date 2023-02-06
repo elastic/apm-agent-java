@@ -174,7 +174,7 @@ Click on a key to get more information.
 ** <<config-mongodb-capture-statement-commands>>
 * <<config-profiling>>
 ** <<config-profiling-inferred-spans-enabled>>
-** <<config-profiling-logging-disabled>>
+** <<config-profiling-inferred-spans-logging-enabled>>
 ** <<config-profiling-inferred-spans-sampling-interval>>
 ** <<config-profiling-inferred-spans-min-duration>>
 ** <<config-profiling-inferred-spans-included-classes>>
@@ -2536,8 +2536,8 @@ NOTE: This feature is not available on Windows and on OpenJ9
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-profiling-logging-disabled]]
-==== `profiling_logging_disabled` (added[1.37.0])
+[[config-profiling-inferred-spans-logging-enabled]]
+==== `profiling_inferred_spans_logging_enabled` (added[1.37.0])
 
 By default, async profiler prints warning messages about missing JVM symbols to standard output. 
 Set this option to `true` to suppress such messages
@@ -2548,14 +2548,14 @@ Set this option to `true` to suppress such messages
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `false` | Boolean | true
+| `true` | Boolean | true
 |============
 
 
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.profiling_logging_disabled` | `profiling_logging_disabled` | `ELASTIC_APM_PROFILING_LOGGING_DISABLED`
+| `elastic.apm.profiling_inferred_spans_logging_enabled` | `profiling_inferred_spans_logging_enabled` | `ELASTIC_APM_PROFILING_INFERRED_SPANS_LOGGING_ENABLED`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -4463,9 +4463,9 @@ Example: `5ms`.
 #
 # This setting can be changed at runtime
 # Type: Boolean
-# Default value: false
+# Default value: true
 #
-# profiling_logging_disabled=false
+# profiling_inferred_spans_logging_enabled=true
 
 # The frequency at which stack traces are gathered within a profiling session.
 # The lower you set it, the more accurate the durations will be.
