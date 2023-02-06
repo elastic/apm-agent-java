@@ -1,0 +1,224 @@
+---
+# Releases the agent
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'The branch to release'
+        required: true
+        default: 'main'
+      version:
+        description: 'The version to release (e.g. 1.2.3). This workflow will automatically perform the required version bumps'
+        required: true
+      update_changelog:
+        description: |
+          If enabled, everything in the changelog from the "Unreleased" section will be automatically moved to a new section for the new release.
+          If disabled, the changelog needs to be prepared for the release manually before triggering this workflow.
+        type: boolean
+        required: true
+        default: true
+
+env:
+  JAVA_VERSION: 17
+  JAVA_DIST: adopt
+  MAVEN_CONFIG: >-
+    -V
+    -B
+    -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+    -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3
+    -Dmaven.wagon.httpconnectionManager.ttlSeconds=25
+
+jobs:
+  prepare_release:
+    name: "Changelog and Version Bump"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        #TODO: Use apmmachine GH user + setup push authorization (SSH?)
+        with:
+          ref: ${{ inputs.branch }}
+      - name: Set up git user
+        run: |
+          git config user.name todo-github-actions
+          git config user.email todo-github-actions@github.com
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DIST }}
+          cache: 'maven'
+      - name: Prepare changelog for release
+        if: ${{ inputs.update_changelog }}
+        run: |
+          java .ci/ReleaseChangelog.java CHANGELOG.asciidoc ${{ inputs.version }}
+          git commit -m "Prepare changelog for release ${{ inputs.version }}" CHANGELOG.asciidoc
+      - name: Bump version and add git tag
+        run: ./mvnw release:prepare -B -DpushChanges=false "-Darguments=-DskipTests -Dmaven.javadoc.skip=true" -DreleaseVersion=${{ inputs.version }}
+      - run: git push --atomic origin ${{ inputs.branch }} v${{ inputs.version }}
+
+
+  maven_central_deploy:
+    name: "Deploy to Maven Central (Buildkite)"
+    runs-on: ubuntu-latest
+    needs:
+      - prepare_release
+
+    # TODO: Run the deployment on Buildkite
+    # Buildkite needs to
+    # - checkout the tag "v${{ inputs.version }}" (which is created by the prepare_release job)
+    # - run ./mvnw -s .ci/settings.xml -Pgpg clean deploy -DskipTests --batch-mode
+    # Note that the previous ./mvnw release:prepare release:perform from jenkins are not required anymore:
+    # prepare_release does all the fiddling with the git history
+    steps:
+      - run: echo "Not implemented yet!"
+
+  await_artifact_on_maven_central:
+    name: "Wait for artifacts to be available on maven central"
+    runs-on: ubuntu-latest
+    needs:
+      - maven_central_deploy
+    steps:
+      - uses: actions/checkout@v3
+      - shell: bash
+        run: |
+          until .ci/release/wait_maven_artifact_published.sh ${{ inputs.version }}
+          do
+            echo "Artifacts not found on maven central. Sleeping 30 seconds, retrying afterwards"
+            sleep 30s
+          done
+  
+
+  update_major_branch:
+    name: "Update Major Branch"
+    runs-on: ubuntu-latest
+    needs:
+      - await_artifact_on_maven_central
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: main
+        #TODO: Use apmmachine GH user + setup authorization (SSH?)
+      - run: .ci/release/update_major_branch.sh ${{ inputs.version }}
+      - run: git push -f origin "$(echo '${{ inputs.version }}' | sed -E 's/\..+/.x/')"
+
+  update_cloudfoundry:
+    name: "Update Cloudfoundry"
+    runs-on: ubuntu-latest
+    needs:
+      - await_artifact_on_maven_central
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: main
+        #TODO: Use apmmachine + setup authorization (SSH?)
+      - name: Set up git user
+        run: |
+          git config user.name todo-github-actions
+          git config user.email todo-github-actions@github.com
+      - name: "Update Cloudfoundry index.yml file"
+        shell: bash
+        run: .ci/release/update_cloudfoundry.sh ${{ inputs.version }}
+      - run: git push origin main
+
+
+  build_docker_images:
+    name: "Build and push docker images"
+    runs-on: ubuntu-latest
+    needs:
+      - await_artifact_on_maven_central
+    env:
+      TAG_NAME: v${{ inputs.version }}
+      SONATYPE_FALLBACK: 1
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: main
+          fetch-depth: 0 # Load entire history as it is required for the push-script
+      - name: "Build docker image"
+        shell: bash
+        # TODO: add docker login
+        run: |
+          ./scripts/jenkins/build_docker.sh
+          ./scripts/jenkins/push_docker.sh
+
+  publish_aws_lambda:
+    name: "Publish AWS Lambda"
+    runs-on: ubuntu-latest
+    needs:
+      - await_artifact_on_maven_central
+    outputs:
+      arn_content: ${{ steps.arn_output.outputs.arn_content }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: main
+      # TODO: actual lambda creation + upload
+      - name: Setup dummy ARN file
+        run: |
+          {
+              echo "### ARNs of the APM Java Agent's AWS Lambda Layer"
+              echo ''
+              echo '|Region|ARN|'
+              echo '|------|---|'
+          } > ".ci/arn-file.md"
+      - uses: actions/upload-artifact@v3
+        with:
+          name: arn-file
+          path: .ci/arn-file.md
+      - name: Add ARN file to output
+        id: arn_output
+        run: |
+          echo 'arn_content<<ARN_CONTENT_EOF' >> $GITHUB_OUTPUT
+          cat .ci/arn-file.md >> $GITHUB_OUTPUT
+          echo 'ARN_CONTENT_EOF' >> $GITHUB_OUTPUT
+  
+
+  create_github_release:
+    name: "Create GitHub Release"
+    needs:
+      - publish_aws_lambda
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: main
+      - name: Await release-notes published
+        shell: bash
+        run: |
+          until .ci/release/wait_release_notes_published.sh ${{ inputs.version }}
+          do
+            echo "Release notes not published yet. Sleeping 30 seconds, retrying afterwards"
+            sleep 30s
+          done
+      - name: Compute major.x branch
+        id: get_dotx_branch
+        run: echo "dotx_branch=$(echo '${{ inputs.version }}' | sed -E 's/\..+/.x/')" >> $GITHUB_OUTPUT
+      - uses: ncipollo/release-action@v1
+        with:
+          #token: TODO: set apmmachine (or whoever releases) user token here!
+          tag: v${{ inputs.version }}
+          name: Release ${{ inputs.version }}
+          body: |
+            [Release Notes for ${{ inputs.version }}](https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${{ steps.get_dotx_branch.outputs.dotx_branch }}.html#release-notes-${{ inputs.version }})
+            ${{ needs.publish_aws_lambda.outputs.arn_content }}
+
+  bump_opbeans:
+    name: "Bump Opbeans agent version"
+    runs-on: ubuntu-latest
+    steps:
+      #TODO: Use apmmachine + setup authorization (SSH?)
+      - uses: actions/checkout@v3
+        with:
+          repository: JonasKunz/opbeans-java
+          ref: main
+      - name: Set up git user
+        run: |
+          git config user.name todo-github-actions
+          git config user.email todo-github-actions@github.com
+      - name: Bump version
+        run: |
+          .ci/bump-version.sh ${{ inputs.version }}
+          git tag v${{ inputs.version }}
+      - run: git push --atomic origin main v${{ inputs.version }}
