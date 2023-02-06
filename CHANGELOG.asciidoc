@@ -44,6 +44,7 @@ communication - {pull}2996[#2996]
 
 [float]
 ===== Bug fixes
+* Prevent potential connection leak on network failure - {pull}2869[#2869]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
