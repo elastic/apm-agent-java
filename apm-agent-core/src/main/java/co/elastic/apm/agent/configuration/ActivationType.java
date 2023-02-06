@@ -40,16 +40,20 @@ public enum ActivationType {
     UNKNOWN;
 
     private static final Logger logger = LogManager.getLogger(ActivationType.class);
+    //don't worry about thread safety, very likely to be globally visible soon after
+    //first set and, if not, extra objects are not a problem with tiny extra overhead
+    private static ActivationType Found;
 
     public String toReferenceString() {
         return toString().replace('_', '-').toLowerCase();
     }
 
     public static ActivationType findType() {
-        long start = System.nanoTime();
-        ActivationType type = _findType();
-        logger.debug("findType() returning {} in nanos {}",type, (System.nanoTime()-start));
-        return type;
+        if (Found == null) {
+            Found = _findType();
+        }
+        logger.debug("findType() returning {}",Found);
+        return Found;
     }
 
     public static ActivationType _findType() {
