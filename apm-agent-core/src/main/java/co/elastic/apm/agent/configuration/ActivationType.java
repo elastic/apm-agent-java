@@ -46,8 +46,9 @@ public enum ActivationType {
     }
 
     public static ActivationType findType() {
+        long start = System.nanoTime();
         ActivationType type = _findType();
-        logger.debug("findType() returning {}",type);
+        logger.debug("findType() returning {} in nanos {}",type, (System.nanoTime()-start));
         return type;
     }
 
