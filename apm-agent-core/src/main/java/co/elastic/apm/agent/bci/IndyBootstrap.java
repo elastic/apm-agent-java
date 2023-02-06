@@ -210,7 +210,15 @@ public class IndyBootstrap {
     @Nullable
     static Method indyBootstrapMethod;
 
+    @Nullable
+    static Method bootstrapLoggingMethod;
+
     private static final CallDepth callDepth = CallDepth.get(IndyBootstrap.class);
+
+    private static Logger logger() {
+        // must not be a static field as it would initialize logging before it's ready
+        return LoggerFactory.getLogger(IndyBootstrap.class);
+    }
 
     public static Method getIndyBootstrapMethod(final Logger logger) {
         if (indyBootstrapMethod != null) {
@@ -222,6 +230,22 @@ public class IndyBootstrap {
                 .getField("bootstrap")
                 .set(null, IndyBootstrap.class.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, MethodType.class, Object[].class));
             return indyBootstrapMethod = indyBootstrapClass.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, MethodType.class, Object[].class);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    public static Method getExceptionHandlerMethod(final Logger logger) {
+        if (bootstrapLoggingMethod != null) {
+            return bootstrapLoggingMethod;
+        }
+        try {
+            Class<?> indyBootstrapClass = initIndyBootstrap(logger);
+            indyBootstrapClass
+                .getField("logAdviceException")
+                .set(null, IndyBootstrap.class.getMethod("logExceptionThrownByAdvice", Throwable.class));
+            return bootstrapLoggingMethod = indyBootstrapClass.getMethod("logAdviceException", Throwable.class);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -294,6 +318,10 @@ public class IndyBootstrap {
         MethodHandles.lookup()
             .findStatic(moduleSetterClass, "setJavaBaseModule", MethodType.methodType(void.class, Class.class))
             .invoke(targetClass);
+    }
+
+    public static void logExceptionThrownByAdvice(Throwable exception) {
+        logger().error("Advice threw an exception, this should never happen!", exception);
     }
 
     /**
@@ -376,8 +404,7 @@ public class IndyBootstrap {
                 // avoid re-entrancy and stack overflow errors
                 // may happen when bootstrapping an instrumentation that also gets triggered during the bootstrap
                 // for example, adding correlation ids to the thread context when executing logger.debug.
-                // We cannot use a static logger field as it would initialize logging before it's ready
-                LoggerFactory.getLogger(IndyBootstrap.class).warn("Nested instrumented invokedynamic instruction linkage detected", new Throwable());
+                logger().warn("Nested instrumented invokedynamic instruction linkage detected", new Throwable());
                 return null;
             }
             String adviceClassName = (String) args[0];
@@ -430,8 +457,7 @@ public class IndyBootstrap {
             if (ElasticApmAgent.areModulesSupported() && !requiredModuleOpens.isEmpty()) {
                 boolean success = addRequiredModuleOpens(requiredModuleOpens, targetClassLoader, pluginClassLoader);
                 if (!success) {
-                    // must not be a static field as it would initialize logging before it's ready
-                    LoggerFactory.getLogger(IndyBootstrap.class).error("Cannot bootstrap advice because required modules could not be opened!");
+                    logger().error("Cannot bootstrap advice because required modules could not be opened!");
                     return null;
                 }
             }
@@ -443,8 +469,7 @@ public class IndyBootstrap {
             MethodHandle methodHandle = indyLookup.findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
             return new ConstantCallSite(methodHandle);
         } catch (Exception e) {
-            // must not be a static field as it would initialize logging before it's ready
-            LoggerFactory.getLogger(IndyBootstrap.class).error(e.getMessage(), e);
+            logger().error(e.getMessage(), e);
             return null;
         } finally {
             callDepth.decrement();
@@ -473,8 +498,7 @@ public class IndyBootstrap {
                 }
             }
         } catch (ClassNotFoundException e) {
-            // must not be a static field as it would initialize logging before it's ready
-            LoggerFactory.getLogger(IndyBootstrap.class).error("Cannot open module because witness class is not found", e);
+            logger().error("Cannot open module because witness class is not found", e);
             return false;
         }
         return true;
