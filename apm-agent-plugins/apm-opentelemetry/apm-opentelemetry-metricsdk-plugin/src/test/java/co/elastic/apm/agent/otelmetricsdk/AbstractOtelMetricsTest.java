@@ -43,8 +43,6 @@ import io.opentelemetry.api.metrics.ObservableLongMeasurement;
 import io.opentelemetry.api.metrics.ObservableLongUpDownCounter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -233,11 +231,10 @@ public abstract class AbstractOtelMetricsTest extends AbstractInstrumentationTes
             );
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void testDedotMetricNames(boolean enableDedot) {
+    @Test
+    public void testDedotSettingIgnored() {
         MetricsConfiguration config = tracer.getConfig(MetricsConfiguration.class);
-        doReturn(enableDedot).when(config).isDedotCustomMetrics();
+        doReturn(true).when(config).isDedotCustomMetrics();
 
         Meter meter1 = createMeter("test");
         meter1.counterBuilder("foo.bar").build().add(10);
@@ -246,41 +243,27 @@ public abstract class AbstractOtelMetricsTest extends AbstractInstrumentationTes
         assertThatMetricSets(reporter.getBytes())
             .hasMetricsetCount(1)
             .first()
-            .containsValueMetric(enableDedot ? "foo_bar" : "foo.bar", 10)
+            .containsValueMetric("foo.bar", 10)
             .hasMetricsCount(1);
     }
 
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void testMetricDisabling(boolean enableDedoting) {
+    @Test
+    public void testMetricDisabling() {
         MetricsConfiguration config = tracer.getConfig(MetricsConfiguration.class);
-        doReturn(enableDedoting).when(config).isDedotCustomMetrics();
         doReturn(List.of(
-            WildcardMatcher.valueOf("metric.a"),
-            WildcardMatcher.valueOf("metric_b")
+            WildcardMatcher.valueOf("metric.a")
         )).when(reporterConfig).getDisableMetrics();
 
         Meter meter1 = createMeter("test");
         meter1.counterBuilder("metric.a").build().add(10);
         meter1.counterBuilder("metric.b").build().add(20);
-        meter1.counterBuilder("metric.c").build().add(30);
 
         resetReporterAndFlushMetrics();
-        if (enableDedoting) {
-            assertThatMetricSets(reporter.getBytes())
-                .hasMetricsetCount(1)
-                .first()
-                .containsValueMetric("metric_c", 30)
-                .hasMetricsCount(1);
-        } else {
-            assertThatMetricSets(reporter.getBytes())
-                .hasMetricsetCount(1)
-                .first()
-                .containsValueMetric("metric.b", 20)
-                .containsValueMetric("metric.c", 30)
-                .hasMetricsCount(2);
-        }
+        assertThatMetricSets(reporter.getBytes())
+            .hasMetricsetCount(1)
+            .first()
+            .containsValueMetric("metric.b", 20)
+            .hasMetricsCount(1);
     }
 
     @Test

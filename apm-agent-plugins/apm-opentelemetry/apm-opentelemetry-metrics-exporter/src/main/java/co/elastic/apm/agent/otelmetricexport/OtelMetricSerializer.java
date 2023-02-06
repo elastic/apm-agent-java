@@ -22,7 +22,6 @@ import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import io.opentelemetry.api.common.Attributes;
@@ -47,7 +46,6 @@ public class OtelMetricSerializer {
     private final MetricsConfiguration metricsConfig;
     private final ReporterConfiguration reporterConfig;
     private final StringBuilder serializationTempBuilder;
-    private final StringBuilder metricNameBuilder;
 
     private final Set<String> metricsWithBadAggregations = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
@@ -61,23 +59,40 @@ public class OtelMetricSerializer {
         this.reporterConfig = reporterConfig;
         metricSets = new HashMap<>();
         serializationTempBuilder = new StringBuilder();
-        metricNameBuilder = new StringBuilder();
     }
 
     public void addValues(MetricData metric) {
-        String orginalName = metric.getName();
-
-        CharSequence name;
-        boolean isEnabled;
-        if (metricsConfig.isDedotCustomMetrics()) {
-            name = DslJsonSerializer.sanitizePropertyName(orginalName, metricNameBuilder);
-            isEnabled = !isMetricDisabled(name) && !isMetricDisabled(orginalName);
-        } else {
-            name = orginalName;
-            isEnabled = !isMetricDisabled(name);
+        String metricName = metric.getName();
+        if (isMetricDisabled(metricName)) {
+            return;
         }
-        if (isEnabled) {
-            addMetricValues(name, metric);
+        boolean isDelta;
+        String instrumentationScopeName = metric.getInstrumentationScopeInfo().getName();
+        switch (metric.getType()) {
+            case LONG_GAUGE:
+                addLongValues(metricName, instrumentationScopeName, metric.getLongGaugeData(), false);
+                break;
+            case DOUBLE_GAUGE:
+                addDoubleValues(metricName, instrumentationScopeName, metric.getDoubleGaugeData(), false);
+                break;
+            case LONG_SUM:
+                isDelta = metric.getLongSumData().getAggregationTemporality().equals(AggregationTemporality.DELTA);
+                addLongValues(metricName, instrumentationScopeName, metric.getLongSumData(), isDelta);
+                break;
+            case DOUBLE_SUM:
+                isDelta = metric.getDoubleSumData().getAggregationTemporality().equals(AggregationTemporality.DELTA);
+                addDoubleValues(metricName, instrumentationScopeName, metric.getDoubleSumData(), isDelta);
+                break;
+            case HISTOGRAM:
+                addHistogramValues(metricName, instrumentationScopeName, metric.getHistogramData());
+                break;
+            case SUMMARY:
+            case EXPONENTIAL_HISTOGRAM:
+            default:
+                if (metricsWithBadAggregations.add(metricName)) {
+                    logger.warn("Ignoring metric '%s' due to unsupported aggregation '%s'", metricName, metric.getType());
+                }
+                break;
         }
     }
 
@@ -88,37 +103,6 @@ public class OtelMetricSerializer {
             }
         }
         return false;
-    }
-
-    private void addMetricValues(CharSequence sanitizedName, MetricData metric) {
-        boolean isDelta;
-        String instrumentationScopeName = metric.getInstrumentationScopeInfo().getName();
-        switch (metric.getType()) {
-            case LONG_GAUGE:
-                addLongValues(sanitizedName, instrumentationScopeName, metric.getLongGaugeData(), false);
-                break;
-            case DOUBLE_GAUGE:
-                addDoubleValues(sanitizedName, instrumentationScopeName, metric.getDoubleGaugeData(), false);
-                break;
-            case LONG_SUM:
-                isDelta = metric.getLongSumData().getAggregationTemporality().equals(AggregationTemporality.DELTA);
-                addLongValues(sanitizedName, instrumentationScopeName, metric.getLongSumData(), isDelta);
-                break;
-            case DOUBLE_SUM:
-                isDelta = metric.getDoubleSumData().getAggregationTemporality().equals(AggregationTemporality.DELTA);
-                addDoubleValues(sanitizedName, instrumentationScopeName, metric.getDoubleSumData(), isDelta);
-                break;
-            case HISTOGRAM:
-                addHistogramValues(sanitizedName, instrumentationScopeName, metric.getHistogramData());
-                break;
-            case SUMMARY:
-            case EXPONENTIAL_HISTOGRAM:
-            default:
-                if (metricsWithBadAggregations.add(metric.getName())) {
-                    logger.warn("Ignoring metric '%s' due to unsupported aggregation '%s'", metric.getName(), metric.getType());
-                }
-                break;
-        }
     }
 
     private void addHistogramValues(CharSequence name, CharSequence instrScopeName, HistogramData histogramData) {
