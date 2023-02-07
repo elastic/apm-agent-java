@@ -144,6 +144,17 @@ class SamplingProfilerTest {
     }
 
     @Test
+    void testStartCommand() {
+        setupProfiler(true);
+        assertThat(profiler.createStartCommand()).isEqualTo("start,jfr,event=wall,cstack=n,interval=5ms,filter,file=null,safemode=0");
+        doReturn(false).when(profilingConfig).isProfilingLoggingEnabled();
+        assertThat(profiler.createStartCommand()).isEqualTo("start,jfr,event=wall,cstack=n,interval=5ms,filter,file=null,safemode=0,log=none");
+        doReturn(TimeDuration.of("10ms")).when(profilingConfig).getSamplingInterval();
+        doReturn(14).when(profilingConfig).getAsyncProfilerSafeMode();
+        assertThat(profiler.createStartCommand()).isEqualTo("start,jfr,event=wall,cstack=n,interval=10ms,filter,file=null,safemode=14,log=none");
+    }
+
+    @Test
     void testProfileTransaction() throws Exception {
         setupProfiler(true);
         awaitProfilerStarted(profiler);
