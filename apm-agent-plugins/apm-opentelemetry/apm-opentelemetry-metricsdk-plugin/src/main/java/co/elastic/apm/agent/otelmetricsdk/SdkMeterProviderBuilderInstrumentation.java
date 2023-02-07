@@ -26,6 +26,7 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
+import co.elastic.apm.agent.util.LoggerUtils;
 import io.opentelemetry.sdk.metrics.SdkMeterProviderBuilder;
 import io.opentelemetry.sdk.metrics.export.MetricExporter;
 import net.bytebuddy.asm.Advice;
@@ -65,6 +66,7 @@ public class SdkMeterProviderBuilderInstrumentation extends ElasticApmInstrument
     public static class SdkMeterProviderBuilderAdvice {
 
         private static final Logger logger = LoggerFactory.getLogger(SdkMeterProviderBuilderInstrumentation.SdkMeterProviderBuilderAdvice.class);
+        private static final Logger unsupportedVersionLogger = LoggerUtils.logOnce(logger);
 
         private static final WeakSet<SdkMeterProviderBuilder> ALREADY_REGISTERED_BUILDERS = WeakConcurrent.buildSet();
         private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
@@ -86,7 +88,7 @@ public class SdkMeterProviderBuilderInstrumentation extends ElasticApmInstrument
                 MetricExporter.class.getMethod("getDefaultAggregation", instrumentTypeClass);
                 return true;
             } catch (ClassNotFoundException | NoSuchMethodException e) {
-                logger.warn("Detected OpenTelemetry metrics SDK instance with a version older than 1.16.0. Skipping instrumentation because it is not supported.");
+                unsupportedVersionLogger.warn("Detected OpenTelemetry metrics SDK instance with a version older than 1.16.0. Skipping instrumentation because it is not supported.");
                 return false;
             }
         }

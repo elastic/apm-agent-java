@@ -31,13 +31,13 @@ import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class MetricsetAssert extends BaseAssert<MetricsetAssert, MetricsetJson> {
+public class MetricSetAssert extends BaseAssert<MetricSetAssert, MetricSetJson> {
 
-    protected MetricsetAssert(MetricsetJson metricSet) {
-        super(metricSet, MetricsetAssert.class);
+    protected MetricSetAssert(MetricSetJson metricSet) {
+        super(metricSet, MetricSetAssert.class);
     }
 
-    public MetricsetAssert hasMetricsCount(int expected) {
+    public MetricSetAssert hasMetricsCount(int expected) {
         int count = Optional.ofNullable(actual.samples).map(Map::size).orElse(0);
         if (count != expected) {
             failWithMessage("Expected metricset to contain %d metrics but contained %d.", expected, count);
@@ -45,17 +45,17 @@ public class MetricsetAssert extends BaseAssert<MetricsetAssert, MetricsetJson> 
         return this;
     }
 
-    public MetricsetAssert containsMetric(String name) {
+    public MetricSetAssert containsMetric(String name) {
         extractMetric(name);
         return this;
     }
 
-    public MetricsetAssert metricSatisfies(String name, Consumer<MetricJson> assertions) {
+    public MetricSetAssert metricSatisfies(String name, Consumer<MetricJson> assertions) {
         assertions.accept(extractMetric(name));
         return this;
     }
 
-    public MetricsetAssert containsValueMetric(String name, Number expected) {
+    public MetricSetAssert containsValueMetric(String name, Number expected) {
         MetricJson metric = extractMetric(name);
         if (!Objects.equals(metric.value, expected)) {
             failWithMessage("Expected metric '%s' to have metric value '%s' but was '%s'", name, expected, metric.value);
@@ -69,7 +69,7 @@ public class MetricsetAssert extends BaseAssert<MetricsetAssert, MetricsetJson> 
         return this;
     }
 
-    public MetricsetAssert containsHistogramMetric(String name, Collection<Number> expectedValues, Collection<Long> expectedCounts) {
+    public MetricSetAssert containsHistogramMetric(String name, Collection<Number> expectedValues, Collection<Long> expectedCounts) {
         MetricJson metric = extractMetric(name);
         if (!Objects.equals(metric.values, expectedValues)) {
             failWithMessage("Expected metric '%s' to have histogram values '%s' but was '%s'", name, expectedValues, metric.values);
@@ -86,14 +86,14 @@ public class MetricsetAssert extends BaseAssert<MetricsetAssert, MetricsetJson> 
         return this;
     }
 
-    public MetricsetAssert containsMetrics(String... names) {
+    public MetricSetAssert containsMetrics(String... names) {
         for (String name : names) {
             containsMetric(name);
         }
         return this;
     }
 
-    public MetricsetAssert containsExactlyMetrics(String... names) {
+    public MetricSetAssert containsExactlyMetrics(String... names) {
         if (actual.samples == null) {
             if (names.length > 0) {
                 failWithMessage("Expected metricset to contain metrics %s but 'samples' was null", Arrays.toString(names));
@@ -124,7 +124,7 @@ public class MetricsetAssert extends BaseAssert<MetricsetAssert, MetricsetJson> 
         return metric;
     }
 
-    public MetricsetAssert hasTimestampInRange(long min, long max) {
+    public MetricSetAssert hasTimestampInRange(long min, long max) {
         assertThat(actual.timestamp).isBetween(min, max);
         return this;
     }

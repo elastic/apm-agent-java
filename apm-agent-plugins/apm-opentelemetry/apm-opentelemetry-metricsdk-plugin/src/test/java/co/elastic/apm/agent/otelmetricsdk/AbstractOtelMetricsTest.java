@@ -45,8 +45,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
@@ -160,15 +162,20 @@ public abstract class AbstractOtelMetricsTest extends AbstractInstrumentationTes
         Meter testMeter = createMeter("test");
         LongCounter counter = testMeter.counterBuilder("my_counter").build();
 
-        long timestampMicros = System.currentTimeMillis() * 1000L;
-        counter.add(42);
+        Instant instantBefore = Instant.now();
+        long microsBefore = TimeUnit.SECONDS.toMicros(instantBefore.getEpochSecond()) + TimeUnit.NANOSECONDS.toMicros(instantBefore.getNano());
 
+        counter.add(42);
         resetReporterAndFlushMetrics();
+
+        Instant instantAfter = Instant.now();
+        long microsAfter = TimeUnit.SECONDS.toMicros(instantAfter.getEpochSecond()) + TimeUnit.NANOSECONDS.toMicros(instantAfter.getNano());
+
         assertThatMetricSets(reporter.getBytes())
             .hasMetricsetCount(1)
             .first()
-            //check for a range of +- 1 second to be safe against CI slowness / clock inaccuracy
-            .hasTimestampInRange(timestampMicros - 1_000_000L, timestampMicros + 1_000_000L);
+            //check for a slightly bigger range due to potential clock differences
+            .hasTimestampInRange(microsBefore - 10_000L, microsAfter + 10_000L);
     }
 
     @Test

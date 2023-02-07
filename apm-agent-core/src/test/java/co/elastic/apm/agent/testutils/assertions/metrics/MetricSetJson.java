@@ -26,7 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @JsonIgnoreProperties({"faas", "service", "span", "transaction"})
-public class MetricsetJson {
+public class MetricSetJson {
 
     @Nullable
     public Map<String, MetricJson> samples;

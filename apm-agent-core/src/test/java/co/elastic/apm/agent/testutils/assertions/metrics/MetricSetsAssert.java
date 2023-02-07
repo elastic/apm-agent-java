@@ -32,19 +32,19 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public class MetricsetsAssert extends BaseAssert<MetricsetsAssert, List<MetricsetJson>> {
+public class MetricSetsAssert extends BaseAssert<MetricSetsAssert, List<MetricSetJson>> {
 
     static final ObjectMapper jsonMapper = new ObjectMapper();
 
-    public MetricsetsAssert(Collection<byte[]> serializedMetricSets) {
+    public MetricSetsAssert(Collection<byte[]> serializedMetricSets) {
         this(deserializeMetricSets(serializedMetricSets));
     }
 
-    private static List<MetricsetJson> deserializeMetricSets(Collection<byte[]> serializedMetricSets) {
+    private static List<MetricSetJson> deserializeMetricSets(Collection<byte[]> serializedMetricSets) {
         return serializedMetricSets.stream()
             .map(bytes -> {
                 try {
-                    MetricsetJson metricset = jsonMapper.readValue(bytes, MetricsetEventJson.class).metricset;
+                    MetricSetJson metricset = jsonMapper.readValue(bytes, MetricSetEventJson.class).metricset;
                     metricset.json = new String(bytes).replace("\n", "");
                     return metricset;
                 } catch (IOException e) {
@@ -54,40 +54,40 @@ public class MetricsetsAssert extends BaseAssert<MetricsetsAssert, List<Metricse
             .collect(Collectors.toList());
     }
 
-    protected MetricsetsAssert(List<MetricsetJson> metricSets) {
-        super(metricSets, MetricsetsAssert.class);
+    protected MetricSetsAssert(List<MetricSetJson> metricSets) {
+        super(metricSets, MetricSetsAssert.class);
     }
 
 
-    public MetricsetsAssert hasMetricsetWithLabelsSatisfying(String key, Object value, Consumer<MetricsetAssert> assertions) {
+    public MetricSetsAssert hasMetricsetWithLabelsSatisfying(String key, Object value, Consumer<MetricSetAssert> assertions) {
         return hasMetricsetWithLabelsSatisfying(Collections.singletonMap(key, value), assertions);
     }
 
-    public MetricsetsAssert hasMetricsetWithLabelsSatisfying(String key1, Object value1, String key2, Object value2, Consumer<MetricsetAssert> assertions) {
+    public MetricSetsAssert hasMetricsetWithLabelsSatisfying(String key1, Object value1, String key2, Object value2, Consumer<MetricSetAssert> assertions) {
         return hasMetricsetWithLabelsSatisfying(Map.of(key1, value1, key2, value2), assertions);
     }
 
-    public MetricsetAssert first() {
+    public MetricSetAssert first() {
         if (actual.isEmpty()) {
             failWithMessage("Expected at least one metricset but none was found");
         }
-        return new MetricsetAssert(actual.get(0));
+        return new MetricSetAssert(actual.get(0));
     }
 
-    public MetricsetsAssert hasMetricsetWithLabelsSatisfying(Map<String, Object> labels, Consumer<MetricsetAssert> assertions) {
-        assertions.accept(new MetricsetAssert(extractMetricset(labels)));
+    public MetricSetsAssert hasMetricsetWithLabelsSatisfying(Map<String, Object> labels, Consumer<MetricSetAssert> assertions) {
+        assertions.accept(new MetricSetAssert(extractMetricset(labels)));
         return this;
     }
 
-    public MetricsetsAssert hasMetricsetCount(int expected) {
+    public MetricSetsAssert hasMetricsetCount(int expected) {
         if (actual.size() != expected) {
             failWithMessage("Excpected to contain %d metricsets but actually was %d. Contained metricsets:\n%s", expected, actual.size(), getAllMetricsetsAsString());
         }
         return this;
     }
 
-    private MetricsetJson extractMetricset(Map<String, Object> labels) {
-        Optional<MetricsetJson> ms = actual.stream().filter(ms2 -> Objects.equals(ms2.tags, labels)).findFirst();
+    private MetricSetJson extractMetricset(Map<String, Object> labels) {
+        Optional<MetricSetJson> ms = actual.stream().filter(ms2 -> Objects.equals(ms2.tags, labels)).findFirst();
         if (ms.isEmpty()) {
             String allLabels = getAllLabels();
             failWithMessage("Expected metricset with labels %s to exist but was not found in %d metricsets. Found metricset labels are:\n%s", labels, actual.size(), allLabels);

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.testutils.assertions.metrics;
 
-public class MetricsetEventJson {
+public class MetricSetEventJson {
 
-    public MetricsetJson metricset;
+    public MetricSetJson metricset;
 }
