@@ -19,6 +19,8 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Http;
@@ -59,6 +61,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.seeOther;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.mockito.Mockito.doReturn;
 
 public abstract class AbstractHttpClientInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -104,8 +107,15 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     public void testHttpCall() {
         String path = "/";
         performGetWithinTransaction(path);
-
         verifyHttpSpan(path);
+    }
+
+    @Test
+    public void testDisabledOutgoingHeaders() {
+        doReturn(true).when(config.getConfig(CoreConfiguration.class)).isOutgoingTraceContextHeadersInjectionDisabled();
+        String path = "/";
+        performGetWithinTransaction(path);
+        verifyHttpSpan("localhost", path, 200, true, false, false);
     }
 
     @Test
@@ -246,10 +256,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted) {
-        return verifyHttpSpan(host, path, status, requestExecuted, false);
+        return verifyHttpSpan(host, path, status, requestExecuted, false, requestExecuted);
     }
 
-    protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted, boolean isHttps) {
+    protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted, boolean isHttps, boolean expectTraceContextHeaders) {
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         Span span = reporter.getSpans().get(0);
@@ -287,7 +297,13 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             .hasNameOnlyDestinationResource();
 
         if (requestExecuted) {
-            verifyTraceContextHeaders(span, path);
+            if (expectTraceContextHeaders) {
+                verifyTraceContextHeaders(span, path);
+            } else {
+                findLoggedRequests(path).forEach(request ->
+                    assertThat(TraceContext.containsTraceContextTextHeaders(request, HeaderAccessor.INSTANCE)).isFalse()
+                );
+            }
         }
 
         return span;
@@ -301,16 +317,8 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         Map<String, String> headerMap = new HashMap<>();
         span.propagateTraceContext(headerMap, TextHeaderMapAccessor.INSTANCE);
         assertThat(headerMap).isNotEmpty();
-        final AtomicReference<List<LoggedRequest>> loggedRequests = new AtomicReference<>();
-        Awaitility.await()
-            .pollInterval(1, TimeUnit.MILLISECONDS)
-            .timeout(1000, TimeUnit.MILLISECONDS)
-            .untilAsserted(() -> {
-                List<LoggedRequest> tmp = wireMockRule.findAll(anyRequestedFor(urlPathEqualTo(path)));
-                loggedRequests.set(tmp);
-                assertThat(tmp).isNotEmpty();
-            });
-        loggedRequests.get().forEach(request -> {
+        final List<LoggedRequest> loggedRequests = findLoggedRequests(path);
+        loggedRequests.forEach(request -> {
             assertThat(TraceContext.containsTraceContextTextHeaders(request, HeaderAccessor.INSTANCE)).isTrue();
             AtomicInteger headerCount = new AtomicInteger();
             HeaderAccessor.INSTANCE.forEach(
@@ -326,6 +334,19 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             assertThat(transaction.getTraceContext().getTraceId()).isEqualTo(span.getTraceContext().getTraceId());
             assertThat(transaction.getTraceContext().getParentId()).isEqualTo(span.getTraceContext().getId());
         });
+    }
+
+    private List<LoggedRequest> findLoggedRequests(String path) {
+        final AtomicReference<List<LoggedRequest>> loggedRequests = new AtomicReference<>();
+        Awaitility.await()
+            .pollInterval(1, TimeUnit.MILLISECONDS)
+            .timeout(1000, TimeUnit.MILLISECONDS)
+            .untilAsserted(() -> {
+                List<LoggedRequest> tmp = wireMockRule.findAll(anyRequestedFor(urlPathEqualTo(path)));
+                loggedRequests.set(tmp);
+                assertThat(tmp).isNotEmpty();
+            });
+        return loggedRequests.get();
     }
 
     private static class HeaderAccessor implements TextHeaderGetter<LoggedRequest> {

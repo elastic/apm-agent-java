@@ -20,19 +20,20 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-x.x.x]]
-==== x.x.x - YYYY/MM/DD
-
-[float]
-===== Breaking changes
+[[release-notes-1.37.0]]
+==== 1.37.0 - YYYY/MM/DD
 
 [float]
 ===== Features
-
-* Cool new feature: {pull}2526[#2526]
+* Add the <<config-disable-outgoing-tracecontext-headers>> config option to disable injection of `tracecontext` on outgoing
+communication - {pull}2996[#2996]
+* Add the <<config-profiling-inferred-spans-logging-enabled>> config option to suppress async profiler warning messages - {pull}3002[#3002]
 
 [float]
 ===== Bug fixes
+* Fixed used instrumentations printed on shutdown {pull}3001[#3001]
+* Prevent potential connection leak on network failure - {pull}2869[#2869]
+* Fix for inferred spans where the parent id was also a child id - {pull}2686[#2686]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

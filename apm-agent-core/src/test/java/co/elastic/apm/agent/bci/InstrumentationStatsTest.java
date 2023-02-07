@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class InstrumentationStatsTest {
 
     private static class NoopInstrumentation extends ElasticApmInstrumentation {
-        private final Collection instrumentationGroups;
+        private final Collection<String> instrumentationGroups;
 
         public NoopInstrumentation(Collection<String> instrumentationGroups) {
             this.instrumentationGroups = instrumentationGroups;
@@ -88,15 +88,26 @@ class InstrumentationStatsTest {
 
     @Test
     void testUsedAndUnusedInstrumentationsWithSameGroups() {
-        NoopInstrumentation instrumentation1 = new NoopInstrumentation(Set.of("a", "b"));
-        NoopInstrumentation instrumentation2 = new NoopInstrumentation(Set.of("c", "d"));
-        NoopInstrumentation instrumentation3 = new NoopInstrumentation(Set.of("a", "b"));
+        //Anonymous classes to make the order deterministic
+        NoopInstrumentation instrumentation1 = new NoopInstrumentation(List.of("a", "b")) {
+        };
+        NoopInstrumentation instrumentation2 = new NoopInstrumentation(List.of("c", "experimental")) {
+        };
+        NoopInstrumentation instrumentation3 = new NoopInstrumentation(List.of("c", "d")) {
+        };
+        NoopInstrumentation instrumentation4 = new NoopInstrumentation(List.of("a", "b")) {
+        };
+        NoopInstrumentation instrumentation5 = new NoopInstrumentation(List.of("a", "b", "f")) {
+        };
 
         instrumentationStats.addInstrumentation(instrumentation1);
         instrumentationStats.addInstrumentation(instrumentation2);
         instrumentationStats.addInstrumentation(instrumentation3);
+        instrumentationStats.addInstrumentation(instrumentation4);
+        instrumentationStats.addInstrumentation(instrumentation5);
         instrumentationStats.addUsedInstrumentation(instrumentation1);
+        instrumentationStats.addUsedInstrumentation(instrumentation2);
 
-        assertThat(instrumentationStats.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("a", "b"));
+        assertThat(instrumentationStats.getUsedInstrumentationGroups()).hasSameElementsAs(List.of("b", "c", "experimental"));
     }
 }
