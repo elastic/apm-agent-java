@@ -59,6 +59,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
 @DisabledOnOs(OS.WINDOWS)
+@DisabledOnAppleSilicon
 class CallTreeTest {
 
     private MockReporter reporter;

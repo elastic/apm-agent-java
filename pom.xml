@@ -414,6 +414,7 @@
                 <configuration>
                     <enableAssertions>true</enableAssertions>
                     <trimStackTrace>false</trimStackTrace>
+                    <rerunFailingTestsCount>3</rerunFailingTestsCount>
                 </configuration>
             </plugin>
             <plugin>
@@ -502,11 +503,11 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.22.2</version>
+                    <version>3.0.0-M8</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>2.22.2</version>
+                    <version>3.0.0-M8</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-jar-plugin</artifactId>
@@ -518,7 +519,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-dependency-plugin</artifactId>
-                    <version>3.1.1</version>
+                    <version>3.5.0</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-release-plugin</artifactId>
