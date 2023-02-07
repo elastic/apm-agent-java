@@ -43,7 +43,7 @@ public class TestObjectPoolFactory extends ObjectPoolFactory {
     private BookkeeperObjectPool<TraceContext> spanLinksPool;
 
     @Override
-    protected <T extends Recyclable> ObjectPool<T> createRecyclableObjectPool(int maxCapacity, Allocator<T> allocator) {
+    public <T extends Recyclable> ObjectPool<T> createRecyclableObjectPool(int maxCapacity, Allocator<T> allocator) {
         ObjectPool<T> pool = super.createRecyclableObjectPool(maxCapacity, allocator);
         BookkeeperObjectPool<T> wrappedPool = new BookkeeperObjectPool<>(pool);
         createdPools.add(wrappedPool);

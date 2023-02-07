@@ -42,6 +42,7 @@ import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
 import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
 
+import javax.annotation.Nullable;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
@@ -51,7 +52,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 
 public class DynamoDbClientIT extends AbstractAwsClientIT {
@@ -59,7 +60,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
     private DynamoDbClient dynamoDB;
     private DynamoDbAsyncClient dynamoDBAsync;
 
-    private Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
+    private final Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
 
     private static final Map<String, AttributeValue> ITEM = Stream.of(
         new AbstractMap.SimpleEntry<>("attributeOne", AttributeValue.builder().s("valueOne").build()),
@@ -116,7 +117,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
                 .build()),
             dbAssert);
         Span span = reporter.getSpanByName("DynamoDB Query " + TABLE_NAME);
-        assertThat(span.getContext().getDb().getStatement()).isEqualTo(KEY_CONDITION_EXPRESSION);
+        assertThat(span.getContext().getDb()).hasStatement(KEY_CONDITION_EXPRESSION);
 
         executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDB.deleteTable(DeleteTableRequest.builder().tableName(TABLE_NAME).build()), dbAssert);
 
@@ -168,7 +169,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
                 .build()),
             dbAssert);
         Span span = reporter.getSpanByName("DynamoDB Query " + TABLE_NAME);
-        assertThat(span.getContext().getDb().getStatement()).isEqualTo(KEY_CONDITION_EXPRESSION);
+        assertThat(span.getContext().getDb()).hasStatement(KEY_CONDITION_EXPRESSION);
 
         executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDBAsync.deleteTable(DeleteTableRequest.builder().tableName(TABLE_NAME).build()),
             dbAssert);
@@ -196,6 +197,17 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
     @Override
     protected String type() {
         return "db";
+    }
+
+    @Override
+    protected String subtype() {
+        return "dynamodb";
+    }
+
+    @Nullable
+    @Override
+    protected String expectedTargetName(@Nullable String entityName) {
+        return localstack.getRegion();
     }
 
     @Override

@@ -32,6 +32,7 @@ import org.junit.Before;
 import org.junit.runners.Parameterized;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -43,6 +44,7 @@ import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 public abstract class AbstractEsClientInstrumentationTest extends AbstractInstrumentationTest {
 
+    @Nullable
     protected static ElasticsearchContainer container;
 
     protected static final String INDEX = "my-index";
@@ -111,11 +113,13 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(errorCapture.getException()).isNotNull();
     }
 
-    protected void validateSpanContentWithoutContext(Span span, String expectedName, int statusCode, String method) {
-        assertThat(span.getType()).isEqualTo(SPAN_TYPE);
-        assertThat(span.getSubtype()).isEqualTo(ELASTICSEARCH);
-        assertThat(span.getAction()).isEqualTo(SPAN_ACTION);
-        assertThat(span.getNameAsString()).isEqualTo(expectedName);
+    protected void validateSpanContentWithoutContext(Span span, String expectedName) {
+        assertThat(span)
+            .hasType(SPAN_TYPE)
+            .hasSubType(ELASTICSEARCH)
+            .hasAction(SPAN_ACTION)
+            .hasName(expectedName);
+
         assertThat(span.getContext().getDb().getType()).isEqualTo(ELASTICSEARCH);
         if (!expectedName.contains(SEARCH_QUERY_PATH_SUFFIX) && !expectedName.contains(MSEARCH_QUERY_PATH_SUFFIX) && !expectedName.contains(COUNT_QUERY_PATH_SUFFIX)) {
             assertThat((CharSequence) (span.getContext().getDb().getStatementBuffer())).isNull();
@@ -135,13 +139,13 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     protected void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
-        validateSpanContentWithoutContext(span, expectedName, statusCode, method);
+        validateSpanContentWithoutContext(span, expectedName);
         validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
         validateDestinationContextContent(span.getContext().getDestination());
 
         assertThat(span.getContext().getServiceTarget())
             .hasType(ELASTICSEARCH)
-            .hasNoName()
+            .hasNoName() // we can't validate cluster name here as there is no simple way to inject that without reverse-proxy
             .hasDestinationResource(ELASTICSEARCH);
     }
 

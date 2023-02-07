@@ -43,10 +43,6 @@ public class LogbackAppenderAppendAdvice {
         if (!(eventObject instanceof ILoggingEvent)) {
             return;
         }
-        OutputStreamAppender<ILoggingEvent> shadeAppender = helper.onAppendExit(thisAppender);
-        if (shadeAppender != null) {
-            // We do not invoke the exact same method we instrument, but a public API that calls it
-            shadeAppender.doAppend((ILoggingEvent) eventObject);
-        }
+        helper.onAppendExit((ILoggingEvent) eventObject, thisAppender);
     }
 }

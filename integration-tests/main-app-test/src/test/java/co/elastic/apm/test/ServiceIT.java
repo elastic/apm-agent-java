@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.test;
 
+import co.elastic.apm.agent.test.AgentFileAccessor;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.testcontainers.containers.GenericContainer;
@@ -38,7 +39,7 @@ class ServiceIT {
     void testServiceNameAndVersionFromManifest(String image) {
         assertThat(new File("target/main-app-test.jar")).exists();
         GenericContainer<?> app = new GenericContainer<>(DockerImageName.parse(image))
-            .withCopyFileToContainer(MountableFile.forHostPath(getAgentJar()), "/tmp/elastic-apm-agent.jar")
+            .withCopyFileToContainer(MountableFile.forHostPath(AgentFileAccessor.getPathToJavaagent()), "/tmp/elastic-apm-agent.jar")
             .withCopyFileToContainer(MountableFile.forHostPath("target/main-app-test.jar"), "/tmp/main-app.jar")
             .withCommand("java -javaagent:/tmp/elastic-apm-agent.jar -jar /tmp/main-app.jar")
             .waitingFor(Wait.forLogMessage(".* Starting Elastic APM .*", 1));
@@ -51,12 +52,4 @@ class ServiceIT {
         }
     }
 
-    private static String getAgentJar() {
-        File buildDir = new File("../../elastic-apm-agent/target/");
-        FileFilter fileFilter = file -> file.getName().matches("elastic-apm-agent-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?.jar");
-        return Arrays.stream(buildDir.listFiles(fileFilter))
-            .findFirst()
-            .map(File::getAbsolutePath)
-            .orElseThrow(() -> new IllegalStateException("Agent jar not found. Execute mvn package to build the agent jar."));
-    }
 }

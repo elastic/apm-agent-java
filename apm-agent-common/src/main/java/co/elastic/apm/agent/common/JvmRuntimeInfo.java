@@ -18,11 +18,14 @@
  */
 package co.elastic.apm.agent.common;
 
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
+
 import javax.annotation.Nullable;
 
 public class JvmRuntimeInfo {
 
-    private static final JvmRuntimeInfo CURRENT_VM = new JvmRuntimeInfo(System.getProperty("java.version"), System.getProperty("java.vm.name"), System.getProperty("java.vm.version"));
+    private static final JvmRuntimeInfo CURRENT_VM = new JvmRuntimeInfo(System.getProperty("java.version"),
+        System.getProperty("java.vm.name"), System.getProperty("java.vendor"), System.getProperty("java.vm.version"));
 
     private final String javaVersion;
     private final String javaVmName;
@@ -33,6 +36,7 @@ public class JvmRuntimeInfo {
     private final boolean isIbmJ9;
     private final boolean isJ9;
     private final boolean isHpUx;
+    private final boolean isCoretto;
 
     public static JvmRuntimeInfo ofCurrentVM() {
         return CURRENT_VM;
@@ -47,7 +51,7 @@ public class JvmRuntimeInfo {
      * @param vmName    jvm name, from {@code System.getProperty("java.vm.name")}
      * @param vmVersion jvm version, from {@code System.getProperty("java.vm.version")}
      */
-    public JvmRuntimeInfo(String version, String vmName, @Nullable String vmVersion) {
+    public JvmRuntimeInfo(String version, String vmName, String vendorName, @Nullable String vmVersion) {
         javaVersion = version;
         javaVmName = vmName;
         javaVmVersion = vmVersion;
@@ -56,6 +60,7 @@ public class JvmRuntimeInfo {
         isIbmJ9 = vmName.contains("IBM J9");
         isJ9 = vmName.contains("J9");
         isHpUx = version.endsWith("-hp-ux");
+        isCoretto = vendorName != null && vendorName.contains("Amazon");
 
         if (isHpUx) {
             // remove extra hp-ux suffix for parsing
@@ -111,7 +116,7 @@ public class JvmRuntimeInfo {
         }
 
         if (updateVersion < 0) {
-            System.err.println("[elastic-apm-agent] WARN Unsupported format of the java.version system property - " + version);
+            SystemStandardOutputLogger.stdErrWarn("Unsupported format of the java.version system property - " + version);
         }
         return updateVersion;
     }
@@ -151,6 +156,10 @@ public class JvmRuntimeInfo {
 
     public boolean isIbmJ9() {
         return isIbmJ9;
+    }
+
+    public boolean isCoretto() {
+        return isCoretto;
     }
 
     @Override

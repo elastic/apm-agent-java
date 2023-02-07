@@ -59,11 +59,15 @@ public abstract class AbstractVertxWebClientTest extends AbstractHttpClientInstr
 
     @After
     public void tearDown() {
-    	try {
-    		close(vertx);
-    	} finally {
-    		client.close();
-    	}
+        try {
+            close(vertx);
+        } finally {
+            closeWebClient(client);
+        }
+    }
+
+    protected void closeWebClient(WebClient client) {
+        client.close();
     }
 
     @Override

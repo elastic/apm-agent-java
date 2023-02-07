@@ -18,9 +18,12 @@
  */
 package co.elastic.apm.agent.awssdk.v1;
 
+import co.elastic.apm.agent.awssdk.common.AbstractAwsSdkInstrumentation;
+import co.elastic.apm.agent.awssdk.common.AbstractAwsSdkInstrumentationHelper;
 import co.elastic.apm.agent.awssdk.v1.helper.DynamoDbHelper;
 import co.elastic.apm.agent.awssdk.v1.helper.S3Helper;
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.awssdk.v1.helper.SQSHelper;
+import co.elastic.apm.agent.awssdk.v1.helper.SdkV1DataSource;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import com.amazonaws.Request;
@@ -32,14 +35,12 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class AmazonHttpClientInstrumentation extends TracerAwareInstrumentation {
+public class AmazonHttpClientInstrumentation extends AbstractAwsSdkInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -54,12 +55,6 @@ public class AmazonHttpClientInstrumentation extends TracerAwareInstrumentation 
             .and(takesArgument(3, named("com.amazonaws.http.ExecutionContext")));
     }
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("aws-sdk");
-    }
-
-
     public static class AdviceClass {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -67,17 +62,27 @@ public class AmazonHttpClientInstrumentation extends TracerAwareInstrumentation 
         public static Object enterInvoke(@Advice.Argument(value = 0) Request<?> request,
                                          @Advice.Argument(value = 3) ExecutionContext executionContext) {
             String awsService = request.getHandlerContext(HandlerContextKey.SERVICE_ID);
-            Span span = null;
-            if (awsService.startsWith("S3")) {
-                span = S3Helper.getInstance().startSpan(request, request.getEndpoint(), executionContext);
+
+            AbstractAwsSdkInstrumentationHelper<Request<?>, ExecutionContext> helper = null;
+            if ("S3".equalsIgnoreCase(awsService)) {
+                helper = S3Helper.getInstance();
             } else if ("DynamoDB".equalsIgnoreCase(awsService)) {
-                span = DynamoDbHelper.getInstance().startSpan(request, request.getEndpoint(), executionContext);
-                DynamoDbHelper.getInstance().removeTableNameForKey(request.getOriginalRequest());
+                helper = DynamoDbHelper.getInstance();
+            } else if ("Sqs".equalsIgnoreCase(awsService)) {
+                helper = SQSHelper.getInstance();
             }
+
+            if (helper == null) {
+                return null;
+            }
+
+            Span span = helper.startSpan(request, request.getEndpoint(), executionContext);
 
             if (span != null) {
                 span.activate();
             }
+
+            SdkV1DataSource.getInstance().removeLookupValue(request.getOriginalRequest());
 
             return span;
         }
@@ -94,8 +99,11 @@ public class AmazonHttpClientInstrumentation extends TracerAwareInstrumentation 
                 } else {
                     span.withOutcome(Outcome.SUCCESS);
                 }
+
                 span.end();
             }
         }
+
+
     }
 }

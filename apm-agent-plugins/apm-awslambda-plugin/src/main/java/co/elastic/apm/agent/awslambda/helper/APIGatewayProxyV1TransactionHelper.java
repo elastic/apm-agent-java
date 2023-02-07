@@ -22,6 +22,7 @@ import co.elastic.apm.agent.awslambda.MapTextHeaderGetter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
@@ -47,7 +48,7 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
 
     @Override
     protected Transaction doStartTransaction(APIGatewayProxyRequestEvent apiGatewayEvent, Context lambdaContext) {
-        Transaction transaction = tracer.startChildTransaction(apiGatewayEvent.getHeaders(), MapTextHeaderGetter.INSTANCE, apiGatewayEvent.getClass().getClassLoader());
+        Transaction transaction = tracer.startChildTransaction(apiGatewayEvent.getHeaders(), MapTextHeaderGetter.INSTANCE, PrivilegedActionUtils.getClassLoader(apiGatewayEvent.getClass()));
         String host = getHost(apiGatewayEvent);
 
         if (null != transaction) {

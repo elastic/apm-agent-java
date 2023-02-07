@@ -24,6 +24,7 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.cookie.Cookie;
@@ -65,7 +66,7 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
         if (transaction != null) {
             return transaction;
         } else if (!serverHelper.isRequestExcluded(httpServerRequest.uri(), httpServerRequest.headers().get(USER_AGENT_HEADER))) {
-            transaction = tracer.startChildTransaction(httpServerRequest.headers(), headerGetter, httpServerRequest.getClass().getClassLoader());
+            transaction = tracer.startChildTransaction(httpServerRequest.headers(), headerGetter, PrivilegedActionUtils.getClassLoader(httpServerRequest.getClass()));
         }
         return transaction;
     }

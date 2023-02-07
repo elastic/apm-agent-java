@@ -22,6 +22,7 @@ import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
+import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
 import org.apache.logging.log4j.ThreadContext;
 
 import java.util.Map;

@@ -37,7 +37,7 @@ public class SpyConfiguration {
      * Creates a configuration registry where all {@link ConfigurationOptionProvider}s are wrapped with
      * {@link Mockito#spy(Object)}
      * <p>
-     * That way, the default configuration values are returned but can be overridden by {@link Mockito#when(Object)}
+     * That way, the default configuration values are returned but can be overridden by {@link Mockito#doReturn(Object)}
      *
      * @return a syp configuration registry
      */
@@ -47,9 +47,9 @@ public class SpyConfiguration {
 
     /**
      * Creates a configuration registry where all {@link ConfigurationOptionProvider}s are wrapped with
-     * {@link org.mockito.Mockito#spy(Object)}
+     * {@link Mockito#spy(Object)}
      * <p>
-     * That way, the default configuration values are returned but can be overridden by {@link org.mockito.Mockito#when(Object)}
+     * That way, the default configuration values are returned but can be overridden by {@link Mockito#doReturn(Object)}
      *
      * @return a spy configuration registry
      * @param configurationSource
@@ -59,10 +59,17 @@ public class SpyConfiguration {
         for (ConfigurationOptionProvider options : ServiceLoader.load(ConfigurationOptionProvider.class)) {
             builder.addOptionProvider(spy(options));
         }
-        return builder
-            .addConfigSource(configurationSource)
-            .addConfigSource(ConfigSources.fromClasspath("test.elasticapm.properties", ClassLoader.getSystemClassLoader()))
-            .build();
+        builder.addConfigSource(configurationSource)
+            // global testing config
+            .addConfigSource(ConfigSources.fromClasspath("test.elasticapm.properties", ClassLoader.getSystemClassLoader()));
+
+        // optional additional config file per test classpath
+        SimpleSource testSuiteConfigSource = ConfigSources.fromClasspath("test.suite.elasticapm.properties", ClassLoader.getSystemClassLoader());
+        if (testSuiteConfigSource != null) {
+            builder.addConfigSource(testSuiteConfigSource);
+        }
+
+        return builder.build();
     }
 
     public static void reset(ConfigurationRegistry config) {

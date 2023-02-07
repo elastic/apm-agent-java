@@ -5,7 +5,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.32.1-SNAPSHOT</version>
+        <version>1.36.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>application-server-integration-tests</artifactId>
@@ -132,7 +132,7 @@
         <dependency>
             <groupId>org.mock-server</groupId>
             <artifactId>mockserver-client-java</artifactId>
-            <version>5.4.1</version>
+            <version>5.14.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -162,7 +162,13 @@
             <version>1.12.1</version>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-agent-common</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
 
         <!--
         uncomment to debug payara 5.182 sources

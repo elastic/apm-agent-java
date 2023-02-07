@@ -26,7 +26,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 // async-profiler doesn't work on Windows
 @DisabledOnOs(OS.WINDOWS)
@@ -93,8 +93,7 @@ class SamplingProfilerTest {
             .describedAs("should not create a temp file when disabled")
             .isEmpty();
 
-        when(profilingConfig.isProfilingEnabled())
-            .thenReturn(true);
+        doReturn(true).when(profilingConfig).isProfilingEnabled();
 
         awaitProfilerStarted(profiler);
 
@@ -188,7 +187,7 @@ class SamplingProfilerTest {
     @Test
     void testPostProcessingDisabled() throws Exception {
         setupProfiler(true);
-        when(profilingConfig.isPostProcessingEnabled()).thenReturn(false);
+        doReturn(false).when(profilingConfig).isPostProcessingEnabled();
         awaitProfilerStarted(profiler);
 
         Transaction transaction = tracer.startRootTransaction(null).withName("transaction");
@@ -235,11 +234,12 @@ class SamplingProfilerTest {
         reporter = new MockReporter();
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         profilingConfig = config.getConfig(ProfilingConfiguration.class);
-        when(profilingConfig.getIncludedClasses()).thenReturn(List.of(WildcardMatcher.valueOf(getClass().getName())));
-        when(profilingConfig.isProfilingEnabled()).thenReturn(enabled);
-        when(profilingConfig.getProfilingDuration()).thenReturn(TimeDuration.of("500ms"));
-        when(profilingConfig.getProfilingInterval()).thenReturn(TimeDuration.of("500ms"));
-        when(profilingConfig.getSamplingInterval()).thenReturn(TimeDuration.of("5ms"));
+
+        doReturn(List.of(WildcardMatcher.valueOf(getClass().getName()))).when(profilingConfig).getIncludedClasses();
+        doReturn(enabled).when(profilingConfig).isProfilingEnabled();
+        doReturn(TimeDuration.of("500ms")).when(profilingConfig).getProfilingDuration();
+        doReturn(TimeDuration.of("500ms")).when(profilingConfig).getProfilingInterval();
+        doReturn(TimeDuration.of("5ms")).when(profilingConfig).getSamplingInterval();
         tracer = MockTracer.createRealTracer(reporter, config);
         profiler = tracer.getLifecycleListener(ProfilingFactory.class).getProfiler();
     }

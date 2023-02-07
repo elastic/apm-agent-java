@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
@@ -48,6 +49,35 @@ public class PackageScanner {
      * @throws URISyntaxException
      */
     public static List<String> getClassNames(final String basePackage, ClassLoader classLoader) throws IOException, URISyntaxException {
+        // This method is called from indy instrumentation call site method resolution, which happens within the application
+        // threads. Those threads being owned by the application, they could have been interrupted and have their
+        // 'interrupted' status still set, which in turn makes the IO read throw 'ClosedByInterruptException'.
+        //
+        // When this happens, we can clear the 'interrupted' status, retry once and then restore the 'interrupted'
+        // state as it was before this method was called.
+
+        List<String> list;
+        try {
+            list = doGetClassNames(basePackage, classLoader);
+        } catch (ClosedByInterruptException e) {
+            // clears the 'interrupted' status, expected to return true as exception was thrown
+            boolean interrupted = Thread.interrupted();
+
+            try {
+                list = doGetClassNames(basePackage, classLoader);
+            } finally {
+                if (interrupted) {
+                    // restore the 'interrupted' status
+                    Thread.currentThread().interrupt();
+                }
+            }
+
+        }
+
+        return list;
+    }
+
+    private static List<String> doGetClassNames(String basePackage, ClassLoader classLoader) throws IOException, URISyntaxException {
         String baseFolderResource = basePackage.replace('.', '/');
         final List<String> classNames = new ArrayList<>();
         Enumeration<URL> resources = classLoader.getResources(baseFolderResource);
@@ -60,7 +90,7 @@ public class PackageScanner {
                 synchronized (PackageScanner.class) {
                     try (FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap())) {
                         Path basePath  = fileSystem.getPath(baseFolderResource).toAbsolutePath();
-                        if (!Files.exists(basePath)) {
+                        if (!Files.exists(basePath)) { // called in a privileged action, thus no need to deal with security manager
                             basePath = fileSystem.getPath("agent/" + baseFolderResource).toAbsolutePath();
                         }
                         result = listClassNames(basePackage, basePath);

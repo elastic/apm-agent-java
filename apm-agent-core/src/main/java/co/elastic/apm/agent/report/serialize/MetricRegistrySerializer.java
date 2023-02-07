@@ -92,6 +92,7 @@ public class MetricRegistrySerializer {
                 hasSamples = serializeGauges(metricSet.getGauges(), jw);
                 hasSamples |= serializeTimers(metricSet.getTimers(), hasSamples, jw);
                 hasSamples |= serializeCounters(metricSet.getCounters(), hasSamples, jw);
+                hasSamples |= serializeRawMetrics(metricSet.getRawMetrics(), hasSamples, jw);
                 jw.writeByte(JsonWriter.OBJECT_END);
             }
             jw.writeByte(JsonWriter.OBJECT_END);
@@ -191,6 +192,36 @@ public class MetricRegistrySerializer {
                     jw.writeByte(JsonWriter.COMMA);
                     serializeCounter(kv.getKey(), value, jw);
                 }
+            }
+        }
+        return hasSamples;
+    }
+
+
+    private static boolean serializeRawMetrics(Map<String, Double> rawValues, boolean hasSamples, JsonWriter jw) {
+        //TODO: refactor this class?
+        final int size = rawValues.size();
+        if (size > 0) {
+            final Iterator<Map.Entry<String, Double>> iterator = rawValues.entrySet().iterator();
+
+            // serialize first valid value
+            Double value = null;
+            while (iterator.hasNext() && value == null) {
+                Map.Entry<String, Double> kv = iterator.next();
+                value = kv.getValue();
+                if (hasSamples) {
+                    jw.writeByte(JsonWriter.COMMA);
+                }
+                serializeValue(kv.getKey(), value, jw);
+                hasSamples = true;
+            }
+
+            // serialize rest
+            while (iterator.hasNext()) {
+                Map.Entry<String, Double> kv = iterator.next();
+                value = kv.getValue();
+                jw.writeByte(JsonWriter.COMMA);
+                serializeValue(kv.getKey(), value, jw);
             }
         }
         return hasSamples;

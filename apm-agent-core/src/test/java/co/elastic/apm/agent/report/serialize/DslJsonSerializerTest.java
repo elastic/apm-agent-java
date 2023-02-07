@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
@@ -66,6 +67,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -85,8 +87,8 @@ import java.util.function.Function;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 
 class DslJsonSerializerTest {
@@ -100,7 +102,7 @@ class DslJsonSerializerTest {
     @BeforeEach
     void setUp() throws Exception {
         StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
-        when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(15);
+        doReturn(15).when(stacktraceConfiguration).getStackTraceLimit();
         apmServerClient = mock(ApmServerClient.class);
         metaData = MetaDataMock.create();
         serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData);
@@ -126,11 +128,11 @@ class DslJsonSerializerTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void testSerializeNonStringLabels(boolean numericLabels) {
-        when(apmServerClient.supportsNonStringLabels()).thenReturn(numericLabels);
+        doReturn(numericLabels).when(apmServerClient).supportsNonStringLabels();
 
         Map<String, Object> expectedMap;
-        if(numericLabels){
-             expectedMap= Map.of("foo", true);
+        if (numericLabels) {
+            expectedMap = Map.of("foo", true);
         } else {
             expectedMap = Collections.singletonMap("foo", null);
         }
@@ -141,7 +143,7 @@ class DslJsonSerializerTest {
     @ValueSource(booleans = {true, false})
     void testSerializeUrlPort(boolean useNumericPort) {
 
-        when(apmServerClient.supportsNumericUrlPort()).thenReturn(useNumericPort);
+        doReturn(useNumericPort).when(apmServerClient).supportsNumericUrlPort();
 
         Url url = new Url()
             .withPort(42)
@@ -163,7 +165,7 @@ class DslJsonSerializerTest {
     @Test
     void testErrorSerialization() {
         Transaction transaction = new Transaction(tracer);
-        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true));
+        transaction.startRoot(-1, ConstantSampler.of(true));
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
@@ -196,7 +198,7 @@ class DslJsonSerializerTest {
     @Test
     void testErrorSerializationAllFrames() {
         StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
-        when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(-1);
+        doReturn(-1).when(stacktraceConfiguration).getStackTraceLimit();
         serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData);
 
         ErrorCapture error = new ErrorCapture(tracer).withTimestamp(5000);
@@ -211,7 +213,7 @@ class DslJsonSerializerTest {
     @Test
     void testErrorSerializationWithEmptyTraceId() {
         Transaction transaction = new Transaction(tracer);
-        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true));
+        transaction.startRoot(-1, ConstantSampler.of(true));
         transaction.getTraceContext().getTraceId().resetState();
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
 
@@ -423,30 +425,80 @@ class DslJsonSerializerTest {
         assertThat(http.get("status_code").intValue()).isEqualTo(523);
     }
 
-    @Test
-    void testSpanDestinationContextSerialization() {
-        Span span = new Span(tracer);
-        span.getContext().getDestination().withAddress("whatever.com").withPort(80);
+    public static boolean[][] getContentCombinations() {
+        return new boolean[][]{
+            {true, true, true, true},
+            {true, false, true, true},
+            {false, true, true, true},
+            {false, true, false, true},
+            {false, false, true, true},
+            {false, false, true, false},
+            {false, false, false, true},
+            {false, false, false, false}
+        };
+    }
 
-        span.getContext().getServiceTarget()
-            .withType("http")
-            .withHostPortName("whatever.com", 80)
-            .withNameOnlyDestinationResource();
+    @ParameterizedTest
+    @MethodSource(value = "getContentCombinations")
+    void testSpanDestinationContextSerializationWithCombinations(boolean[] contentCombination) {
+        boolean hasAddress = contentCombination[0];
+        boolean hasPort = contentCombination[1];
+        boolean hasServiceTargetContent = contentCombination[2];
+        boolean hasCloudContent = contentCombination[3];
+        Span span = new Span(MockTracer.create());
+        Destination dest = span.getContext().getDestination();
+        if (hasAddress) {
+            dest.withAddress("whatever.com");
+        }
+        if (hasPort) {
+            dest.withPort(80);
+        }
+        if (hasServiceTargetContent) {
+            span.getContext().getServiceTarget()
+                .withType("http")
+                .withHostPortName("whatever.com", 80)
+                .withNameOnlyDestinationResource();
+        }
+        if (hasCloudContent) {
+            dest.getCloud().withRegion("us-east-1");
+        }
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode context = spanJson.get("context");
         JsonNode destination = context.get("destination");
-        assertThat(destination).isNotNull();
-        assertThat("whatever.com").isEqualTo(destination.get("address").textValue());
-        assertThat(80).isEqualTo(destination.get("port").intValue());
-        JsonNode service = destination.get("service");
-        assertThat(service).isNotNull();
-        assertThat(service.get("resource").textValue()).isEqualTo("whatever.com:80");
-        assertThat(service.get("name").textValue()).isEmpty();
-        assertThat(service.get("type").textValue()).isEmpty();
-        JsonNode serviceTarget = context.get("service").get("target");
-        assertThat(serviceTarget.get("type").asText()).isEqualTo("http");
-        assertThat(serviceTarget.get("name").asText()).isEqualTo("whatever.com:80");
+
+
+        if (hasAddress || hasPort || hasServiceTargetContent || hasCloudContent) {
+            assertThat(destination).isNotNull();
+            if (hasAddress) {
+                assertThat("whatever.com").isEqualTo(destination.get("address").textValue());
+            } else {
+                assertThat(destination.get("address")).isNull();
+            }
+
+            if (hasServiceTargetContent) {
+                JsonNode service = destination.get("service");
+                assertThat(service).isNotNull();
+                assertThat("whatever.com:80").isEqualTo(service.get("resource").textValue());
+                assertThat(service.get("name").textValue()).isEqualTo("");
+                assertThat(service.get("type").textValue()).isEqualTo("");
+                JsonNode serviceTarget = context.get("service").get("target");
+                assertThat(serviceTarget.get("type").asText()).isEqualTo("http");
+                assertThat(serviceTarget.get("name").asText()).isEqualTo("whatever.com:80");
+            } else {
+                assertThat(destination.get("service")).isNull();
+            }
+
+            if (hasCloudContent) {
+                JsonNode cloud = destination.get("cloud");
+                assertThat(cloud).isNotNull();
+                assertThat(cloud.get("region").textValue()).isEqualTo("us-east-1");
+            } else {
+                assertThat(destination.get("cloud")).isNull();
+            }
+        } else {
+            assertThat(destination).isNull();
+        }
     }
 
     @Test
@@ -666,11 +718,11 @@ class DslJsonSerializerTest {
     void testSerializeMetadata() throws Exception {
         SystemInfo systemInfo = mock(SystemInfo.class);
         SystemInfo.Container container = mock(SystemInfo.Container.class);
-        when(container.getId()).thenReturn("container_id");
-        when(systemInfo.getContainerInfo()).thenReturn(container);
+        doReturn("container_id").when(container).getId();
+        doReturn(container).when(systemInfo).getContainerInfo();
         SystemInfo.Kubernetes kubernetes = createKubernetesMock("pod", "pod_id", "node", "ns");
-        when(systemInfo.getKubernetesInfo()).thenReturn(kubernetes);
-        when(systemInfo.getPlatform()).thenReturn("9 3/4"); // this terrible pun is intentional
+        doReturn(kubernetes).when(systemInfo).getKubernetesInfo();
+        doReturn("9 3/4").when(systemInfo).getPlatform(); // this terrible pun is intentional
 
         Service service = new Service()
             .withAgent(new Agent("MyAgent", "1.11.1"))
@@ -766,7 +818,7 @@ class DslJsonSerializerTest {
     @Test
     void testConfiguredServiceNodeName() throws Exception {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig();
-        when(configRegistry.getConfig(CoreConfiguration.class).getServiceNodeName()).thenReturn("Custom-Node-Name");
+        doReturn("Custom-Node-Name").when(configRegistry.getConfig(CoreConfiguration.class)).getServiceNodeName();
         serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient, MetaData.create(configRegistry, null));
         serializer.blockUntilReady();
         serializer.appendMetaDataNdJsonToStream();
@@ -785,8 +837,8 @@ class DslJsonSerializerTest {
         Transaction transaction = new Transaction(tracer);
 
         // test only the most recent server here
-        when(apmServerClient.supportsMultipleHeaderValues()).thenReturn(true);
-        when(apmServerClient.supportsNumericUrlPort()).thenReturn(true);
+        doReturn(true).when(apmServerClient).supportsMultipleHeaderValues();
+        doReturn(true).when(apmServerClient).supportsNumericUrlPort();
 
         transaction.getContext().getUser()
             .withId("42")
@@ -1225,7 +1277,7 @@ class DslJsonSerializerTest {
 
     private Transaction createRootTransaction(Sampler sampler) {
         Transaction t = new Transaction(tracer);
-        t.start(TraceContext.asRoot(), null, 0, sampler);
+        t.startRoot(0, sampler);
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().withFull("http://localhost:8080/foo/bar");
@@ -1271,8 +1323,8 @@ class DslJsonSerializerTest {
 
     private void testRootTransactionSampleRate(boolean sampled, double samplerRate, @Nullable Double expectedRate) {
         Sampler sampler = mock(Sampler.class);
-        when(sampler.isSampled(any(Id.class))).thenReturn(sampled);
-        when(sampler.getSampleRate()).thenReturn(samplerRate);
+        doReturn(sampled).when(sampler).isSampled(any(Id.class));
+        doReturn(samplerRate).when(sampler).getSampleRate();
 
         Transaction transaction = createRootTransaction(sampler);
 
@@ -1292,8 +1344,8 @@ class DslJsonSerializerTest {
     void testSampledSpan_rateFromParent() {
 
         Sampler sampler = mock(Sampler.class);
-        when(sampler.isSampled(any(Id.class))).thenReturn(true);
-        when(sampler.getSampleRate()).thenReturn(0.42d);
+        doReturn(true).when(sampler).isSampled(any(Id.class));
+        doReturn(0.42d).when(sampler).getSampleRate();
 
         Transaction transaction = createRootTransaction(sampler);
         TraceContext transactionContext = transaction.getTraceContext();
@@ -1308,8 +1360,21 @@ class DslJsonSerializerTest {
         assertThat(jsonSpan.get("sample_rate").asDouble()).isEqualTo(0.42d);
     }
 
+    @Test
+    void testNonSampledTransaction() {
+        Sampler sampler = mock(Sampler.class);
+        doReturn(false).when(sampler).isSampled(any(Id.class));
+        doReturn(0.42d).when(sampler).getSampleRate();
+        Transaction transaction = createRootTransaction(sampler);
+        TraceContext transactionContext = transaction.getTraceContext();
+        assertThat(transactionContext.isSampled()).isFalse();
+        assertThat(transactionContext.getSampleRate()).isEqualTo(0.0d);
+        JsonNode transactionSpan = readJsonString(serializer.toJsonString(transaction));
+        assertThat(transactionSpan.get("sample_rate").asDouble()).isEqualTo(0.0d);
+    }
+
     @ParameterizedTest
-    @ValueSource(booleans = {true,false})
+    @ValueSource(booleans = {true, false})
     void multiValueHeaders(boolean supportsMulti) {
         // older versions of APM server do not support multi-value headers
         // thus we should make sure to not break those
@@ -1328,9 +1393,8 @@ class DslJsonSerializerTest {
             .addHeader("content-type", "content-type1")
             .addHeader("content-type", "content-type2");
 
-        if(supportsMulti){
-            when(apmServerClient.supportsMultipleHeaderValues())
-                .thenReturn(supportsMulti);
+        if (supportsMulti) {
+            doReturn(supportsMulti).when(apmServerClient).supportsMultipleHeaderValues();
         }
 
         JsonNode jsonTransaction = readJsonString(serializer.toJsonString(transaction));
@@ -1369,7 +1433,7 @@ class DslJsonSerializerTest {
             .describedAs("otel span kind should not be set by default")
             .isNull();
 
-        JsonNode spanJson = toJson.apply(context );
+        JsonNode spanJson = toJson.apply(context);
 
         assertThat(spanJson.get("name").asText()).isEqualTo("otel span");
         assertThat(spanJson.get("otel")).isNull();
@@ -1445,13 +1509,43 @@ class DslJsonSerializerTest {
         assertThat(parent2link.get("span_id").textValue()).isEqualTo(parent2.getTraceContext().getId().toString());
     }
 
-    private static void checkSingleValueHeader(JsonNode json, String fieldName, String value){
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSerializeLog(boolean asString) {
+        String ecsJsonLog = "{\"@timestamp\":\"2022-10-27T12:38:00.593Z\",\"log.level\": \"INFO\",\"message\":\"msg\",\"ecs.version\": \"1.2.0\",\"service.name\":\"opbeans\",\"service.version\":\"0.0.1-SNAPSHOT\",\"event.dataset\":\"opbeans.console\",\"process.thread.name\":\"main\",\"log.logger\":\"logger\"}\n";
+        if (asString) {
+            serializer.serializeLogNdJson(ecsJsonLog);
+        } else {
+            serializer.serializeLogNdJson(ecsJsonLog.getBytes(StandardCharsets.UTF_8));
+        }
+        String serializedJson = getAndResetSerializerJson();
+
+        // this is probably an implementation detail, as generated JSON could be "equivalent" while not being exactly
+        // identical, but it allows to ensure that the original log event is sent as-is without alteration
+        assertThat(serializedJson)
+            .describedAs("original ECS formatted log event should be copied as-is (minus the EOL)")
+            .contains(ecsJsonLog.trim());
+
+        // original EOL should be discarded in provided log event otherwise it breaks ND-JSON
+        assertThat(serializedJson.indexOf("\n"))
+            .describedAs("only single EOL character expected at the end of serialized ND-JSON")
+            .isEqualTo(serializedJson.length() - 1);
+
+        JsonNode ndJsonLog = readJsonString(serializedJson);
+        assertThat(ndJsonLog.has("log")).isTrue();
+        // only testing a single field is enough to test structure as we already checked that the original event was copied as-is
+        assertThat(ndJsonLog.get("log").get("message").asText()).isEqualTo("msg");
+
+
+    }
+
+    private static void checkSingleValueHeader(JsonNode json, String fieldName, String value) {
         JsonNode fieldValue = json.get(fieldName);
         assertThat(fieldValue.isTextual()).isTrue();
         assertThat(fieldValue.asText()).isEqualTo(value);
     }
 
-    private static void checkMultiValueHeader(JsonNode json, String fieldName, String value1, String value2){
+    private static void checkMultiValueHeader(JsonNode json, String fieldName, String value1, String value2) {
         JsonNode fieldValue = json.get(fieldName);
         assertThat(fieldValue.isArray()).isTrue();
         assertThat(fieldValue.size()).isEqualTo(2);
@@ -1476,19 +1570,19 @@ class DslJsonSerializerTest {
     private static SystemInfo.Kubernetes createKubernetesMock(String podName, String podId, String nodeName, String namespace) {
         SystemInfo.Kubernetes k = mock(SystemInfo.Kubernetes.class);
 
-        when(k.hasContent()).thenReturn(true);
+        doReturn(true).when(k).hasContent();
 
         SystemInfo.Kubernetes.Pod pod = mock(SystemInfo.Kubernetes.Pod.class);
-        when(pod.getName()).thenReturn(podName);
-        when(pod.getUid()).thenReturn(podId);
+        doReturn(podName).when(pod).getName();
+        doReturn(podId).when(pod).getUid();
 
-        when(k.getPod()).thenReturn(pod);
+        doReturn(pod).when(k).getPod();
 
         SystemInfo.Kubernetes.Node node = mock(SystemInfo.Kubernetes.Node.class);
-        when(node.getName()).thenReturn(nodeName);
-        when(k.getNode()).thenReturn(node);
+        doReturn(nodeName).when(node).getName();
+        doReturn(node).when(k).getNode();
 
-        when(k.getNamespace()).thenReturn(namespace);
+        doReturn(namespace).when(k).getNamespace();
 
         return k;
     }
@@ -1502,7 +1596,8 @@ class DslJsonSerializerTest {
     }
 
     private String serializeTags(Map<String, Object> tags) {
-        final AbstractContext context = new AbstractContext() {};
+        final AbstractContext context = new AbstractContext() {
+        };
         for (Map.Entry<String, Object> entry : tags.entrySet()) {
             if (entry.getValue() instanceof String) {
                 context.addLabel(entry.getKey(), (String) entry.getValue());
@@ -1521,4 +1616,5 @@ class DslJsonSerializerTest {
         serializer.jw.reset();
         return jsonString;
     }
+
 }

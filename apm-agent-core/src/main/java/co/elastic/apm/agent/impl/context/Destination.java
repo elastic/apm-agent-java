@@ -141,8 +141,15 @@ public class Destination implements Recyclable {
         }
     }
 
+    private final Cloud cloud = new Cloud();
+
+    public Cloud getCloud() {
+        return cloud;
+    }
+
     public boolean hasContent() {
-        return address.length() > 0 || port > 0;
+        return address.length() > 0 || port > 0 || cloud.hasContent();
+
     }
 
     @Override
@@ -151,6 +158,7 @@ public class Destination implements Recyclable {
         addressSetByUser = false;
         port = 0;
         portSetByUser = false;
+        cloud.resetState();
     }
 
     public Destination withSocketAddress(SocketAddress socketAddress) {
@@ -176,4 +184,28 @@ public class Destination implements Recyclable {
         return this;
     }
 
+    public static class Cloud implements Recyclable {
+        private final StringBuilder region = new StringBuilder();
+
+        public Cloud withRegion(@Nullable String region) {
+            this.region.setLength(0);
+            if (region != null) {
+                this.region.append(region);
+            }
+            return this;
+        }
+
+        public StringBuilder getRegion() {
+            return region;
+        }
+
+        public boolean hasContent() {
+            return region.length() > 0;
+        }
+
+        @Override
+        public void resetState() {
+            region.setLength(0);
+        }
+    }
 }

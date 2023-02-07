@@ -18,10 +18,12 @@
  */
 package co.elastic.apm.agent.configuration.source;
 
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import org.stagemonitor.configuration.source.SimpleSource;
 
 import javax.annotation.Nullable;
-import java.io.FileInputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -72,13 +74,13 @@ public class ConfigSources {
         }
 
         Properties props = new Properties();
-        try (InputStream input = new FileInputStream(location)) {
+        try (InputStream input = PrivilegedActionUtils.newFileInputStream(new File(location))) {
             props.load(input);
             return props;
         } catch (FileNotFoundException ex) {
             return null;
         } catch (IOException e) {
-            e.printStackTrace();
+            SystemStandardOutputLogger.printStackTrace(e);
         }
         return null;
     }
@@ -91,7 +93,7 @@ public class ConfigSources {
                 return props;
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            SystemStandardOutputLogger.printStackTrace(e);
         }
         return null;
     }

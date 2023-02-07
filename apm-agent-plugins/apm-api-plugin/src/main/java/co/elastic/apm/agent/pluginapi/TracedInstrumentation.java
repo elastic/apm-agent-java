@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -72,7 +73,11 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "type") String type,
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "subtype") @Nullable String subtype,
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "action") @Nullable String action,
-            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "discardable") boolean discardable) {
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(
+                annotationClassName = "co.elastic.apm.api.Traced",
+                method = "discardable",
+                defaultValueProvider = AnnotationValueOffsetMappingFactory.TrueDefaultValueProvider.class
+            ) boolean discardable) {
 
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {
@@ -87,7 +92,7 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
                 return span.activate();
             }
 
-            Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+            Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
             if (transaction == null) {
                 return null;
             }

@@ -23,11 +23,13 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.MultiValueMapAccessor;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.LoggerUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
@@ -41,7 +43,9 @@ import io.opentelemetry.context.Context;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -57,6 +61,8 @@ class OTelSpanBuilder implements SpanBuilder {
     private AbstractSpan<?> parent;
     @Nullable
     private Context remoteContext;
+
+    private List<SpanContext> links = new ArrayList<>();
 
     @Nullable
     private SpanKind kind;
@@ -86,13 +92,16 @@ class OTelSpanBuilder implements SpanBuilder {
 
     @Override
     public SpanBuilder addLink(SpanContext spanContext) {
-        addLinkLogger.warn("The addLink API is not supported at the moment");
+        links.add(spanContext);
         return this;
     }
 
     @Override
-    public SpanBuilder addLink(SpanContext spanContext, Attributes attributes) {
-        addLinkLogger.warn("The addLink API is not supported at the moment");
+    public SpanBuilder addLink(SpanContext spanContext, Attributes attributes1) {
+        addLink(spanContext);
+        if (attributes1 != null && !attributes1.isEmpty()) {
+            addLinkLogger.warn("Adding attributes to links is currently unsupported - the links have been added but with no attributes, the following attributes have been ignored: %s",attributes1);
+        }
         return this;
     }
 
@@ -150,9 +159,9 @@ class OTelSpanBuilder implements SpanBuilder {
         if (remoteContext != null) {
             PotentiallyMultiValuedMap headers = new PotentiallyMultiValuedMap(2);
             W3CTraceContextPropagator.getInstance().inject(remoteContext, headers, PotentiallyMultiValuedMap::add);
-            span = elasticApmTracer.startChildTransaction(headers, MultiValueMapAccessor.INSTANCE, getClass().getClassLoader(), epochMicros);
+            span = elasticApmTracer.startChildTransaction(headers, MultiValueMapAccessor.INSTANCE, PrivilegedActionUtils.getClassLoader(getClass()), epochMicros);
         } else if (parent == null) {
-            span = elasticApmTracer.startRootTransaction(getClass().getClassLoader(), epochMicros);
+            span = elasticApmTracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(getClass()), epochMicros);
         } else {
             span = elasticApmTracer.startSpan(parent, epochMicros);
         }
@@ -181,6 +190,12 @@ class OTelSpanBuilder implements SpanBuilder {
         // With OTel API, the status (bridged to outcome) should only be explicitly set, thus we have to set and use
         // user outcome to provide higher priority and avoid inferring outcome from any reported exception
         span.withUserOutcome(Outcome.UNKNOWN);
+
+        // Add the links to the span
+        for (int i = 0; i < links.size(); i++) {
+            span.addSpanLink(TraceContext.fromParentContext(), ((OTelSpanContext) links.get(i)).getElasticTraceContext());
+
+        }
 
         OTelSpan otelSpan = new OTelSpan(span);
         attributes.forEach((AttributeKey<?> k, Object v) -> otelSpan.setAttribute((AttributeKey<? super Object>) k, (Object) v));

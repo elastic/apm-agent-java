@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.awssdk.v1;
 
 import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -42,11 +43,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 
 public class DynamoDbClientIT extends AbstractAwsClientIT {
@@ -54,7 +56,8 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
     private AmazonDynamoDB dynamoDB;
     private AmazonDynamoDBAsync dynamoDBAsync;
 
-    private Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
+    private final Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
+
 
     @BeforeEach
     public void setupClient() {
@@ -97,7 +100,7 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
                 .withKeyConditionExpression(KEY_CONDITION_EXPRESSION)
                 .withExpressionAttributeValues(Map.of(":one", new AttributeValue("valueOne")))),
             dbAssert
-                .andThen(span -> assertThat(span.getContext().getDb().getStatement()).isEqualTo(KEY_CONDITION_EXPRESSION)));
+                .andThen(span -> assertThat(span.getContext().getDb()).hasStatement(KEY_CONDITION_EXPRESSION)));
 
         executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDB.deleteTable(TABLE_NAME),
             dbAssert);
@@ -144,22 +147,16 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
                 .withKeyConditionExpression(KEY_CONDITION_EXPRESSION)
                 .withExpressionAttributeValues(Map.of(":one", new AttributeValue("valueOne")))),
             dbAssert
-                .andThen(span -> assertThat(span.getContext().getDb().getStatement()).isEqualTo(KEY_CONDITION_EXPRESSION)));
+                .andThen(span -> assertThat(span.getContext().getDb()).hasStatement(KEY_CONDITION_EXPRESSION)));
 
         executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDBAsync.deleteTableAsync(TABLE_NAME),
             dbAssert);
 
-        executeTestWithException(ResourceNotFoundException.class, "PutItem", "query", TABLE_NAME + "-exception", () -> dynamoDBAsync.putItem(
-            new PutItemRequest(TABLE_NAME + "-exception",
-                Map.of("attributeOne", new AttributeValue("valueOne"), "attributeTwo", new AttributeValue().withN("10")))),
-            dbAssert);
-
-        assertThat(reporter.getSpans().size()).isEqualTo(6);
+        assertThat(reporter.getSpans().size()).isEqualTo(5);
 
         transaction.deactivate().end();
 
-        assertThat(reporter.getNumReportedErrors()).isEqualTo(1);
-        assertThat(reporter.getFirstError().getException()).isInstanceOf(ResourceNotFoundException.class);
+        assertThat(reporter.getSpans()).noneMatch(AbstractSpan::isSync);
     }
 
     @Override
@@ -170,6 +167,17 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
     @Override
     protected String type() {
         return "db";
+    }
+
+    @Override
+    protected String subtype() {
+        return "dynamodb";
+    }
+
+    @Nullable
+    @Override
+    protected String expectedTargetName(@Nullable String entityName) {
+        return localstack.getRegion();
     }
 
     @Override

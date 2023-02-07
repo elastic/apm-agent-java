@@ -68,9 +68,14 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
             @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "value") String spanName,
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "type") String type,
-            @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "subtype") String subtype,
-            @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "action") String action,
-            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "discardable") boolean discardable) {
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "subtype") @Nullable String subtype,
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "action") @Nullable String action,
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(
+                annotationClassName = "co.elastic.apm.api.CaptureSpan",
+                method = "discardable",
+                defaultValueProvider = AnnotationValueOffsetMappingFactory.TrueDefaultValueProvider.class
+            ) boolean discardable
+        ) {
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {
                 Span span = parent.createSpan()

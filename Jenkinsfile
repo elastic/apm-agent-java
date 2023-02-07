@@ -12,15 +12,13 @@ pipeline {
     DOCKERHUB_SECRET = 'secret/apm-team/ci/elastic-observability-dockerhub'
     ELASTIC_DOCKER_SECRET = 'secret/apm-team/ci/docker-registry/prod'
     CODECOV_SECRET = 'secret/apm-team/ci/apm-agent-java-codecov'
-    GITHUB_CHECK_ITS_NAME = 'End-To-End Integration Tests'
-    ITS_PIPELINE = 'apm-integration-tests-selector-mbp/main'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
     JAVA_VERSION = "${params.JAVA_VERSION}"
     JOB_GCS_BUCKET_STASH = 'apm-ci-temp'
     JOB_GCS_CREDENTIALS = 'apm-ci-gcs-plugin'
   }
   options {
-    timeout(time: 90, unit: 'MINUTES')
+    timeout(time: 120, unit: 'MINUTES')
     buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '20', daysToKeepStr: '30'))
     timestamps()
     ansiColor('xterm')
@@ -30,10 +28,10 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger("(${obltGitHubComments()}|^run (jdk compatibility|benchmark|integration|end-to-end|windows) tests)")
+    issueCommentTrigger("(${obltGitHubComments()}|^run (jdk compatibility|benchmark|integration|windows) tests)")
   }
   parameters {
-    string(name: 'JAVA_VERSION', defaultValue: 'java11', description: 'Java version to build & test')
+    string(name: 'JAVA_VERSION', defaultValue: 'jdk17', description: 'Java version to build & test')
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
 
     // Note about GH checks and optional steps
@@ -50,11 +48,8 @@ pipeline {
     // opt-in with 'ci:agent-integration'
     booleanParam(name: 'agent_integration_tests_ci', defaultValue: false, description: 'Enable Agent Integration tests')
 
-    // disabled by default, but required for merge, GH check name is ${GITHUB_CHECK_ITS_NAME}
-    // opt-in with 'ci:end-to-end' tag on PR
-    booleanParam(name: 'end_to_end_tests_ci', defaultValue: false, description: 'Enable APM End-to-End tests')
-
     // disabled by default, not required for merge
+    // opt-in with 'ci:benchmarks' tag on PR
     booleanParam(name: 'bench_ci', defaultValue: false, description: 'Enable benchmarks')
 
     // disabled by default, not required for merge
@@ -71,8 +66,8 @@ pipeline {
       steps {
         pipelineManager([ cancelPreviousRunningBuilds: [ when: 'PR' ] ])
         deleteDir()
-        gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, shallow: false,
-                    reference: '/var/lib/jenkins/.git-references/apm-agent-java.git')
+        // reference repo causes issues while running on Windows with the git-commit-id-maven-plugin
+        gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, shallow: false)
         stash allowEmpty: true, name: 'source', useDefaultExcludes: false
         script {
           dir("${BASE_DIR}"){
@@ -289,7 +284,8 @@ pipeline {
              * The result JSON files are also archive into Jenkins.
              */
             stage('Benchmarks') {
-              agent { label 'metal' }
+              // As long as jdk17 is not available then let's pin the worker with jdk17
+              agent { label 'microbenchmarks-pool && worker-1799328' }
               options { skipDefaultCheckout() }
               environment {
                 NO_BUILD = "true"
@@ -300,6 +296,7 @@ pipeline {
                 anyOf {
                   branch 'main'
                   expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
+                  expression { matchesPrLabel(label: 'ci:benchmarks') }
                   expression { return params.bench_ci }
                 }
               }
@@ -315,6 +312,9 @@ pipeline {
                 }
               }
               post {
+                cleanup {
+                  deleteDir()
+                }
                 always {
                   archiveArtifacts(allowEmptyArchive: true,
                     artifacts: "${BASE_DIR}/${RESULT_FILE}",
@@ -349,30 +349,6 @@ pipeline {
             }
           }
         }
-        stage('End-To-End Integration Tests') {
-          agent none
-          when {
-            allOf {
-              expression { return env.ONLY_DOCS == "false" }
-              anyOf {
-                expression { return params.end_to_end_tests_ci }
-                expression { return env.GITHUB_COMMENT?.contains('end-to-end tests') }
-                expression { matchesPrLabel(label: 'ci:end-to-end') }
-                expression { return env.CHANGE_ID != null && !pullRequest.draft }
-                not { changeRequest() }
-              }
-            }
-          }
-          steps {
-            build(job: env.ITS_PIPELINE, propagate: false, wait: false,
-                  parameters: [string(name: 'INTEGRATION_TEST', value: 'Java'),
-                               string(name: 'BUILD_OPTS', value: "--java-agent-version ${env.GIT_BASE_COMMIT} --opbeans-java-agent-branch ${env.GIT_BASE_COMMIT}"),
-                               string(name: 'GITHUB_CHECK_NAME', value: env.GITHUB_CHECK_ITS_NAME),
-                               string(name: 'GITHUB_CHECK_REPO', value: env.REPO),
-                               string(name: 'GITHUB_CHECK_SHA1', value: env.GIT_BASE_COMMIT)])
-            githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
-          }
-        }
         stage('JDK Compatibility Tests') {
           options { skipDefaultCheckout() }
           when {
@@ -386,21 +362,21 @@ pipeline {
               }
             }
           }
-          environment {
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-          }
           matrix {
             agent { label 'linux && immutable' }
             axes {
               axis {
-                // the list of support java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
+                // the list of supported java versions can be found in the infra repo (ansible/roles/java/defaults/main.yml)
                 name 'JDK_VERSION'
-                // 'openjdk18'  disabled for now see https://github.com/elastic/apm-agent-java/issues/2328
-                values 'openjdk17'
+                values 'java11', 'jdk19'
               }
             }
             stages {
               stage('JDK Unit Tests') {
+                environment {
+                  JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JDK_VERSION}"
+                  PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+                }
                 steps {
                   withGithubNotify(context: "${STAGE_NAME} ${JDK_VERSION}", tab: 'tests') {
                     deleteDir()

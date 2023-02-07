@@ -18,20 +18,20 @@
  */
 package co.elastic.apm.agent.log4j2.error;
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 public class Log4j2_17_1ErrorCapturingTest {
-    private final TestClassWithDependencyRunner runner;
+    private final JUnit4TestClassWithDependencyRunner runner;
 
     public Log4j2_17_1ErrorCapturingTest() throws Exception {
         List<String> dependencies = List.of(
             "org.apache.logging.log4j:log4j-core:2.17.1",
             "org.apache.logging.log4j:log4j-api:2.17.1"
         );
-        runner = new TestClassWithDependencyRunner(dependencies, Log4j2ErrorCapturingTestVersions.class,
+        runner = new JUnit4TestClassWithDependencyRunner(dependencies, Log4j2ErrorCapturingTestVersions.class,
             Log4j2LoggerErrorCapturingInstrumentationTest.class);
     }
 

@@ -26,6 +26,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -73,7 +74,7 @@ public class CaptureTransactionInstrumentation extends TracerAwareInstrumentatio
                                            @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "type") String type) {
             final Object active = tracer.getActive();
             if (active == null) {
-                Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
                 if (transaction != null) {
                     if (transactionName.isEmpty()) {
                         transaction.withName(signature, PRIO_METHOD_SIGNATURE);

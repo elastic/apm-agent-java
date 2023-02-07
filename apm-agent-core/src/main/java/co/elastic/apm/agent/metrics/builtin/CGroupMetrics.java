@@ -203,6 +203,7 @@ public class CGroupMetrics extends AbstractLifecycleListener {
     private File getMaxMemoryFile(File maxMemoryFile, String cgroupUnlimitedConstant) throws IOException {
         try(BufferedReader maxFileReader = new BufferedReader(new FileReader(maxMemoryFile))) {
             String memMaxLine = maxFileReader.readLine();
+            logger.debug("max cgroup memory read from {} is: {}", maxMemoryFile.getAbsolutePath(), memMaxLine);
             if (cgroupUnlimitedConstant.equalsIgnoreCase(memMaxLine)) {
                 // Make sure we don't send the max metric when cgroup is not bound to a memory limit
                 maxMemoryFile = null;

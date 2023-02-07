@@ -25,21 +25,17 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import javax.annotation.Nullable;
 import java.net.URI;
 
-public abstract class AbstractDynamoDBInstrumentationHelper<R, C> {
-    private static final String DYNAMO_DB_TYPE = "dynamodb";
-    private final IAwsSdkDataSource<R, C> awsSdkDataSource;
+public abstract class AbstractDynamoDBInstrumentationHelper<R, C> extends AbstractAwsSdkInstrumentationHelper<R, C> {
+    public static final String DYNAMO_DB_TYPE = "dynamodb";
 
     protected AbstractDynamoDBInstrumentationHelper(ElasticApmTracer tracer, IAwsSdkDataSource<R, C> awsSdkDataSource) {
-        this.tracer = tracer;
-        this.awsSdkDataSource = awsSdkDataSource;
+        super(tracer, awsSdkDataSource);
     }
-
-    private final ElasticApmTracer tracer;
 
     public void enrichSpan(Span span, R sdkRequest, URI httpURI, C context) {
         String operationName = awsSdkDataSource.getOperationName(sdkRequest, context);
         String region = awsSdkDataSource.getRegion(sdkRequest, context);
-        String tableName = awsSdkDataSource.getFieldValue(IAwsSdkDataSource.TABLE_NAME_FIELD, sdkRequest, context);
+        String tableName = awsSdkDataSource.getFieldValue(IAwsSdkDataSource.TABLE_NAME_FIELD, sdkRequest);
 
         span.withType("db")
             .withSubtype(DYNAMO_DB_TYPE)
@@ -48,8 +44,8 @@ public abstract class AbstractDynamoDBInstrumentationHelper<R, C> {
         span.getContext().getDb().withInstance(region).withType(DYNAMO_DB_TYPE);
 
 
-        if (operationName.equals("Query")) {
-            span.getContext().getDb().withStatement(awsSdkDataSource.getFieldValue(IAwsSdkDataSource.KEY_CONDITION_EXPRESSION_FIELD, sdkRequest, context));
+        if ("Query".equals(operationName)) {
+            span.getContext().getDb().withStatement(awsSdkDataSource.getFieldValue(IAwsSdkDataSource.KEY_CONDITION_EXPRESSION_FIELD, sdkRequest));
         }
 
 
@@ -62,11 +58,7 @@ public abstract class AbstractDynamoDBInstrumentationHelper<R, C> {
             }
         }
 
-        span.getContext().getServiceTarget().withType(DYNAMO_DB_TYPE);
-
-        span.getContext().getDestination()
-            .withAddress(httpURI.getHost())
-            .withPort(httpURI.getPort());
+        setDestinationContext(span, httpURI, sdkRequest, context, DYNAMO_DB_TYPE, region);
     }
 
     @Nullable
@@ -77,7 +69,6 @@ public abstract class AbstractDynamoDBInstrumentationHelper<R, C> {
         }
 
         enrichSpan(span, sdkRequest, httpURI, context);
-
 
         return span;
     }

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.util;
 
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -69,11 +69,10 @@ public class TransactionNameUtils {
             return;
         }
         transactionName.append(className);
-
         if (methodName != null) {
-            transactionName.append('#')
-                .append(methodName);
+            transactionName.append('#').append(methodName);
         }
+
     }
 
     public static void setNameFromHttpRequestPath(String method, String path, @Nullable StringBuilder transactionName, List<WildcardMatcher> urlGroups) {
@@ -93,6 +92,13 @@ public class TransactionNameUtils {
                 transactionName.append(pathSecondPart);
             }
         }
+    }
+
+    public static void setNameUnknownRoute(String method, @Nullable StringBuilder transactionName) {
+        if (transactionName == null) {
+            return;
+        }
+        transactionName.append(method).append(' ').append("unknown route");
     }
 
 }

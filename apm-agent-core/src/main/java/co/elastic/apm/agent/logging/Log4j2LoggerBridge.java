@@ -22,6 +22,9 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.spi.ExtendedLogger;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+
 /**
  * Based on {@code org.apache.logging.slf4j.Log4jLogger}
  */
@@ -44,151 +47,235 @@ public class Log4j2LoggerBridge implements Logger {
 
     @Override
     public boolean isTraceEnabled() {
-        return log4jLogger.isEnabled(Level.TRACE, null, null);
+        return isEnabled(Level.TRACE);
     }
 
     @Override
     public void trace(final String format) {
-        log4jLogger.logIfEnabled(FQCN, Level.TRACE, null, format);
+        logIfEnabled(Level.TRACE, format);
     }
 
     @Override
     public void trace(final String format, final Object o) {
-        log4jLogger.logIfEnabled(FQCN, Level.TRACE, null, format, o);
+        logIfEnabled(Level.TRACE, format, o);
     }
 
     @Override
     public void trace(final String format, final Object arg1, final Object arg2) {
-        log4jLogger.logIfEnabled(FQCN, Level.TRACE, null, format, arg1, arg2);
+        logIfEnabled(Level.TRACE, format, arg1, arg2);
     }
 
     @Override
     public void trace(final String format, final Object... args) {
-        log4jLogger.logIfEnabled(FQCN, Level.TRACE, null, format, args);
+        logIfEnabled(Level.TRACE, format, args);
     }
 
     @Override
     public void trace(final String format, final Throwable t) {
-        log4jLogger.logIfEnabled(FQCN, Level.TRACE, null, format, t);
+        logIfEnabled(Level.TRACE, format, t);
     }
 
     @Override
     public boolean isDebugEnabled() {
-        return log4jLogger.isEnabled(Level.DEBUG, null, null);
+        return isEnabled(Level.DEBUG);
     }
 
     @Override
     public void debug(final String format) {
-        log4jLogger.logIfEnabled(FQCN, Level.DEBUG, null, format);
+        logIfEnabled(Level.DEBUG, format);
     }
 
     @Override
     public void debug(final String format, final Object o) {
-        log4jLogger.logIfEnabled(FQCN, Level.DEBUG, null, format, o);
+        logIfEnabled(Level.DEBUG, format, o);
     }
 
     @Override
     public void debug(final String format, final Object arg1, final Object arg2) {
-        log4jLogger.logIfEnabled(FQCN, Level.DEBUG, null, format, arg1, arg2);
+        logIfEnabled(Level.DEBUG, format, arg1, arg2);
     }
 
     @Override
     public void debug(final String format, final Object... args) {
-        log4jLogger.logIfEnabled(FQCN, Level.DEBUG, null, format, args);
+        logIfEnabled(Level.DEBUG, format, args);
     }
 
     @Override
     public void debug(final String format, final Throwable t) {
-        log4jLogger.logIfEnabled(FQCN, Level.DEBUG, null, format, t);
+        logIfEnabled(Level.DEBUG, format, t);
     }
 
     @Override
     public boolean isInfoEnabled() {
-        return log4jLogger.isEnabled(Level.INFO, null, null);
+        return isEnabled(Level.INFO);
     }
 
     @Override
     public void info(final String format) {
-        log4jLogger.logIfEnabled(FQCN, Level.INFO, null, format);
+        logIfEnabled(Level.INFO, format);
     }
 
     @Override
     public void info(final String format, final Object o) {
-        log4jLogger.logIfEnabled(FQCN, Level.INFO, null, format, o);
+        logIfEnabled(Level.INFO, format, o);
     }
 
     @Override
     public void info(final String format, final Object arg1, final Object arg2) {
-        log4jLogger.logIfEnabled(FQCN, Level.INFO, null, format, arg1, arg2);
+        logIfEnabled(Level.INFO, format, arg1, arg2);
     }
 
     @Override
     public void info(final String format, final Object... args) {
-        log4jLogger.logIfEnabled(FQCN, Level.INFO, null, format, args);
+        logIfEnabled(Level.INFO, format, args);
     }
 
     @Override
     public void info(final String format, final Throwable t) {
-        log4jLogger.logIfEnabled(FQCN, Level.INFO, null, format, t);
+        logIfEnabled(Level.INFO, format, t);
     }
 
     @Override
     public boolean isWarnEnabled() {
-        return log4jLogger.isEnabled(Level.WARN, null, null);
+        return isEnabled(Level.WARN);
     }
 
     @Override
     public void warn(final String format) {
-        log4jLogger.logIfEnabled(FQCN, Level.WARN, null, format);
+        logIfEnabled(Level.WARN, format);
     }
 
     @Override
     public void warn(final String format, final Object o) {
-        log4jLogger.logIfEnabled(FQCN, Level.WARN, null, format, o);
+        logIfEnabled(Level.WARN, format, o);
     }
 
     @Override
     public void warn(final String format, final Object arg1, final Object arg2) {
-        log4jLogger.logIfEnabled(FQCN, Level.WARN, null, format, arg1, arg2);
+        logIfEnabled(Level.WARN, format, arg1, arg2);
     }
 
     @Override
     public void warn(final String format, final Object... args) {
-        log4jLogger.logIfEnabled(FQCN, Level.WARN, null, format, args);
+        logIfEnabled(Level.WARN, format, args);
     }
 
     @Override
     public void warn(final String format, final Throwable t) {
-        log4jLogger.logIfEnabled(FQCN, Level.WARN, null, format, t);
+        logIfEnabled(Level.WARN, format, t);
     }
 
     @Override
     public boolean isErrorEnabled() {
-        return log4jLogger.isEnabled(Level.ERROR, null, null);
+        return isEnabled(Level.ERROR);
     }
 
     @Override
     public void error(final String format) {
-        log4jLogger.logIfEnabled(FQCN, Level.ERROR, null, format);
+        logIfEnabled(Level.ERROR, format);
     }
 
     @Override
     public void error(final String format, final Object o) {
-        log4jLogger.logIfEnabled(FQCN, Level.ERROR, null, format, o);
+        logIfEnabled(Level.ERROR, format, o);
     }
 
     @Override
     public void error(final String format, final Object arg1, final Object arg2) {
-        log4jLogger.logIfEnabled(FQCN, Level.ERROR, null, format, arg1, arg2);
+        logIfEnabled(Level.ERROR, format, arg1, arg2);
     }
 
     @Override
     public void error(final String format, final Object... args) {
-        log4jLogger.logIfEnabled(FQCN, Level.ERROR, null, format, args);
+        logIfEnabled(Level.ERROR, format, args);
     }
 
     @Override
     public void error(final String format, final Throwable t) {
-        log4jLogger.logIfEnabled(FQCN, Level.ERROR, null, format, t);
+        logIfEnabled(Level.ERROR, format, t);
+    }
+
+    @SuppressWarnings("DuplicatedCode")
+    private void logIfEnabled(final Level level, final String format) {
+        if (System.getSecurityManager() == null) {
+            log4jLogger.logIfEnabled(FQCN, level, null, format);
+            return;
+        }
+
+        AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Override
+            public Object run() {
+                log4jLogger.logIfEnabled(FQCN, level, null, format);
+                return null;
+            }
+        });
+    }
+
+    @SuppressWarnings("DuplicatedCode")
+    private void logIfEnabled(final Level level, final String format, final Throwable t) {
+        if (System.getSecurityManager() == null) {
+            log4jLogger.logIfEnabled(FQCN, level, null, format, t);
+            return;
+        }
+
+        AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Override
+            public Object run() {
+                log4jLogger.logIfEnabled(FQCN, level, null, format, t);
+                return null;
+            }
+        });
+    }
+
+    @SuppressWarnings("DuplicatedCode")
+    private void logIfEnabled(final Level level, final String format, final Object... params) {
+        if (System.getSecurityManager() == null) {
+            log4jLogger.logIfEnabled(FQCN, level, null, format, params);
+            return;
+        }
+
+        AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Override
+            public Object run() {
+                log4jLogger.logIfEnabled(FQCN, level, null, format, params);
+                return null;
+            }
+        });
+    }
+
+    @SuppressWarnings("DuplicatedCode")
+    private void logIfEnabled(final Level level, final String format, final Object arg) {
+        if (System.getSecurityManager() == null) {
+            log4jLogger.logIfEnabled(FQCN, level, null, format, arg);
+            return;
+        }
+
+        AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Override
+            public Object run() {
+                log4jLogger.logIfEnabled(FQCN, level, null, format, arg);
+                return null;
+            }
+        });
+    }
+
+    @SuppressWarnings("DuplicatedCode")
+    private void logIfEnabled(final Level level, final String format, final Object arg1, final Object arg2) {
+        if (System.getSecurityManager() == null) {
+            log4jLogger.logIfEnabled(FQCN, level, null, format, arg1, arg2);
+            return;
+        }
+
+        AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Override
+            public Object run() {
+                log4jLogger.logIfEnabled(FQCN, level, null, format, arg1, arg2);
+                return null;
+            }
+        });
+    }
+
+    private boolean isEnabled(Level level) {
+        return log4jLogger.isEnabled(level, null, null);
     }
 }

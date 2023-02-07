@@ -23,7 +23,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.AbstractContext;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recyclable, ElasticContext<T> {
     public static final int PRIO_USER_SUPPLIED = 1000;
@@ -117,7 +116,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     protected volatile boolean sync = true;
 
-    protected final AtomicReference<Span> bufferedSpan = new AtomicReference<>();
+    protected final SpanAtomicReference<Span> bufferedSpan = new SpanAtomicReference<>();
 
     // Span links handling
     public static final int MAX_ALLOWED_SPAN_LINKS = 1000;
@@ -245,8 +244,12 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     /**
      * Only intended to be used by {@link co.elastic.apm.agent.report.serialize.DslJsonSerializer}
      */
-    public StringBuilder getNameForSerialization() {
-        return name;
+    public CharSequence getNameForSerialization() {
+        if (name.length() == 0) {
+            return "unnamed";
+        } else {
+            return name;
+        }
     }
 
     /**
@@ -306,7 +309,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * @return name
      */
     public String getNameAsString() {
-        return name.toString();
+        return getNameForSerialization().toString();
     }
 
     /**
@@ -324,8 +327,12 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     }
 
     public T appendToName(CharSequence cs, int priority) {
+        return appendToName(cs, priority, 0, cs.length());
+    }
+
+    public T appendToName(CharSequence cs, int priority, int startIndex, int endIndex) {
         if (priority >= namePriority) {
-            this.name.append(cs);
+            this.name.append(cs, startIndex, endIndex);
             this.namePriority = priority;
         }
         return thiz();
@@ -375,21 +382,32 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return traceContext;
     }
 
-    /**
-     * Adds a span link based on the tracecontext header retrieved from the provided {@code carrier} through the provided {@code
-     * headerGetter}.
-     * @param childContextCreator the proper tracecontext inference implementation, corresponding on the header and types
-     * @param headerGetter the proper header extractor, corresponding the header and carrier types
-     * @param carrier the object from which the tracecontext header is to be retrieved
-     * @param <H> the tracecontext header type - either binary ({@code byte[]}) or textual ({@code String})
-     * @param <C> the tracecontext header carrier type, e.g. Kafka record or JMS message
-     * @return {@code true} if added, {@code false} otherwise
-     */
-    public <H, C> boolean addSpanLink(TraceContext.ChildContextCreatorTwoArg<C, HeaderGetter<H, C>> childContextCreator,
-                                    HeaderGetter<H, C> headerGetter, @Nullable C carrier) {
+    private boolean canAddSpanLink() {
         if (spanLinks.size() == MAX_ALLOWED_SPAN_LINKS) {
             oneTimeMaxSpanLinksLogger.warn("Span links for {} has reached the allowed maximum ({}). No more spans will be linked.",
                 this, MAX_ALLOWED_SPAN_LINKS);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Adds a span link based on the tracecontext header retrieved from the provided {@code carrier} through the provided {@code
+     * headerGetter}.
+     *
+     * @param childContextCreator the proper tracecontext inference implementation, corresponding on the header and types
+     * @param headerGetter        the proper header extractor, corresponding the header and carrier types
+     * @param carrier             the object from which the tracecontext header is to be retrieved
+     * @param <H>                 the tracecontext header type - either binary ({@code byte[]}) or textual ({@code String})
+     * @param <C>                 the tracecontext header carrier type, e.g. Kafka record or JMS message
+     * @return {@code true} if added, {@code false} otherwise
+     */
+    public <H, C> boolean addSpanLink(
+        TraceContext.HeaderChildContextCreator<H, C> childContextCreator,
+        HeaderGetter<H, C> headerGetter,
+        @Nullable C carrier
+    ) {
+        if (!canAddSpanLink()) {
             return false;
         }
         boolean added = false;
@@ -404,6 +422,33 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         } catch (Exception e) {
             logger.error(String.format("Failed to add span link to %s from header carrier %s and %s", this, carrier,
                 headerGetter.getClass().getName()), e);
+        }
+        return added;
+    }
+
+    /**
+     * Adds a span link based on the tracecontext header retrieved from the provided parent.
+     *
+     * @param childContextCreator the proper tracecontext inference implementation, which retrieves the header
+     * @param parent              the object from which the tracecontext header is to be retrieved
+     * @param <T>                 the parent type - AbstractSpan, TraceContext or Tracer
+     * @return {@code true} if added, {@code false} otherwise
+     */
+    public <T> boolean addSpanLink(TraceContext.ChildContextCreator<T> childContextCreator, T parent) {
+        if (!canAddSpanLink()) {
+            return false;
+        }
+        boolean added = false;
+        try {
+            TraceContext childTraceContext = tracer.createSpanLink();
+            if (childContextCreator.asChildOf(childTraceContext, parent)) {
+                added = spanLinks.add(childTraceContext);
+            }
+            if (!added) {
+                tracer.recycle(childTraceContext);
+            }
+        } catch (Exception e) {
+            logger.error(String.format("Failed to add span link to %s from parent %s", this, parent, e));
         }
         return added;
     }
@@ -437,7 +482,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         outcome = null;
         userOutcome = null;
         hasCapturedExceptions = false;
-        bufferedSpan.set(null);
+        bufferedSpan.reset();
         recycleSpanLinks();
         otelKind = null;
         otelAttributes.clear();
@@ -545,19 +590,20 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public final void end(long epochMicros) {
         if (!finished) {
             this.endTimestamp.set(epochMicros);
-            if (name.length() == 0) {
-                name.append("unnamed");
-            }
             childDurations.onSpanEnd(epochMicros);
 
             type = normalizeType(type);
 
             beforeEnd(epochMicros);
             this.finished = true;
-            Span buffered = bufferedSpan.get();
+            Span buffered = bufferedSpan.incrementReferencesAndGet();
             if (buffered != null) {
-                if (bufferedSpan.compareAndSet(buffered, null)) {
-                    this.tracer.endSpan(buffered);
+                try {
+                    if (bufferedSpan.compareAndSet(buffered, null)) {
+                        this.tracer.endSpan(buffered);
+                    }
+                } finally {
+                    buffered.decrementReferences();
                 }
             }
             afterEnd();
