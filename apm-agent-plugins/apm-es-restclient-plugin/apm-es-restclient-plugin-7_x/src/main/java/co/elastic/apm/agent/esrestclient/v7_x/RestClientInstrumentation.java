@@ -37,6 +37,9 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
+/**
+ * Instruments {@link org.elasticsearch.client.RestClient#performRequestAsync(org.elasticsearch.client.Request, org.elasticsearch.client.ResponseListener)}
+ */
 public class RestClientInstrumentation extends ElasticsearchRestClientInstrumentation {
 
     @Override

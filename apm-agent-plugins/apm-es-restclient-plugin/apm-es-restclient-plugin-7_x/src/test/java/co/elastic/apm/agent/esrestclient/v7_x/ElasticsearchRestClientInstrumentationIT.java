@@ -154,16 +154,14 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
             // test only relevant when testing async stuff
             return;
         }
-        // start without an active transaction
-        tracer.getActive().deactivate().end();
-        assertThat(tracer.getActive()).isNull();
+
+        AbstractSpan<?> active = tracer.getActive();
+        assertThat(active).isInstanceOf(Transaction.class);
 
         reporter.reset();
 
         AtomicReference<AbstractSpan<?>> observedActive = new AtomicReference<>();
         CountDownLatch endLatch = new CountDownLatch(1);
-
-        Transaction transaction = startTestRootTransaction("test-root-transaction");
 
         RestClient restClient = clientBuilder.build();
 
@@ -186,9 +184,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
         endLatch.await(1, TimeUnit.SECONDS);
 
         assertThat(observedActive.get())
-            .isSameAs(transaction);
-
-        transaction.deactivate().end();
+            .isSameAs(active);
     }
 
     @Override
