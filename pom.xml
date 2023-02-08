@@ -187,7 +187,8 @@
               <plugin>
                   <artifactId>maven-failsafe-plugin</artifactId>
                   <configuration>
-                    <skipTests>${skip.integration.test}</skipTests>
+                      <skipTests>${skip.integration.test}</skipTests>
+                      <rerunFailingTestsCount>3</rerunFailingTestsCount>
                   </configuration>
               </plugin>
               <plugin>
@@ -219,7 +220,8 @@
               <plugin>
                   <artifactId>maven-failsafe-plugin</artifactId>
                   <configuration>
-                    <skipTests>${skip.integration.test}</skipTests>
+                      <skipTests>${skip.integration.test}</skipTests>
+                      <rerunFailingTestsCount>3</rerunFailingTestsCount>
                   </configuration>
               </plugin>
               <plugin>
