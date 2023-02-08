@@ -35,9 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinTask;
-import java.util.function.BiConsumer;
 
 // Not strictly necessary as AbstractJavaConcurrentInstrumentation returns an empty collection for pluginClassLoaderRootPackages
 // but this signals the intent that this class must not be loaded from the IndyBootstrapClassLoader so that the state in this class applies globally

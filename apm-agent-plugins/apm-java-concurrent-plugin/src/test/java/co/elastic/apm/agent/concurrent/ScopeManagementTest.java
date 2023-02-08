@@ -142,5 +142,4 @@ class ScopeManagementTest extends AbstractInstrumentationTest {
 
         assertThat(tracer.getActive()).isNull();
     }
-
 }
