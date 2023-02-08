@@ -20,11 +20,13 @@ package co.elastic.apm.agent.esrestclient.v7_x;
 
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.elasticsearch.client.ResponseListener;
 
 import javax.annotation.Nullable;
 
@@ -35,7 +37,6 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-// co.elastic.apm.agent.esrestclient.v7_x.RestClientInstrumentation
 public class RestClientInstrumentation extends ElasticsearchRestClientInstrumentation {
 
     @Override
@@ -59,21 +60,21 @@ public class RestClientInstrumentation extends ElasticsearchRestClientInstrument
 
     public static class RestClientAsyncAdvice {
 
-//        private static final ElasticsearchRestClientInstrumentationHelper helper = ElasticsearchRestClientInstrumentationHelper.get();
+        private static final ElasticsearchRestClientInstrumentationHelper helper = ElasticsearchRestClientInstrumentationHelper.get();
 
         @Nullable
         @Advice.AssignReturned.ToArguments(@ToArgument(value = 1, typing = DYNAMIC))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.Argument(1) @Nullable Object listenerArg) {
+        public static ResponseListener onEnter(@Advice.Argument(1) @Nullable ResponseListener listenerArg) {
 
-//            AbstractSpan<?> activeContext = tracer.getActive();
-//
-//            ResponseListener listener = (ResponseListener) listenerArg;
-//            if (listener != null && activeContext != null) {
-//                listener = helper.wrapContextPropagationContextListener(listener, activeContext);
-//            }
+            AbstractSpan<?> activeContext = tracer.getActive();
 
-            return listenerArg;
+            ResponseListener listener =  listenerArg;
+            if (listener != null && activeContext != null) {
+                listener = helper.wrapContextPropagationContextListener(listener, activeContext);
+            }
+
+            return listener;
         }
 
     }
