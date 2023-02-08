@@ -165,36 +165,6 @@ public class JavaConcurrent {
         return task;
     }
 
-    @Nullable
-    public static <T> CompletableFuture<T> withContext(CompletableFuture<T> completableFuture, Tracer tracer){
-        if (shouldAvoidContextPropagation(completableFuture)) {
-            return completableFuture;
-        }
-        needsContext.set(Boolean.FALSE);
-        AbstractSpan<?> active = tracer.getActive();
-        if (active == null) {
-            return completableFuture;
-        }
-
-        CompletableFuture<T> wrapped = new CompletableFuture<T>();
-        wrapped.whenComplete(new BiConsumer<T, Throwable>() {
-            @Override
-            public void accept(T value, @Nullable Throwable thrown) {
-                try {
-                    active.activate();
-                    if(thrown != null){
-                        completableFuture.completeExceptionally(thrown);
-                    } else {
-                        completableFuture.complete(value);
-                    }
-                } finally {
-                    active.deactivate();
-                }
-            }
-        });
-        return wrapped;
-    }
-
     public static void doFinally(@Nullable Throwable thrown, @Nullable Object contextObject) {
         needsContext.set(Boolean.TRUE);
         if (thrown != null && contextObject != null) {
@@ -285,4 +255,5 @@ public class JavaConcurrent {
             return delegate.call();
         }
     }
+
 }

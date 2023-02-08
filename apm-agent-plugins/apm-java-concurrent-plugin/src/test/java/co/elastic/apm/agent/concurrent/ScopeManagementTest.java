@@ -26,8 +26,6 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
@@ -145,18 +143,4 @@ class ScopeManagementTest extends AbstractInstrumentationTest {
         assertThat(tracer.getActive()).isNull();
     }
 
-    @Test
-    void testCompletableFutureWrapping() throws ExecutionException, InterruptedException {
-        final Transaction transaction = tracer.startRootTransaction(null).activate();
-
-        CompletableFuture<Void> completableFuture = CompletableFuture.runAsync(() -> {
-            assertThat(tracer.currentTransaction()).isNotNull();
-        }, Executors.newSingleThreadExecutor());
-
-        CompletableFuture wrapped = JavaConcurrent.withContext(completableFuture, tracer);
-
-        wrapped.get();
-
-        transaction.deactivate().end();
-    }
 }
