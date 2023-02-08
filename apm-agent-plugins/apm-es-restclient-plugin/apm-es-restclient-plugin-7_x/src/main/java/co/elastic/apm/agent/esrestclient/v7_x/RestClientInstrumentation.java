@@ -35,6 +35,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
+// co.elastic.apm.agent.esrestclient.v7_x.RestClientInstrumentation
 public class RestClientInstrumentation extends ElasticsearchRestClientInstrumentation {
 
     @Override
@@ -53,10 +54,10 @@ public class RestClientInstrumentation extends ElasticsearchRestClientInstrument
 
     @Override
     public String getAdviceClassName() {
-        return getClass().getName() + "$ElasticsearchRestClientAsyncAdvice";
+        return getClass().getName() + "$RestClientAsyncAdvice";
     }
 
-    public static class ElasticsearchRestClientAsyncAdvice {
+    public static class RestClientAsyncAdvice {
 
 //        private static final ElasticsearchRestClientInstrumentationHelper helper = ElasticsearchRestClientInstrumentationHelper.get();
 

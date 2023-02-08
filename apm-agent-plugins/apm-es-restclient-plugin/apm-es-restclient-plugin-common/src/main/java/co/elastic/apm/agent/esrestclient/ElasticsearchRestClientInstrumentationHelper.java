@@ -74,7 +74,8 @@ public class ElasticsearchRestClientInstrumentationHelper {
     private class ResponseListenerAllocator implements Allocator<ResponseListenerWrapper> {
         @Override
         public ResponseListenerWrapper createInstance() {
-            return new ResponseListenerWrapper(ElasticsearchRestClientInstrumentationHelper.this, ElasticsearchRestClientInstrumentationHelper.this.tracer);
+            return new ResponseListenerWrapper(ElasticsearchRestClientInstrumentationHelper.this);
+//            return new ResponseListenerWrapper2(ElasticsearchRestClientInstrumentationHelper.this, ElasticsearchRestClientInstrumentationHelper.this.tracer);
         }
     }
 
@@ -166,9 +167,9 @@ public class ElasticsearchRestClientInstrumentationHelper {
         return responseListenerObjectPool.createInstance().withClientSpan(listener, span);
     }
 
-    public ResponseListener wrapContextPropagationContextListener(ResponseListener listener, AbstractSpan<?> activeContext) {
-        return responseListenerObjectPool.createInstance().withContextPropagation(listener, activeContext);
-    }
+//    public ResponseListener wrapContextPropagationContextListener(ResponseListener listener, AbstractSpan<?> activeContext) {
+//        return responseListenerObjectPool.createInstance().withContextPropagation(listener, activeContext);
+//    }
 
     void recycle(ResponseListenerWrapper listenerWrapper) {
         responseListenerObjectPool.recycle(listenerWrapper);

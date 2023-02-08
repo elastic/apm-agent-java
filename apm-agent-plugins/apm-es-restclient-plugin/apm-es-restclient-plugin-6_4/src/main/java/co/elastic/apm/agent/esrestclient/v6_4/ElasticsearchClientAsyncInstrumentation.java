@@ -38,10 +38,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestClientInstrumentation {
 
-    @Override
-    public String getAdviceClassName() {
-        return getClass().getName() + "$ElasticsearchRestClientAsyncAdvice";
-    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -54,6 +50,11 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
             .and(takesArguments(2)
                 .and(takesArgument(0, named("org.elasticsearch.client.Request")))
                 .and(takesArgument(1, named("org.elasticsearch.client.ResponseListener"))));
+    }
+
+    @Override
+    public String getAdviceClassName() {
+        return getClass().getName() + "$ElasticsearchRestClientAsyncAdvice";
     }
 
     public static class ElasticsearchRestClientAsyncAdvice {
