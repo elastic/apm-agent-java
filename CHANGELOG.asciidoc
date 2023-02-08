@@ -28,6 +28,7 @@ endif::[]
 * Add the <<config-disable-outgoing-tracecontext-headers>> config option to disable injection of `tracecontext` on outgoing
 communication - {pull}2996[#2996]
 * Add the <<config-profiling-inferred-spans-logging-enabled>> config option to suppress async profiler warning messages - {pull}3002[#3002]
+* Added support for OpenTelemetry metrics - {pull}2968[#2968]
 
 [float]
 ===== Bug fixes
