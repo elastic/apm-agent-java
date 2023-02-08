@@ -15,15 +15,21 @@
     <properties>
         <!-- for licence header plugin -->
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+        <!--
+        When updating the version, add the old version to OpenTelemetryVersionIT
+        to make sure that in the future we stay compatible with the previous version.
+        -->
+        <version.opentelemetry>1.22.0</version.opentelemetry>
 
         <maven.compiler.target>8</maven.compiler.target>
         <maven.compiler.source>8</maven.compiler.source>
         <animal.sniffer.skip>true</animal.sniffer.skip>
-
     </properties>
 
     <modules>
         <module>apm-opentelemetry-plugin</module>
+        <module>apm-opentelemetry-metricsdk-plugin</module>
+        <module>apm-opentelemetry-metrics-exporter</module>
         <module>apm-opentelemetry-test</module>
     </modules>
 
