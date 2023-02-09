@@ -18,14 +18,15 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyMeterBuilder;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.AbstractBridgedElement;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.BridgeFactoryV1_14;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.MeterBuilder;
 
-public class BridgeMeterBuilder extends AbstractBridgedElement<co.elastic.apm.agent.shaded.otel.api.metrics.MeterBuilder> implements MeterBuilder {
+public class BridgeMeterBuilder extends AbstractBridgedElement<ProxyMeterBuilder> implements MeterBuilder {
 
-    public BridgeMeterBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.MeterBuilder delegate) {
+    public BridgeMeterBuilder(ProxyMeterBuilder delegate) {
         super(delegate);
     }
 

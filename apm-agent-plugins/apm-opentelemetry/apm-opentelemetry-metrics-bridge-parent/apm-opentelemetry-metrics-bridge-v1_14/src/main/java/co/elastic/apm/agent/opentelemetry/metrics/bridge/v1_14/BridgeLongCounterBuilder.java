@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongCounterBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyObservableLongMeasurement;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.AbstractBridgedElement;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.BridgeFactoryV1_14;
 import io.opentelemetry.api.metrics.DoubleCounterBuilder;
@@ -28,9 +30,9 @@ import io.opentelemetry.api.metrics.ObservableLongMeasurement;
 
 import java.util.function.Consumer;
 
-public class BridgeLongCounterBuilder extends AbstractBridgedElement<co.elastic.apm.agent.shaded.otel.api.metrics.LongCounterBuilder> implements LongCounterBuilder {
+public class BridgeLongCounterBuilder extends AbstractBridgedElement<ProxyLongCounterBuilder> implements LongCounterBuilder {
 
-    public BridgeLongCounterBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.LongCounterBuilder delegate) {
+    public BridgeLongCounterBuilder(ProxyLongCounterBuilder delegate) {
         super(delegate);
     }
 
@@ -58,12 +60,12 @@ public class BridgeLongCounterBuilder extends AbstractBridgedElement<co.elastic.
 
     @Override
     public ObservableLongCounter buildWithCallback(Consumer<ObservableLongMeasurement> callback) {
-        return BridgeFactoryV1_14.get().bridgeObservableLongCounter(delegate.buildWithCallback(new Consumer<co.elastic.apm.agent.shaded.otel.api.metrics.ObservableLongMeasurement>() {
+        return BridgeFactoryV1_14.get().bridgeObservableLongCounter(delegate.buildWithCallback(new Consumer<ProxyObservableLongMeasurement>() {
             @Override
-            public void accept(co.elastic.apm.agent.shaded.otel.api.metrics.ObservableLongMeasurement observableLongMeasurement) {
+            public void accept(ProxyObservableLongMeasurement observableLongMeasurement) {
                 callback.accept(BridgeFactoryV1_14.get().bridgeObservableLongMeasurement(observableLongMeasurement));
             }
         }));
     }
-    
+
 }

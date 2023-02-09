@@ -18,12 +18,13 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge.latest;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongGaugeBuilder;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.BridgeFactoryLatest;
 import io.opentelemetry.api.metrics.LongGaugeBuilder;
 import io.opentelemetry.api.metrics.ObservableLongMeasurement;
 
 public class BridgeLongGaugeBuilder extends co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14.BridgeLongGaugeBuilder implements LongGaugeBuilder {
-    public BridgeLongGaugeBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.LongGaugeBuilder delegate) {
+    public BridgeLongGaugeBuilder(ProxyLongGaugeBuilder delegate) {
         super(delegate);
     }
 

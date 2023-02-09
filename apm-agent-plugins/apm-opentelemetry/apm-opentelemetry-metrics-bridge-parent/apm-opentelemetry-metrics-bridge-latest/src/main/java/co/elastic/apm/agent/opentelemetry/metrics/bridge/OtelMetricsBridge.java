@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyMeterProvider;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.MeterProvider;
 
@@ -27,7 +28,7 @@ public class OtelMetricsBridge {
 
     private static BridgeFactory factory;
 
-    public static MeterProvider create(co.elastic.apm.agent.shaded.otel.api.metrics.MeterProvider delegate) {
+    public static MeterProvider create(ProxyMeterProvider delegate) {
         return getFactory().bridgeMeterProvider(delegate);
     }
 

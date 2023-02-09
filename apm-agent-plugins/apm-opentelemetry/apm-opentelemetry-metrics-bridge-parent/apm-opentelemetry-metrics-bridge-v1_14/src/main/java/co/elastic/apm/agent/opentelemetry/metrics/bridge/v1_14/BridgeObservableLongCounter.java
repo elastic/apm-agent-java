@@ -18,12 +18,13 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyObservableLongCounter;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.AbstractBridgedElement;
 import io.opentelemetry.api.metrics.ObservableLongCounter;
 
-public class BridgeObservableLongCounter extends AbstractBridgedElement<co.elastic.apm.agent.shaded.otel.api.metrics.ObservableLongCounter> implements ObservableLongCounter {
+public class BridgeObservableLongCounter extends AbstractBridgedElement<ProxyObservableLongCounter> implements ObservableLongCounter {
 
-    public BridgeObservableLongCounter(co.elastic.apm.agent.shaded.otel.api.metrics.ObservableLongCounter delegate) {
+    public BridgeObservableLongCounter(ProxyObservableLongCounter delegate) {
         super(delegate);
     }
 

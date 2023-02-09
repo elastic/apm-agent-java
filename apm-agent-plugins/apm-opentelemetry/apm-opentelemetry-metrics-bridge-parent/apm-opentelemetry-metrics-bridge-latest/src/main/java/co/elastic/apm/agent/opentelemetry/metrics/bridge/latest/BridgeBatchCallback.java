@@ -18,12 +18,13 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge.latest;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyBatchCallback;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.AbstractBridgedElement;
 import io.opentelemetry.api.metrics.BatchCallback;
 
-public class BridgeBatchCallback extends AbstractBridgedElement<co.elastic.apm.agent.shaded.otel.api.metrics.BatchCallback> implements BatchCallback {
+public class BridgeBatchCallback extends AbstractBridgedElement<ProxyBatchCallback> implements BatchCallback {
 
-    public BridgeBatchCallback(co.elastic.apm.agent.shaded.otel.api.metrics.BatchCallback delegate) {
+    public BridgeBatchCallback(ProxyBatchCallback delegate) {
         super(delegate);
     }
 

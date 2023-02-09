@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class AttributeConversionTest {
 
     @Test
-    public void checkAllAttributeKeyTypesSupported() throws Exception {
+    public void checkAllAttributeKeyTypesSupported() {
         BridgeFactoryLatest factory = new BridgeFactoryLatest();
 
         assertThat(factory.convertAttributeKey(AttributeKey.stringKey("key"))).isNotNull();
@@ -45,7 +45,7 @@ public class AttributeConversionTest {
     }
 
     @Test
-    public void testAttributeKeyCaching() throws Exception {
+    public void testAttributeKeyCaching() {
         BridgeFactoryLatest factory = new BridgeFactoryLatest();
 
         AttributeKey<?> key1 = AttributeKey.stringKey("a");
@@ -63,7 +63,7 @@ public class AttributeConversionTest {
 
 
     @Test
-    public void testAttributesCaching() throws Exception {
+    public void testAttributesCaching() {
         BridgeFactoryLatest factory = new BridgeFactoryLatest();
 
         AttributeKey<String> key1 = AttributeKey.stringKey("a");

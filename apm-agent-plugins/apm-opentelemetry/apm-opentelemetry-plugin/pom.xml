@@ -54,6 +54,14 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- The metricsdk-instrumentation is responsible for setting up the exporter -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-metricsdk-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- TODO : find a way to reduce duplication of those dependencies -->
         <dependency>
             <groupId>io.cucumber</groupId>

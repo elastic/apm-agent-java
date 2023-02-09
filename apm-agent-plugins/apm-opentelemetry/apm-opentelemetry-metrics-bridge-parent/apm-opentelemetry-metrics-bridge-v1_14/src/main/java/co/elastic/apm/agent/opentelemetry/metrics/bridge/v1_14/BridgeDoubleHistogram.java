@@ -18,16 +18,17 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleHistogram;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.AbstractBridgedElement;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.BridgeFactoryV1_14;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.DoubleHistogram;
 import io.opentelemetry.context.Context;
 
-public class BridgeDoubleHistogram extends AbstractBridgedElement<co.elastic.apm.agent.shaded.otel.api.metrics.DoubleHistogram> implements DoubleHistogram {
+public class BridgeDoubleHistogram extends AbstractBridgedElement<ProxyDoubleHistogram> implements DoubleHistogram {
 
 
-    public BridgeDoubleHistogram(co.elastic.apm.agent.shaded.otel.api.metrics.DoubleHistogram delegate) {
+    public BridgeDoubleHistogram(ProxyDoubleHistogram delegate) {
         super(delegate);
     }
 

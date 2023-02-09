@@ -20,7 +20,6 @@ package co.elastic.apm.agent.otelmetricsdk;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.otelmetricexport.ElasticOtelMetricsExporter;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -52,6 +51,7 @@ public class SdkMeterProviderBuilderInstrumentation extends ElasticApmInstrument
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
+        //These groups need to be kept in sync with the if-condition in ElasticOpenTelemetryWithMetrics
         return Arrays.asList("opentelemetry", "opentelemetry-metrics", "experimental");
     }
 

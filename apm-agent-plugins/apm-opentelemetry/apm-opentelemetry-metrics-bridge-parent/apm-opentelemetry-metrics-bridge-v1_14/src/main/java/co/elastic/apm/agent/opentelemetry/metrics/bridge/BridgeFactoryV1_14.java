@@ -18,6 +18,34 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyAttributeKey;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyAttributes;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyAttributesBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleCounter;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleCounterBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleGaugeBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleHistogram;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleHistogramBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleUpDownCounter;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleUpDownCounterBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongCounter;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongCounterBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongGaugeBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongHistogram;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongHistogramBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongUpDownCounter;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongUpDownCounterBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyMeter;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyMeterBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyMeterProvider;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyObservableDoubleCounter;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyObservableDoubleGauge;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyObservableDoubleMeasurement;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyObservableDoubleUpDownCounter;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyObservableLongCounter;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyObservableLongGauge;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyObservableLongMeasurement;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyObservableLongUpDownCounter;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14.BridgeDoubleCounter;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14.BridgeDoubleCounterBuilder;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14.BridgeDoubleGaugeBuilder;
@@ -45,9 +73,8 @@ import co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14.BridgeObservableL
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14.BridgeObservableLongUpDownCounter;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
-import co.elastic.apm.agent.shaded.otel.api.common.Attributes;
-import co.elastic.apm.agent.shaded.otel.api.common.AttributesBuilder;
 import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.DoubleCounter;
 import io.opentelemetry.api.metrics.DoubleCounterBuilder;
 import io.opentelemetry.api.metrics.DoubleGaugeBuilder;
@@ -81,8 +108,8 @@ public class BridgeFactoryV1_14 implements BridgeFactory {
 
     private static volatile BridgeFactoryV1_14 instance;
 
-    private final WeakMap<AttributeKey<?>, co.elastic.apm.agent.shaded.otel.api.common.AttributeKey<?>> convertedAttributeKeys;
-    private final WeakMap<io.opentelemetry.api.common.Attributes, Attributes> convertedAttributes;
+    private final WeakMap<AttributeKey<?>, ProxyAttributeKey<?>> convertedAttributeKeys;
+    private final WeakMap<io.opentelemetry.api.common.Attributes, ProxyAttributes> convertedAttributes;
 
     public BridgeFactoryV1_14() {
         convertedAttributeKeys = WeakConcurrent.buildMap();
@@ -103,8 +130,8 @@ public class BridgeFactoryV1_14 implements BridgeFactory {
         instance = instanceToActivate;
     }
 
-    public final Attributes convertAttributes(io.opentelemetry.api.common.Attributes attributes) {
-        Attributes cached = convertedAttributes.get(attributes);
+    public final ProxyAttributes convertAttributes(Attributes attributes) {
+        ProxyAttributes cached = convertedAttributes.get(attributes);
         if (cached == null) {
             cached = doConvertAttributes(attributes);
             if (cached != null) {
@@ -115,12 +142,12 @@ public class BridgeFactoryV1_14 implements BridgeFactory {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    protected Attributes doConvertAttributes(io.opentelemetry.api.common.Attributes attributes) {
-        AttributesBuilder builder = Attributes.builder();
+    protected ProxyAttributes doConvertAttributes(Attributes attributes) {
+        ProxyAttributesBuilder builder = ProxyAttributes.builder();
         for (Map.Entry<AttributeKey<?>, Object> attrib : attributes.asMap().entrySet()) {
             AttributeKey<?> key = attrib.getKey();
             Object val = attrib.getValue();
-            co.elastic.apm.agent.shaded.otel.api.common.AttributeKey bridgedKey = convertAttributeKey(key);
+            ProxyAttributeKey bridgedKey = convertAttributeKey(key);
             if (bridgedKey != null) {
                 builder.put(bridgedKey, val);
             }
@@ -129,8 +156,8 @@ public class BridgeFactoryV1_14 implements BridgeFactory {
     }
 
     @Nullable
-    public co.elastic.apm.agent.shaded.otel.api.common.AttributeKey<?> convertAttributeKey(AttributeKey<?> key) {
-        co.elastic.apm.agent.shaded.otel.api.common.AttributeKey<?> cached = convertedAttributeKeys.get(key);
+    public ProxyAttributeKey<?> convertAttributeKey(AttributeKey<?> key) {
+        ProxyAttributeKey<?> cached = convertedAttributeKeys.get(key);
         if (cached == null) {
             cached = doConvertAttributeKey(key);
             if (cached != null) {
@@ -141,126 +168,126 @@ public class BridgeFactoryV1_14 implements BridgeFactory {
     }
 
     @Nullable
-    protected co.elastic.apm.agent.shaded.otel.api.common.AttributeKey<?> doConvertAttributeKey(AttributeKey<?> key) {
+    protected ProxyAttributeKey<?> doConvertAttributeKey(AttributeKey<?> key) {
         switch (key.getType()) {
             case STRING:
-                return co.elastic.apm.agent.shaded.otel.api.common.AttributeKey.stringKey(key.getKey());
+                return ProxyAttributeKey.stringKey(key.getKey());
             case BOOLEAN:
-                return co.elastic.apm.agent.shaded.otel.api.common.AttributeKey.booleanKey(key.getKey());
+                return ProxyAttributeKey.booleanKey(key.getKey());
             case LONG:
-                return co.elastic.apm.agent.shaded.otel.api.common.AttributeKey.longKey(key.getKey());
+                return ProxyAttributeKey.longKey(key.getKey());
             case DOUBLE:
-                return co.elastic.apm.agent.shaded.otel.api.common.AttributeKey.doubleKey(key.getKey());
+                return ProxyAttributeKey.doubleKey(key.getKey());
             case STRING_ARRAY:
-                return co.elastic.apm.agent.shaded.otel.api.common.AttributeKey.stringArrayKey(key.getKey());
+                return ProxyAttributeKey.stringArrayKey(key.getKey());
             case BOOLEAN_ARRAY:
-                return co.elastic.apm.agent.shaded.otel.api.common.AttributeKey.booleanArrayKey(key.getKey());
+                return ProxyAttributeKey.booleanArrayKey(key.getKey());
             case LONG_ARRAY:
-                return co.elastic.apm.agent.shaded.otel.api.common.AttributeKey.longArrayKey(key.getKey());
+                return ProxyAttributeKey.longArrayKey(key.getKey());
             case DOUBLE_ARRAY:
-                return co.elastic.apm.agent.shaded.otel.api.common.AttributeKey.doubleArrayKey(key.getKey());
+                return ProxyAttributeKey.doubleArrayKey(key.getKey());
         }
         return null;
     }
 
     @Override
-    public MeterProvider bridgeMeterProvider(co.elastic.apm.agent.shaded.otel.api.metrics.MeterProvider delegate) {
+    public MeterProvider bridgeMeterProvider(ProxyMeterProvider delegate) {
         return new BridgeMeterProvider(delegate);
     }
 
-    public ObservableDoubleMeasurement bridgeObservableDoubleMeasurement(co.elastic.apm.agent.shaded.otel.api.metrics.ObservableDoubleMeasurement delegate) {
+    public ObservableDoubleMeasurement bridgeObservableDoubleMeasurement(ProxyObservableDoubleMeasurement delegate) {
         return new BridgeObservableDoubleMeasurement(delegate);
     }
 
-    public DoubleCounter bridgeDoubleCounter(co.elastic.apm.agent.shaded.otel.api.metrics.DoubleCounter delegate) {
+    public DoubleCounter bridgeDoubleCounter(ProxyDoubleCounter delegate) {
         return new BridgeDoubleCounter(delegate);
     }
 
-    public ObservableDoubleCounter bridgeObservableDoubleCounter(co.elastic.apm.agent.shaded.otel.api.metrics.ObservableDoubleCounter delegate) {
+    public ObservableDoubleCounter bridgeObservableDoubleCounter(ProxyObservableDoubleCounter delegate) {
         return new BridgeObservableDoubleCounter(delegate);
     }
 
-    public LongGaugeBuilder bridgeLongGaugeBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.LongGaugeBuilder delegate) {
+    public LongGaugeBuilder bridgeLongGaugeBuilder(ProxyLongGaugeBuilder delegate) {
         return new BridgeLongGaugeBuilder(delegate);
     }
 
-    public ObservableDoubleGauge bridgeObservableDoubleGauge(co.elastic.apm.agent.shaded.otel.api.metrics.ObservableDoubleGauge delegate) {
+    public ObservableDoubleGauge bridgeObservableDoubleGauge(ProxyObservableDoubleGauge delegate) {
         return new BridgeObservableDoubleGauge(delegate);
     }
 
-    public LongHistogramBuilder bridgeLongHistogramBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.LongHistogramBuilder delegate) {
+    public LongHistogramBuilder bridgeLongHistogramBuilder(ProxyLongHistogramBuilder delegate) {
         return new BridgeLongHistogramBuilder(delegate);
     }
 
-    public DoubleHistogram bridgeDoubleHistogram(co.elastic.apm.agent.shaded.otel.api.metrics.DoubleHistogram delegate) {
+    public DoubleHistogram bridgeDoubleHistogram(ProxyDoubleHistogram delegate) {
         return new BridgeDoubleHistogram(delegate);
     }
 
-    public DoubleUpDownCounter bridgeDoubleUpDownCounter(co.elastic.apm.agent.shaded.otel.api.metrics.DoubleUpDownCounter delegate) {
+    public DoubleUpDownCounter bridgeDoubleUpDownCounter(ProxyDoubleUpDownCounter delegate) {
         return new BridgeDoubleUpDownCounter(delegate);
     }
 
-    public ObservableDoubleUpDownCounter bridgeObservableDoubleUpDownCounter(co.elastic.apm.agent.shaded.otel.api.metrics.ObservableDoubleUpDownCounter delegate) {
+    public ObservableDoubleUpDownCounter bridgeObservableDoubleUpDownCounter(ProxyObservableDoubleUpDownCounter delegate) {
         return new BridgeObservableDoubleUpDownCounter(delegate);
     }
 
-    public DoubleCounterBuilder bridgeDoubleCounterBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.DoubleCounterBuilder delegate) {
+    public DoubleCounterBuilder bridgeDoubleCounterBuilder(ProxyDoubleCounterBuilder delegate) {
         return new BridgeDoubleCounterBuilder(delegate);
     }
 
-    public LongCounter bridgeLongCounter(co.elastic.apm.agent.shaded.otel.api.metrics.LongCounter delegate) {
+    public LongCounter bridgeLongCounter(ProxyLongCounter delegate) {
         return new BridgeLongCounter(delegate);
     }
 
-    public ObservableLongCounter bridgeObservableLongCounter(co.elastic.apm.agent.shaded.otel.api.metrics.ObservableLongCounter delegate) {
+    public ObservableLongCounter bridgeObservableLongCounter(ProxyObservableLongCounter delegate) {
         return new BridgeObservableLongCounter(delegate);
     }
 
-    public ObservableLongMeasurement bridgeObservableLongMeasurement(co.elastic.apm.agent.shaded.otel.api.metrics.ObservableLongMeasurement delegate) {
+    public ObservableLongMeasurement bridgeObservableLongMeasurement(ProxyObservableLongMeasurement delegate) {
         return new BridgeObservableLongMeasurement(delegate);
     }
 
-    public ObservableLongGauge bridgeObservableLongGauge(co.elastic.apm.agent.shaded.otel.api.metrics.ObservableLongGauge delegate) {
+    public ObservableLongGauge bridgeObservableLongGauge(ProxyObservableLongGauge delegate) {
         return new BridgeObservableLongGauge(delegate);
     }
 
-    public LongHistogram bridgeLongHistogram(co.elastic.apm.agent.shaded.otel.api.metrics.LongHistogram delegate) {
+    public LongHistogram bridgeLongHistogram(ProxyLongHistogram delegate) {
         return new BridgeLongHistogram(delegate);
     }
 
-    public DoubleUpDownCounterBuilder bridgeDoubleUpDownCounterBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.DoubleUpDownCounterBuilder delegate) {
+    public DoubleUpDownCounterBuilder bridgeDoubleUpDownCounterBuilder(ProxyDoubleUpDownCounterBuilder delegate) {
         return new BridgeDoubleUpDownCounterBuilder(delegate);
     }
 
-    public LongUpDownCounter bridgeLongUpDownCounter(co.elastic.apm.agent.shaded.otel.api.metrics.LongUpDownCounter delegate) {
+    public LongUpDownCounter bridgeLongUpDownCounter(ProxyLongUpDownCounter delegate) {
         return new BridgeLongUpDownCounter(delegate);
     }
 
-    public ObservableLongUpDownCounter bridgeObservableLongUpDownCounter(co.elastic.apm.agent.shaded.otel.api.metrics.ObservableLongUpDownCounter delegate) {
+    public ObservableLongUpDownCounter bridgeObservableLongUpDownCounter(ProxyObservableLongUpDownCounter delegate) {
         return new BridgeObservableLongUpDownCounter(delegate);
     }
 
-    public LongCounterBuilder bridgeLongCounterBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.LongCounterBuilder delegate) {
+    public LongCounterBuilder bridgeLongCounterBuilder(ProxyLongCounterBuilder delegate) {
         return new BridgeLongCounterBuilder(delegate);
     }
 
-    public LongUpDownCounterBuilder bridgeLongUpDownCounterBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.LongUpDownCounterBuilder delegate) {
+    public LongUpDownCounterBuilder bridgeLongUpDownCounterBuilder(ProxyLongUpDownCounterBuilder delegate) {
         return new BridgeLongUpDownCounterBuilder(delegate);
     }
 
-    public DoubleHistogramBuilder bridgeDoubleHistogramBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.DoubleHistogramBuilder delegate) {
+    public DoubleHistogramBuilder bridgeDoubleHistogramBuilder(ProxyDoubleHistogramBuilder delegate) {
         return new BridgeDoubleHistogramBuilder(delegate);
     }
 
-    public DoubleGaugeBuilder bridgeDoubleGaugeBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.DoubleGaugeBuilder delegate) {
+    public DoubleGaugeBuilder bridgeDoubleGaugeBuilder(ProxyDoubleGaugeBuilder delegate) {
         return new BridgeDoubleGaugeBuilder(delegate);
     }
 
-    public Meter bridgeMeter(co.elastic.apm.agent.shaded.otel.api.metrics.Meter delegate) {
+    public Meter bridgeMeter(ProxyMeter delegate) {
         return new BridgeMeter(delegate);
     }
 
-    public MeterBuilder bridgeMeterBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.MeterBuilder delegate) {
+    public MeterBuilder bridgeMeterBuilder(ProxyMeterBuilder delegate) {
         return new BridgeMeterBuilder(delegate);
     }
 

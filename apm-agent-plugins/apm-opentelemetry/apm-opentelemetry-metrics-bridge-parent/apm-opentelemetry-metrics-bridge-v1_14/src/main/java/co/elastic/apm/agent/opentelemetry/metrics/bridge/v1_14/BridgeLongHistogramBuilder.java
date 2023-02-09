@@ -18,14 +18,15 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongHistogramBuilder;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.AbstractBridgedElement;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.BridgeFactoryV1_14;
 import io.opentelemetry.api.metrics.LongHistogram;
 import io.opentelemetry.api.metrics.LongHistogramBuilder;
 
-public class BridgeLongHistogramBuilder extends AbstractBridgedElement<co.elastic.apm.agent.shaded.otel.api.metrics.LongHistogramBuilder> implements LongHistogramBuilder {
+public class BridgeLongHistogramBuilder extends AbstractBridgedElement<ProxyLongHistogramBuilder> implements LongHistogramBuilder {
 
-    public BridgeLongHistogramBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.LongHistogramBuilder delegate) {
+    public BridgeLongHistogramBuilder(ProxyLongHistogramBuilder delegate) {
         super(delegate);
     }
 

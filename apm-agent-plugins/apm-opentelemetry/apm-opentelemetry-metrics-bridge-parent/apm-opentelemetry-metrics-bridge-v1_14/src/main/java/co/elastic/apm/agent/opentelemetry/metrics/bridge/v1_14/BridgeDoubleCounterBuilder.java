@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleCounterBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyObservableDoubleMeasurement;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.AbstractBridgedElement;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.BridgeFactoryV1_14;
 import io.opentelemetry.api.metrics.DoubleCounter;
@@ -27,9 +29,9 @@ import io.opentelemetry.api.metrics.ObservableDoubleMeasurement;
 
 import java.util.function.Consumer;
 
-public class BridgeDoubleCounterBuilder extends AbstractBridgedElement<co.elastic.apm.agent.shaded.otel.api.metrics.DoubleCounterBuilder> implements DoubleCounterBuilder {
+public class BridgeDoubleCounterBuilder extends AbstractBridgedElement<ProxyDoubleCounterBuilder> implements DoubleCounterBuilder {
 
-    public BridgeDoubleCounterBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.DoubleCounterBuilder delegate) {
+    public BridgeDoubleCounterBuilder(ProxyDoubleCounterBuilder delegate) {
         super(delegate);
     }
 
@@ -52,9 +54,9 @@ public class BridgeDoubleCounterBuilder extends AbstractBridgedElement<co.elasti
 
     @Override
     public ObservableDoubleCounter buildWithCallback(Consumer<ObservableDoubleMeasurement> callback) {
-        return BridgeFactoryV1_14.get().bridgeObservableDoubleCounter(delegate.buildWithCallback(new Consumer<co.elastic.apm.agent.shaded.otel.api.metrics.ObservableDoubleMeasurement>() {
+        return BridgeFactoryV1_14.get().bridgeObservableDoubleCounter(delegate.buildWithCallback(new Consumer<ProxyObservableDoubleMeasurement>() {
             @Override
-            public void accept(co.elastic.apm.agent.shaded.otel.api.metrics.ObservableDoubleMeasurement measurement) {
+            public void accept(ProxyObservableDoubleMeasurement measurement) {
                 callback.accept(BridgeFactoryV1_14.get().bridgeObservableDoubleMeasurement(measurement));
             }
         }));

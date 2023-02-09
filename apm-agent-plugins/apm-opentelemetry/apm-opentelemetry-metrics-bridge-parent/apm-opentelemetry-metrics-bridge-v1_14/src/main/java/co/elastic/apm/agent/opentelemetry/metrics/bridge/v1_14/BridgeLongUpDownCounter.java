@@ -18,15 +18,16 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongUpDownCounter;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.AbstractBridgedElement;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.BridgeFactoryV1_14;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.LongUpDownCounter;
 import io.opentelemetry.context.Context;
 
-public class BridgeLongUpDownCounter extends AbstractBridgedElement<co.elastic.apm.agent.shaded.otel.api.metrics.LongUpDownCounter> implements LongUpDownCounter {
+public class BridgeLongUpDownCounter extends AbstractBridgedElement<ProxyLongUpDownCounter> implements LongUpDownCounter {
 
-    public BridgeLongUpDownCounter(co.elastic.apm.agent.shaded.otel.api.metrics.LongUpDownCounter delegate) {
+    public BridgeLongUpDownCounter(ProxyLongUpDownCounter delegate) {
         super(delegate);
     }
 

@@ -21,11 +21,6 @@
             <artifactId>opentelemetry-sdk-metrics</artifactId>
             <version>${version.opentelemetry}</version>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-opentelemetry-metrics-exporter</artifactId>
-            <version>${project.version}</version>
-        </dependency>
     </dependencies>
 
     <build>
@@ -33,7 +28,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.4.1</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -44,21 +38,12 @@
                             <artifactSet>
                                 <includes>
                                     <include>io.opentelemetry:*</include>
-                                    <include>co.elastic.apm:apm-opentelemetry-metrics-exporter</include>
                                 </includes>
                             </artifactSet>
                             <relocations>
                                 <relocation>
-                                    <pattern>co.elastic.apm.agent.otelmetricexport</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.otelmetricexport</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>io.opentelemetry</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.otel</shadedPattern>
-                                </relocation>
-                                <relocation>
                                     <pattern>java.util.logging.Logger</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.java.util.logging.Logger</shadedPattern>
+                                    <shadedPattern>co.elastic.apm.agent.embeddedotel.logging.Logger</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>

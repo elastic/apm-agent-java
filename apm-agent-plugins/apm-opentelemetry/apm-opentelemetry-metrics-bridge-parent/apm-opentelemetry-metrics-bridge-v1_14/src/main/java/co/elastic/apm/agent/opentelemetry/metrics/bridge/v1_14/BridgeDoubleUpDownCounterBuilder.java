@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleUpDownCounterBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyObservableDoubleMeasurement;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.AbstractBridgedElement;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.BridgeFactoryV1_14;
 import io.opentelemetry.api.metrics.DoubleUpDownCounter;
@@ -27,9 +29,9 @@ import io.opentelemetry.api.metrics.ObservableDoubleUpDownCounter;
 
 import java.util.function.Consumer;
 
-public class BridgeDoubleUpDownCounterBuilder extends AbstractBridgedElement<co.elastic.apm.agent.shaded.otel.api.metrics.DoubleUpDownCounterBuilder> implements DoubleUpDownCounterBuilder {
+public class BridgeDoubleUpDownCounterBuilder extends AbstractBridgedElement<ProxyDoubleUpDownCounterBuilder> implements DoubleUpDownCounterBuilder {
 
-    public BridgeDoubleUpDownCounterBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.DoubleUpDownCounterBuilder delegate) {
+    public BridgeDoubleUpDownCounterBuilder(ProxyDoubleUpDownCounterBuilder delegate) {
         super(delegate);
     }
 
@@ -52,9 +54,9 @@ public class BridgeDoubleUpDownCounterBuilder extends AbstractBridgedElement<co.
 
     @Override
     public ObservableDoubleUpDownCounter buildWithCallback(Consumer<ObservableDoubleMeasurement> callback) {
-        return BridgeFactoryV1_14.get().bridgeObservableDoubleUpDownCounter(delegate.buildWithCallback(new Consumer<co.elastic.apm.agent.shaded.otel.api.metrics.ObservableDoubleMeasurement>() {
+        return BridgeFactoryV1_14.get().bridgeObservableDoubleUpDownCounter(delegate.buildWithCallback(new Consumer<ProxyObservableDoubleMeasurement>() {
             @Override
-            public void accept(co.elastic.apm.agent.shaded.otel.api.metrics.ObservableDoubleMeasurement observableDoubleMeasurement) {
+            public void accept(ProxyObservableDoubleMeasurement observableDoubleMeasurement) {
                 callback.accept(BridgeFactoryV1_14.get().bridgeObservableDoubleMeasurement(observableDoubleMeasurement));
             }
         }));

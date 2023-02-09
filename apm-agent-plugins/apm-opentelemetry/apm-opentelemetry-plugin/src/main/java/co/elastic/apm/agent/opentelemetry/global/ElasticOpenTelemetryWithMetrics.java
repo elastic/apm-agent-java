@@ -18,13 +18,17 @@
  */
 package co.elastic.apm.agent.opentelemetry.global;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.embeddedotel.EmbeddedSdkManager;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyMeterProvider;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.OtelMetricsBridge;
-import co.elastic.apm.agent.otelembeddedsdk.EmbeddedSdkManager;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.metrics.MeterProvider;
+
+import java.util.Arrays;
 
 public class ElasticOpenTelemetryWithMetrics extends ElasticOpenTelemetry {
 
@@ -35,15 +39,21 @@ public class ElasticOpenTelemetryWithMetrics extends ElasticOpenTelemetry {
 
     public ElasticOpenTelemetryWithMetrics(OpenTelemetry delegate, ElasticApmTracer tracer) {
         super(tracer);
+        CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
         MeterProvider original = delegate.getMeterProvider();
         if (NOOP_METERPROVIDER_CLASS.isInstance(original)) {
-            logger.debug("No user-provided global OpenTelemetry MetricProvider detected. The agent will provide it's own.");
-            co.elastic.apm.agent.shaded.otel.api.metrics.MeterProvider shadedSdk =
-                tracer.getLifecycleListener(EmbeddedSdkManager.class).getOrStartSdk();
-            if (shadedSdk != null) {
-                meterProvider = OtelMetricsBridge.create(shadedSdk);
+            //This check needs to be kept in sync with the groups of SdkMeterProviderBuilderInstrumentation
+            if (coreConfig.isInstrumentationEnabled(Arrays.asList("opentelemetry-metrics", "experimental"))) {
+                logger.debug("No user-provided global OpenTelemetry MetricProvider detected. The agent will provide it's own.");
+                ProxyMeterProvider shadedSdk = tracer.getLifecycleListener(EmbeddedSdkManager.class).getOrStartSdk();
+                if (shadedSdk != null) {
+                    meterProvider = OtelMetricsBridge.create(shadedSdk);
+                } else {
+                    logger.error("Could not start embedded OpenTelemetry metrics sdk");
+                    meterProvider = original;
+                }
             } else {
-                logger.error("Could not start embedded OpenTelemetry metrics sdk");
+                logger.debug("No user provided OpenTelemetry MetricProvider found, but metric instrumentation is disabled", original.getClass().getName());
                 meterProvider = original;
             }
         } else {

@@ -18,13 +18,14 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge.latest;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleCounterBuilder;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.BridgeFactoryLatest;
 import io.opentelemetry.api.metrics.DoubleCounterBuilder;
 import io.opentelemetry.api.metrics.ObservableDoubleMeasurement;
 
 public class BridgeDoubleCounterBuilder extends co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14.BridgeDoubleCounterBuilder implements DoubleCounterBuilder {
 
-    public BridgeDoubleCounterBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.DoubleCounterBuilder delegate) {
+    public BridgeDoubleCounterBuilder(ProxyDoubleCounterBuilder delegate) {
         super(delegate);
     }
 

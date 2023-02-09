@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongGaugeBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyObservableLongMeasurement;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.AbstractBridgedElement;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.BridgeFactoryV1_14;
 import io.opentelemetry.api.metrics.LongGaugeBuilder;
@@ -26,9 +28,9 @@ import io.opentelemetry.api.metrics.ObservableLongMeasurement;
 
 import java.util.function.Consumer;
 
-public class BridgeLongGaugeBuilder extends AbstractBridgedElement<co.elastic.apm.agent.shaded.otel.api.metrics.LongGaugeBuilder> implements LongGaugeBuilder {
+public class BridgeLongGaugeBuilder extends AbstractBridgedElement<ProxyLongGaugeBuilder> implements LongGaugeBuilder {
 
-    public BridgeLongGaugeBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.LongGaugeBuilder delegate) {
+    public BridgeLongGaugeBuilder(ProxyLongGaugeBuilder delegate) {
         super(delegate);
     }
 
@@ -46,9 +48,9 @@ public class BridgeLongGaugeBuilder extends AbstractBridgedElement<co.elastic.ap
 
     @Override
     public ObservableLongGauge buildWithCallback(Consumer<ObservableLongMeasurement> callback) {
-        return BridgeFactoryV1_14.get().bridgeObservableLongGauge(delegate.buildWithCallback(new Consumer<co.elastic.apm.agent.shaded.otel.api.metrics.ObservableLongMeasurement>() {
+        return BridgeFactoryV1_14.get().bridgeObservableLongGauge(delegate.buildWithCallback(new Consumer<ProxyObservableLongMeasurement>() {
             @Override
-            public void accept(co.elastic.apm.agent.shaded.otel.api.metrics.ObservableLongMeasurement observableLongMeasurement) {
+            public void accept(ProxyObservableLongMeasurement observableLongMeasurement) {
                 callback.accept(BridgeFactoryV1_14.get().bridgeObservableLongMeasurement(observableLongMeasurement));
             }
         }));

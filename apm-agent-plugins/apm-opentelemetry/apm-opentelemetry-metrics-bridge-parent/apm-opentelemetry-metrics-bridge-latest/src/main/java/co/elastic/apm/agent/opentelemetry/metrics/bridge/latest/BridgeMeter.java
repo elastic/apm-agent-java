@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge.latest;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyMeter;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyObservableMeasurement;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.BridgeFactoryLatest;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.BridgedElement;
 import io.opentelemetry.api.metrics.BatchCallback;
@@ -26,7 +28,7 @@ import io.opentelemetry.api.metrics.ObservableMeasurement;
 
 public class BridgeMeter extends co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14.BridgeMeter implements Meter {
 
-    public BridgeMeter(co.elastic.apm.agent.shaded.otel.api.metrics.Meter delegate) {
+    public BridgeMeter(ProxyMeter delegate) {
         super(delegate);
     }
 
@@ -37,17 +39,17 @@ public class BridgeMeter extends co.elastic.apm.agent.opentelemetry.metrics.brid
         if (!(observableMeasurement instanceof BridgedElement)) {
             throw new IllegalStateException("Provided observable measurement is from a different SDK!");
         }
-        co.elastic.apm.agent.shaded.otel.api.metrics.ObservableMeasurement m1 =
-            ((BridgedElement<? extends co.elastic.apm.agent.shaded.otel.api.metrics.ObservableMeasurement>) observableMeasurement).unwrapBridge();
+        ProxyObservableMeasurement m1 =
+            ((BridgedElement<? extends ProxyObservableMeasurement>) observableMeasurement).unwrapBridge();
 
-        co.elastic.apm.agent.shaded.otel.api.metrics.ObservableMeasurement[] m2
-            = new co.elastic.apm.agent.shaded.otel.api.metrics.ObservableMeasurement[additionalMeasurements.length];
+        ProxyObservableMeasurement[] m2
+            = new ProxyObservableMeasurement[additionalMeasurements.length];
         for (int i = 0; i < additionalMeasurements.length; i++) {
             ObservableMeasurement measurement = additionalMeasurements[i];
             if (!(measurement instanceof BridgedElement)) {
                 throw new IllegalStateException("Provided observable measurement is from a different SDK!");
             }
-            m2[i] = ((BridgedElement<? extends co.elastic.apm.agent.shaded.otel.api.metrics.ObservableMeasurement>) measurement).unwrapBridge();
+            m2[i] = ((BridgedElement<? extends ProxyObservableMeasurement>) measurement).unwrapBridge();
         }
 
         return BridgeFactoryLatest.get().bridgeBatchCallback(delegate.batchCallback(callback, m1, m2));

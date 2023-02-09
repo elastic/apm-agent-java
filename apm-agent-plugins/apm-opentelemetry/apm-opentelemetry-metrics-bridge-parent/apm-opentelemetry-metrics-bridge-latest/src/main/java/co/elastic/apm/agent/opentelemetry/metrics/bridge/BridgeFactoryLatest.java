@@ -18,6 +18,14 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics.bridge;
 
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyBatchCallback;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleCounterBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleGaugeBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleUpDownCounterBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongCounterBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongGaugeBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongUpDownCounterBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyMeter;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.latest.BridgeBatchCallback;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.latest.BridgeDoubleCounterBuilder;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.latest.BridgeDoubleGaugeBuilder;
@@ -54,41 +62,41 @@ public class BridgeFactoryLatest extends BridgeFactoryV1_14 {
     }
 
     @Override
-    public Meter bridgeMeter(co.elastic.apm.agent.shaded.otel.api.metrics.Meter delegate) {
+    public Meter bridgeMeter(ProxyMeter delegate) {
         return new BridgeMeter(delegate);
     }
 
     @Override
-    public LongGaugeBuilder bridgeLongGaugeBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.LongGaugeBuilder delegate) {
+    public LongGaugeBuilder bridgeLongGaugeBuilder(ProxyLongGaugeBuilder delegate) {
         return new BridgeLongGaugeBuilder(delegate);
     }
 
     @Override
-    public DoubleCounterBuilder bridgeDoubleCounterBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.DoubleCounterBuilder delegate) {
+    public DoubleCounterBuilder bridgeDoubleCounterBuilder(ProxyDoubleCounterBuilder delegate) {
         return new BridgeDoubleCounterBuilder(delegate);
     }
 
     @Override
-    public DoubleUpDownCounterBuilder bridgeDoubleUpDownCounterBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.DoubleUpDownCounterBuilder delegate) {
+    public DoubleUpDownCounterBuilder bridgeDoubleUpDownCounterBuilder(ProxyDoubleUpDownCounterBuilder delegate) {
         return new BridgeDoubleUpDownCounterBuilder(delegate);
     }
 
     @Override
-    public LongCounterBuilder bridgeLongCounterBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.LongCounterBuilder delegate) {
+    public LongCounterBuilder bridgeLongCounterBuilder(ProxyLongCounterBuilder delegate) {
         return new BridgeLongCounterBuilder(delegate);
     }
 
     @Override
-    public LongUpDownCounterBuilder bridgeLongUpDownCounterBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.LongUpDownCounterBuilder delegate) {
+    public LongUpDownCounterBuilder bridgeLongUpDownCounterBuilder(ProxyLongUpDownCounterBuilder delegate) {
         return new BridgeLongUpDownCounterBuilder(delegate);
     }
 
     @Override
-    public DoubleGaugeBuilder bridgeDoubleGaugeBuilder(co.elastic.apm.agent.shaded.otel.api.metrics.DoubleGaugeBuilder delegate) {
+    public DoubleGaugeBuilder bridgeDoubleGaugeBuilder(ProxyDoubleGaugeBuilder delegate) {
         return new BridgeDoubleGaugeBuilder(delegate);
     }
 
-    public BatchCallback bridgeBatchCallback(co.elastic.apm.agent.shaded.otel.api.metrics.BatchCallback delegate) {
+    public BatchCallback bridgeBatchCallback(ProxyBatchCallback delegate) {
         return new BridgeBatchCallback(delegate);
     }
 }
