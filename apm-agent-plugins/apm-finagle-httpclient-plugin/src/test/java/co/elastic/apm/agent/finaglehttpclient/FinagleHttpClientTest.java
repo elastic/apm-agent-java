@@ -56,7 +56,7 @@ public class FinagleHttpClientTest extends AbstractHttpClientInstrumentationTest
             service.close();
         }
 
-        verifyHttpSpan("localhost", "/", 200, true, true);
+        verifyHttpSpan("localhost", "/", 200, true, true, true);
     }
 
     @Test
@@ -72,7 +72,7 @@ public class FinagleHttpClientTest extends AbstractHttpClientInstrumentationTest
             service.close();
         }
 
-        Span span = verifyHttpSpan("sub-host", "/", 0, false, true);
+        Span span = verifyHttpSpan("sub-host", "/", 0, false, true, false);
         assertThat(reporter.getErrors()).hasSize(1);
         ErrorCapture error = reporter.getFirstError();
         assertThat(error.getTraceContext().getTraceId()).isEqualTo(span.getTraceContext().getTraceId());

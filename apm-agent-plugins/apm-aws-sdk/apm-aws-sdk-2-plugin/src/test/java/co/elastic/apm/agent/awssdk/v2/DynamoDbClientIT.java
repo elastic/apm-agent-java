@@ -42,6 +42,7 @@ import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
 import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
 
+import javax.annotation.Nullable;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
@@ -196,6 +197,17 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
     @Override
     protected String type() {
         return "db";
+    }
+
+    @Override
+    protected String subtype() {
+        return "dynamodb";
+    }
+
+    @Nullable
+    @Override
+    protected String expectedTargetName(@Nullable String entityName) {
+        return localstack.getRegion();
     }
 
     @Override

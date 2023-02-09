@@ -23,7 +23,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.AbstractContext;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recyclable, ElasticContext<T> {
     public static final int PRIO_USER_SUPPLIED = 1000;
@@ -117,7 +116,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     protected volatile boolean sync = true;
 
-    protected final AtomicReference<Span> bufferedSpan = new AtomicReference<>();
+    protected final SpanAtomicReference<Span> bufferedSpan = new SpanAtomicReference<>();
 
     // Span links handling
     public static final int MAX_ALLOWED_SPAN_LINKS = 1000;
@@ -483,7 +482,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         outcome = null;
         userOutcome = null;
         hasCapturedExceptions = false;
-        bufferedSpan.set(null);
+        bufferedSpan.reset();
         recycleSpanLinks();
         otelKind = null;
         otelAttributes.clear();
@@ -597,10 +596,14 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
             beforeEnd(epochMicros);
             this.finished = true;
-            Span buffered = bufferedSpan.get();
+            Span buffered = bufferedSpan.incrementReferencesAndGet();
             if (buffered != null) {
-                if (bufferedSpan.compareAndSet(buffered, null)) {
-                    this.tracer.endSpan(buffered);
+                try {
+                    if (bufferedSpan.compareAndSet(buffered, null)) {
+                        this.tracer.endSpan(buffered);
+                    }
+                } finally {
+                    buffered.decrementReferences();
                 }
             }
             afterEnd();

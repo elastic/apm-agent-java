@@ -81,11 +81,12 @@ Similarly, Java 7 versions before update 60 are not supported as they are buggy 
 Here is an example of the message displayed when this happens.
 ```
 Failed to start agent - JVM version not supported: 1.8.0_31 Java HotSpot(TM) 64-Bit Server VM 25.31-b07.
-To override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property to 'true'.
+To override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property,
+or the `ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS` environment variable, to 'true'.
 ```
 
-As this message states, you can disable this check if required by adding `-Delastic.apm.disable_bootstrap_checks` to
-the JVM arguments.
+As this message states, you can disable this check if required by adding `-Delastic.apm.disable_bootstrap_checks=true` to
+the JVM arguments, or setting `ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS=true` for the JVM environment variables.
 
 
 [float]
@@ -379,6 +380,10 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |
 | 1.35.0
 
+|LdapClient
+|
+|
+| 1.36.0
 |===
 
 
@@ -545,22 +550,18 @@ NOTE: only classes from the quartz-jobs dependency will be instrumented automati
 
 There are multiple log-related features in the agent and their support depend on the logging framework:
 
-- *Log correlation*:
-    The agent automatically injects `trace.id`, `transaction.id` and `error.id` into MDC implementation when a log event
-    is written to log. See <<log-correlation, Log Correlation>> for details.
-    For frameworks that don't provide an MDC like `java.util.logging` (JUL), correlation is only supported when using ECS logging library or
-    with <<config-log-ecs-reformatting, `log_ecs_reformatting`>>.
+- *<<log-correlation-ids, Log Correlation>>*:
+    The agent automatically injects `trace.id`, `transaction.id` and `error.id` into the MDC implementation (see below for framework specific MDC implementations used. MDC = Mapped Diagnostic Context, a standard way to enrich log messages with additional information).
 
-- *Error capturing*:
+- *<<log-error-capturing, Log Error capturing>>*:
     Automatically captures exceptions for calls like `logger.error("message", exception)`.
-    When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well for log correlation
-    since 1.16.0.
 
-- *ECS reformatting*:
+- *<<config-log-ecs-reformatting,ECS reformatting>>*:
     When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
     ECS-compatible format.
 
-- *ECS Service Name*: The agent sets the service name and version for the `EcsLayout` if not provided explicitly.
+- *<<ecs-logging-service-fields, ECS Logging service fields>>*: For users of `ecs-logging-java`, the agent sets the service name and version for the `EcsLayout` if not provided explicitly by the
+application.
 
 |===
 |Framework |Supported versions | Description | Since

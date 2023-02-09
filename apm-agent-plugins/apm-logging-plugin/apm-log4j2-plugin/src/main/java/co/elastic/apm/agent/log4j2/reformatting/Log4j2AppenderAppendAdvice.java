@@ -38,9 +38,6 @@ public class Log4j2AppenderAppendAdvice {
     public static void reformatLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogEvent eventObject,
                                             @Advice.This(typing = Assigner.Typing.DYNAMIC) Appender thisAppender) {
 
-        Appender shadeAppender = helper.onAppendExit(thisAppender);
-        if (shadeAppender != null) {
-            shadeAppender.append(eventObject);
-        }
+        helper.onAppendExit(eventObject, thisAppender);
     }
 }

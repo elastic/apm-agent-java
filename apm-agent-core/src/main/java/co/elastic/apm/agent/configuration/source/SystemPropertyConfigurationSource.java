@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.configuration.source;
 
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
 
 import javax.annotation.Nullable;
@@ -37,7 +38,7 @@ public class SystemPropertyConfigurationSource extends AbstractConfigurationSour
 		try {
 			return System.getProperty(key);
 		} catch (SecurityException e) {
-		    e.printStackTrace();
+            SystemStandardOutputLogger.printStackTrace(e);
 			return null;
 		}
 	}

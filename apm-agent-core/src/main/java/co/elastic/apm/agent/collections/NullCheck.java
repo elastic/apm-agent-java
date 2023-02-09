@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.collections;
 
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
@@ -32,8 +33,8 @@ public class NullCheck {
         try {
             logger = LoggerFactory.getLogger(NullCheck.class);
         } catch (Throwable throwable) {
-            System.err.println("[elastic-apm-agent] WARN Failed to initialize logger for the NullCheck class: " + throwable.getMessage());
-            throwable.printStackTrace();
+            SystemStandardOutputLogger.stdErrWarn("Failed to initialize logger for the NullCheck class: " + throwable.getMessage());
+            SystemStandardOutputLogger.printStackTrace(throwable);
         }
     }
 
