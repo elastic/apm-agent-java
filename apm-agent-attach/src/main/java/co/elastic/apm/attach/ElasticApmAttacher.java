@@ -149,7 +149,7 @@ public class ElasticApmAttacher {
      */
     public static void attach(String pid, Map<String, String> configuration, File agentJarFile) {
         if (!configuration.containsKey("activation_method")) {
-            configuration.put("activation_method", "SELF_ATTACH");
+            configuration.put("activation_method", "PROGRAMMATIC_SELF_ATTACH");
         }
         File tempFile = createTempProperties(configuration, null);
         String agentArgs = tempFile == null ? null : TEMP_PROPERTIES_FILE_KEY + "=" + tempFile.getAbsolutePath();

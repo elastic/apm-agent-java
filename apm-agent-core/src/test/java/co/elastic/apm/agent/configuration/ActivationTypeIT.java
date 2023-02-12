@@ -388,15 +388,11 @@ public class ActivationTypeIT {
                     String name = serviceNode.get("name").asText();
                     JsonNode agentNode = serviceNode.get("agent");
                     if (agentNode != null) {
-                        JsonNode activationNode = agentNode.get("activation");
+                        JsonNode activationNode = agentNode.get("activation_method");
                         if(activationNode != null) {
-                            JsonNode activationMethodNode = activationNode.get("method");
-                            if (activationMethodNode != null) {
-                                String activationMethod = activationMethodNode.asText();
-                                if (name.equals(serviceNameToWaitFor) &&
-                                    activationMethod.equals(activationMethodToWaitFor)) {
-                                    found = true;
-                                }
+                            String activationMethod = activationNode.asText();
+                            if (name.equals(serviceNameToWaitFor) && activationMethod.equals(activationMethodToWaitFor)) {
+                                found = true;
                             }
                         }
                     }
