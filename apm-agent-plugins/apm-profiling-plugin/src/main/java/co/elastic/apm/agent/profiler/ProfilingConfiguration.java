@@ -21,7 +21,7 @@ package co.elastic.apm.agent.profiler;
 import co.elastic.apm.agent.configuration.converter.ListValueConverter;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -53,6 +53,15 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .tags("added[1.15.0]", "experimental")
         .buildWithDefault(false);
+
+    private final ConfigurationOption<Boolean> profilerLoggingEnabled = ConfigurationOption.<Boolean>booleanOption()
+        .key("profiling_inferred_spans_logging_enabled")
+        .configurationCategory(PROFILING_CATEGORY)
+        .description("By default, async profiler prints warning messages about missing JVM symbols to standard output. \n" +
+            "Set this option to `true` to suppress such messages")
+        .dynamic(true)
+        .tags("added[1.37.0]")
+        .buildWithDefault(true);
 
     private final ConfigurationOption<Boolean> backupDiagnosticFiles = ConfigurationOption.<Boolean>booleanOption()
         .key("profiling_inferred_spans_backup_diagnostic_files")
@@ -180,6 +189,10 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
 
     public boolean isProfilingEnabled() {
         return profilingEnabled.get();
+    }
+
+    public boolean isProfilingLoggingEnabled() {
+        return profilerLoggingEnabled.get();
     }
 
     public int getAsyncProfilerSafeMode() {

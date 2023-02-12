@@ -31,11 +31,12 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.common.util.Version;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.junit.Rule;
@@ -53,10 +54,13 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static co.elastic.apm.agent.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -89,9 +93,15 @@ class IntakeV2ReportingEventHandlerTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        List.of(mockApmServer1, mockApmServer2).forEach(WireMockServer::start);
+        ResponseDefinitionBuilder versionResponse = ResponseDefinitionBuilder.okForJson(Map.of("ok", Map.of("version", "99.99.99")));
+        mockApmServer1.stubFor(get(urlEqualTo("/")).willReturn(versionResponse));
         mockApmServer1.stubFor(post(INTAKE_V2_URL).willReturn(ok()));
+        mockApmServer2.stubFor(get(urlEqualTo(APM_SERVER_PATH + "/")).willReturn(versionResponse));
         mockApmServer2.stubFor(post(APM_SERVER_PATH + INTAKE_V2_URL).willReturn(ok()));
+
+        mockApmServer1.start();
+        mockApmServer2.start();
+
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
         final CoreConfiguration coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
@@ -113,19 +123,27 @@ class IntakeV2ReportingEventHandlerTest {
                 MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
             ),
             apmServerClient);
+
         final ProcessInfo title1 = new ProcessInfo("title");
         final Service service1 = new Service();
-        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
-        apmServerClient.start(List.of(new URL("http://non.existing:8080")));
+        ApmServerClient nonConnectedApmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
+        nonConnectedApmServerClient.start(List.of(new URL("http://non.existing:8080")));
         nonConnectedReportingEventHandler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
             new DslJsonSerializer(
                 mock(StacktraceConfiguration.class),
-                this.apmServerClient,
+                nonConnectedApmServerClient,
                 MetaDataMock.create(title1, service1, system, null, Collections.emptyMap(), null)
             ),
-            apmServerClient);
+            nonConnectedApmServerClient);
+
+        // ensure server version is set before test start
+        Version version = apmServerClient.getApmServerVersion(10, TimeUnit.SECONDS);
+        assertThat(version)
+            .describedAs("server version should be known in client before test starts")
+            .isNotNull();
+        assertThat(version.toString()).isEqualTo("99.99.99");
     }
 
     @AfterEach
@@ -151,18 +169,21 @@ class IntakeV2ReportingEventHandlerTest {
         reportTransaction(reportingEventHandler);
         reportSpan();
         reportError();
-        reportBytes("{\"foo\":\"bar\"}\n".getBytes());
+        reportLog(); // FIXME: moving 'reportLog' after 'reportMetrics' make the log event to be skipped
+        reportMetrics();
+
         assertThat(reportingEventHandler.getBufferSize()).isGreaterThan(0);
         reportingEventHandler.endRequest();
         assertThat(reportingEventHandler.getBufferSize()).isEqualTo(0);
 
         final List<JsonNode> ndJsonNodes = getNdJsonNodes();
-        assertThat(ndJsonNodes).hasSize(5);
+        assertThat(ndJsonNodes).hasSize(6);
         assertThat(ndJsonNodes.get(0).get("metadata")).isNotNull();
         assertThat(ndJsonNodes.get(1).get("transaction")).isNotNull();
         assertThat(ndJsonNodes.get(2).get("span")).isNotNull();
         assertThat(ndJsonNodes.get(3).get("error")).isNotNull();
-        assertThat(ndJsonNodes.get(4).get("foo").textValue()).isEqualTo("bar");
+        assertThat(ndJsonNodes.get(4).get("log")).isNotNull();
+        assertThat(ndJsonNodes.get(5).get("metrics")).isNotNull();
     }
 
     @Test
@@ -242,12 +263,17 @@ class IntakeV2ReportingEventHandlerTest {
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 
-    private void reportBytes(byte[] bytes) throws Exception {
+    private void reportMetrics() throws Exception {
         final ReportingEvent reportingEvent = new ReportingEvent();
         JsonWriter jw = new DslJson<>().newWriter();
-        jw.writeAscii(bytes);
-        reportingEvent.setJsonWriter(jw);
+        jw.writeAscii("{\"metrics\":{}}"); // dummy metrics event that is written as-is
+        reportingEvent.setMetricSet(jw);
+        reportingEventHandler.onEvent(reportingEvent, -1, true);
+    }
 
+    private void reportLog() throws Exception {
+        final ReportingEvent reportingEvent = new ReportingEvent();
+        reportingEvent.setStringLog("{}"); // dummy log event
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 

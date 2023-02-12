@@ -27,7 +27,7 @@ import co.elastic.apm.agent.configuration.validation.RegexValidator;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -231,7 +231,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("performance")
         .description("By default, the agent will sample every transaction (e.g. request to your service). " +
             "To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. " +
-            "We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.\n\n" +
+            "(For pre-8.0 servers the agent still records and sends overall time and the result for unsampled transactions, but no context information, labels, or spans." +
+            " When connecting to 8.0+ servers, the unsampled requests are not sent at all).\n\n" +
             "Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`")
         .dynamic(true)
         .addValidator(isInRange(0d, 1d))
@@ -699,6 +700,16 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(true);
 
+    private final ConfigurationOption<Boolean> disableOutgoingTraceContextHeaders = ConfigurationOption.booleanOption()
+        .key("disable_outgoing_tracecontext_headers")
+        .tags("added[1.37.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Use this option to disable `tracecontext` headers injection to any outgoing communication. \n\n" +
+            "NOTE: Disabling `tracecontext` headers injection means that {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing] \n" +
+            "will not work on downstream services.")
+        .dynamic(true)
+        .buildWithDefault(false);
+
     private final ConfigurationOption<Integer> tracestateHeaderSizeLimit = ConfigurationOption.integerOption()
         .key("tracestate_header_size_limit")
         .tags("added[1.14.0]")
@@ -977,6 +988,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isElasticTraceparentHeaderEnabled() {
         return useElasticTraceparentHeader.get();
+    }
+
+    public boolean isOutgoingTraceContextHeadersInjectionDisabled() {
+        return disableOutgoingTraceContextHeaders.get();
     }
 
     public int getTracestateSizeLimit() {

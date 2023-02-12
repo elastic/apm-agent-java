@@ -20,7 +20,7 @@ package co.elastic.apm.agent.metrics.builtin;
 
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
@@ -39,7 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
+import static co.elastic.apm.agent.common.util.WildcardMatcher.caseSensitiveMatcher;
 
 /**
  * Record metrics related to the CPU and memory, gathered by the JVM.

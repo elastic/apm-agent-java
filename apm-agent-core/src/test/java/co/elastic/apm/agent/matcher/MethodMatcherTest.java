@@ -20,7 +20,7 @@ package co.elastic.apm.agent.matcher;
 
 import org.junit.jupiter.api.Test;
 
-import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
+import static co.elastic.apm.agent.common.util.WildcardMatcher.caseSensitiveMatcher;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MethodMatcherTest {

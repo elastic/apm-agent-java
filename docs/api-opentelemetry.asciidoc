@@ -156,7 +156,6 @@ Entries that are added to the current context,
 [float]
 [[otel-references]]
 ===== Span References
-The `SpanBuilder#addLink` method is currently not supported.
 Spans can only have a single parent (`SpanBuilder#setParent`)
 
 [float]

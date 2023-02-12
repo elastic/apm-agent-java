@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -27,10 +27,10 @@ import java.util.Arrays;
 
 @RunWith(Parameterized.class)
 public class KafkaClientVersionsIT {
-    private final TestClassWithDependencyRunner runner;
+    private final JUnit4TestClassWithDependencyRunner runner;
 
     public KafkaClientVersionsIT(String version) throws Exception {
-        runner = new TestClassWithDependencyRunner("org.apache.kafka", "kafka-clients", version,
+        runner = new JUnit4TestClassWithDependencyRunner("org.apache.kafka", "kafka-clients", version,
             KafkaIT.class, KafkaIT.Consumer.class, KafkaIT.RecordIterationMode.class, KafkaIT.TestScenario.class,
             KafkaIT.ConsumerRecordConsumer.class);
     }

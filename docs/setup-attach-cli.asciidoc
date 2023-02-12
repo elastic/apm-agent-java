@@ -63,7 +63,7 @@ java -jar apm-agent-attach-cli.jar \
     --include-vmarg elastic.apm.attach=true \
     --continuous \
     --config service_name=my-cool-service \
-    --config server_url=http://localhost:8200
+    --config server_url=http://127.0.0.1:8200
 ----
 
 [float]
@@ -153,7 +153,7 @@ NOTE: This option cannot be used in conjunction with `--args-provider`
 --
 This repeatable option sets one agent configuration option.
 
-Example: `--config server_url=http://localhost:8200`
+Example: `--config server_url=http://127.0.0.1:8200`
 --
 
 *-A, --args-provider <args_provider_script>*::

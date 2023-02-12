@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.attach;
 
-import co.elastic.apm.agent.util.Version;
+import co.elastic.apm.agent.common.util.Version;
 import co.elastic.apm.attach.bouncycastle.BouncyCastleVerifier;
 import org.junit.jupiter.api.Test;
 
