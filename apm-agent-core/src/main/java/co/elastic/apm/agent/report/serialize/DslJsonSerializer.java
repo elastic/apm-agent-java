@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.collections.LongList;
-import co.elastic.apm.agent.configuration.ActivationType;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.CloudOrigin;
 import co.elastic.apm.agent.impl.context.Db;
@@ -512,11 +511,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private static void serializeAgent(final Agent agent, final StringBuilder replaceBuilder, final JsonWriter jw) {
         writeFieldName("agent", jw);
         jw.writeByte(JsonWriter.OBJECT_START);
-        writeFieldName("activation", jw);
-        jw.writeByte(JsonWriter.OBJECT_START);
-        writeLastField("method", ActivationType.findType().toReferenceString(), replaceBuilder, jw);
-        jw.writeByte(JsonWriter.OBJECT_END);
-        jw.writeByte(COMMA);
+        writeField("activation_method", agent.getActivationMethod(), replaceBuilder, jw);
         writeField("name", agent.getName(), replaceBuilder, jw);
         writeField("ephemeral_id", agent.getEphemeralId(), replaceBuilder, jw);
         writeLastField("version", agent.getVersion(), replaceBuilder, jw);

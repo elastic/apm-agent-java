@@ -804,7 +804,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("internal")
         .description("telling the agent what activated it, used for telemetry and should not be set unless supported by ActivationType")
         .dynamic(true)
-        .buildWithDefault(ActivationMethod.NONE);
+        .buildWithDefault(ActivationMethod.UNKNOWN);
 
     public boolean isEnabled() {
         return enabled.get();
@@ -1115,15 +1115,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         public String toString() {
             return name().toLowerCase();
         }
-    }
-
-    //Deliberately decoupled from ActivationType as fewer types can be explicitly set
-    public enum ActivationMethod {
-        NONE,
-        K8S,
-        REMOTE,
-        SELF_ATTACH,
-        FLEET;
     }
 
 }
