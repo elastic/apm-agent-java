@@ -802,7 +802,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key("activation_method")
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
-        .description("telling the agent what activated it, used for telemetry and should not be set unless supported by ActivationType")
+        .description("telling the agent what activated it, used for telemetry and should not be set unless supported by ActivationMethod")
         .dynamic(true)
         .buildWithDefault(ActivationMethod.UNKNOWN);
 
