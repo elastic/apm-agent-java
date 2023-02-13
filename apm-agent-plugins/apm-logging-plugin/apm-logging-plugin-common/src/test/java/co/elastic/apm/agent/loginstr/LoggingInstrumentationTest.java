@@ -315,8 +315,9 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     }
 
     private void verifyEcsLogLine(JsonNode ecsLogLineTree) {
+        String currentThreadName = Thread.currentThread().getName();
         assertThat(ecsLogLineTree.get("@timestamp")).isNotNull();
-        assertThat(ecsLogLineTree.get("process.thread.name").textValue()).isEqualTo("main");
+        assertThat(ecsLogLineTree.get("process.thread.name").textValue()).isEqualTo(currentThreadName);
         JsonNode logLevel = ecsLogLineTree.get("log.level");
         assertThat(logLevel).isNotNull();
         boolean isErrorLine = logLevel.textValue().equalsIgnoreCase("error");
