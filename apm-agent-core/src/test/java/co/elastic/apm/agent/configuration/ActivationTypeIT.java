@@ -163,6 +163,18 @@ public class ActivationTypeIT {
         }
     }
 
+    @Test
+    public void fakeTestLambdaAttach() throws Exception {
+        try (MockServer server = startServer()) {
+            JvmAgentProcess proc = new JvmAgentProcess(server, "FakeLambdaWithEnv",
+                "co.elastic.apm.agent.configuration.ActivationTestExampleApp",
+                "aws-lambda-layer");
+            proc.addEnv("JAVA_TOOL_OPTIONS", "-javaagent:" + ElasticAgentJarFileLocation);
+            proc.addEnv("ELASTIC_APM_ACTIVATION_METHOD", "AWS_LAMBDA_LAYER");
+            proc.executeCommand();
+        }
+    }
+
     static class ExternalProcess {
         volatile Process child;
         boolean debug = true;
@@ -314,7 +326,7 @@ public class ActivationTypeIT {
         public void init() {
             command.clear();
             addOption("java");
-            addOption("-Xmx16m");
+            addOption("-Xmx32m");
             addOption("-classpath");
             addOption(Classpath);
             addAgentOption("server_url=http://localhost:"+apmServer.port());
