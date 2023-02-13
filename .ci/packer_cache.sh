@@ -3,7 +3,7 @@ set +e
 
 source /usr/local/bin/bash_standard_lib.sh
 
-retry 3 JAVA_HOME=$HOME/.java/java11 \
+retry 3 JAVA_HOME=$HOME/.java/jdk17 \
   ./mvnw clean package \
   -q -B \
   -DskipTests=true \

@@ -38,7 +38,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SpanTest {
+public class SpanTest {
 
     private ElasticApmTracer tracer;
 
@@ -195,5 +195,14 @@ class SpanTest {
             textTraceContextCarrier)
         ).isTrue();
         assertThat(testSpan.getSpanLinks()).hasSize(1);
+    }
+
+    /**
+     * A utility to enable arbitrary tests to set an existing {@link Span} state without making this functionality globally accessible
+     * @param recorded should the provided trace context be recorded
+     * @param span a span of which state is to be set
+     */
+    public static void setRecorded(boolean recorded, Span span) {
+        span.getTraceContext().setRecorded(recorded);
     }
 }

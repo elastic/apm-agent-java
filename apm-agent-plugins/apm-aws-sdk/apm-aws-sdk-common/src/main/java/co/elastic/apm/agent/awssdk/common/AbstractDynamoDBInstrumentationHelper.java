@@ -58,7 +58,7 @@ public abstract class AbstractDynamoDBInstrumentationHelper<R, C> extends Abstra
             }
         }
 
-        setDestinationContext(span, httpURI, sdkRequest, context, DYNAMO_DB_TYPE, null);
+        setDestinationContext(span, httpURI, sdkRequest, context, DYNAMO_DB_TYPE, region);
     }
 
     @Nullable

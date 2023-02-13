@@ -25,7 +25,8 @@
  * <ul>
  *     <li>
  *         bootstrap checks to abort initialization if required (can be disabled through the
- *         {@code elastic.apm.disable_bootstrap_checks} System property).
+ *         {@code elastic.apm.disable_bootstrap_checks} System property or or the
+ *         {@code ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS} environment variable).
  *     </li>
  *     <li>
  *         load the {@code co.elastic.apm.agent.bci.ElasticApmAgent} class and execute the agent initialization process

@@ -18,9 +18,10 @@
  */
 package co.elastic.apm.agent.logging;
 
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.apache.logging.log4j.Level;
@@ -29,6 +30,7 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.core.config.LoggerConfig;
+import org.apache.logging.log4j.core.config.plugins.util.PluginManager;
 import org.apache.logging.log4j.core.impl.Log4jContextFactory;
 import org.apache.logging.log4j.core.selector.ContextSelector;
 import org.apache.logging.log4j.spi.LoggerContextFactory;
@@ -87,10 +89,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
      * However, the registry initializes logging by declaring a static final logger variable.
      * In order to break up the cyclic dependency and to not accidentally initialize logging before we had the chance to configure the logging,
      * we manually resolve these options.
-     *
+     * <p>
      * NOTE: on top of the above, this specific option should never be accessed through the ConfigurationOption as it
      * allows {@link LogLevel} that are effectively mapped to other values.
-     *
+     * <p>
      * See {@link Log4j2ConfigurationFactory#getValue}
      */
     @SuppressWarnings("unused")
@@ -116,6 +118,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     /**
      * Maps a {@link LogLevel} that is supported by the agent to a value that is also supported by the underlying
      * logging framework.
+     *
      * @param original the agent-supported {@link LogLevel}
      * @return a {@link LogLevel} that is both supported by the agent and the underlying logging framework
      */
@@ -256,13 +259,25 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .description("Defines the log format when logging to a file.\n" +
             "\n" +
             "When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]\n" +
-            "where each log event is serialized as a single line.\n"
-            //+ "\n" +
-            //"If <<config-ship-agent-logs,`ship_agent_logs`>> is enabled,\n" +
-            //"the value has to be `JSON`."
+            "where each log event is serialized as a single line."
         )
         .tags("added[1.17.0]")
         .buildWithDefault(LogFormat.PLAIN_TEXT);
+
+    private final ConfigurationOption<Boolean> sendLogs = ConfigurationOption.booleanOption()
+        .key("log_sending")
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("Sends agent and application logs directly to APM Server.\n" +
+            "\n" +
+            "Note that logs can get lost if the agent can't keep up with the logs,\n" +
+            "if APM Server is not available,\n" +
+            "or if Elasticsearch can't index the logs fast enough.\n" +
+            "\n" +
+            "For better delivery guarantees, it's recommended to ship ECS JSON log files with Filebeat\n" +
+            "See also <<config-log-ecs-reformatting,`log_ecs_reformatting`>>.")
+        .dynamic(true)
+        .tags("added[1.36.0]", "experimental")
+        .buildWithDefault(false);
 
     public static void init(List<ConfigurationSource> sources, String ephemeralId) {
         // The initialization of log4j may produce errors if the traced application uses log4j settings (for
@@ -283,9 +298,13 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             // example through org.apache.logging.log4j.core.config.Configurator, means that loggers in non-initialized
             // contexts will either get the app-configuration for log4j, if such exists, or none.
             ConfigurationFactory.setConfigurationFactory(new Log4j2ConfigurationFactory(sources, ephemeralId));
+
+            // required to add the apm server appender to plugins
+            PluginManager.addPackage(ApmServerLogAppender.class.getPackage().getName());
+
             LoggerFactory.initialize(new Log4jLoggerFactoryBridge());
         } catch (Throwable throwable) {
-            System.err.println("[elastic-apm-agent] ERROR Failure during initialization of agent's log4j system: " + throwable.getMessage());
+            SystemStandardOutputLogger.stdErrError("Failure during initialization of agent's log4j system: " + throwable.getMessage());
         } finally {
             restoreSystemProperty(INITIAL_LISTENERS_LEVEL, initialListenersLevel);
             restoreSystemProperty(INITIAL_STATUS_LOGGER_LEVEL, initialStatusLoggerLevel);
@@ -321,10 +340,8 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             for (LoggerContext loggerContext : selector.getLoggerContexts()) {
                 // Taken from org.apache.logging.log4j.core.config.Configurator#setRootLevel()
                 final LoggerConfig loggerConfig = loggerContext.getConfiguration().getRootLogger();
-                if (!loggerConfig.getLevel().equals(log4jLevel)) {
-                    loggerConfig.setLevel(log4jLevel);
-                    loggerContext.updateLoggers();
-                }
+                loggerConfig.setLevel(log4jLevel);
+                loggerContext.updateLoggers();
             }
         } else {
             // it should be safe to obtain a logger here
@@ -362,5 +379,9 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     public long getDefaultLogFileSize() {
         return logFileSize.getValueConverter().convert(logFileSize.getDefaultValueAsString()).getBytes();
+    }
+
+    public boolean getSendLogs() {
+        return sendLogs.get();
     }
 }

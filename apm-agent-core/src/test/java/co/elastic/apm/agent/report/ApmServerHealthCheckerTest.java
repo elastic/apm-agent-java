@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.util.Version;
+import co.elastic.apm.agent.common.util.Version;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;

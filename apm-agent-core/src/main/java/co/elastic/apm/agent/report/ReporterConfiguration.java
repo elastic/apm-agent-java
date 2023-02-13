@@ -22,7 +22,7 @@ import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -40,7 +40,7 @@ import static co.elastic.apm.agent.configuration.validation.RangeValidator.isNot
 public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     public static final String REPORTER_CATEGORY = "Reporter";
-    public static final URL LOCAL_APM_SERVER_URL = UrlValueConverter.INSTANCE.convert("http://localhost:8200");
+    public static final URL LOCAL_APM_SERVER_URL = UrlValueConverter.INSTANCE.convert("http://127.0.0.1:8200");
 
     private final ConfigurationOption<String> secretToken = ConfigurationOption.stringOption()
         .key("secret_token")

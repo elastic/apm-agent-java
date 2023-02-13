@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.springwebmvc.exception;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_handler.ExceptionHandlerRuntimeException;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_handler.ExceptionHandlerController;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_handler.ExceptionHandlerRuntimeException200;

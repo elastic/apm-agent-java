@@ -27,7 +27,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
@@ -75,6 +75,7 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
     @Nullable
     protected abstract String getMessageAttribute(MessageT sqsMessage, String key);
 
+    protected abstract boolean isReceiveMessageRequest(R request);
 
     protected AbstractSQSInstrumentationHelper(ElasticApmTracer tracer, IAwsSdkDataSource<R, C> awsSdkDataSource) {
         super(tracer, awsSdkDataSource);
@@ -135,7 +136,7 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
     public Span startSpan(R request, URI httpURI, C context) {
         AbstractSpan<?> activeSpan = tracer.getActive();
 
-        if (messagingConfiguration.shouldEndMessagingTransactionOnPoll() && activeSpan instanceof Transaction) {
+        if (isReceiveMessageRequest(request) && messagingConfiguration.shouldEndMessagingTransactionOnPoll() && activeSpan instanceof Transaction) {
             Transaction transaction = (Transaction) activeSpan;
             if (MESSAGING_TYPE.equals(transaction.getType())) {
                 transaction.deactivate().end();
