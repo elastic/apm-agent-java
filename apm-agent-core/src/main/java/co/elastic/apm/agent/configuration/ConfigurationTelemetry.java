@@ -82,8 +82,9 @@ public class ConfigurationTelemetry {
             previousValues.remove(key);
         }
 
-
-        reporter.reportTelemetry(telemetry);
+        if (!telemetry.isEmpty()) {
+            reporter.reportTelemetry(telemetry);
+        }
 
     }
 }

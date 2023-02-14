@@ -84,5 +84,9 @@ public class Telemetry implements Recyclable {
         return this;
     }
 
+    public boolean isEmpty() {
+        return effectiveConfig.isEmpty();
+    }
+
 
 }

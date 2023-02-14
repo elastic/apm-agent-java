@@ -1565,6 +1565,10 @@ public class DslJsonSerializer implements PayloadSerializer {
     @Override
     public void serializeTelemetry(Telemetry telemetry) {
         jw.writeByte(OBJECT_START);
+
+        writeFieldName("telemetry");
+        jw.writeByte(OBJECT_START);
+
         writeTimestamp(telemetry.getTimestamp());
 
         writeFieldName("effective_config");
@@ -1579,6 +1583,9 @@ public class DslJsonSerializer implements PayloadSerializer {
             writeStringValue(entry.getValue());
         }
         jw.writeByte(OBJECT_END);
+
+        jw.writeByte(OBJECT_END);
+
         jw.writeByte(OBJECT_END);
     }
 
