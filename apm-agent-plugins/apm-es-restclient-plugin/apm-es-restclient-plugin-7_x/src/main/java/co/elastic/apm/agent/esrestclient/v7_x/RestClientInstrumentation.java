@@ -16,28 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.esrestclient.v6_4;
+package co.elastic.apm.agent.esrestclient.v7_x;
 
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.elasticsearch.client.Request;
 import org.elasticsearch.client.ResponseListener;
 
 import javax.annotation.Nullable;
 
 import static net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC;
+import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestClientInstrumentation {
-
+/**
+ * Instruments {@link org.elasticsearch.client.RestClient#performRequestAsync(org.elasticsearch.client.Request, org.elasticsearch.client.ResponseListener)}
+ */
+public class RestClientInstrumentation extends ElasticsearchRestClientInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -46,46 +49,36 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("performRequestAsync")
-            .and(takesArguments(2)
-                .and(takesArgument(0, named("org.elasticsearch.client.Request")))
-                .and(takesArgument(1, named("org.elasticsearch.client.ResponseListener"))));
+        return named("performRequestAsync").and(isPublic())
+            .and(takesArguments(2))
+            .and(takesArgument(0, named("org.elasticsearch.client.Request")))
+            .and(takesArgument(1, named("org.elasticsearch.client.ResponseListener")))
+            .and(returns(named("org.elasticsearch.client.Cancellable")));
     }
 
     @Override
     public String getAdviceClassName() {
-        return getClass().getName() + "$ElasticsearchRestClientAsyncAdvice";
+        return getClass().getName() + "$RestClientAsyncAdvice";
     }
 
-    public static class ElasticsearchRestClientAsyncAdvice {
+    public static class RestClientAsyncAdvice {
 
         private static final ElasticsearchRestClientInstrumentationHelper helper = ElasticsearchRestClientInstrumentationHelper.get();
 
         @Nullable
-        @Advice.AssignReturned.ToArguments(@ToArgument(index = 1, value = 1, typing = DYNAMIC))
+        @Advice.AssignReturned.ToArguments(@ToArgument(value = 1, typing = DYNAMIC))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object[] onBeforeExecute(@Advice.Argument(0) Request request,
-                                               @Advice.Argument(1) ResponseListener responseListener) {
-            Span span = helper.createClientSpan(request.getMethod(), request.getEndpoint(), request.getEntity());
-            if (span != null) {
-                Object[] ret = new Object[2];
-                ret[0] = span;
-                ret[1] = helper.wrapClientResponseListener(responseListener, span);
-                return ret;
+        public static ResponseListener onEnter(@Advice.Argument(1) @Nullable ResponseListener listenerArg) {
+
+            AbstractSpan<?> activeContext = tracer.getActive();
+
+            ResponseListener listener =  listenerArg;
+            if (listener != null && activeContext != null) {
+                listener = helper.wrapContextPropagationContextListener(listener, activeContext);
             }
-            return null;
+
+            return listener;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onAfterExecute(@Advice.Thrown @Nullable Throwable t,
-                                          @Advice.Enter @Nullable Object[] entryArgs) {
-            if (entryArgs != null) {
-                final Span span = (Span) entryArgs[0];
-                if (span != null) {
-                    // Deactivate in this thread. Span will be ended and reported by the listener
-                    span.deactivate();
-                }
-            }
-        }
     }
 }

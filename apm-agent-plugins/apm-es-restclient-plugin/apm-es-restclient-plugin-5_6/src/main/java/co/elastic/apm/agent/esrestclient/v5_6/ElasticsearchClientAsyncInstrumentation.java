@@ -79,7 +79,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
             if (span != null) {
                 Object[] ret = new Object[2];
                 ret[0] = span;
-                ret[1] = helper.wrapResponseListener(responseListener, span);
+                ret[1] = helper.wrapClientResponseListener(responseListener, span);
                 return ret;
             }
             return null;

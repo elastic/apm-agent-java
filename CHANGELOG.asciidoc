@@ -35,6 +35,7 @@ communication - {pull}2996[#2996]
 * Fixed used instrumentations printed on shutdown {pull}3001[#3001]
 * Prevent potential connection leak on network failure - {pull}2869[#2869]
 * Fix for inferred spans where the parent id was also a child id - {pull}2686[#2686]
+* Fix context propagation for async 7.x and 8.x Elasticsearch clients - {pull}3015[#3015]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
