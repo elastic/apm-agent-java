@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.impl.Telemetry;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -34,6 +35,7 @@ import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.METR
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SHUTDOWN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SPAN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.STRING_LOG;
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.TELEMETRY;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.TRANSACTION;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.WAKEUP;
 
@@ -58,6 +60,9 @@ public class ReportingEvent {
     private byte[] bytesLog;
     private boolean agentLog;
 
+    @Nullable
+    private Telemetry telemetry;
+
     public void resetState() {
         this.transaction = null;
         this.type = null;
@@ -68,6 +73,7 @@ public class ReportingEvent {
         this.agentLog = false;
         this.bytesLog = null;
         this.stringLog = null;
+        this.telemetry = null;
     }
 
     @Nullable
@@ -141,6 +147,16 @@ public class ReportingEvent {
             && agentLog;
     }
 
+    @Nullable
+    public Telemetry getTelemetry() {
+        return telemetry;
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
     public void shutdownEvent() {
         this.type = SHUTDOWN;
     }
@@ -188,6 +204,11 @@ public class ReportingEvent {
         type = WAKEUP;
     }
 
+    public void setTelemetry(Telemetry telemetry) {
+        type = TELEMETRY;
+        this.telemetry = telemetry;
+    }
+
     public enum ReportingEventType {
         // control events
         END_REQUEST(true),
@@ -201,7 +222,8 @@ public class ReportingEvent {
         ERROR(false),
         METRICSET_JSON_WRITER(false),
         STRING_LOG(false),
-        BYTES_LOG(false);
+        BYTES_LOG(false),
+        TELEMETRY(false);
 
         private final boolean control;
 

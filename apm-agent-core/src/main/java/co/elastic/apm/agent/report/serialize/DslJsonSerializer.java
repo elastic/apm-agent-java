@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.collections.LongList;
+import co.elastic.apm.agent.impl.Telemetry;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.CloudOrigin;
 import co.elastic.apm.agent.impl.context.Db;
@@ -1559,6 +1560,26 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeLastField("remote_address", socket.getRemoteAddress());
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
+    }
+
+    @Override
+    public void serializeTelemetry(Telemetry telemetry) {
+        jw.writeByte(OBJECT_START);
+        writeTimestamp(telemetry.getTimestamp());
+
+        writeFieldName("effective_config");
+        jw.writeByte(OBJECT_START);
+
+        int index = 0;
+        for (Map.Entry<String, String> entry : telemetry.getEffectiveConfig().entrySet()) {
+            if (index++ > 0) {
+                jw.writeByte(COMMA);
+            }
+            writeFieldName(entry.getKey());
+            writeStringValue(entry.getValue());
+        }
+        jw.writeByte(OBJECT_END);
+        jw.writeByte(OBJECT_END);
     }
 
     private void writeField(final String fieldName, final PotentiallyMultiValuedMap map, boolean supportsMultipleValues) {

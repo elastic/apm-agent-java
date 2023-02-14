@@ -77,9 +77,11 @@ public class ApmServerConfigurationSourceTest {
         apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), config.getConfig(CoreConfiguration.class));
         apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
         mockLogger = mock(Logger.class);
+
         configurationSource = new ApmServerConfigurationSource(
             new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient, MetaDataMock.create()),
             apmServerClient,
+            new ConfigurationTelemetry(),
             mockLogger
         );
     }

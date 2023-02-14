@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.impl.Telemetry;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -117,6 +118,12 @@ public class ApmServerReporter implements Reporter {
         @Override
         public void translateTo(ReportingEvent event, long sequence, byte[] bytes) {
             event.setBytesLog(bytes, true);
+        }
+    };
+    private static final EventTranslatorOneArg<ReportingEvent, Telemetry> TELEMETRY_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Telemetry>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence, Telemetry telemetry) {
+            event.setTelemetry(telemetry);
         }
     };
 
@@ -309,6 +316,16 @@ public class ApmServerReporter implements Reporter {
             return;
         }
         tryAddEventToRingBuffer(log, translator, ReportingEvent.ReportingEventType.BYTES_LOG);
+        if (syncReport) {
+            flush();
+        }
+    }
+
+    @Override
+    public void reportTelemetry(Telemetry telemetry) {
+        if (!tryAddEventToRingBuffer(telemetry, TELEMETRY_TRANSLATOR, ReportingEvent.ReportingEventType.TELEMETRY)) {
+            Telemetry.recyclePooled(telemetry);
+        }
         if (syncReport) {
             flush();
         }

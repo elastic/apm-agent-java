@@ -124,6 +124,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             case BYTES_LOG:
             case STRING_LOG:
             case METRICSET_JSON_WRITER:
+            case TELEMETRY:
                 handleIntakeEvent(event, sequence, endOfBatch);
                 break;
             default:
@@ -192,6 +193,8 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             payloadSerializer.serializeLogNdJson(event.getBytesLog());
         } else if (event.getStringLog() != null && logsSupported()) {
             payloadSerializer.serializeLogNdJson(event.getStringLog());
+        } else if (event.getTelemetry() != null) { // TODO : add check on the APM server version
+            payloadSerializer.serializeTelemetry(event.getTelemetry());
         }
     }
 

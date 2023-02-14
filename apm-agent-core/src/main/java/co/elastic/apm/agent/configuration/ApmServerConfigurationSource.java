@@ -22,12 +22,12 @@ import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonReader;
 import com.dslplatform.json.MapConverter;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
@@ -36,9 +36,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -64,20 +62,22 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     private final byte[] buffer = new byte[4096];
     private final PayloadSerializer payloadSerializer;
     private final ApmServerClient apmServerClient;
+    private final ConfigurationTelemetry telemetry;
     @Nullable
     private String etag;
     private volatile Map<String, String> config = Collections.emptyMap();
     @Nullable
     private volatile ThreadPoolExecutor threadPool;
 
-    public ApmServerConfigurationSource(PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
-        this(payloadSerializer, apmServerClient, LoggerFactory.getLogger(ApmServerConfigurationSource.class));
+    public ApmServerConfigurationSource(PayloadSerializer payloadSerializer, ApmServerClient apmServerClient, ConfigurationTelemetry telemetry) {
+        this(payloadSerializer, apmServerClient, telemetry, LoggerFactory.getLogger(ApmServerConfigurationSource.class));
     }
 
-    ApmServerConfigurationSource(PayloadSerializer payloadSerializer, ApmServerClient apmServerClient, Logger logger) {
+    ApmServerConfigurationSource(PayloadSerializer payloadSerializer, ApmServerClient apmServerClient, ConfigurationTelemetry telemetry, Logger logger) {
         this.payloadSerializer = payloadSerializer;
         this.apmServerClient = apmServerClient;
         this.logger = logger;
+        this.telemetry = telemetry;
     }
 
     @Nullable
@@ -209,6 +209,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
                         logger.warn("Can't apply remote configuration {} as this option is not dynamic (aka. reloadable)", entry.getKey());
                     }
                 }
+                telemetry.report();
                 break;
             case SC_NOT_MODIFIED:
                 logger.debug("Configuration did not change");

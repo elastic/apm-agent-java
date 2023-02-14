@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
+import co.elastic.apm.agent.impl.Telemetry;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -100,6 +101,8 @@ public interface PayloadSerializer {
     void serializeLogNdJson(String stringLog);
 
     void serializeLogNdJson(byte[] bytesLog);
+
+    void serializeTelemetry(Telemetry telemetry);
 
     class UninitializedException extends Exception {
         public UninitializedException(String message) {

@@ -214,6 +214,12 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
+    private final ConfigurationOption<Boolean> enableAgentTelemetry = ConfigurationOption.booleanOption()
+        .key("agent_telemetry")
+        .configurationCategory(REPORTER_CATEGORY)
+        .description("Controls agent ability to capture optional telemetry")
+        .buildWithDefault(false);
+
     @Nullable
     public String getSecretToken() {
         return secretToken.get();
@@ -310,5 +316,9 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     public ConfigurationOption<List<URL>> getServerUrlsOption() {
         return this.serverUrls;
+    }
+
+    public boolean isAgentTelemetryEnabled() {
+        return enableAgentTelemetry.get();
     }
 }

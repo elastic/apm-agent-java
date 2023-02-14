@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.impl.Telemetry;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -37,6 +38,8 @@ public interface Reporter extends Closeable {
     void report(ErrorCapture error);
 
     void reportMetrics(JsonWriter jsonWriter);
+
+    void reportTelemetry(Telemetry telemetry);
 
     /**
      * Reports an ECS-logging formatted log message.

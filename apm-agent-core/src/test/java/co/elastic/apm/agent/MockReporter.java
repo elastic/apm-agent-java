@@ -19,6 +19,7 @@
 package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.Telemetry;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.MetaData;
@@ -504,6 +505,11 @@ public class MockReporter implements Reporter {
     }
 
     @Override
+    public void reportTelemetry(Telemetry telemetry) {
+        Telemetry.recyclePooled(telemetry);
+    }
+
+    @Override
     public boolean flush() {
         return true;
     }
@@ -605,6 +611,7 @@ public class MockReporter implements Reporter {
      * after reporting to the APM Server.
      * See {@link IntakeV2ReportingEventHandler#writeEvent(ReportingEvent)}
      */
+    @SuppressWarnings("JavadocReference")
     public synchronized void decrementReferences() {
         transactions.forEach(Transaction::decrementReferences);
         spans.forEach(Span::decrementReferences);
