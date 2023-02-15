@@ -122,7 +122,7 @@ class IntakeV2ReportingEventHandlerTest {
                 apmServerClient,
                 MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
             ),
-            apmServerClient);
+            apmServerClient, null);
 
         final ProcessInfo title1 = new ProcessInfo("title");
         final Service service1 = new Service();
@@ -136,7 +136,7 @@ class IntakeV2ReportingEventHandlerTest {
                 nonConnectedApmServerClient,
                 MetaDataMock.create(title1, service1, system, null, Collections.emptyMap(), null)
             ),
-            nonConnectedApmServerClient);
+            nonConnectedApmServerClient, null);
 
         // ensure server version is set before test start
         Version version = apmServerClient.getApmServerVersion(10, TimeUnit.SECONDS);

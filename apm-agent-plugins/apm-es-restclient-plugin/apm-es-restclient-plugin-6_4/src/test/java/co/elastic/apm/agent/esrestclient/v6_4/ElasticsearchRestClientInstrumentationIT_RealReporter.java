@@ -143,7 +143,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
                 apmServerClient,
                 MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
             ),
-            apmServerClient);
+            apmServerClient, null);
         realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler, ReporterMonitor.NOOP);
         realReporter.start();
 

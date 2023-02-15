@@ -47,7 +47,8 @@ public class ReporterFactory {
 
         DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class), apmServerClient, metaData);
         ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
-        return new IntakeV2ReportingEventHandler(reporterConfiguration, processorEventHandler, payloadSerializer, apmServerClient);
+        TelemetryEventHandler telemetryEventHandler = new TelemetryEventHandler(reporterConfiguration, payloadSerializer, apmServerClient);
+        return new IntakeV2ReportingEventHandler(reporterConfiguration, processorEventHandler, payloadSerializer, apmServerClient, telemetryEventHandler);
     }
 
 }

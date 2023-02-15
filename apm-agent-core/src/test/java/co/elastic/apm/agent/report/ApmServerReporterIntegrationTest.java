@@ -160,7 +160,7 @@ class ApmServerReporterIntegrationTest {
                 apmServerClient,
                 MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
             ),
-            apmServerClient);
+            apmServerClient, null);
         mockMonitor = Mockito.mock(ReporterMonitor.class);
         reporter = new ApmServerReporter(false, reporterConfiguration, v2handler, mockMonitor);
         reporter.start();

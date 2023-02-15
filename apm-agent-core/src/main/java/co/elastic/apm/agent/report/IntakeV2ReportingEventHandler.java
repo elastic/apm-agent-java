@@ -48,6 +48,8 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private final ProcessorEventHandler processorEventHandler;
     private final ScheduledExecutorService timeoutTimer;
     @Nullable
+    private final TelemetryEventHandler telemetryEventHandler;
+    @Nullable
     private Runnable timeoutTask;
 
     @Nullable
@@ -61,11 +63,12 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private long dropped;
 
     public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
-                                         PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
+                                         PayloadSerializer payloadSerializer, ApmServerClient apmServerClient, @Nullable TelemetryEventHandler telemetryEventHandler) {
         super(reporterConfiguration, payloadSerializer, apmServerClient);
         this.processorEventHandler = processorEventHandler;
         this.dslJson = new DslJson<>(new DslJson.Settings<>());
         this.timeoutTimer = ExecutorUtils.createSingleThreadSchedulingDaemonPool("request-timeout-timer");
+        this.telemetryEventHandler = telemetryEventHandler;
     }
 
     @Override
@@ -124,8 +127,12 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             case BYTES_LOG:
             case STRING_LOG:
             case METRICSET_JSON_WRITER:
-            case TELEMETRY:
                 handleIntakeEvent(event, sequence, endOfBatch);
+                break;
+            case TELEMETRY:
+                if (telemetryEventHandler != null) {
+                    telemetryEventHandler.reportTelemetry(event);
+                }
                 break;
             default:
                 throw new IllegalArgumentException("unsupported event type " + event.getType());
@@ -193,8 +200,6 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             payloadSerializer.serializeLogNdJson(event.getBytesLog());
         } else if (event.getStringLog() != null && logsSupported()) {
             payloadSerializer.serializeLogNdJson(event.getStringLog());
-        } else if (event.getTelemetry() != null) { // TODO : add check on the APM server version
-            payloadSerializer.serializeTelemetry(event.getTelemetry());
         }
     }
 
