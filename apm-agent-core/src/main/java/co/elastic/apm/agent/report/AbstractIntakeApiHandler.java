@@ -89,8 +89,13 @@ public class AbstractIntakeApiHandler {
         return endRequest;
     }
 
+
     @Nullable
     protected HttpURLConnection startRequest(String endpoint) throws Exception {
+        return startRequest(endpoint, "application/x-ndjson", true);
+    }
+
+    protected HttpURLConnection startRequest(String endpoint, String contentType, boolean appendMetadata) throws Exception {
         payloadSerializer.blockUntilReady();
         final HttpURLConnection connection = apmServerClient.startRequest(endpoint);
         if (connection != null) {
@@ -105,7 +110,7 @@ public class AbstractIntakeApiHandler {
                 if (useCompression) {
                     connection.setRequestProperty("Content-Encoding", "deflate");
                 }
-                connection.setRequestProperty("Content-Type", "application/x-ndjson");
+                connection.setRequestProperty("Content-Type", contentType);
                 connection.setUseCaches(false);
                 connection.connect();
                 countingOs = new CountingOutputStream(connection.getOutputStream());
@@ -115,7 +120,9 @@ public class AbstractIntakeApiHandler {
                     os = countingOs;
                 }
                 payloadSerializer.setOutputStream(os);
-                payloadSerializer.appendMetaDataNdJsonToStream();
+                if (appendMetadata) {
+                    payloadSerializer.appendMetaDataNdJsonToStream();
+                }
                 payloadSerializer.flushToOutputStream();
                 requestStartedNanos = System.nanoTime();
             } catch (IOException e) {

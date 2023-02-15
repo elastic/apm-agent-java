@@ -1566,6 +1566,15 @@ public class DslJsonSerializer implements PayloadSerializer {
     public void serializeTelemetry(Telemetry telemetry) {
         jw.writeByte(OBJECT_START);
 
+        writeFieldName("metadata");
+        try {
+            appendMetadataToStream();
+        } catch (UninitializedException e) {
+            throw new IllegalStateException(e);
+        }
+
+        jw.writeByte(COMMA);
+
         writeFieldName("telemetry");
         jw.writeByte(OBJECT_START);
 

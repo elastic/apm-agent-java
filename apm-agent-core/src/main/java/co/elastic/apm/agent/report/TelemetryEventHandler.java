@@ -28,6 +28,7 @@ public class TelemetryEventHandler extends AbstractIntakeApiHandler {
     private static final Logger logger = LoggerFactory.getLogger(TelemetryEventHandler.class);
 
     private static final String TELEMETRY_URL = "/telemetry/v1/agents";
+    private static final String TELEMETRY_CONTENT_TYPE = "application/json";
 
     protected TelemetryEventHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
         super(reporterConfiguration, payloadSerializer, apmServerClient);
@@ -36,7 +37,7 @@ public class TelemetryEventHandler extends AbstractIntakeApiHandler {
     public void reportTelemetry(ReportingEvent event) {
         // TODO : add check on apm server version before trying to send telemetry
         try {
-            connection = startRequest(TELEMETRY_URL);
+            connection = startRequest(TELEMETRY_URL, TELEMETRY_CONTENT_TYPE, false);
             if (connection != null) {
                 Telemetry telemetry = event.getTelemetry();
                 if (telemetry != null) {
