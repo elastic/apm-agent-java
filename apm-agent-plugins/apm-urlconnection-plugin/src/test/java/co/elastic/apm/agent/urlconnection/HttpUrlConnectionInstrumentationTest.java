@@ -121,4 +121,12 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
         verifyHttpSpan("/");
     }
 
+    @Test
+    public void testCapturesNoException() {
+        String path = "/non-existent";
+        performGetWithinTransaction(path);
+
+        assertThat(reporter.getErrors()).isEmpty();
+    }
+
 }
