@@ -14,9 +14,8 @@ on:
       - '**.asciidoc'
 
 env:
-  MAVEN_CONFIG: "-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25"
   JAVA_VERSION: 17
-  JAVA_DIST: adopt
+  JAVA_DIST: temurin
 
 # limit the access of the generated GITHUB_TOKEN
 permissions:
@@ -27,22 +26,45 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-
-  license:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: .github/workflows/build
+      - uses: ./.github/workflows/build
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DIST }}
+      - uses: ./.github/workflows/stash
+        with:
+          name: build
+          path: ${{ github.workspace }}
+
+  license:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/workflows/unstash
+        with:
+          name: build
+          path: ${{ github.workspace }}
+      - name: mvn license
+        uses: ./.github/workflows/build
         with:
           command: ./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
 
-  test:
+  unit-tests:
     runs-on: ubuntu-latest
+    needs: build
     steps:
       - uses: actions/checkout@v3
-      - uses: .github/workflows/build
+      - uses: ./.github/workflows/unstash
+        with:
+          name: build
+          path: ${{ github.workspace }}
+      - uses: ./.github/workflows/build
         with:
           command: ./mvnw test
           java-version: ${{ env.JAVA_VERSION }}
@@ -54,11 +76,16 @@ jobs:
           name: test-results
           path: '**/target/*.xml'
 
-  non-app-test:
+  non-app-server-integration-tests:
     runs-on: ubuntu-latest
+    needs: build
     steps:
       - uses: actions/checkout@v3
-      - uses: .github/workflows/build
+      - uses: ./.github/workflows/unstash
+        with:
+          name: build
+          path: ${{ github.workspace }}
+      - uses: ./.github/workflows/build
         with:
           command: ./mvnw -q -P ci-non-application-server-integration-tests verify
           java-version: ${{ env.JAVA_VERSION }}
@@ -70,11 +97,16 @@ jobs:
           name: test-results
           path: '**/target/*.xml'
 
-  app-test:
+  app-server-integration-tests:
     runs-on: ubuntu-latest
+    needs: build
     steps:
       - uses: actions/checkout@v3
-      - uses: .github/workflows/build
+      - uses: ./.github/workflows/unstash
+        with:
+          name: build
+          path: ${{ github.workspace }}
+      - uses: ./.github/workflows/build
         with:
           command: ./mvnw -q -P ci-application-server-integration-tests verify
           java-version: ${{ env.JAVA_VERSION }}
@@ -88,36 +120,43 @@ jobs:
 
   javadoc:
     runs-on: ubuntu-latest
+    needs: build
     steps:
       - uses: actions/checkout@v3
-      - uses: .github/workflows/build
+      - uses: ./.github/workflows/unstash
+        with:
+          name: build
+          path: ${{ github.workspace }}
+      - uses: ./.github/workflows/build
         with:
           command: ./mvnw compile javadoc:javadoc
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
 
-  windows-test:
+  unit-tests-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v3
+      - uses: ./.github/workflows/build
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
-          cache: 'maven'
+          command: ./mvnw test
 
-      - run: ./mvnw test
-
-  comp-jdk-test:
+  jdk-compatibility-tests:
     runs-on: ubuntu-latest
+    needs: build
     strategy:
       matrix:
-        version: [11, 19]
+        version: [11, 17, 19]
     steps:
       - uses: actions/checkout@v3
-      - uses: .github/workflows/build
+      - uses: ./.github/workflows/unstash
+        with:
+          name: build
+          path: ${{ github.workspace }}
+      - name: mvn test for ${{ matrix.version }}:${{ env.JAVA_DIST }}
+        uses: ./.github/workflows/build
         with:
           command: ./mvnw test
           java-version: ${{ matrix.version }}
