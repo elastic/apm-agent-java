@@ -208,6 +208,8 @@ jobs:
   bump_opbeans:
     name: "Bump Opbeans agent version"
     runs-on: ubuntu-latest
+    needs:
+      - await_artifact_on_maven_central
     steps:
       #TODO: Use apmmachine + setup authorization (SSH?)
       - uses: actions/checkout@v3
