@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.dubbo.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -34,7 +34,7 @@ public class DubboTraceHelper {
     public static final String SPAN_KEY = "_elastic_apm_span";
 
     @Nullable
-    public static Span createConsumerSpan(ElasticApmTracer tracer, Class<?> apiClass, String methodName, InetSocketAddress remoteAddress) {
+    public static Span createConsumerSpan(Tracer tracer, Class<?> apiClass, String methodName, InetSocketAddress remoteAddress) {
         AbstractSpan<?> traceContext = tracer.getActive();
         if (traceContext == null) {
             return null;

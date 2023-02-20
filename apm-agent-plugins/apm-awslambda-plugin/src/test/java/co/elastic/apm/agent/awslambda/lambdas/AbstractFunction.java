@@ -27,7 +27,7 @@ import java.util.Objects;
 public abstract class AbstractFunction<ReqE, ResE> implements RequestHandler<ReqE, ResE> {
 
     protected void createChildSpan() {
-        Objects.requireNonNull(GlobalTracer.requireTracerImpl().getActive())
+        Objects.requireNonNull(GlobalTracer.get().getActive())
             .createSpan()
             .withName("child-span")
             .activate()

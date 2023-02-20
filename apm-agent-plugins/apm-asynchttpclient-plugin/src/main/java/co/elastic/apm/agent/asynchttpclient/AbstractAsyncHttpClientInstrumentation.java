@@ -21,7 +21,7 @@ package co.elastic.apm.agent.asynchttpclient;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -174,7 +174,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
     public static class AsyncHandlerOnCompletedInstrumentation extends AbstractAsyncHandlerInstrumentation {
 
-        public AsyncHandlerOnCompletedInstrumentation(ElasticApmTracer tracer) {
+        public AsyncHandlerOnCompletedInstrumentation(Tracer tracer) {
             super(named("onCompleted").and(takesArguments(0)));
         }
 
@@ -198,7 +198,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
     public static class AsyncHandlerOnThrowableInstrumentation extends AbstractAsyncHandlerInstrumentation {
 
-        public AsyncHandlerOnThrowableInstrumentation(ElasticApmTracer tracer) {
+        public AsyncHandlerOnThrowableInstrumentation(Tracer tracer) {
             super(named("onThrowable").and(takesArguments(Throwable.class)));
         }
 
@@ -225,7 +225,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
     public static class AsyncHandlerOnStatusReceivedInstrumentation extends AbstractAsyncHandlerInstrumentation {
 
-        public AsyncHandlerOnStatusReceivedInstrumentation(ElasticApmTracer tracer) {
+        public AsyncHandlerOnStatusReceivedInstrumentation(Tracer tracer) {
             super(named("onStatusReceived").and(takesArgument(0, named("org.asynchttpclient.HttpResponseStatus"))));
         }
 
@@ -249,7 +249,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
     public static class StreamedAsyncHandlerOnStreamInstrumentation extends AbstractAsyncHandlerInstrumentation {
 
-        public StreamedAsyncHandlerOnStreamInstrumentation(ElasticApmTracer tracer) {
+        public StreamedAsyncHandlerOnStreamInstrumentation(Tracer tracer) {
             super(named("onStream").and(takesArgument(0, named("org.reactivestreams.Publisher"))));
         }
 

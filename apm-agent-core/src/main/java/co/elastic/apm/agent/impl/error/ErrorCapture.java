@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.impl.error;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -52,7 +52,7 @@ public class ErrorCapture implements Recyclable {
      * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
      */
     private final TransactionContext context = new TransactionContext();
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
     /**
      * Information about the originally thrown error.
      */
@@ -71,7 +71,7 @@ public class ErrorCapture implements Recyclable {
 
     private final StringBuilder culprit = new StringBuilder();
 
-    public ErrorCapture(ElasticApmTracer tracer) {
+    public ErrorCapture(Tracer tracer) {
         this.tracer = tracer;
         traceContext = TraceContext.with128BitId(this.tracer);
     }

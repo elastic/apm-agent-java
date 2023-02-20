@@ -30,7 +30,7 @@ public class StreamHandlerLambdaFunction implements RequestStreamHandler {
 
     @Override
     public void handleRequest(InputStream inputStream, OutputStream outputStream, Context context) {
-        Objects.requireNonNull(GlobalTracer.requireTracerImpl().getActive())
+        Objects.requireNonNull(GlobalTracer.get().getActive())
             .createSpan()
             .withName("child-span")
             .activate()

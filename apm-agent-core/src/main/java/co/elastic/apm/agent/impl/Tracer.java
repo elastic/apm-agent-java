@@ -27,6 +27,8 @@ import co.elastic.apm.agent.impl.transaction.HeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 import javax.annotation.Nullable;
 
@@ -151,8 +153,6 @@ public interface Tracer {
     @Nullable
     Span getActiveExitSpan();
 
-    TracerState getState();
-
     @Nullable
     ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader classLoader);
 
@@ -176,8 +176,24 @@ public interface Tracer {
 
     boolean isRunning();
 
+    TracerState getState();
+
     @Nullable
     Span createExitChildSpan();
+
+    void recycle(Transaction transaction);
+
+    void recycle(ErrorCapture errorCapture);
+
+    void endSpan(Span span);
+
+    void endTransaction(Transaction transaction);
+
+    void endError(ErrorCapture errorCapture);
+
+    <T extends ConfigurationOptionProvider> T getConfig(Class<T> configuration);
+
+    ObjectPoolFactory getObjectPoolFactory();
 
     /**
      * An enumeration used to represent the current tracer state.

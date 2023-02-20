@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.SpanAwareTracer;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
@@ -82,7 +82,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         }
     }
 
-    public Span(ElasticApmTracer tracer) {
+    public Span(SpanAwareTracer tracer) {
         super(tracer);
     }
 

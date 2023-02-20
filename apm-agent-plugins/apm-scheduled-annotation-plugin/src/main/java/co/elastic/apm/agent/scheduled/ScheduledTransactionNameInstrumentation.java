@@ -20,7 +20,7 @@ package co.elastic.apm.agent.scheduled;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
@@ -52,7 +52,7 @@ public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrume
 
     private final Collection<String> applicationPackages;
 
-    public ScheduledTransactionNameInstrumentation(ElasticApmTracer tracer) {
+    public ScheduledTransactionNameInstrumentation(Tracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 

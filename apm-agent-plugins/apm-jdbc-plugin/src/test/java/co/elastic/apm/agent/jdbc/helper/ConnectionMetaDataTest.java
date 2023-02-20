@@ -20,7 +20,7 @@ package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -348,7 +348,7 @@ class ConnectionMetaDataTest {
 
     private static final MockTracer.MockInstrumentationSetup mockSetup = MockTracer.createMockInstrumentationSetup();
     private static final MockReporter reporter = mockSetup.getReporter();
-    private static final ElasticApmTracer tracer = mockSetup.getTracer();
+    private static final Tracer tracer = mockSetup.getTracer();
 
     private void testUrl(String url, String expectedVendor, @Nullable String expectedHost, int expectedPort, @Nullable String expectedDatabase) {
         ConnectionMetaData metadata = ConnectionMetaData.parse(url).build();

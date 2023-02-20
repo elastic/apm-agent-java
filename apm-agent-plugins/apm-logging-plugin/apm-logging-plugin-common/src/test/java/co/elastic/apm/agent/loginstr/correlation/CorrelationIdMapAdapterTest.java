@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.loginstr.correlation;
 
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class CorrelationIdMapAdapterTest {
 
-    private final ElasticApmTracer tracer = MockTracer.createRealTracer();
+    private final Tracer tracer = MockTracer.createRealTracer();
 
     @BeforeEach
     void setUp() {

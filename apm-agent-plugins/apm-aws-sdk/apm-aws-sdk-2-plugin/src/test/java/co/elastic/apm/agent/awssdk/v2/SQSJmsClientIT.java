@@ -301,7 +301,7 @@ public class SQSJmsClientIT extends AbstractAwsClientIT {
         @Override
         public void onMessage(Message message) {
             try {
-                Tracer tracer = GlobalTracer.getTracerImpl();
+                Tracer tracer = GlobalTracer.get();
                 assertThat(tracer).isNotNull();
                 AbstractSpan<?> parent = tracer.getActive();
                 assertThat(parent).isNotNull();

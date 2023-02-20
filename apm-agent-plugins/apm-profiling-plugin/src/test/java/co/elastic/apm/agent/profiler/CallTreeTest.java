@@ -23,6 +23,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -1014,7 +1015,7 @@ class CallTreeTest {
         }
     }
 
-    private static void handleSpanEvent(ElasticApmTracer tracer, Map<String, AbstractSpan<?>> spanMap, String name, long nanoTime) {
+    private static void handleSpanEvent(Tracer tracer, Map<String, AbstractSpan<?>> spanMap, String name, long nanoTime) {
         if (!spanMap.containsKey(name)) {
             Span span = tracer.getActive().createSpan(nanoTime / 1000).appendToName(name).activate();
             spanMap.put(name, span);

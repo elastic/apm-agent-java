@@ -20,6 +20,7 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
@@ -598,7 +599,7 @@ public class CallTree implements Recyclable {
 
         private final LongHashSet activeSet = new LongHashSet();
 
-        public Root(ElasticApmTracer tracer) {
+        public Root(Tracer tracer) {
             this.rootContext = TraceContext.with64BitId(tracer);
         }
 
@@ -659,7 +660,7 @@ public class CallTree implements Recyclable {
             }
         }
 
-        public void addStackTrace(ElasticApmTracer tracer, List<StackFrame> stackTrace, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs) {
+        public void addStackTrace(Tracer tracer, List<StackFrame> stackTrace, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs) {
             // only "materialize" trace context if there's actually an associated stack trace to the activation
             // avoids allocating a TraceContext for very short activations which have no effect on the CallTree anyway
             boolean firstFrameAfterActivation = false;

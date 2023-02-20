@@ -20,7 +20,7 @@ package co.elastic.apm.agent.awssdk.v2;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -71,7 +71,7 @@ public class BaseSyncClientHandlerInstrumentationTest {
 
     public Outcome exerciseRedactedException(Exception canBeNull) {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
-        ElasticApmTracer tracer = mockInstrumentationSetup.getTracer();
+        Tracer tracer = mockInstrumentationSetup.getTracer();
 
         Transaction transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();

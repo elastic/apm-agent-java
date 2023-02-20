@@ -18,16 +18,12 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Message;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.impl.transaction.*;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
@@ -77,7 +73,7 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
 
     protected abstract boolean isReceiveMessageRequest(R request);
 
-    protected AbstractSQSInstrumentationHelper(ElasticApmTracer tracer, IAwsSdkDataSource<R, C> awsSdkDataSource) {
+    protected AbstractSQSInstrumentationHelper(Tracer tracer, IAwsSdkDataSource<R, C> awsSdkDataSource) {
         super(tracer, awsSdkDataSource);
         this.messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
         this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);

@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.Allocator;
@@ -38,7 +37,7 @@ public class JakartaAsyncContextAdviceHelper implements AsyncContextAdviceHelper
     private final ServletTransactionHelper servletTransactionHelper;
     private final Tracer tracer;
 
-    public JakartaAsyncContextAdviceHelper(ElasticApmTracer tracer) {
+    public JakartaAsyncContextAdviceHelper(Tracer tracer) {
         this.tracer = tracer;
         this.servletTransactionHelper = new ServletTransactionHelper(tracer);
         this.asyncListenerObjectPool = tracer.getObjectPoolFactory().createRecyclableObjectPool(MAX_POOLED_ELEMENTS,

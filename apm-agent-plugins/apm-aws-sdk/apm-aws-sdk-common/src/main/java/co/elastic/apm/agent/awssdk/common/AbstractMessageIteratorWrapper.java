@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.awssdk.common;
 
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -38,12 +38,12 @@ public abstract class AbstractMessageIteratorWrapper<Message> implements Iterato
     public static final Logger logger = LoggerFactory.getLogger(AbstractMessageIteratorWrapper.class);
 
     private final Iterator<Message> delegate;
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
     private final String queueName;
     private final AbstractSQSInstrumentationHelper<?, ?, Message> sqsInstrumentationHelper;
     private final TextHeaderGetter<Message> textHeaderGetter;
 
-    public AbstractMessageIteratorWrapper(Iterator<Message> delegate, ElasticApmTracer tracer,
+    public AbstractMessageIteratorWrapper(Iterator<Message> delegate, Tracer tracer,
                                           String queueName,
                                           AbstractSQSInstrumentationHelper<?, ?, Message> sqsInstrumentationHelper,
                                           TextHeaderGetter<Message> textHeaderGetter) {

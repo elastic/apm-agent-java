@@ -32,8 +32,8 @@ import java.util.Map;
 
 public abstract class AbstractBaseInstrumentation extends TracerAwareInstrumentation {
 
-    private static final CoreConfiguration coreConfiguration = GlobalTracer.requireTracerImpl().getConfig(CoreConfiguration.class);
-    private static final MessagingConfiguration messagingConfiguration = GlobalTracer.requireTracerImpl().getConfig(MessagingConfiguration.class);
+    private static final CoreConfiguration coreConfiguration = GlobalTracer.get().getConfig(CoreConfiguration.class);
+    private static final MessagingConfiguration messagingConfiguration = GlobalTracer.get().getConfig(MessagingConfiguration.class);
 
     /**
      * @param name name of the exchange or queue

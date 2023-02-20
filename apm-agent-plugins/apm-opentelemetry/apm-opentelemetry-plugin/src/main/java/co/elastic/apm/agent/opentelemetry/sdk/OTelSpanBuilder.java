@@ -34,10 +34,7 @@ import co.elastic.apm.agent.util.VersionUtils;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanBuilder;
-import io.opentelemetry.api.trace.SpanContext;
-import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.*;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
 
@@ -54,7 +51,7 @@ class OTelSpanBuilder implements SpanBuilder {
     private static final Logger addLinkLogger = LoggerUtils.logOnce(LoggerFactory.getLogger(OTelSpanBuilder.class));
 
     private final String spanName;
-    private final ElasticApmTracer elasticApmTracer;
+    private final ElasticApmTracer tracer;
     private final Map<AttributeKey<?>, Object> attributes = new HashMap<>();
     private long epochMicros = -1;
     @Nullable
@@ -67,9 +64,9 @@ class OTelSpanBuilder implements SpanBuilder {
     @Nullable
     private SpanKind kind;
 
-    public OTelSpanBuilder(String spanName, ElasticApmTracer elasticApmTracer) {
+    public OTelSpanBuilder(String spanName, ElasticApmTracer tracer) {
         this.spanName = spanName;
-        this.elasticApmTracer = elasticApmTracer;
+        this.tracer = tracer;
     }
 
     @Override
@@ -153,17 +150,17 @@ class OTelSpanBuilder implements SpanBuilder {
 
         if (parent == null) {
             // when parent is not explicitly set, the currently active parent is used as fallback
-            parent = elasticApmTracer.getActive();
+            parent = tracer.getActive();
         }
 
         if (remoteContext != null) {
             PotentiallyMultiValuedMap headers = new PotentiallyMultiValuedMap(2);
             W3CTraceContextPropagator.getInstance().inject(remoteContext, headers, PotentiallyMultiValuedMap::add);
-            span = elasticApmTracer.startChildTransaction(headers, MultiValueMapAccessor.INSTANCE, PrivilegedActionUtils.getClassLoader(getClass()), epochMicros);
+            span = tracer.startChildTransaction(headers, MultiValueMapAccessor.INSTANCE, PrivilegedActionUtils.getClassLoader(getClass()), epochMicros);
         } else if (parent == null) {
-            span = elasticApmTracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(getClass()), epochMicros);
+            span = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(getClass()), epochMicros);
         } else {
-            span = elasticApmTracer.startSpan(parent, epochMicros);
+            span = tracer.startSpan(parent, epochMicros);
         }
         if (span == null) {
             return Span.getInvalid();

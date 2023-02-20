@@ -18,8 +18,10 @@
  */
 package co.elastic.apm.agent.objectpool;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.MetricsAwareTracer;
+import co.elastic.apm.agent.impl.SpanAwareTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.MetricsAwareTransaction;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -28,20 +30,32 @@ import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
 public class ObjectPoolFactory {
 
+    public static final ObjectPoolFactory INSTANCE = new ObjectPoolFactory();
+
     public <T extends Recyclable> ObjectPool<T> createRecyclableObjectPool(int maxCapacity, Allocator<T> allocator) {
         return QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<T>((maxCapacity)), false, allocator);
     }
 
-    public ObjectPool<Transaction> createTransactionPool(int maxCapacity, final ElasticApmTracer tracer) {
-        return createRecyclableObjectPool(maxCapacity, new Allocator<Transaction>() {
-            @Override
-            public Transaction createInstance() {
-                return new Transaction(tracer);
-            }
-        });
+    public ObjectPool<Transaction> createTransactionPool(int maxCapacity, final SpanAwareTracer tracer) {
+        if (tracer instanceof MetricsAwareTracer) {
+            final MetricsAwareTracer cast = (MetricsAwareTracer) tracer;
+            return createRecyclableObjectPool(maxCapacity, new Allocator<Transaction>() {
+                @Override
+                public Transaction createInstance() {
+                    return new MetricsAwareTransaction(cast);
+                }
+            });
+        } else {
+            return createRecyclableObjectPool(maxCapacity, new Allocator<Transaction>() {
+                @Override
+                public Transaction createInstance() {
+                    return new Transaction(tracer);
+                }
+            });
+        }
     }
 
-    public ObjectPool<Span> createSpanPool(int maxCapacity, final ElasticApmTracer tracer) {
+    public ObjectPool<Span> createSpanPool(int maxCapacity, final SpanAwareTracer tracer) {
         return createRecyclableObjectPool(maxCapacity, new Allocator<Span>() {
             @Override
             public Span createInstance() {
@@ -50,7 +64,7 @@ public class ObjectPoolFactory {
         });
     }
 
-    public ObjectPool<ErrorCapture> createErrorPool(int maxCapacity, final ElasticApmTracer tracer) {
+    public ObjectPool<ErrorCapture> createErrorPool(int maxCapacity, final SpanAwareTracer tracer) {
         return createRecyclableObjectPool(maxCapacity, new Allocator<ErrorCapture>() {
             @Override
             public ErrorCapture createInstance() {
@@ -59,7 +73,7 @@ public class ObjectPoolFactory {
         });
     }
 
-    public ObjectPool<TraceContext> createSpanLinkPool(int maxCapacity, final ElasticApmTracer tracer) {
+    public ObjectPool<TraceContext> createSpanLinkPool(int maxCapacity, final SpanAwareTracer tracer) {
         return createRecyclableObjectPool(maxCapacity, new Allocator<TraceContext>() {
             @Override
             public TraceContext createInstance() {

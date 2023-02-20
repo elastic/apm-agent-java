@@ -16,21 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.opentelemetry.sdk;
+package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import io.opentelemetry.api.trace.SpanBuilder;
-import io.opentelemetry.api.trace.Tracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 
-public class OTelTracer implements Tracer {
-    private final ElasticApmTracer tracer;
+public interface SpanAwareTracer extends Tracer {
 
-    public OTelTracer(ElasticApmTracer tracer) {
-        this.tracer = tracer;
-    }
+    TraceContext createSpanLink();
 
-    @Override
-    public SpanBuilder spanBuilder(String spanName) {
-        return new OTelSpanBuilder(spanName, tracer);
-    }
+    void recycle(TraceContext context);
+
+    void recycle(Span span);
+
+    Span startSpan(AbstractSpan<?> parent, long epochMicros);
+
+    void activate(ElasticContext<?> context);
+
+    void deactivate(ElasticContext<?> context);
+
+    Scope activateInScope(ElasticContext<?> context);
 }

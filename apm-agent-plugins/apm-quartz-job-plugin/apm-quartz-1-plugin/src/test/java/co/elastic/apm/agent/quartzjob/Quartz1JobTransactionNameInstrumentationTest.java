@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.quartzjob;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.quartz.Job;
@@ -65,7 +65,7 @@ class Quartz1JobTransactionNameInstrumentationTest extends AbstractJobTransactio
     }
 
     @Override
-    void executeTestJobCreatingSpan(ElasticApmTracer tracer, boolean traced) throws JobExecutionException {
+    void executeTestJobCreatingSpan(Tracer tracer, boolean traced) throws JobExecutionException {
         new TestJobCreatingSpan(tracer, traced).execute(null);
     }
 
@@ -118,10 +118,10 @@ class Quartz1JobTransactionNameInstrumentationTest extends AbstractJobTransactio
     }
 
     public static class TestJobCreatingSpan implements Job {
-        private final ElasticApmTracer tracer;
+        private final Tracer tracer;
         private final boolean traced;
 
-        public TestJobCreatingSpan(ElasticApmTracer tracer, boolean traced) {
+        public TestJobCreatingSpan(Tracer tracer, boolean traced) {
             this.tracer = tracer;
             this.traced = traced;
         }

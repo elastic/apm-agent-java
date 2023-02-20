@@ -20,8 +20,8 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.SpanAwareTracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
@@ -56,7 +56,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      */
     protected final StringBuilder name = new StringBuilder();
     protected final boolean collectBreakdownMetrics;
-    protected final ElasticApmTracer tracer;
+    protected final SpanAwareTracer tracer;
     protected final AtomicLong timestamp = new AtomicLong();
     protected final AtomicLong endTimestamp = new AtomicLong();
 
@@ -210,7 +210,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         }
     }
 
-    public AbstractSpan(ElasticApmTracer tracer) {
+    public AbstractSpan(SpanAwareTracer tracer) {
         this.tracer = tracer;
         traceContext = TraceContext.with64BitId(this.tracer);
         boolean selfTimeCollectionEnabled = !WildcardMatcher.isAnyMatch(tracer.getConfig(ReporterConfiguration.class).getDisableMetrics(), "span.self_time");

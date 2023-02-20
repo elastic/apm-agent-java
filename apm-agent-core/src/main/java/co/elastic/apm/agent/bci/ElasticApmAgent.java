@@ -34,9 +34,7 @@ import co.elastic.apm.agent.bci.modules.ModuleOpener;
 import co.elastic.apm.agent.common.ThreadUtils;
 import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.*;
 import co.elastic.apm.agent.logging.ApmServerLogAppender;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
@@ -83,14 +81,7 @@ import java.nio.file.Paths;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.security.ProtectionDomain;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
@@ -877,10 +868,43 @@ public class ElasticApmAgent {
     }
 
     private static ElasticApmInstrumentation instantiate(Class<? extends ElasticApmInstrumentation> instrumentation) {
+        List<Constructor<?>> candidates = new ArrayList<>();
+        for (Constructor<?> constructor : instrumentation.getConstructors()) {
+            Class<?>[] types = constructor.getParameterTypes();
+            if (types.length == 0 || types.length == 1 && types[0].isAssignableFrom(Tracer.class)) {
+                candidates.add(constructor);
+            }
+        }
 
-        ElasticApmInstrumentation instance = tryInstantiate(instrumentation, false);
-        if (instance == null) {
-            instance = tryInstantiate(instrumentation, true);
+        Collections.sort(candidates, new Comparator<Constructor<?>>() {
+            @Override
+            public int compare(Constructor<?> left, Constructor<?> right) {
+                if (left == right) {
+                    return 0;
+                }
+                Class<?>[] leftTypes = left.getParameterTypes(), rightTypes = right.getParameterTypes();
+                int difference = rightTypes.length - leftTypes.length;
+                if (difference == 0) {
+                    return rightTypes[0].isAssignableFrom(leftTypes[0]) ? -1 : 1;
+                } else {
+                    return difference;
+                }
+            }
+        });
+
+        ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+        ElasticApmInstrumentation instance = null;
+        for (Constructor<?> candidate : candidates) {
+            try {
+                if (candidate.getParameterTypes().length == 0) {
+                    instance = (ElasticApmInstrumentation) candidate.newInstance();
+                } else {
+                    instance = (ElasticApmInstrumentation) candidate.newInstance(tracer);
+                }
+                break;
+            } catch (ReflectiveOperationException e) {
+                // silently ignored
+            }
         }
 
         if (instance == null) {
@@ -890,34 +914,18 @@ public class ElasticApmAgent {
         return instance;
     }
 
-    @Nullable
-    private static ElasticApmInstrumentation tryInstantiate(Class<? extends ElasticApmInstrumentation> instrumentation, boolean withTracer) {
+    public static class X {
 
-        Constructor<? extends ElasticApmInstrumentation> constructor = null;
-        try {
-            if (withTracer) {
-                constructor = instrumentation.getConstructor(ElasticApmTracer.class);
-            } else {
-                constructor = instrumentation.getConstructor();
-            }
-        } catch (NoSuchMethodException e) {
-            // silently ignored
+        public X() {
         }
 
-        ElasticApmInstrumentation instance = null;
-        if (constructor != null) {
-            try {
-                if (withTracer) {
-                    instance = constructor.newInstance(GlobalTracer.requireTracerImpl());
-                } else {
-                    instance = constructor.newInstance();
-                }
-            } catch (ReflectiveOperationException e) {
-                // silently ignored
-            }
+        public X(Tracer tracer) {
+
         }
 
-        return instance;
+        public X(ElasticApmTracer tracer) {
+
+        }
     }
 
     public static ClassLoader getAgentClassLoader() {

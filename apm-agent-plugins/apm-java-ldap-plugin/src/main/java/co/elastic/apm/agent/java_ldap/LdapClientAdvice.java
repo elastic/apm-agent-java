@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.java_ldap;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -32,7 +32,7 @@ import javax.annotation.Nullable;
 
 public class LdapClientAdvice {
 
-    private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+    private static final Tracer tracer = GlobalTracer.get();
 
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnter(@Advice.Origin("#m") String methodName, @Advice.FieldValue(value = "conn", typing = Assigner.Typing.DYNAMIC) Connection connection) {

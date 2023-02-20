@@ -38,7 +38,7 @@ public class ApacheHttpAsyncClientHelper {
     private final ObjectPool<FutureCallbackWrapper<?>> futureCallbackWrapperObjectPool;
 
     public ApacheHttpAsyncClientHelper() {
-        ObjectPoolFactory factory = GlobalTracer.requireTracerImpl().getObjectPoolFactory();
+        ObjectPoolFactory factory = GlobalTracer.get().getObjectPoolFactory();
         requestProducerWrapperObjectPool = factory.createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new RequestProducerWrapperAllocator());
         futureCallbackWrapperObjectPool = factory.createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new FutureCallbackWrapperAllocator());
     }

@@ -26,8 +26,10 @@ import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
+import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -51,12 +53,21 @@ public class GlobalTracer implements Tracer {
     }
 
     @Nullable
-    public static ElasticApmTracer getTracerImpl() {
+    public static <T extends Tracer> T get(Class<T> type) {
         Tracer tracer = INSTANCE.tracer;
-        if (tracer instanceof ElasticApmTracer) {
-            return ((ElasticApmTracer) tracer);
+        if (type.isInstance(tracer)) {
+            return type.cast(tracer);
         }
         return null;
+    }
+
+    public static <T extends Tracer> T require(Class<T> type) {
+        return Objects.requireNonNull(get(type), "Registered tracer is not an instance of " + type.getName());
+    }
+
+    @Nullable
+    public static ElasticApmTracer getTracerImpl() {
+        return get(ElasticApmTracer.class);
     }
 
     public static ElasticApmTracer requireTracerImpl() {
@@ -230,5 +241,40 @@ public class GlobalTracer implements Tracer {
     @Override
     public Span createExitChildSpan() {
         return tracer.createExitChildSpan();
+    }
+
+    @Override
+    public void recycle(Transaction transaction) {
+        tracer.recycle(transaction);
+    }
+
+    @Override
+    public void endSpan(Span span) {
+        tracer.endSpan(span);
+    }
+
+    @Override
+    public void endTransaction(Transaction transaction) {
+        tracer.endTransaction(transaction);
+    }
+
+    @Override
+    public void endError(ErrorCapture errorCapture) {
+        tracer.endError(errorCapture);
+    }
+
+    @Override
+    public <T extends ConfigurationOptionProvider> T getConfig(Class<T> configuration) {
+        return tracer.getConfig(configuration);
+    }
+
+    @Override
+    public ObjectPoolFactory getObjectPoolFactory() {
+        return tracer.getObjectPoolFactory();
+    }
+
+    @Override
+    public void recycle(ErrorCapture errorCapture) {
+        tracer.recycle(errorCapture);
     }
 }

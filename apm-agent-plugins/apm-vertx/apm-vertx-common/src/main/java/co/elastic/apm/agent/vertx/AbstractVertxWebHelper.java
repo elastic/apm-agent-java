@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.vertx;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
@@ -56,7 +56,7 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
 
     private final MultiMapHeadersGetterSetter headerGetter = new MultiMapHeadersGetterSetter();
 
-    protected AbstractVertxWebHelper(ElasticApmTracer tracer) {
+    protected AbstractVertxWebHelper(Tracer tracer) {
         super(tracer);
     }
 

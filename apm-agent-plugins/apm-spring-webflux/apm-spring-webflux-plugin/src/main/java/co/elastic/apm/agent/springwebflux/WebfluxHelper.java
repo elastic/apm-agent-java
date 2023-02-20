@@ -82,8 +82,8 @@ public class WebfluxHelper {
 
     static {
 
-        coreConfig = GlobalTracer.requireTracerImpl().getConfig(CoreConfiguration.class);
-        webConfig = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);
+        coreConfig = GlobalTracer.get().getConfig(CoreConfiguration.class);
+        webConfig = GlobalTracer.get().getConfig(WebConfiguration.class);
         serverHelper = new HttpServerHelper(webConfig);
     }
 

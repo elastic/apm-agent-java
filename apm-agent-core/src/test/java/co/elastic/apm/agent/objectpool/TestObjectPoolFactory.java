@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.objectpool;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.SpanAwareTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -93,25 +93,25 @@ public class TestObjectPoolFactory extends ObjectPoolFactory {
     }
 
     @Override
-    public ObjectPool<Transaction> createTransactionPool(int maxCapacity, ElasticApmTracer tracer) {
+    public ObjectPool<Transaction> createTransactionPool(int maxCapacity, SpanAwareTracer tracer) {
         transactionPool = (BookkeeperObjectPool<Transaction>) super.createTransactionPool(maxCapacity, tracer);
         return transactionPool;
     }
 
     @Override
-    public ObjectPool<Span> createSpanPool(int maxCapacity, ElasticApmTracer tracer) {
+    public ObjectPool<Span> createSpanPool(int maxCapacity, SpanAwareTracer tracer) {
         spanPool = (BookkeeperObjectPool<Span>) super.createSpanPool(maxCapacity, tracer);
         return spanPool;
     }
 
     @Override
-    public ObjectPool<ErrorCapture> createErrorPool(int maxCapacity, ElasticApmTracer tracer) {
+    public ObjectPool<ErrorCapture> createErrorPool(int maxCapacity, SpanAwareTracer tracer) {
         errorPool = (BookkeeperObjectPool<ErrorCapture>) super.createErrorPool(maxCapacity, tracer);
         return errorPool;
     }
 
     @Override
-    public ObjectPool<TraceContext> createSpanLinkPool(int maxCapacity, ElasticApmTracer tracer) {
+    public ObjectPool<TraceContext> createSpanLinkPool(int maxCapacity, SpanAwareTracer tracer) {
         spanLinksPool = (BookkeeperObjectPool<TraceContext>) super.createSpanLinkPool(maxCapacity, tracer);
         return spanLinksPool;
     }

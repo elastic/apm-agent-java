@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.quartzjob;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -168,7 +168,7 @@ abstract class AbstractJobTransactionNameInstrumentationTest extends AbstractIns
 
     abstract JobDetail buildJobDetailTestJob(String name, String groupName);
 
-    abstract void executeTestJobCreatingSpan(ElasticApmTracer tracer, boolean traced) throws JobExecutionException;
+    abstract void executeTestJobCreatingSpan(Tracer tracer, boolean traced) throws JobExecutionException;
 
     abstract JobDetail buildJobDetailTestJobWithResult(String name);
 

@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.quartzjob;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
@@ -51,7 +51,7 @@ public abstract class AbstractJobTransactionNameInstrumentation extends TracerAw
 
     private final Collection<String> applicationPackages;
 
-    protected AbstractJobTransactionNameInstrumentation(ElasticApmTracer tracer) {
+    protected AbstractJobTransactionNameInstrumentation(Tracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 

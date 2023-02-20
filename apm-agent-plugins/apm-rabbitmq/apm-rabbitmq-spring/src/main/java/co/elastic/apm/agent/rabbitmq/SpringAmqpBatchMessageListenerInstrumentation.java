@@ -20,8 +20,8 @@ package co.elastic.apm.agent.rabbitmq;
 
 
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -63,9 +63,9 @@ public class SpringAmqpBatchMessageListenerInstrumentation extends SpringBaseIns
         private static final MessagingConfiguration messagingConfiguration;
 
         static {
-            ElasticApmTracer elasticApmTracer = GlobalTracer.requireTracerImpl();
-            messageBatchHelper = new MessageBatchHelper(elasticApmTracer, transactionHelper);
-            messagingConfiguration = elasticApmTracer.getConfig(MessagingConfiguration.class);
+            Tracer tracer = GlobalTracer.get();
+            messageBatchHelper = new MessageBatchHelper(tracer, transactionHelper);
+            messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
             oneTimeTransactionCreationWarningLogger = LoggerUtils.logOnce(LoggerFactory.getLogger("Spring-AMQP-Batch-Logger"));
         }
 

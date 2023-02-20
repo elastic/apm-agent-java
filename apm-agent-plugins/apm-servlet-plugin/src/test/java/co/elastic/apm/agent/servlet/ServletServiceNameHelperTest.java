@@ -20,7 +20,7 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.servlet.adapter.JavaxServletApiAdapter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ServletServiceNameHelperTest {
 
     private final MockReporter reporter = new MockReporter();
-    private final ElasticApmTracer tracer = MockTracer.createRealTracer(reporter);
+    private final Tracer tracer = MockTracer.createRealTracer(reporter);
 
     @BeforeEach
     void setUp() {

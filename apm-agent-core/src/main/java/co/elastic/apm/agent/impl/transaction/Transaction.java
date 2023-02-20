@@ -20,20 +20,17 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.SpanAwareTracer;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.metrics.Labels;
-import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
 import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import org.HdrHistogram.WriterReaderPhaser;
 
 import javax.annotation.Nullable;
-import java.util.List;
 
 import static co.elastic.apm.agent.configuration.CoreConfiguration.TraceContinuationStrategy.RESTART;
 import static co.elastic.apm.agent.configuration.CoreConfiguration.TraceContinuationStrategy.RESTART_EXTERNAL;
@@ -42,13 +39,6 @@ import static co.elastic.apm.agent.configuration.CoreConfiguration.TraceContinua
  * Data captured by an agent representing an event occurring in a monitored service
  */
 public class Transaction extends AbstractSpan<Transaction> {
-
-    private static final ThreadLocal<Labels.Mutable> labelsThreadLocal = new ThreadLocal<Labels.Mutable>() {
-        @Override
-        protected Labels.Mutable initialValue() {
-            return Labels.Mutable.of();
-        }
-    };
 
     public static final String TYPE_REQUEST = "request";
 
@@ -69,8 +59,8 @@ public class Transaction extends AbstractSpan<Transaction> {
      * That is done in order to minimize {@link java.util.Map.Entry} garbage.
      * </p>
      */
-    private final KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> timerBySpanTypeAndSubtype = new KeyListConcurrentHashMap<>();
-    private final WriterReaderPhaser phaser = new WriterReaderPhaser();
+    final KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> timerBySpanTypeAndSubtype = new KeyListConcurrentHashMap<>();
+    final WriterReaderPhaser phaser = new WriterReaderPhaser();
     private final CoreConfiguration coreConfig;
     private final SpanConfiguration spanConfig;
 
@@ -114,7 +104,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         return this;
     }
 
-    public Transaction(ElasticApmTracer tracer) {
+    public Transaction(SpanAwareTracer tracer) {
         super(tracer);
         coreConfig = tracer.getConfig(CoreConfiguration.class);
         spanConfig = tracer.getConfig(SpanConfiguration.class);
@@ -457,53 +447,5 @@ public class Transaction extends AbstractSpan<Transaction> {
         }
     }
 
-    private void trackMetrics() {
-        try {
-            phaser.readerLock();
-            phaser.flipPhase();
-            // timers are guaranteed to be stable now
-            // - no concurrent updates possible as finished is true
-            // - no other thread is running the incrementTimer method,
-            //   as flipPhase only returns when all threads have exited that method
-
-            final String type = getType();
-            if (type == null) {
-                return;
-            }
-            final Labels.Mutable labels = labelsThreadLocal.get();
-            labels.resetState();
-            labels.serviceName(getTraceContext().getServiceName())
-                .serviceVersion(getTraceContext().getServiceVersion())
-                .transactionName(name)
-                .transactionType(type);
-            final MetricRegistry metricRegistry = tracer.getMetricRegistry();
-            long criticalValueAtEnter = metricRegistry.writerCriticalSectionEnter();
-            try {
-                if (collectBreakdownMetrics) {
-                    List<String> types = timerBySpanTypeAndSubtype.keyList();
-                    for (int i = 0; i < types.size(); i++) {
-                        String spanType = types.get(i);
-                        KeyListConcurrentHashMap<String, Timer> timerBySubtype = timerBySpanTypeAndSubtype.get(spanType);
-                        List<String> subtypes = timerBySubtype.keyList();
-                        for (int j = 0; j < subtypes.size(); j++) {
-                            String subtype = subtypes.get(j);
-                            final Timer timer = timerBySubtype.get(subtype);
-                            if (timer.getCount() > 0) {
-                                if (subtype.equals("")) {
-                                    subtype = null;
-                                }
-                                labels.spanType(spanType).spanSubType(subtype);
-                                metricRegistry.updateTimer("span.self_time", labels, timer.getTotalTimeUs(), timer.getCount());
-                                timer.resetState();
-                            }
-                        }
-                    }
-                }
-            } finally {
-                metricRegistry.writerCriticalSectionExit(criticalValueAtEnter);
-            }
-        } finally {
-            phaser.readerUnlock();
-        }
-    }
+    protected void trackMetrics() { }
 }

@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.vertx.v4.web;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import io.vertx.core.Context;
@@ -30,13 +30,13 @@ import javax.annotation.Nullable;
 
 public class WebHelper extends AbstractVertxWebHelper {
 
-    private static final WebHelper INSTANCE = new WebHelper(GlobalTracer.requireTracerImpl());
+    private static final WebHelper INSTANCE = new WebHelper(GlobalTracer.get());
 
     public static WebHelper getInstance() {
         return INSTANCE;
     }
 
-    private WebHelper(ElasticApmTracer tracer) {
+    private WebHelper(Tracer tracer) {
         super(tracer);
     }
 

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 
@@ -28,7 +28,7 @@ import java.net.URI;
 public abstract class AbstractS3InstrumentationHelper<R, C> extends AbstractAwsSdkInstrumentationHelper<R, C> {
     public static final String S3_TYPE = "s3";
 
-    protected AbstractS3InstrumentationHelper(ElasticApmTracer tracer, IAwsSdkDataSource<R, C> awsSdkDataSource) {
+    protected AbstractS3InstrumentationHelper(Tracer tracer, IAwsSdkDataSource<R, C> awsSdkDataSource) {
         super(tracer, awsSdkDataSource);
     }
 

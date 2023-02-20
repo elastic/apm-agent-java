@@ -106,11 +106,6 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
     }
 
     @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return classLoaderCanLoadClass("co.elastic.apm.api.CaptureSpan");
-    }
-
-    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(stacktraceConfig.getApplicationPackages(), ElementMatchers.<NamedElement>none())
             .and(not(isProxy()))

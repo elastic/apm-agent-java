@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.kafka.helper;
 
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Allocator;
@@ -39,17 +39,17 @@ import java.util.List;
 public class KafkaInstrumentationHelper {
 
     public static final Logger logger = LoggerFactory.getLogger(KafkaInstrumentationHelper.class);
-    private static final KafkaInstrumentationHelper INSTANCE = new KafkaInstrumentationHelper(GlobalTracer.requireTracerImpl());
+    private static final KafkaInstrumentationHelper INSTANCE = new KafkaInstrumentationHelper(GlobalTracer.get());
 
     private final ObjectPool<CallbackWrapper> callbackWrapperObjectPool;
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
     private final MessagingConfiguration messagingConfiguration;
 
     public static KafkaInstrumentationHelper get() {
         return INSTANCE;
     }
 
-    public KafkaInstrumentationHelper(ElasticApmTracer tracer) {
+    public KafkaInstrumentationHelper(Tracer tracer) {
         this.tracer = tracer;
         this.messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
         this.callbackWrapperObjectPool = tracer.getObjectPoolFactory().createRecyclableObjectPool(256,

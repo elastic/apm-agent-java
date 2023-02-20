@@ -28,7 +28,7 @@ import java.util.Objects;
 public class CustomStreamHandler {
 
     public void customHandleRequest(InputStream inputStream, OutputStream outputStream, Context context) {
-        Objects.requireNonNull(GlobalTracer.requireTracerImpl().getActive())
+        Objects.requireNonNull(GlobalTracer.get().getActive())
             .createSpan()
             .withName("child-span")
             .activate()

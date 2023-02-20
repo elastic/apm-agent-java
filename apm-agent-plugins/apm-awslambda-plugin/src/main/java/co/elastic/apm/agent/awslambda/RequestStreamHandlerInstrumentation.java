@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.awslambda;
 
 import co.elastic.apm.agent.awslambda.helper.PlainTransactionHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.Context;
 import net.bytebuddy.asm.Advice;
@@ -35,7 +35,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class RequestStreamHandlerInstrumentation extends AbstractAwsLambdaHandlerInstrumentation {
 
-    public RequestStreamHandlerInstrumentation(ElasticApmTracer tracer) {
+    public RequestStreamHandlerInstrumentation(Tracer tracer) {
         super(tracer);
     }
 

@@ -45,7 +45,7 @@ public class SpringMapMessageListener implements SessionAwareMessageListener<Map
         }
         System.out.println("Received map message: ");
         map.forEach((key, value) -> System.out.println("   " + key + " --> " + value));
-        Transaction transaction = GlobalTracer.getTracerImpl().currentTransaction();
+        Transaction transaction = GlobalTracer.get().currentTransaction();
         assertThat(transaction.isFinished()).isFalse();
         SpringJmsTest.resultQueue.offer(map);
     }

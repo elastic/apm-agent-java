@@ -26,6 +26,8 @@ import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 import javax.annotation.Nullable;
 
@@ -152,6 +154,31 @@ class NoopTracer implements Tracer {
     @Nullable
     @Override
     public Span createExitChildSpan() {
+        return null;
+    }
+
+    @Override
+    public void recycle(Transaction transaction) { }
+
+    @Override
+    public void recycle(ErrorCapture errorCapture) { }
+
+    @Override
+    public void endSpan(Span span) { }
+
+    @Override
+    public void endTransaction(Transaction transaction) { }
+
+    @Override
+    public void endError(ErrorCapture errorCapture) { }
+
+    @Override
+    public <T extends ConfigurationOptionProvider> T getConfig(Class<T> configuration) {
+        return null;
+    }
+
+    @Override
+    public ObjectPoolFactory getObjectPoolFactory() {
         return null;
     }
 }

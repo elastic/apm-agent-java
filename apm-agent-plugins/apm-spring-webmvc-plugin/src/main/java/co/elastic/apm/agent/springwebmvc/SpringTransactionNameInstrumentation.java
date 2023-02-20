@@ -102,7 +102,7 @@ public class SpringTransactionNameInstrumentation extends TracerAwareInstrumenta
 
     public static class HandlerAdapterAdvice {
 
-        private static final WebConfiguration webConfig = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);;
+        private static final WebConfiguration webConfig = GlobalTracer.get().getConfig(WebConfiguration.class);;
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void setTransactionName(@Advice.Argument(0) HttpServletRequest request,

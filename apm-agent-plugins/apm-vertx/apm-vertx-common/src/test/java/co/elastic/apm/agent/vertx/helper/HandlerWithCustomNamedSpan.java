@@ -38,7 +38,7 @@ public class HandlerWithCustomNamedSpan implements Handler<Void> {
 
     @Override
     public void handle(Void v) {
-        AbstractSpan<?> active = GlobalTracer.requireTracerImpl().getActive();
+        AbstractSpan<?> active = GlobalTracer.get().getActive();
         if (active == null) {
             return;
         }

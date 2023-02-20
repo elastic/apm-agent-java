@@ -20,7 +20,7 @@ package co.elastic.apm.agent.jaxws;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -52,7 +52,7 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
 
     private final Collection<String> applicationPackages;
 
-    public JaxWsTransactionNameInstrumentation(ElasticApmTracer tracer) {
+    public JaxWsTransactionNameInstrumentation(Tracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 

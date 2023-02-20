@@ -99,7 +99,7 @@ public class ElasticApmTracerBuilder {
         this.ephemeralId = UUID.randomUUID().toString();
         LoggingConfiguration.init(configSources, ephemeralId);
         logger = LoggerFactory.getLogger(getClass());
-        objectPoolFactory = new ObjectPoolFactory();
+        objectPoolFactory = ObjectPoolFactory.INSTANCE;
         extraLifecycleListeners = new ArrayList<>();
     }
 
@@ -182,7 +182,7 @@ public class ElasticApmTracerBuilder {
             reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaDataFuture, healthMetrics);
         }
 
-        ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, metricRegistry, reporter, objectPoolFactory, apmServerClient, ephemeralId, metaDataFuture);
+        ElasticApmTracer tracer = ElasticApmTracer.of(configurationRegistry, metricRegistry, reporter, objectPoolFactory, apmServerClient, ephemeralId, metaDataFuture);
         lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class, tracer));
         lifecycleListeners.addAll(extraLifecycleListeners);
         tracer.init(lifecycleListeners);

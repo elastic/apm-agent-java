@@ -22,6 +22,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -149,7 +150,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     private final RingBuffer<ActivationEvent> eventBuffer;
     private volatile boolean profilingSessionOngoing = false;
     private final Sequence sequence;
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
     private final NanoClock nanoClock;
     private final ObjectPool<CallTree.Root> rootPool;
     private final ThreadMatcher threadMatcher = new ThreadMatcher();
@@ -183,7 +184,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
      * @param tracer    tracer
      * @param nanoClock clock
      */
-    public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) {
+    public SamplingProfiler(Tracer tracer, NanoClock nanoClock) {
         this(tracer, nanoClock, null, null);
     }
 
@@ -197,7 +198,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
      * @param activationEventsFile activation events file, if {@literal null} a temp file will be used
      * @param jfrFile              java flight recorder file, if {@literal null} a temp file will be used instead
      */
-    public SamplingProfiler(final ElasticApmTracer tracer, NanoClock nanoClock, @Nullable File activationEventsFile, @Nullable File jfrFile) {
+    public SamplingProfiler(final Tracer tracer, NanoClock nanoClock, @Nullable File activationEventsFile, @Nullable File jfrFile) {
         this.tracer = tracer;
         this.config = tracer.getConfig(ProfilingConfiguration.class);
         this.coreConfig = tracer.getConfig(CoreConfiguration.class);
@@ -516,7 +517,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
                 logger.debug("Processing {} stack traces", stackTraceEvents.size());
             }
             List<StackFrame> stackFrames = new ArrayList<>();
-            ElasticApmTracer tracer = this.tracer;
+            Tracer tracer = this.tracer;
             ActivationEvent event = new ActivationEvent();
             long inferredSpansMinDuration = getInferredSpansMinDurationNs();
             for (StackTraceEvent stackTrace : stackTraceEvents) {

@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -35,7 +35,6 @@ import co.elastic.apm.agent.servlet.adapter.ServletApiAdapter;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 
 import javax.annotation.Nullable;
-import java.security.Principal;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
@@ -62,10 +61,7 @@ public abstract class ServletApiAdvice {
         ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, ServletContextEvent, FilterConfig, ServletConfig> adapter,
         Object servletRequest) {
 
-        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
-        if (tracer == null) {
-            return null;
-        }
+        Tracer tracer = GlobalTracer.get();
 
         final HttpServletRequest httpServletRequest = adapter.asHttpServletRequest(servletRequest);
         if (httpServletRequest == null) {
@@ -167,10 +163,7 @@ public abstract class ServletApiAdvice {
         @Nullable Throwable t,
         Object thiz) {
 
-        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
-        if (tracer == null) {
-            return;
-        }
+        Tracer tracer = GlobalTracer.get();
         Transaction transaction = null;
         Scope scope = null;
         Span span = null;

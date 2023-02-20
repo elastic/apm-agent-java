@@ -26,7 +26,7 @@ import java.util.Objects;
 public class CustomHandler {
 
     public Void customHandleRequest(Object object, Context context) {
-        Objects.requireNonNull(GlobalTracer.requireTracerImpl().getActive())
+        Objects.requireNonNull(GlobalTracer.get().getActive())
             .createSpan()
             .withName("child-span")
             .activate()

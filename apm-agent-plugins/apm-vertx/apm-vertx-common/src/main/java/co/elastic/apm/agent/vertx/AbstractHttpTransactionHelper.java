@@ -20,7 +20,6 @@ package co.elastic.apm.agent.vertx;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
@@ -58,7 +57,7 @@ public abstract class AbstractHttpTransactionHelper {
 
     protected final HttpServerHelper serverHelper;
 
-    protected AbstractHttpTransactionHelper(ElasticApmTracer tracer) {
+    protected AbstractHttpTransactionHelper(Tracer tracer) {
         this.tracer = tracer;
         this.webConfiguration = tracer.getConfig(WebConfiguration.class);
         this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);

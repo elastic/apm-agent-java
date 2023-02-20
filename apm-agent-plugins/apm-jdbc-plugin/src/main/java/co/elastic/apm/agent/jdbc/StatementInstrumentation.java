@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.jdbc;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
 import net.bytebuddy.asm.Advice;
@@ -82,7 +82,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
     @SuppressWarnings("DuplicatedCode")
     public static class ExecuteWithQueryInstrumentation extends StatementInstrumentation {
 
-        public ExecuteWithQueryInstrumentation(ElasticApmTracer tracer) {
+        public ExecuteWithQueryInstrumentation(Tracer tracer) {
             super(
                 named("execute").or(named("executeQuery"))
                     .and(takesArgument(0, String.class))
@@ -131,7 +131,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      */
     public static class ExecuteUpdateWithQueryInstrumentation extends StatementInstrumentation {
 
-        public ExecuteUpdateWithQueryInstrumentation(ElasticApmTracer tracer) {
+        public ExecuteUpdateWithQueryInstrumentation(Tracer tracer) {
             super(
                 named("executeUpdate").or(named("executeLargeUpdate"))
                     .and(takesArgument(0, String.class))
@@ -174,7 +174,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      */
     public static class AddBatchInstrumentation extends StatementInstrumentation {
 
-        public AddBatchInstrumentation(ElasticApmTracer tracer) {
+        public AddBatchInstrumentation(Tracer tracer) {
             super(
                 nameStartsWith("addBatch")
                     .and(takesArgument(0, String.class))
@@ -200,7 +200,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      * </ul>
      */
     public static class ExecuteBatchInstrumentation extends StatementInstrumentation {
-        public ExecuteBatchInstrumentation(ElasticApmTracer tracer) {
+        public ExecuteBatchInstrumentation(Tracer tracer) {
             super(
                 named("executeBatch").or(named("executeLargeBatch"))
                     .and(takesArguments(0))
@@ -265,7 +265,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      * </ul>
      */
     public static class ExecuteUpdateNoQueryInstrumentation extends StatementInstrumentation {
-        public ExecuteUpdateNoQueryInstrumentation(ElasticApmTracer tracer) {
+        public ExecuteUpdateNoQueryInstrumentation(Tracer tracer) {
             super(
                 named("executeUpdate").or(named("executeLargeUpdate"))
                     .and(takesArguments(0))
@@ -313,7 +313,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      * </ul>
      */
     public static class ExecutePreparedStatementInstrumentation extends StatementInstrumentation {
-        public ExecutePreparedStatementInstrumentation(ElasticApmTracer tracer) {
+        public ExecutePreparedStatementInstrumentation(Tracer tracer) {
             super(
                 named("execute").or(named("executeQuery"))
                     .and(takesArguments(0))
@@ -355,7 +355,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      */
     public static class CloseStatementInstrumentation extends StatementInstrumentation {
 
-        public CloseStatementInstrumentation(ElasticApmTracer tracer) {
+        public CloseStatementInstrumentation(Tracer tracer) {
             super(
                 named("close")
                     .and(takesArguments(0))

@@ -57,7 +57,7 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
 
     public static class KafkaPollEntryAdvice {
 
-        private static final MessagingConfiguration messagingConfiguration = GlobalTracer.requireTracerImpl().getConfig(MessagingConfiguration.class);
+        private static final MessagingConfiguration messagingConfiguration = GlobalTracer.get().getConfig(MessagingConfiguration.class);
 
         @SuppressWarnings("unused")
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)

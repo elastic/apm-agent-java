@@ -73,7 +73,7 @@ public class GreetingHandler {
             .delayElements(Duration.ofMillis(delayMillis))
             .map(i -> String.format("child %d", i))
             .doOnNext(name -> {
-                Span span = Objects.requireNonNull(GlobalTracer.requireTracerImpl().currentTransaction()).createSpan();
+                Span span = Objects.requireNonNull(GlobalTracer.get().currentTransaction()).createSpan();
                 span.withName(String.format("%s id=%s", name, span.getTraceContext().getId()));
                 try {
                     fakeWork(durationMillis);

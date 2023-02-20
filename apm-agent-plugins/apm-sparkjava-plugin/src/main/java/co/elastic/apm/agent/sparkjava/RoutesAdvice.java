@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.sparkjava;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
@@ -32,7 +32,7 @@ import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_
 
 public class RoutesAdvice {
 
-    private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+    private static final Tracer tracer = GlobalTracer.get();
 
     @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
     public static void onExitFind(@Advice.Return RouteMatch routeMatch) {

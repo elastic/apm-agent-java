@@ -35,7 +35,7 @@ public class ProfilingFactory extends AbstractLifecycleListener {
     }
 
     @Override
-    public void start(ElasticApmTracer tracer) {
+    public void start(ElasticApmTracer tracer) throws Exception {
         profiler.start(tracer);
         tracer.registerSpanListener(new ProfilingActivationListener(tracer, profiler));
     }

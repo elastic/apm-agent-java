@@ -20,6 +20,7 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.objectpool.Recyclable;
@@ -209,7 +210,7 @@ public class TraceContext implements Recyclable {
     // ???????0 -> not recorded
     private static final byte FLAG_RECORDED = 0b0000_0001;
     private final Id traceId = Id.new128BitId();
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
     private final Id id;
     private final Id parentId = Id.new64BitId();
     private final Id transactionId = Id.new64BitId();
@@ -234,7 +235,7 @@ public class TraceContext implements Recyclable {
     @Nullable
     private String serviceVersion;
 
-    private TraceContext(ElasticApmTracer tracer, Id id) {
+    private TraceContext(Tracer tracer, Id id) {
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         traceState = new TraceState();
         traceState.setSizeLimit(coreConfiguration.getTracestateSizeLimit());
@@ -249,7 +250,7 @@ public class TraceContext implements Recyclable {
      * </p>
      * @param tracer a valid tracer
      */
-    public static TraceContext with64BitId(ElasticApmTracer tracer) {
+    public static TraceContext with64BitId(Tracer tracer) {
         return new TraceContext(tracer, Id.new64BitId());
     }
 
@@ -260,7 +261,7 @@ public class TraceContext implements Recyclable {
      *
      * @param tracer a valid tracer
      */
-    public static TraceContext with128BitId(ElasticApmTracer tracer) {
+    public static TraceContext with128BitId(Tracer tracer) {
         return new TraceContext(tracer, Id.new128BitId());
     }
 
@@ -701,11 +702,18 @@ public class TraceContext implements Recyclable {
     }
 
     public Span createSpan() {
-        return tracer.startSpan(fromParentContext(), this);
+        return requireTracerImpl().startSpan(fromParentContext(), this);
     }
 
     public Span createSpan(long epochMicros) {
-        return tracer.startSpan(fromParentContext(), this, epochMicros);
+        return requireTracerImpl().startSpan(fromParentContext(), this, epochMicros);
+    }
+
+    private ElasticApmTracer requireTracerImpl() {
+        if (tracer instanceof ElasticApmTracer) {
+            return (ElasticApmTracer) tracer;
+        }
+        throw new IllegalStateException("Can only start spans from elastic APM tracer");
     }
 
     @Override
