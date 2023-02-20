@@ -253,7 +253,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Integer> longFieldMaxLength = ConfigurationOption.integerOption()
         .key("long_field_max_length")
         .configurationCategory(CORE_CATEGORY)
-        .tags("performance")
+        .tags("performance", "added[1.37.0]")
         .description("\n" +
             "The following transaction, span, and error fields will be truncated at this number of unicode characters " +
             "before being sent to APM server:\n" +

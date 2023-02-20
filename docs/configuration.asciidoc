@@ -740,7 +740,7 @@ A message will be logged when the max number of spans has been exceeded but only
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-long-field-max-length]]
-==== `long_field_max_length` (performance)
+==== `long_field_max_length` (performance added[1.37.0])
 
 
 The following transaction, span, and error fields will be truncated at this number of unicode characters before being sent to APM server:
