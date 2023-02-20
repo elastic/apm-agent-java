@@ -111,6 +111,7 @@ Click on a key to get more information.
 ** <<config-environment>>
 ** <<config-transaction-sample-rate>>
 ** <<config-transaction-max-spans>>
+** <<config-long-field-max-length>>
 ** <<config-sanitize-field-names>>
 ** <<config-enable-instrumentations>>
 ** <<config-disable-instrumentations>>
@@ -734,6 +735,37 @@ A message will be logged when the max number of spans has been exceeded but only
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.transaction_max_spans` | `transaction_max_spans` | `ELASTIC_APM_TRANSACTION_MAX_SPANS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-long-field-max-length]]
+==== `long_field_max_length` (performance)
+
+
+The following transaction, span, and error fields will be truncated at this number of unicode characters before being sent to APM server:
+- `transaction.context.request.body`, `error.context.request.body`
+- `transaction.context.message.body`, `error.context.message.body`
+- `span.context.db.statement`
+Note that tracing data is limited at the upstream APM server to 
+{apm-guide-ref}/configuration-process.html#max_event_size[`max_event_size`], 
+which defaults to 300kB. If you configure `long_field_max_length` too large, it 
+could result in transactions, spans, or errors that are rejected by APM server.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `10000` | Integer | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.long_field_max_length` | `long_field_max_length` | `ELASTIC_APM_LONG_FIELD_MAX_LENGTH`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -3538,6 +3570,22 @@ Example: `5ms`.
 # Default value: 500
 #
 # transaction_max_spans=500
+
+# 
+# The following transaction, span, and error fields will be truncated at this number of unicode characters before being sent to APM server:
+# - `transaction.context.request.body`, `error.context.request.body`
+# - `transaction.context.message.body`, `error.context.message.body`
+# - `span.context.db.statement`
+# Note that tracing data is limited at the upstream APM server to 
+# {apm-guide-ref}/configuration-process.html#max_event_size[`max_event_size`], 
+# which defaults to 300kB. If you configure `long_field_max_length` too large, it 
+# could result in transactions, spans, or errors that are rejected by APM server.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Integer
+# Default value: 10000
+#
+# long_field_max_length=10000
 
 # Sometimes it is necessary to sanitize the data sent to Elastic APM,
 # e.g. remove sensitive data.
