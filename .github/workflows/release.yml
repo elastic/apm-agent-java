@@ -179,6 +179,7 @@ jobs:
     name: "Create GitHub Release"
     needs:
       - publish_aws_lambda
+      - update_major_branch
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
