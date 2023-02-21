@@ -256,11 +256,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("performance", "added[1.37.0]")
         .description("\n" +
             "The following transaction, span, and error fields will be truncated at this number of unicode characters " +
-            "before being sent to APM server:\n" +
+            "before being sent to APM server:\n\n" +
             "- `transaction.context.request.body`, `error.context.request.body`\n" +
             "- `transaction.context.message.body`, `error.context.message.body`\n" +
             "- `span.context.db.statement`\n" +
-            "Note that tracing data is limited at the upstream APM server to \n" +
+            "\nNote that tracing data is limited at the upstream APM server to \n" +
             "{apm-guide-ref}/configuration-process.html#max_event_size[`max_event_size`], \n" +
             "which defaults to 300kB. If you configure `long_field_max_length` too large, it \n" +
             "could result in transactions, spans, or errors that are rejected by APM server.")

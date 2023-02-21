@@ -111,7 +111,7 @@ class ConfigurationExporterTest {
         String renderedDocumentation = renderDocumentation(configurationRegistry);
         String expected = new String(Files.readAllBytes(this.renderedDocumentationPath), StandardCharsets.UTF_8);
 
-        if (System.getProperty("elastic.apm.overwrite.config.docs") == null) {
+        if (Boolean.parseBoolean(System.getProperty("elastic.apm.overwrite.config.docs", Boolean.TRUE.toString()))) {
             // unless explicitly disabled (e.g. on CI) overwrite the current documentation
             Files.write(renderedDocumentationPath, renderedDocumentation.getBytes(StandardCharsets.UTF_8));
         }

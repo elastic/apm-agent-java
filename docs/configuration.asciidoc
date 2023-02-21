@@ -744,9 +744,11 @@ A message will be logged when the max number of spans has been exceeded but only
 
 
 The following transaction, span, and error fields will be truncated at this number of unicode characters before being sent to APM server:
+
 - `transaction.context.request.body`, `error.context.request.body`
 - `transaction.context.message.body`, `error.context.message.body`
 - `span.context.db.statement`
+
 Note that tracing data is limited at the upstream APM server to 
 {apm-guide-ref}/configuration-process.html#max_event_size[`max_event_size`], 
 which defaults to 300kB. If you configure `long_field_max_length` too large, it 
@@ -3573,9 +3575,11 @@ Example: `5ms`.
 
 # 
 # The following transaction, span, and error fields will be truncated at this number of unicode characters before being sent to APM server:
+# 
 # - `transaction.context.request.body`, `error.context.request.body`
 # - `transaction.context.message.body`, `error.context.message.body`
 # - `span.context.db.statement`
+# 
 # Note that tracing data is limited at the upstream APM server to 
 # {apm-guide-ref}/configuration-process.html#max_event_size[`max_event_size`], 
 # which defaults to 300kB. If you configure `long_field_max_length` too large, it 

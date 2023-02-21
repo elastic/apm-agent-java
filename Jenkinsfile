@@ -162,7 +162,7 @@ pipeline {
                   unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
                   dir("${BASE_DIR}") {
                     withOtelEnv() {
-                      sh label: 'mvn test', script: './mvnw test -DargLine=\"-Delastic.apm.overwrite.config.docs=true\"'
+                      sh label: 'mvn test', script: './mvnw test -DargLine=\"-Delastic.apm.overwrite.config.docs=false\"'
                     }
                   }
                 }
