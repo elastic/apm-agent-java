@@ -13,7 +13,7 @@ runs:
   using: "composite"
   steps:
     - name: Create stash
-      run: tar -acf ${{ runner.temp }}/${{ inputs.name }}.tar.zst -C ${{ inputs.path }} ${{ inputs.path }}
+      run: tar -acf ${{ runner.temp }}/${{ inputs.name }}.tar.zst -C ${{ inputs.path }} ./
       shell: bash
 
     - name: Upload stash
