@@ -23,6 +23,9 @@ import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.testutils.assertions.metrics.MetricSetsAssert;
+
+import java.util.Collection;
 
 public class Assertions extends org.assertj.core.api.Assertions {
 
@@ -47,5 +50,9 @@ public class Assertions extends org.assertj.core.api.Assertions {
 
     public static AbstractSpanAssert<?, ?> assertThat(AbstractSpan<?> span) {
         return new AbstractSpanAssert<>(span, AbstractSpanAssert.class);
+    }
+
+    public static MetricSetsAssert assertThatMetricSets(Collection<byte[]> metricsetsJson) {
+        return new MetricSetsAssert(metricsetsJson);
     }
 }
