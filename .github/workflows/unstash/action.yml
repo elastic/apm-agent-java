@@ -16,7 +16,8 @@ runs:
       uses: actions/download-artifact@v3
       with:
         name: ${{ inputs.name }}
+        path: ${{ runner.temp }}/${{ inputs.name }}.tar.zst
 
     - name: Extract stash
-      run: tar -axf ${{ inputs.name }}.tar.zst -C ${{ inputs.path }}
+      run: tar -axf ${{ runner.temp }}/${{ inputs.name }}.tar.zst -C ${{ inputs.path }}
       shell: bash
