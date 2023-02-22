@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/workflows/stash
+      - uses: actions/upload-artifact@v3
         with:
           name: cgroups
           path: /proc/self/cgroup
