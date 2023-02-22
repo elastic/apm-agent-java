@@ -72,6 +72,7 @@
         <module>apm-agent-common</module>
         <module>apm-agent-cached-lookup-key</module>
         <module>apm-opentracing</module>
+        <module>apm-agent-plugin-spi</module>
         <!-- IMPORTANT:
             For the nexus deployment to work correctly, the last project in the build order needs to have deployment
             enabled (maven-deploy-plugin.skip must be false).

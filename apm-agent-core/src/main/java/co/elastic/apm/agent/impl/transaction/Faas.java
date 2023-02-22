@@ -22,7 +22,7 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 
-public class Faas implements Recyclable {
+public class Faas implements Recyclable, co.elastic.apm.plugin.spi.Faas {
 
     @Nullable
     private String execution;

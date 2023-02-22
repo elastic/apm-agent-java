@@ -18,11 +18,7 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.plugin.spi.*;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -109,7 +105,7 @@ public class KafkaInstrumentationHeadersHelper {
             try {
                 for (ConsumerRecord<?, ?> record : records) {
                     span.addSpanLink(
-                        TraceContext.<ConsumerRecord>getFromTraceContextBinaryHeaders(),
+                        TraceContextUtil.<ConsumerRecord>getFromTraceContextBinaryHeaders(),
                         KafkaRecordHeaderAccessor.instance(),
                         record
                     );
@@ -120,11 +116,11 @@ public class KafkaInstrumentationHeadersHelper {
         }
     }
 
-    public void setOutgoingTraceContextHeaders(Span span, ProducerRecord<?, ?> producerRecord) {
+    public void setOutgoingTraceContextHeaders(Span<?> span, ProducerRecord<?, ?> producerRecord) {
         span.propagateTraceContext(producerRecord, KafkaRecordHeaderAccessor.instance());
     }
 
     public void removeTraceContextHeader(ProducerRecord<?, ?> producerRecord) {
-        TraceContext.removeTraceContextHeaders(producerRecord, KafkaRecordHeaderAccessor.instance());
+        TraceContextUtil.removeTraceContextHeaders(producerRecord, KafkaRecordHeaderAccessor.instance());
     }
 }

@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.util.IOUtils;
 
+import co.elastic.apm.plugin.spi.Request;
 import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletInputStream;
 import java.io.IOException;

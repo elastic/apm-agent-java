@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.objectpool.Allocator;
-import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.plugin.spi.Allocator;
+import co.elastic.apm.plugin.spi.ObjectPool;
+import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.ServletRequest;
@@ -62,7 +62,7 @@ public class JakartaAsyncContextAdviceHelper implements AsyncContextAdviceHelper
         if (request.getAttribute(ASYNC_LISTENER_ADDED) != null) {
             return;
         }
-        final Transaction transaction = tracer.currentTransaction();
+        final Transaction<?> transaction = tracer.currentTransaction();
         if (transaction != null && transaction.isSampled() && request.getAttribute(ASYNC_LISTENER_ADDED) == null) {
             // makes sure that the listener is only added once, even if the request is wrapped
             // which leads to multiple invocations of startAsync for the same underlying request

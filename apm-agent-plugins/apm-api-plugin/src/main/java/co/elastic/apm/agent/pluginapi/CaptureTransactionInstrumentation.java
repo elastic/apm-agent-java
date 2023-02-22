@@ -24,8 +24,8 @@ import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFact
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.DefaultOutcome;
+import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -44,8 +44,8 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_METHOD_SIGNATURE;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
+import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_METHOD_SIGNATURE;
+import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_USER_SUPPLIED;
 import static co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static co.elastic.apm.agent.pluginapi.Utils.FRAMEWORK_NAME;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
@@ -74,7 +74,7 @@ public class CaptureTransactionInstrumentation extends TracerAwareInstrumentatio
                                            @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "type") String type) {
             final Object active = tracer.getActive();
             if (active == null) {
-                Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
+                Transaction<?> transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
                 if (transaction != null) {
                     if (transactionName.isEmpty()) {
                         transaction.withName(signature, PRIO_METHOD_SIGNATURE);
@@ -95,10 +95,10 @@ public class CaptureTransactionInstrumentation extends TracerAwareInstrumentatio
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onMethodExit(@Advice.Enter @Nullable Object transaction,
                                         @Advice.Thrown @Nullable Throwable t) {
-            if (transaction instanceof Transaction) {
-                ((Transaction) transaction)
+            if (transaction instanceof Transaction<?>) {
+                ((Transaction<?>) transaction)
                     .captureException(t)
-                    .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
+                    .withOutcome(t != null ? DefaultOutcome.FAILURE : DefaultOutcome.SUCCESS)
                     .deactivate()
                     .end();
             }

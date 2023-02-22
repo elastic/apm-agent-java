@@ -28,7 +28,6 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
-import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -326,11 +325,11 @@ public class BasicTracer implements SpanAwareTracer {
 
     @Nullable
     @Override
-    public ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader initiatingClassLoader) {
-        if (initiatingClassLoader == null) {
+    public ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader classLoader) {
+        if (classLoader == null) {
             return null;
         }
-        return serviceInfoByClassLoader.get(initiatingClassLoader);
+        return serviceInfoByClassLoader.get(classLoader);
     }
 
     @Override
@@ -441,11 +440,68 @@ public class BasicTracer implements SpanAwareTracer {
     }
 
     @Override
-    public <T extends ConfigurationOptionProvider> T getConfig(Class<T> configProvider) {
+    public <T> T getConfig(Class<T> configProvider) {
         try {
             return configProvider.getConstructor().newInstance();
         } catch (Exception e) {
             throw new IllegalStateException("Failed to create empty configuration for " + configProvider.getName(), e);
         }
+    }
+
+    @Nullable
+    @Override
+    public <C> co.elastic.apm.plugin.spi.Transaction<?> startChildTransaction(@Nullable C headerCarrier, final co.elastic.apm.plugin.spi.TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+        return startChildTransaction(headerCarrier, new TextHeaderGetterBridge<>(textHeadersGetter), initiatingClassLoader);
+    }
+
+    @Nullable
+    @Override
+    public <C> co.elastic.apm.plugin.spi.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.plugin.spi.TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, long epochMicros) {
+        return startChildTransaction(headerCarrier, new TextHeaderGetterBridge<C>(textHeadersGetter), initiatingClassLoader, epochMicros);
+    }
+
+    @Nullable
+    @Override
+    public <C> co.elastic.apm.plugin.spi.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.plugin.spi.BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+        return startChildTransaction(headerCarrier, new BinaryHeaderGetterBridge<C>(binaryHeadersGetter), initiatingClassLoader);
+    }
+
+    @Nullable
+    @Override
+    public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable co.elastic.apm.plugin.spi.AbstractSpan<?> parent) {
+        return captureAndReportException(epochMicros, e, (AbstractSpan<?>) parent);
+    }
+
+    @Nullable
+    @Override
+    public co.elastic.apm.plugin.spi.ErrorCapture captureException(@Nullable Throwable e, @Nullable co.elastic.apm.plugin.spi.AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+        return captureException(e, (AbstractSpan<?>) parent, initiatingClassLoader);
+    }
+
+    @Override
+    public void endSpan(co.elastic.apm.plugin.spi.Span<?> span) {
+        endSpan((Span) span);
+    }
+
+    @Override
+    public void endTransaction(co.elastic.apm.plugin.spi.Transaction<?> transaction) {
+        endTransaction((Transaction) transaction);
+    }
+
+    @Override
+    public void endError(co.elastic.apm.plugin.spi.ErrorCapture errorCapture) {
+        endError((ErrorCapture) errorCapture);
+    }
+
+    @Override
+    public void setServiceInfoForClassLoader(ClassLoader classLoader, co.elastic.apm.plugin.spi.ServiceInfo serviceInfo) {
+        setServiceInfoForClassLoader(classLoader, serviceInfo.isMultiServiceContainer()
+            ? ServiceInfo.ofMultiServiceContainer(serviceInfo.getServiceName())
+            : ServiceInfo.of(serviceInfo.getServiceName(), serviceInfo.getServiceVersion()));
+    }
+
+    @Override
+    public ServiceInfo autoDetectedServiceName() {
+        return ServiceInfo.autoDetected();
     }
 }

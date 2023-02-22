@@ -20,12 +20,7 @@ package co.elastic.apm.agent.dubbo.advice;
 
 import co.elastic.apm.agent.dubbo.helper.ApacheDubboTextMapPropagator;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import org.apache.dubbo.rpc.AsyncRpcResult;
@@ -47,7 +42,7 @@ public class ApacheMonitorFilterAdvice {
         AbstractSpan<?> active = tracer.getActive();
         // for consumer side, just create span, more information will be collected in provider side
         if (context.isConsumerSide() && active != null) {
-            Span span = DubboTraceHelper.createConsumerSpan(tracer, invocation.getInvoker().getInterface(),
+            Span<?> span = DubboTraceHelper.createConsumerSpan(tracer, invocation.getInvoker().getInterface(),
                 invocation.getMethodName(), context.getRemoteAddress());
             if (span != null) {
                 span.propagateTraceContext(context, ApacheDubboTextMapPropagator.INSTANCE);
@@ -55,7 +50,7 @@ public class ApacheMonitorFilterAdvice {
             }
         } else if (context.isProviderSide() && active == null) {
             // for provider side
-            Transaction transaction = tracer.startChildTransaction(context, ApacheDubboTextMapPropagator.INSTANCE, PrivilegedActionUtils.getClassLoader(Invocation.class));
+            Transaction<?> transaction = tracer.startChildTransaction(context, ApacheDubboTextMapPropagator.INSTANCE, PrivilegedActionUtils.getClassLoader(Invocation.class));
             if (transaction != null) {
                 transaction.activate();
                 DubboTraceHelper.fillTransaction(transaction, invocation.getInvoker().getInterface(), invocation.getMethodName());
@@ -104,7 +99,7 @@ public class ApacheMonitorFilterAdvice {
 
                     span.captureException(t)
                         .captureException(resultException)
-                        .withOutcome(t != null || resultException != null ? Outcome.FAILURE : Outcome.SUCCESS);
+                        .withOutcome(t != null || resultException != null ? DefaultOutcome.FAILURE : DefaultOutcome.SUCCESS);
                 } finally {
                     span.end();
                 }

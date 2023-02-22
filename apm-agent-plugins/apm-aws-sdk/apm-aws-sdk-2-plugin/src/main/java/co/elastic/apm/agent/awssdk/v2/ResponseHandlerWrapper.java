@@ -20,8 +20,8 @@ package co.elastic.apm.agent.awssdk.v2;
 
 import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
 import co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper.MessageListWrapper;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.plugin.spi.DefaultOutcome;
+import co.elastic.apm.plugin.spi.Span;
 import org.reactivestreams.Publisher;
 import software.amazon.awssdk.core.Response;
 import software.amazon.awssdk.core.SdkRequest;
@@ -37,11 +37,11 @@ public class ResponseHandlerWrapper<T> implements TransformingAsyncResponseHandl
 
     private final TransformingAsyncResponseHandler<Response<T>> delegate;
     @Nullable
-    private final Span span;
+    private final Span<?> span;
     private final SdkRequest sdkRequest;
     private final String awsService;
 
-    public ResponseHandlerWrapper(String awsService, TransformingAsyncResponseHandler<Response<T>> delegate, SdkRequest request, @Nullable Span span) {
+    public ResponseHandlerWrapper(String awsService, TransformingAsyncResponseHandler<Response<T>> delegate, SdkRequest request, @Nullable Span<?> span) {
         this.awsService = awsService;
         this.delegate = delegate;
         this.span = span;
@@ -56,12 +56,12 @@ public class ResponseHandlerWrapper<T> implements TransformingAsyncResponseHandl
             if (span != null) {
                 if (t != null) {
                     span.captureException(t);
-                    span.withOutcome(Outcome.FAILURE);
+                    span.withOutcome(DefaultOutcome.FAILURE);
                 } else if (r.exception() != null) {
                     span.captureException(r.exception());
-                    span.withOutcome(Outcome.FAILURE);
+                    span.withOutcome(DefaultOutcome.FAILURE);
                 } else {
-                    span.withOutcome(Outcome.SUCCESS);
+                    span.withOutcome(DefaultOutcome.SUCCESS);
                 }
 
                 if ("Sqs".equalsIgnoreCase(awsService) && response instanceof SdkResponse) {
@@ -94,7 +94,7 @@ public class ResponseHandlerWrapper<T> implements TransformingAsyncResponseHandl
     public void onError(Throwable throwable) {
         if (span != null && !span.isFinished()) {
             span.captureException(throwable);
-            span.withOutcome(Outcome.FAILURE);
+            span.withOutcome(DefaultOutcome.FAILURE);
         }
 
         delegate.onError(throwable);

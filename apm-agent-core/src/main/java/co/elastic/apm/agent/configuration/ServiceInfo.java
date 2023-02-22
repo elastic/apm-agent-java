@@ -28,17 +28,12 @@ import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
-public class ServiceInfo {
+public class ServiceInfo extends co.elastic.apm.plugin.spi.ServiceInfo {
 
     private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)+(\\d+)(.*)?$";
     private static final String DEFAULT_SERVICE_NAME = "unknown-java-service";
     private static final ServiceInfo EMPTY = new ServiceInfo(null, null);
     private static final ServiceInfo AUTO_DETECTED = autoDetect(System.getProperties(), PrivilegedActionUtils.getEnv());
-
-    private final String serviceName;
-    @Nullable
-    private final String serviceVersion;
-    private final boolean multiServiceContainer;
 
     public ServiceInfo(@Nullable String serviceName) {
         this(serviceName, null);
@@ -49,13 +44,7 @@ public class ServiceInfo {
     }
 
     private ServiceInfo(@Nullable String serviceName, @Nullable String serviceVersion, boolean multiServiceContainer) {
-        this.multiServiceContainer = multiServiceContainer;
-        if (serviceName == null || serviceName.trim().isEmpty()) {
-            this.serviceName = DEFAULT_SERVICE_NAME;
-        } else {
-            this.serviceName = replaceDisallowedServiceNameChars(serviceName).trim();
-        }
-        this.serviceVersion = serviceVersion;
+        super(serviceName, serviceVersion, multiServiceContainer);
     }
 
     public static ServiceInfo empty() {

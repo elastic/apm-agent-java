@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.servlet.adapter;
 
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.plugin.spi.Request;
+import co.elastic.apm.plugin.spi.TextHeaderGetter;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 
 import javax.annotation.Nullable;

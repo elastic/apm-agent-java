@@ -37,7 +37,7 @@ public class MultiValueMapAccessor extends AbstractHeaderGetter<String, Potentia
     }
 
     @Override
-    public <S> void forEach(String headerName, PotentiallyMultiValuedMap headerMap, S state, HeaderConsumer<String, S> consumer) {
+    public <S> void forEach(String headerName, PotentiallyMultiValuedMap headerMap, S state, HeaderGetter.HeaderConsumer<String, S> consumer) {
         for (String headerValue : headerMap.getAll(headerName)) {
             consumer.accept(headerValue, state);
         }

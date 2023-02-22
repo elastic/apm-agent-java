@@ -19,10 +19,7 @@
 package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.plugin.spi.*;
 import com.squareup.okhttp.HttpUrl;
 import com.squareup.okhttp.Request;
 import net.bytebuddy.asm.Advice;
@@ -60,14 +57,14 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
             com.squareup.okhttp.Request request = (com.squareup.okhttp.Request) originalRequest;
             HttpUrl httpUrl = request.httpUrl();
 
-            Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), httpUrl.toString(), httpUrl.scheme(),
+            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, request.method(), httpUrl.toString(), httpUrl.scheme(),
                 OkHttpClientHelper.computeHostName(httpUrl.host()), httpUrl.port());
 
             if (span != null) {
                 span.activate();
             }
 
-            if (!TraceContext.containsTraceContextTextHeaders(request, OkHttpRequestHeaderGetter.INSTANCE)) {
+            if (!TraceContextUtil.containsTraceContextTextHeaders(request, OkHttpRequestHeaderGetter.INSTANCE)) {
                 Request.Builder builder = ((Request) originalRequest).newBuilder();
                 if (span != null) {
                     span.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
@@ -84,9 +81,9 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
         public static void onAfterExecute(@Advice.Return @Nullable com.squareup.okhttp.Response response,
                                           @Advice.Thrown @Nullable Throwable t,
                                           @Advice.Enter @Nonnull Object[] enter) {
-            Span span = null;
-            if (enter[1] instanceof Span) {
-                span = (Span) enter[1];
+            Span<?> span = null;
+            if (enter[1] instanceof Span<?>) {
+                span = (Span<?>) enter[1];
             }
             if (span != null) {
                 try {
@@ -94,7 +91,7 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
                         int statusCode = response.code();
                         span.getContext().getHttp().withStatusCode(statusCode);
                     } else if (t != null) {
-                        span.withOutcome(Outcome.FAILURE);
+                        span.withOutcome(DefaultOutcome.FAILURE);
                     }
                     span.captureException(t);
                 } finally {

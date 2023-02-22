@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.plugin.spi.TextHeaderGetter;
 
 import java.util.Enumeration;
 

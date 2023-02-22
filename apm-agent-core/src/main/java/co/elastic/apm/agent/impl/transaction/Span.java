@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-public class Span extends AbstractSpan<Span> implements Recyclable {
+public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.apm.plugin.spi.Span<Span> {
 
     private static final Logger logger = LoggerFactory.getLogger(Span.class);
     public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);

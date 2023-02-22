@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.plugin.spi.TextHeaderGetter;
 
 import java.util.Collection;
 import java.util.List;

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.collections;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.plugin.spi.AbstractSpan;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;

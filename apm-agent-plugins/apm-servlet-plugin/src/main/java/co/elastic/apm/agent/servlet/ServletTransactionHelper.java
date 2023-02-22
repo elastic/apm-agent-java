@@ -20,13 +20,8 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -43,8 +38,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_DEFAULT;
+import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 
 public class ServletTransactionHelper {
 
@@ -71,7 +66,7 @@ public class ServletTransactionHelper {
     }
 
     @Nullable
-    public <HttpServletRequest, ServletContext> Transaction createAndActivateTransaction(
+    public <HttpServletRequest, ServletContext> Transaction<?> createAndActivateTransaction(
         ServletRequestAdapter<HttpServletRequest, ServletContext> requestAdapter,
         ServletContextAdapter<ServletContext> contextAdapter,
         HttpServletRequest request) {
@@ -83,14 +78,14 @@ public class ServletTransactionHelper {
             return null;
         }
         ClassLoader cl = contextAdapter.getClassLoader(requestAdapter.getServletContext(request));
-        Transaction transaction = tracer.startChildTransaction(request, requestAdapter.getRequestHeaderGetter(), cl);
+        Transaction<?> transaction = tracer.startChildTransaction(request, requestAdapter.getRequestHeaderGetter(), cl);
         if (transaction != null) {
             transaction.activate();
         }
         return transaction;
     }
 
-    public void fillRequestContext(Transaction transaction, String protocol, String method, boolean secure,
+    public void fillRequestContext(Transaction<?> transaction, String protocol, String method, boolean secure,
                                    String scheme, String serverName, int serverPort, String requestURI, String queryString,
                                    String remoteAddr, @Nullable String contentTypeHeader) {
 
@@ -114,7 +109,7 @@ public class ServletTransactionHelper {
 
     }
 
-    private void startCaptureBody(Transaction transaction, String method, @Nullable String contentTypeHeader) {
+    private void startCaptureBody(Transaction<?> transaction, String method, @Nullable String contentTypeHeader) {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
             if (coreConfiguration.getCaptureBody() != OFF
@@ -223,7 +218,7 @@ public class ServletTransactionHelper {
         return path;
     }
 
-    public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status,
+    public void onAfter(Transaction<?> transaction, @Nullable Throwable exception, boolean committed, int status,
                         boolean overrideStatusCodeOnThrowable, String method, @Nullable Map<String, String[]> parameterMap,
                         @Nullable String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader, boolean deactivate) {
         try {
@@ -244,7 +239,7 @@ public class ServletTransactionHelper {
         transaction.end();
     }
 
-    private void doOnAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status,
+    private void doOnAfter(Transaction<?> transaction, @Nullable Throwable exception, boolean committed, int status,
                            boolean overrideStatusCodeOnThrowable, String method, @Nullable Map<String, String[]> parameterMap,
                            String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
         fillRequestParameters(transaction, method, parameterMap, contentTypeHeader);
@@ -259,7 +254,7 @@ public class ServletTransactionHelper {
         applyDefaultTransactionName(method, servletPath, pathInfo, transaction);
     }
 
-    void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, Transaction transaction) {
+    void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, Transaction<?> transaction) {
         // JSPs don't contain path params and the name is more telling than the generated servlet class
         if (webConfiguration.isUsePathAsName() || ENDS_WITH_JSP.matches(servletPath, pathInfo)) {
             // should override ServletName#doGet
@@ -276,7 +271,7 @@ public class ServletTransactionHelper {
      * for example when the amount of query parameters is longer than the application server allows.
      * In that case, we rather not want that the agent looks like the cause for this.
      */
-    private void fillRequestParameters(Transaction transaction, String method, @Nullable Map<String, String[]> parameterMap, @Nullable String contentTypeHeader) {
+    private void fillRequestParameters(Transaction<?> transaction, String method, @Nullable Map<String, String[]> parameterMap, @Nullable String contentTypeHeader) {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
             if (coreConfiguration.getCaptureBody() != OFF && parameterMap != null) {

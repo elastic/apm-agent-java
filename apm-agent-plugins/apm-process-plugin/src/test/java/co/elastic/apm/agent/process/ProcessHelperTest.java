@@ -48,7 +48,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
     private Transaction transaction;
 
-    private WeakMap<Process, Span> storageMap;
+    private WeakMap<Process, co.elastic.apm.plugin.spi.Span<?>> storageMap;
     private ProcessHelper helper;
 
     @BeforeEach
@@ -85,7 +85,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         Process process = mock(Process.class);
 
         helper.doStartProcess(transaction, process, "hello");
-        Span span = storageMap.get(process);
+        Span span = (Span) storageMap.get(process);
 
         helper.doStartProcess(transaction, process, "hello");
         assertThat(storageMap.get(process))

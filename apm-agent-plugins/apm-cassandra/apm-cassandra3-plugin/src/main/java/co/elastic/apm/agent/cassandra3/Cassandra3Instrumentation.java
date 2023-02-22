@@ -21,9 +21,8 @@ package co.elastic.apm.agent.cassandra3;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.cassandra.CassandraHelper;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.Span;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.ResultSet;
@@ -111,10 +110,10 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
         public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
                                   @Advice.Return ResultSetFuture result,
                                   @Nullable @Advice.Enter Object spanObj) {
-            if (!(spanObj instanceof Span)) {
+            if (!(spanObj instanceof Span<?>)) {
                 return;
             }
-            final Span span = (Span) spanObj;
+            final Span<?> span = (Span<?>) spanObj;
             span.captureException(thrown).deactivate();
             Futures.addCallback(result, new FutureCallback<ResultSet>() {
                 @Override
@@ -137,7 +136,7 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
     }
 
     private interface DestinationAddressSetter {
-        void setDestination(Span span, Host host);
+        void setDestination(Span<?> span, Host host);
 
         class Resolver {
 
@@ -164,14 +163,14 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
         }
 
         /**
-         * References the method {@link Destination#withSocketAddress(java.net.SocketAddress)} that has been introduced in 2.0.2
+         * References the method {@link co.elastic.apm.plugin.spi.Destination#withSocketAddress(java.net.SocketAddress)} that has been introduced in 2.0.2
          * We must not reference this class directly to avoid it being loaded which may cause a linkage error.
          */
         enum WithSocketAddress implements DestinationAddressSetter {
             INSTANCE;
 
             @Override
-            public void setDestination(Span span, Host host) {
+            public void setDestination(Span<?> span, Host host) {
                 span.getContext().getDestination().withSocketAddress(host.getSocketAddress());
             }
         }
@@ -180,7 +179,7 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
             INSTANCE;
 
             @Override
-            public void setDestination(Span span, Host host) {
+            public void setDestination(Span<?> span, Host host) {
                 span.getContext().getDestination().withInetAddress(host.getAddress());
             }
         }

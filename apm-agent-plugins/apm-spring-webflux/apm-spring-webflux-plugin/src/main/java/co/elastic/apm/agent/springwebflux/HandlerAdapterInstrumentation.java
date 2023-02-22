@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -82,7 +82,7 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
                 TransactionNameUtils.setNameFromClassAndMethod(
                     handlerMethod.getBeanType().getSimpleName(),
                     handlerMethod.getMethod().getName(),
-                    ((Transaction) exchangeTransaction).getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK, false));
+                    ((Transaction<?>) exchangeTransaction).getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK, false));
 
             }
 
@@ -97,11 +97,11 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
                                                  @Advice.Enter @Nullable Object enterTransaction,
                                                  @Advice.Return @Nullable Mono<HandlerResult> resultMono) {
 
-            if (!(enterTransaction instanceof Transaction) || resultMono == null) {
+            if (!(enterTransaction instanceof Transaction<?>) || resultMono == null) {
                 return resultMono;
             }
 
-            Transaction transaction = (Transaction) enterTransaction;
+            Transaction<?> transaction = (Transaction<?>) enterTransaction;
             transaction.captureException(thrown);
 
             if (transaction.isNoop()) {

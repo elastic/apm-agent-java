@@ -19,14 +19,8 @@
 package co.elastic.apm.agent.httpserver;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -61,7 +55,7 @@ public class HttpHandlerAdvice {
             return null;
         }
 
-        Transaction transaction = tracer.startChildTransaction(exchange.getRequestHeaders(), HeadersHeaderGetter.INSTANCE, Thread.currentThread().getContextClassLoader());
+        Transaction<?> transaction = tracer.startChildTransaction(exchange.getRequestHeaders(), HeadersHeaderGetter.INSTANCE, Thread.currentThread().getContextClassLoader());
         if (transaction == null) {
             return null;
         }
@@ -132,7 +126,7 @@ public class HttpHandlerAdvice {
             return;
         }
 
-        Transaction transaction = (Transaction) transactionOrNull;
+        Transaction<?> transaction = (Transaction<?>) transactionOrNull;
         transaction
             .withResultIfUnset(ResultUtil.getResultByHttpStatus(exchange.getResponseCode()))
             .captureException(t);

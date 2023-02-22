@@ -29,7 +29,7 @@ import javax.annotation.Nullable;
 
 import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
 
-public class Message implements Recyclable {
+public class Message implements Recyclable, co.elastic.apm.plugin.spi.Message {
 
     private static final ObjectPool<StringBuilder> stringBuilderPool = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<StringBuilder>(128), false,
         new Allocator<StringBuilder>() {

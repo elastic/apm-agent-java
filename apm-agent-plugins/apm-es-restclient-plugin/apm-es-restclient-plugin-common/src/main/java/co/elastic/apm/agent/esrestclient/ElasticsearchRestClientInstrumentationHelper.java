@@ -19,13 +19,7 @@
 package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.objectpool.Allocator;
-import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.IOUtils;
@@ -79,13 +73,13 @@ public class ElasticsearchRestClientInstrumentationHelper {
     }
 
     @Nullable
-    public Span createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity) {
+    public Span<?> createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity) {
         final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan == null) {
             return null;
         }
 
-        Span span = activeSpan.createExitSpan();
+        Span<?> span = activeSpan.createExitSpan();
 
         // Don't record nested spans. In 5.x clients the instrumented sync method is calling the instrumented async method
         if (span == null) {
@@ -120,7 +114,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
         return span;
     }
 
-    public void finishClientSpan(@Nullable Response response, Span span, @Nullable Throwable t) {
+    public void finishClientSpan(@Nullable Response response, Span<?> span, @Nullable Throwable t) {
         try {
             String url = null;
             int statusCode = -1;
@@ -146,7 +140,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
                     statusCode = esre.getResponse().getStatusLine().getStatusCode();
                 } else if (t instanceof CancellationException) {
                     // We can't tell whether a cancelled search is related to a failure or not
-                    span.withOutcome(Outcome.UNKNOWN);
+                    span.withOutcome(DefaultOutcome.UNKNOWN);
                 }
                 span.captureException(t);
             }
@@ -162,7 +156,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
         }
     }
 
-    public ResponseListener wrapClientResponseListener(ResponseListener listener, Span span) {
+    public ResponseListener wrapClientResponseListener(ResponseListener listener, Span<?> span) {
         return responseListenerObjectPool.createInstance().withClientSpan(listener, span);
     }
 

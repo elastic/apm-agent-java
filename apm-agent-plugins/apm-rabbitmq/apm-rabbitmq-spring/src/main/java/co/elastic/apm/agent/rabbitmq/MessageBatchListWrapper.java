@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.rabbitmq;
 
 
-import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.plugin.spi.Tracer;
 import org.springframework.amqp.core.Message;
 
 import java.util.Collection;

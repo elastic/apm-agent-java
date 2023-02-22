@@ -20,10 +20,7 @@ package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.plugin.spi.*;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -100,16 +97,16 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                 } catch (URISyntaxException ignore) {
                 }
             }
-            Span span = HttpClientHelper.startHttpClientSpan(parent, method, uri, hostName);
+            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, method, uri, hostName);
 
             if (span != null) {
                 span.activate();
             }
 
-            if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+            if (!TraceContextUtil.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
                 if (span != null) {
                     span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
-                } else if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+                } else if (!TraceContextUtil.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
                     // re-adds the header on redirects
                     parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
                 }
@@ -122,7 +119,7 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
         public static void onAfterExecute(@Advice.Return @Nullable HttpResponse response,
                                           @Advice.Enter @Nullable Object spanObj,
                                           @Advice.Thrown @Nullable Throwable t) {
-            Span span = (Span) spanObj;
+            Span<?> span = (Span<?>) spanObj;
             if (span == null) {
                 return;
             }
@@ -136,7 +133,7 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                 // in case of circular redirect, we get an exception but status code won't be available without response
                 // thus we have to deal with span outcome directly
                 if (t instanceof CircularRedirectException) {
-                    span.withOutcome(Outcome.FAILURE);
+                    span.withOutcome(DefaultOutcome.FAILURE);
                 }
 
                 span.deactivate().end();

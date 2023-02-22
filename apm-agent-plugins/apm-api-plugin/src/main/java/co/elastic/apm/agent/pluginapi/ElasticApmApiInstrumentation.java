@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.configuration.ServiceInfo;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;

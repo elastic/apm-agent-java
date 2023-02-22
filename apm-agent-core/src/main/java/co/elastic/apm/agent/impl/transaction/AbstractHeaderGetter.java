@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-public abstract class AbstractHeaderGetter<T, C> implements HeaderGetter<T, C> {
+public abstract class AbstractHeaderGetter<T, C> extends co.elastic.apm.plugin.spi.AbstractHeaderGetter<T, C> implements HeaderGetter<T, C> {
     @Override
-    public <S> void forEach(String headerName, C carrier, S state, HeaderConsumer<T, S> consumer) {
+    public <S> void forEach(String headerName, C carrier, S state, HeaderGetter.HeaderConsumer<T, S> consumer) {
         T firstHeader = getFirstHeader(headerName, carrier);
         if (firstHeader != null) {
             consumer.accept(firstHeader, state);

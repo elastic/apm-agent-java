@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -29,7 +29,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.web.servlet.view.AbstractView;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -63,7 +62,7 @@ public class ViewRenderInstrumentation extends TracerAwareInstrumentation {
             final AbstractSpan<?> parent = tracer.getActive();
 
             String className = thiz.getClass().getName();
-            Span span = parent.createSpan()
+            Span<?> span = parent.createSpan()
                 .withType(SPAN_TYPE)
                 .withSubtype(getSubtype(className))
                 .withAction(SPAN_ACTION)
@@ -83,8 +82,8 @@ public class ViewRenderInstrumentation extends TracerAwareInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void afterExecute(@Advice.Enter @Nullable Object spanObj,
                                         @Advice.Thrown @Nullable Throwable t) {
-            if (spanObj instanceof Span) {
-                Span span = (Span) spanObj;
+            if (spanObj instanceof Span<?>) {
+                Span<?> span = (Span<?>) spanObj;
                 span.captureException(t)
                     .deactivate()
                     .end();

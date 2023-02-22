@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.configuration.ServiceInfo;
-import co.elastic.apm.agent.impl.transaction.Id;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.Id;
+import co.elastic.apm.plugin.spi.TraceContext;
+import co.elastic.apm.plugin.spi.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -62,8 +62,8 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void setFrameworkName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
                                                 @Advice.Argument(0) String frameworkName) {
-                if (transaction instanceof Transaction) {
-                    ((Transaction) transaction).setUserFrameworkName(frameworkName);
+                if (transaction instanceof Transaction<?>) {
+                    ((Transaction<?>) transaction).setUserFrameworkName(frameworkName);
                 }
             }
         }
@@ -78,8 +78,8 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void setUser(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
                                        @Advice.Argument(0) String id, @Advice.Argument(1) String email, @Advice.Argument(2) String username, @Advice.Argument(value = 3, optional = true) String domain) {
-                if (transaction instanceof Transaction) {
-                    ((Transaction) transaction).setUser(id, email, username, domain);
+                if (transaction instanceof Transaction<?>) {
+                    ((Transaction<?>) transaction).setUser(id, email, username, domain);
                 }
             }
         }
@@ -96,8 +96,8 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static String ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
                                                 @Advice.Return @Nullable String returnValue) {
-                if (transaction instanceof Transaction) {
-                    final TraceContext traceContext = ((Transaction) transaction).getTraceContext();
+                if (transaction instanceof Transaction<?>) {
+                    final TraceContext traceContext = ((Transaction<?>) transaction).getTraceContext();
                     Id parentId = traceContext.getParentId();
                     if (parentId.isEmpty()) {
                         parentId.setToRandomValue();
@@ -118,8 +118,8 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void setResult(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
                                          @Advice.Argument(0) String result) {
-                if (transaction instanceof Transaction) {
-                    ((Transaction) transaction).withResult(result);
+                if (transaction instanceof Transaction<?>) {
+                    ((Transaction<?>) transaction).withResult(result);
                 }
             }
         }
@@ -135,8 +135,8 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             public static void addCustomContext(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transactionObj,
                                                 @Advice.Argument(0) String key,
                                                 @Advice.Argument(1) @Nullable Object value) {
-                if (value != null && transactionObj instanceof Transaction) {
-                    Transaction transaction = (Transaction) transactionObj;
+                if (value != null && transactionObj instanceof Transaction<?>) {
+                    Transaction<?> transaction = (Transaction<?>) transactionObj;
                     if (value instanceof String) {
                         transaction.addCustomContext(key, (String) value);
                     } else if (value instanceof Number) {
@@ -158,8 +158,8 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void setServiceInfo(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
                                               @Advice.Argument(0) String serviceName, @Advice.Argument(1) String serviceVersion) {
-                if (transaction instanceof Transaction) {
-                    ((Transaction) transaction).getTraceContext().setServiceInfo(serviceName, serviceVersion);
+                if (transaction instanceof Transaction<?>) {
+                    ((Transaction<?>) transaction).getTraceContext().setServiceInfo(serviceName, serviceVersion);
                 }
             }
         }
@@ -174,10 +174,10 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void useServiceInfoForClassLoader(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
                                                             @Advice.Argument(0) ClassLoader classLoader) {
-                if (transaction instanceof Transaction) {
+                if (transaction instanceof Transaction<?>) {
                     ServiceInfo serviceInfo = tracer.getServiceInfoForClassLoader(classLoader);
                     if (serviceInfo != null) {
-                        ((Transaction) transaction).getTraceContext().setServiceInfo(serviceInfo.getServiceName(), serviceInfo.getServiceVersion());
+                        ((Transaction<?>) transaction).getTraceContext().setServiceInfo(serviceInfo.getServiceName(), serviceInfo.getServiceVersion());
                     }
                 }
             }

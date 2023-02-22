@@ -29,6 +29,7 @@ import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.LoggerUtils;
+import co.elastic.apm.plugin.spi.HeaderChildContextCreator;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -38,7 +39,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recyclable, ElasticContext<T> {
+public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recyclable, ElasticContext<T>, co.elastic.apm.plugin.spi.AbstractSpan<T> {
     public static final int PRIO_USER_SUPPLIED = 1000;
     public static final int PRIO_HIGH_LEVEL_FRAMEWORK = 100;
     public static final int PRIO_METHOD_SIGNATURE = 100;
@@ -139,7 +140,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      */
     public T requestDiscarding() {
         this.discardRequested = true;
-        return (T) this;
+        return thiz();
     }
 
     /**
@@ -521,7 +522,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     public T asExit() {
         isExit = true;
-        return (T) this;
+        return thiz();
     }
 
     public boolean isExit() {
@@ -541,7 +542,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         if (t != null) {
             captureExceptionAndGetErrorId(getTraceContext().getClock().getEpochMicros(), t);
         }
-        return (T) this;
+        return thiz();
     }
 
     public void endExceptionally(@Nullable Throwable t) {
@@ -650,13 +651,13 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     @Override
     public T activate() {
         tracer.activate(this);
-        return (T) this;
+        return thiz();
     }
 
     @Override
     public T deactivate() {
         tracer.deactivate(this);
-        return (T) this;
+        return thiz();
     }
 
     @Override
@@ -854,4 +855,62 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return type;
     }
 
+    @Override
+    public <H, C> boolean addSpanLink(HeaderChildContextCreator<H, C> childContextCreator, final co.elastic.apm.plugin.spi.HeaderGetter<H, C> headerGetter, @Nullable C carrier) {
+        return addSpanLink(childContextCreator, new HeaderGetter<H, C>() {
+            @Nullable
+            @Override
+            public H getFirstHeader(String headerName, C carrier) {
+                return headerGetter.getFirstHeader(headerName, carrier);
+            }
+
+            @Override
+            public <S> void forEach(String headerName, C carrier, S state, HeaderConsumer<H, S> consumer) {
+                headerGetter.forEach(headerName, carrier, state, consumer);
+            }
+
+            @Override
+            public <S> void forEach(String headerName, C carrier, S state, co.elastic.apm.plugin.spi.HeaderGetter.HeaderConsumer<H, S> consumer) {
+                headerGetter.forEach(headerName, carrier, state, consumer);
+            }
+        }, carrier);
+    }
+
+    @Override
+    public <C> boolean propagateTraceContext(C carrier, final co.elastic.apm.plugin.spi.BinaryHeaderSetter<C> headerSetter) {
+        return propagateTraceContext(carrier, new BinaryHeaderSetter<C>() {
+            @Nullable
+            @Override
+            public byte[] getFixedLengthByteArray(String headerName, int length) {
+                return headerSetter.getFixedLengthByteArray(headerName, length);
+            }
+
+            @Override
+            public void setHeader(String headerName, byte[] headerValue, C carrier) {
+                headerSetter.setHeader(headerName, headerValue, carrier);
+            }
+        });
+    }
+
+    @Override
+    public <C> void propagateTraceContext(C carrier, final co.elastic.apm.plugin.spi.TextHeaderSetter<C> headerSetter) {
+        propagateTraceContext(carrier, new TextHeaderSetter<C>() {
+            @Override
+            public void setHeader(String headerName, String headerValue, C carrier) {
+                headerSetter.setHeader(headerName, headerValue, carrier);
+            }
+        });
+    }
+
+    @Override
+    public T withOutcome(co.elastic.apm.plugin.spi.Outcome outcome) {
+        String name = outcome.name();
+        if (name.equals(Outcome.FAILURE.name())) {
+            return withOutcome(Outcome.FAILURE);
+        } else if (name.equals(Outcome.SUCCESS.name())) {
+            return withOutcome(Outcome.SUCCESS);
+        } else {
+            return withOutcome(Outcome.UNKNOWN);
+        }
+    }
 }

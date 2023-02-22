@@ -22,12 +22,8 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -41,8 +37,8 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.*;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_METHOD_SIGNATURE;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
+import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_METHOD_SIGNATURE;
+import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_USER_SUPPLIED;
 import static co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static co.elastic.apm.agent.pluginapi.Utils.FRAMEWORK_NAME;
 import static net.bytebuddy.matcher.ElementMatchers.*;
@@ -75,7 +71,7 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
 
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {
-                Span span = parent.createSpan()
+                Span<?> span = parent.createSpan()
                     .withType(type.isEmpty() ? "app" : type)
                     .withSubtype(subtype)
                     .withAction(action)
@@ -86,7 +82,7 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
                 return span.activate();
             }
 
-            Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
+            Transaction<?> transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
             if (transaction == null) {
                 return null;
             }
@@ -112,7 +108,7 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
             if (abstractSpan instanceof AbstractSpan<?>) {
                 ((AbstractSpan<?>) abstractSpan)
                     .captureException(t)
-                    .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
+                    .withOutcome(t != null ? DefaultOutcome.FAILURE : DefaultOutcome.SUCCESS)
                     .deactivate()
                     .end();
             }

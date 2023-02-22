@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.springwebflux.testapp;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.Span;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -73,7 +73,7 @@ public class GreetingHandler {
             .delayElements(Duration.ofMillis(delayMillis))
             .map(i -> String.format("child %d", i))
             .doOnNext(name -> {
-                Span span = Objects.requireNonNull(GlobalTracer.get().currentTransaction()).createSpan();
+                Span<?> span = Objects.requireNonNull(GlobalTracer.get().currentTransaction()).createSpan();
                 span.withName(String.format("%s id=%s", name, span.getTraceContext().getId()));
                 try {
                     fakeWork(durationMillis);

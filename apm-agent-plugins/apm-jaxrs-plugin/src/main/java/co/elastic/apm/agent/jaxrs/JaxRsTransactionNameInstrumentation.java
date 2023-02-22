@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.Tracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -38,7 +38,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
@@ -125,7 +125,7 @@ public abstract class JaxRsTransactionNameInstrumentation extends TracerAwareIns
             .isUseJaxRsPathForTransactionName();
 
         protected static void setTransactionName(String signature, @Nullable String pathAnnotationValue, @Nullable String frameworkVersion) {
-            final Transaction transaction = TracerAwareInstrumentation.tracer.currentTransaction();
+            final Transaction<?> transaction = TracerAwareInstrumentation.tracer.currentTransaction();
             if (transaction != null) {
                 String transactionName = signature;
                 if (useAnnotationValueForTransactionName) {

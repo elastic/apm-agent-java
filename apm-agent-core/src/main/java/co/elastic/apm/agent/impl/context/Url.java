@@ -30,7 +30,7 @@ import java.net.URL;
 /**
  * A complete URL, with scheme, host, port, path and query string.
  */
-public class Url implements Recyclable {
+public class Url implements Recyclable, co.elastic.apm.plugin.spi.Url {
 
     /**
      * The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
@@ -220,6 +220,16 @@ public class Url implements Recyclable {
             .withPort(normalizePort(uri.getPort(), uri.getScheme()))
             .withPathname(uri.getPath())
             .withSearch(uri.getQuery())
+            .updateFull();
+    }
+
+    @Override
+    public void fillFrom(@Nullable String scheme, @Nullable String serverName, int serverPort, @Nullable String requestURI, @Nullable String queryString) {
+        withProtocol(scheme)
+            .withHostname(hostname)
+            .withPort(normalizePort(port, scheme))
+            .withPathname(pathname)
+            .withSearch(queryString)
             .updateFull();
     }
 

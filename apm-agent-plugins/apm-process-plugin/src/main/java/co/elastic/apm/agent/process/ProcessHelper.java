@@ -19,9 +19,10 @@
 package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.DefaultOutcome;
+import co.elastic.apm.plugin.spi.Outcome;
+import co.elastic.apm.plugin.spi.Span;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
@@ -34,7 +35,7 @@ import java.util.List;
  */
 class ProcessHelper {
 
-    private static final ProcessHelper INSTANCE = new ProcessHelper(WeakConcurrentProviderImpl.<Process, Span>createWeakSpanMap());
+    private static final ProcessHelper INSTANCE = new ProcessHelper(WeakConcurrentProviderImpl.<Process, Span<?>>createWeakSpanMap());
 
     /**
      * A thread local used to indicate whether the currently invoked instrumented method is invoked by the plugin itself.
@@ -44,9 +45,9 @@ class ProcessHelper {
      */
     private static final ThreadLocal<Boolean> inTracingContext = GlobalVariables.get(ProcessHelper.class, "inTracingContext", new ThreadLocal<Boolean>());
 
-    private final WeakMap<Process, Span> inFlightSpans;
+    private final WeakMap<Process, Span<?>> inFlightSpans;
 
-    ProcessHelper(WeakMap<Process, Span> inFlightSpans) {
+    ProcessHelper(WeakMap<Process, Span<?>> inFlightSpans) {
         this.inFlightSpans = inFlightSpans;
     }
 
@@ -80,7 +81,7 @@ class ProcessHelper {
 
         String binaryName = getBinaryName(processName);
 
-        Span span = parentContext.createSpan()
+        Span<?> span = parentContext.createSpan()
             .withType("process")
             .withName(binaryName);
 
@@ -104,12 +105,12 @@ class ProcessHelper {
      */
     void doEndProcess(Process process, boolean checkTerminatedProcess) {
 
-        Span span = inFlightSpans.get(process);
+        Span<?> span = inFlightSpans.get(process);
         if (span == null) {
             return;
         }
 
-        Outcome outcome = Outcome.UNKNOWN;
+        Outcome outcome = DefaultOutcome.UNKNOWN;
         boolean endAndRemoveSpan = !checkTerminatedProcess;
         if (checkTerminatedProcess) {
             // borrowed from java 8 Process#isAlive()
@@ -119,11 +120,11 @@ class ProcessHelper {
             try {
                 inTracingContext.set(Boolean.TRUE);
                 int exitValue = process.exitValue();
-                outcome = exitValue == 0 ? Outcome.SUCCESS : Outcome.FAILURE;
+                outcome = exitValue == 0 ? DefaultOutcome.SUCCESS : DefaultOutcome.FAILURE;
                 endAndRemoveSpan = true;
             } catch (IllegalThreadStateException e) {
                 // process hasn't terminated, we don't know it's actual return value
-                outcome = Outcome.UNKNOWN;
+                outcome = DefaultOutcome.UNKNOWN;
                 endAndRemoveSpan = false;
             } finally {
                 inTracingContext.remove();
@@ -141,14 +142,14 @@ class ProcessHelper {
      * @param exitValue     exit value of the terminated process
      */
     void doEndProcessSpan(Process process, int exitValue) {
-        removeAndEndSpan(process, exitValue == 0 ? Outcome.SUCCESS : Outcome.FAILURE);
+        removeAndEndSpan(process, exitValue == 0 ? DefaultOutcome.SUCCESS : DefaultOutcome.FAILURE);
     }
 
     private void removeAndEndSpan(Process process, Outcome outcome) {
-        Span span = inFlightSpans.remove(process);
+        Span<?> span = inFlightSpans.remove(process);
         if (span != null) {
-            span.withOutcome(outcome).
-                end();
+            span.withOutcome(outcome)
+                .end();
         }
     }
 }

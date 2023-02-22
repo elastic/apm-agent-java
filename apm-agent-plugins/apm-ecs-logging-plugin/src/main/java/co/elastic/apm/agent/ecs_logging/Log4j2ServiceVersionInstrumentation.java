@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.ecs_logging;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServiceInfo;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.ServiceInfo;
+import co.elastic.apm.plugin.spi.Tracer;
 import co.elastic.logging.log4j2.EcsLayout;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.type.TypeDescription;

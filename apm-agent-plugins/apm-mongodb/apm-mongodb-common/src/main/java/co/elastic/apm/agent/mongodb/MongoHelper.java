@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.mongodb;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.Span;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -34,16 +34,15 @@ public class MongoHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(MongoHelper.class);
 
-    private final Tracer tracer;
+    private static final Tracer tracer = GlobalTracer.get();
     private final MongoConfiguration config;
 
     public MongoHelper() {
-        this.tracer = GlobalTracer.get();
         this.config = tracer.getConfig(MongoConfiguration.class);
     }
 
-    public Span startSpan(@Nullable String database, @Nullable String collection, @Nullable String command, String host, int port, @Nullable BsonDocument commandDocument) {
-        Span span = null;
+    public Span<?> startSpan(@Nullable String database, @Nullable String collection, @Nullable String command, String host, int port, @Nullable BsonDocument commandDocument) {
+        Span<?> span = null;
         final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan != null) {
             span = activeSpan.createExitSpan();

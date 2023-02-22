@@ -207,8 +207,13 @@ public class ElasticApmTracer extends BasicTracer implements MetricsAwareTracer 
     }
 
     @Override
-    public <T extends ConfigurationOptionProvider> T getConfig(Class<T> configProvider) {
-        return configurationRegistry.getConfig(configProvider);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public <T> T getConfig(Class<T> configProvider) {
+        if (ConfigurationOptionProvider.class.isAssignableFrom(configProvider)) {
+            return (T) configurationRegistry.getConfig((Class) configProvider);
+        } else {
+            throw new IllegalArgumentException("Configuration types must subclass " + ConfigurationOptionProvider.class.getName());
+        }
     }
 
     @Override

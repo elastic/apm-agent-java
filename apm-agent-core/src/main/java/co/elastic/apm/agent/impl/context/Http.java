@@ -22,7 +22,7 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 
-public class Http implements Recyclable {
+public class Http implements Recyclable, co.elastic.apm.plugin.spi.Http {
 
     /**
      * URL used by this HTTP outgoing span

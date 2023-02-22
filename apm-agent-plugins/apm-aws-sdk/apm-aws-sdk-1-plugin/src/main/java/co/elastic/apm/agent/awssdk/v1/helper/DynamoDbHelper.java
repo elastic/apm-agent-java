@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.awssdk.v1.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractDynamoDBInstrumentationHelper;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.plugin.spi.Span;
 import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.Request;
 import com.amazonaws.http.ExecutionContext;
@@ -43,10 +43,10 @@ public class DynamoDbHelper extends AbstractDynamoDBInstrumentationHelper<Reques
 
     @Nullable
     @Override
-    public Span startSpan(Request<?> request, URI httpURI, ExecutionContext context) {
+    public Span<?> startSpan(Request<?> request, URI httpURI, ExecutionContext context) {
         AmazonWebServiceRequest amazonRequest = request.getOriginalRequest();
 
-        Span span = super.startSpan(request, httpURI, context);
+        Span<?> span = super.startSpan(request, httpURI, context);
         if (span != null) {
             span.withSync(!isRequestAsync(amazonRequest));
         }

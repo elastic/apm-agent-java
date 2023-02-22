@@ -34,7 +34,7 @@ import java.util.List;
  * {@link #get(String)} will return a collection of values.
  * </p>
  */
-public class PotentiallyMultiValuedMap implements Recyclable {
+public class PotentiallyMultiValuedMap implements Recyclable, co.elastic.apm.plugin.spi.PotentiallyMultiValuedMap {
 
     private final List<String> keys;
     private final List<Object> values;

@@ -27,7 +27,6 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
-import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 import javax.annotation.Nullable;
 
@@ -173,12 +172,63 @@ class NoopTracer implements Tracer {
     public void endError(ErrorCapture errorCapture) { }
 
     @Override
-    public <T extends ConfigurationOptionProvider> T getConfig(Class<T> configuration) {
+    public <T> T getConfig(Class<T> configuration) {
         return null;
     }
 
     @Override
     public ObjectPoolFactory getObjectPoolFactory() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public <C> co.elastic.apm.plugin.spi.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.plugin.spi.TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public <C> co.elastic.apm.plugin.spi.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.plugin.spi.TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, long epochMicros) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public <C> co.elastic.apm.plugin.spi.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.plugin.spi.BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable co.elastic.apm.plugin.spi.AbstractSpan<?> parent) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public co.elastic.apm.plugin.spi.ErrorCapture captureException(@Nullable Throwable e, @Nullable co.elastic.apm.plugin.spi.AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+        return null;
+    }
+
+    @Override
+    public void endSpan(co.elastic.apm.plugin.spi.Span<?> span) {
+    }
+
+    @Override
+    public void endTransaction(co.elastic.apm.plugin.spi.Transaction<?> transaction) {
+    }
+
+    @Override
+    public void endError(co.elastic.apm.plugin.spi.ErrorCapture errorCapture) {
+    }
+
+    @Override
+    public void setServiceInfoForClassLoader(ClassLoader classLoader, co.elastic.apm.plugin.spi.ServiceInfo serviceInfo) {
+    }
+
+    @Override
+    public ServiceInfo autoDetectedServiceName() {
         return null;
     }
 }

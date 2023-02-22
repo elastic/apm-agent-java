@@ -22,6 +22,7 @@ import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.BinaryHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.HeaderRemover;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.plugin.spi.HeaderGetter;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -44,7 +45,15 @@ public class BinaryHeaderMapAccessor implements BinaryHeaderGetter<Map<String, b
     }
 
     @Override
-    public <S> void forEach(String headerName, Map<String, byte[]> carrier, S state, HeaderConsumer<byte[], S> consumer) {
+    public <S> void forEach(String headerName, Map<String, byte[]> carrier, S state, co.elastic.apm.agent.impl.transaction.HeaderGetter.HeaderConsumer<byte[], S> consumer) {
+        byte[] headerValue = carrier.get(headerName);
+        if (headerValue != null) {
+            consumer.accept(headerValue, state);
+        }
+    }
+
+    @Override
+    public <S> void forEach(String headerName, Map<String, byte[]> carrier, S state, HeaderGetter.HeaderConsumer<byte[], S> consumer) {
         byte[] headerValue = carrier.get(headerName);
         if (headerValue != null) {
             consumer.accept(headerValue, state);

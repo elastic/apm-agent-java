@@ -19,11 +19,11 @@
 package co.elastic.apm.agent.javalin;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.plugin.spi.GlobalTracer;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import io.javalin.http.Context;
@@ -45,7 +45,7 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -137,7 +137,7 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
                 return null;
             }
 
-            final Transaction transaction = tracer.currentTransaction();
+            final Transaction<?> transaction = tracer.currentTransaction();
             if (transaction == null) {
                 return null;
             }
@@ -183,7 +183,7 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
                                           @Advice.Argument(0) Context ctx,
                                           @Advice.Thrown @Nullable Throwable t) {
             if (spanObj != null) {
-                final Span span = (Span) spanObj;
+                final Span<?> span = (Span<?>) spanObj;
                 span.deactivate();
 
                 final CompletableFuture<?> responseFuture = ctx.resultFuture();

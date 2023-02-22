@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.plugin.spi.Span;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -38,9 +38,9 @@ public abstract class AbstractAwsSdkInstrumentationHelper<R, C> {
     }
 
     @Nullable
-    public abstract Span startSpan(R request, URI httpURI, C context);
+    public abstract Span<?> startSpan(R request, URI httpURI, C context);
 
-    protected void setDestinationContext(Span span, @Nullable URI uri, R sdkRequest, C context, String type, @Nullable String name) {
+    protected void setDestinationContext(Span<?> span, @Nullable URI uri, R sdkRequest, C context, String type, @Nullable String name) {
         if (uri != null) {
             span.getContext().getDestination()
                 .withAddress(uri.getHost())

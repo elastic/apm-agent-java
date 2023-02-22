@@ -18,15 +18,15 @@
  */
 package co.elastic.apm.agent.struts;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.plugin.spi.GlobalTracer;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
 
 import javax.servlet.http.HttpServletRequest;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 
 public class ExecuteOperationsAdvice {
 
@@ -34,7 +34,7 @@ public class ExecuteOperationsAdvice {
 
     @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
     public static void setTransactionName(@Advice.Argument(0) HttpServletRequest request, @Advice.Return boolean handled) {
-        Transaction transaction = GlobalTracer.get().currentTransaction();
+        Transaction<?> transaction = GlobalTracer.get().currentTransaction();
         if (!handled || transaction == null) {
             return;
         }

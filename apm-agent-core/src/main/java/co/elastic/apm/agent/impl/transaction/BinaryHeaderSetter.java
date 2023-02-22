@@ -20,7 +20,7 @@ package co.elastic.apm.agent.impl.transaction;
 
 import javax.annotation.Nullable;
 
-public interface BinaryHeaderSetter<C> extends HeaderSetter<byte[], C> {
+public interface BinaryHeaderSetter<C> extends HeaderSetter<byte[], C>, co.elastic.apm.plugin.spi.BinaryHeaderSetter<C> {
 
     /**
      * Since the implementation itself knows the intrinsics of the headers and carrier lifecycle and handling, it should

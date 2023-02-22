@@ -22,7 +22,7 @@ package co.elastic.apm.agent.impl.context;
 /**
  * Any other arbitrary data captured by the agent, optionally provided by the user
  */
-public class SpanContext extends AbstractContext {
+public class SpanContext extends AbstractContext implements co.elastic.apm.plugin.spi.SpanContext {
 
     /**
      * An object containing contextual data for database spans

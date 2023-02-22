@@ -20,16 +20,11 @@ package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.*;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.HttpHeader;
@@ -329,7 +324,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             );
             assertThat(headerCount.get()).isEqualTo(1);
             headerMap.forEach((key, value) -> assertThat(request.getHeader(key)).isEqualTo(value));
-            Transaction transaction = tracer.startChildTransaction(request, new HeaderAccessor(), AbstractHttpClientInstrumentationTest.class.getClassLoader());
+            Transaction transaction = tracer.startChildTransaction(request, HeaderAccessor.INSTANCE, AbstractHttpClientInstrumentationTest.class.getClassLoader());
             assertThat(transaction).isNotNull();
             assertThat(transaction.getTraceContext().getTraceId()).isEqualTo(span.getTraceContext().getTraceId());
             assertThat(transaction.getTraceContext().getParentId()).isEqualTo(span.getTraceContext().getId());
@@ -349,9 +344,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         return loggedRequests.get();
     }
 
-    private static class HeaderAccessor implements TextHeaderGetter<LoggedRequest> {
+    private static class HeaderAccessor implements co.elastic.apm.plugin.spi.TextHeaderGetter<LoggedRequest> {
 
-        static final HeaderAccessor INSTANCE = new HeaderAccessor();
+        static final TextHeaderGetter<LoggedRequest> INSTANCE = new TextHeaderGetterBridge<>(new HeaderAccessor());
 
         @Nullable
         @Override

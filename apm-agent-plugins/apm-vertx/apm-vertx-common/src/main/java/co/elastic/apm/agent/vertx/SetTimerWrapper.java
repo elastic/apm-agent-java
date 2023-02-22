@@ -18,11 +18,14 @@
  */
 package co.elastic.apm.agent.vertx;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.Tracer;
 import io.vertx.core.Handler;
 
 public class SetTimerWrapper extends GenericHandlerWrapper<Long> {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     /**
      * Use this thread local to prevent tracking of endless, recursive timer jobs
@@ -44,7 +47,7 @@ public class SetTimerWrapper extends GenericHandlerWrapper<Long> {
     }
 
     public static Handler<Long> wrapTimerIfActiveSpan(Handler<Long> handler) {
-        AbstractSpan<?> currentSpan = GlobalTracer.get().getActive();
+        AbstractSpan<?> currentSpan = tracer.getActive();
 
         // do not wrap if there is no parent span or if we are in the recursive context of the same type of timer
         if (currentSpan != null && !handler.getClass().getName().equals(activeTimerHandlerPerThread.get())) {

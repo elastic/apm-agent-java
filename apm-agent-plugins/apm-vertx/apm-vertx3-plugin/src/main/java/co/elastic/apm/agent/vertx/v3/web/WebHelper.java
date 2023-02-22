@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.vertx.v3.web;
 
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
@@ -38,7 +38,7 @@ public class WebHelper extends AbstractVertxWebHelper {
 
     private static final WebHelper INSTANCE = new WebHelper(GlobalTracer.get());
 
-    static final WeakMap<Object, Transaction> transactionMap = WeakConcurrentProviderImpl.createWeakSpanMap();
+    static final WeakMap<Object, Transaction<?>> transactionMap = WeakConcurrentProviderImpl.createWeakSpanMap();
 
     public static WebHelper getInstance() {
         return INSTANCE;
@@ -53,8 +53,8 @@ public class WebHelper extends AbstractVertxWebHelper {
     }
 
     @Nullable
-    public Transaction startOrGetTransaction(HttpServerRequest httpServerRequest) {
-        Transaction transaction = super.startOrGetTransaction(httpServerRequest);
+    public Transaction<?> startOrGetTransaction(HttpServerRequest httpServerRequest) {
+        Transaction<?> transaction = super.startOrGetTransaction(httpServerRequest);
 
         if (transaction != null) {
             mapTransaction(httpServerRequest, transaction);
@@ -65,9 +65,9 @@ public class WebHelper extends AbstractVertxWebHelper {
     }
 
     @Override
-    public Transaction setRouteBasedNameForCurrentTransaction(RoutingContext routingContext) {
+    public Transaction<?> setRouteBasedNameForCurrentTransaction(RoutingContext routingContext) {
         HttpServerRequest request = routingContext.request();
-        Transaction transaction = getTransactionForRequest(request);
+        Transaction<?> transaction = getTransactionForRequest(request);
 
         if (transaction != null) {
             setRouteBasedTransactionName(transaction, routingContext);
@@ -76,27 +76,27 @@ public class WebHelper extends AbstractVertxWebHelper {
         return transaction;
     }
 
-    public void mapTransaction(Object key, Transaction transaction) {
+    public void mapTransaction(Object key, Transaction<?> transaction) {
         transactionMap.put(key, transaction);
     }
 
     @Nullable
-    public Transaction lookupTransaction(Object key) {
+    public Transaction<?> lookupTransaction(Object key) {
         return transactionMap.get(key);
     }
 
     @Nullable
-    public Transaction removeTransactionMapping(Object key) {
+    public Transaction<?> removeTransactionMapping(Object key) {
         return transactionMap.remove(key);
     }
 
     @Nullable
-    public Transaction getTransactionForRequest(HttpServerRequest request) {
+    public Transaction<?> getTransactionForRequest(HttpServerRequest request) {
         if (request.getClass().getName().equals("io.vertx.ext.web.impl.HttpServerRequestWrapper")) {
             request = request.endHandler(noopHandler);
             log.debug("VERTX-DEBUG: Vert.x request obtained through endHandler instrumentation: {}", request);
         }
-        Transaction transaction = lookupTransaction(request);
+        Transaction<?> transaction = lookupTransaction(request);
         if (transaction != null) {
             log.debug("VERTX-DEBUG: transaction {} is mapped to the Vert.x request: {}", transaction, request);
         } else {

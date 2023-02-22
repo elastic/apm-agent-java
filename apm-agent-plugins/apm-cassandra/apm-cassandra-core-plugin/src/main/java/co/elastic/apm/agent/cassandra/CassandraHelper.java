@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.cassandra;
 
 import co.elastic.apm.agent.db.signature.SignatureParser;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.Span;
 
 import javax.annotation.Nullable;
 
@@ -35,8 +35,8 @@ public class CassandraHelper {
     }
 
     @Nullable
-    public Span startCassandraSpan(@Nullable String query, boolean preparedStatement, @Nullable String keyspace) {
-        Span span = tracer.createExitChildSpan();
+    public Span<?> startCassandraSpan(@Nullable String query, boolean preparedStatement, @Nullable String keyspace) {
+        Span<?> span = tracer.createExitChildSpan();
         if (span == null) {
             return null;
         }

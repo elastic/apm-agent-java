@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.awssdk.v2.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractDynamoDBInstrumentationHelper;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.Tracer;
 import software.amazon.awssdk.core.SdkRequest;
 import software.amazon.awssdk.core.http.ExecutionContext;
 

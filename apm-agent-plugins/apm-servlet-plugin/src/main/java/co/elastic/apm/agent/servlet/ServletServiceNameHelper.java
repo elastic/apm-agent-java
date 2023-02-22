@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.configuration.ServiceInfo;
-import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.plugin.spi.ServiceInfo;
+import co.elastic.apm.plugin.spi.Tracer;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.state.GlobalState;

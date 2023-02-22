@@ -18,11 +18,7 @@
  */
 package co.elastic.apm.agent.dubbo.helper;
 
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.*;
 
 import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
@@ -34,12 +30,12 @@ public class DubboTraceHelper {
     public static final String SPAN_KEY = "_elastic_apm_span";
 
     @Nullable
-    public static Span createConsumerSpan(Tracer tracer, Class<?> apiClass, String methodName, InetSocketAddress remoteAddress) {
+    public static Span<?> createConsumerSpan(Tracer tracer, Class<?> apiClass, String methodName, InetSocketAddress remoteAddress) {
         AbstractSpan<?> traceContext = tracer.getActive();
         if (traceContext == null) {
             return null;
         }
-        Span span = traceContext.createExitSpan();
+        Span<?> span = traceContext.createExitSpan();
         if (span == null) {
             return null;
         }
@@ -59,7 +55,7 @@ public class DubboTraceHelper {
         return span.activate();
     }
 
-    public static void fillTransaction(Transaction transaction, Class<?> apiClass, String methodName) {
+    public static void fillTransaction(Transaction<?> transaction, Class<?> apiClass, String methodName) {
         transaction.updateName(apiClass, methodName);
         transaction.withType(Transaction.TYPE_REQUEST);
     }

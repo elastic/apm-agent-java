@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.vertx.v4.web;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerRequest;
@@ -41,8 +41,8 @@ public class WebHelper extends AbstractVertxWebHelper {
     }
 
     @Nullable
-    public Transaction startOrGetTransaction(Context context, HttpServerRequest httpServerRequest) {
-        Transaction transaction = super.startOrGetTransaction(httpServerRequest);
+    public Transaction<?> startOrGetTransaction(Context context, HttpServerRequest httpServerRequest) {
+        Transaction<?> transaction = super.startOrGetTransaction(httpServerRequest);
 
         if (transaction != null) {
             enrichRequest(httpServerRequest, transaction);
@@ -54,9 +54,9 @@ public class WebHelper extends AbstractVertxWebHelper {
 
     @Nullable
     @Override
-    public Transaction setRouteBasedNameForCurrentTransaction(RoutingContext routingContext) {
+    public Transaction<?> setRouteBasedNameForCurrentTransaction(RoutingContext routingContext) {
         Context context = routingContext.vertx().getOrCreateContext();
-        Transaction transaction = context.getLocal(CONTEXT_TRANSACTION_KEY);
+        Transaction<?> transaction = context.getLocal(CONTEXT_TRANSACTION_KEY);
         if (transaction != null) {
             setRouteBasedTransactionName(transaction, routingContext);
         }

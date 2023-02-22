@@ -29,7 +29,6 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
-import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -125,6 +124,7 @@ public class GlobalTracer implements Tracer {
         if (!isNoop()) {
             throw new IllegalStateException("Tracer is already initialized");
         }
+        co.elastic.apm.plugin.spi.GlobalTracer.init(tracer);
         INSTANCE.tracer = tracer;
     }
 
@@ -264,7 +264,7 @@ public class GlobalTracer implements Tracer {
     }
 
     @Override
-    public <T extends ConfigurationOptionProvider> T getConfig(Class<T> configuration) {
+    public <T> T getConfig(Class<T> configuration) {
         return tracer.getConfig(configuration);
     }
 
@@ -276,5 +276,60 @@ public class GlobalTracer implements Tracer {
     @Override
     public void recycle(ErrorCapture errorCapture) {
         tracer.recycle(errorCapture);
+    }
+
+    @Nullable
+    @Override
+    public <C> co.elastic.apm.plugin.spi.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.plugin.spi.TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+        return tracer.startChildTransaction(headerCarrier, textHeadersGetter, initiatingClassLoader);
+    }
+
+    @Nullable
+    @Override
+    public <C> co.elastic.apm.plugin.spi.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.plugin.spi.TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, long epochMicros) {
+        return tracer.startChildTransaction(headerCarrier, textHeadersGetter, initiatingClassLoader, epochMicros);
+    }
+
+    @Nullable
+    @Override
+    public <C> co.elastic.apm.plugin.spi.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.plugin.spi.BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+        return tracer.startChildTransaction(headerCarrier, binaryHeadersGetter, initiatingClassLoader);
+    }
+
+    @Nullable
+    @Override
+    public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable co.elastic.apm.plugin.spi.AbstractSpan<?> parent) {
+        return tracer.captureAndReportException(epochMicros, e, parent);
+    }
+
+    @Nullable
+    @Override
+    public co.elastic.apm.plugin.spi.ErrorCapture captureException(@Nullable Throwable e, @Nullable co.elastic.apm.plugin.spi.AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+        return tracer.captureException(e, parent, initiatingClassLoader);
+    }
+
+    @Override
+    public void endSpan(co.elastic.apm.plugin.spi.Span<?> span) {
+        tracer.endSpan(span);
+    }
+
+    @Override
+    public void endTransaction(co.elastic.apm.plugin.spi.Transaction<?> transaction) {
+        tracer.endTransaction(transaction);
+    }
+
+    @Override
+    public void endError(co.elastic.apm.plugin.spi.ErrorCapture errorCapture) {
+        tracer.endError(errorCapture);
+    }
+
+    @Override
+    public void setServiceInfoForClassLoader(ClassLoader classLoader, co.elastic.apm.plugin.spi.ServiceInfo serviceInfo) {
+        tracer.setServiceInfoForClassLoader(classLoader, serviceInfo);
+    }
+
+    @Override
+    public ServiceInfo autoDetectedServiceName() {
+        return tracer.autoDetectedServiceName();
     }
 }

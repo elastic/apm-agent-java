@@ -20,10 +20,7 @@ package co.elastic.apm.agent.httpclient.v3;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.LoggerUtils;
@@ -115,16 +112,16 @@ public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
                 }
             }
 
-            Span span = HttpClientHelper.startHttpClientSpan(parent, httpMethod.getName(), uri, protocol, host, port);
+            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, httpMethod.getName(), uri, protocol, host, port);
 
             if (span != null) {
                 span.activate();
             }
 
-            if (!TraceContext.containsTraceContextTextHeaders(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
+            if (!TraceContextUtil.containsTraceContextTextHeaders(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
                 if (span != null) {
                     span.propagateTraceContext(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE);
-                } else if (!TraceContext.containsTraceContextTextHeaders(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
+                } else if (!TraceContextUtil.containsTraceContextTextHeaders(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
                     // re-adds the header on redirects
                     parent.propagateTraceContext(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE);
                 }
@@ -138,11 +135,11 @@ public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
                                   @Advice.Argument(0) HttpMethod httpMethod,
                                   @Advice.Enter @Nullable Object enterSpan) {
 
-            if (!(enterSpan instanceof Span)) {
+            if (!(enterSpan instanceof Span<?>)) {
                 return;
             }
 
-            Span span = (Span) enterSpan;
+            Span<?> span = (Span<?>) enterSpan;
 
             StatusLine statusLine = httpMethod.getStatusLine();
             if (null != statusLine) {
@@ -150,7 +147,7 @@ public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
             }
 
             if (thrown instanceof CircularRedirectException) {
-                span.withOutcome(Outcome.FAILURE);
+                span.withOutcome(DefaultOutcome.FAILURE);
             }
 
             span.captureException(thrown)

@@ -18,13 +18,9 @@
  */
 package co.elastic.apm.agent.java_ldap;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import com.sun.jndi.ldap.Connection;
-import com.sun.jndi.ldap.LdapResult;
+import co.elastic.apm.plugin.spi.*;
+// TODO Rafael import com.sun.jndi.ldap.Connection;
+// TODO Rafael import com.sun.jndi.ldap.LdapResult;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
@@ -35,13 +31,13 @@ public class LdapClientAdvice {
     private static final Tracer tracer = GlobalTracer.get();
 
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onEnter(@Advice.Origin("#m") String methodName, @Advice.FieldValue(value = "conn", typing = Assigner.Typing.DYNAMIC) Connection connection) {
+    public static Object onEnter(@Advice.Origin("#m") String methodName, @Advice.FieldValue(value = "conn", typing = Assigner.Typing.DYNAMIC) Void connection) {
         AbstractSpan<?> parent = tracer.getActive();
         if (parent == null) {
             return null;
         }
 
-        Span span = parent.createExitSpan();
+        Span<?> span = parent.createExitSpan();
         if (span == null) {
             return null;
         }
@@ -51,20 +47,20 @@ public class LdapClientAdvice {
             .withSubtype("ldap");
 
         if (connection != null) {
-            span.getContext().getDestination().withAddress(connection.host).withPort(connection.port);
-            span.getContext().getServiceTarget().withType("ldap").withHostPortName(connection.host, connection.port);
+            //span.getContext().getDestination().withAddress(connection.host).withPort(connection.port);
+            //span.getContext().getServiceTarget().withType("ldap").withHostPortName(connection.host, connection.port);
         }
 
         return span.activate();
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onExit(@Advice.Enter @Nullable Object spanObj, @Nullable @Advice.Return LdapResult ldapResult, @Nullable @Advice.Thrown Throwable t) {
-        Span span = (Span) spanObj;
+    public static void onExit(@Advice.Enter @Nullable Object spanObj, @Nullable @Advice.Return Void ldapResult, @Nullable @Advice.Thrown Throwable t) {
+        Span<?> span = (Span<?>) spanObj;
         if (span != null) {
-            span.withOutcome((ldapResult != null && ldapResult.status == 0 /* LDAP_SUCCESS */) ? Outcome.SUCCESS : Outcome.FAILURE)
-                .captureException(t)
-                .deactivate().end();
+            //span.withOutcome((ldapResult != null && ldapResult.status == 0 /* LDAP_SUCCESS */) ? DefaultOutcome.SUCCESS : DefaultOutcome.FAILURE)
+//                .captureException(t)
+  //              .deactivate().end();
         }
     }
 }

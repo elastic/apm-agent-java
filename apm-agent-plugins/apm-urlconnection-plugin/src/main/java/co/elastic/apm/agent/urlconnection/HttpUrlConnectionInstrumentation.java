@@ -21,10 +21,7 @@ package co.elastic.apm.agent.urlconnection;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
@@ -50,7 +47,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 @GlobalState
 public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstrumentation {
 
-    public static final WeakMap<HttpURLConnection, Span> inFlightSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
+    public static final WeakMap<HttpURLConnection, Span<?>> inFlightSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
     public static final CallDepth callDepth = CallDepth.get(HttpUrlConnectionInstrumentation.class);
 
     @Override
@@ -82,11 +79,11 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                 if (parent == null) {
                     return null;
                 }
-                Span span = inFlightSpans.get(thiz);
+                Span<?> span = inFlightSpans.get(thiz);
                 if (span == null && !connected) {
                     final URL url = thiz.getURL();
                     span = HttpClientHelper.startHttpClientSpan(parent, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
-                    if (!TraceContext.containsTraceContextTextHeaders(thiz, UrlConnectionPropertyAccessor.instance())) {
+                    if (!TraceContextUtil.containsTraceContextTextHeaders(thiz, UrlConnectionPropertyAccessor.instance())) {
                         if (span != null) {
                             span.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
                         } else {
@@ -109,7 +106,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                                     @Advice.Origin String signature) {
 
                 callDepth.decrement();
-                Span span = (Span) spanObject;
+                Span<?> span = (Span<?>) spanObject;
                 if (span == null) {
                     return;
                 }
@@ -130,7 +127,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                         // checking if "finished" to avoid multiple endings on nested calls
                         if (!span.isFinished()) {
                             span.captureException(t)
-                                .withOutcome(Outcome.FAILURE)
+                                .withOutcome(DefaultOutcome.FAILURE)
                                 .end();
                         }
                     } else {
@@ -164,10 +161,10 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
             public static void afterDisconnect(@Advice.This HttpURLConnection thiz,
                                                @Advice.Thrown @Nullable Throwable t,
                                                @Advice.FieldValue("responseCode") int responseCode) {
-                Span span = inFlightSpans.remove(thiz);
+                Span<?> span = inFlightSpans.remove(thiz);
                 if (span != null) {
                     span.captureException(t)
-                        .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
+                        .withOutcome(t != null ? DefaultOutcome.FAILURE : DefaultOutcome.SUCCESS)
                         .end();
                 }
             }

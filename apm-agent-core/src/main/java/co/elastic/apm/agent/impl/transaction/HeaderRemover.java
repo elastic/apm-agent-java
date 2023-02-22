@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-public interface HeaderRemover<C> {
+public interface HeaderRemover<C> extends co.elastic.apm.plugin.spi.HeaderRemover<C> {
 
     void remove(String headerName, C carrier);
 }

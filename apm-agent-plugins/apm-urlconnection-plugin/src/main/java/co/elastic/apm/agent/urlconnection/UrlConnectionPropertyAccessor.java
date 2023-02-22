@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.urlconnection;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.plugin.spi.TextHeaderGetter;
+import co.elastic.apm.plugin.spi.TextHeaderSetter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 

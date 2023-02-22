@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.awssdk.v1.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractS3InstrumentationHelper;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.Tracer;
 import com.amazonaws.Request;
 import com.amazonaws.http.ExecutionContext;
 

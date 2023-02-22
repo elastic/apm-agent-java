@@ -24,7 +24,7 @@ import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import javax.annotation.Nullable;
 import java.util.Collection;
 
-public class Response implements Recyclable {
+public class Response implements Recyclable, co.elastic.apm.plugin.spi.Response {
 
     /**
      * A mapping of HTTP headers of the response object

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.objectpool;
 
-public interface Recyclable {
+public interface Recyclable extends co.elastic.apm.plugin.spi.Recyclable {
 
     /**
      * resets pooled object state so it can be reused

@@ -20,10 +20,10 @@ package co.elastic.apm.agent.kafka.helper;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.context.Message;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.plugin.spi.Message;
+import co.elastic.apm.plugin.spi.TraceContext;
+import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -59,7 +59,7 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
 
     public void endCurrentTransaction() {
         try {
-            Transaction transaction = tracer.currentTransaction();
+            Transaction<?> transaction = tracer.currentTransaction();
             if (transaction != null && "messaging".equals(transaction.getType())) {
                 transaction.deactivate().end();
             }
@@ -75,7 +75,7 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
         try {
             String topic = record.topic();
             if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic)) {
-                Transaction transaction = tracer.startChildTransaction(record, KafkaRecordHeaderAccessor.instance(), PrivilegedActionUtils.getClassLoader(ConsumerRecordsIteratorWrapper.class));
+                Transaction<?> transaction = tracer.startChildTransaction(record, KafkaRecordHeaderAccessor.instance(), PrivilegedActionUtils.getClassLoader(ConsumerRecordsIteratorWrapper.class));
                 if (transaction != null) {
                     transaction.withType("messaging").withName("Kafka record from " + topic).activate();
                     transaction.setFrameworkName(FRAMEWORK_NAME);

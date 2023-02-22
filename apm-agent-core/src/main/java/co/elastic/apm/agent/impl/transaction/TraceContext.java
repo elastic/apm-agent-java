@@ -20,7 +20,6 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.objectpool.Recyclable;
@@ -67,7 +66,7 @@ import java.util.Objects;
  *                      2, 1]
  * </pre>
  */
-public class TraceContext implements Recyclable {
+public class TraceContext implements Recyclable, co.elastic.apm.plugin.spi.TraceContext {
 
     public static final String ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME = "elastic-apm-traceparent";
     public static final String W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME = "traceparent";
@@ -94,20 +93,20 @@ public class TraceContext implements Recyclable {
 
     private static final Double SAMPLE_RATE_ZERO = 0d;
 
-    private static final ChildContextCreator<TraceContext> FROM_PARENT_CONTEXT = new ChildContextCreator<TraceContext>() {
+    private static final ChildContextCreator<TraceContext> FROM_PARENT_CONTEXT = new ChildContextCreatorBridge<TraceContext>(new co.elastic.apm.plugin.spi.ChildContextCreator<TraceContext>() {
         @Override
-        public boolean asChildOf(TraceContext child, TraceContext parent) {
+        public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, TraceContext parent) {
             child.asChildOf(parent);
             return true;
         }
-    };
-    private static final ChildContextCreator<AbstractSpan<?>> FROM_PARENT = new ChildContextCreator<AbstractSpan<?>>() {
+    });
+    private static final ChildContextCreator<AbstractSpan<?>> FROM_PARENT = new ChildContextCreatorBridge<AbstractSpan<?>>(new co.elastic.apm.plugin.spi.ChildContextCreator<AbstractSpan<?>>() {
         @Override
-        public boolean asChildOf(TraceContext child, AbstractSpan<?> parent) {
+        public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, AbstractSpan<?> parent) {
             child.asChildOf(parent.getTraceContext());
             return true;
         }
-    };
+    });
     private static final HeaderGetter.HeaderConsumer<String, TraceContext> TRACESTATE_HEADER_CONSUMER = new HeaderGetter.HeaderConsumer<String, TraceContext>() {
         @Override
         public void accept(@Nullable String tracestateHeaderValue, TraceContext state) {
@@ -117,9 +116,9 @@ public class TraceContext implements Recyclable {
         }
     };
     private static final HeaderChildContextCreator FROM_TRACE_CONTEXT_TEXT_HEADERS =
-        new HeaderChildContextCreator<String, Object>() {
+        new HeaderChildContextCreatorBridge(new co.elastic.apm.plugin.spi.HeaderChildContextCreator<String, Object>() {
             @Override
-            public boolean asChildOf(TraceContext child, @Nullable Object carrier, HeaderGetter<String, Object> traceContextHeaderGetter) {
+            public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, @Nullable Object carrier, co.elastic.apm.plugin.spi.HeaderGetter<String, Object> traceContextHeaderGetter) {
                 if (carrier == null) {
                     return false;
                 }
@@ -127,25 +126,25 @@ public class TraceContext implements Recyclable {
                 boolean isValid = false;
                 String traceparent = traceContextHeaderGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
                 if (traceparent != null) {
-                    isValid = child.asChildOf(traceparent);
+                    isValid = ((TraceContext) child).asChildOf(traceparent);
                 }
 
                 if (!isValid) {
                     // Look for the legacy Elastic traceparent header (in case this comes from an older agent)
                     traceparent = traceContextHeaderGetter.getFirstHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
                     if (traceparent != null) {
-                        isValid = child.asChildOf(traceparent);
+                        isValid = ((TraceContext) child).asChildOf(traceparent);
                     }
                 }
 
                 if (isValid) {
                     // as per spec, the tracestate header can be multi-valued
-                    traceContextHeaderGetter.forEach(TRACESTATE_HEADER_NAME, carrier, child, TRACESTATE_HEADER_CONSUMER);
+                    traceContextHeaderGetter.forEach(TRACESTATE_HEADER_NAME, carrier, ((TraceContext) child), TRACESTATE_HEADER_CONSUMER);
                 }
 
                 return isValid;
             }
-        };
+        });
     private static final HeaderChildContextCreator FROM_TRACE_CONTEXT_BINARY_HEADERS =
         new HeaderChildContextCreator<byte[], Object>() {
             @Override
@@ -159,10 +158,15 @@ public class TraceContext implements Recyclable {
                 }
                 return false;
             }
+
+            @Override
+            public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, @Nullable Object carrier, co.elastic.apm.plugin.spi.HeaderGetter<byte[], Object> headerGetter) {
+                return asChildOf((TraceContext) child, carrier, new HeaderGetterBridge<byte[], Object>(headerGetter));
+            }
         };
-    private static final ChildContextCreator<Tracer> FROM_ACTIVE = new ChildContextCreator<Tracer>() {
+    private static final ChildContextCreator<Tracer> FROM_ACTIVE = new ChildContextCreatorBridge<Tracer>(new co.elastic.apm.plugin.spi.ChildContextCreator<Tracer>() {
         @Override
-        public boolean asChildOf(TraceContext child, Tracer tracer) {
+        public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, Tracer tracer) {
             final AbstractSpan<?> active = tracer.getActive();
             if (active != null) {
                 return fromParent().asChildOf(child, active);
@@ -170,14 +174,13 @@ public class TraceContext implements Recyclable {
             }
             return false;
         }
-    };
-    private static final ChildContextCreator<Object> AS_ROOT = new ChildContextCreator<Object>() {
+    });
+    private static final ChildContextCreator<Object> AS_ROOT = new ChildContextCreatorBridge<Object>(new co.elastic.apm.plugin.spi.ChildContextCreator<Object>() {
         @Override
-        public boolean asChildOf(TraceContext child, Object ignore) {
+        public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, Object ignore) {
             return false;
         }
-    };
-
+    });
 
     public static <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter) {
         return headerGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier) != null;
@@ -297,7 +300,7 @@ public class TraceContext implements Recyclable {
      * @param traceParentHeader traceparent text header value
      * @return {@literal true} if header value is valid, {@literal false} otherwise
      */
-    boolean asChildOf(String traceParentHeader) {
+    public boolean asChildOf(String traceParentHeader) {
         traceParentHeader = traceParentHeader.trim();
         try {
             if (traceParentHeader.length() < TEXT_HEADER_EXPECTED_LENGTH) {
@@ -354,7 +357,7 @@ public class TraceContext implements Recyclable {
      * @param traceParentHeader traceparent binary header value
      * @return {@literal true} if header value is valid, {@literal false} otherwise
      */
-    boolean asChildOf(byte[] traceParentHeader) {
+    public boolean asChildOf(byte[] traceParentHeader) {
         if (logger.isTraceEnabled()) {
             logger.trace("Binary header content UTF-8-decoded: {}", new String(traceParentHeader, StandardCharsets.UTF_8));
         }
@@ -433,6 +436,16 @@ public class TraceContext implements Recyclable {
         serviceVersion = parent.serviceVersion;
         traceState.copyFrom(parent.traceState);
         onMutation();
+    }
+
+    @Override
+    public void asChildOf(co.elastic.apm.plugin.spi.TraceContext parent) {
+        asChildOf((TraceContext) parent);
+    }
+
+    @Override
+    public void addTraceState(String header) {
+        traceState.addTextHeader(header);
     }
 
     @Override
@@ -799,12 +812,50 @@ public class TraceContext implements Recyclable {
         return flags;
     }
 
-    public interface ChildContextCreator<T> {
+    public interface ChildContextCreator<T> extends co.elastic.apm.plugin.spi.ChildContextCreator<T> {
         boolean asChildOf(TraceContext child, T parent);
     }
 
-    public interface HeaderChildContextCreator<H, C> {
+    public static class ChildContextCreatorBridge<T> implements ChildContextCreator<T> {
+
+        private final co.elastic.apm.plugin.spi.ChildContextCreator<T> childContextCreator;
+
+        public ChildContextCreatorBridge(co.elastic.apm.plugin.spi.ChildContextCreator<T> childContextCreator) {
+            this.childContextCreator = childContextCreator;
+        }
+
+        @Override
+        public boolean asChildOf(TraceContext child, T parent) {
+            return childContextCreator.asChildOf(child, parent);
+        }
+
+        @Override
+        public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, T parent) {
+            return childContextCreator.asChildOf(child, parent);
+        }
+    }
+
+    public interface HeaderChildContextCreator<H, C> extends co.elastic.apm.plugin.spi.HeaderChildContextCreator<H, C> {
         boolean asChildOf(TraceContext child, @Nullable C carrier, HeaderGetter<H, C> headerGetter);
+    }
+
+    public static class HeaderChildContextCreatorBridge<H, C> implements HeaderChildContextCreator<H, C> {
+
+        private final co.elastic.apm.plugin.spi.HeaderChildContextCreator<H, C> headerChildContextCreator;
+
+        public HeaderChildContextCreatorBridge(co.elastic.apm.plugin.spi.HeaderChildContextCreator<H, C> headerChildContextCreator) {
+            this.headerChildContextCreator = headerChildContextCreator;
+        }
+
+        @Override
+        public boolean asChildOf(TraceContext child, @Nullable C carrier, HeaderGetter<H, C> headerGetter) {
+            return headerChildContextCreator.asChildOf(child, carrier, headerGetter);
+        }
+
+        @Override
+        public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, @Nullable C carrier, co.elastic.apm.plugin.spi.HeaderGetter<H, C> headerGetter) {
+            return headerChildContextCreator.asChildOf(child, carrier, headerGetter);
+        }
     }
 
     public TraceContext copy() {

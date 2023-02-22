@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-public interface HeaderSetter<T, C> {
+public interface HeaderSetter<T, C> extends co.elastic.apm.plugin.spi.HeaderSetter<T, C> {
 
     void setHeader(String headerName, T headerValue, C carrier);
 }

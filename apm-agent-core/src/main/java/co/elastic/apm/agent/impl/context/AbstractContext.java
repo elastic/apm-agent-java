@@ -25,7 +25,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public abstract class AbstractContext implements Recyclable {
+public abstract class AbstractContext implements Recyclable, co.elastic.apm.plugin.spi.AbstractContext {
 
     public static final String REDACTED_CONTEXT_STRING = "[REDACTED]";
 

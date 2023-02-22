@@ -19,15 +19,7 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Scope;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
@@ -40,15 +32,17 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 
 public abstract class ServletApiAdvice {
 
     private static final String FRAMEWORK_NAME = "Servlet API";
+
+    private static final Tracer tracer = GlobalTracer.get();
     static final String SPAN_TYPE = "servlet";
     static final String SPAN_SUBTYPE = "request-dispatcher";
-    private static final ServletTransactionHelper servletTransactionHelper = new ServletTransactionHelper(GlobalTracer.requireTracerImpl());
+    private static final ServletTransactionHelper servletTransactionHelper = new ServletTransactionHelper(GlobalTracer.get());
 
     private static final DetachedThreadLocal<Boolean> excluded = GlobalVariables.get(ServletApiAdvice.class, "excluded", WeakConcurrent.<Boolean>buildThreadLocal());
     private static final DetachedThreadLocal<Object> servletPathTL = GlobalVariables.get(ServletApiAdvice.class, "servletPath", WeakConcurrent.buildThreadLocal());
@@ -61,15 +55,13 @@ public abstract class ServletApiAdvice {
         ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, ServletContextEvent, FilterConfig, ServletConfig> adapter,
         Object servletRequest) {
 
-        Tracer tracer = GlobalTracer.get();
-
         final HttpServletRequest httpServletRequest = adapter.asHttpServletRequest(servletRequest);
         if (httpServletRequest == null) {
             return null;
         }
         AbstractSpan<?> ret = null;
         // re-activate transactions for async requests
-        final Transaction transactionAttr = (Transaction) adapter.getAttribute(httpServletRequest, TRANSACTION_ATTRIBUTE);
+        final Transaction<?> transactionAttr = (Transaction<?>) adapter.getAttribute(httpServletRequest, TRANSACTION_ATTRIBUTE);
         if (tracer.currentTransaction() == null && transactionAttr != null) {
             return transactionAttr.activateInScope();
         }
@@ -87,7 +79,7 @@ public abstract class ServletApiAdvice {
 
             ServletServiceNameHelper.determineServiceName(adapter, adapter.getServletContext(httpServletRequest), tracer);
 
-            Transaction transaction = servletTransactionHelper.createAndActivateTransaction(adapter, adapter, httpServletRequest);
+            Transaction<?> transaction = servletTransactionHelper.createAndActivateTransaction(adapter, adapter, httpServletRequest);
 
             if (transaction == null) {
                 // if the httpServletRequest is excluded, avoid matching all exclude patterns again on each filter invocation
@@ -164,15 +156,15 @@ public abstract class ServletApiAdvice {
         Object thiz) {
 
         Tracer tracer = GlobalTracer.get();
-        Transaction transaction = null;
+        Transaction<?> transaction = null;
         Scope scope = null;
-        Span span = null;
-        if (transactionOrScopeOrSpan instanceof Transaction) {
-            transaction = (Transaction) transactionOrScopeOrSpan;
+        Span<?> span = null;
+        if (transactionOrScopeOrSpan instanceof Transaction<?>) {
+            transaction = (Transaction<?>) transactionOrScopeOrSpan;
         } else if (transactionOrScopeOrSpan instanceof Scope) {
             scope = (Scope) transactionOrScopeOrSpan;
-        } else if (transactionOrScopeOrSpan instanceof Span) {
-            span = (Span) transactionOrScopeOrSpan;
+        } else if (transactionOrScopeOrSpan instanceof Span<?>) {
+            span = (Span<?>) transactionOrScopeOrSpan;
         }
 
         excluded.remove();
@@ -182,7 +174,7 @@ public abstract class ServletApiAdvice {
         HttpServletRequest httpServletRequest = adapter.asHttpServletRequest(servletRequest);
         HttpServletResponse httpServletResponse = adapter.asHttpServletResponse(servletResponse);
         if (adapter.isInstanceOfHttpServlet(thiz) && httpServletRequest != null) {
-            Transaction currentTransaction = tracer.currentTransaction();
+            Transaction<?> currentTransaction = tracer.currentTransaction();
             if (currentTransaction != null) {
                 TransactionNameUtils.setTransactionNameByServletClass(adapter.getMethod(httpServletRequest), thiz.getClass(), currentTransaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK));
 
@@ -261,7 +253,7 @@ public abstract class ServletApiAdvice {
             servletPathTL.remove();
             pathInfoTL.remove();
             span.captureException(t)
-                .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
+                .withOutcome(t != null ? DefaultOutcome.FAILURE : DefaultOutcome.SUCCESS)
                 .deactivate()
                 .end();
         }

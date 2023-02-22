@@ -24,9 +24,9 @@ import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFact
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.DefaultOutcome;
+import co.elastic.apm.plugin.spi.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -40,7 +40,6 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
@@ -78,7 +77,7 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
         ) {
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {
-                Span span = parent.createSpan()
+                Span<?> span = parent.createSpan()
                     .withName(spanName.isEmpty() ? signature : spanName)
                     .activate();
                 span.setType(type, subtype, action);
@@ -95,10 +94,10 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onMethodExit(@Advice.Enter @Nullable Object span,
                                         @Advice.Thrown @Nullable Throwable t) {
-            if (span instanceof Span) {
-                ((Span) span)
+            if (span instanceof Span<?>) {
+                ((Span<?>) span)
                     .captureException(t)
-                    .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
+                    .withOutcome(t != null ? DefaultOutcome.FAILURE : DefaultOutcome.SUCCESS)
                     .deactivate()
                     .end();
             }

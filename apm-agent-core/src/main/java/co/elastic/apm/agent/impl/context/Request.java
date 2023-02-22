@@ -40,7 +40,7 @@ import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT
  * <p>
  * If a log record was generated as a result of a http request, the http interface can be used to collect this information.
  */
-public class Request implements Recyclable {
+public class Request implements Recyclable, co.elastic.apm.plugin.spi.Request {
 
 
     private static final ObjectPool<CharBuffer> charBufferPool = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<CharBuffer>(128), false,

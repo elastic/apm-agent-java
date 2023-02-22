@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.reactor;
 
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.plugin.spi.AbstractSpan;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;

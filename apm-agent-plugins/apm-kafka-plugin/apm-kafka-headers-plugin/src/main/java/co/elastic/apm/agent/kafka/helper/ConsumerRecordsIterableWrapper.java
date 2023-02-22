@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
-import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.plugin.spi.Tracer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import java.util.Iterator;

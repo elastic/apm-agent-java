@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.servlet.helper.JavaxRecordingServletInputStreamWrapper;
 import net.bytebuddy.asm.Advice;
@@ -54,7 +54,7 @@ public class JavaxRequestStreamRecordingInstrumentation extends RequestStreamRec
             if (callDepth.isNestedCallAndDecrement() || inputStream == null) {
                 return inputStream;
             }
-            final Transaction transaction = tracer.currentTransaction();
+            final Transaction<?> transaction = tracer.currentTransaction();
             // only wrap if the body buffer has been initialized via ServletTransactionHelper.startCaptureBody
             if (transaction != null && transaction.getContext().getRequest().getBodyBuffer() != null) {
                 return new JavaxRecordingServletInputStreamWrapper(transaction.getContext().getRequest(), inputStream);

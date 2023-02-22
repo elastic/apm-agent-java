@@ -18,5 +18,5 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-public interface TextHeaderGetter<C> extends HeaderGetter<String, C> {
+public interface TextHeaderGetter<C> extends HeaderGetter<String, C>, co.elastic.apm.plugin.spi.TextHeaderGetter<C> {
 }

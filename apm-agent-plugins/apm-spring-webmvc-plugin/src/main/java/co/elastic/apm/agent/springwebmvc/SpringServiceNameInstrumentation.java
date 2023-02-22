@@ -19,10 +19,9 @@
 package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.plugin.spi.ServiceInfo;
 import co.elastic.apm.agent.servlet.ServletServiceNameHelper;
 import co.elastic.apm.agent.servlet.adapter.JavaxServletApiAdapter;
-import co.elastic.apm.agent.servlet.adapter.ServletApiAdapter;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -74,7 +73,7 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
         public static void afterInitPropertySources(@Advice.This WebApplicationContext applicationContext) {
             // avoid having two service names for a standalone jar
             // one based on Implementation-Title and one based on spring.application.name
-            if (!ServiceInfo.autoDetected().isMultiServiceContainer()) {
+            if (!tracer.autoDetectedServiceName().isMultiServiceContainer()) {
                 return;
             }
 

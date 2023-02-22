@@ -21,11 +21,11 @@ package co.elastic.apm.agent.awssdk.v1.helper;
 import co.elastic.apm.agent.awssdk.common.AbstractSQSInstrumentationHelper;
 import co.elastic.apm.agent.awssdk.v1.helper.sqs.wrapper.ReceiveMessageResultWrapper;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.plugin.spi.TextHeaderSetter;
+import co.elastic.apm.plugin.spi.TraceContext;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.Request;
@@ -57,7 +57,7 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<Request<?>, Exec
     }
 
 
-    public void propagateContext(Span span, AmazonWebServiceRequest request) {
+    public void propagateContext(Span<?> span, AmazonWebServiceRequest request) {
         if (request instanceof SendMessageRequest) {
             SendMessageRequest sendMessageRequest = (SendMessageRequest) request;
             span.propagateTraceContext(sendMessageRequest.getMessageAttributes(), this);
@@ -127,7 +127,7 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<Request<?>, Exec
     }
 
     @Override
-    protected void setMessageContext(@Nullable Message sqsMessage, @Nullable String queueName, co.elastic.apm.agent.impl.context.Message message) {
+    protected void setMessageContext(@Nullable Message sqsMessage, @Nullable String queueName, co.elastic.apm.plugin.spi.Message message) {
         if (queueName != null) {
             message.withQueue(queueName);
         }
@@ -164,15 +164,15 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<Request<?>, Exec
      */
     @Nullable
     @Override
-    public Span startSpan(Request<?> request, URI httpURI, ExecutionContext context) {
+    public Span<?> startSpan(Request<?> request, URI httpURI, ExecutionContext context) {
         if (isAlreadyActive(request)) {
-            Span activeSpan = tracer.getActiveExitSpan();
+            Span<?> activeSpan = tracer.getActiveExitSpan();
             if (activeSpan != null && SQS_TYPE.equals(activeSpan.getSubtype())) {
                 enrichSpan(activeSpan, request, request.getEndpoint(), context);
                 activeSpan.withSync(isRequestSync(request.getOriginalRequest()));
             }
         } else {
-            Span span = super.startSpan(request, request.getEndpoint(), context);
+            Span<?> span = super.startSpan(request, request.getEndpoint(), context);
             if (span != null) {
                 span.withSync(isRequestSync(request.getOriginalRequest()));
                 return span;

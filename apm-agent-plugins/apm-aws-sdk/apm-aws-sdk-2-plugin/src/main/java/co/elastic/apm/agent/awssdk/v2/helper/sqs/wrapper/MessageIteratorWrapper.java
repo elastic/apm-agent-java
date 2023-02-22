@@ -20,7 +20,7 @@ package co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractMessageIteratorWrapper;
 import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
-import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.plugin.spi.Tracer;
 import software.amazon.awssdk.services.sqs.model.Message;
 
 import java.util.Iterator;

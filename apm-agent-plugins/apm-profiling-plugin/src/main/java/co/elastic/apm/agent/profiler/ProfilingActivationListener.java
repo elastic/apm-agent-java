@@ -20,7 +20,6 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 
 import java.util.Objects;

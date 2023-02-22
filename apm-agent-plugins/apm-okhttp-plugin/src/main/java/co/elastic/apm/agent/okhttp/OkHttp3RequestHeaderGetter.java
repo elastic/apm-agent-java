@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.plugin.spi.AbstractHeaderGetter;
+import co.elastic.apm.plugin.spi.TextHeaderGetter;
 import okhttp3.Headers;
 import okhttp3.Request;
 

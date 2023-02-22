@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.springwebflux.testapp;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -172,7 +172,7 @@ public class GreetingAnnotated {
             // In practice, it's called after onSubscribe and before onNext, thus the active context is not provided
             // by reactor plugin, but only by the webflux plugin that keeps the transaction active.
             Tracer tracer = GlobalTracer.get();
-            Transaction transaction = Objects.requireNonNull(tracer.currentTransaction(), "active transaction is required");
+            Transaction<?> transaction = Objects.requireNonNull(tracer.currentTransaction(), "active transaction is required");
             // This mimics setting the name through the public API. We cannot use the public API if we want to test span recycling
             transaction.withName("user-provided-name", AbstractSpan.PRIO_USER_SUPPLIED);
 

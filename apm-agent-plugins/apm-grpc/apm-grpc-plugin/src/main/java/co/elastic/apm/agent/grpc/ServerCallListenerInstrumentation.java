@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import io.grpc.ServerCall;
 import io.grpc.Status;
@@ -92,8 +92,8 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
                                       @Advice.This ServerCall.Listener<?> listener,
                                       @Advice.Enter @Nullable Object transaction) {
 
-                if (transaction instanceof Transaction) {
-                    GrpcHelper.getInstance().exitServerListenerMethod(thrown, listener, (Transaction) transaction, null);
+                if (transaction instanceof Transaction<?>) {
+                    GrpcHelper.getInstance().exitServerListenerMethod(thrown, listener, (Transaction<?>) transaction, null);
                 }
             }
         }
@@ -128,7 +128,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
                                       @Advice.Enter @Nullable Object transaction) {
 
                 if (transaction instanceof Transaction) {
-                    GrpcHelper.getInstance().exitServerListenerMethod(thrown, listener, (Transaction) transaction, Status.CANCELLED);
+                    GrpcHelper.getInstance().exitServerListenerMethod(thrown, listener, (Transaction<?>) transaction, Status.CANCELLED);
                 }
             }
         }
@@ -163,7 +163,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
                                       @Advice.Enter @Nullable Object transaction) {
 
                 if (transaction instanceof Transaction) {
-                    GrpcHelper.getInstance().exitServerListenerMethod(thrown, listener, (Transaction) transaction, Status.OK);
+                    GrpcHelper.getInstance().exitServerListenerMethod(thrown, listener, (Transaction<?>) transaction, Status.OK);
                 }
             }
         }

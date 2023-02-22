@@ -38,7 +38,7 @@ import static co.elastic.apm.agent.configuration.CoreConfiguration.TraceContinua
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
-public class Transaction extends AbstractSpan<Transaction> {
+public class Transaction extends AbstractSpan<Transaction> implements co.elastic.apm.plugin.spi.Transaction<Transaction> {
 
     public static final String TYPE_REQUEST = "request";
 

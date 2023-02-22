@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.plugin.spi.TextHeaderSetter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 

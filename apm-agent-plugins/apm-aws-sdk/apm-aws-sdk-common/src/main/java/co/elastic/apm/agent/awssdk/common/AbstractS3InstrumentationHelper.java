@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.Span;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -34,8 +34,8 @@ public abstract class AbstractS3InstrumentationHelper<R, C> extends AbstractAwsS
 
 
     @Nullable
-    public Span startSpan(R request, URI httpURI, C context) {
-        Span span = tracer.createExitChildSpan();
+    public Span<?> startSpan(R request, URI httpURI, C context) {
+        Span<?> span = tracer.createExitChildSpan();
         if (span == null) {
             return null;
         }

@@ -28,7 +28,7 @@ import java.net.SocketAddress;
 /**
  * Context information about a destination of outgoing calls.
  */
-public class Destination implements Recyclable {
+public class Destination implements Recyclable, co.elastic.apm.plugin.spi.Destination {
 
     /**
      * An IP (v4 or v6) or a host/domain name.
@@ -184,7 +184,7 @@ public class Destination implements Recyclable {
         return this;
     }
 
-    public static class Cloud implements Recyclable {
+    public static class Cloud implements Recyclable, co.elastic.apm.plugin.spi.Cloud {
         private final StringBuilder region = new StringBuilder();
 
         public Cloud withRegion(@Nullable String region) {

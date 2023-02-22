@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.plugin.spi.Span;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
@@ -70,7 +70,7 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Callback beforeSend(@Advice.Argument(0) final ProducerRecord<?, ?> record,
                                           @Advice.Argument(1) @Nullable Callback callback) {
-            Span span = helper.onSendStart(record);
+            Span<?> span = helper.onSendStart(record);
             if (span == null) {
                 return callback;
             }
@@ -82,7 +82,7 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
         public static void afterSend(@Advice.Argument(0) final ProducerRecord<?, ?> record,
                                      @Advice.This final KafkaProducer<?, ?> thiz,
                                      @Advice.Thrown final Throwable throwable) {
-            final Span span = tracer.getActiveExitSpan();
+            final Span<?> span = tracer.getActiveExitSpan();
             if (span != null) {
                 helper.onSendEnd(span, record, thiz, throwable);
             }

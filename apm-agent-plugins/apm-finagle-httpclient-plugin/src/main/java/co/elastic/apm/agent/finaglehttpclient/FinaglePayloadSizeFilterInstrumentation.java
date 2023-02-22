@@ -22,13 +22,13 @@ package co.elastic.apm.agent.finaglehttpclient;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.finaglehttpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.plugin.spi.TraceContextUtil;
 import com.twitter.finagle.http.Request;
 import com.twitter.finagle.http.Response;
 import com.twitter.finagle.tracing.Trace;
@@ -92,7 +92,7 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
 
     public static class PayloadSizeFilterAdvice {
 
-        private static final WeakMap<Request, Span> inflightSpansWithUnknownHost = WeakConcurrent.buildMap();
+        private static final WeakMap<Request, Span<?>> inflightSpansWithUnknownHost = WeakConcurrent.buildMap();
 
         /**
          * The PayloadSizeFilterAdvice is executed both for server and client requests.
@@ -109,7 +109,7 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
         }
 
         @Nullable
-        public static Span getAndRemoveSpanWithUnknownHostForRequest(Request forRequest) {
+        public static Span<?> getAndRemoveSpanWithUnknownHostForRequest(Request forRequest) {
             return inflightSpansWithUnknownHost.remove(forRequest);
         }
 
@@ -140,7 +140,7 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
             }
 
             URI uri = resolveURI(request, host);
-            Span span = HttpClientHelper.startHttpClientSpan(parent, request.method().name(), uri, null);
+            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, request.method().name(), uri, null);
 
             if (span != null) {
                 span.activate();
@@ -149,10 +149,10 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
                 }
             }
 
-            if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+            if (!TraceContextUtil.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
                 if (span != null) {
                     span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
-                } else if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+                } else if (!TraceContextUtil.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
                     // adds headers of potential parent exit-spans
                     parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
                 }
@@ -185,7 +185,7 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
             if (spanObj == null) {
                 return;
             }
-            final Span span = (Span) spanObj;
+            final Span<?> span = (Span<?>) spanObj;
             span.deactivate();
             if (thrown != null) {
                 span.captureException(thrown);
@@ -210,7 +210,7 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
             }
         }
 
-        private static void endSpanForRequest(@Nullable Request request, Span span) {
+        private static void endSpanForRequest(@Nullable Request request, Span<?> span) {
             if (request != null) { // should always be true because otherwise no span is created
                 inflightSpansWithUnknownHost.remove(request);
             }

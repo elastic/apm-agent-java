@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.plugin.spi.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -68,15 +68,15 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
                 return;
             }
 
-            if (messagingConfiguration.shouldEndMessagingTransactionOnPoll() && activeSpan instanceof Transaction) {
-                Transaction transaction = (Transaction) activeSpan;
+            if (messagingConfiguration.shouldEndMessagingTransactionOnPoll() && activeSpan instanceof Transaction<?>) {
+                Transaction<?> transaction = (Transaction<?>) activeSpan;
                 if ("messaging".equals(transaction.getType())) {
                     transaction.deactivate().end();
                     return;
                 }
             }
 
-            Span span = activeSpan.createExitSpan();
+            Span<?> span = activeSpan.createExitSpan();
             if (span == null) {
                 return;
             }
@@ -111,7 +111,7 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
             @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
             public static void pollEnd(@Advice.Thrown final Throwable throwable) {
 
-                Span span = tracer.getActiveSpan();
+                Span<?> span = tracer.getActiveSpan();
                 if (span != null &&
                     "kafka".equals(span.getSubtype()) &&
                     "poll".equals(span.getAction())

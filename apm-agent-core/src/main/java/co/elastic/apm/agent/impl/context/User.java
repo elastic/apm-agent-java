@@ -28,7 +28,7 @@ import javax.annotation.Nullable;
  * <p>
  * Describes the authenticated User for a request.
  */
-public class User implements Recyclable {
+public class User implements Recyclable, co.elastic.apm.plugin.spi.User {
 
     /**
      * Domain of the logged in user

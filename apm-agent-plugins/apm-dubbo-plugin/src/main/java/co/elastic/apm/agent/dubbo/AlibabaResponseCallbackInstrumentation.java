@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.DefaultOutcome;
 import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
 import com.alibaba.dubbo.rpc.Result;
 import net.bytebuddy.asm.Advice;
@@ -78,7 +78,7 @@ public abstract class AlibabaResponseCallbackInstrumentation extends AbstractAli
                 }
                 span.captureException(thrown)
                     .captureException(resultException)
-                    .withOutcome(thrown != null || resultException != null ? Outcome.FAILURE : Outcome.SUCCESS)
+                    .withOutcome(thrown != null || resultException != null ? DefaultOutcome.FAILURE : DefaultOutcome.SUCCESS)
                     .deactivate()
                     .end();
             }
@@ -116,7 +116,7 @@ public abstract class AlibabaResponseCallbackInstrumentation extends AbstractAli
                 }
                 span.captureException(thrown)
                     .captureException(caught)
-                    .withOutcome(caught != null || thrown != null ? Outcome.FAILURE : Outcome.SUCCESS)
+                    .withOutcome(caught != null || thrown != null ? DefaultOutcome.FAILURE : DefaultOutcome.SUCCESS)
                     .deactivate()
                     .end();
             }

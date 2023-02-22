@@ -28,11 +28,10 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
-import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 import javax.annotation.Nullable;
 
-public interface Tracer {
+public interface Tracer extends co.elastic.apm.plugin.spi.Tracer {
 
     /**
      * Starts a trace-root transaction
@@ -191,9 +190,11 @@ public interface Tracer {
 
     void endError(ErrorCapture errorCapture);
 
-    <T extends ConfigurationOptionProvider> T getConfig(Class<T> configuration);
+    <T> T getConfig(Class<T> configuration);
 
     ObjectPoolFactory getObjectPoolFactory();
+
+    ServiceInfo autoDetectedServiceName();
 
     /**
      * An enumeration used to represent the current tracer state.

@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.httpclient.v4.helper;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.Span;
 import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.plugin.spi.TraceContextUtil;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
@@ -43,7 +43,7 @@ class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyc
     private AbstractSpan<?> parent;
 
     @Nullable
-    private Span span;
+    private Span<?> span;
 
     HttpAsyncRequestProducerWrapper(ApacheHttpAsyncClientHelper helper) {
         this.asyncClientHelper = helper;
@@ -61,7 +61,7 @@ class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyc
      * @param parent       the active span when this method is called
      * @return the {@link HttpAsyncRequestProducer} wrapper
      */
-    public HttpAsyncRequestProducerWrapper with(HttpAsyncRequestProducer delegate, @Nullable Span span,
+    public HttpAsyncRequestProducerWrapper with(HttpAsyncRequestProducer delegate, @Nullable Span<?> span,
                                                 @Nullable AbstractSpan<?> parent) {
         // Order is important due to visibility - write to delegate last on this (initiating) thread
         this.span = span;
@@ -95,7 +95,7 @@ class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyc
                 }
             }
 
-            if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+            if (!TraceContextUtil.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
                 if (span != null) {
                     span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
                 } else if (parent != null) {

@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.Span;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -32,7 +32,7 @@ public abstract class AbstractDynamoDBInstrumentationHelper<R, C> extends Abstra
         super(tracer, awsSdkDataSource);
     }
 
-    public void enrichSpan(Span span, R sdkRequest, URI httpURI, C context) {
+    public void enrichSpan(Span<?> span, R sdkRequest, URI httpURI, C context) {
         String operationName = awsSdkDataSource.getOperationName(sdkRequest, context);
         String region = awsSdkDataSource.getRegion(sdkRequest, context);
         String tableName = awsSdkDataSource.getFieldValue(IAwsSdkDataSource.TABLE_NAME_FIELD, sdkRequest);
@@ -62,8 +62,8 @@ public abstract class AbstractDynamoDBInstrumentationHelper<R, C> extends Abstra
     }
 
     @Nullable
-    public Span startSpan(R sdkRequest, URI httpURI, C context) {
-        Span span = tracer.createExitChildSpan();
+    public Span<?> startSpan(R sdkRequest, URI httpURI, C context) {
+        Span<?> span = tracer.createExitChildSpan();
         if (span == null) {
             return null;
         }

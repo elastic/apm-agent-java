@@ -78,7 +78,7 @@ public class CallTree implements Recyclable {
     private boolean isSpan;
     private int depth;
     /**
-     * @see co.elastic.apm.agent.impl.transaction.AbstractSpan#childIds
+     * @see co.elastic.apm.plugin.spi.AbstractSpan#childIds
      */
     @Nullable
     private LongList childIds;
