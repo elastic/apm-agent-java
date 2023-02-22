@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.log4j2.error;
 
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
+import co.elastic.apm.agent.sdk.utils.CustomElementMatchers;
 import co.elastic.apm.agent.loginstr.error.AbstractLoggerErrorCapturingInstrumentation;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

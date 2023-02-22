@@ -1,1 +1,1 @@
-co.elastic.apm.agent.mongodb.MongoConfiguration
+co.elastic.apm.agent.mongodb.configuration.MongoConfiguration

@@ -243,9 +243,13 @@ public class ElasticApmAgent {
                 }
             }
         }
-        final List<PluginClassLoaderRootPackageCustomizer> rootPackageCustomizers = DependencyInjectingServiceLoader.load(
-            PluginClassLoaderRootPackageCustomizer.class,
-            getAgentClassLoader());
+        final List<PluginClassLoaderRootPackageCustomizer> rootPackageCustomizers = new ArrayList<PluginClassLoaderRootPackageCustomizer>(
+            DependencyInjectingServiceLoader.load(PluginClassLoaderRootPackageCustomizer.class, getAgentClassLoader()));
+        for (co.elastic.apm.agent.sdk.PluginClassLoaderRootPackageCustomizer customizer : DependencyInjectingServiceLoader.load(
+            co.elastic.apm.agent.sdk.PluginClassLoaderRootPackageCustomizer.class,
+            getAgentClassLoader())) {
+            rootPackageCustomizers.add(PluginClassLoaderRootPackageCustomizer.of(customizer));
+        }
         for (PluginClassLoaderRootPackageCustomizer rootPackageCustomizer : rootPackageCustomizers) {
             PluginClassLoaderCustomizations customizations = new PluginClassLoaderCustomizations(
                 rootPackageCustomizer.pluginClassLoaderRootPackages(),
@@ -468,6 +472,7 @@ public class ElasticApmAgent {
             .withCustomMapping()
             .with(new Advice.AssignReturned.Factory().withSuppressed(ClassCastException.class))
             .bind(new SimpleMethodSignatureOffsetMappingFactory())
+            .bind(new co.elastic.apm.agent.sdk.bindings.SimpleMethodSignatureOffsetMappingFactory())
             .bind(new AnnotationValueOffsetMappingFactory());
         Advice.OffsetMapping.Factory<?> offsetMapping = instrumentation.getOffsetMapping();
         if (offsetMapping != null) {

@@ -25,6 +25,11 @@ import java.util.List;
 @SuppressWarnings("ForLoopReplaceableByForEach")
 public abstract class WildcardMatcherUtil {
 
+    public static final String DOCUMENTATION = "This option supports the wildcard `*`, which matches zero or more characters.\n" +
+        "Examples: `/foo/*/bar/*/baz*`, `*foo*`.\n" +
+        "Matching is case insensitive by default.\n" +
+        "Prepending an element with `(?-i)` makes the matching case sensitive.";
+
     private static final String CASE_INSENSITIVE_PREFIX = "(?i)";
     private static final String CASE_SENSITIVE_PREFIX = "(?-i)";
     private static final String WILDCARD = "*";

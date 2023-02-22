@@ -20,8 +20,8 @@ package co.elastic.apm.agent.httpclient.v4.helper;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.plugin.spi.Recyclable;
 import co.elastic.apm.plugin.spi.Span;
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.plugin.spi.TraceContextUtil;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;

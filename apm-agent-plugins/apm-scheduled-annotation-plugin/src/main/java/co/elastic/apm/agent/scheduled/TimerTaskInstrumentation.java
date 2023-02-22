@@ -19,12 +19,12 @@
 package co.elastic.apm.agent.scheduled;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.sdk.bindings.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
 import co.elastic.apm.plugin.spi.StacktraceConfiguration;
 import co.elastic.apm.plugin.spi.Tracer;
 import co.elastic.apm.plugin.spi.AbstractSpan;
 import co.elastic.apm.plugin.spi.Transaction;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -38,8 +38,8 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
+import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.isProxy;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperClass;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;

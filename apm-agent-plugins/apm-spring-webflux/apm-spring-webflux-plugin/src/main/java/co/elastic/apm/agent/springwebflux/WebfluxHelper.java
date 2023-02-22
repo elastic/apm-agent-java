@@ -19,14 +19,14 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
+import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
 import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
-import co.elastic.apm.agent.util.LoggerUtils;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
-import co.elastic.apm.agent.util.TransactionNameUtils;
+import co.elastic.apm.agent.sdk.utils.LoggerUtils;
+import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
 import org.reactivestreams.Publisher;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;

@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.mongodb.v4;
 
-import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import co.elastic.apm.agent.mongodb.AbstractMongoClientInstrumentationIT;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import co.elastic.apm.agent.common.util.Version;
 import org.junit.After;
 import org.junit.Test;

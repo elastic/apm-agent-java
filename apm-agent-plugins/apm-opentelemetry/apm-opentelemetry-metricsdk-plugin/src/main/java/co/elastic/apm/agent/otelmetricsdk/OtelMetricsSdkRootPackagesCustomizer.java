@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.Collection;
 
 public class OtelMetricsSdkRootPackagesCustomizer extends PluginClassLoaderRootPackageCustomizer {
+
+
     @Override
     public Collection<String> pluginClassLoaderRootPackages() {
         return Arrays.asList(

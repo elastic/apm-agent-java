@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.ecs_logging;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
+import co.elastic.apm.agent.sdk.utils.CustomElementMatchers;
 import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
 import co.elastic.logging.jul.EcsFormatter;
 import net.bytebuddy.asm.Advice;

@@ -97,6 +97,11 @@ public class WeakConcurrentProviderImpl implements WeakConcurrent.WeakConcurrent
         return new NullSafeWeakConcurrentSet<V>(this.<V, Boolean>weakMapBuilder().build());
     }
 
+    @Override
+    public <K, V extends AbstractSpan<?>> WeakMap<K, V> weakSpanMap() {
+        return createWeakSpanMap();
+    }
+
     /**
      * Calls {@link AbstractWeakConcurrentMap#expungeStaleEntries()} on all registered maps,
      * causing the entries of already collected keys to be removed.

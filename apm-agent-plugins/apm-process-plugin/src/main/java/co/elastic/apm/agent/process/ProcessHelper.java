@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.process;
 
-import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.plugin.spi.AbstractSpan;
 import co.elastic.apm.plugin.spi.DefaultOutcome;
 import co.elastic.apm.plugin.spi.Outcome;
@@ -35,7 +35,7 @@ import java.util.List;
  */
 class ProcessHelper {
 
-    private static final ProcessHelper INSTANCE = new ProcessHelper(WeakConcurrentProviderImpl.<Process, Span<?>>createWeakSpanMap());
+    private static final ProcessHelper INSTANCE = new ProcessHelper(WeakConcurrent.<Process, Span<?>>weakSpanMap());
 
     /**
      * A thread local used to indicate whether the currently invoked instrumented method is invoked by the plugin itself.

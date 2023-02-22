@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.kafka.helper;
 
 import co.elastic.apm.plugin.spi.*;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.record.TimestampType;

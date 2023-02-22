@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class SignatureParserTest {
 
-    protected SignatureParser signatureParser = new SignatureParser();
+    protected co.elastic.apm.agent.sdk.db.SignatureParser signatureParser = new co.elastic.apm.agent.sdk.db.SignatureParser();
 
     @ParameterizedTest
     @MethodSource("getTestSignatures_shared")

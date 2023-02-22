@@ -23,7 +23,7 @@ import co.elastic.apm.plugin.spi.Message;
 import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 import java.net.URI;

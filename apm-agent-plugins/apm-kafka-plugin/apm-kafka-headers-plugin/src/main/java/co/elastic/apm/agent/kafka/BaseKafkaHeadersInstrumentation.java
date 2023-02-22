@@ -20,7 +20,7 @@ package co.elastic.apm.agent.kafka;
 
 import net.bytebuddy.matcher.ElementMatcher;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.classLoaderCanLoadClass;
 
 public abstract class BaseKafkaHeadersInstrumentation extends BaseKafkaInstrumentation {
 

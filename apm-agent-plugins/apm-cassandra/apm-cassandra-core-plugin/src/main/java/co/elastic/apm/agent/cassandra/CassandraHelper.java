@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.cassandra;
 
-import co.elastic.apm.agent.db.signature.SignatureParser;
+import co.elastic.apm.agent.sdk.db.SignatureParser;
 import co.elastic.apm.plugin.spi.Tracer;
 import co.elastic.apm.plugin.spi.AbstractSpan;
 import co.elastic.apm.plugin.spi.Span;

@@ -19,10 +19,7 @@
 package co.elastic.apm.agent.bci;
 
 import java.lang.instrument.Instrumentation;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * This class must be provided at most once per {@linkplain #getPluginPackage() plugin package}.
@@ -41,11 +38,35 @@ public abstract class PluginClassLoaderRootPackageCustomizer {
         pluginPackage = getPluginPackageFromClassName(className);
     }
 
+    private PluginClassLoaderRootPackageCustomizer(Class<?> type) {
+        String className = type.getName();
+        pluginPackage = getPluginPackageFromClassName(className);
+    }
+
     public static String getPluginPackageFromClassName(String className) {
         if (!className.startsWith(EMBEDDED_PLUGINS_PACKAGE_PREFIX)) {
             throw new IllegalArgumentException("invalid instrumentation class location : " + className);
         }
         return className.substring(0, className.indexOf('.', EMBEDDED_PLUGINS_PACKAGE_PREFIX.length()));
+    }
+
+    public static PluginClassLoaderRootPackageCustomizer of(final co.elastic.apm.agent.sdk.PluginClassLoaderRootPackageCustomizer customizer) {
+        return new PluginClassLoaderRootPackageCustomizer(customizer.getClass()) {
+
+            @Override
+            public Map<String, ? extends Collection<String>> requiredModuleOpens() {
+                return customizer.requiredModuleOpens();
+            }
+
+            @Override
+            public Collection<String> pluginClassLoaderRootPackages() {
+                List<String> packages = new ArrayList<String>(customizer.pluginClassLoaderRootPackages());
+                if (customizer.isIncludePluginPackage()) {
+                    packages.add(getPluginPackage());
+                }
+                return packages;
+            }
+        };
     }
 
     public final String getPluginPackage() {

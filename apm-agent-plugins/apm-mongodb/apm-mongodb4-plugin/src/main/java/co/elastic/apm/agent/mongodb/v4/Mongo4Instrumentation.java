@@ -26,7 +26,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionGte;
+import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.implementationVersionGte;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public abstract class Mongo4Instrumentation extends TracerAwareInstrumentation {

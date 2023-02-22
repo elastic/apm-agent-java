@@ -21,7 +21,7 @@ package co.elastic.apm.agent.loginstr.error;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.sdk.state.CallDepth;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 

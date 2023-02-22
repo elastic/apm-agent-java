@@ -19,11 +19,11 @@
 package co.elastic.apm.agent.awssdk.v2;
 
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.utils.JvmRuntimeInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.auth.signer.AwsSignerExecutionAttribute;

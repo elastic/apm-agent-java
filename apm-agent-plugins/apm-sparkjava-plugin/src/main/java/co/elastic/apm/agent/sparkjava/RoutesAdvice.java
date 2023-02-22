@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.sparkjava;
 
+import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
+import co.elastic.apm.agent.sdk.utils.VersionUtils;
 import co.elastic.apm.plugin.spi.GlobalTracer;
 import co.elastic.apm.plugin.spi.Tracer;
 import co.elastic.apm.plugin.spi.Transaction;
-import co.elastic.apm.agent.util.TransactionNameUtils;
-import co.elastic.apm.agent.util.VersionUtils;
 import co.elastic.apm.plugin.spi.WebConfiguration;
 import net.bytebuddy.asm.Advice;
 import spark.Route;

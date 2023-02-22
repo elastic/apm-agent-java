@@ -18,16 +18,22 @@
  */
 package co.elastic.apm.agent.java_ldap;
 
-import co.elastic.apm.agent.bci.PluginClassLoaderRootPackageCustomizer;
+import co.elastic.apm.agent.sdk.PluginClassLoaderRootPackageCustomizer;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
-public class LdapPluginModuleOpens extends PluginClassLoaderRootPackageCustomizer {
+public class LdapPluginModuleOpens implements PluginClassLoaderRootPackageCustomizer {
+
+    @Override
+    public boolean isIncludePluginPackage() {
+        return true;
+    }
+
     @Override
     public Collection<String> pluginClassLoaderRootPackages() {
-        return Collections.singleton(getPluginPackage());
+        return Collections.emptyList();
     }
 
     @Override

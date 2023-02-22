@@ -18,12 +18,11 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.plugin.spi.AbstractSpan;
 import co.elastic.apm.plugin.spi.Span;
 import co.elastic.apm.plugin.spi.TraceContextUtil;
 import co.elastic.apm.plugin.spi.Transaction;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;

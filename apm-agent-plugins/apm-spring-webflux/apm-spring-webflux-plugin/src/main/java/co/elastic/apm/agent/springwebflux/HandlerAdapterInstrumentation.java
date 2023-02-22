@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
+import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
 import co.elastic.apm.plugin.spi.AbstractSpan;
 import co.elastic.apm.plugin.spi.Transaction;
-import co.elastic.apm.agent.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

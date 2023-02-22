@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.cassandra3;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
+import co.elastic.apm.agent.sdk.utils.CustomElementMatchers;
 import co.elastic.apm.agent.cassandra.CassandraHelper;
 import co.elastic.apm.plugin.spi.GlobalTracer;
 import co.elastic.apm.plugin.spi.Span;

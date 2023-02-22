@@ -30,4 +30,8 @@ public interface CoreConfiguration {
     boolean isCaptureBody();
 
     boolean isInstrumentationEnabled(String instrumentationGroupName);
+
+    String getServiceName();
+
+    String getServiceVersion();
 }

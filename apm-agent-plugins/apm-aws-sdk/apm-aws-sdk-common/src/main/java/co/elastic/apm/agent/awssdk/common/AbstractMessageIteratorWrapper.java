@@ -19,12 +19,12 @@
 package co.elastic.apm.agent.awssdk.common;
 
 
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.plugin.spi.Tracer;
 import co.elastic.apm.plugin.spi.Span;
 import co.elastic.apm.plugin.spi.TextHeaderGetter;
 import co.elastic.apm.plugin.spi.Transaction;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;

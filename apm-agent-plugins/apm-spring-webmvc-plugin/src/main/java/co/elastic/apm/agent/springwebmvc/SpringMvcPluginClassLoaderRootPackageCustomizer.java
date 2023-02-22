@@ -18,14 +18,26 @@
  */
 package co.elastic.apm.agent.springwebmvc;
 
-import co.elastic.apm.agent.bci.PluginClassLoaderRootPackageCustomizer;
+import co.elastic.apm.agent.sdk.PluginClassLoaderRootPackageCustomizer;
 
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
 
-public class SpringMvcPluginClassLoaderRootPackageCustomizer extends PluginClassLoaderRootPackageCustomizer {
+public class SpringMvcPluginClassLoaderRootPackageCustomizer implements PluginClassLoaderRootPackageCustomizer {
+
+    @Override
+    public boolean isIncludePluginPackage() {
+        return true;
+    }
+
     @Override
     public Collection<String> pluginClassLoaderRootPackages() {
-        return Arrays.asList(getPluginPackage(), "co.elastic.apm.agent.servlet");
+        return Collections.singleton("co.elastic.apm.agent.servlet");
+    }
+
+    @Override
+    public Map<String, ? extends Collection<String>> requiredModuleOpens() {
+        return Collections.<String, Collection<String>>emptyMap();
     }
 }

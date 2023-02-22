@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.vertx;
 
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
+import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
 import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.plugin.spi.WildcardMatcher;
-import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 

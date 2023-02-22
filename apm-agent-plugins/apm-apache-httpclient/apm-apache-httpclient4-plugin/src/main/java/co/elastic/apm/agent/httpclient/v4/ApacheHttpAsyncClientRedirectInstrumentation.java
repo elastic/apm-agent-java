@@ -31,7 +31,7 @@ import org.apache.http.HttpRequest;
 import javax.annotation.Nullable;
 import java.security.ProtectionDomain;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionLte;
+import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.implementationVersionLte;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;

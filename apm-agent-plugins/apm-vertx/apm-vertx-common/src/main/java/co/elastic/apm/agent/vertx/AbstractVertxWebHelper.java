@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.vertx;
 
+import co.elastic.apm.agent.sdk.utils.VersionUtils;
 import co.elastic.apm.plugin.spi.*;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
-import co.elastic.apm.agent.util.VersionUtils;
+import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.codec.http.cookie.ServerCookieDecoder;

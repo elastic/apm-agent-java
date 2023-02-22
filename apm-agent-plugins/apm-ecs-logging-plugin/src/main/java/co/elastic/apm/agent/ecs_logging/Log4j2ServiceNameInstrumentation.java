@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.ecs_logging;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.plugin.spi.CoreConfiguration;
 import co.elastic.apm.plugin.spi.GlobalTracer;
 import co.elastic.apm.plugin.spi.ServiceInfo;
 import co.elastic.apm.plugin.spi.Tracer;

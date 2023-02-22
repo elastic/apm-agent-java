@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.sdk.weakconcurrent;
 
 import co.elastic.apm.agent.sdk.internal.InternalUtil;
+import co.elastic.apm.plugin.spi.AbstractSpan;
 
 import javax.annotation.Nullable;
 import java.util.ServiceLoader;
@@ -59,6 +60,10 @@ public final class WeakConcurrent {
         return supplier.buildSet();
     }
 
+    public static <K, V extends AbstractSpan<?>> WeakMap<K, V> weakSpanMap() {
+        return supplier.weakSpanMap();
+    }
+
     /**
      * This is an internal class.
      * Provides the implementation for creating weak concurrent maps/sets/thread locals.
@@ -70,6 +75,8 @@ public final class WeakConcurrent {
         <T> ThreadLocalBuilder<T> threadLocalBuilder();
 
         <E> WeakSet<E> buildSet();
+
+        <K, V extends AbstractSpan<?>> WeakMap<K, V> weakSpanMap();
     }
 
     public interface WeakMapBuilder<K, V> {

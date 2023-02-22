@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
-import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
@@ -47,7 +47,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 @GlobalState
 public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstrumentation {
 
-    public static final WeakMap<HttpURLConnection, Span<?>> inFlightSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
+    public static final WeakMap<HttpURLConnection, Span<?>> inFlightSpans = WeakConcurrent.weakSpanMap();
     public static final CallDepth callDepth = CallDepth.get(HttpUrlConnectionInstrumentation.class);
 
     @Override

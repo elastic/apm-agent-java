@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.quartzjob;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.utils.VersionUtils;
 import co.elastic.apm.plugin.spi.Tracer;
 import co.elastic.apm.plugin.spi.*;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
-import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -35,7 +35,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.isInAnyPackage;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;

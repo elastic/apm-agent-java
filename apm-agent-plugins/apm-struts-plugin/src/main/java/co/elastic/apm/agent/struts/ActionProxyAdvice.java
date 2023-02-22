@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.struts;
 
-import co.elastic.apm.agent.util.TransactionNameUtils;
+import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
 import co.elastic.apm.plugin.spi.*;
 import com.opensymphony.xwork2.ActionContext;
 import com.opensymphony.xwork2.ActionProxy;

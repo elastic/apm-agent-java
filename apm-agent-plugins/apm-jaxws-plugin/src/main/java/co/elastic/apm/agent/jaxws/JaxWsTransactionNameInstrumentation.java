@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.jaxws;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
+import co.elastic.apm.agent.sdk.bindings.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.plugin.spi.StacktraceConfiguration;
 import co.elastic.apm.plugin.spi.Tracer;
 import co.elastic.apm.plugin.spi.Transaction;
@@ -33,10 +33,10 @@ import net.bytebuddy.matcher.ElementMatchers;
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
+import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.isProxy;
+import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.overridesOrImplementsMethodThat;
 import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
@@ -58,7 +58,7 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
 
     public static class AdviceClass {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void setTransactionName(@SimpleMethodSignature String signature) {
+        public static void setTransactionName(@SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature) {
             final Transaction<?> transaction = tracer.currentTransaction();
             if (transaction != null) {
                 transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK, false);

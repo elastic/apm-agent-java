@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.httpserver;
 
+import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
 import co.elastic.apm.plugin.spi.*;
-import co.elastic.apm.agent.util.TransactionNameUtils;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpsExchange;

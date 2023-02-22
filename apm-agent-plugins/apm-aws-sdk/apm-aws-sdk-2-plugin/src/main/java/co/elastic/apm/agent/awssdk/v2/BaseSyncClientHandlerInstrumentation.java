@@ -23,7 +23,7 @@ import co.elastic.apm.agent.awssdk.v2.helper.S3Helper;
 import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
 import co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper.MessageListWrapper;
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
-import co.elastic.apm.agent.common.JvmRuntimeInfo;
+import co.elastic.apm.agent.sdk.utils.JvmRuntimeInfo;
 import co.elastic.apm.plugin.spi.DefaultOutcome;
 import co.elastic.apm.plugin.spi.Span;
 import net.bytebuddy.asm.Advice;

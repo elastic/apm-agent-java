@@ -27,6 +27,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.stagemonitor.configuration.ConfigurationRegistry;
+import co.elastic.apm.agent.jaxrs.configuration.JaxRsConfiguration;
 
 import java.io.IOException;
 import java.util.List;

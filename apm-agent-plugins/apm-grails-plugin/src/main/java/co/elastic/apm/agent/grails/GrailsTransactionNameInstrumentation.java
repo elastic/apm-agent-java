@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.grails;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
 import co.elastic.apm.plugin.spi.Transaction;
-import co.elastic.apm.agent.util.TransactionNameUtils;
 import grails.core.GrailsControllerClass;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -31,7 +31,7 @@ import org.grails.web.mapping.mvc.GrailsControllerUrlMappingInfo;
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static grails.core.GrailsControllerClass.INDEX_ACTION;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;

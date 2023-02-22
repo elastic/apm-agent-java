@@ -18,16 +18,28 @@
  */
 package co.elastic.apm.agent.concurrent;
 
-import co.elastic.apm.agent.bci.PluginClassLoaderRootPackageCustomizer;
+import co.elastic.apm.agent.sdk.PluginClassLoaderRootPackageCustomizer;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 
-public class JavaConcurrentPluginClassLoaderRootPackageCustomizer extends PluginClassLoaderRootPackageCustomizer {
+public class JavaConcurrentPluginClassLoaderRootPackageCustomizer implements PluginClassLoaderRootPackageCustomizer {
+
+    @Override
+    public boolean isIncludePluginPackage() {
+        return false;
+    }
+
     @Override
     public Collection<String> pluginClassLoaderRootPackages() {
         // the classes of this plugin don't need to be injected into a no plugin CL
         // as all types referenced in this plugin are available form the bootstrap CL, thus also the agent CL
         return Collections.emptyList();
+    }
+
+    @Override
+    public Map<String, ? extends Collection<String>> requiredModuleOpens() {
+        return Collections.<String, Collection<String>>emptyMap();
     }
 }

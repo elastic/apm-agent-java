@@ -24,6 +24,7 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.mongodb.configuration.MongoConfiguration;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import co.elastic.apm.agent.testutils.assertions.DbAssert;
 import org.bson.Document;

@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
-import co.elastic.apm.agent.common.ThreadUtils;
+import co.elastic.apm.agent.sdk.utils.ThreadUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

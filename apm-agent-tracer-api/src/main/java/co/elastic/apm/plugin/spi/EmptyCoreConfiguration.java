@@ -52,4 +52,14 @@ public class EmptyCoreConfiguration implements CoreConfiguration {
     public boolean isInstrumentationEnabled(String instrumentationGroupName) {
         return false;
     }
+
+    @Override
+    public String getServiceName() {
+        return "";
+    }
+
+    @Override
+    public String getServiceVersion() {
+        return "";
+    }
 }

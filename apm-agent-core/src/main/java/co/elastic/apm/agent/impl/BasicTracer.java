@@ -39,7 +39,12 @@ import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.plugin.spi.Tracer;
 
 import javax.annotation.Nullable;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 public class BasicTracer implements SpanAwareTracer {
 
@@ -450,7 +455,7 @@ public class BasicTracer implements SpanAwareTracer {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> T getConfig(Class<T> configProvider) {
+    public <T> T getConfig(final Class<T> configProvider) {
         if (configProvider == CoreConfiguration.class) {
             return (T) EmptyCoreConfiguration.INSTANCE;
         } else if (configProvider == StacktraceConfiguration.class) {
@@ -459,6 +464,29 @@ public class BasicTracer implements SpanAwareTracer {
             return (T) EmptyMessagingConfiguration.INSTANCE;
         } else if (configProvider == WebConfiguration.class) {
             return (T) EmptyWebConfiguration.INSTANCE;
+        } else if (configProvider.isInterface()) {
+            return (T) Proxy.newProxyInstance(configProvider.getClassLoader(), new Class<?>[]{configProvider}, new InvocationHandler() {
+                @Override
+                public Object invoke(Object proxy, Method method, Object[] args) {
+                    if (method.getDeclaringClass() == Object.class) {
+                        if (method.getName().equals("hashCode")) {
+                            return System.identityHashCode(proxy);
+                        } else if (method.getName().equals("equals")) {
+                            return args[0] == proxy;
+                        } else if (method.getName().equals("toString")) {
+                            return configProvider.getSimpleName() + '@' + Integer.toHexString(System.identityHashCode(proxy));
+                        } else {
+                            throw new IllegalStateException("Unknown object method: " + method);
+                        }
+                    } else if (method.getReturnType() == List.class) {
+                        return Collections.emptyList();
+                    } else if(method.getReturnType() == Map.class) {
+                        return Collections.emptyMap();
+                    } else {
+                        return null;
+                    }
+                }
+            });
         } else {
             throw new IllegalArgumentException("Unknown configuration: " + configProvider.getName());
         }

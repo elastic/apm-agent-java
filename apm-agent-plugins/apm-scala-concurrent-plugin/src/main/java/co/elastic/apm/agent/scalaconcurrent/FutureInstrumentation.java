@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.scalaconcurrent;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
-import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.plugin.spi.AbstractSpan;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import net.bytebuddy.asm.Advice;
@@ -39,7 +39,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
 
     @SuppressWarnings("WeakerAccess")
-    public static final WeakMap<Object, AbstractSpan<?>> promisesToContext = WeakConcurrentProviderImpl.createWeakSpanMap();
+    public static final WeakMap<Object, AbstractSpan<?>> promisesToContext = WeakConcurrent.weakSpanMap();
 
     @Nonnull
     @Override

@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.scheduled;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
+import co.elastic.apm.agent.sdk.bindings.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
 import co.elastic.apm.plugin.spi.*;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -35,8 +35,8 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
+import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.isProxy;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
@@ -55,7 +55,7 @@ public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrume
     public static class ScheduledTransactionNameAdvice {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object setTransactionName(@SimpleMethodSignature String signature,
+        public static Object setTransactionName(@SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
                                                 @Advice.Origin Class<?> clazz) {
             AbstractSpan<?> active = tracer.getActive();
             if (active == null) {

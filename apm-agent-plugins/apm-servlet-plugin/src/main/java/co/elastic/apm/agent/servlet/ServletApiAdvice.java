@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.servlet;
 
+import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
 import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.servlet.adapter.ServletApiAdapter;
-import co.elastic.apm.agent.util.TransactionNameUtils;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
