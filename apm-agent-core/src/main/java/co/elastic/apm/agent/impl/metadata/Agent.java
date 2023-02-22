@@ -51,16 +51,22 @@ public class Agent {
      */
     private final String ephemeralId;
 
-    private String activationMethod;
+    /**
+     * The way the agent was activated, e.g."javaagent-flag"
+     * per <a href="https://github.com/elastic/apm/blob/main/specs/agents/metadata.md#activation-method">the activation method spec</a>
+     * (Required)
+     */
+    private final String activationMethod;
 
     public Agent(String name, String version) {
-        this(name, version, UUID.randomUUID().toString());
+        this(name, version, UUID.randomUUID().toString(), null);
     }
 
-    public Agent(String name, String version, String ephemeralId) {
+    public Agent(String name, String version, String ephemeralId, CoreConfiguration coreConfiguration) {
         this.name = name;
         this.version = version;
         this.ephemeralId = ephemeralId;
+        this.activationMethod = getActivationMethod(coreConfiguration);
     }
 
     /**
@@ -86,26 +92,30 @@ public class Agent {
         return ephemeralId;
     }
 
+    /**
+     * Activation method of the Elastic APM agent, e.g."javaagent-flag"
+     * (Required)
+     */
     public String getActivationMethod() {
-        if (activationMethod == null) {
-            ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
-            ActivationMethod activation = ActivationMethod.UNKNOWN;
-            if (tracer != null) {
-                activation = tracer.getConfig(CoreConfiguration.class).getActivationMethod();
-                if (activation.equals(ActivationMethod.UNKNOWN)) {
-                    //Need to infer it
-                    String elasticJavaagentOnTheCommandline = getElasticJavaagentOnTheCommandline();
-                    String javaToolOptions = PrivilegedActionUtils.getEnv("JAVA_TOOL_OPTIONS");
-                    if (javaToolOptions != null && elasticJavaagentOnTheCommandline != null && javaToolOptions.contains(elasticJavaagentOnTheCommandline)) {
-                            activation = ActivationMethod.ENV_ATTACH;
-                    } else if(elasticJavaagentOnTheCommandline != null) {
-                        activation = ActivationMethod.JAVAAGENT_FLAG;
-                    }
+        return activationMethod;
+    }
+
+    private String getActivationMethod(CoreConfiguration coreConfiguration) {
+        ActivationMethod activation = ActivationMethod.UNKNOWN;
+        if (coreConfiguration != null) {
+            activation = coreConfiguration.getActivationMethod();
+            if (activation.equals(ActivationMethod.UNKNOWN)) {
+                //Need to infer it
+                String elasticJavaagentOnTheCommandline = getElasticJavaagentOnTheCommandline();
+                String javaToolOptions = PrivilegedActionUtils.getEnv("JAVA_TOOL_OPTIONS");
+                if (javaToolOptions != null && elasticJavaagentOnTheCommandline != null && javaToolOptions.contains(elasticJavaagentOnTheCommandline)) {
+                        activation = ActivationMethod.ENV_ATTACH;
+                } else if(elasticJavaagentOnTheCommandline != null) {
+                    activation = ActivationMethod.JAVAAGENT_FLAG;
                 }
             }
-            activationMethod = activation.toReferenceString();
         }
-        return activationMethod;
+        return activation.toReferenceString();
     }
 
     private static String getAgentJarFilename() {
