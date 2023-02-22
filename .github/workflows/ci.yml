@@ -31,12 +31,12 @@ jobs:
     container: node:16-bullseye
     steps:
       - uses: actions/checkout@v3
-      - run: ls -alh /proc/self/cgroup
+      - run: ls -alh /sys/fs/cgroup
         shell: bash
       - uses: actions/upload-artifact@v3
         with:
           name: cgroups
-          path: /proc/self/cgroup
+          path: /sys/fs/cgroup
       # - uses: ./.github/workflows/build
       #   with:
       #     java-version: ${{ env.JAVA_VERSION }}
