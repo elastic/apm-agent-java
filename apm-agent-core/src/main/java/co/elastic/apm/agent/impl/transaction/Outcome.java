@@ -32,6 +32,16 @@ public enum Outcome implements co.elastic.apm.plugin.spi.Outcome {
         this.stringValue = stringValue;
     }
 
+    public static Outcome valueOf(co.elastic.apm.plugin.spi.Outcome outcome) {
+        if (outcome.name().equals(FAILURE.name())) {
+            return FAILURE;
+        } else if (outcome.name().equals(SUCCESS.name())) {
+            return SUCCESS;
+        } else {
+            return UNKNOWN;
+        }
+    }
+
     @Override
     public String toString() {
         return stringValue;

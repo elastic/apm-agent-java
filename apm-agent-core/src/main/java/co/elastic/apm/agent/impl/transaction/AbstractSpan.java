@@ -904,13 +904,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     @Override
     public T withOutcome(co.elastic.apm.plugin.spi.Outcome outcome) {
-        String name = outcome.name();
-        if (name.equals(Outcome.FAILURE.name())) {
-            return withOutcome(Outcome.FAILURE);
-        } else if (name.equals(Outcome.SUCCESS.name())) {
-            return withOutcome(Outcome.SUCCESS);
-        } else {
-            return withOutcome(Outcome.UNKNOWN);
-        }
+        return withOutcome(Outcome.valueOf(outcome));
     }
 }
