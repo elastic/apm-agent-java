@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.mongodb.v3;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 

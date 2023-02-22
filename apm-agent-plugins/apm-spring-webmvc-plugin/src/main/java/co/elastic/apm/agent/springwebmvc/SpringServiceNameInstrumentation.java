@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.springwebmvc;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.plugin.spi.ServiceInfo;
 import co.elastic.apm.agent.servlet.ServletServiceNameHelper;
 import co.elastic.apm.agent.servlet.adapter.JavaxServletApiAdapter;

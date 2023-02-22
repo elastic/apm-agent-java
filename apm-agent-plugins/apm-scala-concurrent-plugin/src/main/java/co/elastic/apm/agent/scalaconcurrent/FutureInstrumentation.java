@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.scalaconcurrent;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.plugin.spi.AbstractSpan;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;

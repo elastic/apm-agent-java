@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 
 import java.util.Arrays;
 import java.util.Collection;

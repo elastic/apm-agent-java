@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.websocket;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.plugin.spi.DefaultOutcome;
 import co.elastic.apm.plugin.spi.StacktraceConfiguration;
 import co.elastic.apm.plugin.spi.Tracer;

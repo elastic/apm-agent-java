@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.javalin;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.util.VersionUtils;

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.hibernatesearch.v5;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.agent.hibernatesearch.HibernateSearchConstants;
 import co.elastic.apm.agent.hibernatesearch.HibernateSearchHelper;
 import co.elastic.apm.plugin.spi.Span;

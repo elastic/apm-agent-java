@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.vertx.v3;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Arrays;

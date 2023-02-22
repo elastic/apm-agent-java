@@ -16,18 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.grpc;
+package co.elastic.apm.agent.sdk;
 
-import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
+import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.Tracer;
 
-import java.util.Collection;
-import java.util.Collections;
+public abstract class TracerAwareInstrumentation extends ElasticApmInstrumentation {
 
-public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
-
-    @Override
-    public final Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(GrpcHelper.GRPC);
-    }
-
+    public static final Tracer tracer = GlobalTracer.get();
 }

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.hibernatesearch;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.plugin.spi.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;

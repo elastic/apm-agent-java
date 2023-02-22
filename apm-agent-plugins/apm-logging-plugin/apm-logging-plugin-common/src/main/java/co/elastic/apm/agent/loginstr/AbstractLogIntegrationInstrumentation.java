@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.loginstr;
 
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 
 import java.util.ArrayList;
 import java.util.Collection;

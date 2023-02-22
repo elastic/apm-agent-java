@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.javalin;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
 import net.bytebuddy.asm.Advice;

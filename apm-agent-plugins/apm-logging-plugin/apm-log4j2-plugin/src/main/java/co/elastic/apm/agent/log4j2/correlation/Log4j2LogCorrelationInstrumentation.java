@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.log4j2.correlation;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;

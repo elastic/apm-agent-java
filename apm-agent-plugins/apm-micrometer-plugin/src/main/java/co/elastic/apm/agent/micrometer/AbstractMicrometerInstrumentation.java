@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.micrometer;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.MetricsAwareTracer;
 

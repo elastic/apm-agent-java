@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.redisson;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.plugin.spi.Span;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
 import io.netty.channel.Channel;

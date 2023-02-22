@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.awslambda;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.impl.Tracer;
 import net.bytebuddy.description.type.TypeDescription;

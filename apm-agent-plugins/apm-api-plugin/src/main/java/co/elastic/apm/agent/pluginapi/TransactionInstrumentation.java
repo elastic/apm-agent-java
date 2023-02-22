@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.plugin.spi.Id;
+import co.elastic.apm.plugin.spi.ServiceInfo;
 import co.elastic.apm.plugin.spi.TraceContext;
 import co.elastic.apm.plugin.spi.Transaction;
 import net.bytebuddy.asm.Advice;

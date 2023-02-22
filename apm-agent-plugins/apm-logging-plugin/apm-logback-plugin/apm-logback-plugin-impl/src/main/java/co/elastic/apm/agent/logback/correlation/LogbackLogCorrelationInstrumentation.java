@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.logback.correlation;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

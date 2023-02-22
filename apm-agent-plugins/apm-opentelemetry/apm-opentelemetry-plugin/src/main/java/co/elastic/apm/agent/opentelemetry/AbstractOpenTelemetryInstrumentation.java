@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.opentelemetry;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import net.bytebuddy.matcher.ElementMatcher;
 

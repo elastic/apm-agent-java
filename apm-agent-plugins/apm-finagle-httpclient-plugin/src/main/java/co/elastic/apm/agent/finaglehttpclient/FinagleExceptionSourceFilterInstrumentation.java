@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.finaglehttpclient;
 
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.plugin.spi.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
