@@ -83,7 +83,7 @@ public abstract class WildcardMatcher {
         return MATCH_ALL;
     }
 
-    public static List<WildcardMatcher> matchAllList() {
+    public static List<? extends WildcardMatcher> matchAllList() {
         return MATCH_ALL_LIST;
     }
 
@@ -138,7 +138,7 @@ public abstract class WildcardMatcher {
      * @param s        the string to match against
      * @return {@code true}, if any of the matchers match the provided string
      */
-    public static boolean isAnyMatch(List<WildcardMatcher> matchers, @Nullable CharSequence s) {
+    public static boolean isAnyMatch(List<? extends WildcardMatcher> matchers, @Nullable CharSequence s) {
         return anyMatch(matchers, s) != null;
     }
 
@@ -149,7 +149,7 @@ public abstract class WildcardMatcher {
      * @param s        the string to match against
      * @return {@code true}, if none of the matchers match the provided string
      */
-    public static boolean isNoneMatch(List<WildcardMatcher> matchers, @Nullable CharSequence s) {
+    public static boolean isNoneMatch(List<? extends WildcardMatcher> matchers, @Nullable CharSequence s) {
         return !isAnyMatch(matchers, s);
     }
 
@@ -161,7 +161,7 @@ public abstract class WildcardMatcher {
      * @return the first matching {@link WildcardMatcher}, or {@code null} if none match.
      */
     @Nullable
-    public static WildcardMatcher anyMatch(List<WildcardMatcher> matchers, @Nullable CharSequence s) {
+    public static WildcardMatcher anyMatch(List<? extends WildcardMatcher> matchers, @Nullable CharSequence s) {
         if (s == null || matchers.isEmpty()) {
             return null;
         }
@@ -178,7 +178,7 @@ public abstract class WildcardMatcher {
      * @see #matches(CharSequence, CharSequence)
      */
     @Nullable
-    public static WildcardMatcher anyMatch(List<WildcardMatcher> matchers, CharSequence firstPart, @Nullable CharSequence secondPart) {
+    public static WildcardMatcher anyMatch(List<? extends WildcardMatcher> matchers, CharSequence firstPart, @Nullable CharSequence secondPart) {
         for (int i = 0; i < matchers.size(); i++) {
             if (matchers.get(i).matches(firstPart, secondPart)) {
                 return matchers.get(i);

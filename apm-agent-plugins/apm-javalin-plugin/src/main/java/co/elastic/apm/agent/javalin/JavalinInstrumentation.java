@@ -19,11 +19,7 @@
 package co.elastic.apm.agent.javalin;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.plugin.spi.Span;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import io.javalin.http.Context;

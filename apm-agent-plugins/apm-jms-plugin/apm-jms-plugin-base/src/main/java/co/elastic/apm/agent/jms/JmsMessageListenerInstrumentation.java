@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.plugin.spi.MessagingConfiguration;
 import co.elastic.apm.plugin.spi.Tracer;
 import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;

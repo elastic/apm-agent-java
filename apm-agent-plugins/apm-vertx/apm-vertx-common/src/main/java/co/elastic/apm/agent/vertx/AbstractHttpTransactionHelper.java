@@ -18,14 +18,9 @@
  */
 package co.elastic.apm.agent.vertx;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
-import co.elastic.apm.plugin.spi.Request;
-import co.elastic.apm.plugin.spi.Response;
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import co.elastic.apm.plugin.spi.Transaction;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.plugin.spi.WildcardMatcher;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -36,7 +31,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
 import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_DEFAULT;
 import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 
@@ -45,7 +39,7 @@ public abstract class AbstractHttpTransactionHelper {
 
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
     private static final Set<String> METHODS_WITH_BODY = new HashSet<>(Arrays.asList("POST", "PUT", "PATCH", "DELETE"));
-    private static final WildcardMatcher ENDS_WITH_JSP = WildcardMatcher.valueOf("*.jsp");
+    private static final WildcardMatcher ENDS_WITH_JSP = WildcardMatcherUtil.valueOf("*.jsp");
 
 
     protected static final String CONTENT_TYPE_HEADER = "Content-Type";
@@ -67,16 +61,16 @@ public abstract class AbstractHttpTransactionHelper {
     protected void startCaptureBody(Transaction<?> transaction, String method, @Nullable String contentTypeHeader) {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
-            if (coreConfiguration.getCaptureBody() != OFF
+            if (coreConfiguration.isCaptureBody()
                 && contentTypeHeader != null
                 // form parameters are recorded via ServletRequest.getParameterMap
                 // as the container might not call ServletRequest.getInputStream
                 && !contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
-                && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader)) {
+                && WildcardMatcherUtil.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader)) {
                 request.withBodyBuffer();
             } else {
                 request.redactBody();
-                if (coreConfiguration.getCaptureBody() == OFF) {
+                if (!coreConfiguration.isCaptureBody()) {
                     logger.debug("Not capturing Request body because the capture_body config option is OFF");
                 }
                 if (contentTypeHeader == null) {
@@ -118,7 +112,7 @@ public abstract class AbstractHttpTransactionHelper {
     protected void fillRequestParameters(Transaction<?> transaction, String method, @Nullable Map<String, String[]> parameterMap, @Nullable String contentTypeHeader) {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
-            if (coreConfiguration.getCaptureBody() != OFF && parameterMap != null) {
+            if (coreConfiguration.isCaptureBody() && parameterMap != null) {
                 captureParameters(request, parameterMap, contentTypeHeader);
             }
         }
@@ -136,8 +130,8 @@ public abstract class AbstractHttpTransactionHelper {
         return contentTypeHeader != null
             && contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
             && hasBody(contentTypeHeader, method)
-            && coreConfiguration.getCaptureBody() != OFF
-            && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader);
+            && coreConfiguration.isCaptureBody()
+            && WildcardMatcherUtil.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader);
     }
 
     protected void fillResponse(Response response, @Nullable Boolean committed, int status) {

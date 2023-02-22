@@ -18,9 +18,7 @@
  */
 package co.elastic.apm.agent.httpserver;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.plugin.spi.*;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;

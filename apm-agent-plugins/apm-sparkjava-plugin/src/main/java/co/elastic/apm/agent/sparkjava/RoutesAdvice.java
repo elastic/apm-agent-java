@@ -20,10 +20,10 @@ package co.elastic.apm.agent.sparkjava;
 
 import co.elastic.apm.plugin.spi.GlobalTracer;
 import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.util.VersionUtils;
+import co.elastic.apm.plugin.spi.WebConfiguration;
 import net.bytebuddy.asm.Advice;
 import spark.Route;
 import spark.routematch.RouteMatch;

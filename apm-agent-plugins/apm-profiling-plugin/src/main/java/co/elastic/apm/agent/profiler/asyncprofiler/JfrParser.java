@@ -76,9 +76,9 @@ public class JfrParser implements Recyclable {
     @Nullable
     private boolean[] isJavaFrameType;
     @Nullable
-    private List<WildcardMatcher> excludedClasses;
+    private List<? extends WildcardMatcher> excludedClasses;
     @Nullable
-    private List<WildcardMatcher> includedClasses;
+    private List<? extends WildcardMatcher> includedClasses;
 
     public JfrParser() {
         this(ByteBuffer.allocateDirect(BIG_FILE_BUFFER_SIZE), ByteBuffer.allocateDirect(SMALL_FILE_BUFFER_SIZE));
@@ -96,7 +96,7 @@ public class JfrParser implements Recyclable {
      * @param includedClasses Class names to include in stack traces (has an effect on {@link #resolveStackTrace(long, boolean, List, int)})
      * @throws IOException if some I/O error occurs
      */
-    public void parse(File file, List<WildcardMatcher> excludedClasses, List<WildcardMatcher> includedClasses) throws IOException {
+    public void parse(File file, List<? extends WildcardMatcher> excludedClasses, List<? extends WildcardMatcher> includedClasses) throws IOException {
         this.excludedClasses = excludedClasses;
         this.includedClasses = includedClasses;
         bufferedFile.setFile(file);

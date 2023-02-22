@@ -21,7 +21,6 @@ package co.elastic.apm.agent.pluginapi;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;

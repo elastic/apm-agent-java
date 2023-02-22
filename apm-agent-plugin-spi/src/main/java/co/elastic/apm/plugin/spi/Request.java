@@ -19,6 +19,7 @@ public interface Request {
 
     Request withHttpVersion(@Nullable String httpVersion);
 
+    @Nullable
     CharBuffer withBodyBuffer();
 
     void redactBody();
@@ -29,6 +30,7 @@ public interface Request {
 
     Request addCookie(String cookieName, String cookieValue);
 
+    @Nullable
     CharBuffer getBodyBuffer();
 
     void endOfBufferInput();

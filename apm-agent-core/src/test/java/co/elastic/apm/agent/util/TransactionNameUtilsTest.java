@@ -20,7 +20,8 @@ package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.plugin.spi.WildcardMatcher;
+import co.elastic.apm.plugin.spi.WildcardMatcherUtil;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -97,9 +98,9 @@ class TransactionNameUtilsTest extends AbstractInstrumentationTest {
 
     @Test
     void setNameFromHttpRequestPath() {
-        List<WildcardMatcher> urlGroups = List.of(
-            WildcardMatcher.valueOf("/foo/bar/*/qux"),
-            WildcardMatcher.valueOf("/foo/bar/*")
+        List<co.elastic.apm.plugin.spi.WildcardMatcher> urlGroups = List.of(
+            WildcardMatcherUtil.valueOf("/foo/bar/*/qux"),
+            WildcardMatcherUtil.valueOf("/foo/bar/*")
         );
 
         // shuold be a no-op

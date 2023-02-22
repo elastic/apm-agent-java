@@ -18,12 +18,13 @@
  */
 package co.elastic.apm.agent.mongodb;
 
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.converter.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 

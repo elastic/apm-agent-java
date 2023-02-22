@@ -18,9 +18,6 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.plugin.spi.Tracer;
 import co.elastic.apm.plugin.spi.Message;
 import co.elastic.apm.plugin.spi.*;
@@ -81,7 +78,7 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
 
     @Nullable
     public Span<?> createSpan(@Nullable String queueName) {
-        if (WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), queueName)) {
+        if (WildcardMatcherUtil.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), queueName)) {
             return null;
         }
         Span<?> span = tracer.createExitChildSpan();
@@ -152,7 +149,7 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
 
     public void startTransactionOnMessage(MessageT sqsMessage, String queueName, TextHeaderGetter<MessageT> headerGetter) {
         try {
-            if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), queueName)) {
+            if (!WildcardMatcherUtil.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), queueName)) {
                 Transaction<?> transaction = tracer.startChildTransaction(sqsMessage, headerGetter, PrivilegedActionUtils.getClassLoader(AbstractSQSInstrumentationHelper.class));
                 if (transaction != null) {
                     transaction.withType(MESSAGING_TYPE).withName("SQS RECEIVE from " + queueName).activate();
@@ -193,13 +190,13 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
                     if (!TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME.equals(key) &&
                         !TraceContext.TRACESTATE_HEADER_NAME.equals(key) &&
                         value != null &&
-                        WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
+                        WildcardMatcherUtil.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
                         message.addHeader(key, value);
                     }
                 }
             }
 
-            if (coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF) {
+            if (coreConfiguration.isCaptureBody()) {
                 message.appendToBody(getMessageBody(sqsMessage));
             }
         }

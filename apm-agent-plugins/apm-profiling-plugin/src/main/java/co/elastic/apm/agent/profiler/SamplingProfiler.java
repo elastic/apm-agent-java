@@ -504,8 +504,8 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             return;
         }
         long start = System.nanoTime();
-        List<WildcardMatcher> excludedClasses = config.getExcludedClasses();
-        List<WildcardMatcher> includedClasses = config.getIncludedClasses();
+        List<? extends WildcardMatcher> excludedClasses = config.getExcludedClasses();
+        List<? extends WildcardMatcher> includedClasses = config.getIncludedClasses();
         if (config.isBackupDiagnosticFiles()) {
             backupDiagnosticFiles(eof);
         }

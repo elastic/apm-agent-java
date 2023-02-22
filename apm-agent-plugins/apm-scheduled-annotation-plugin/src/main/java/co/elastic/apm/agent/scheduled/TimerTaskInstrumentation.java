@@ -20,8 +20,8 @@ package co.elastic.apm.agent.scheduled;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.plugin.spi.StacktraceConfiguration;
 import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.plugin.spi.AbstractSpan;
 import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;

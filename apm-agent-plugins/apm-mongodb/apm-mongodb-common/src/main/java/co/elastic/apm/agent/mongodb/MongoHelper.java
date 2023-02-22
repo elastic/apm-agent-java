@@ -18,11 +18,7 @@
  */
 package co.elastic.apm.agent.mongodb;
 
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.plugin.spi.Span;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.bson.BsonDocument;
@@ -62,7 +58,7 @@ public class MongoHelper {
             .withName(database);
 
         String statement = null;
-        if (command != null && commandDocument != null && WildcardMatcher.anyMatch(config.getCaptureStatementCommands(), command) != null) {
+        if (command != null && commandDocument != null && WildcardMatcherUtil.anyMatch(config.getCaptureStatementCommands(), command) != null) {
             statement = commandDocument.toJson();
         }
 

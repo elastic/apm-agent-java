@@ -26,7 +26,7 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import java.util.Collection;
 import java.util.Collections;
 
-public class StacktraceConfiguration extends ConfigurationOptionProvider {
+public class StacktraceConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.plugin.spi.StacktraceConfiguration {
 
     private static final String STACKTRACE_CATEGORY = "Stacktrace";
     public static final String APPLICATION_PACKAGES = "application_packages";

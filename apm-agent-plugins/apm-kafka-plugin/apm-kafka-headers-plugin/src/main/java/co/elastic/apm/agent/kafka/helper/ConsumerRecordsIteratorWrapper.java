@@ -18,13 +18,7 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.plugin.spi.Message;
-import co.elastic.apm.plugin.spi.TraceContext;
-import co.elastic.apm.plugin.spi.Transaction;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
@@ -74,7 +68,7 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
         ConsumerRecord<?, ?> record = delegate.next();
         try {
             String topic = record.topic();
-            if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic)) {
+            if (!WildcardMatcherUtil.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic)) {
                 Transaction<?> transaction = tracer.startChildTransaction(record, KafkaRecordHeaderAccessor.instance(), PrivilegedActionUtils.getClassLoader(ConsumerRecordsIteratorWrapper.class));
                 if (transaction != null) {
                     transaction.withType("messaging").withName("Kafka record from " + topic).activate();
@@ -90,13 +84,13 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
                         for (Header header : record.headers()) {
                             String key = header.key();
                             if (!TraceContext.TRACE_PARENT_BINARY_HEADER_NAME.equals(key) &&
-                                WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
+                                WildcardMatcherUtil.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
                                 message.addHeader(key, header.value());
                             }
                         }
                     }
 
-                    if (transaction.isSampled() && coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF) {
+                    if (transaction.isSampled() && coreConfiguration.isCaptureBody()) {
                         message.appendToBody("key=").appendToBody(String.valueOf(record.key())).appendToBody("; ")
                             .appendToBody("value=").appendToBody(String.valueOf(record.value()));
                     }

@@ -27,7 +27,7 @@ import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.ServiceFactory;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.plugin.spi.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -35,6 +35,7 @@ import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.plugin.spi.WildcardMatcherUtil;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -382,8 +383,8 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
                 isAllowedFormatter(formatter, loggingConfiguration.getLogEcsFormatterAllowList());
     }
 
-    protected boolean isAllowedFormatter(F formatter, List<WildcardMatcher> allowList) {
-        return WildcardMatcher.anyMatch(allowList, formatter.getClass().getName()) != null;
+    protected boolean isAllowedFormatter(F formatter, List<? extends WildcardMatcher> allowList) {
+        return WildcardMatcherUtil.anyMatch(allowList, formatter.getClass().getName()) != null;
     }
 
     /**

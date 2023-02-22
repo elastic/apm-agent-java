@@ -31,10 +31,11 @@ import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import co.elastic.apm.agent.logback.sending.LogbackLogSenderAppender;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.plugin.spi.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.plugin.spi.WildcardMatcherUtil;
 import co.elastic.logging.AdditionalField;
 import co.elastic.logging.logback.EcsEncoder;
 
@@ -66,9 +67,9 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
     }
 
     @Override
-    protected boolean isAllowedFormatter(Encoder<ILoggingEvent> formatter, List<WildcardMatcher> allowList) {
+    protected boolean isAllowedFormatter(Encoder<ILoggingEvent> formatter, List<? extends WildcardMatcher> allowList) {
         if (formatter instanceof LayoutWrappingEncoder<?>) {
-            return WildcardMatcher.anyMatch(allowList, ((LayoutWrappingEncoder<?>) formatter).getLayout().getClass().getName()) != null;
+            return WildcardMatcherUtil.anyMatch(allowList, ((LayoutWrappingEncoder<?>) formatter).getLayout().getClass().getName()) != null;
         }
         return super.isAllowedFormatter(formatter, allowList);
     }

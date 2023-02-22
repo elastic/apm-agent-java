@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.struts;
 
 import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
+import co.elastic.apm.plugin.spi.WebConfiguration;
 import net.bytebuddy.asm.Advice;
 
 import javax.servlet.http.HttpServletRequest;

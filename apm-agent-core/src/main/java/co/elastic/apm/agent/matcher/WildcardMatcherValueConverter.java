@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.matcher;
 
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.converter.WildcardMatcher;
 import org.stagemonitor.configuration.converter.ValueConverter;
 
 /**

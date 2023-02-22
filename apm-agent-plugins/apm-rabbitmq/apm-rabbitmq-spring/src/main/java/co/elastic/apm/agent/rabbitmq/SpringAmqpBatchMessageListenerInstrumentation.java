@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.rabbitmq;
 
 
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.rabbitmq.header.SpringRabbitMQTextHeaderGetter;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -75,7 +74,7 @@ public class SpringAmqpBatchMessageListenerInstrumentation extends SpringBaseIns
 
             if (tracer.isRunning() && messageBatch != null && !messageBatch.isEmpty()) {
                 AbstractSpan<?> active = tracer.getActive();
-                if (active == null && messagingConfiguration.getMessageBatchStrategy() == MessagingConfiguration.BatchStrategy.BATCH_HANDLING) {
+                if (active == null && messagingConfiguration.isMessageBatchHandling()) {
                     batchTransaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(thiz.getClass()));
                     if (batchTransaction == null) {
                         oneTimeTransactionCreationWarningLogger.warn("Failed to start Spring AMQP transaction for batch processing");

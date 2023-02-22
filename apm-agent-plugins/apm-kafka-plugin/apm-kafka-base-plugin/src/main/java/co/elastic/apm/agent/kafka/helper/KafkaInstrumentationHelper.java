@@ -18,9 +18,8 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.plugin.spi.*;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.plugin.spi.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.apache.kafka.clients.producer.Callback;
@@ -61,7 +60,7 @@ public class KafkaInstrumentationHelper {
     }
 
     private boolean ignoreTopic(String topicName) {
-        return WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topicName);
+        return WildcardMatcherUtil.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topicName);
     }
 
     @Nullable

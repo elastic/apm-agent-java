@@ -227,13 +227,13 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         //Reuse an instance to reduce garbage churn
         static final MeterMapConsumer INSTANCE = new MeterMapConsumer(null);
 
-        private List<WildcardMatcher> disabledMetrics;
+        private List<? extends WildcardMatcher> disabledMetrics;
 
-        public MeterMapConsumer(List<WildcardMatcher> disabledMetrics) {
+        public MeterMapConsumer(List<? extends WildcardMatcher> disabledMetrics) {
             this.disabledMetrics = disabledMetrics;
         }
 
-        public MeterMapConsumer reset(List<WildcardMatcher> disabledMetrics2){
+        public MeterMapConsumer reset(List<? extends WildcardMatcher> disabledMetrics2){
             disabledMetrics = disabledMetrics2;
             meters.clear();
             return this;

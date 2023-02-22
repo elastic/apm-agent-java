@@ -15,5 +15,9 @@ public interface Db {
 
     Db withAffectedRowsCount(long returnValue);
 
+    @Nullable
+    CharBuffer getStatementBuffer();
+
+    @Nullable
     CharBuffer withStatementBuffer();
 }

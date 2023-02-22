@@ -10,6 +10,7 @@ public interface Http {
 
     Http withStatusCode(int statusCode);
 
+    @Nullable
     CharSequence getUrl();
 
     @Nullable

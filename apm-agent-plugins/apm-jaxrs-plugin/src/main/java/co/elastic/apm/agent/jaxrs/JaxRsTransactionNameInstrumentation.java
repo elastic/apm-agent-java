@@ -20,8 +20,8 @@ package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.plugin.spi.StacktraceConfiguration;
 import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.plugin.spi.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;

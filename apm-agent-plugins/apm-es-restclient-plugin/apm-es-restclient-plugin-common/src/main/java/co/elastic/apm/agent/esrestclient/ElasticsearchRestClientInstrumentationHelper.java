@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.esrestclient;
 
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.plugin.spi.WildcardMatcher;
 import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -31,6 +31,7 @@ import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.ResponseListener;
 
 import javax.annotation.Nullable;
+import java.nio.CharBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -43,11 +44,11 @@ public class ElasticsearchRestClientInstrumentationHelper {
     private static final ElasticsearchRestClientInstrumentationHelper INSTANCE = new ElasticsearchRestClientInstrumentationHelper(GlobalTracer.get());
 
     public static final List<WildcardMatcher> QUERY_WILDCARD_MATCHERS = Arrays.asList(
-        WildcardMatcher.valueOf("*_search"),
-        WildcardMatcher.valueOf("*_msearch"),
-        WildcardMatcher.valueOf("*_msearch/template"),
-        WildcardMatcher.valueOf("*_search/template"),
-        WildcardMatcher.valueOf("*_count"));
+        WildcardMatcherUtil.valueOf("*_search"),
+        WildcardMatcherUtil.valueOf("*_msearch"),
+        WildcardMatcherUtil.valueOf("*_msearch/template"),
+        WildcardMatcherUtil.valueOf("*_search/template"),
+        WildcardMatcherUtil.valueOf("*_count"));
     public static final String SPAN_TYPE = "db";
     public static final String ELASTICSEARCH = "elasticsearch";
     public static final String SPAN_ACTION = "request";
@@ -96,10 +97,13 @@ public class ElasticsearchRestClientInstrumentationHelper {
 
         if (span.isSampled()) {
             span.getContext().getHttp().withMethod(method);
-            if (WildcardMatcher.isAnyMatch(QUERY_WILDCARD_MATCHERS, endpoint)) {
+            if (WildcardMatcherUtil.isAnyMatch(QUERY_WILDCARD_MATCHERS, endpoint)) {
                 if (httpEntity != null && httpEntity.isRepeatable()) {
                     try {
-                        IOUtils.readUtf8Stream(httpEntity.getContent(), span.getContext().getDb().withStatementBuffer());
+                        CharBuffer buffer = span.getContext().getDb().withStatementBuffer();
+                        if (buffer != null) {
+                            IOUtils.readUtf8Stream(httpEntity.getContent(), buffer);
+                        }
                     } catch (UnsupportedOperationException e) {
                         // special case for hibernatesearch versions pre 6.0:
                         // those don't support httpEntity.getContent() and throw an UnsupportedException when called.

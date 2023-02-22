@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.context.web;
 
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.converter.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -28,7 +28,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class WebConfiguration extends ConfigurationOptionProvider {
+public class WebConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.plugin.spi.WebConfiguration {
 
     private static final String HTTP_CATEGORY = "HTTP";
 

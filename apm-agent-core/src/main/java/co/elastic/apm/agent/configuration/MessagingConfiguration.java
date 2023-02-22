@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.converter.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -28,7 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-public class MessagingConfiguration extends ConfigurationOptionProvider {
+public class MessagingConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.plugin.spi.MessagingConfiguration {
     private static final String MESSAGING_CATEGORY = "Messaging";
     private static final String MESSAGE_POLLING_TRANSACTION_STRATEGY = "message_polling_transaction_strategy";
     private static final String MESSAGE_BATCH_STRATEGY = "message_batch_strategy";
@@ -128,6 +128,21 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
 
     public Collection<String> getJmsListenerPackages() {
         return jmsListenerPackages.get();
+    }
+
+    @Override
+    public boolean isMessageTransactionPolling() {
+        return getMessagePollingTransactionStrategy() != JmsStrategy.HANDLING;
+    }
+
+    @Override
+    public boolean isMessageTransactionHandling() {
+        return getMessagePollingTransactionStrategy() != JmsStrategy.POLLING;
+    }
+
+    @Override
+    public boolean isMessageBatchHandling() {
+        return getMessageBatchStrategy() == BatchStrategy.BATCH_HANDLING;
     }
 
     public enum JmsStrategy {

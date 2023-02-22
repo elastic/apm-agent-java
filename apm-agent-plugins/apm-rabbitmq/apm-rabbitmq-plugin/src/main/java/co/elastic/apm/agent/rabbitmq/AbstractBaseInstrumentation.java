@@ -19,12 +19,7 @@
 package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.plugin.spi.Message;
+import co.elastic.apm.plugin.spi.*;
 
 import javax.annotation.Nullable;
 import java.util.Date;
@@ -40,7 +35,7 @@ public abstract class AbstractBaseInstrumentation extends TracerAwareInstrumenta
      * @return {@literal true} when exchange or queue is ignored, {@literal false otherwise}
      */
     protected static boolean isIgnored(String name) {
-        return WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), name);
+        return WildcardMatcherUtil.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), name);
     }
 
     protected static boolean isCaptureHeaders() {
@@ -48,7 +43,7 @@ public abstract class AbstractBaseInstrumentation extends TracerAwareInstrumenta
     }
 
     protected static boolean captureHeaderKey(String key) {
-        return !WildcardMatcher.isAnyMatch(coreConfiguration.getSanitizeFieldNames(), key);
+        return !WildcardMatcherUtil.isAnyMatch(coreConfiguration.getSanitizeFieldNames(), key);
     }
 
     /**

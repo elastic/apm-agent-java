@@ -344,10 +344,10 @@ public class Request implements Recyclable, co.elastic.apm.plugin.spi.Request {
 
     public boolean hasContent() {
         return method != null ||
-            headers.size() > 0 ||
+            !headers.isEmpty() ||
             httpVersion != null ||
-            cookies.size() > 0 ||
-            postParams.size() > 0 ||
+            !cookies.isEmpty() ||
+            !postParams.isEmpty() ||
             socket.hasContent() ||
             url.hasContent();
     }

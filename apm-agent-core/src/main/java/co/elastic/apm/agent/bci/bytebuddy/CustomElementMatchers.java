@@ -293,7 +293,7 @@ public class CustomElementMatchers {
         };
     }
 
-    public static ElementMatcher.Junction<NamedElement> anyMatch(final List<WildcardMatcher> matchers) {
+    public static ElementMatcher.Junction<NamedElement> anyMatch(final List<? extends WildcardMatcher> matchers) {
         return new ElementMatcher.Junction.AbstractBase<NamedElement>() {
             @Override
             public boolean matches(NamedElement target) {

@@ -18,11 +18,7 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.plugin.spi.Span;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.plugin.spi.*;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

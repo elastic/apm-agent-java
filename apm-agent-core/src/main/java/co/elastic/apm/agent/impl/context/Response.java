@@ -124,6 +124,6 @@ public class Response implements Recyclable, co.elastic.apm.plugin.spi.Response 
     }
 
     public boolean hasContent() {
-        return statusCode > 0 || headers.size() > 0;
+        return statusCode > 0 || !headers.isEmpty();
     }
 }

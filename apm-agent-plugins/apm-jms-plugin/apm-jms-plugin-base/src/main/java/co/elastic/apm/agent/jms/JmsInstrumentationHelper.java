@@ -18,10 +18,8 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.plugin.spi.*;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.plugin.spi.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
@@ -201,7 +199,7 @@ public class JmsInstrumentationHelper {
     }
 
     public boolean ignoreDestination(@Nullable String destinationName) {
-        return WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), destinationName);
+        return WildcardMatcherUtil.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), destinationName);
     }
 
     public void addDestinationDetails(Destination destination,
@@ -244,7 +242,7 @@ public class JmsInstrumentationHelper {
 
             // Currently only capturing body of TextMessages. The javax.jms.Message#getBody() API is since 2.0, so,
             // if we are supporting JMS 1.1, it makes no sense to rely on isAssignableFrom.
-            if (coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF && message instanceof TextMessage) {
+            if (coreConfiguration.isCaptureBody() && message instanceof TextMessage) {
                 messageContext.withBody(((TextMessage) message).getText());
             }
 
@@ -259,7 +257,7 @@ public class JmsInstrumentationHelper {
                     while (properties.hasMoreElements()) {
                         String propertyName = String.valueOf(properties.nextElement());
                         if (!propertyName.equals(JMS_DESTINATION_NAME_PROPERTY) && !propertyName.equals(JMS_TRACE_PARENT_PROPERTY)
-                            && WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), propertyName) == null) {
+                            && WildcardMatcherUtil.anyMatch(coreConfiguration.getSanitizeFieldNames(), propertyName) == null) {
                             messageContext.addHeader(propertyName, String.valueOf(message.getObjectProperty(propertyName)));
                         }
                     }

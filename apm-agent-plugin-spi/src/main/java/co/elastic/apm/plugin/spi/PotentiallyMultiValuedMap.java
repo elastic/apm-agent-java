@@ -21,10 +21,8 @@ package co.elastic.apm.plugin.spi;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public interface PotentiallyMultiValuedMap extends Recyclable {
+public interface PotentiallyMultiValuedMap {
     void add(String key, String value);
-
-    void set(String key, String... values);
 
     @Nullable
     String getFirst(String key);
@@ -32,19 +30,7 @@ public interface PotentiallyMultiValuedMap extends Recyclable {
     @Nullable
     Object get(String key);
 
-    List<String> getAll(String key);
-
     boolean isEmpty();
-
-    String getKey(int i);
-
-    Object getValue(int i);
-
-    int size();
-
-    void removeIgnoreCase(String key);
-
-    void set(int index, String value);
 
     boolean containsIgnoreCase(String key);
 }

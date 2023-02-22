@@ -21,10 +21,12 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
@@ -42,8 +44,6 @@ import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -207,13 +207,24 @@ public class ElasticApmTracer extends BasicTracer implements MetricsAwareTracer 
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings("unchecked")
     public <T> T getConfig(Class<T> configProvider) {
-        if (ConfigurationOptionProvider.class.isAssignableFrom(configProvider)) {
-            return (T) configurationRegistry.getConfig((Class) configProvider);
+        Class<? extends ConfigurationOptionProvider> actualConfigProvider;
+        if (configProvider == co.elastic.apm.plugin.spi.CoreConfiguration.class) {
+            actualConfigProvider = CoreConfiguration.class;
+        } else if (configProvider == co.elastic.apm.plugin.spi.StacktraceConfiguration.class) {
+            actualConfigProvider = StacktraceConfiguration.class;
+        } else if (configProvider == co.elastic.apm.plugin.spi.MessagingConfiguration.class) {
+            actualConfigProvider = MessagingConfiguration.class;
+        } else if (configProvider == co.elastic.apm.plugin.spi.WebConfiguration.class) {
+            actualConfigProvider = WebConfiguration.class;
+        } else if (ConfigurationOptionProvider.class.isAssignableFrom(configProvider)) {
+            actualConfigProvider = (Class<? extends ConfigurationOptionProvider>) configProvider;
         } else {
-            throw new IllegalArgumentException("Configuration types must subclass " + ConfigurationOptionProvider.class.getName());
+            throw new IllegalArgumentException("Configuration types must subclass " + ConfigurationOptionProvider.class.getName()
+                + " and this does not apply to " + configProvider.getName() + " which was provided");
         }
+        return (T) configurationRegistry.getConfig(actualConfigProvider);
     }
 
     @Override

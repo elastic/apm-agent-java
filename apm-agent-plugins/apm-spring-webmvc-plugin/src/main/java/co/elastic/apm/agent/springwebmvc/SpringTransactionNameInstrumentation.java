@@ -20,10 +20,10 @@ package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.plugin.spi.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.util.VersionUtils;
+import co.elastic.apm.plugin.spi.WebConfiguration;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -102,7 +102,7 @@ public class SpringTransactionNameInstrumentation extends TracerAwareInstrumenta
 
     public static class HandlerAdapterAdvice {
 
-        private static final WebConfiguration webConfig = GlobalTracer.get().getConfig(WebConfiguration.class);;
+        private static final WebConfiguration webConfig = GlobalTracer.get().getConfig(WebConfiguration.class);
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void setTransactionName(@Advice.Argument(0) HttpServletRequest request,

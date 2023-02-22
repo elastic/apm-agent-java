@@ -21,6 +21,13 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.impl.transaction.*;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
@@ -28,6 +35,7 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.plugin.spi.*;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -440,11 +448,18 @@ public class BasicTracer implements SpanAwareTracer {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> T getConfig(Class<T> configProvider) {
-        try {
-            return configProvider.getConstructor().newInstance();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to create empty configuration for " + configProvider.getName(), e);
+        if (configProvider == CoreConfiguration.class) {
+            return (T) EmptyCoreConfiguration.INSTANCE;
+        } else if (configProvider == StacktraceConfiguration.class) {
+            return (T) EmptyStacktraceConfiguration.INSTANCE;
+        } else if (configProvider == MessagingConfiguration.class) {
+            return (T) EmptyMessagingConfiguration.INSTANCE;
+        } else if (configProvider == WebConfiguration.class) {
+            return (T) EmptyWebConfiguration.INSTANCE;
+        } else {
+            throw new IllegalArgumentException("Unknown configuration: " + configProvider.getName());
         }
     }
 

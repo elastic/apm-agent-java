@@ -74,7 +74,7 @@ public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         ElementMatcher.Junction<? super MethodDescription> matcher = matches(methodMatcher.getMethodMatcher());
 
-        final List<WildcardMatcher> methodsExcludedFromInstrumentation = config.getMethodsExcludedFromInstrumentation();
+        final List<? extends WildcardMatcher> methodsExcludedFromInstrumentation = config.getMethodsExcludedFromInstrumentation();
         if (!methodsExcludedFromInstrumentation.isEmpty()) {
             matcher = matcher.and(not(new ElementMatcher<MethodDescription>() {
                 @Override
