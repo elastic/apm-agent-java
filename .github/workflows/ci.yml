@@ -98,7 +98,7 @@ jobs:
           path: '**/target/*.xml'
 
   app-server-integration-tests:
-    runs-on: ubuntu-20
+    runs-on: ubuntu-20.04
     needs: build
     steps:
       - uses: actions/checkout@v3
