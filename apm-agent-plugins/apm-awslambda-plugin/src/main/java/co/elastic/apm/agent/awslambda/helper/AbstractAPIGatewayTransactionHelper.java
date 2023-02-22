@@ -18,7 +18,8 @@
  */
 package co.elastic.apm.agent.awslambda.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.impl.MetricsAwareTracer;
 import co.elastic.apm.agent.impl.context.CloudOrigin;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
@@ -26,7 +27,6 @@ import co.elastic.apm.agent.impl.context.ServiceOrigin;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import com.amazonaws.services.lambda.runtime.Context;
@@ -47,7 +47,7 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
     private static final Set<String> METHODS_WITH_BODY = new HashSet<>(Arrays.asList("POST", "PUT", "PATCH", "DELETE"));
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
 
-    protected AbstractAPIGatewayTransactionHelper(ElasticApmTracer tracer) {
+    protected AbstractAPIGatewayTransactionHelper(MetricsAwareTracer tracer) {
         super(tracer);
     }
 

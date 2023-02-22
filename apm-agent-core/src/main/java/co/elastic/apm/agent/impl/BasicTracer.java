@@ -36,6 +36,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.plugin.spi.Tracer;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -487,12 +488,6 @@ public class BasicTracer implements SpanAwareTracer {
         return captureAndReportException(epochMicros, e, (AbstractSpan<?>) parent);
     }
 
-    @Nullable
-    @Override
-    public co.elastic.apm.plugin.spi.ErrorCapture captureException(@Nullable Throwable e, @Nullable co.elastic.apm.plugin.spi.AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
-        return captureException(e, (AbstractSpan<?>) parent, initiatingClassLoader);
-    }
-
     @Override
     public void endSpan(co.elastic.apm.plugin.spi.Span<?> span) {
         endSpan((Span) span);
@@ -501,11 +496,6 @@ public class BasicTracer implements SpanAwareTracer {
     @Override
     public void endTransaction(co.elastic.apm.plugin.spi.Transaction<?> transaction) {
         endTransaction((Transaction) transaction);
-    }
-
-    @Override
-    public void endError(co.elastic.apm.plugin.spi.ErrorCapture errorCapture) {
-        endError((ErrorCapture) errorCapture);
     }
 
     @Override
@@ -518,5 +508,24 @@ public class BasicTracer implements SpanAwareTracer {
     @Override
     public ServiceInfo autoDetectedServiceName() {
         return ServiceInfo.autoDetected();
+    }
+
+    @Nullable
+    @Override
+    public <T extends Tracer> T probe(Class<T> type) {
+        if (type.isInstance(this)) {
+            return type.cast(this);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public <T extends Tracer> T require(Class<T> type) {
+        T tracer = probe(type);
+        if (tracer == null) {
+            throw new IllegalStateException(this + " tracer does not support features of " + type.getName());
+        }
+        return tracer;
     }
 }

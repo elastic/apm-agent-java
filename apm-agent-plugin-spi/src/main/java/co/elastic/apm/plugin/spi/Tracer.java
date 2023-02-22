@@ -52,9 +52,6 @@ public interface Tracer {
     String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent);
 
     @Nullable
-    ErrorCapture captureException(@Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader);
-
-    @Nullable
     Span<?> getActiveExitSpan();
 
     @Nullable
@@ -63,8 +60,6 @@ public interface Tracer {
     void endSpan(Span<?> span);
 
     void endTransaction(Transaction<?> transaction);
-
-    void endError(ErrorCapture errorCapture);
 
     <T> T getConfig(Class<T> configuration);
 
@@ -77,4 +72,9 @@ public interface Tracer {
     ServiceInfo getServiceInfoForClassLoader(ClassLoader classLoader);
 
     ServiceInfo autoDetectedServiceName();
+
+    @Nullable
+    <T extends Tracer> T probe(Class<T> type);
+
+    <T extends Tracer> T require(Class<T> type);
 }

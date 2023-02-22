@@ -69,12 +69,6 @@ class NoopTracer implements Tracer {
 
     @Nullable
     @Override
-    public ErrorCapture captureException(@Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
-        return null;
-    }
-
-    @Nullable
-    @Override
     public Span<?> getActiveExitSpan() {
         return null;
     }
@@ -91,10 +85,6 @@ class NoopTracer implements Tracer {
 
     @Override
     public void endTransaction(Transaction<?> transaction) {
-    }
-
-    @Override
-    public void endError(ErrorCapture errorCapture) {
     }
 
     @Override
@@ -123,6 +113,17 @@ class NoopTracer implements Tracer {
 
     @Override
     public ServiceInfo autoDetectedServiceName() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public <T extends Tracer> T probe(Class<T> type) {
+        return null;
+    }
+
+    @Override
+    public <T extends Tracer> T require(Class<T> type) {
         return null;
     }
 }

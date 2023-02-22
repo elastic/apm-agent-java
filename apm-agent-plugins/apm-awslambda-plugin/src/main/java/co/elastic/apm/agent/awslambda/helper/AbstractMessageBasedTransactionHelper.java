@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.awslambda.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.MetricsAwareTracer;
 import co.elastic.apm.agent.impl.context.CloudOrigin;
 import co.elastic.apm.agent.impl.context.ServiceOrigin;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -31,7 +31,7 @@ import javax.annotation.Nullable;
 public abstract class AbstractMessageBasedTransactionHelper<I, O, R> extends AbstractLambdaTransactionHelper<I, O> {
     protected static final String TRANSACTION_TYPE = "messaging";
 
-    protected AbstractMessageBasedTransactionHelper(ElasticApmTracer tracer) {
+    protected AbstractMessageBasedTransactionHelper(MetricsAwareTracer tracer) {
         super(tracer);
     }
 

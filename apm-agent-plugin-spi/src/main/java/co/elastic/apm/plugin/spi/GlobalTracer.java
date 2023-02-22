@@ -19,7 +19,6 @@
 package co.elastic.apm.plugin.spi;
 
 import javax.annotation.Nullable;
-import java.util.Objects;
 
 public class GlobalTracer implements Tracer {
 
@@ -31,19 +30,6 @@ public class GlobalTracer implements Tracer {
 
     public static Tracer get() {
         return INSTANCE;
-    }
-
-    @Nullable
-    public static <T extends Tracer> T get(Class<T> type) {
-        Tracer tracer = INSTANCE.tracer;
-        if (type.isInstance(tracer)) {
-            return type.cast(tracer);
-        }
-        return null;
-    }
-
-    public static <T extends Tracer> T require(Class<T> type) {
-        return Objects.requireNonNull(get(type), "Registered tracer is not an instance of " + type.getName());
     }
 
     public static synchronized void init(Tracer tracer) {
@@ -111,11 +97,6 @@ public class GlobalTracer implements Tracer {
     }
 
     @Nullable
-    public ErrorCapture captureException(@Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
-        return tracer.captureException(e, parent, initiatingClassLoader);
-    }
-
-    @Nullable
     @Override
     public Span<?> getActiveExitSpan() {
         return tracer.getActiveExitSpan();
@@ -135,11 +116,6 @@ public class GlobalTracer implements Tracer {
     @Override
     public void endTransaction(Transaction<?> transaction) {
         tracer.endTransaction(transaction);
-    }
-
-    @Override
-    public void endError(ErrorCapture errorCapture) {
-        tracer.endError(errorCapture);
     }
 
     @Override
@@ -170,5 +146,16 @@ public class GlobalTracer implements Tracer {
     @Override
     public ServiceInfo autoDetectedServiceName() {
         return tracer.autoDetectedServiceName();
+    }
+
+    @Nullable
+    @Override
+    public <T extends Tracer> T probe(Class<T> type) {
+        return tracer.probe(type);
+    }
+
+    @Override
+    public <T extends Tracer> T require(Class<T> type) {
+        return tracer.require(type);
     }
 }

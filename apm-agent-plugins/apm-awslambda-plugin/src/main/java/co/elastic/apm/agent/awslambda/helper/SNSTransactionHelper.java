@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.awslambda.helper;
 
 import co.elastic.apm.agent.awslambda.SNSMessageAttributesGetter;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.MetricsAwareTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.plugin.spi.GlobalTracer;
 import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 
 import javax.annotation.Nullable;
@@ -34,13 +34,13 @@ public class SNSTransactionHelper extends AbstractMessageBasedTransactionHelper<
 
     private final SNSEvent.SNSRecord placeholderRecord = new SNSEvent.SNSRecord();
 
-    private SNSTransactionHelper(ElasticApmTracer tracer) {
+    private SNSTransactionHelper(MetricsAwareTracer tracer) {
         super(tracer);
     }
 
     public static SNSTransactionHelper getInstance() {
         if (INSTANCE == null) {
-            INSTANCE = new SNSTransactionHelper(GlobalTracer.requireTracerImpl());
+            INSTANCE = new SNSTransactionHelper(GlobalTracer.get().require(MetricsAwareTracer.class));
         }
         return INSTANCE;
     }

@@ -38,15 +38,15 @@ public class OutcomeGrpcStepsDefinitions {
 
         state.startRootTransactionIfRequired();
         state.startSpan()
-            .withName(String.format("gRPC span %s", grpcStatus));
-            // TODO Rafael .withOutcome(getOutcome(grpcStatus, GrpcHelper::toClientOutcome));
+            .withName(String.format("gRPC span %s", grpcStatus))
+            .withOutcome(getOutcome(grpcStatus, GrpcHelper::toClientOutcome));
     }
 
     @Given("a gRPC call is received that returns {string}")
     public void grpcTransaction(String grpcStatus) {
         state.startTransaction()
-            .withName(String.format("gRPC transaction %s", grpcStatus));
-            // TODO Rafael .withOutcome(getOutcome(grpcStatus, GrpcHelper::toServerOutcome));
+            .withName(String.format("gRPC transaction %s", grpcStatus))
+            .withOutcome(getOutcome(grpcStatus, GrpcHelper::toServerOutcome));
     }
 
     private static Outcome getOutcome(String grpcStatus, Function<Status, Outcome> mapFunction) {

@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.awslambda.helper;
 
 import co.elastic.apm.agent.awslambda.MapTextHeaderGetter;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.MetricsAwareTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.plugin.spi.GlobalTracer;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
@@ -35,13 +35,13 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
     @Nullable
     private static APIGatewayProxyV1TransactionHelper INSTANCE;
 
-    private APIGatewayProxyV1TransactionHelper(ElasticApmTracer tracer) {
+    private APIGatewayProxyV1TransactionHelper(MetricsAwareTracer tracer) {
         super(tracer);
     }
 
     public static APIGatewayProxyV1TransactionHelper getInstance() {
         if (INSTANCE == null) {
-            INSTANCE = new APIGatewayProxyV1TransactionHelper(GlobalTracer.requireTracerImpl());
+            INSTANCE = new APIGatewayProxyV1TransactionHelper(GlobalTracer.get().require(MetricsAwareTracer.class));
         }
         return INSTANCE;
     }

@@ -20,6 +20,7 @@ package co.elastic.apm.agent.micrometer;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.MetricsAwareTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
@@ -91,16 +92,16 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
     private final WeakMap<MeterRegistry, SimpleConfig> configMap = WeakConcurrent.buildMap();
     private final MicrometerMeterRegistrySerializer serializer;
     private final Reporter reporter;
-    private final ElasticApmTracer tracer;
+    private final MetricsAwareTracer tracer;
     private final AtomicBoolean scheduledReporting = new AtomicBoolean();
     private final boolean disableScheduler;
 
-    public MicrometerMetricsReporter(ElasticApmTracer tracer) {
+    public MicrometerMetricsReporter(MetricsAwareTracer tracer) {
         this(tracer, false);
     }
 
     //constructor split up to have this available for testing
-    MicrometerMetricsReporter(ElasticApmTracer tracer, boolean disableSchedulerThread) {
+    MicrometerMetricsReporter(MetricsAwareTracer tracer, boolean disableSchedulerThread) {
         this.tracer = tracer;
         this.reporter = tracer.getReporter();
         tracer.addShutdownHook(this);

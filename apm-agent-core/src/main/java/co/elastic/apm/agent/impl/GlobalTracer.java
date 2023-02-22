@@ -52,21 +52,8 @@ public class GlobalTracer implements Tracer {
     }
 
     @Nullable
-    public static <T extends Tracer> T get(Class<T> type) {
-        Tracer tracer = INSTANCE.tracer;
-        if (type.isInstance(tracer)) {
-            return type.cast(tracer);
-        }
-        return null;
-    }
-
-    public static <T extends Tracer> T require(Class<T> type) {
-        return Objects.requireNonNull(get(type), "Registered tracer is not an instance of " + type.getName());
-    }
-
-    @Nullable
     public static ElasticApmTracer getTracerImpl() {
-        return get(ElasticApmTracer.class);
+        return get().probe(ElasticApmTracer.class);
     }
 
     public static ElasticApmTracer requireTracerImpl() {
@@ -302,12 +289,6 @@ public class GlobalTracer implements Tracer {
         return tracer.captureAndReportException(epochMicros, e, parent);
     }
 
-    @Nullable
-    @Override
-    public co.elastic.apm.plugin.spi.ErrorCapture captureException(@Nullable Throwable e, @Nullable co.elastic.apm.plugin.spi.AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
-        return tracer.captureException(e, parent, initiatingClassLoader);
-    }
-
     @Override
     public void endSpan(co.elastic.apm.plugin.spi.Span<?> span) {
         tracer.endSpan(span);
@@ -319,11 +300,6 @@ public class GlobalTracer implements Tracer {
     }
 
     @Override
-    public void endError(co.elastic.apm.plugin.spi.ErrorCapture errorCapture) {
-        tracer.endError(errorCapture);
-    }
-
-    @Override
     public void setServiceInfoForClassLoader(ClassLoader classLoader, co.elastic.apm.plugin.spi.ServiceInfo serviceInfo) {
         tracer.setServiceInfoForClassLoader(classLoader, serviceInfo);
     }
@@ -331,5 +307,16 @@ public class GlobalTracer implements Tracer {
     @Override
     public ServiceInfo autoDetectedServiceName() {
         return tracer.autoDetectedServiceName();
+    }
+
+    @Nullable
+    @Override
+    public <T extends co.elastic.apm.plugin.spi.Tracer> T probe(Class<T> type) {
+        return tracer.probe(type);
+    }
+
+    @Override
+    public <T extends co.elastic.apm.plugin.spi.Tracer> T require(Class<T> type) {
+        return tracer.require(type);
     }
 }

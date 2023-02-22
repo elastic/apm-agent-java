@@ -23,10 +23,12 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.MetricsAwareTracer;
 import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.ServiceFactory;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.plugin.spi.Tracer;
 import co.elastic.apm.plugin.spi.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -169,7 +171,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
     private final Reporter reporter;
 
     public AbstractEcsReformattingHelper() {
-        ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+        MetricsAwareTracer tracer = GlobalTracer.get().require(MetricsAwareTracer.class);
         loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
         additionalFields = loggingConfiguration.getLogEcsReformattingAdditionalFields();
         Service service = new ServiceFactory().createService(

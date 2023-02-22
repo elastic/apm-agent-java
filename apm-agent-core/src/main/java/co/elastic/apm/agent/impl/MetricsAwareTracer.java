@@ -18,9 +18,22 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.report.Reporter;
+
+import java.io.Closeable;
+import java.util.concurrent.ScheduledExecutorService;
 
 public interface MetricsAwareTracer extends SpanAwareTracer {
 
     MetricRegistry getMetricRegistry();
+
+    Reporter getReporter();
+
+    void addShutdownHook(Closeable closeable);
+
+    ScheduledExecutorService getSharedSingleThreadedPool();
+
+    MetaDataFuture getMetaDataFuture();
 }

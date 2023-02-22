@@ -18,11 +18,10 @@
  */
 package co.elastic.apm.agent.awslambda.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.impl.MetricsAwareTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.plugin.spi.GlobalTracer;
 import com.amazonaws.services.lambda.runtime.Context;
 
 import javax.annotation.Nullable;
@@ -34,13 +33,13 @@ public class PlainTransactionHelper extends AbstractLambdaTransactionHelper<Obje
     @Nullable
     private static PlainTransactionHelper INSTANCE;
 
-    private PlainTransactionHelper(ElasticApmTracer tracer) {
+    private PlainTransactionHelper(MetricsAwareTracer tracer) {
         super(tracer);
     }
 
     public static PlainTransactionHelper getInstance() {
         if (INSTANCE == null) {
-            INSTANCE = new PlainTransactionHelper(GlobalTracer.requireTracerImpl());
+            INSTANCE = new PlainTransactionHelper(GlobalTracer.get().require(MetricsAwareTracer.class));
         }
         return INSTANCE;
     }

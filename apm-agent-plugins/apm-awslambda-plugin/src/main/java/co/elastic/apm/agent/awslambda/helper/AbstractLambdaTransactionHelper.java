@@ -22,7 +22,7 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.InstrumentationStats;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.MetricsAwareTracer;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
 import co.elastic.apm.agent.impl.metadata.Framework;
@@ -43,13 +43,13 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractLambdaTransactionHelper.class);
     private static final Logger enabledInstrumentationsLogger = LoggerUtils.logOnce(logger);
 
-    protected final ElasticApmTracer tracer;
+    protected final MetricsAwareTracer tracer;
 
     protected final ServerlessConfiguration serverlessConfiguration;
     protected final CoreConfiguration coreConfiguration;
     protected final WebConfiguration webConfiguration;
 
-    protected AbstractLambdaTransactionHelper(ElasticApmTracer tracer) {
+    protected AbstractLambdaTransactionHelper(MetricsAwareTracer tracer) {
         this.tracer = tracer;
         this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         this.webConfiguration = tracer.getConfig(WebConfiguration.class);

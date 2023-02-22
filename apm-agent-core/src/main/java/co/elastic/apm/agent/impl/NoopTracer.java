@@ -205,12 +205,6 @@ class NoopTracer implements Tracer {
         return null;
     }
 
-    @Nullable
-    @Override
-    public co.elastic.apm.plugin.spi.ErrorCapture captureException(@Nullable Throwable e, @Nullable co.elastic.apm.plugin.spi.AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
-        return null;
-    }
-
     @Override
     public void endSpan(co.elastic.apm.plugin.spi.Span<?> span) {
     }
@@ -220,15 +214,22 @@ class NoopTracer implements Tracer {
     }
 
     @Override
-    public void endError(co.elastic.apm.plugin.spi.ErrorCapture errorCapture) {
-    }
-
-    @Override
     public void setServiceInfoForClassLoader(ClassLoader classLoader, co.elastic.apm.plugin.spi.ServiceInfo serviceInfo) {
     }
 
     @Override
     public ServiceInfo autoDetectedServiceName() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public <T extends co.elastic.apm.plugin.spi.Tracer> T probe(Class<T> type) {
+        return null;
+    }
+
+    @Override
+    public <T extends co.elastic.apm.plugin.spi.Tracer> T require(Class<T> type) {
         return null;
     }
 }
