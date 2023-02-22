@@ -125,6 +125,10 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
     protected abstract LoggerFacade createLoggerFacade();
 
+    protected boolean logsThreadName() {
+        return true;
+    }
+
     @Test
     public void testSimpleLogReformatting() throws Exception {
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
@@ -315,8 +319,9 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     }
 
     private void verifyEcsLogLine(JsonNode ecsLogLineTree) {
+        String currentThreadName = Thread.currentThread().getName();
         assertThat(ecsLogLineTree.get("@timestamp")).isNotNull();
-        assertThat(ecsLogLineTree.get("process.thread.name").textValue()).isEqualTo("main");
+        assertThat(ecsLogLineTree.get("process.thread.name").textValue()).isEqualTo(currentThreadName);
         JsonNode logLevel = ecsLogLineTree.get("log.level");
         assertThat(logLevel).isNotNull();
         boolean isErrorLine = logLevel.textValue().equalsIgnoreCase("error");
@@ -394,7 +399,12 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         Date rawTimestamp = timestampFormat.parse(splitRawLogLine[0]);
         Date ecsTimestamp = utcTimestampFormat.parse(ecsLogLineTree.get("@timestamp").textValue());
         assertThat(rawTimestamp).isEqualTo(ecsTimestamp);
-        assertThat(splitRawLogLine[1]).isEqualTo(ecsLogLineTree.get("process.thread.name").textValue());
+        if (logsThreadName()) {
+            // JUL simple formatter doesn't have the capability to log the thread name
+            // we've faked it with a 'main' in the format, but that no longer works
+            // with parallelized unit tests (where the thread is a pool thread)
+            assertThat(splitRawLogLine[1]).isEqualTo(ecsLogLineTree.get("process.thread.name").textValue());
+        }
         JsonNode logLevel = ecsLogLineTree.get("log.level");
         assertThat(splitRawLogLine[2]).isEqualTo(logLevel.textValue());
         boolean isErrorLine = logLevel.textValue().equalsIgnoreCase("error");

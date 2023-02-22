@@ -41,6 +41,11 @@ public class JulInstrumentationTest extends LoggingInstrumentationTest {
     }
 
     @Override
+    protected boolean logsThreadName() {
+        return false;
+    }
+
+    @Override
     protected void waitForFileRolling() {
         await().untilAsserted(() -> assertThat(new File(getLogReformattingFilePath()).length()).isEqualTo(0));
     }

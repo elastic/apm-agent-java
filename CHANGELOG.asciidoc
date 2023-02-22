@@ -29,6 +29,7 @@ endif::[]
 communication - {pull}2996[#2996]
 * Add the <<config-profiling-inferred-spans-logging-enabled>> config option to suppress async profiler warning messages - {pull}3002[#3002]
 * Added support for OpenTelemetry metrics - {pull}2968[#2968]
+* Added agent.activation_method telemetry - {pull}2926[#2926]
 
 [float]
 ===== Bug fixes
