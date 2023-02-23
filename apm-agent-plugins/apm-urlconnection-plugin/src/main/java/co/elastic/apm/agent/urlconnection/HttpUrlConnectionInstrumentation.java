@@ -149,7 +149,8 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("connect").and(takesArguments(0))
                 .or(named("getOutputStream").and(takesArguments(0)))
-                .or(named("getInputStream").and(takesArguments(0)));
+                .or(named("getInputStream").and(takesArguments(0)))
+                .or(named("getResponseCode").and(takesArguments(0)));
         }
     }
 
