@@ -124,7 +124,9 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
     @Test
     public void testGetResponseCodeWithUnhandledException() {
         try {
-            performGet("http://unknown");
+            final HttpURLConnection urlConnection = (HttpURLConnection) new URL("http://unknown").openConnection();
+            urlConnection.getResponseCode();
+            urlConnection.disconnect();
         } catch (Exception e) {
             // intentionally ignored
         }
