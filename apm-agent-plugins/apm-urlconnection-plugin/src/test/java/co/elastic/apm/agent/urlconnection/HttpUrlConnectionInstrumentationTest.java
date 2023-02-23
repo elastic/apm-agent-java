@@ -122,7 +122,7 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
     }
 
     @Test
-    public void testGetResponseCodeWithUnknownHost() {
+    public void testGetResponseCodeWithUnhandledException() {
         try {
             performGet("http://unknown");
         } catch (Exception e) {
