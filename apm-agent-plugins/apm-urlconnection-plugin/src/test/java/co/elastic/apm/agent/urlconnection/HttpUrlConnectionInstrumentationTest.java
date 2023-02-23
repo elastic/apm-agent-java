@@ -20,7 +20,9 @@ package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -132,6 +134,16 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
         }
 
         assertThat(reporter.getErrors()).hasSize(1);
+        
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
+        assertThat(reporter.getSpans()).hasSize(1);
+
+        Span span = reporter.getSpans().get(0);
+        assertThat(span.getNameAsString()).isEqualTo("GET unknown");
+
+        Http http = span.getContext().getHttp();
+        assertThat(http.getStatusCode()).isEqualTo(0);
+        assertThat(http.getUrl().toString()).isEqualTo("http://unknown");
     }
 
     @Test
