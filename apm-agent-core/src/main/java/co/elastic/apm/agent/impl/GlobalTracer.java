@@ -36,15 +36,17 @@ import java.util.Objects;
 
 public class GlobalTracer implements Tracer {
 
-    private static final GlobalTracer INSTANCE = new GlobalTracer();
-    private volatile Tracer tracer = NoopTracer.INSTANCE;
+    private static final GlobalTracer INSTANCE;
+    private final co.elastic.apm.tracer.api.Tracer tracer;
     private static volatile boolean classloaderCheckOk = false;
 
     private GlobalTracer() {
+        tracer = co.elastic.apm.tracer.api.GlobalTracer.get();
     }
 
     static {
         checkClassloader();
+        INSTANCE = new GlobalTracer();
     }
 
     public static Tracer get() {
@@ -100,223 +102,216 @@ public class GlobalTracer implements Tracer {
     }
 
     public static synchronized void setNoop() {
-        TracerState currentTracerState = INSTANCE.tracer.getState();
+        if (co.elastic.apm.tracer.api.GlobalTracer.isNoop()) {
+            return;
+        }
+        TracerState currentTracerState = INSTANCE.tracer.require(Tracer.class).getState();
         if (currentTracerState != TracerState.UNINITIALIZED && currentTracerState != TracerState.STOPPED) {
             throw new IllegalStateException("Can't override tracer as current tracer is already running");
         }
-        INSTANCE.tracer = NoopTracer.INSTANCE;
+        co.elastic.apm.tracer.api.GlobalTracer.reset();
     }
 
     public static synchronized void init(Tracer tracer) {
         if (!isNoop()) {
             throw new IllegalStateException("Tracer is already initialized");
         }
-        co.elastic.apm.plugin.spi.GlobalTracer.init(tracer);
-        INSTANCE.tracer = tracer;
+        co.elastic.apm.tracer.api.GlobalTracer.init(tracer);
     }
 
     public static boolean isNoop() {
-        return INSTANCE.tracer == NoopTracer.INSTANCE;
+        return co.elastic.apm.tracer.api.GlobalTracer.isNoop();
     }
 
     @Nullable
     public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader) {
-        return tracer.startRootTransaction(initiatingClassLoader);
+        return tracer.require(Tracer.class).startRootTransaction(initiatingClassLoader);
     }
 
     @Nullable
     @Override
     public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader, long epochMicro) {
-        return tracer.startRootTransaction(initiatingClassLoader, epochMicro);
+        return tracer.require(Tracer.class).startRootTransaction(initiatingClassLoader, epochMicro);
     }
 
     @Nullable
     public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
-        return tracer.startRootTransaction(sampler, epochMicros, initiatingClassLoader);
+        return tracer.require(Tracer.class).startRootTransaction(sampler, epochMicros, initiatingClassLoader);
     }
 
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
-        return tracer.startChildTransaction(headerCarrier, textHeadersGetter, initiatingClassLoader);
+        return tracer.require(Tracer.class).startChildTransaction(headerCarrier, textHeadersGetter, initiatingClassLoader);
     }
 
     @Nullable
     @Override
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, long epochMicros) {
-        return tracer.startChildTransaction(headerCarrier, textHeadersGetter, initiatingClassLoader, epochMicros);
+        return tracer.require(Tracer.class).startChildTransaction(headerCarrier, textHeadersGetter, initiatingClassLoader, epochMicros);
     }
 
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
-        return tracer.startChildTransaction(headerCarrier, textHeadersGetter, sampler, epochMicros, initiatingClassLoader);
+        return tracer.require(Tracer.class).startChildTransaction(headerCarrier, textHeadersGetter, sampler, epochMicros, initiatingClassLoader);
     }
 
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
-        return tracer.startChildTransaction(headerCarrier, binaryHeadersGetter, initiatingClassLoader);
+        return tracer.require(Tracer.class).startChildTransaction(headerCarrier, binaryHeadersGetter, initiatingClassLoader);
     }
 
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
-        return tracer.startChildTransaction(headerCarrier, binaryHeadersGetter, sampler, epochMicros, initiatingClassLoader);
+        return tracer.require(Tracer.class).startChildTransaction(headerCarrier, binaryHeadersGetter, sampler, epochMicros, initiatingClassLoader);
     }
 
     @Nullable
     public Transaction currentTransaction() {
-        return tracer.currentTransaction();
+        return tracer.require(Tracer.class).currentTransaction();
     }
 
     @Nullable
     @Override
     public AbstractSpan<?> getActive() {
-        return tracer.getActive();
+        return tracer.require(Tracer.class).getActive();
     }
 
     @Nullable
     @Override
     public Span getActiveSpan() {
-        return tracer.getActiveSpan();
+        return tracer.require(Tracer.class).getActiveSpan();
     }
 
     public void captureAndReportException(@Nullable Throwable e, ClassLoader initiatingClassLoader) {
-        tracer.captureAndReportException(e, initiatingClassLoader);
+        tracer.require(Tracer.class).captureAndReportException(e, initiatingClassLoader);
     }
 
     @Nullable
     public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent) {
-        return tracer.captureAndReportException(epochMicros, e, parent);
+        return tracer.require(Tracer.class).captureAndReportException(epochMicros, e, parent);
     }
 
     @Nullable
     public ErrorCapture captureException(@Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
-        return tracer.captureException(e, parent, initiatingClassLoader);
+        return tracer.require(Tracer.class).captureException(e, parent, initiatingClassLoader);
     }
 
     @Nullable
     @Override
     public Span getActiveExitSpan() {
-        return tracer.getActiveExitSpan();
+        return tracer.require(Tracer.class).getActiveExitSpan();
     }
 
     @Override
     public TracerState getState() {
-        return tracer.getState();
+        if (isNoop()) {
+            return TracerState.UNINITIALIZED;
+        }
+        return tracer.require(Tracer.class).getState();
     }
 
     @Nullable
     @Override
     public ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader classLoader) {
-        return tracer.getServiceInfoForClassLoader(classLoader);
+        return tracer.require(Tracer.class).getServiceInfoForClassLoader(classLoader);
     }
 
     @Override
     public void setServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo) {
-        tracer.setServiceInfoForClassLoader(classLoader, serviceInfo);
+        tracer.require(Tracer.class).setServiceInfoForClassLoader(classLoader, serviceInfo);
     }
 
     @Override
     public void stop() {
-        tracer.stop();
+        tracer.require(Tracer.class).stop();
     }
 
     @Override
     public boolean isRunning() {
-        return tracer.isRunning();
+        return tracer.require(Tracer.class).isRunning();
     }
 
     @Nullable
     @Override
     public Span createExitChildSpan() {
-        return tracer.createExitChildSpan();
+        return tracer.require(Tracer.class).createExitChildSpan();
     }
 
     @Override
     public void recycle(Transaction transaction) {
-        tracer.recycle(transaction);
+        tracer.require(Tracer.class).recycle(transaction);
     }
 
     @Override
     public void endSpan(Span span) {
-        tracer.endSpan(span);
+        tracer.require(Tracer.class).endSpan(span);
     }
 
     @Override
     public void endTransaction(Transaction transaction) {
-        tracer.endTransaction(transaction);
+        tracer.require(Tracer.class).endTransaction(transaction);
     }
 
     @Override
     public void endError(ErrorCapture errorCapture) {
-        tracer.endError(errorCapture);
+        tracer.require(Tracer.class).endError(errorCapture);
     }
 
     @Override
     public <T> T getConfig(Class<T> configuration) {
-        return tracer.getConfig(configuration);
+        return tracer.require(Tracer.class).getConfig(configuration);
     }
 
     @Override
     public ObjectPoolFactory getObjectPoolFactory() {
-        return tracer.getObjectPoolFactory();
+        return tracer.require(Tracer.class).getObjectPoolFactory();
     }
 
     @Override
     public void recycle(ErrorCapture errorCapture) {
-        tracer.recycle(errorCapture);
+        tracer.require(Tracer.class).recycle(errorCapture);
     }
 
     @Nullable
     @Override
-    public <C> co.elastic.apm.plugin.spi.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.plugin.spi.TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
-        return tracer.startChildTransaction(headerCarrier, textHeadersGetter, initiatingClassLoader);
+    public <C> co.elastic.apm.tracer.api.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.tracer.api.dispatch.TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+        return tracer.require(Tracer.class).startChildTransaction(headerCarrier, textHeadersGetter, initiatingClassLoader);
     }
 
     @Nullable
     @Override
-    public <C> co.elastic.apm.plugin.spi.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.plugin.spi.TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, long epochMicros) {
-        return tracer.startChildTransaction(headerCarrier, textHeadersGetter, initiatingClassLoader, epochMicros);
-    }
-
-    @Nullable
-    @Override
-    public <C> co.elastic.apm.plugin.spi.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.plugin.spi.BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
-        return tracer.startChildTransaction(headerCarrier, binaryHeadersGetter, initiatingClassLoader);
-    }
-
-    @Nullable
-    @Override
-    public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable co.elastic.apm.plugin.spi.AbstractSpan<?> parent) {
-        return tracer.captureAndReportException(epochMicros, e, parent);
+    public <C> co.elastic.apm.tracer.api.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.tracer.api.dispatch.BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+        return tracer.require(Tracer.class).startChildTransaction(headerCarrier, binaryHeadersGetter, initiatingClassLoader);
     }
 
     @Override
-    public void endSpan(co.elastic.apm.plugin.spi.Span<?> span) {
-        tracer.endSpan(span);
+    public void endSpan(co.elastic.apm.tracer.api.Span<?> span) {
+        tracer.require(Tracer.class).endSpan(span);
     }
 
     @Override
-    public void endTransaction(co.elastic.apm.plugin.spi.Transaction<?> transaction) {
-        tracer.endTransaction(transaction);
+    public void endTransaction(co.elastic.apm.tracer.api.Transaction<?> transaction) {
+        tracer.require(Tracer.class).endTransaction(transaction);
     }
 
     @Override
-    public void setServiceInfoForClassLoader(ClassLoader classLoader, co.elastic.apm.plugin.spi.ServiceInfo serviceInfo) {
-        tracer.setServiceInfoForClassLoader(classLoader, serviceInfo);
+    public void setServiceInfoForClassLoader(ClassLoader classLoader, co.elastic.apm.tracer.api.service.ServiceInfo serviceInfo) {
+        tracer.require(Tracer.class).require(GlobalTracer.class).setServiceInfoForClassLoader(classLoader, serviceInfo);
     }
 
     @Override
     public ServiceInfo autoDetectedServiceName() {
-        return tracer.autoDetectedServiceName();
+        return tracer.require(Tracer.class).autoDetectedServiceName();
     }
 
     @Nullable
     @Override
-    public <T extends co.elastic.apm.plugin.spi.Tracer> T probe(Class<T> type) {
+    public <T extends co.elastic.apm.tracer.api.Tracer> T probe(Class<T> type) {
         return tracer.probe(type);
     }
 
     @Override
-    public <T extends co.elastic.apm.plugin.spi.Tracer> T require(Class<T> type) {
+    public <T extends co.elastic.apm.tracer.api.Tracer> T require(Class<T> type) {
         return tracer.require(type);
     }
 }

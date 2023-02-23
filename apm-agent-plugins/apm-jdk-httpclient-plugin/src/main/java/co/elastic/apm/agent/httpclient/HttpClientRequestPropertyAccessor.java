@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.plugin.spi.TextHeaderSetter;
+import co.elastic.apm.tracer.api.dispatch.TextHeaderSetter;
 
 import java.util.Collections;
 import java.util.List;

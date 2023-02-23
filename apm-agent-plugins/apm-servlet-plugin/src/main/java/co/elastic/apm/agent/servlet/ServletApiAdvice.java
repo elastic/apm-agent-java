@@ -18,12 +18,15 @@
  */
 package co.elastic.apm.agent.servlet;
 
+import co.elastic.apm.agent.sdk.configuration.CoreConfiguration;
 import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
-import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.servlet.adapter.ServletApiAdapter;
+import co.elastic.apm.tracer.api.*;
+import co.elastic.apm.tracer.api.metadata.Request;
+import co.elastic.apm.tracer.api.metadata.Response;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -31,7 +34,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 
 public abstract class ServletApiAdvice {

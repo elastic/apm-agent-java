@@ -19,7 +19,12 @@
 package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.agent.sdk.configuration.CoreConfiguration;
+import co.elastic.apm.agent.sdk.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.sdk.utils.WildcardMatcherUtil;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.GlobalTracer;
+import co.elastic.apm.tracer.api.metadata.Message;
 
 import javax.annotation.Nullable;
 import java.util.Date;

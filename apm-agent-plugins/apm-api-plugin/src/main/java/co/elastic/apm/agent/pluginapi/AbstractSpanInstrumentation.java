@@ -32,7 +32,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_USER_SUPPLIED;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_USER_SUPPLIED;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;

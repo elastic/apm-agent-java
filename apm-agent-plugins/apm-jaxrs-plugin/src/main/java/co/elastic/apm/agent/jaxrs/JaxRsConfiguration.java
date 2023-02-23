@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.jaxrs;
 
-import co.elastic.apm.plugin.spi.ConfigurationSubstitute;
+import co.elastic.apm.agent.sdk.configuration.ConfigurationSubstitute;
 
 @ConfigurationSubstitute(co.elastic.apm.agent.jaxrs.configuration.JaxRsConfiguration.class)
 public interface JaxRsConfiguration {

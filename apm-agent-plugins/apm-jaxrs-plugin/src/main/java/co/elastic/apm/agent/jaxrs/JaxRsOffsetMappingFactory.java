@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.jaxrs;
 
-import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.tracer.api.Tracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.annotation.AnnotationDescription;
 import net.bytebuddy.description.annotation.AnnotationSource;

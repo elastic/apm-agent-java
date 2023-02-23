@@ -1,4 +1,0 @@
-co.elastic.apm.plugin.spi.MinimalCoreConfiguration
-co.elastic.apm.plugin.spi.MinimalMessagingConfiguration
-co.elastic.apm.plugin.spi.MinimalWebConfiguration
-co.elastic.apm.plugin.spi.MinimalStacktraceConfiguration

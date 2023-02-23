@@ -20,8 +20,12 @@ package co.elastic.apm.agent.scheduled;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.agent.sdk.bindings.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.sdk.configuration.StacktraceConfiguration;
 import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.DefaultOutcome;
+import co.elastic.apm.tracer.api.Tracer;
+import co.elastic.apm.tracer.api.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;

@@ -22,7 +22,7 @@ import co.elastic.apm.agent.awslambda.SNSMessageAttributesGetter;
 import co.elastic.apm.agent.impl.MetricsAwareTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.tracer.api.GlobalTracer;
 import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 
 import javax.annotation.Nullable;

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.Transaction;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.servlet.helper.JakartaRecordingServletInputStreamWrapper;
 import jakarta.servlet.ServletInputStream;

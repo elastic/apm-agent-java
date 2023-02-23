@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 
 import java.util.Collection;
 import java.util.Collections;

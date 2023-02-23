@@ -18,7 +18,8 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.agent.sdk.utils.TraceContextUtil;
+import co.elastic.apm.tracer.api.*;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerRecord;

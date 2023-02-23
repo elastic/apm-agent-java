@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.Span;
 
 /**
  * Used to create a wrapper for a callback or listener

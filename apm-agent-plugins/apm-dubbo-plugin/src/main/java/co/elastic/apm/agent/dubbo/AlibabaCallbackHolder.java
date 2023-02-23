@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.dubbo;
 
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.tracer.api.AbstractSpan;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
 

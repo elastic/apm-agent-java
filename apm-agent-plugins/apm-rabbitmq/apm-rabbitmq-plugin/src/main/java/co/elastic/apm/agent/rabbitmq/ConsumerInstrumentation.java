@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
-import co.elastic.apm.plugin.spi.Message;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.metadata.Message;
+import co.elastic.apm.tracer.api.Transaction;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Consumer;

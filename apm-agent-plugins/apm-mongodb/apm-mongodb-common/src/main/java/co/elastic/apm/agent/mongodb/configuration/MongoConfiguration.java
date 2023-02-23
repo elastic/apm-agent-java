@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.mongodb.configuration;
 
-import co.elastic.apm.plugin.spi.WildcardMatcher;
-import co.elastic.apm.plugin.spi.WildcardMatcherUtil;
+import co.elastic.apm.agent.sdk.configuration.WildcardMatcher;
+import co.elastic.apm.agent.sdk.utils.WildcardMatcherUtil;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.AbstractValueConverter;

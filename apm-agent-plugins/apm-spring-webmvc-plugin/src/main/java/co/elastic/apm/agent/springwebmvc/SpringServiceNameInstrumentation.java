@@ -19,7 +19,8 @@
 package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
-import co.elastic.apm.plugin.spi.ServiceInfo;
+import co.elastic.apm.tracer.api.service.ServiceAwareTracer;
+import co.elastic.apm.tracer.api.service.ServiceInfo;
 import co.elastic.apm.agent.servlet.ServletServiceNameHelper;
 import co.elastic.apm.agent.servlet.adapter.JavaxServletApiAdapter;
 import net.bytebuddy.asm.Advice;
@@ -39,6 +40,9 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation {
+
+    public SpringServiceNameInstrumentation(ServiceAwareTracer ignored) {
+    }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -73,7 +77,8 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
         public static void afterInitPropertySources(@Advice.This WebApplicationContext applicationContext) {
             // avoid having two service names for a standalone jar
             // one based on Implementation-Title and one based on spring.application.name
-            if (!tracer.autoDetectedServiceName().isMultiServiceContainer()) {
+            ServiceAwareTracer serviceAwareTracer = tracer.require(ServiceAwareTracer.class);
+            if (!serviceAwareTracer.autoDetectedServiceName().isMultiServiceContainer()) {
                 return;
             }
 
@@ -96,7 +101,7 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
             ServiceInfo fromSpringApplicationNameProperty = ServiceInfo.of(applicationContext.getEnvironment().getProperty("spring.application.name", ""));
             ServiceInfo fromApplicationContextApplicationName = ServiceInfo.of(removeLeadingSlash(applicationContext.getApplicationName()));
 
-            tracer.setServiceInfoForClassLoader(classLoader, fromSpringApplicationNameProperty
+            serviceAwareTracer.setServiceInfoForClassLoader(classLoader, fromSpringApplicationNameProperty
                 .withFallback(fromServletContext)
                 .withFallback(fromApplicationContextApplicationName));
         }

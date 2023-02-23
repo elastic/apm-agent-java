@@ -18,9 +18,12 @@
  */
 package co.elastic.apm.agent.vertx;
 
+import co.elastic.apm.agent.sdk.utils.ResultUtil;
 import co.elastic.apm.agent.sdk.utils.VersionUtils;
-import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
+import co.elastic.apm.tracer.api.*;
+import co.elastic.apm.tracer.api.metadata.Request;
+import co.elastic.apm.tracer.api.metadata.Response;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.codec.http.cookie.ServerCookieDecoder;

@@ -28,7 +28,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class WebConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.plugin.spi.WebConfiguration {
+public class WebConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.sdk.configuration.WebConfiguration {
 
     private static final String HTTP_CATEGORY = "HTTP";
 

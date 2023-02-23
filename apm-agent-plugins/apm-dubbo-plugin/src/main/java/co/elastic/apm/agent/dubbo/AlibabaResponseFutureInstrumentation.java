@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.tracer.api.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import com.alibaba.dubbo.remoting.exchange.ResponseCallback;

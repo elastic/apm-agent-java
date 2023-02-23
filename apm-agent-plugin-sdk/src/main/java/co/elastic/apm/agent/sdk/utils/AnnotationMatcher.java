@@ -18,8 +18,7 @@
  */
 package co.elastic.apm.agent.sdk.utils;
 
-import co.elastic.apm.plugin.spi.WildcardMatcher;
-import co.elastic.apm.plugin.spi.WildcardMatcherUtil;
+import co.elastic.apm.agent.sdk.configuration.WildcardMatcher;
 import net.bytebuddy.description.annotation.AnnotationSource;
 import net.bytebuddy.matcher.ElementMatcher;
 

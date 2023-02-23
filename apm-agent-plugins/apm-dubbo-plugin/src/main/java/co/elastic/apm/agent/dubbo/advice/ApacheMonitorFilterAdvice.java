@@ -20,8 +20,8 @@ package co.elastic.apm.agent.dubbo.advice;
 
 import co.elastic.apm.agent.dubbo.helper.ApacheDubboTextMapPropagator;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
-import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
+import co.elastic.apm.tracer.api.*;
 import net.bytebuddy.asm.Advice;
 import org.apache.dubbo.rpc.AsyncRpcResult;
 import org.apache.dubbo.rpc.Invocation;

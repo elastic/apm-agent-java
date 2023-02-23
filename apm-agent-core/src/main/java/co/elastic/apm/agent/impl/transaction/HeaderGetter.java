@@ -20,7 +20,7 @@ package co.elastic.apm.agent.impl.transaction;
 
 import javax.annotation.Nullable;
 
-public interface HeaderGetter<T, C> extends co.elastic.apm.plugin.spi.HeaderGetter<T, C> {
+public interface HeaderGetter<T, C> extends co.elastic.apm.tracer.api.dispatch.HeaderGetter<T, C> {
 
     @Nullable
     T getFirstHeader(String headerName, C carrier);
@@ -41,7 +41,7 @@ public interface HeaderGetter<T, C> extends co.elastic.apm.plugin.spi.HeaderGett
      */
     <S> void forEach(String headerName, C carrier, S state, HeaderConsumer<T, S> consumer);
 
-    interface HeaderConsumer<T, S> extends co.elastic.apm.plugin.spi.HeaderGetter.HeaderConsumer<T, S> {
+    interface HeaderConsumer<T, S> extends co.elastic.apm.tracer.api.dispatch.HeaderGetter.HeaderConsumer<T, S> {
         void accept(@Nullable T headerValue, S state);
     }
 }

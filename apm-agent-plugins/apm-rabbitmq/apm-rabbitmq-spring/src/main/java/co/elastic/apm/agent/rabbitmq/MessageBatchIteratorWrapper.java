@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.rabbitmq;
 
 
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.Tracer;
+import co.elastic.apm.tracer.api.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.springframework.amqp.core.Message;

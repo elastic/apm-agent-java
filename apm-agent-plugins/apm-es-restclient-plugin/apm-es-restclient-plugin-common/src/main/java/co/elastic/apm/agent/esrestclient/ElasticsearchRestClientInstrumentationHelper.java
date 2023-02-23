@@ -19,11 +19,14 @@
 package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.sdk.utils.IOUtils;
-import co.elastic.apm.plugin.spi.WildcardMatcher;
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.agent.sdk.utils.WildcardMatcherUtil;
+import co.elastic.apm.agent.sdk.configuration.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.utils.LoggerUtils;
+import co.elastic.apm.tracer.api.*;
+import co.elastic.apm.tracer.api.pooling.Allocator;
+import co.elastic.apm.tracer.api.pooling.ObjectPool;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;

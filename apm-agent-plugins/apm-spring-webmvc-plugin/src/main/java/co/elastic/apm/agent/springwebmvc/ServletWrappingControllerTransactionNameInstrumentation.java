@@ -20,7 +20,7 @@ package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -30,7 +30,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**

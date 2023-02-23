@@ -20,7 +20,9 @@ package co.elastic.apm.agent.awssdk.v1.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractSQSInstrumentationHelper;
 import co.elastic.apm.agent.awssdk.v1.helper.sqs.wrapper.ReceiveMessageResultWrapper;
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.agent.sdk.utils.WildcardMatcherUtil;
+import co.elastic.apm.tracer.api.*;
+import co.elastic.apm.tracer.api.dispatch.TextHeaderSetter;
 import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.Request;
 import com.amazonaws.http.ExecutionContext;
@@ -121,7 +123,7 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<Request<?>, Exec
     }
 
     @Override
-    protected void setMessageContext(@Nullable Message sqsMessage, @Nullable String queueName, co.elastic.apm.plugin.spi.Message message) {
+    protected void setMessageContext(@Nullable Message sqsMessage, @Nullable String queueName, co.elastic.apm.tracer.api.metadata.Message message) {
         if (queueName != null) {
             message.withQueue(queueName);
         }

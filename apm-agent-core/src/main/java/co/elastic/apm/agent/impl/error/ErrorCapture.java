@@ -38,7 +38,7 @@ import java.util.Collection;
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
-public class ErrorCapture implements Recyclable, co.elastic.apm.plugin.spi.ErrorCapture {
+public class ErrorCapture implements Recyclable {
 
     private static final Logger logger = LoggerFactory.getLogger(ErrorCapture.class);
 

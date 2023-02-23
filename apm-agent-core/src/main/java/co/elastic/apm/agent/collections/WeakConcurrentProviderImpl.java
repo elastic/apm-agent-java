@@ -22,7 +22,7 @@ import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
-import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.tracer.api.AbstractSpan;
 import com.blogspot.mydailyjava.weaklockfree.AbstractWeakConcurrentMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
 

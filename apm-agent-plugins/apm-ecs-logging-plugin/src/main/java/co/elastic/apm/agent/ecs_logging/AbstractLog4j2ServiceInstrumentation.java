@@ -20,6 +20,7 @@ package co.elastic.apm.agent.ecs_logging;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.agent.sdk.utils.CustomElementMatchers;
+import co.elastic.apm.tracer.api.service.ServiceAwareTracer;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -30,7 +31,10 @@ import java.util.Collection;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class AbstractLog4j2ServiceInstrumentation extends TracerAwareInstrumentation {
+public abstract class AbstractLog4j2ServiceInstrumentation extends TracerAwareInstrumentation {
+
+    public AbstractLog4j2ServiceInstrumentation(ServiceAwareTracer ignored) {
+    }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {

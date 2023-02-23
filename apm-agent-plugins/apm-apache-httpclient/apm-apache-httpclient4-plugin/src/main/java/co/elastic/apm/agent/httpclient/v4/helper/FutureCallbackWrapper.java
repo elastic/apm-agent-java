@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.httpclient.v4.helper;
 
-import co.elastic.apm.plugin.spi.DefaultOutcome;
-import co.elastic.apm.plugin.spi.Recyclable;
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.DefaultOutcome;
+import co.elastic.apm.tracer.api.pooling.Recyclable;
+import co.elastic.apm.tracer.api.Span;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.concurrent.FutureCallback;

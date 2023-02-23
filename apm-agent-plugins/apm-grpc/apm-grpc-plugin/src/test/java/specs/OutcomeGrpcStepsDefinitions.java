@@ -49,7 +49,7 @@ public class OutcomeGrpcStepsDefinitions {
             .withOutcome(getOutcome(grpcStatus, GrpcHelper::toServerOutcome));
     }
 
-    private static Outcome getOutcome(String grpcStatus, Function<Status, co.elastic.apm.plugin.spi.Outcome> mapFunction) {
+    private static Outcome getOutcome(String grpcStatus, Function<Status, co.elastic.apm.tracer.api.Outcome> mapFunction) {
         Status status = null;
         if (!"n/a".equals(grpcStatus)) {
             status = Status.fromCode(Status.Code.valueOf(grpcStatus));

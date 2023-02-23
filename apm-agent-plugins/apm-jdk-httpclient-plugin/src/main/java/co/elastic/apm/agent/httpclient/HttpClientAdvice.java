@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.Span;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;

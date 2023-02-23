@@ -21,8 +21,9 @@ package co.elastic.apm.agent.cassandra3;
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.agent.sdk.utils.CustomElementMatchers;
 import co.elastic.apm.agent.cassandra.CassandraHelper;
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.GlobalTracer;
+import co.elastic.apm.tracer.api.Span;
+import co.elastic.apm.tracer.api.metadata.Destination;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.ResultSet;
@@ -163,7 +164,7 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
         }
 
         /**
-         * References the method {@link co.elastic.apm.plugin.spi.Destination#withSocketAddress(java.net.SocketAddress)} that has been introduced in 2.0.2
+         * References the method {@link Destination#withSocketAddress(java.net.SocketAddress)} that has been introduced in 2.0.2
          * We must not reference this class directly to avoid it being loaded which may cause a linkage error.
          */
         enum WithSocketAddress implements DestinationAddressSetter {

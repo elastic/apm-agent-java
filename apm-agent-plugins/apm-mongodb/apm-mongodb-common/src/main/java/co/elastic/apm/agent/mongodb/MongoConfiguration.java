@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.mongodb;
 
-import co.elastic.apm.plugin.spi.ConfigurationSubstitute;
-import co.elastic.apm.plugin.spi.WildcardMatcher;
+import co.elastic.apm.agent.sdk.configuration.ConfigurationSubstitute;
+import co.elastic.apm.agent.sdk.configuration.WildcardMatcher;
 
 import java.util.List;
 

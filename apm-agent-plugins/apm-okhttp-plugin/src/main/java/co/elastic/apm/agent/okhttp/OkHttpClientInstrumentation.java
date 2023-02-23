@@ -19,7 +19,10 @@
 package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.DefaultOutcome;
+import co.elastic.apm.tracer.api.Span;
+import co.elastic.apm.agent.sdk.utils.TraceContextUtil;
 import com.squareup.okhttp.HttpUrl;
 import com.squareup.okhttp.Request;
 import net.bytebuddy.asm.Advice;

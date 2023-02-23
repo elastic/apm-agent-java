@@ -20,8 +20,8 @@ package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpAsyncClientHelper;
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;

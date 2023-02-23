@@ -28,7 +28,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_USER_SUPPLIED;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_USER_SUPPLIED;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;

@@ -22,7 +22,7 @@ import co.elastic.apm.agent.impl.Scope;
 
 import javax.annotation.Nullable;
 
-public interface ElasticContext<T extends ElasticContext<T>> extends co.elastic.apm.plugin.spi.ElasticContext<T> {
+public interface ElasticContext<T extends ElasticContext<T>> extends co.elastic.apm.tracer.api.ElasticContext<T> {
 
     /**
      * Makes the context active

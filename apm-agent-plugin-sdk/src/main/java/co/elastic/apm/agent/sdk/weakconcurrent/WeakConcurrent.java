@@ -19,10 +19,9 @@
 package co.elastic.apm.agent.sdk.weakconcurrent;
 
 import co.elastic.apm.agent.sdk.internal.InternalUtil;
-import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.tracer.api.AbstractSpan;
 
 import javax.annotation.Nullable;
-import java.util.ServiceLoader;
 
 public final class WeakConcurrent {
 

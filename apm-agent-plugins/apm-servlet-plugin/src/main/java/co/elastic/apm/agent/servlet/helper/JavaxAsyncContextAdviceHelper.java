@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.plugin.spi.Allocator;
-import co.elastic.apm.plugin.spi.ObjectPool;
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.pooling.Allocator;
+import co.elastic.apm.tracer.api.pooling.ObjectPool;
+import co.elastic.apm.tracer.api.Tracer;
+import co.elastic.apm.tracer.api.Transaction;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
 
 import javax.servlet.AsyncContext;

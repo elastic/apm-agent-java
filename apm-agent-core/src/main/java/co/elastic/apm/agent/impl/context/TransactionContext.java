@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
  */
-public class TransactionContext extends AbstractContext implements co.elastic.apm.plugin.spi.TransactionContext {
+public class TransactionContext extends AbstractContext implements co.elastic.apm.tracer.api.TransactionContext {
 
     /**
      * A flat mapping of user-defined {@link String} keys and {@link String}, {@link Number} or {@link Boolean} values

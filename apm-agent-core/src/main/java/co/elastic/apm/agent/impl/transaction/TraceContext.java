@@ -66,7 +66,7 @@ import java.util.Objects;
  *                      2, 1]
  * </pre>
  */
-public class TraceContext implements Recyclable, co.elastic.apm.plugin.spi.TraceContext {
+public class TraceContext implements Recyclable, co.elastic.apm.tracer.api.TraceContext {
 
     public static final String ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME = "elastic-apm-traceparent";
     public static final String W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME = "traceparent";
@@ -93,16 +93,16 @@ public class TraceContext implements Recyclable, co.elastic.apm.plugin.spi.Trace
 
     private static final Double SAMPLE_RATE_ZERO = 0d;
 
-    private static final ChildContextCreator<TraceContext> FROM_PARENT_CONTEXT = new ChildContextCreatorBridge<TraceContext>(new co.elastic.apm.plugin.spi.ChildContextCreator<TraceContext>() {
+    private static final ChildContextCreator<TraceContext> FROM_PARENT_CONTEXT = new ChildContextCreatorBridge<TraceContext>(new co.elastic.apm.tracer.api.dispatch.ChildContextCreator<TraceContext>() {
         @Override
-        public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, TraceContext parent) {
+        public boolean asChildOf(co.elastic.apm.tracer.api.TraceContext child, TraceContext parent) {
             child.asChildOf(parent);
             return true;
         }
     });
-    private static final ChildContextCreator<AbstractSpan<?>> FROM_PARENT = new ChildContextCreatorBridge<AbstractSpan<?>>(new co.elastic.apm.plugin.spi.ChildContextCreator<AbstractSpan<?>>() {
+    private static final ChildContextCreator<AbstractSpan<?>> FROM_PARENT = new ChildContextCreatorBridge<AbstractSpan<?>>(new co.elastic.apm.tracer.api.dispatch.ChildContextCreator<AbstractSpan<?>>() {
         @Override
-        public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, AbstractSpan<?> parent) {
+        public boolean asChildOf(co.elastic.apm.tracer.api.TraceContext child, AbstractSpan<?> parent) {
             child.asChildOf(parent.getTraceContext());
             return true;
         }
@@ -116,9 +116,9 @@ public class TraceContext implements Recyclable, co.elastic.apm.plugin.spi.Trace
         }
     };
     private static final HeaderChildContextCreator FROM_TRACE_CONTEXT_TEXT_HEADERS =
-        new HeaderChildContextCreatorBridge(new co.elastic.apm.plugin.spi.HeaderChildContextCreator<String, Object>() {
+        new HeaderChildContextCreatorBridge(new co.elastic.apm.tracer.api.dispatch.HeaderChildContextCreator<String, Object>() {
             @Override
-            public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, @Nullable Object carrier, co.elastic.apm.plugin.spi.HeaderGetter<String, Object> traceContextHeaderGetter) {
+            public boolean asChildOf(co.elastic.apm.tracer.api.TraceContext child, @Nullable Object carrier, co.elastic.apm.tracer.api.dispatch.HeaderGetter<String, Object> traceContextHeaderGetter) {
                 if (carrier == null) {
                     return false;
                 }
@@ -160,13 +160,13 @@ public class TraceContext implements Recyclable, co.elastic.apm.plugin.spi.Trace
             }
 
             @Override
-            public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, @Nullable Object carrier, co.elastic.apm.plugin.spi.HeaderGetter<byte[], Object> headerGetter) {
+            public boolean asChildOf(co.elastic.apm.tracer.api.TraceContext child, @Nullable Object carrier, co.elastic.apm.tracer.api.dispatch.HeaderGetter<byte[], Object> headerGetter) {
                 return asChildOf((TraceContext) child, carrier, new HeaderGetterBridge<byte[], Object>(headerGetter));
             }
         };
-    private static final ChildContextCreator<Tracer> FROM_ACTIVE = new ChildContextCreatorBridge<Tracer>(new co.elastic.apm.plugin.spi.ChildContextCreator<Tracer>() {
+    private static final ChildContextCreator<Tracer> FROM_ACTIVE = new ChildContextCreatorBridge<Tracer>(new co.elastic.apm.tracer.api.dispatch.ChildContextCreator<Tracer>() {
         @Override
-        public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, Tracer tracer) {
+        public boolean asChildOf(co.elastic.apm.tracer.api.TraceContext child, Tracer tracer) {
             final AbstractSpan<?> active = tracer.getActive();
             if (active != null) {
                 return fromParent().asChildOf(child, active);
@@ -175,9 +175,9 @@ public class TraceContext implements Recyclable, co.elastic.apm.plugin.spi.Trace
             return false;
         }
     });
-    private static final ChildContextCreator<Object> AS_ROOT = new ChildContextCreatorBridge<Object>(new co.elastic.apm.plugin.spi.ChildContextCreator<Object>() {
+    private static final ChildContextCreator<Object> AS_ROOT = new ChildContextCreatorBridge<Object>(new co.elastic.apm.tracer.api.dispatch.ChildContextCreator<Object>() {
         @Override
-        public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, Object ignore) {
+        public boolean asChildOf(co.elastic.apm.tracer.api.TraceContext child, Object ignore) {
             return false;
         }
     });
@@ -439,7 +439,7 @@ public class TraceContext implements Recyclable, co.elastic.apm.plugin.spi.Trace
     }
 
     @Override
-    public void asChildOf(co.elastic.apm.plugin.spi.TraceContext parent) {
+    public void asChildOf(co.elastic.apm.tracer.api.TraceContext parent) {
         asChildOf((TraceContext) parent);
     }
 
@@ -812,15 +812,15 @@ public class TraceContext implements Recyclable, co.elastic.apm.plugin.spi.Trace
         return flags;
     }
 
-    public interface ChildContextCreator<T> extends co.elastic.apm.plugin.spi.ChildContextCreator<T> {
+    public interface ChildContextCreator<T> extends co.elastic.apm.tracer.api.dispatch.ChildContextCreator<T> {
         boolean asChildOf(TraceContext child, T parent);
     }
 
     public static class ChildContextCreatorBridge<T> implements ChildContextCreator<T> {
 
-        private final co.elastic.apm.plugin.spi.ChildContextCreator<T> childContextCreator;
+        private final co.elastic.apm.tracer.api.dispatch.ChildContextCreator<T> childContextCreator;
 
-        public ChildContextCreatorBridge(co.elastic.apm.plugin.spi.ChildContextCreator<T> childContextCreator) {
+        public ChildContextCreatorBridge(co.elastic.apm.tracer.api.dispatch.ChildContextCreator<T> childContextCreator) {
             this.childContextCreator = childContextCreator;
         }
 
@@ -830,20 +830,20 @@ public class TraceContext implements Recyclable, co.elastic.apm.plugin.spi.Trace
         }
 
         @Override
-        public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, T parent) {
+        public boolean asChildOf(co.elastic.apm.tracer.api.TraceContext child, T parent) {
             return childContextCreator.asChildOf(child, parent);
         }
     }
 
-    public interface HeaderChildContextCreator<H, C> extends co.elastic.apm.plugin.spi.HeaderChildContextCreator<H, C> {
+    public interface HeaderChildContextCreator<H, C> extends co.elastic.apm.tracer.api.dispatch.HeaderChildContextCreator<H, C> {
         boolean asChildOf(TraceContext child, @Nullable C carrier, HeaderGetter<H, C> headerGetter);
     }
 
     public static class HeaderChildContextCreatorBridge<H, C> implements HeaderChildContextCreator<H, C> {
 
-        private final co.elastic.apm.plugin.spi.HeaderChildContextCreator<H, C> headerChildContextCreator;
+        private final co.elastic.apm.tracer.api.dispatch.HeaderChildContextCreator<H, C> headerChildContextCreator;
 
-        public HeaderChildContextCreatorBridge(co.elastic.apm.plugin.spi.HeaderChildContextCreator<H, C> headerChildContextCreator) {
+        public HeaderChildContextCreatorBridge(co.elastic.apm.tracer.api.dispatch.HeaderChildContextCreator<H, C> headerChildContextCreator) {
             this.headerChildContextCreator = headerChildContextCreator;
         }
 
@@ -853,7 +853,7 @@ public class TraceContext implements Recyclable, co.elastic.apm.plugin.spi.Trace
         }
 
         @Override
-        public boolean asChildOf(co.elastic.apm.plugin.spi.TraceContext child, @Nullable C carrier, co.elastic.apm.plugin.spi.HeaderGetter<H, C> headerGetter) {
+        public boolean asChildOf(co.elastic.apm.tracer.api.TraceContext child, @Nullable C carrier, co.elastic.apm.tracer.api.dispatch.HeaderGetter<H, C> headerGetter) {
             return headerChildContextCreator.asChildOf(child, carrier, headerGetter);
         }
     }

@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.vertx.v3.web;
 
 import co.elastic.apm.agent.vertx.v3.Vertx3Instrumentation;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.Transaction;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;

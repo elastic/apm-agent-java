@@ -30,7 +30,7 @@ import java.net.URL;
 /**
  * A complete URL, with scheme, host, port, path and query string.
  */
-public class Url implements Recyclable, co.elastic.apm.plugin.spi.Url {
+public class Url implements Recyclable, co.elastic.apm.tracer.api.metadata.Url {
 
     /**
      * The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.

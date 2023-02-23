@@ -55,7 +55,7 @@ import java.util.concurrent.TimeUnit;
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACEHOLDER;
 
-public class CoreConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.plugin.spi.CoreConfiguration {
+public class CoreConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.sdk.configuration.CoreConfiguration {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

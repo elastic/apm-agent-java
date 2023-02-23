@@ -22,7 +22,7 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 
-public class Socket implements Recyclable, co.elastic.apm.plugin.spi.Socket {
+public class Socket implements Recyclable, co.elastic.apm.tracer.api.metadata.Socket {
 
     @Nullable
     private String remoteAddress;

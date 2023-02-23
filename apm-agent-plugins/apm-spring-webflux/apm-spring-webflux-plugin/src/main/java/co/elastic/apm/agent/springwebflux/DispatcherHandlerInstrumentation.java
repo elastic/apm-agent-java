@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

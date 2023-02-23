@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.Transaction;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;

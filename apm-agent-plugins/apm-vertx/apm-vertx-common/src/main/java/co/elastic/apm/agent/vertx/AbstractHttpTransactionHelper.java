@@ -19,11 +19,17 @@
 package co.elastic.apm.agent.vertx;
 
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
+import co.elastic.apm.agent.sdk.configuration.CoreConfiguration;
+import co.elastic.apm.agent.sdk.configuration.WebConfiguration;
 import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
-import co.elastic.apm.plugin.spi.*;
-import co.elastic.apm.plugin.spi.WildcardMatcher;
+import co.elastic.apm.agent.sdk.utils.WildcardMatcherUtil;
+import co.elastic.apm.agent.sdk.configuration.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.tracer.api.metadata.Request;
+import co.elastic.apm.tracer.api.metadata.Response;
+import co.elastic.apm.tracer.api.Tracer;
+import co.elastic.apm.tracer.api.Transaction;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -31,8 +37,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_DEFAULT;
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_DEFAULT;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 
 public abstract class AbstractHttpTransactionHelper {
     private static final Logger logger = LoggerFactory.getLogger(AbstractHttpTransactionHelper.class);

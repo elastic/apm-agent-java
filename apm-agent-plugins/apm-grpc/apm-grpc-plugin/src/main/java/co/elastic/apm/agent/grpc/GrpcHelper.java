@@ -18,9 +18,13 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.agent.sdk.utils.TraceContextUtil;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.tracer.api.*;
+import co.elastic.apm.tracer.api.dispatch.AbstractHeaderGetter;
+import co.elastic.apm.tracer.api.dispatch.TextHeaderGetter;
+import co.elastic.apm.tracer.api.dispatch.TextHeaderSetter;
 import io.grpc.CallOptions;
 import io.grpc.ClientCall;
 import io.grpc.Metadata;

@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.plugin.spi.DefaultOutcome;
-import co.elastic.apm.plugin.spi.Outcome;
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.DefaultOutcome;
+import co.elastic.apm.tracer.api.Outcome;
+import co.elastic.apm.tracer.api.Span;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 

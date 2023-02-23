@@ -344,7 +344,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         return loggedRequests.get();
     }
 
-    private static class HeaderAccessor implements co.elastic.apm.plugin.spi.TextHeaderGetter<LoggedRequest> {
+    private static class HeaderAccessor implements co.elastic.apm.tracer.api.dispatch.TextHeaderGetter<LoggedRequest> {
 
         static final TextHeaderGetter<LoggedRequest> INSTANCE = new TextHeaderGetterBridge<>(new HeaderAccessor());
 

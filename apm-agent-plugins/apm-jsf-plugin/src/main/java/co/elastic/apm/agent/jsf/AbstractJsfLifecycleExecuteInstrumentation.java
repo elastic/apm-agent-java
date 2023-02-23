@@ -18,15 +18,15 @@
  */
 package co.elastic.apm.agent.jsf;
 
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.plugin.spi.Span;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.Span;
+import co.elastic.apm.tracer.api.Transaction;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;

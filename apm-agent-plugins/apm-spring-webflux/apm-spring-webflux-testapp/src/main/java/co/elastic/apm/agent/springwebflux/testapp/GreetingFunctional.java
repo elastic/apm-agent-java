@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.springwebflux.testapp;
 
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.GlobalTracer;
+import co.elastic.apm.tracer.api.Tracer;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.Transaction;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;

@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.dubbo.helper;
 
-import co.elastic.apm.plugin.spi.TextHeaderGetter;
-import co.elastic.apm.plugin.spi.TextHeaderSetter;
+import co.elastic.apm.tracer.api.dispatch.TextHeaderGetter;
+import co.elastic.apm.tracer.api.dispatch.TextHeaderSetter;
 import org.apache.dubbo.rpc.RpcContext;
 
 import javax.annotation.Nullable;

@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.vertx.v4.web;
 
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.GlobalTracer;
+import co.elastic.apm.tracer.api.Tracer;
+import co.elastic.apm.tracer.api.Transaction;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerRequest;

@@ -46,7 +46,7 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.plugin.spi.ConfigurationSubstitute;
+import co.elastic.apm.agent.sdk.configuration.ConfigurationSubstitute;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -211,13 +211,13 @@ public class ElasticApmTracer extends BasicTracer implements MetricsAwareTracer 
     @SuppressWarnings("unchecked")
     public <T> T getConfig(Class<T> configProvider) {
         Class<? extends ConfigurationOptionProvider> actualConfigProvider;
-        if (configProvider == co.elastic.apm.plugin.spi.CoreConfiguration.class) {
+        if (configProvider == co.elastic.apm.agent.sdk.configuration.CoreConfiguration.class) {
             actualConfigProvider = CoreConfiguration.class;
-        } else if (configProvider == co.elastic.apm.plugin.spi.StacktraceConfiguration.class) {
+        } else if (configProvider == co.elastic.apm.agent.sdk.configuration.StacktraceConfiguration.class) {
             actualConfigProvider = StacktraceConfiguration.class;
-        } else if (configProvider == co.elastic.apm.plugin.spi.MessagingConfiguration.class) {
+        } else if (configProvider == co.elastic.apm.agent.sdk.configuration.MessagingConfiguration.class) {
             actualConfigProvider = MessagingConfiguration.class;
-        } else if (configProvider == co.elastic.apm.plugin.spi.WebConfiguration.class) {
+        } else if (configProvider == co.elastic.apm.agent.sdk.configuration.WebConfiguration.class) {
             actualConfigProvider = WebConfiguration.class;
         } else if (ConfigurationOptionProvider.class.isAssignableFrom(configProvider)) {
             actualConfigProvider = (Class<? extends ConfigurationOptionProvider>) configProvider;

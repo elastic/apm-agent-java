@@ -34,7 +34,7 @@ import java.nio.CharBuffer;
 /**
  * An object containing contextual data for database spans
  */
-public class Db implements Recyclable, co.elastic.apm.plugin.spi.Db {
+public class Db implements Recyclable, co.elastic.apm.tracer.api.metadata.Db {
 
     private static final ObjectPool<CharBuffer> charBufferPool = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<CharBuffer>(128), false,
         new Allocator<CharBuffer>() {

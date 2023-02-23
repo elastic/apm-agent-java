@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.struts;
 
 import co.elastic.apm.agent.sdk.utils.VersionUtils;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.Transaction;
 import com.opensymphony.xwork2.ActionProxy;
 
 public class StrutsFrameworkUtils {

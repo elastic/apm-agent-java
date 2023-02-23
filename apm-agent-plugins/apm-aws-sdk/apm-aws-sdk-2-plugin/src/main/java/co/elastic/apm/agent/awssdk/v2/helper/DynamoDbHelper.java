@@ -19,12 +19,10 @@
 package co.elastic.apm.agent.awssdk.v2.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractDynamoDBInstrumentationHelper;
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.tracer.api.GlobalTracer;
+import co.elastic.apm.tracer.api.Tracer;
 import software.amazon.awssdk.core.SdkRequest;
 import software.amazon.awssdk.core.http.ExecutionContext;
-
-import javax.annotation.Nullable;
 
 public class DynamoDbHelper extends AbstractDynamoDBInstrumentationHelper<SdkRequest, ExecutionContext> {
 

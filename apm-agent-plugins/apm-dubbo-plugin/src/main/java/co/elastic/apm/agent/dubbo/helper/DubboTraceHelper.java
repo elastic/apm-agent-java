@@ -18,10 +18,13 @@
  */
 package co.elastic.apm.agent.dubbo.helper;
 
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.tracer.api.*;
+import co.elastic.apm.tracer.api.metadata.Destination;
 
 import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
+
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_DEFAULT;
 
 public class DubboTraceHelper {
 
@@ -42,7 +45,13 @@ public class DubboTraceHelper {
 
         span.withType(EXTERNAL_TYPE)
             .withSubtype(DUBBO_SUBTYPE);
-        span.updateName(apiClass, methodName);
+
+        StringBuilder spanName = span.getAndOverrideName(PRIO_DEFAULT);
+        if (spanName != null) {
+            String className = apiClass.getName();
+            spanName.append(className, className.lastIndexOf('.') + 1, className.length());
+            spanName.append("#").append(methodName);
+        }
 
         Destination destination = span.getContext().getDestination();
         destination.withInetSocketAddress(remoteAddress);
@@ -56,7 +65,12 @@ public class DubboTraceHelper {
     }
 
     public static void fillTransaction(Transaction<?> transaction, Class<?> apiClass, String methodName) {
-        transaction.updateName(apiClass, methodName);
+        StringBuilder spanName = transaction.getAndOverrideName(PRIO_DEFAULT);
+        if (spanName != null) {
+            String className = apiClass.getName();
+            spanName.append(className, className.lastIndexOf('.') + 1, className.length());
+            spanName.append("#").append(methodName);
+        }
         transaction.withType(Transaction.TYPE_REQUEST);
     }
 }

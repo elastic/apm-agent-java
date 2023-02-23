@@ -22,7 +22,7 @@ import co.elastic.apm.agent.awssdk.v2.helper.DynamoDbHelper;
 import co.elastic.apm.agent.awssdk.v2.helper.S3Helper;
 import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

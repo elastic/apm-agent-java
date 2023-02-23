@@ -18,5 +18,5 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-public interface TextHeaderSetter<C> extends HeaderSetter<String, C>, co.elastic.apm.plugin.spi.TextHeaderSetter<C> {
+public interface TextHeaderSetter<C> extends HeaderSetter<String, C>, co.elastic.apm.tracer.api.dispatch.TextHeaderSetter<C> {
 }

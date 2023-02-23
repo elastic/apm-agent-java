@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.esrestclient;
 
-import co.elastic.apm.plugin.spi.Recyclable;
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.pooling.Recyclable;
+import co.elastic.apm.tracer.api.Tracer;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.Span;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseListener;
 

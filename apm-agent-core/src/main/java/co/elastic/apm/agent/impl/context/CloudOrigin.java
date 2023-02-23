@@ -28,7 +28,7 @@ import javax.annotation.Nullable;
  * If a request originated from a cloud component that provides information about the cloud origin,
  * the cloud origin interface can be used to collect this information.
  */
-public class CloudOrigin implements Recyclable, co.elastic.apm.plugin.spi.CloudOrigin {
+public class CloudOrigin implements Recyclable, co.elastic.apm.tracer.api.metadata.CloudOrigin {
 
     @Nullable
     protected String accountId;

@@ -18,10 +18,11 @@
  */
 package co.elastic.apm.agent.ecs_logging;
 
-import co.elastic.apm.plugin.spi.CoreConfiguration;
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.plugin.spi.ServiceInfo;
-import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.agent.sdk.configuration.CoreConfiguration;
+import co.elastic.apm.tracer.api.GlobalTracer;
+import co.elastic.apm.tracer.api.service.ServiceAwareTracer;
+import co.elastic.apm.tracer.api.service.ServiceInfo;
+import co.elastic.apm.tracer.api.Tracer;
 import co.elastic.logging.log4j2.EcsLayout;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.type.TypeDescription;
@@ -32,6 +33,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class Log4j2ServiceVersionInstrumentation extends AbstractLog4j2ServiceInstrumentation {
 
+    public Log4j2ServiceVersionInstrumentation(ServiceAwareTracer ignored) {
+        super(ignored);
+    }
+
     @Override
     public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
         return super.getTypeMatcher().and(declaresMethod(named("setServiceVersion")));
@@ -39,7 +44,7 @@ public class Log4j2ServiceVersionInstrumentation extends AbstractLog4j2ServiceIn
 
     public static class AdviceClass {
 
-        private static final Tracer tracer = GlobalTracer.get();
+        private static final ServiceAwareTracer tracer = GlobalTracer.get().require(ServiceAwareTracer.class);
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onEnter(@Advice.This EcsLayout.Builder builder) {

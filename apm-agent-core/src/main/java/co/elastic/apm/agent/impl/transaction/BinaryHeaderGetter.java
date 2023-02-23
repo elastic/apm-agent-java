@@ -18,5 +18,5 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-public interface BinaryHeaderGetter<C> extends HeaderGetter<byte[], C>, co.elastic.apm.plugin.spi.BinaryHeaderGetter<C> {
+public interface BinaryHeaderGetter<C> extends HeaderGetter<byte[], C>, co.elastic.apm.tracer.api.dispatch.BinaryHeaderGetter<C> {
 }

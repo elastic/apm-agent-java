@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.vertx.v4.webclient;
 
-import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.tracer.api.AbstractSpan;
 import co.elastic.apm.agent.vertx.AbstractVertxWebClientHelper;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import co.elastic.apm.agent.vertx.v4.Vertx4Instrumentation;

@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.plugin.spi.Recyclable;
-import co.elastic.apm.plugin.spi.Response;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.pooling.Recyclable;
+import co.elastic.apm.tracer.api.metadata.Response;
+import co.elastic.apm.tracer.api.Transaction;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
 
 import javax.annotation.Nullable;

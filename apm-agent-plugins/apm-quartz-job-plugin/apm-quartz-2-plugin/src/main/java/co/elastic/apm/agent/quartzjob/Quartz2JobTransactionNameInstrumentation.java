@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.quartzjob;
 
 import co.elastic.apm.agent.sdk.bindings.SimpleMethodSignatureOffsetMappingFactory;
-import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.tracer.api.Tracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;

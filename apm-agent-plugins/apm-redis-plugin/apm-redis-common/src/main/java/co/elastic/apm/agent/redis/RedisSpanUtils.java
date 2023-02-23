@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.redis;
 
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.plugin.spi.Span;
-import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.tracer.api.GlobalTracer;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.Span;
+import co.elastic.apm.tracer.api.Tracer;
 
 import javax.annotation.Nullable;
 

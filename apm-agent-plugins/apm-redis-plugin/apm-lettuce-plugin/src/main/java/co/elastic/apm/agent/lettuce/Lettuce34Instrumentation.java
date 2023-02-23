@@ -20,7 +20,7 @@ package co.elastic.apm.agent.lettuce;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.Span;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import com.lambdaworks.redis.protocol.RedisCommand;
 import net.bytebuddy.matcher.ElementMatcher;

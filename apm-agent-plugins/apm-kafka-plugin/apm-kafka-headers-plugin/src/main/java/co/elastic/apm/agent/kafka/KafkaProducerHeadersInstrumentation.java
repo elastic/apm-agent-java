@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.Span;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
 import net.bytebuddy.asm.Advice;

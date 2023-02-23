@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.vertx;
 
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.tracer.api.GlobalTracer;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.Tracer;
 import io.vertx.core.Handler;
 
 public class GenericHandlerWrapper<T> implements Handler<T> {

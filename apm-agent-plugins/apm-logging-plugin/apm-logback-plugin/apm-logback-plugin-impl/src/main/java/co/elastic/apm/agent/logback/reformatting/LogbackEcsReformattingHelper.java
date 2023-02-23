@@ -31,11 +31,11 @@ import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import co.elastic.apm.agent.logback.sending.LogbackLogSenderAppender;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
-import co.elastic.apm.plugin.spi.WildcardMatcher;
+import co.elastic.apm.agent.sdk.configuration.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.plugin.spi.WildcardMatcherUtil;
+import co.elastic.apm.agent.sdk.utils.WildcardMatcherUtil;
 import co.elastic.logging.AdditionalField;
 import co.elastic.logging.logback.EcsEncoder;
 

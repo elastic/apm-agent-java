@@ -28,7 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-public class MessagingConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.plugin.spi.MessagingConfiguration {
+public class MessagingConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.sdk.configuration.MessagingConfiguration {
     private static final String MESSAGING_CATEGORY = "Messaging";
     private static final String MESSAGE_POLLING_TRANSACTION_STRATEGY = "message_polling_transaction_strategy";
     private static final String MESSAGE_BATCH_STRATEGY = "message_batch_strategy";

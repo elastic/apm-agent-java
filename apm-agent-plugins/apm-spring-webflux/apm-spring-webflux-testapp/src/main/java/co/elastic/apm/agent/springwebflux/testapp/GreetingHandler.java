@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.springwebflux.testapp;
 
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.GlobalTracer;
+import co.elastic.apm.tracer.api.Span;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Component;

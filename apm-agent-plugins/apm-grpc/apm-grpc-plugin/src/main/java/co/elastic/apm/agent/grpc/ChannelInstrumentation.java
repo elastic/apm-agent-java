@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.Span;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import io.grpc.CallOptions;

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.plugin.spi.TextHeaderSetter;
+import co.elastic.apm.tracer.api.dispatch.TextHeaderSetter;
 import okhttp3.Request;
 
 @SuppressWarnings("unused")

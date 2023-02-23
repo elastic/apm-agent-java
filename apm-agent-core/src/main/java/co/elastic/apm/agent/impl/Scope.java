@@ -41,7 +41,7 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
  * {@link co.elastic.apm.agent.impl.transaction.AbstractSpan}.
  * </p>
  */
-public interface Scope extends AutoCloseable, co.elastic.apm.plugin.spi.Scope {
+public interface Scope extends AutoCloseable, co.elastic.apm.tracer.api.Scope {
 
     @Override
     void close();

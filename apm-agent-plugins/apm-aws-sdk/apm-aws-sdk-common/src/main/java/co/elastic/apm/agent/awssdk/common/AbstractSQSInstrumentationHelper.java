@@ -18,12 +18,16 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.plugin.spi.Message;
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.agent.sdk.configuration.CoreConfiguration;
+import co.elastic.apm.agent.sdk.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.sdk.utils.TraceContextUtil;
+import co.elastic.apm.agent.sdk.utils.WildcardMatcherUtil;
+import co.elastic.apm.tracer.api.*;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
+import co.elastic.apm.tracer.api.dispatch.TextHeaderGetter;
+import co.elastic.apm.tracer.api.metadata.Message;
 
 import javax.annotation.Nullable;
 import java.net.URI;

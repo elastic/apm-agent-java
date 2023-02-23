@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.plugin.spi.Span;
-import co.elastic.apm.plugin.spi.TraceContextUtil;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.Span;
+import co.elastic.apm.agent.sdk.utils.TraceContextUtil;
+import co.elastic.apm.tracer.api.Transaction;
 import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;

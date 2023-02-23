@@ -18,8 +18,13 @@
  */
 package co.elastic.apm.agent.httpserver;
 
+import co.elastic.apm.agent.sdk.configuration.CoreConfiguration;
+import co.elastic.apm.agent.sdk.configuration.WebConfiguration;
+import co.elastic.apm.agent.sdk.utils.ResultUtil;
 import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.tracer.api.*;
+import co.elastic.apm.tracer.api.metadata.Request;
+import co.elastic.apm.tracer.api.metadata.Response;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpsExchange;

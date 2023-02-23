@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.mongodb.v3;
 
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.Span;
 import co.elastic.apm.agent.mongodb.MongoHelper;
 import com.mongodb.MongoNamespace;
 import com.mongodb.ServerAddress;

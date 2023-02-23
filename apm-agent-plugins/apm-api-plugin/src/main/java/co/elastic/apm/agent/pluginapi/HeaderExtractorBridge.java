@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.plugin.spi.AbstractHeaderGetter;
-import co.elastic.apm.plugin.spi.TextHeaderGetter;
+import co.elastic.apm.tracer.api.dispatch.AbstractHeaderGetter;
+import co.elastic.apm.tracer.api.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 

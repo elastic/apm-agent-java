@@ -31,7 +31,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * A 128 bit globally unique ID of the whole trace forest
  */
-public class Id implements Recyclable, co.elastic.apm.plugin.spi.Id {
+public class Id implements Recyclable, co.elastic.apm.tracer.api.Id {
 
     private final byte[] data;
     private boolean empty = true;

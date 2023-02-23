@@ -28,12 +28,12 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
-public class ObjectPoolFactory implements co.elastic.apm.plugin.spi.ObjectPoolFactory {
+public class ObjectPoolFactory implements co.elastic.apm.tracer.api.pooling.ObjectPoolFactory {
 
     public static final ObjectPoolFactory INSTANCE = new ObjectPoolFactory();
 
     @Override
-    public <T extends co.elastic.apm.plugin.spi.Recyclable> co.elastic.apm.plugin.spi.ObjectPool<T> createRecyclableObjectPool(int maxCapacity, co.elastic.apm.plugin.spi.Allocator<T> allocator) {
+    public <T extends co.elastic.apm.tracer.api.pooling.Recyclable> co.elastic.apm.tracer.api.pooling.ObjectPool<T> createRecyclableObjectPool(int maxCapacity, co.elastic.apm.tracer.api.pooling.Allocator<T> allocator) {
         // TODO return QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<T>((maxCapacity)), false, allocator);
         return null;
     }

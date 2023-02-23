@@ -20,8 +20,8 @@ package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.sdk.db.Scanner;
 import co.elastic.apm.agent.sdk.db.SignatureParser;
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.Span;
 import co.elastic.apm.agent.jdbc.JdbcFilter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;

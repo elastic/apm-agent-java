@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.websocket;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
-import co.elastic.apm.plugin.spi.DefaultOutcome;
-import co.elastic.apm.plugin.spi.StacktraceConfiguration;
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.DefaultOutcome;
+import co.elastic.apm.agent.sdk.configuration.StacktraceConfiguration;
+import co.elastic.apm.tracer.api.Tracer;
+import co.elastic.apm.tracer.api.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -36,7 +36,7 @@ import java.util.Collection;
 import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.isProxy;
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;

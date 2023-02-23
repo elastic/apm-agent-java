@@ -57,7 +57,7 @@ public class OpenTracingTextMapBridge implements TextHeaderGetter<Iterable<Map.E
     }
 
     @Override
-    public <S> void forEach(String headerName, Iterable<Map.Entry<String, String>> carrier, S state, co.elastic.apm.plugin.spi.HeaderGetter.HeaderConsumer<String, S> consumer) {
+    public <S> void forEach(String headerName, Iterable<Map.Entry<String, String>> carrier, S state, co.elastic.apm.tracer.api.dispatch.HeaderGetter.HeaderConsumer<String, S> consumer) {
         for (Map.Entry<String, String> entry : carrier) {
             if (entry.getKey().equalsIgnoreCase(headerName)) {
                 consumer.accept(entry.getValue(), state);

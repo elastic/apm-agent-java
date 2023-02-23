@@ -19,7 +19,10 @@
 package co.elastic.apm.agent.vertx;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.DefaultOutcome;
+import co.elastic.apm.tracer.api.Span;
+import co.elastic.apm.tracer.api.dispatch.TextHeaderSetter;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.impl.HttpContext;

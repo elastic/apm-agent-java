@@ -19,12 +19,14 @@
 package co.elastic.apm.agent.rabbitmq;
 
 
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.agent.sdk.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.rabbitmq.header.SpringRabbitMQTextHeaderGetter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.utils.LoggerUtils;
 import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.utils.TraceContextUtil;
+import co.elastic.apm.tracer.api.*;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;

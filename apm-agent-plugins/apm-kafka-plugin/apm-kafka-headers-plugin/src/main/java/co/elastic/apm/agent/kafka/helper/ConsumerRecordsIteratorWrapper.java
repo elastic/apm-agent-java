@@ -18,8 +18,14 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.agent.sdk.configuration.CoreConfiguration;
+import co.elastic.apm.agent.sdk.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.sdk.utils.WildcardMatcherUtil;
 import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
+import co.elastic.apm.tracer.api.metadata.Message;
+import co.elastic.apm.tracer.api.TraceContext;
+import co.elastic.apm.tracer.api.Tracer;
+import co.elastic.apm.tracer.api.Transaction;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.record.TimestampType;

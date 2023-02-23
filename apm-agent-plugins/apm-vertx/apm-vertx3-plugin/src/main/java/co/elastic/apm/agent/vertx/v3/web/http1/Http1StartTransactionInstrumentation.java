@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.vertx.v3.web.http1;
 
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.vertx.v3.web.WebHelper;

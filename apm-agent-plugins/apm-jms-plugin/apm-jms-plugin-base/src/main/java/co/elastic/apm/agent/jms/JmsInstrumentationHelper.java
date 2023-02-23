@@ -18,11 +18,14 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.plugin.spi.*;
-import co.elastic.apm.plugin.spi.WildcardMatcher;
+import co.elastic.apm.agent.sdk.configuration.CoreConfiguration;
+import co.elastic.apm.agent.sdk.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.sdk.utils.TraceContextUtil;
+import co.elastic.apm.agent.sdk.utils.WildcardMatcherUtil;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
+import co.elastic.apm.tracer.api.*;
 
 import javax.annotation.Nullable;
 import javax.jms.Destination;
@@ -238,7 +241,7 @@ public class JmsInstrumentationHelper {
             return;
         }
         try {
-            co.elastic.apm.plugin.spi.Message messageContext = span.getContext().getMessage();
+            co.elastic.apm.tracer.api.metadata.Message messageContext = span.getContext().getMessage();
 
             // Currently only capturing body of TextMessages. The javax.jms.Message#getBody() API is since 2.0, so,
             // if we are supporting JMS 1.1, it makes no sense to rely on isAssignableFrom.

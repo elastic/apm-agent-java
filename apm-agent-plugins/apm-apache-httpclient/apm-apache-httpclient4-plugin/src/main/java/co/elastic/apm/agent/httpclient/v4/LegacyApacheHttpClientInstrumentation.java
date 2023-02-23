@@ -20,7 +20,10 @@ package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.DefaultOutcome;
+import co.elastic.apm.tracer.api.Span;
+import co.elastic.apm.agent.sdk.utils.TraceContextUtil;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;

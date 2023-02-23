@@ -19,14 +19,14 @@
 package co.elastic.apm.agent.struts;
 
 import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.tracer.api.*;
 import com.opensymphony.xwork2.ActionContext;
 import com.opensymphony.xwork2.ActionProxy;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 
 public class ActionProxyAdvice {
 

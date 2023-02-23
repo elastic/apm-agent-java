@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.Transaction;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;

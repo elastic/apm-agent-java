@@ -20,15 +20,15 @@ package co.elastic.apm.agent.sparkjava;
 
 import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
 import co.elastic.apm.agent.sdk.utils.VersionUtils;
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.plugin.spi.Transaction;
-import co.elastic.apm.plugin.spi.WebConfiguration;
+import co.elastic.apm.tracer.api.GlobalTracer;
+import co.elastic.apm.tracer.api.Tracer;
+import co.elastic.apm.tracer.api.Transaction;
+import co.elastic.apm.agent.sdk.configuration.WebConfiguration;
 import net.bytebuddy.asm.Advice;
 import spark.Route;
 import spark.routematch.RouteMatch;
 
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 
 public class RoutesAdvice {
 

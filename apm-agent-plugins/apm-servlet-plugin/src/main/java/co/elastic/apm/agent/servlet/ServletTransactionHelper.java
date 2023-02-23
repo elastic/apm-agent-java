@@ -19,13 +19,19 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
+import co.elastic.apm.agent.sdk.configuration.CoreConfiguration;
+import co.elastic.apm.agent.sdk.configuration.WebConfiguration;
+import co.elastic.apm.agent.sdk.utils.ResultUtil;
 import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
-import co.elastic.apm.plugin.spi.*;
-import co.elastic.apm.plugin.spi.WildcardMatcher;
+import co.elastic.apm.agent.sdk.utils.WildcardMatcherUtil;
+import co.elastic.apm.agent.sdk.configuration.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.servlet.adapter.ServletContextAdapter;
 import co.elastic.apm.agent.servlet.adapter.ServletRequestAdapter;
+import co.elastic.apm.tracer.api.*;
+import co.elastic.apm.tracer.api.metadata.Request;
+import co.elastic.apm.tracer.api.metadata.Response;
 
 import javax.annotation.Nullable;
 import java.security.Principal;
@@ -35,8 +41,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_DEFAULT;
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_DEFAULT;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 
 public class ServletTransactionHelper {
 

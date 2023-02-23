@@ -48,7 +48,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
     private Transaction transaction;
 
-    private WeakMap<Process, co.elastic.apm.plugin.spi.Span<?>> storageMap;
+    private WeakMap<Process, co.elastic.apm.tracer.api.Span<?>> storageMap;
     private ProcessHelper helper;
 
     @BeforeEach

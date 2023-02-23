@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
 /**
  * Represents a target service
  */
-public class ServiceTarget implements Recyclable, co.elastic.apm.plugin.spi.ServiceTarget {
+public class ServiceTarget implements Recyclable, co.elastic.apm.tracer.api.service.ServiceTarget {
 
     @Nullable
     private String type;

@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.Span;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderSetter;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.plugin.spi.TraceContextUtil;
+import co.elastic.apm.agent.sdk.utils.TraceContextUtil;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;

@@ -19,9 +19,13 @@
 package co.elastic.apm.agent.javalin;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.configuration.WebConfiguration;
 import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
 import co.elastic.apm.agent.sdk.utils.VersionUtils;
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.GlobalTracer;
+import co.elastic.apm.tracer.api.Span;
+import co.elastic.apm.tracer.api.Transaction;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
 import io.javalin.http.HandlerType;
@@ -41,7 +45,7 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
 import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.classLoaderCanLoadClass;
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;

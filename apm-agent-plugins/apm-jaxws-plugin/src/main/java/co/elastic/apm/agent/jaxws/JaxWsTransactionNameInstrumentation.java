@@ -20,9 +20,9 @@ package co.elastic.apm.agent.jaxws;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.agent.sdk.bindings.SimpleMethodSignatureOffsetMappingFactory;
-import co.elastic.apm.plugin.spi.StacktraceConfiguration;
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.agent.sdk.configuration.StacktraceConfiguration;
+import co.elastic.apm.tracer.api.Tracer;
+import co.elastic.apm.tracer.api.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -37,7 +37,7 @@ import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.classLoaderCa
 import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.sdk.utils.CustomElementMatchers.overridesOrImplementsMethodThat;
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isDeclaredBy;

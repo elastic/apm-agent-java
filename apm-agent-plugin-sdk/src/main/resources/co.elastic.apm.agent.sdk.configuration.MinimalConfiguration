@@ -1,0 +1,4 @@
+co.elastic.apm.agent.sdk.configuration.MinimalCoreConfiguration
+co.elastic.apm.agent.sdk.configuration.MinimalMessagingConfiguration
+co.elastic.apm.agent.sdk.configuration.MinimalWebConfiguration
+co.elastic.apm.agent.sdk.configuration.MinimalStacktraceConfiguration

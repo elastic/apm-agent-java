@@ -18,7 +18,10 @@
  */
 package co.elastic.apm.agent.httpclient.v4.helper;
 
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.tracer.api.*;
+import co.elastic.apm.tracer.api.pooling.Allocator;
+import co.elastic.apm.tracer.api.pooling.ObjectPool;
+import co.elastic.apm.tracer.api.pooling.ObjectPoolFactory;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.protocol.HttpContext;

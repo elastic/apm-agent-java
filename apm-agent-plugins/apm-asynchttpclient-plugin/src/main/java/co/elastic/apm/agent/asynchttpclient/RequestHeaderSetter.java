@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.asynchttpclient;
 
-import co.elastic.apm.plugin.spi.TextHeaderSetter;
+import co.elastic.apm.tracer.api.dispatch.TextHeaderSetter;
 import org.asynchttpclient.Request;
 
 class RequestHeaderSetter implements TextHeaderSetter<Request> {

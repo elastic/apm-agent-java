@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.plugin.spi.AbstractSpan;
-import co.elastic.apm.plugin.spi.DefaultOutcome;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.DefaultOutcome;
 import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
 import com.alibaba.dubbo.rpc.Result;
 import net.bytebuddy.asm.Advice;

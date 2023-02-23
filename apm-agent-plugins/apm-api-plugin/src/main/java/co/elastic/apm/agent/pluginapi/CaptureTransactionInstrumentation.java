@@ -23,9 +23,9 @@ import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory.An
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.plugin.spi.CoreConfiguration;
-import co.elastic.apm.plugin.spi.DefaultOutcome;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.agent.sdk.configuration.CoreConfiguration;
+import co.elastic.apm.tracer.api.DefaultOutcome;
+import co.elastic.apm.tracer.api.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -44,8 +44,8 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_METHOD_SIGNATURE;
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_USER_SUPPLIED;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_METHOD_SIGNATURE;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_USER_SUPPLIED;
 import static co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static co.elastic.apm.agent.pluginapi.Utils.FRAMEWORK_NAME;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;

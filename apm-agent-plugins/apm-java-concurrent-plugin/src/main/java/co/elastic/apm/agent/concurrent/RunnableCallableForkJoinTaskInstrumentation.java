@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
-import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.tracer.api.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;

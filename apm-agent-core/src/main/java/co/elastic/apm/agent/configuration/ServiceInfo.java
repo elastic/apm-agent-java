@@ -28,7 +28,7 @@ import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
-public class ServiceInfo extends co.elastic.apm.plugin.spi.ServiceInfo {
+public class ServiceInfo extends co.elastic.apm.tracer.api.service.ServiceInfo {
 
     private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)+(\\d+)(.*)?$";
     private static final String DEFAULT_SERVICE_NAME = "unknown-java-service";

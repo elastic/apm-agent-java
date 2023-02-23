@@ -39,11 +39,6 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-plugin-spi</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>com.blogspot.mydailyjava</groupId>
             <artifactId>weak-lock-free</artifactId>
             <version>0.18</version>

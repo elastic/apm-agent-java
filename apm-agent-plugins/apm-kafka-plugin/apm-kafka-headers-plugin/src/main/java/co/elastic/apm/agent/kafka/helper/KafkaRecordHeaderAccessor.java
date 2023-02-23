@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
-import co.elastic.apm.plugin.spi.BinaryHeaderGetter;
-import co.elastic.apm.plugin.spi.BinaryHeaderSetter;
-import co.elastic.apm.plugin.spi.HeaderRemover;
+import co.elastic.apm.tracer.api.dispatch.BinaryHeaderGetter;
+import co.elastic.apm.tracer.api.dispatch.BinaryHeaderSetter;
+import co.elastic.apm.tracer.api.dispatch.HeaderRemover;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;

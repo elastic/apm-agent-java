@@ -31,7 +31,7 @@ import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 
 import javax.annotation.Nullable;
 
-public interface Tracer extends co.elastic.apm.plugin.spi.Tracer {
+public interface Tracer extends co.elastic.apm.tracer.api.Tracer, co.elastic.apm.tracer.api.service.ServiceAwareTracer {
 
     /**
      * Starts a trace-root transaction

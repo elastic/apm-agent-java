@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.log4j2.correlation;
 
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.tracer.api.GlobalTracer;
+import co.elastic.apm.tracer.api.Tracer;
 import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
 import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
 import org.apache.logging.log4j.ThreadContext;

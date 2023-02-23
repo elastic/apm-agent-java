@@ -22,9 +22,9 @@ import javax.annotation.Nullable;
 
 public class TextHeaderGetterBridge<C> implements TextHeaderGetter<C> {
 
-    private final co.elastic.apm.plugin.spi.TextHeaderGetter<C> textHeadersGetter;
+    private final co.elastic.apm.tracer.api.dispatch.TextHeaderGetter<C> textHeadersGetter;
 
-    public TextHeaderGetterBridge(co.elastic.apm.plugin.spi.TextHeaderGetter<C> textHeadersGetter) {
+    public TextHeaderGetterBridge(co.elastic.apm.tracer.api.dispatch.TextHeaderGetter<C> textHeadersGetter) {
         this.textHeadersGetter = textHeadersGetter;
     }
 
@@ -40,7 +40,7 @@ public class TextHeaderGetterBridge<C> implements TextHeaderGetter<C> {
     }
 
     @Override
-    public <S> void forEach(String headerName, C carrier, S state, co.elastic.apm.plugin.spi.HeaderGetter.HeaderConsumer<String, S> consumer) {
+    public <S> void forEach(String headerName, C carrier, S state, co.elastic.apm.tracer.api.dispatch.HeaderGetter.HeaderConsumer<String, S> consumer) {
         textHeadersGetter.forEach(headerName, carrier, state, consumer);
     }
 }

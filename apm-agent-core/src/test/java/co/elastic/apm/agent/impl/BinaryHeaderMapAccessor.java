@@ -22,7 +22,7 @@ import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.BinaryHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.HeaderRemover;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.plugin.spi.HeaderGetter;
+import co.elastic.apm.tracer.api.dispatch.HeaderGetter;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;

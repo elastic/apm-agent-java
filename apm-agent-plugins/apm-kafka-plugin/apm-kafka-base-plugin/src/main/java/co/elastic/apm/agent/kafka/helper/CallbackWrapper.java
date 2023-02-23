@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
-import co.elastic.apm.plugin.spi.Recyclable;
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.pooling.Recyclable;
+import co.elastic.apm.tracer.api.Span;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.RecordMetadata;
 

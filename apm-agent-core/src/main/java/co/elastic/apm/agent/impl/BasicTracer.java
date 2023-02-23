@@ -28,8 +28,8 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
-import co.elastic.apm.plugin.spi.MinimalConfiguration;
-import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.agent.sdk.configuration.MinimalConfiguration;
+import co.elastic.apm.tracer.api.Tracer;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -455,40 +455,28 @@ public class BasicTracer implements SpanAwareTracer {
 
     @Nullable
     @Override
-    public <C> co.elastic.apm.plugin.spi.Transaction<?> startChildTransaction(@Nullable C headerCarrier, final co.elastic.apm.plugin.spi.TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+    public <C> co.elastic.apm.tracer.api.Transaction<?> startChildTransaction(@Nullable C headerCarrier, final co.elastic.apm.tracer.api.dispatch.TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return startChildTransaction(headerCarrier, new TextHeaderGetterBridge<>(textHeadersGetter), initiatingClassLoader);
     }
 
     @Nullable
     @Override
-    public <C> co.elastic.apm.plugin.spi.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.plugin.spi.TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, long epochMicros) {
-        return startChildTransaction(headerCarrier, new TextHeaderGetterBridge<C>(textHeadersGetter), initiatingClassLoader, epochMicros);
-    }
-
-    @Nullable
-    @Override
-    public <C> co.elastic.apm.plugin.spi.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.plugin.spi.BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+    public <C> co.elastic.apm.tracer.api.Transaction<?> startChildTransaction(@Nullable C headerCarrier, co.elastic.apm.tracer.api.dispatch.BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return startChildTransaction(headerCarrier, new BinaryHeaderGetterBridge<C>(binaryHeadersGetter), initiatingClassLoader);
     }
 
-    @Nullable
     @Override
-    public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable co.elastic.apm.plugin.spi.AbstractSpan<?> parent) {
-        return captureAndReportException(epochMicros, e, (AbstractSpan<?>) parent);
-    }
-
-    @Override
-    public void endSpan(co.elastic.apm.plugin.spi.Span<?> span) {
+    public void endSpan(co.elastic.apm.tracer.api.Span<?> span) {
         endSpan((Span) span);
     }
 
     @Override
-    public void endTransaction(co.elastic.apm.plugin.spi.Transaction<?> transaction) {
+    public void endTransaction(co.elastic.apm.tracer.api.Transaction<?> transaction) {
         endTransaction((Transaction) transaction);
     }
 
     @Override
-    public void setServiceInfoForClassLoader(ClassLoader classLoader, co.elastic.apm.plugin.spi.ServiceInfo serviceInfo) {
+    public void setServiceInfoForClassLoader(ClassLoader classLoader, co.elastic.apm.tracer.api.service.ServiceInfo serviceInfo) {
         setServiceInfoForClassLoader(classLoader, serviceInfo.isMultiServiceContainer()
             ? ServiceInfo.ofMultiServiceContainer(serviceInfo.getServiceName())
             : ServiceInfo.of(serviceInfo.getServiceName(), serviceInfo.getServiceVersion()));

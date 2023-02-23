@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.resttemplate;
 
-import co.elastic.apm.plugin.spi.TextHeaderSetter;
+import co.elastic.apm.tracer.api.dispatch.TextHeaderSetter;
 import org.springframework.http.HttpRequest;
 
 public class SpringRestRequestHeaderSetter implements TextHeaderSetter<HttpRequest> {

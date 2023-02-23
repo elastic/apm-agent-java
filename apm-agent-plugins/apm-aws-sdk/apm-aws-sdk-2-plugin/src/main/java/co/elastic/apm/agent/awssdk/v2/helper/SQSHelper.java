@@ -19,11 +19,11 @@
 package co.elastic.apm.agent.awssdk.v2.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractSQSInstrumentationHelper;
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.plugin.spi.Span;
-import co.elastic.apm.plugin.spi.TextHeaderSetter;
-import co.elastic.apm.plugin.spi.TraceContext;
+import co.elastic.apm.tracer.api.GlobalTracer;
+import co.elastic.apm.tracer.api.Tracer;
+import co.elastic.apm.tracer.api.Span;
+import co.elastic.apm.tracer.api.dispatch.TextHeaderSetter;
+import co.elastic.apm.tracer.api.TraceContext;
 import software.amazon.awssdk.core.SdkRequest;
 import software.amazon.awssdk.core.SdkResponse;
 import software.amazon.awssdk.core.client.handler.ClientExecutionParams;

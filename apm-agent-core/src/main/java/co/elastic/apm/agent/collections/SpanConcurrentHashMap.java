@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.collections;
 
-import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.tracer.api.AbstractSpan;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;

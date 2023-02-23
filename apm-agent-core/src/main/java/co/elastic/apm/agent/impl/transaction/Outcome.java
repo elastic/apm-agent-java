@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-public enum Outcome implements co.elastic.apm.plugin.spi.Outcome {
+public enum Outcome implements co.elastic.apm.tracer.api.Outcome {
     SUCCESS("success"),
     FAILURE("failure"),
     UNKNOWN("unknown");
@@ -32,7 +32,7 @@ public enum Outcome implements co.elastic.apm.plugin.spi.Outcome {
         this.stringValue = stringValue;
     }
 
-    public static Outcome valueOf(co.elastic.apm.plugin.spi.Outcome outcome) {
+    public static Outcome valueOf(co.elastic.apm.tracer.api.Outcome outcome) {
         if (outcome.name().equals(FAILURE.name())) {
             return FAILURE;
         } else if (outcome.name().equals(SUCCESS.name())) {

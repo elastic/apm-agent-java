@@ -25,7 +25,7 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.FaasTrigger;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
-import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.tracer.api.GlobalTracer;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification;

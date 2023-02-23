@@ -18,8 +18,9 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.plugin.spi.ServiceInfo;
-import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.tracer.api.service.ServiceAwareTracer;
+import co.elastic.apm.tracer.api.service.ServiceInfo;
+import co.elastic.apm.tracer.api.Tracer;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.state.GlobalState;
@@ -46,6 +47,12 @@ public class ServletServiceNameHelper {
         if (servletContext == null) {
             return;
         }
+
+        ServiceAwareTracer serviceAwareTracer = tracer.probe(ServiceAwareTracer.class);
+        if (serviceAwareTracer == null) {
+            return;
+        }
+
         ClassLoader servletContextClassLoader = null;
 
         if (!servletContext.getClass().getName().startsWith("org.apache.sling")) {
@@ -57,7 +64,7 @@ public class ServletServiceNameHelper {
             return;
         }
         ServiceInfo serviceInfo = detectServiceInfo(adapter, servletContext, servletContextClassLoader);
-        tracer.setServiceInfoForClassLoader(servletContextClassLoader, serviceInfo);
+        serviceAwareTracer.setServiceInfoForClassLoader(servletContextClassLoader, serviceInfo);
     }
 
     public static <ServletContext> ServiceInfo detectServiceInfo(ServletContextAdapter<ServletContext> adapter, ServletContext servletContext, ClassLoader servletContextClassLoader) {

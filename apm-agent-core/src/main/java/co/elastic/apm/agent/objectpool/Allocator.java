@@ -23,7 +23,7 @@ package co.elastic.apm.agent.objectpool;
  *
  * @param <T> pooled object type
  */
-public interface Allocator<T> extends co.elastic.apm.plugin.spi.Allocator<T> {
+public interface Allocator<T> extends co.elastic.apm.tracer.api.pooling.Allocator<T> {
 
     /**
      * @return new instance of pooled object type

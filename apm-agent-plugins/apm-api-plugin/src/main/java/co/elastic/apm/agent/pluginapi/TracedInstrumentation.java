@@ -21,9 +21,10 @@ package co.elastic.apm.agent.pluginapi;
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.agent.sdk.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.tracer.api.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -36,18 +37,18 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.*;
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_METHOD_SIGNATURE;
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_USER_SUPPLIED;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_METHOD_SIGNATURE;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_USER_SUPPLIED;
 import static co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static co.elastic.apm.agent.pluginapi.Utils.FRAMEWORK_NAME;
 import static net.bytebuddy.matcher.ElementMatchers.*;
 
 public class TracedInstrumentation extends TracerAwareInstrumentation {
 
-    private final CoreConfiguration coreConfig;
+    private final co.elastic.apm.agent.sdk.configuration.CoreConfiguration coreConfig;
     private final StacktraceConfiguration stacktraceConfig;
 
-    public TracedInstrumentation(Tracer tracer) {
+    public TracedInstrumentation(co.elastic.apm.tracer.api.Tracer tracer) {
         coreConfig = tracer.getConfig(CoreConfiguration.class);
         stacktraceConfig = tracer.getConfig(StacktraceConfiguration.class);
     }
@@ -68,9 +69,9 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
                 defaultValueProvider = AnnotationValueOffsetMappingFactory.TrueDefaultValueProvider.class
             ) boolean discardable) {
 
-            final AbstractSpan<?> parent = tracer.getActive();
+            final co.elastic.apm.tracer.api.AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {
-                Span<?> span = parent.createSpan()
+                co.elastic.apm.tracer.api.Span<?> span = parent.createSpan()
                     .withType(type.isEmpty() ? "app" : type)
                     .withSubtype(subtype)
                     .withAction(action)
@@ -81,7 +82,7 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
                 return span.activate();
             }
 
-            Transaction<?> transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
+            co.elastic.apm.tracer.api.Transaction<?> transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
             if (transaction == null) {
                 return null;
             }
@@ -104,10 +105,10 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onMethodExit(@Advice.Enter @Nullable Object abstractSpan,
                                         @Advice.Thrown @Nullable Throwable t) {
-            if (abstractSpan instanceof AbstractSpan<?>) {
-                ((AbstractSpan<?>) abstractSpan)
+            if (abstractSpan instanceof co.elastic.apm.tracer.api.AbstractSpan<?>) {
+                ((co.elastic.apm.tracer.api.AbstractSpan<?>) abstractSpan)
                     .captureException(t)
-                    .withOutcome(t != null ? DefaultOutcome.FAILURE : DefaultOutcome.SUCCESS)
+                    .withOutcome(t != null ? co.elastic.apm.tracer.api.DefaultOutcome.FAILURE : co.elastic.apm.tracer.api.DefaultOutcome.SUCCESS)
                     .deactivate()
                     .end();
             }

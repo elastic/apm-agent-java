@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.lettuce;
 
 import co.elastic.apm.agent.sdk.TracerAwareInstrumentation;
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.Span;
 import io.lettuce.core.protocol.RedisCommand;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;

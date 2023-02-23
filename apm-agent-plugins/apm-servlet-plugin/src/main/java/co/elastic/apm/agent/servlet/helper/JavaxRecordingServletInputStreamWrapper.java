@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.servlet.helper;
 
 import co.elastic.apm.agent.sdk.utils.IOUtils;
-import co.elastic.apm.plugin.spi.Request;
+import co.elastic.apm.tracer.api.metadata.Request;
 
 import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;

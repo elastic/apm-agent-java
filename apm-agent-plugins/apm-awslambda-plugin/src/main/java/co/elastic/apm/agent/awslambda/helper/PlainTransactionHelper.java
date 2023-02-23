@@ -21,7 +21,7 @@ package co.elastic.apm.agent.awslambda.helper;
 import co.elastic.apm.agent.impl.MetricsAwareTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
-import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.tracer.api.GlobalTracer;
 import com.amazonaws.services.lambda.runtime.Context;
 
 import javax.annotation.Nullable;

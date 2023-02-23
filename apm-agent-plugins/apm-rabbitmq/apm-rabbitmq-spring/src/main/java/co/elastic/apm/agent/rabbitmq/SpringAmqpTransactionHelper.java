@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.Tracer;
+import co.elastic.apm.tracer.api.Transaction;
 import co.elastic.apm.agent.rabbitmq.header.SpringRabbitMQTextHeaderGetter;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;

@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 
-public class WildcardMatcher extends co.elastic.apm.agent.common.util.WildcardMatcher implements co.elastic.apm.plugin.spi.WildcardMatcher {
+public class WildcardMatcher extends co.elastic.apm.agent.common.util.WildcardMatcher implements co.elastic.apm.agent.sdk.configuration.WildcardMatcher {
 
     private static final WildcardMatcher MATCH_ALL = new WildcardMatcher(co.elastic.apm.agent.common.util.WildcardMatcher.matchAll());
     private static final List<WildcardMatcher> MATCH_ALL_LIST = Collections.singletonList(MATCH_ALL);

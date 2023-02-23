@@ -20,8 +20,8 @@ package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.sdk.utils.ThreadUtils;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.plugin.spi.AbstractSpan;
+import co.elastic.apm.tracer.api.Tracer;
+import co.elastic.apm.tracer.api.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.state.GlobalState;

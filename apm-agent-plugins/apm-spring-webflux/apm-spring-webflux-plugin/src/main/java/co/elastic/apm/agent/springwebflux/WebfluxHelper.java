@@ -19,14 +19,20 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
+import co.elastic.apm.agent.sdk.configuration.CoreConfiguration;
+import co.elastic.apm.agent.sdk.configuration.WebConfiguration;
+import co.elastic.apm.agent.sdk.utils.ResultUtil;
 import co.elastic.apm.agent.sdk.utils.TransactionNameUtils;
-import co.elastic.apm.plugin.spi.*;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.sdk.utils.LoggerUtils;
 import co.elastic.apm.agent.sdk.utils.PrivilegedActionUtils;
+import co.elastic.apm.tracer.api.*;
+import co.elastic.apm.tracer.api.metadata.PotentiallyMultiValuedMap;
+import co.elastic.apm.tracer.api.metadata.Request;
+import co.elastic.apm.tracer.api.metadata.Response;
 import org.reactivestreams.Publisher;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
@@ -49,8 +55,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
-import static co.elastic.apm.plugin.spi.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.tracer.api.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
 public class WebfluxHelper {

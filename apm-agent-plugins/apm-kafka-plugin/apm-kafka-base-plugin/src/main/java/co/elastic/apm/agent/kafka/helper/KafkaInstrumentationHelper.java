@@ -18,10 +18,13 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
-import co.elastic.apm.plugin.spi.*;
-import co.elastic.apm.plugin.spi.WildcardMatcher;
+import co.elastic.apm.agent.sdk.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.sdk.utils.WildcardMatcherUtil;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.tracer.api.*;
+import co.elastic.apm.tracer.api.pooling.Allocator;
+import co.elastic.apm.tracer.api.pooling.ObjectPool;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;

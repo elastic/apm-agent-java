@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.vertx.v4.web;
 
-import co.elastic.apm.plugin.spi.Transaction;
+import co.elastic.apm.tracer.api.Transaction;
 import co.elastic.apm.agent.vertx.v4.Vertx4Instrumentation;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;

@@ -19,12 +19,10 @@
 package co.elastic.apm.agent.awssdk.v1.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractS3InstrumentationHelper;
-import co.elastic.apm.plugin.spi.GlobalTracer;
-import co.elastic.apm.plugin.spi.Tracer;
+import co.elastic.apm.tracer.api.GlobalTracer;
+import co.elastic.apm.tracer.api.Tracer;
 import com.amazonaws.Request;
 import com.amazonaws.http.ExecutionContext;
-
-import javax.annotation.Nullable;
 
 public class S3Helper extends AbstractS3InstrumentationHelper<Request<?>, ExecutionContext> {
 

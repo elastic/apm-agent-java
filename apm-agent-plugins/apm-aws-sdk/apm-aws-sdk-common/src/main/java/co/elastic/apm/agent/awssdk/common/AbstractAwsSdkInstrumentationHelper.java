@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.plugin.spi.Tracer;
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.Tracer;
+import co.elastic.apm.tracer.api.Span;
 
 import javax.annotation.Nullable;
 import java.net.URI;

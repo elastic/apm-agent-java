@@ -18,15 +18,15 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.plugin.spi.HeaderGetter;
+import co.elastic.apm.tracer.api.dispatch.HeaderGetter;
 
 import javax.annotation.Nullable;
 
 public class BinaryHeaderGetterBridge<C> implements BinaryHeaderGetter<C> {
 
-    private final co.elastic.apm.plugin.spi.BinaryHeaderGetter<C> binaryHeaderGetter;
+    private final co.elastic.apm.tracer.api.dispatch.BinaryHeaderGetter<C> binaryHeaderGetter;
 
-    public BinaryHeaderGetterBridge(co.elastic.apm.plugin.spi.BinaryHeaderGetter<C> binaryHeaderGetter) {
+    public BinaryHeaderGetterBridge(co.elastic.apm.tracer.api.dispatch.BinaryHeaderGetter<C> binaryHeaderGetter) {
         this.binaryHeaderGetter = binaryHeaderGetter;
     }
 

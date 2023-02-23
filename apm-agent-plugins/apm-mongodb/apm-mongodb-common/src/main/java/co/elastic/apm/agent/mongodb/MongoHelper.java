@@ -18,9 +18,13 @@
  */
 package co.elastic.apm.agent.mongodb;
 
-import co.elastic.apm.plugin.spi.*;
+import co.elastic.apm.agent.sdk.utils.WildcardMatcherUtil;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.tracer.api.AbstractSpan;
+import co.elastic.apm.tracer.api.GlobalTracer;
+import co.elastic.apm.tracer.api.Span;
+import co.elastic.apm.tracer.api.Tracer;
 import org.bson.BsonDocument;
 import org.bson.BsonValue;
 

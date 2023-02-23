@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.plugin.spi.GlobalTracer;
+import co.elastic.apm.tracer.api.GlobalTracer;
 import co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelper;
 import co.elastic.apm.agent.servlet.helper.JakartaAsyncContextAdviceHelper;
 import jakarta.servlet.AsyncContext;

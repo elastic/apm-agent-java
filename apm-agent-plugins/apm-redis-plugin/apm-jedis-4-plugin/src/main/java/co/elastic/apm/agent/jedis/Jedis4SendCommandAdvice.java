@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.jedis;
 
-import co.elastic.apm.plugin.spi.Span;
+import co.elastic.apm.tracer.api.Span;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
 import net.bytebuddy.asm.Advice;
 import redis.clients.jedis.CommandArguments;
