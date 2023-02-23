@@ -18,49 +18,42 @@
  */
 package co.elastic.apm.plugin.spi;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-public class EmptyMessagingConfiguration implements MessagingConfiguration {
+public class MinimalWebConfiguration implements WebConfiguration, MinimalConfiguration {
 
-    public static final MessagingConfiguration INSTANCE = new EmptyMessagingConfiguration();
+    private static final MinimalWebConfiguration INSTANCE = new MinimalWebConfiguration();
 
-    private EmptyMessagingConfiguration() {
+    public static MinimalWebConfiguration provider() {
+        return INSTANCE;
+    }
+
+    private MinimalWebConfiguration() {
     }
 
     @Override
-    public List<? extends WildcardMatcher> getIgnoreMessageQueues() {
+    public boolean isUsePathAsName() {
+        return false;
+    }
+
+    @Override
+    public List<? extends WildcardMatcher> getIgnoreUrls() {
         return Collections.<WildcardMatcher>emptyList();
     }
 
     @Override
-    public Collection<String> getJmsListenerPackages() {
-        return Collections.<String>emptyList();
+    public List<? extends WildcardMatcher> getUrlGroups() {
+        return Collections.<WildcardMatcher>emptyList();
     }
 
     @Override
-    public boolean shouldEndMessagingTransactionOnPoll() {
-        return false;
+    public List<? extends WildcardMatcher> getCaptureContentTypes() {
+        return Collections.<WildcardMatcher>emptyList();
     }
 
     @Override
-    public boolean shouldCollectQueueAddress() {
-        return false;
-    }
-
-    @Override
-    public boolean isMessageTransactionPolling() {
-        return true;
-    }
-
-    @Override
-    public boolean isMessageTransactionHandling() {
-        return true;
-    }
-
-    @Override
-    public boolean isMessageBatchHandling() {
-        return false;
+    public List<? extends WildcardMatcher> getIgnoreUserAgents() {
+        return Collections.<WildcardMatcher>emptyList();
     }
 }

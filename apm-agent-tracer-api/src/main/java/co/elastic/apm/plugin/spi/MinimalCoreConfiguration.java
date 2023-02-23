@@ -21,35 +21,49 @@ package co.elastic.apm.plugin.spi;
 import java.util.Collections;
 import java.util.List;
 
-public class EmptyWebConfiguration implements WebConfiguration {
+public class MinimalCoreConfiguration implements CoreConfiguration, MinimalConfiguration {
 
-    public static final WebConfiguration INSTANCE = new EmptyWebConfiguration();
+    private static final MinimalCoreConfiguration INSTANCE = new MinimalCoreConfiguration();
 
-    private EmptyWebConfiguration() {
+    public static MinimalCoreConfiguration provider() {
+        return INSTANCE;
+    }
+
+    private MinimalCoreConfiguration() {
     }
 
     @Override
-    public boolean isUsePathAsName() {
+    public boolean isEnablePublicApiAnnotationInheritance() {
         return false;
     }
 
     @Override
-    public List<? extends WildcardMatcher> getIgnoreUrls() {
+    public boolean isCaptureHeaders() {
+        return false;
+    }
+
+    @Override
+    public List<? extends WildcardMatcher> getSanitizeFieldNames() {
         return Collections.<WildcardMatcher>emptyList();
     }
 
     @Override
-    public List<? extends WildcardMatcher> getUrlGroups() {
-        return Collections.<WildcardMatcher>emptyList();
+    public boolean isCaptureBody() {
+        return false;
     }
 
     @Override
-    public List<? extends WildcardMatcher> getCaptureContentTypes() {
-        return Collections.<WildcardMatcher>emptyList();
+    public boolean isInstrumentationEnabled(String instrumentationGroupName) {
+        return false;
     }
 
     @Override
-    public List<? extends WildcardMatcher> getIgnoreUserAgents() {
-        return Collections.<WildcardMatcher>emptyList();
+    public String getServiceName() {
+        return "";
+    }
+
+    @Override
+    public String getServiceVersion() {
+        return "";
     }
 }

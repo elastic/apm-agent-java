@@ -46,6 +46,7 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.plugin.spi.ConfigurationSubstitute;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -220,9 +221,13 @@ public class ElasticApmTracer extends BasicTracer implements MetricsAwareTracer 
             actualConfigProvider = WebConfiguration.class;
         } else if (ConfigurationOptionProvider.class.isAssignableFrom(configProvider)) {
             actualConfigProvider = (Class<? extends ConfigurationOptionProvider>) configProvider;
+        } else if (configProvider.isAnnotationPresent(ConfigurationSubstitute.class)) {
+            actualConfigProvider = (Class<? extends ConfigurationOptionProvider>) configProvider.getAnnotation(ConfigurationSubstitute.class).value();
         } else {
-            throw new IllegalArgumentException("Configuration types must subclass " + ConfigurationOptionProvider.class.getName()
-                + " and this does not apply to " + configProvider.getName() + " which was provided");
+            throw new IllegalArgumentException("Configuration types must " +
+                "be a default SDK configuration, " +
+                "be a subclass of " + ConfigurationOptionProvider.class.getName() + " " +
+                "or declare an annotation, and this does not apply to " + configProvider.getName());
         }
         return (T) configurationRegistry.getConfig(actualConfigProvider);
     }

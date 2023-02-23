@@ -18,48 +18,53 @@
  */
 package co.elastic.apm.plugin.spi;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-public class EmptyCoreConfiguration implements CoreConfiguration {
+public class MinimalMessagingConfiguration implements MessagingConfiguration, MinimalConfiguration {
 
-    public static final CoreConfiguration INSTANCE = new EmptyCoreConfiguration();
+    private static final MinimalMessagingConfiguration INSTANCE = new MinimalMessagingConfiguration();
 
-    private EmptyCoreConfiguration() {
+    public static MinimalMessagingConfiguration provider() {
+        return INSTANCE;
+    }
+
+    private MinimalMessagingConfiguration() {
     }
 
     @Override
-    public boolean isEnablePublicApiAnnotationInheritance() {
-        return false;
-    }
-
-    @Override
-    public boolean isCaptureHeaders() {
-        return false;
-    }
-
-    @Override
-    public List<? extends WildcardMatcher> getSanitizeFieldNames() {
+    public List<? extends WildcardMatcher> getIgnoreMessageQueues() {
         return Collections.<WildcardMatcher>emptyList();
     }
 
     @Override
-    public boolean isCaptureBody() {
+    public Collection<String> getJmsListenerPackages() {
+        return Collections.<String>emptyList();
+    }
+
+    @Override
+    public boolean shouldEndMessagingTransactionOnPoll() {
         return false;
     }
 
     @Override
-    public boolean isInstrumentationEnabled(String instrumentationGroupName) {
+    public boolean shouldCollectQueueAddress() {
         return false;
     }
 
     @Override
-    public String getServiceName() {
-        return "";
+    public boolean isMessageTransactionPolling() {
+        return true;
     }
 
     @Override
-    public String getServiceVersion() {
-        return "";
+    public boolean isMessageTransactionHandling() {
+        return true;
+    }
+
+    @Override
+    public boolean isMessageBatchHandling() {
+        return false;
     }
 }

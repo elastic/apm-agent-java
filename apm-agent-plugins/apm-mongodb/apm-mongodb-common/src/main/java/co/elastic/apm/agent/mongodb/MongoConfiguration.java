@@ -18,10 +18,12 @@
  */
 package co.elastic.apm.agent.mongodb;
 
+import co.elastic.apm.plugin.spi.ConfigurationSubstitute;
 import co.elastic.apm.plugin.spi.WildcardMatcher;
 
 import java.util.List;
 
+@ConfigurationSubstitute(co.elastic.apm.agent.mongodb.configuration.MongoConfiguration.class)
 public interface MongoConfiguration {
 
     List<WildcardMatcher> getCaptureStatementCommands();

@@ -21,11 +21,15 @@ package co.elastic.apm.plugin.spi;
 import java.util.Collection;
 import java.util.Collections;
 
-public class EmptyStacktraceConfiguration implements StacktraceConfiguration {
+public class MinimalStacktraceConfiguration implements StacktraceConfiguration, MinimalConfiguration {
 
-    public static final StacktraceConfiguration INSTANCE = new EmptyStacktraceConfiguration();
+    private static final MinimalStacktraceConfiguration INSTANCE = new MinimalStacktraceConfiguration();
 
-    private EmptyStacktraceConfiguration() {
+    public static MinimalStacktraceConfiguration provider() {
+        return INSTANCE;
+    }
+
+    private MinimalStacktraceConfiguration() {
     }
 
     @Override
