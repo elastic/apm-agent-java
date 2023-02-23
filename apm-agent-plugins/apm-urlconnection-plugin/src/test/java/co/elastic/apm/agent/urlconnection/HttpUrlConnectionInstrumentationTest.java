@@ -144,4 +144,13 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
         assertThat(reporter.getErrors()).isEmpty();
     }
 
+    @Test
+    public void testGetInstrumentationWithErrorEvent() {
+        String path = "/non-existing";
+        performGetWithinTransaction(path);
+
+        verifyHttpSpan("localhost", path, 404);
+        assertThat(reporter.getErrors()).hasSize(1);
+    }
+
 }
