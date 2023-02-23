@@ -122,10 +122,23 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
     }
 
     @Test
-    public void testCapturesNoException() {
-        String path = "/non-existent";
-        performGetWithinTransaction(path);
+    public void testGetResponseCodeWithUnknownHost() {
+        try {
+            performGet("http://unknown");
+        } catch (Exception e) {
+            // intentionally ignored
+        }
 
+        assertThat(reporter.getErrors()).hasSize(1);
+    }
+
+    @Test
+    public void testGetResponseWithHandledException() throws Exception {
+        final HttpURLConnection urlConnection = (HttpURLConnection) new URL(getBaseUrl() + "/non-existent").openConnection();
+        urlConnection.getResponseCode();
+        urlConnection.disconnect();
+
+        verifyHttpSpan("localhost", "/non-existent", 404);
         assertThat(reporter.getErrors()).isEmpty();
     }
 

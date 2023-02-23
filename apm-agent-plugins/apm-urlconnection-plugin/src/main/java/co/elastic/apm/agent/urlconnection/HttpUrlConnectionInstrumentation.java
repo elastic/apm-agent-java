@@ -121,8 +121,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                         // checking if "finished" to avoid multiple endings on nested calls
                         if (!span.isFinished()) {
                             span.getContext().getHttp().withStatusCode(responseCode);
-                            // https://github.com/elastic/apm-agent-java/issues/2976
-                            span.captureException(responseCode >= 400 ? null : t).end();
+                            span.captureException(t).end();
                         }
                     } else if (t != null) {
                         inFlightSpans.remove(thiz);
@@ -150,7 +149,8 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("connect").and(takesArguments(0))
                 .or(named("getOutputStream").and(takesArguments(0)))
-                .or(named("getInputStream").and(takesArguments(0)));
+                .or(named("getInputStream").and(takesArguments(0)))
+                .or(named("getResponseCode").and(takesArguments(0)));
         }
     }
 
