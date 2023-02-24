@@ -79,7 +79,9 @@ jobs:
             **/TEST-*.xml
 
   non-app-server-integration-tests:
-    if: contains(github.event.pull_request.labels.*.name, 'ci:agent-integration')
+    if: |
+      contains(github.event.pull_request.labels.*.name, 'ci:agent-integration')
+      || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -103,7 +105,9 @@ jobs:
             **/TEST-*.xml
 
   app-server-integration-tests:
-    if: contains(github.event.pull_request.labels.*.name, 'ci:agent-integration')
+    if: |
+      contains(github.event.pull_request.labels.*.name, 'ci:agent-integration')
+      || github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     needs: build
     steps:
