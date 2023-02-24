@@ -9,6 +9,12 @@ on:
       - '**.md'
       - '**.asciidoc'
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+      - ready_for_review
     paths-ignore:
       - '**.md'
       - '**.asciidoc'
