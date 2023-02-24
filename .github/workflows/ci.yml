@@ -25,6 +25,17 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
+# Common report test results step
+.report-test-results: &report-test-results
+  - name: Store test results
+    if: success() || failure()
+    uses: actions/upload-artifact@v3
+    with:
+      name: test-results
+      path: |
+        **/junit-*.xml
+        **/TEST-*.xml
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -69,12 +80,7 @@ jobs:
           command: ./mvnw test
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
-      - name: Store test results
-        if: success() || failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: test-results
-          path: '**/target/*.xml'
+      - *report-test-results
 
   non-app-server-integration-tests:
     if: contains(github.event.pull_request.labels.*.name, 'ci:agent-integration')
@@ -91,12 +97,7 @@ jobs:
           command: ./mvnw -q -P ci-non-application-server-integration-tests verify
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
-      - name: Store test results
-        if: success() || failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: test-results
-          path: '**/target/*.xml'
+      - *report-test-results
 
   app-server-integration-tests:
     if: contains(github.event.pull_request.labels.*.name, 'ci:agent-integration')
@@ -113,12 +114,7 @@ jobs:
           command: ./mvnw -q -P ci-application-server-integration-tests verify
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
-      - name: Store test results
-        if: success() || failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: test-results
-          path: '**/target/*.xml'
+      - *report-test-results
 
   javadoc:
     runs-on: ubuntu-latest
@@ -145,6 +141,7 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
           command: ./mvnw test
+      - *report-test-results
 
   jdk-compatibility-tests:
     if: contains(github.event.pull_request.labels.*.name, 'ci:jdk-compatibility')
@@ -165,9 +162,4 @@ jobs:
           command: ./mvnw test
           java-version: ${{ matrix.version }}
           distribution: ${{ env.JAVA_DIST }}
-      - name: Store test results
-        if: success() || failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: test-results
-          path: '**/target/*.xml'
+      - *report-test-results
