@@ -56,6 +56,7 @@ groups no longer exist: `jul-ecs`, `jul-error`, `log4j1-correlation`, `log4j1-ec
 
 [float]
 ===== Features
+* Add AWS Lambda SnapStart and openjdk11 CRaC support, by refreshing tracer metadata on snapshot restore - {pull}3036[#3036]
 * Add the <<config-disable-outgoing-tracecontext-headers>> config option to disable injection of `tracecontext` on outgoing
 communication - {pull}2996[#2996]
 * Add the <<config-profiling-inferred-spans-logging-enabled>> config option to suppress async profiler warning messages - {pull}3002[#3002]
