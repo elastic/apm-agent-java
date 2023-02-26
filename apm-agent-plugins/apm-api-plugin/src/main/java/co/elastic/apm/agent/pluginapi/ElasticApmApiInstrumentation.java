@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
@@ -159,6 +160,27 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void setServiceInfoForClassLoader(@Advice.Argument(0) @Nullable ClassLoader classLoader, @Advice.Argument(1) String serviceName, @Advice.Argument(2) @Nullable String serviceVersion) {
                 tracer.setServiceInfoForClassLoader(classLoader, ServiceInfo.of(serviceName, serviceVersion));
+            }
+        }
+    }
+
+    public static class ConfigInstrumentation extends ElasticApmApiInstrumentation {
+        public ConfigInstrumentation() {
+            super(named("getConfig"));
+        }
+
+        public static class AdviceClass {
+            @Nullable
+            @Advice.AssignReturned.ToReturned
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static Object getConfig(@Advice.Argument(0) @Nullable String key) {
+                try {
+                    Object value= GlobalTracer.getTracerImpl().getConfigurationRegistry().getConfigurationOptionByKey(key).getValue();
+                    // should we return a special value for null - which means non-existent entry?
+                    return value;
+                } catch (NullPointerException e) {
+                    return null;
+                }
             }
         }
     }
