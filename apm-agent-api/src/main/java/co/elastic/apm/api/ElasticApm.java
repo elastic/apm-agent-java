@@ -266,6 +266,7 @@ public class ElasticApm {
      *
      * @param key the string option
      * @return The current value for the option, per the option type (String, Long, Integer, etc)
+     * @since 1.37.0
      */
     public static Object getConfig(String key) {
         // co.elastic.apm.api.ElasticApmInstrumentation.ConfigInstrumentation.getConfig
@@ -283,6 +284,7 @@ public class ElasticApm {
      * @param key the string option
      * @param value the value for that option. No validation is applied here, so invalid
      *              values for an option will be ignored by the configuration system
+     * @since 1.37.0
      */
     public static void setConfig(String key, String value) {
         System.setProperty("elastic.apm."+key, value);
