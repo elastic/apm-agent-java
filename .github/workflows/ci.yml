@@ -64,6 +64,7 @@ concurrency:
 
 jobs:
   build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -77,6 +78,7 @@ jobs:
           path: ${{ github.workspace }}
 
   license:
+    name: License
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -93,6 +95,7 @@ jobs:
           distribution: ${{ env.JAVA_DIST }}
 
   unit-tests:
+    name: Unit Tests
     if: inputs.test_ci == true
     runs-on: ubuntu-latest
     needs: build
@@ -117,6 +120,7 @@ jobs:
             **/TEST-*.xml
 
   non-app-server-integration-tests:
+    name: Non-Application Server integration tests
     if: |
       contains(github.event.pull_request.labels.*.name, 'ci:agent-integration')
       || github.event.pull_request.draft == false
@@ -144,6 +148,7 @@ jobs:
             **/TEST-*.xml
 
   app-server-integration-tests:
+    name: Application Server integration tests
     if: |
       contains(github.event.pull_request.labels.*.name, 'ci:agent-integration')
       || github.event.pull_request.draft == false
@@ -172,6 +177,7 @@ jobs:
             **/TEST-*.xml
 
   javadoc:
+    name: Javadoc
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -187,6 +193,7 @@ jobs:
           distribution: ${{ env.JAVA_DIST }}
 
   unit-tests-windows:
+    name: Build & Test Windows
     if: |
       inputs.test_ci == true
       && (contains(github.event.pull_request.labels.*.name, 'ci:windows')
