@@ -195,7 +195,7 @@ jobs:
   unit-tests-windows:
     name: Build & Test Windows
     if: |
-      inputs.test_ci == true
+      (inputs.test_ci == true || inputs.test_ci == null)
       && (contains(github.event.pull_request.labels.*.name, 'ci:windows')
         || inputs.windows_ci == true)
     runs-on: windows-latest
