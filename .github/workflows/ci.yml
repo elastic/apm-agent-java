@@ -96,7 +96,7 @@ jobs:
 
   unit-tests:
     name: Unit Tests
-    if: inputs.test_ci == true
+    if: inputs.test_ci == true || inputs.test_ci == null
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -216,6 +216,7 @@ jobs:
             **/TEST-*.xml
 
   jdk-compatibility-tests:
+    name: JDK Compatibility Tests
     if: |
       contains(github.event.pull_request.labels.*.name, 'ci:jdk-compatibility')
       || inputs.jdk_compatibility_ci == true
