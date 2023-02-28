@@ -51,19 +51,39 @@ public class BridgeExhaustivenessTest {
                 Object bridged = method.invoke(factory, Mockito.mock(sdkDelegateType));
                 Class<?> bridgeType = bridged.getClass();
 
+                List<Class<?>> bridgeTypes = getBridgeTypes(bridged.getClass());
+
                 for (Class<?> otelInterface : getAllOtelSuperInterfaces(bridgeType)) {
                     for (Method otelMethod : otelInterface.getMethods()) {
-                        if (otelMethod.isDefault()) {
-                            try {
-                                bridgeType.getDeclaredMethod(otelMethod.getName(), otelMethod.getParameterTypes());
-                            } catch (NoSuchMethodException exception) {
-                                Assertions.fail("Expected bridge type '" + bridgeType.getName() + "' to implement default method '" + otelMethod + "' from type '" + otelInterface + "'");
-                            }
+                        if (otelMethod.isDefault() && !methodExists(bridgeTypes, otelMethod.getName(), otelMethod.getParameterTypes())) {
+                            Assertions.fail("Expected bridge type '" + bridgeType.getName() + "' to implement default method '" + otelMethod + "' from type '" + otelInterface + "'");
                         }
                     }
                 }
             }
         }
+    }
+
+    private boolean methodExists(List<Class<?>> typesToCheck, String name, Class<?>[] parameterTypes) {
+        for (Class<?> type : typesToCheck) {
+            try {
+                type.getDeclaredMethod(name, parameterTypes);
+                return true;
+            } catch (NoSuchMethodException e) {
+                //silently ignore
+            }
+        }
+        return false;
+    }
+
+    private List<Class<?>> getBridgeTypes(Class<?> mostSpecificType) {
+        List<Class<?>> result = new ArrayList<>();
+        Class<?> current = mostSpecificType;
+        while (current.getName().startsWith("co.elastic.apm")) {
+            result.add(current);
+            current = current.getSuperclass();
+        }
+        return result;
     }
 
 
