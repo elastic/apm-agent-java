@@ -28,10 +28,38 @@
             <version>${version.opentelemetry}-alpha</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-embedded-metrics-sdk</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-metrics-bridge-latest</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-httpclient-core</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <!-- we reuse the existing metrics test to verify the Otel Metrics API Bridge instrumentation -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-metricsdk-plugin</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- The metricsdk-instrumentation is responsible for setting up the exporter -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-metricsdk-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <!-- TODO : find a way to reduce duplication of those dependencies -->

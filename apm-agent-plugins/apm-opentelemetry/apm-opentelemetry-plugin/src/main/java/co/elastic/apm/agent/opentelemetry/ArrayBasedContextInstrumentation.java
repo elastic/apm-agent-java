@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.opentelemetry;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.opentelemetry.sdk.OTelBridgeContext;
+import co.elastic.apm.agent.opentelemetry.tracing.OTelBridgeContext;
 import io.opentelemetry.context.Context;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
