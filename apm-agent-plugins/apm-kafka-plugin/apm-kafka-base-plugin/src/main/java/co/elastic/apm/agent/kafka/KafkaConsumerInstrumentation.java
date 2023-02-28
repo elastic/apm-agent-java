@@ -111,13 +111,13 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
             @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
             public static void pollEnd(@Advice.Thrown final Throwable throwable) {
 
-                Span<?> span = tracer.getActiveSpan();
-                if (span != null &&
-                    "kafka".equals(span.getSubtype()) &&
-                    "poll".equals(span.getAction())
-                ) {
-                    span.captureException(throwable);
-                    span.deactivate().end();
+                AbstractSpan<?> active = tracer.getActive();
+                if (active instanceof Span<?>) {
+                    Span<?> span = (Span<?>) active;
+                    if ("kafka".equals(span.getSubtype()) && "poll".equals(span.getAction())) {
+                        span.captureException(throwable);
+                        span.deactivate().end();
+                    }
                 }
             }
         }

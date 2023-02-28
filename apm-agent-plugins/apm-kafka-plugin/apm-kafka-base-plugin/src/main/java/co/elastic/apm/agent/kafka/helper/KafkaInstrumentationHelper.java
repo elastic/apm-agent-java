@@ -74,7 +74,11 @@ public class KafkaInstrumentationHelper {
             return null;
         }
 
-        final Span<?> span = tracer.createExitChildSpan();
+        AbstractSpan<?> active = tracer.getActive();
+        if (!(active instanceof Span<?>)) {
+            return null;
+        }
+        Span<?> span = active.createExitSpan();
         if (span == null) {
             return null;
         }

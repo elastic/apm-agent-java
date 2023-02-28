@@ -328,9 +328,12 @@ public class GrpcHelper {
             Span<?> spanToMap = spanFromEntry;
             if (spanToMap == null) {
                 // handling nested newCall() invocations - we still want to map the client call to the same span
-                Span<?> tmp = tracer.getActiveSpan();
-                if (tmp != null && tmp.getSubtype() != null && tmp.getSubtype().equals(GRPC) && tmp.isExit()) {
-                    spanToMap = tmp;
+                AbstractSpan<?> tmp = tracer.getActive();
+                if (tmp instanceof Span<?>) {
+                    Span<?> tmpSpan = (Span<?>) tmp;
+                    if (tmpSpan.getSubtype() != null && tmpSpan.getSubtype().equals(GRPC) && tmpSpan.isExit()) {
+                        spanToMap = tmpSpan;
+                    }
                 }
             }
 
@@ -497,7 +500,7 @@ public class GrpcHelper {
                 // the span may have already been ended by another listener on a different thread/stack
                 clientCallListenerSpans.remove(listener);
                 span = null;
-            } else if (span == tracer.getActiveSpan()) {
+            } else if (span == tracer.getActive()) {
                 // avoid duplicated activation and invocation on nested listener method calls
                 span = null;
             } else {

@@ -49,17 +49,12 @@ public interface AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<
 
     Span<?> createSpan();
 
-    Span<?> createSpan(long epochMicros);
-
+    @Nullable
     Span<?> createExitSpan();
 
     void end();
 
-    void end(long epochMicros);
-
     T captureException(@Nullable Throwable t);
-
-    void endExceptionally(@Nullable Throwable t);
 
     @Nullable
     String getType();

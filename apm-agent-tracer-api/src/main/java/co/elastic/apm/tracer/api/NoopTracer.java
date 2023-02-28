@@ -83,12 +83,6 @@ class NoopTracer implements Tracer {
 
     @Nullable
     @Override
-    public Span<?> createExitChildSpan() {
-        return null;
-    }
-
-    @Nullable
-    @Override
     public AbstractSpan<?> getActive() {
         return null;
     }
@@ -97,25 +91,5 @@ class NoopTracer implements Tracer {
     @Override
     public Transaction<?> currentTransaction() {
         return null;
-    }
-
-    @Nullable
-    @Override
-    public Span<?> getActiveSpan() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Span<?> getActiveExitSpan() {
-        return null;
-    }
-
-    @Override
-    public void endTransaction(Transaction<?> transaction) {
-    }
-
-    @Override
-    public void endSpan(Span<?> span) {
     }
 }

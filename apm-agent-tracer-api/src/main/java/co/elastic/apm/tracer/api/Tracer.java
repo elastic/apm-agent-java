@@ -47,21 +47,8 @@ public interface Tracer {
     <C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader);
 
     @Nullable
-    Span<?> createExitChildSpan();
-
-    @Nullable
     AbstractSpan<?> getActive();
 
     @Nullable
     Transaction<?> currentTransaction();
-
-    @Nullable
-    Span<?> getActiveSpan();
-
-    @Nullable
-    Span<?> getActiveExitSpan();
-
-    void endTransaction(Transaction<?> transaction);
-
-    void endSpan(Span<?> span);
 }

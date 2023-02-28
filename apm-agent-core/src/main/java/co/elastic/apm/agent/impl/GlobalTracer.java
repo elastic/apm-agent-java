@@ -285,16 +285,6 @@ public class GlobalTracer implements Tracer {
     }
 
     @Override
-    public void endSpan(co.elastic.apm.tracer.api.Span<?> span) {
-        tracer.require(Tracer.class).endSpan(span);
-    }
-
-    @Override
-    public void endTransaction(co.elastic.apm.tracer.api.Transaction<?> transaction) {
-        tracer.require(Tracer.class).endTransaction(transaction);
-    }
-
-    @Override
     public void setServiceInfoForClassLoader(ClassLoader classLoader, co.elastic.apm.tracer.api.service.ServiceInfo serviceInfo) {
         tracer.require(Tracer.class).require(GlobalTracer.class).setServiceInfoForClassLoader(classLoader, serviceInfo);
     }

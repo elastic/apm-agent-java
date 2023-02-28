@@ -31,6 +31,7 @@ public interface Span<T extends Span<T>> extends AbstractSpan<T> {
 
     T withSubtype(@Nullable String subtype);
 
+    // Only three usages.
     boolean isExit();
 
     @Nullable

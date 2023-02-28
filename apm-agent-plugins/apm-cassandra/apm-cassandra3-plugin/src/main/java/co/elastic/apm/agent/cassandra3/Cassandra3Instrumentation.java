@@ -130,7 +130,7 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
 
                 @Override
                 public void onFailure(Throwable t) {
-                    span.endExceptionally(t);
+                    span.captureException(t).end();
                 }
             });
         }

@@ -162,10 +162,13 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<Request<?>, Exec
     @Override
     public Span<?> startSpan(Request<?> request, URI httpURI, ExecutionContext context) {
         if (isAlreadyActive(request)) {
-            Span<?> activeSpan = tracer.getActiveExitSpan();
-            if (activeSpan != null && SQS_TYPE.equals(activeSpan.getSubtype())) {
-                enrichSpan(activeSpan, request, request.getEndpoint(), context);
-                activeSpan.withSync(isRequestSync(request.getOriginalRequest()));
+            AbstractSpan<?> active = tracer.getActive();
+            if (active instanceof Span<?>) {
+                Span<?> span = (Span<?>) active;
+                if (span.isExit() && SQS_TYPE.equals(span.getSubtype())) {
+                    enrichSpan(span, request, request.getEndpoint(), context);
+                    span.withSync(isRequestSync(request.getOriginalRequest()));
+                }
             }
         } else {
             Span<?> span = super.startSpan(request, request.getEndpoint(), context);

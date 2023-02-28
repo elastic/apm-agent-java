@@ -18,7 +18,5 @@
  */
 package co.elastic.apm.tracer.api.dispatch;
 
-import co.elastic.apm.tracer.api.dispatch.HeaderSetter;
-
 public interface TextHeaderSetter<C> extends HeaderSetter<String, C> {
 }

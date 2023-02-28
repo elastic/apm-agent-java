@@ -18,8 +18,6 @@
  */
 package co.elastic.apm.tracer.api;
 
-import javax.annotation.Nullable;
-
 public interface TraceContext {
 
     String ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME = "elastic-apm-traceparent";
@@ -27,21 +25,11 @@ public interface TraceContext {
     String TRACESTATE_HEADER_NAME = "tracestate";
     String TRACE_PARENT_BINARY_HEADER_NAME = "elasticapmtraceparent";
 
+    Id getTransactionId();
+
     Id getTraceId();
 
     Id getId();
 
     Id getParentId();
-
-    Id getTransactionId();
-
-    void setServiceInfo(@Nullable String serviceName, @Nullable String serviceVersion);
-
-    boolean asChildOf(byte[] parent);
-
-    boolean asChildOf(String parent);
-
-    void asChildOf(TraceContext parent);
-
-    void addTraceState(String header);
 }

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.httpclient;
 
+import co.elastic.apm.tracer.api.AbstractSpan;
 import co.elastic.apm.tracer.api.GlobalTracer;
 import co.elastic.apm.tracer.api.Tracer;
 import co.elastic.apm.tracer.api.Span;
@@ -37,12 +38,12 @@ public class HttpRequestHeadersAdvice {
     @Advice.AssignReturned.ToReturned
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static HttpHeaders onAfterExecute(@Advice.Return @Nullable final HttpHeaders httpHeaders) {
-        Span<?> span = tracer.getActiveSpan();
-        if (span == null || httpHeaders == null) { // in case of thrown exception return value might be null
+        AbstractSpan<?> active = tracer.getActive();
+        if (!(active instanceof Span<?>) || httpHeaders == null) { // in case of thrown exception return value might be null
             return httpHeaders;
         }
         Map<String, List<String>> headersMap = new LinkedHashMap<>(httpHeaders.map());
-        span.propagateTraceContext(headersMap, HttpClientRequestPropertyAccessor.instance());
+        active.propagateTraceContext(headersMap, HttpClientRequestPropertyAccessor.instance());
         return HttpHeaders.of(headersMap, (x, y) -> true);
     }
 }

@@ -27,9 +27,6 @@ public interface Transaction<T extends Transaction<T>> extends AbstractSpan<T> {
     @Override
     TransactionContext getContext();
 
-    @Override
-    String getType();
-
     boolean isNoop();
 
     T withResult(@Nullable String result);

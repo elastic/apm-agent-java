@@ -466,16 +466,6 @@ public class BasicTracer implements SpanAwareTracer {
     }
 
     @Override
-    public void endSpan(co.elastic.apm.tracer.api.Span<?> span) {
-        endSpan((Span) span);
-    }
-
-    @Override
-    public void endTransaction(co.elastic.apm.tracer.api.Transaction<?> transaction) {
-        endTransaction((Transaction) transaction);
-    }
-
-    @Override
     public void setServiceInfoForClassLoader(ClassLoader classLoader, co.elastic.apm.tracer.api.service.ServiceInfo serviceInfo) {
         setServiceInfoForClassLoader(classLoader, serviceInfo.isMultiServiceContainer()
             ? ServiceInfo.ofMultiServiceContainer(serviceInfo.getServiceName())

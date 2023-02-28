@@ -100,12 +100,6 @@ public class GlobalTracer implements Tracer {
 
     @Nullable
     @Override
-    public Span<?> createExitChildSpan() {
-        return tracer.createExitChildSpan();
-    }
-
-    @Nullable
-    @Override
     public AbstractSpan<?> getActive() {
         return tracer.getActive();
     }
@@ -114,27 +108,5 @@ public class GlobalTracer implements Tracer {
     @Override
     public Transaction<?> currentTransaction() {
         return tracer.currentTransaction();
-    }
-
-    @Nullable
-    @Override
-    public Span<?> getActiveSpan() {
-        return tracer.getActiveSpan();
-    }
-
-    @Nullable
-    @Override
-    public Span<?> getActiveExitSpan() {
-        return tracer.getActiveExitSpan();
-    }
-
-    @Override
-    public void endTransaction(Transaction<?> transaction) {
-        tracer.endTransaction(transaction);
-    }
-
-    @Override
-    public void endSpan(Span<?> span) {
-        tracer.endSpan(span);
     }
 }

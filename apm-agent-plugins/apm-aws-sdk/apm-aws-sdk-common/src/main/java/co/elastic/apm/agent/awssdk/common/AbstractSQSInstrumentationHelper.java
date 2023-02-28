@@ -85,7 +85,11 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
         if (WildcardMatcherUtil.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), queueName)) {
             return null;
         }
-        Span<?> span = tracer.createExitChildSpan();
+        AbstractSpan<?> active = tracer.getActive();
+        if (!(active instanceof Span<?>)) {
+            return null;
+        }
+        Span<?> span = active.createExitSpan();
         if (span != null) {
             span.withType(MESSAGING_TYPE)
                 .withSubtype(SQS_TYPE);

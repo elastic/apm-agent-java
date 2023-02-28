@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.kafka;
 
+import co.elastic.apm.tracer.api.AbstractSpan;
 import co.elastic.apm.tracer.api.Span;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
 import net.bytebuddy.asm.Advice;
@@ -82,9 +83,12 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
         public static void afterSend(@Advice.Argument(0) final ProducerRecord<?, ?> record,
                                      @Advice.This final KafkaProducer<?, ?> thiz,
                                      @Advice.Thrown final Throwable throwable) {
-            final Span<?> span = tracer.getActiveExitSpan();
-            if (span != null) {
-                helper.onSendEnd(span, record, thiz, throwable);
+            AbstractSpan<?> active = tracer.getActive();
+            if (active instanceof Span<?>) {
+                Span<?> span = (Span<?>) active;
+                if (span.isExit()) {
+                    helper.onSendEnd(span, record, thiz, throwable);
+                }
             }
         }
     }

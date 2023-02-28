@@ -21,6 +21,7 @@ package co.elastic.apm.agent.awssdk.common;
 
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.tracer.api.AbstractSpan;
 import co.elastic.apm.tracer.api.Tracer;
 import co.elastic.apm.tracer.api.Span;
 import co.elastic.apm.tracer.api.dispatch.TextHeaderGetter;
@@ -77,13 +78,14 @@ public abstract class AbstractMessageIteratorWrapper<Message> implements Iterato
     }
 
     public void endMessageProcessingSpan() {
-        Span<?> span = tracer.getActiveSpan();
-
-        if (span != null
-            && span.getType() != null && span.getType().equals(MESSAGING_TYPE)
-            && span.getSubtype() != null && span.getSubtype().equals(SQS_TYPE)
-            && span.getAction() != null && span.getAction().equals(MESSAGE_PROCESSING_ACTION)) {
-            span.deactivate().end();
+        AbstractSpan<?> active = tracer.getActive();
+        if (active instanceof Span<?>) {
+            Span<?> span = (Span<?>) active;
+            if (span.getType() != null && span.getType().equals(MESSAGING_TYPE)
+                && span.getSubtype() != null && span.getSubtype().equals(SQS_TYPE)
+                && span.getAction() != null && span.getAction().equals(MESSAGE_PROCESSING_ACTION)) {
+                span.deactivate().end();
+            }
         }
     }
 
