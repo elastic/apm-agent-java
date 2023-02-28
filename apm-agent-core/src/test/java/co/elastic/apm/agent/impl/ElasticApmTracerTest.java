@@ -37,6 +37,7 @@ import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.tracer.Scope;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

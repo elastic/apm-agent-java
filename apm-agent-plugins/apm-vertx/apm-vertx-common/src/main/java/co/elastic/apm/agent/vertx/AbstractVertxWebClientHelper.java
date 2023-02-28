@@ -22,7 +22,7 @@ import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.impl.HttpContext;

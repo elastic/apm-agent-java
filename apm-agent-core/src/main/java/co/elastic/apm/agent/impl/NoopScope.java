@@ -16,7 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.transaction;
+package co.elastic.apm.agent.impl;
 
-public interface BinaryHeaderGetter<C> extends HeaderGetter<byte[], C> {
+import co.elastic.apm.agent.tracer.Scope;
+
+public class NoopScope implements Scope {
+
+    public static final Scope INSTANCE = new NoopScope();
+
+    private NoopScope() {
+    }
+
+    @Override
+    public void close() {
+    }
 }

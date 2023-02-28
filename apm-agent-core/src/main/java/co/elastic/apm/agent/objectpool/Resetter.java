@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.objectpool;
 
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
+
 /**
  * Defines reset strategy to use for a given pooled object type when they are returned to pool
  *

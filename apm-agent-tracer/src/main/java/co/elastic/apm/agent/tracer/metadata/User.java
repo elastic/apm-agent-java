@@ -16,23 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.transaction;
+package co.elastic.apm.agent.tracer.metadata;
 
 import javax.annotation.Nullable;
 
-public interface BinaryHeaderSetter<C> extends HeaderSetter<byte[], C> {
+/**
+ * User
+ * <p>
+ * Describes the authenticated User for a request.
+ */
+public interface User {
 
     /**
-     * Since the implementation itself knows the intrinsics of the headers and carrier lifecycle and handling, it should
-     * be responsible for providing a byte array. This enables the implementation to cache byte arrays wherever required
-     * and possible.
-     * <p>
-     * NOTE: if this method returns null, the tracer will allocate a buffer for each header.
-     *
-     * @param headerName the header name for which the byte array is required
-     * @param length     the length of the required byte array
-     * @return a byte array with the requested length, or null if header-value-buffer is not supported.
+     * The username of the logged in user
      */
     @Nullable
-    byte[] getFixedLengthByteArray(String headerName, int length);
+    String getUsername();
+
+    /**
+     * The username of the logged in user
+     */
+    User withUsername(String userName);
 }

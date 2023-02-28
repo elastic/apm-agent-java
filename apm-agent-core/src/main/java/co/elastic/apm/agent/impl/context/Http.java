@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 
-public class Http implements Recyclable {
+public class Http implements Recyclable, co.elastic.apm.agent.tracer.metadata.Http {
 
     /**
      * URL used by this HTTP outgoing span
@@ -40,9 +40,7 @@ public class Http implements Recyclable {
      */
     private int statusCode;
 
-    /**
-     * URL used for the outgoing HTTP call
-     */
+    @Override
     public CharSequence getUrl() {
         // note: do not expose the underlying Url object, as it might not have
         // all it's properties set due to providing the full URL as-is
@@ -56,6 +54,7 @@ public class Http implements Recyclable {
         return url;
     }
 
+    @Override
     @Nullable
     public String getMethod() {
         return method;
@@ -65,9 +64,7 @@ public class Http implements Recyclable {
         return statusCode;
     }
 
-    /**
-     * URL used for the outgoing HTTP call
-     */
+    @Override
     public Http withUrl(@Nullable String url) {
         if (url != null) {
             this.url.withFull(url);
@@ -75,11 +72,13 @@ public class Http implements Recyclable {
         return this;
     }
 
+    @Override
     public Http withMethod(String method) {
         this.method = method;
         return this;
     }
 
+    @Override
     public Http withStatusCode(int statusCode) {
         this.statusCode = statusCode;
         return this;

@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.transaction;
+package co.elastic.apm.agent.tracer;
 
-public interface HeaderSetter<T, C> {
+public interface Outcome {
 
-    void setHeader(String headerName, T headerValue, C carrier);
+    String name();
 }

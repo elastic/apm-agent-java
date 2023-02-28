@@ -25,10 +25,10 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.profiler.collections.LongHashSet;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

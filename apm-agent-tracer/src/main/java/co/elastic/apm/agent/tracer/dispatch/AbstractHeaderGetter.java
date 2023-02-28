@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.transaction;
+package co.elastic.apm.agent.tracer.dispatch;
 
 public abstract class AbstractHeaderGetter<T, C> implements HeaderGetter<T, C> {
+
     @Override
     public <S> void forEach(String headerName, C carrier, S state, HeaderConsumer<T, S> consumer) {
         T firstHeader = getFirstHeader(headerName, carrier);

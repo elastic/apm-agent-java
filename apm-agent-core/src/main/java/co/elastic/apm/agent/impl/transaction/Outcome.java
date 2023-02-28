@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-public enum Outcome {
+public enum Outcome implements co.elastic.apm.agent.tracer.Outcome {
     SUCCESS("success"),
     FAILURE("failure"),
     UNKNOWN("unknown");

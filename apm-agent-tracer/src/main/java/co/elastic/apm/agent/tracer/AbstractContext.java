@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.transaction;
+package co.elastic.apm.agent.tracer;
 
-public interface HeaderRemover<C> {
+import co.elastic.apm.agent.tracer.metadata.Message;
 
-    void remove(String headerName, C carrier);
+public interface AbstractContext {
+
+    Message getMessage();
 }

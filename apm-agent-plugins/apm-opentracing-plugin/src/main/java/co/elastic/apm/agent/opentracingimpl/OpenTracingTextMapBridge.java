@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.opentracingimpl;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 
 import javax.annotation.Nullable;
 import java.util.Map;

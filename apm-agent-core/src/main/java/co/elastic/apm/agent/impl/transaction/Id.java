@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.util.HexUtils;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
@@ -31,7 +31,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * A 128 bit globally unique ID of the whole trace forest
  */
-public class Id implements Recyclable {
+public class Id implements Recyclable, co.elastic.apm.agent.tracer.Id {
 
     private final byte[] data;
     private boolean empty = true;
@@ -50,6 +50,7 @@ public class Id implements Recyclable {
         data = new byte[idLengthBytes];
     }
 
+    @Override
     public void setToRandomValue() {
         setToRandomValue(ThreadLocalRandom.current());
     }
@@ -146,6 +147,7 @@ public class Id implements Recyclable {
         return s;
     }
 
+    @Override
     public boolean isEmpty() {
         return empty;
     }

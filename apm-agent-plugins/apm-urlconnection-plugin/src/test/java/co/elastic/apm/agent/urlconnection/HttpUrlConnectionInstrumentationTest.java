@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
-import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Scope;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -134,7 +134,7 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
         }
 
         assertThat(reporter.getErrors()).hasSize(1);
-        
+
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
 

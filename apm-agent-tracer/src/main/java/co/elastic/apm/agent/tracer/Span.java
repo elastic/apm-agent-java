@@ -16,12 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.objectpool;
+package co.elastic.apm.agent.tracer;
 
-public interface Recyclable {
+import javax.annotation.Nullable;
+
+public interface Span<T extends Span<T>> extends AbstractSpan<T> {
+
+    @Override
+    SpanContext getContext();
+
+    @Nullable
+    String getSubtype();
 
     /**
-     * resets pooled object state so it can be reused
+     * Sets the span's subtype, related to the  (eg: 'mysql', 'postgresql', 'jsf' etc)
      */
-    void resetState();
+    T withSubtype(@Nullable String subtype);
+
+    boolean isExit();
+
+    @Nullable
+    String getAction();
+
+    /**
+     * Action related to this span (eg: 'query', 'render' etc)
+     */
+    T withAction(@Nullable String action);
 }

@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;

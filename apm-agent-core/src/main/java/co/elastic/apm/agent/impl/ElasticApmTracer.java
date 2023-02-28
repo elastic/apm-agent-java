@@ -30,10 +30,8 @@ import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
@@ -50,6 +48,9 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.tracer.Scope;
+import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -290,7 +291,7 @@ public class ElasticApmTracer implements Tracer {
      * @param parentContext the trace context of the parent
      * @param epochMicros   the start timestamp of the span in microseconds after epoch
      * @return a new started span
-     * @see #startSpan(TraceContext.ChildContextCreator, Object)
+     * @see #startSpan(ChildContextCreator, Object)
      */
     public <T> Span startSpan(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
         return createSpan().start(childContextCreator, parentContext, epochMicros);
@@ -374,8 +375,14 @@ public class ElasticApmTracer implements Tracer {
         return configurationRegistry;
     }
 
-    public <T extends ConfigurationOptionProvider> T getConfig(Class<T> configProvider) {
-        return configurationRegistry.getConfig(configProvider);
+    @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public <T> T getConfig(Class<T> configProvider) {
+        if (ConfigurationOptionProvider.class.isAssignableFrom(configProvider)) {
+            return (T) configurationRegistry.getConfig((Class) configProvider);
+        } else {
+            return null;
+        }
     }
 
     public void endTransaction(Transaction transaction) {
@@ -516,6 +523,7 @@ public class ElasticApmTracer implements Tracer {
         return sampler;
     }
 
+    @Override
     public ObjectPoolFactory getObjectPoolFactory() {
         return objectPoolFactory;
     }
@@ -756,7 +764,7 @@ public class ElasticApmTracer implements Tracer {
     public Scope activateInScope(final ElasticContext<?> context) {
         // already in scope
         if (currentContext() == context) {
-            return Scope.NoopScope.INSTANCE;
+            return NoopScope.INSTANCE;
         }
         context.activate();
 
@@ -836,5 +844,24 @@ public class ElasticApmTracer implements Tracer {
 
     public void addShutdownHook(Closeable closeable) {
         lifecycleListeners.add(ClosableLifecycleListenerAdapter.of(closeable));
+    }
+
+    @Nullable
+    @Override
+    public <T extends co.elastic.apm.agent.tracer.Tracer> T probe(Class<T> type) {
+        if (type.isInstance(this)) {
+            return type.cast(this);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public <T extends co.elastic.apm.agent.tracer.Tracer> T require(Class<T> type) {
+        T cast = probe(type);
+        if (cast == null) {
+            throw new IllegalStateException(this + " does not implement " + type.getName());
+        }
+        return cast;
     }
 }

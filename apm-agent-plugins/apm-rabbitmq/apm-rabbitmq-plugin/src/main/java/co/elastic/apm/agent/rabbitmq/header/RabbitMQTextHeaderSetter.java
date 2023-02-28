@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.rabbitmq.header;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 
 import java.util.HashMap;
 

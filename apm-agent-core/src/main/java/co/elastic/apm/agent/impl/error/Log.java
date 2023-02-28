@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.error;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import org.springframework.http.HttpHeaders;
 
 import javax.annotation.Nullable;

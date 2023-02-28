@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.finaglehttpclient.helper;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import com.twitter.finagle.http.Request;
 import scala.Option;
 import scala.collection.Iterator;

@@ -18,27 +18,7 @@
  */
 package co.elastic.apm.agent.objectpool;
 
-/**
- * Object pool
- *
- * @param <T> pooled object type. Does not have to implement {@link Recyclable} in order to allow for dealing with objects
- *            that are outside of elastic apm agent (like standard JDK or third party library classes).
- */
-public interface ObjectPool<T> {
-
-    /**
-     * Tries to reuse any existing instance if pool has any, otherwise creates a new un-pooled instance
-     *
-     * @return object instance, either from pool or freshly allocated
-     */
-    T createInstance();
-
-    /**
-     * Recycles an object
-     *
-     * @param obj object to recycle
-     */
-    void recycle(T obj);
+public interface ObjectPool<T> extends co.elastic.apm.agent.tracer.pooling.ObjectPool<T> {
 
     /**
      * @return number of available objects in pool
@@ -49,6 +29,4 @@ public interface ObjectPool<T> {
      * @return number of times that objects could not be returned to the pool because the pool was already full
      */
     long getGarbageCreated();
-
-    void clear();
 }

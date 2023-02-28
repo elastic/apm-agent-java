@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.objectpool.impl;
 
-import co.elastic.apm.agent.objectpool.Allocator;
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.objectpool.Resetter;
+import co.elastic.apm.agent.tracer.pooling.Allocator;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 

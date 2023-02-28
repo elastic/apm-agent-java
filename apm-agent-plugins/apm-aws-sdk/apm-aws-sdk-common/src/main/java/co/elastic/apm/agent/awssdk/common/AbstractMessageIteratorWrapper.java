@@ -21,8 +21,8 @@ package co.elastic.apm.agent.awssdk.common;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
