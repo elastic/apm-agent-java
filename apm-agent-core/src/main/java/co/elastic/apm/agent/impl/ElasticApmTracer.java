@@ -333,9 +333,14 @@ public class ElasticApmTracer implements Tracer {
 
     @Nullable
     private ErrorCapture captureException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
-        if (!isRunning()) {
+        if (!isRunning() || e == null) {
             return null;
         }
+
+        while (e != null && WildcardMatcher.anyMatch(coreConfiguration.getUnnestExceptions(), e.getClass().getName()) != null) {
+            e = e.getCause();
+        }
+
         // note: if we add inheritance support for exception filtering, caching would be required for performance
         if (e != null && !WildcardMatcher.isAnyMatch(coreConfiguration.getIgnoreExceptions(), e.getClass().getName())) {
             ErrorCapture error = errorPool.createInstance();

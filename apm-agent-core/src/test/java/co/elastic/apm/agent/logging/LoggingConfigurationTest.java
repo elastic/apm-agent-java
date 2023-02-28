@@ -157,6 +157,7 @@ class LoggingConfigurationTest {
 
     @Test
     void testFileLogging() throws IOException {
+        String currentThreadName = Thread.currentThread().getName();
         agentLogger.info("agent");
         configOptionLogger.info("config");
         pluginLogger.info("plugin");
@@ -164,7 +165,7 @@ class LoggingConfigurationTest {
         assertThat(logJsonLines).hasSize(3);
         for (JsonNode logJsonLine : logJsonLines) {
             assertThat(logJsonLine.get("@timestamp")).isNotNull();
-            assertThat(logJsonLine.get("process.thread.name").textValue()).isEqualTo("main");
+            assertThat(logJsonLine.get("process.thread.name").textValue()).isEqualTo(currentThreadName);
             assertThat(logJsonLine.get("log.level").textValue()).isEqualTo("INFO");
             assertThat(logJsonLine.get("log.logger")).isNotNull();
             assertThat(logJsonLine.get("message")).isNotNull();
