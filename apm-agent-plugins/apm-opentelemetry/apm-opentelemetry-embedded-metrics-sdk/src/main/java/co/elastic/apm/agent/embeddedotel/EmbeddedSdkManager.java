@@ -61,15 +61,18 @@ public class EmbeddedSdkManager extends AbstractLifecycleListener {
     }
 
     @Nullable
-    public ProxyMeterProvider getOrStartSdk() {
+    public ProxyMeterProvider getMeterProvider() {
         if (sdkInstance == null) {
             startSdk();
         }
         return new ProxyMeterProvider(sdkInstance);
     }
 
-    public void resetForTests() {
-        stop();
+    /**
+     * The agent does prevent the accidental startup of a new SDK after it has been shutdown.
+     * However, in tests this is required, therefore tests can call this method after stop() to allow reinitialization.
+     */
+    synchronized void reset() {
         sdkInstance = null;
         isShutdown = false;
     }

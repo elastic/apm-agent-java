@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.opentelemetry.metrics;
 
-import co.elastic.apm.agent.embeddedotel.EmbeddedSdkManager;
+import co.elastic.apm.agent.embeddedotel.EmbeddedSdkTestUtil;
 import co.elastic.apm.agent.opentelemetry.OtelTestUtils;
 import co.elastic.apm.agent.otelmetricsdk.AbstractOtelMetricsTest;
 import io.opentelemetry.api.GlobalOpenTelemetry;
@@ -37,7 +37,7 @@ public class AgentProvidedSdkOtelMetricsTest extends AbstractOtelMetricsTest {
     public void cleanGlobalOtel() {
         OtelTestUtils.resetElasticOpenTelemetry();
         OtelTestUtils.clearGlobalOpenTelemetry();
-        tracer.getLifecycleListener(EmbeddedSdkManager.class).resetForTests();
+        EmbeddedSdkTestUtil.stopAndReset(tracer);
     }
 
     @Override

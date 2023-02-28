@@ -42,6 +42,17 @@ class DiscriminatingMultiParentClassLoader extends ClassLoader {
         registerAsParallelCapable();
     }
 
+    DiscriminatingMultiParentClassLoader(ClassLoader singleParent, ElementMatcher<String> classesToLoadFromParent) throws NullPointerException {
+        super(singleParent);
+        //noinspection ConstantConditions
+        if (singleParent == null) {
+            throw new NullPointerException("The bootstrap class loader cannot be used as one of this class loader parents. " +
+                "Use a single-parent class loader instead.");
+        }
+        this.parents = Arrays.asList(singleParent);
+        this.discriminators = Arrays.asList(classesToLoadFromParent);
+    }
+
     DiscriminatingMultiParentClassLoader(ClassLoader agentClassLoader, ElementMatcher<String> classesToLoadFromAgentClassLoader,
                                          ClassLoader targetClassLoader, ElementMatcher<String> classesToLoadFromTargetClassLoader) throws NullPointerException {
         // We should not delegate class loading to super but to one of the parents, however this is preferable over using

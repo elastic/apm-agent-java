@@ -22,6 +22,7 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 public class OtelTestUtils {
 
@@ -41,7 +42,9 @@ public class OtelTestUtils {
             try {
                 String adviceName = GlobalOpenTelemetryInstrumentation.GlobalOpenTelemetryAdvice.class.getName();
                 Class<?> adviceClass = globalOtel.getClass().getClassLoader().loadClass(adviceName);
-                adviceClass.getMethod("resetElasticOpenTelemetryForTests").invoke(null);
+                Method resetElasticOpenTelemetryForTests = adviceClass.getDeclaredMethod("resetElasticOpenTelemetryForTests");
+                resetElasticOpenTelemetryForTests.setAccessible(true);
+                resetElasticOpenTelemetryForTests.invoke(null);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

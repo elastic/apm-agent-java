@@ -33,7 +33,7 @@ import java.util.Arrays;
 public class ElasticOpenTelemetryWithMetrics extends ElasticOpenTelemetry {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticOpenTelemetryWithMetrics.class);
-    private static final Class<?> NOOP_METERPROVIDER_CLASS = MeterProvider.noop().getClass();
+    private static final String NOOP_METERPROVIDER_CLASSNAME = MeterProvider.noop().getClass().getName();
 
     private final MeterProvider meterProvider;
 
@@ -41,11 +41,11 @@ public class ElasticOpenTelemetryWithMetrics extends ElasticOpenTelemetry {
         super(tracer);
         CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
         MeterProvider original = delegate.getMeterProvider();
-        if (NOOP_METERPROVIDER_CLASS.isInstance(original)) {
+        if (NOOP_METERPROVIDER_CLASSNAME.equals(original.getClass().getName())) {
             //This check needs to be kept in sync with the groups of SdkMeterProviderBuilderInstrumentation
             if (coreConfig.isInstrumentationEnabled(Arrays.asList("opentelemetry-metrics", "experimental"))) {
                 logger.debug("No user-provided global OpenTelemetry MetricProvider detected. The agent will provide it's own.");
-                ProxyMeterProvider shadedSdk = tracer.getLifecycleListener(EmbeddedSdkManager.class).getOrStartSdk();
+                ProxyMeterProvider shadedSdk = tracer.getLifecycleListener(EmbeddedSdkManager.class).getMeterProvider();
                 if (shadedSdk != null) {
                     meterProvider = OtelMetricsBridge.create(shadedSdk);
                 } else {

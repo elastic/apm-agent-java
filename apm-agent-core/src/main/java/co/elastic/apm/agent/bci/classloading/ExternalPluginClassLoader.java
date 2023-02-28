@@ -59,10 +59,7 @@ public class ExternalPluginClassLoader extends URLClassLoader {
     private static ClassLoader createFilteringClassLoader(ClassLoader parent) {
         // The agent classloader contains "hidden" Otel dependencies due to the embedded metric SDK
         // We force plugins to provide their own Otel version
-        return new DiscriminatingMultiParentClassLoader(
-            parent, not(startsWith("io.opentelemetry.")),
-            parent, not(startsWith("io.opentelemetry."))
-        );
+        return new DiscriminatingMultiParentClassLoader(parent, not(startsWith("io.opentelemetry.")));
     }
 
     private List<String> scanForClasses(File pluginJar) throws IOException {

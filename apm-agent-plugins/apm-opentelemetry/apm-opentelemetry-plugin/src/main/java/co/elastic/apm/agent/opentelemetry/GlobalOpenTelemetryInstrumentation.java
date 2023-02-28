@@ -101,7 +101,7 @@ public class GlobalOpenTelemetryInstrumentation extends AbstractOpenTelemetryIns
          * Allows tests to retrigger the creation of the elastic provided OpenTelemetry.
          * Currently invoked from OtelTestUtils.resetElasticOpenTelemetry() via reflection.
          */
-        public static void resetElasticOpenTelemetryForTests() {
+        static void resetElasticOpenTelemetryForTests() {
             elasticOpenTelemetry = null;
         }
     }
