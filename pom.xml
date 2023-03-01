@@ -133,6 +133,8 @@
         <version.asm>9.4</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
+        <version.mockito>5.1.1</version.mockito>
+
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
 
@@ -703,7 +705,14 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>5.1.1</version>
+            <version>${version.mockito}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- adding this to classpath allows to keep default behavior of mockito 4.x where mock subclassing is used.  -->
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-subclass</artifactId>
+            <version>${version.mockito}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
