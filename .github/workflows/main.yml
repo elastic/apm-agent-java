@@ -205,6 +205,8 @@ jobs:
         || inputs.windows_ci == true)
     runs-on: windows-latest
     steps:
+      - name: Support longpaths
+        run: git config --system core.longpaths true
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/maven-goal
         with:
