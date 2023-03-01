@@ -1,6 +1,8 @@
 ---
 
 name: common build tasks
+description: Install specific JDK and run a command
+
 inputs:
   java-version:
     description: 'Java version'
@@ -10,8 +12,7 @@ inputs:
     required: true
   command:
     description: 'Command to execute'
-    default: 'bash'
-    required: false
+    required: true
   shell:
     description: 'Default shell'
     default: 'bash'
@@ -27,10 +28,5 @@ runs:
         distribution: ${{ inputs.distribution }}
         cache: 'maven'
 
-    - name: Fetch dependencies and build project
-      run: ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
-      shell: ${{ inputs.shell }}
-
     - run: ${{ inputs.command }}
-      if: ${{ inputs.command != '' }}
       shell: ${{ inputs.shell }}
