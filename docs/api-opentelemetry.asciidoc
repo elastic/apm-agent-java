@@ -143,9 +143,9 @@ head over do https://opentelemetry.io/docs/java/manual_instrumentation/[their do
 experimental::[]
 
 The Elastic APM Java Agent supports collecting metrics defined via OpenTelemetry.
-You can either just use the <<otel-metrics-api, OpenTelemetry API>> or use the <<otel-metrics-sdk, OpenTelemetry SDK>> in case you need more customizations.
+You can either use the <<otel-metrics-api, OpenTelemetry API>> or the <<otel-metrics-sdk, OpenTelemetry SDK>> in case you need more customizations.
 
-In both cases the Elastic APM Agent will honor the <<config-disable-metrics, `disable_metrics`>> and <<config-metrics-interval, `metrics_interval`>> settings for OpenTelemetry metrics.
+In both cases the Elastic APM Agent will respect the <<config-disable-metrics, `disable_metrics`>> and <<config-metrics-interval, `metrics_interval`>> settings for OpenTelemetry metrics.
 
 You can use the <<config-custom-metrics-histogram-boundaries, `custom_metrics_histogram_boundaries`>> setting to customize histogram bucket boundaries.
 Alternatively you can use OpenTelemetry `Views` to define histogram buckets on a per-metric basis when providing your own `MeterProvider`.
@@ -177,6 +177,7 @@ If you provide your own `MeterProvider` (see <<otel-metrics-sdk>>), it will not 
 
 In some cases using just the <<otel-metrics-api, OpenTelemetry API for metrics>> might not be flexible enough.
 Some example use cases are:
+
  * You want to use OpenTelemetry Views (e.g. to customize histogram buckets on a per-metric basis)
  * You want to export metrics to other tools in addition to Elastic APM (e.g. prometheus)
 
