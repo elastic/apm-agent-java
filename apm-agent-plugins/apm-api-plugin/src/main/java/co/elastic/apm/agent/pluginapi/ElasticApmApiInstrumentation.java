@@ -26,6 +26,7 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
@@ -166,20 +167,24 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
     public static class ConfigInstrumentation extends ElasticApmApiInstrumentation {
         public ConfigInstrumentation() {
-            super(named("getConfig"));
+            super(named("doGetConfig"));
         }
 
         public static class AdviceClass {
             @Nullable
             @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-            public static Object getConfig(@Advice.Argument(0) @Nullable String key) {
+            public static Object doGetConfig(@Advice.Argument(0) @Nullable String key) {
                 try {
-                    Object value= GlobalTracer.getTracerImpl().getConfigurationRegistry().getConfigurationOptionByKey(key).getValue();
-                    // should we return a special value for null - which means non-existent entry?
-                    return value;
+                    ConfigurationOption<?> configValue = GlobalTracer.getTracerImpl().getConfigurationRegistry().getConfigurationOptionByKey(key);
+                    if (configValue == null) {
+                        return null;
+                    } else {
+                        return configValue.getValue();
+                    }
                 } catch (NullPointerException e) {
-                    return null;
+                    //this can only happen if the agent is messed up or not yet initialized
+                    return new IllegalStateException("The agent is not initialized");
                 }
             }
         }

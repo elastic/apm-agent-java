@@ -36,12 +36,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatException;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class ConfigInstrumentationTest {
 
@@ -64,16 +67,36 @@ class ConfigInstrumentationTest {
     }
 
     @Test
-    void testConfigAccess() {
+    void testValidOptionConfigAccess() {
+        initAgent();
+        assertThat(configValue(Boolean.TRUE)).isEqualTo(coreConfig.getTransactionMaxSpans());
+    }
+
+    @Test
+    void testInvalidOptionConfigAccess() {
+        initAgent();
+        assertThatExceptionOfType(IllegalArgumentException.class)
+            .isThrownBy(() -> configValue(Boolean.FALSE))
+            .withMessageStartingWith("There is no such option");
+    }
+
+    @Test
+    void testInvalidTypeConfigAccess() {
+        initAgent();
+        assertThatExceptionOfType(IllegalArgumentException.class)
+            .isThrownBy(() -> configValue(null))
+            .withMessageContaining("is not of type");
+    }
+
+    private void initAgent() {
         ArrayList<ElasticApmInstrumentation> instrumentations = new ArrayList<>();
         instrumentations.add(new MaxTransInstrumentation());
         instrumentations.add(new ElasticApmApiInstrumentation.ConfigInstrumentation());
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), instrumentations);
         assertThat(coreConfig.getTransactionMaxSpans()).isNotEqualTo(INVALID_TRANSACTION_MAX_SPANS);
-        assertThat(configValue()).isEqualTo(coreConfig.getTransactionMaxSpans());
     }
 
-    Integer configValue() {
+    Integer configValue(Boolean valid) {
         return INVALID_TRANSACTION_MAX_SPANS;
     }
 
@@ -81,8 +104,14 @@ class ConfigInstrumentationTest {
         public static class AdviceClass {
             @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(inline = false)
-            public static Integer onMethodExit() {
-                return (Integer) ElasticApm.getConfig("transaction_max_spans");
+            public static Integer onMethodExit(@Advice.Argument(0) @Nullable Boolean valid) {
+                if (valid == null) {
+                    return ElasticApm.getConfig("transaction_max_spans", Long.class).intValue();
+                } else if (valid.booleanValue()) {
+                    return ElasticApm.getConfig("transaction_max_spans", Integer.class);
+                } else { //if (valid.booleanValue()) - no other options
+                    return ElasticApm.getConfig("xyz", Integer.class);
+                }
             }
         }
 
