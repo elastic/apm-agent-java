@@ -25,6 +25,7 @@ When multiple JVMs are running on the same host and report data for the same ser
 * <<metrics-jvm>>
 * <<metrics-application>>
 * <<metrics-only-mode>>
+* <<metrics-otel>>
 * <<metrics-micrometer>>
 * <<metrics-agenthealth>>
 
@@ -331,6 +332,13 @@ You can filter and group by these dimensions:
 There are cases where you would want to use the agent only to collect and ship metrics, without tracing any Java code.
 In such cases, you may set the <<config-instrument, `instrument`>> config option to `false`. By doing so, the agent will
 minimize its effect on the application, while still collecting and sending metrics to the APM Server.
+
+[float]
+[[metrics-otel]]
+=== OpenTelemetry metrics
+
+The elastic APM Java Agent supports collecting metrics defined via OpenTelemetry.
+See the corresponding <<otel-metrics, documentation section>> for details.
 
 [float]
 [[metrics-micrometer]]
