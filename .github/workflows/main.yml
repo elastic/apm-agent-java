@@ -97,6 +97,8 @@ jobs:
 
   unit-tests:
     name: Unit Tests
+    # Inputs aren't defined on some events
+    # When undefined, we need to emulate the default value
     if: inputs.test_ci == true || inputs.test_ci == null
     runs-on: ubuntu-latest
     needs: build
@@ -195,6 +197,8 @@ jobs:
 
   unit-tests-windows:
     name: Build & Test Windows
+    # Inputs aren't defined on some events
+    # When undefined, we need to emulate the default value
     if: |
       (inputs.test_ci == true || inputs.test_ci == null)
       && (contains(github.event.pull_request.labels.*.name, 'ci:windows')
