@@ -276,6 +276,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             if (transaction != null && transaction.isSpanCompressionEnabled() && parent != null) {
                 Span parentBuffered = parent.bufferedSpan.incrementReferencesAndGet();
                 try {
+                    //per the reference, if it is not compression-eligible or if its parent has already ended, it is reported immediately
                     if (parent.isFinished() || !isCompressionEligible()) {
                         if (parentBuffered != null) {
                             if (parent.bufferedSpan.compareAndSet(parentBuffered, null)) {
@@ -285,20 +286,25 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                         this.tracer.endSpan(this);
                         return;
                     }
+                    //since it wasn't reported, this span gets buffered
                     if (parentBuffered == null) {
                         if (!parent.bufferedSpan.compareAndSet(null, this)) {
                             // the failed update would ideally lead to a compression attempt with the new buffer,
-                            // but we're dropping the compression attempt to keep things simple
+                            // but we're dropping the compression attempt to keep things simple and avoid looping so this stays wait-free
+                            // this doesn't exactly diverge from the spec, but it can lead to non-optimal compression under high load
                             this.tracer.endSpan(this);
                         }
                         return;
                     }
+                    //still trying to buffer this span
                     if (!parentBuffered.tryToCompress(this)) {
+                        // we couldn't compress so replace the buffer with this
                         if (parent.bufferedSpan.compareAndSet(parentBuffered, this)) {
                             this.tracer.endSpan(parentBuffered);
                         } else {
                             // the failed update would ideally lead to a compression attempt with the new buffer,
-                            // but we're dropping the compression attempt to keep things simple
+                            // but we're dropping the compression attempt to keep things simple and avoid looping so this stays wait-free
+                            // this doesn't exactly diverge from the spec, but it can lead to non-optimal compression under high load
                             this.tracer.endSpan(this);
                         }
                     } else {
