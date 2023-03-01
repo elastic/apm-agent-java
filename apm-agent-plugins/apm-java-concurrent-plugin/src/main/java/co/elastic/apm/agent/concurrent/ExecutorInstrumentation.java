@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import net.bytebuddy.asm.Advice;
@@ -92,6 +93,12 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
             // hazelcast tries to serialize the Runnables/Callables to execute them on remote JVMs
             .and(not(nameStartsWith("com.hazelcast")))
             .and(not(isProxy()));
+    }
+
+    @Override
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        // exclude the lmax executor that is part of the agent
+        return not(CustomElementMatchers.isAgentClassLoader());
     }
 
     @Override
