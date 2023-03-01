@@ -25,8 +25,6 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
-import java.io.File;
-import java.io.FileFilter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -108,6 +106,7 @@ public class ExternalPluginOTelIT {
             assertThat(logLines).containsExactly(
                 "app start",
                 ">> transaction enter", // added by plugin1
+                ">> gauge class co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14.BridgeObservableLongGauge",
                 "start transaction",
                 String.format("active span ID = %s, trace ID = %s", transactionId, traceId), // app OTel API
                 ">> span enter", // added by plugin2
@@ -134,6 +133,9 @@ public class ExternalPluginOTelIT {
 
     private static String getAgentArgs() {
         Map<String, String> agentConfig = new HashMap<>();
+
+        //Required for Otel-Metrics support at the time of writing
+        agentConfig.put("enable_experimental_instrumentations", "true");
 
         // write agent log outside of standard output
         agentConfig.put("log_file", "/tmp/agent.log");
