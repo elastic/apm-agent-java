@@ -7,7 +7,7 @@ endif::[]
 === OpenTelemetry bridge
 
 The Elastic APM OpenTelemetry bridge allows creating Elastic APM `Transactions` and `Spans`,
-using the OpenTelemetry API. OpenTelemetry metrics are collected and shipped to elastic as well.
+using the OpenTelemetry API. OpenTelemetry metrics are also collected.
 In other words,
 it translates the calls to the OpenTelemetry API to Elastic APM and thus allows for reusing existing instrumentation.
 
@@ -169,7 +169,7 @@ counter.add(42);
 
 We don't require you to setup an OpenTelemetry `MeterProvider` within `GlobalOpenTelemetry` yourself.
 The Elastic APM Java Agent will detect if no `MeterProvider` was configured and will provide its own automatically in this case.
-If you provide your own `MeterProvider` (see <<otel-metrics-sdk>>), it will not be overridden by the agent.
+If you provide your own `MeterProvider` (see <<otel-metrics-sdk>>), the agent will use the provided instance.
 
 [float]
 [[otel-metrics-sdk]]
@@ -178,13 +178,13 @@ If you provide your own `MeterProvider` (see <<otel-metrics-sdk>>), it will not 
 In some cases using just the <<otel-metrics-api, OpenTelemetry API for metrics>> might not be flexible enough.
 Some example use cases are:
 
- * You want to use OpenTelemetry Views (e.g. to customize histogram buckets on a per-metric basis)
- * You want to export metrics to other tools in addition to Elastic APM (e.g. prometheus)
+ * Using OpenTelemetry Views (e.g. to customize histogram buckets on a per-metric basis)
+ * Exporting metrics to other tools in addition to Elastic APM (e.g. prometheus)
 
 For these use cases you can just setup you OpenTelemetry SDK `MeterProvider`.
 The Elastic APM Agent will take care of installing an additional `MetricExporter` via instrumentation,
 which will ship the metric data to Elastic APM.
-This requires you to use OpenTelemetry version `1.16.0` or newer.
+This requires using OpenTelemetry version `1.16.0` or newer.
 
 To create your own `MeterProvider`, you will need to add the OpenTelemetry Metric SDK as dependency to your project:
 
