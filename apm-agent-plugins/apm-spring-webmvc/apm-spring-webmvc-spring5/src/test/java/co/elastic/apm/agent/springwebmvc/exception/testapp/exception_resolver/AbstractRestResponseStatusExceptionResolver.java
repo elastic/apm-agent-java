@@ -16,23 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.springwebflux.testapp;
+package co.elastic.apm.agent.springwebmvc.exception.testapp.exception_resolver;
 
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.handler.AbstractHandlerExceptionResolver;
 
-@ExtendWith(SpringExtension.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class AnnotatedEndpointTest extends ApplicationTest {
+/**
+ * Abstract to be agnostic of javax.servlet / jakarta.servlet.
+ */
+public abstract class AbstractRestResponseStatusExceptionResolver extends AbstractHandlerExceptionResolver {
 
-    @LocalServerPort
-    private int serverPort;
-
-    @Override
-    protected GreetingWebClient createClient() {
-        return new GreetingWebClient("localhost", serverPort, false, true);
+    protected ModelAndView doResolveException(Object handler, Exception e) {
+        ModelAndView model = new ModelAndView("error-page");
+        model.addObject("message", "runtime exception occurred");
+        return model;
     }
-
 }

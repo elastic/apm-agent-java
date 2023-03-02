@@ -38,9 +38,12 @@ public final class Constants {
     public enum ServletImpl {
         JAVAX(
             "javax.servlet.Servlet",
+            "javax.servlet.ServletContext",
             "javax.servlet.Filter",
             "javax.servlet.ServletRequest",
             "javax.servlet.ServletResponse",
+            "javax.servlet.http.HttpServletRequest",
+            "javax.servlet.http.HttpServletResponse",
             "javax.servlet.FilterChain",
             "javax.servlet.AsyncContext",
             "javax.servlet.http.HttpServlet",
@@ -48,9 +51,12 @@ public final class Constants {
             "javax.servlet.ServletConfig"),
         JAKARTA(
             "jakarta.servlet.Servlet",
+            "jakarta.servlet.ServletContext",
             "jakarta.servlet.Filter",
             "jakarta.servlet.ServletRequest",
             "jakarta.servlet.ServletResponse",
+            "jakarta.servlet.http.HttpServletRequest",
+            "jakarta.servlet.http.HttpServletResponse",
             "jakarta.servlet.FilterChain",
             "jakarta.servlet.AsyncContext",
             "jakarta.servlet.http.HttpServlet",
@@ -58,10 +64,15 @@ public final class Constants {
             "jakarta.servlet.ServletConfig");
 
         private final String servletClass;
+
+        private final String servletContextClass;
         private final String filterClass;
 
         private final String requestClass;
         private final String responseClass;
+
+        private final String httpRequestClass;
+        private final String httpResponseClass;
 
         private final String filterChainClass;
         private final String servletInputStreamClass;
@@ -76,12 +87,16 @@ public final class Constants {
         // this allows to disable instrumentation as it is required for our instrumentation code.
         private final String osgiClassloaderFilterClass;
 
-        ServletImpl(String servletClass, String filterClass, String requestClass, String responseClass, String filterChainClass,
+        ServletImpl(String servletClass, String servletContextClass, String filterClass, String requestClass,
+                    String responseClass, String httpRequestClass, String httpResponseClass, String filterChainClass,
                     String asyncContextClass, String osgiClassloaderFilterClass, String servletInputStreamClass, String servletConfigClass) {
             this.servletClass = servletClass;
+            this.servletContextClass = servletContextClass;
             this.filterClass = filterClass;
             this.requestClass = requestClass;
             this.responseClass = responseClass;
+            this.httpRequestClass = httpRequestClass;
+            this.httpResponseClass = httpResponseClass;
             this.filterChainClass = filterChainClass;
             this.asyncContextClass = asyncContextClass;
             this.osgiClassloaderFilterClass = osgiClassloaderFilterClass;
@@ -91,6 +106,10 @@ public final class Constants {
 
         public ElementMatcher.Junction<NamedElement> servletClass() {
             return named(servletClass);
+        }
+
+        public ElementMatcher.Junction<NamedElement> servletContextClass() {
+            return named(servletContextClass);
         }
 
         public ElementMatcher.Junction<NamedElement> filterClass() {
@@ -103,6 +122,14 @@ public final class Constants {
 
         public ElementMatcher.Junction<NamedElement> responseClassMatcher() {
             return named(responseClass);
+        }
+
+        public ElementMatcher.Junction<NamedElement> httpRequestClassMatcher() {
+            return named(httpRequestClass);
+        }
+
+        public ElementMatcher.Junction<NamedElement> httpResponseClassMatcher() {
+            return named(httpResponseClass);
         }
 
         public ElementMatcher.Junction<NamedElement> filterChainClassMatcher() {

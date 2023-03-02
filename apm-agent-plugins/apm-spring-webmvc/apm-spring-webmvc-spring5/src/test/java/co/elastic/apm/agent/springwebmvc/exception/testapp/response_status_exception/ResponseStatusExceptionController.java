@@ -16,23 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.springwebflux.testapp;
+package co.elastic.apm.agent.springwebmvc.exception.testapp.response_status_exception;
 
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.server.ResponseStatusException;
 
-@ExtendWith(SpringExtension.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class AnnotatedEndpointTest extends ApplicationTest {
+@Controller
+@RequestMapping("/response-status-exception")
+public class ResponseStatusExceptionController {
 
-    @LocalServerPort
-    private int serverPort;
-
-    @Override
-    protected GreetingWebClient createClient() {
-        return new GreetingWebClient("localhost", serverPort, false, true);
+    @GetMapping("/throw-exception")
+    public ResponseEntity throwException() {
+        try {
+            throw new ResponseStatusRuntimeException("runtime exception occurred");
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(409, "responseStatusException", e);
+        }
     }
-
 }
