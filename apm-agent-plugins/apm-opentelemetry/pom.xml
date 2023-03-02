@@ -28,9 +28,10 @@
 
     <modules>
         <module>apm-opentelemetry-plugin</module>
-        <module>apm-opentelemetry-metricsdk-plugin</module>
-        <module>apm-opentelemetry-metrics-exporter</module>
         <module>apm-opentelemetry-test</module>
+        <module>apm-opentelemetry-metricsdk-plugin</module>
+        <module>apm-opentelemetry-embedded-metrics-sdk</module>
+        <module>apm-opentelemetry-metrics-bridge-parent</module>
     </modules>
 
 </project>

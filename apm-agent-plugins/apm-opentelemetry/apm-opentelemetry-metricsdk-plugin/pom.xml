@@ -23,11 +23,6 @@
             <version>${version.opentelemetry}</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-opentelemetry-metrics-exporter</artifactId>
-            <version>${project.version}</version>
-        </dependency>
     </dependencies>
 
     <build>

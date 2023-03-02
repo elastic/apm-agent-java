@@ -22,10 +22,10 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.report.ReporterConfiguration;
-import co.elastic.apm.agent.testutils.DisabledIfNotOnClasspath;
 import co.elastic.apm.agent.util.AtomicDouble;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.DoubleCounter;
+import io.opentelemetry.api.metrics.DoubleGaugeBuilder;
 import io.opentelemetry.api.metrics.DoubleHistogram;
 import io.opentelemetry.api.metrics.DoubleUpDownCounter;
 import io.opentelemetry.api.metrics.LongCounter;
@@ -274,8 +274,13 @@ public abstract class AbstractOtelMetricsTest extends AbstractInstrumentationTes
     }
 
     @Test
-    @DisabledIfNotOnClasspath("io.opentelemetry.api.metrics.BatchCallback")
     public void testBatchObservation() {
+        try {
+            DoubleGaugeBuilder.class.getMethod("buildObserver");
+        } catch (NoSuchMethodException expected) {
+            //we are in an integration test where .buildObserver() doesn't exist, skip this test
+            return;
+        }
         // This runnable is required so that JUnit does not accidentally try to load the
         // potentially absent used types (e.g. ObservableDoubleMeasurement) while inspecting the test class
         new Runnable() {
