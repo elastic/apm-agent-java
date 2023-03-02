@@ -36,7 +36,7 @@ import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ServiceIT { // TODO : maybe rename/move this test 'AgentSetupTest' seems a reasonable test to cover most use-cases
+class AgentSetupIT {
 
     @ParameterizedTest
     @ValueSource(strings = {"openjdk:8", "openjdk:11", "openjdk:17"})
