@@ -331,6 +331,40 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeAscii(bytes, len);
     }
 
+    @Override
+    public void serializeLogNdJson(String stringLog) {
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("log");
+
+        // because the input might come directly from the ECS reformatter, there might be an extra EOL
+        // that needs to be ignored otherwise we get invalid ND-JSON.
+        int length = stringLog.length();
+        if (stringLog.charAt(length - 1) == NEW_LINE) {
+            length--;
+        }
+
+        jw.writeAscii(stringLog, length);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(NEW_LINE);
+    }
+
+    @Override
+    public void serializeLogNdJson(byte[] bytesLog) {
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("log");
+
+        // because the input might come directly from the ECS reformatter, there might be an extra EOL
+        // that needs to be ignored otherwise we get invalid ND-JSON.
+        int length = bytesLog.length;
+        if (bytesLog[length - 1] == NEW_LINE) {
+            length--;
+        }
+
+        jw.writeAscii(bytesLog, length);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(NEW_LINE);
+    }
+
     private void serializeError(ErrorCapture errorCapture) {
         jw.writeByte(JsonWriter.OBJECT_START);
 
@@ -511,6 +545,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private static void serializeAgent(final Agent agent, final StringBuilder replaceBuilder, final JsonWriter jw) {
         writeFieldName("agent", jw);
         jw.writeByte(JsonWriter.OBJECT_START);
+        writeField("activation_method", agent.getActivationMethod(), replaceBuilder, jw);
         writeField("name", agent.getName(), replaceBuilder, jw);
         writeField("ephemeral_id", agent.getEphemeralId(), replaceBuilder, jw);
         writeLastField("version", agent.getVersion(), replaceBuilder, jw);

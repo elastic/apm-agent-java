@@ -19,17 +19,29 @@
 package co.elastic.apm.agent.util;
 
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.security.ProtectionDomain;
 import java.util.Map;
 
 /**
- * Delegates calls to {@link System} with wrapping in privileged actions which is required when security manager is active
+ * Delegates calls with wrapping in privileged actions which is required when security manager is active
  */
 public class PrivilegedActionUtils {
 
     @Nullable
     public static String getEnv(final String key) {
+        if (System.getSecurityManager() == null) {
+            return System.getenv(key);
+        }
         return AccessController.doPrivileged(new PrivilegedAction<String>() {
             @Override
             public String run() {
@@ -39,6 +51,9 @@ public class PrivilegedActionUtils {
     }
 
     public static Map<String, String> getEnv() {
+        if (System.getSecurityManager() == null) {
+            return System.getenv();
+        }
         return AccessController.doPrivileged(new PrivilegedAction<Map<String, String>>() {
             @Override
             public Map<String, String> run() {
@@ -46,4 +61,123 @@ public class PrivilegedActionUtils {
             }
         });
     }
+
+    @Nullable
+    public static ClassLoader getClassLoader(final Class<?> type) {
+        if (System.getSecurityManager() == null) {
+            return type.getClassLoader();
+        }
+        return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+            @Override
+            public ClassLoader run() {
+                return type.getClassLoader();
+            }
+        });
+    }
+
+    public static ProtectionDomain getProtectionDomain(final Class<?> type) {
+        if (System.getSecurityManager() == null) {
+            return type.getProtectionDomain();
+        }
+        return AccessController.doPrivileged(new PrivilegedAction<ProtectionDomain>() {
+            @Override
+            public ProtectionDomain run() {
+                return type.getProtectionDomain();
+            }
+        });
+    }
+
+    @Nullable
+    public static ClassLoader getContextClassLoader(final Thread t) {
+        if (System.getSecurityManager() == null) {
+            return t.getContextClassLoader();
+        }
+        return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+            @Override
+            public ClassLoader run() {
+                return t.getContextClassLoader();
+            }
+        });
+    }
+
+    public static void setContextClassLoader(final Thread t, final @Nullable ClassLoader cl) {
+        if (System.getSecurityManager() == null) {
+            t.setContextClassLoader(cl);
+        }
+        AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Nullable
+            @Override
+            public Object run() {
+                t.setContextClassLoader(cl);
+                return null;
+            }
+        });
+    }
+
+    public static Thread newThread(final @Nullable Runnable r) {
+        if (System.getSecurityManager() == null) {
+            return new Thread(r);
+        }
+        return AccessController.doPrivileged(new PrivilegedAction<Thread>() {
+            @Override
+            public Thread run() {
+                return new Thread(r);
+            }
+        });
+    }
+
+    public static FileInputStream newFileInputStream(final File file) throws FileNotFoundException {
+        if (System.getSecurityManager() == null) {
+            return new FileInputStream(file);
+        }
+        try {
+            return AccessController.doPrivileged(new PrivilegedExceptionAction<FileInputStream>() {
+                @Override
+                public FileInputStream run() throws Exception {
+                    return new FileInputStream(file);
+                }
+            });
+        } catch (PrivilegedActionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof FileNotFoundException) {
+                throw (FileNotFoundException) cause;
+            }
+            throw new RuntimeException(cause);
+        }
+    }
+
+    /**
+     * Creates directory and its parents when path does not exist
+     *
+     * @param path directory path to create
+     * @throws IOException when there is an IO error
+     */
+    public static void createDirectories(final Path path) throws IOException {
+        if (System.getSecurityManager() == null) {
+            doCreateDirectories(path);
+        }
+        try {
+            AccessController.doPrivileged(new PrivilegedExceptionAction<Object>() {
+                @Nullable
+                @Override
+                public Object run() throws Exception {
+                    doCreateDirectories(path);
+                    return null;
+                }
+            });
+        } catch (PrivilegedActionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            }
+            throw new RuntimeException(cause);
+        }
+    }
+
+    private static void doCreateDirectories(Path path) throws IOException {
+        if (!Files.exists(path)) {
+            Files.createDirectories(path);
+        }
+    }
+
 }

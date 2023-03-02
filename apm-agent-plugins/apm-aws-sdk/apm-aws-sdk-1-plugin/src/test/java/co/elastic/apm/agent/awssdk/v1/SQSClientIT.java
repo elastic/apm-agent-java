@@ -40,6 +40,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -240,6 +241,17 @@ public class SQSClientIT extends AbstractSQSClientIT {
     @Override
     protected String type() {
         return "messaging";
+    }
+
+    @Override
+    protected String subtype() {
+        return "sqs";
+    }
+
+    @Nullable
+    @Override
+    protected String expectedTargetName(@Nullable String entityName) {
+        return entityName; //entityName is queue name
     }
 
     @Override

@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
 import co.elastic.apm.agent.impl.transaction.StackFrame;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.profiler.collections.Int2IntHashMap;
 import co.elastic.apm.agent.profiler.collections.Int2ObjectHashMap;

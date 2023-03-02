@@ -25,7 +25,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.ListBasedObjectPool;
@@ -362,7 +362,6 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             return;
         }
 
-        TimeDuration sampleRate = config.getSamplingInterval();
         TimeDuration profilingDuration = config.getProfilingDuration();
         boolean postProcessingEnabled = config.isPostProcessingEnabled();
 
@@ -374,7 +373,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             logger.debug("Start async-profiler profiling session");
         }
         try {
-            profile(sampleRate, profilingDuration);
+            profile(profilingDuration);
         } catch (Throwable t) {
             setProfilingSessionOngoing(false);
             logger.error("Stopping profiler", t);
@@ -392,10 +391,10 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         }
     }
 
-    private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) throws Exception {
+    private void profile(TimeDuration profilingDuration) throws Exception {
         AsyncProfiler asyncProfiler = AsyncProfiler.getInstance(config.getProfilerLibDirectory(), config.getAsyncProfilerSafeMode());
         try {
-            String startCommand = "start,jfr,event=wall,cstack=n,interval=" + sampleRate.getMillis() + "ms,filter,file=" + jfrFile + ",safemode=" + config.getAsyncProfilerSafeMode();
+            String startCommand = createStartCommand();
             String startMessage = asyncProfiler.execute(startCommand);
             logger.debug(startMessage);
             if (!profiledThreads.isEmpty()) {
@@ -423,6 +422,17 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             }
             Thread.currentThread().interrupt();
         }
+    }
+
+    String createStartCommand() {
+        StringBuilder startCommand = new StringBuilder("start,jfr,event=wall,cstack=n,interval=")
+            .append(config.getSamplingInterval().getMillis()).append("ms,filter,file=")
+            .append(jfrFile)
+            .append(",safemode=").append(config.getAsyncProfilerSafeMode());
+        if (!config.isProfilingLoggingEnabled()) {
+            startCommand.append(",log=none");
+        }
+        return startCommand.toString();
     }
 
     /**

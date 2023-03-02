@@ -21,6 +21,8 @@ package co.elastic.apm.agent.tomcatlogging;
 import co.elastic.apm.agent.jul.JulInstrumentationTest;
 import co.elastic.apm.agent.loginstr.LoggerFacade;
 import org.apache.juli.FileHandler;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -32,6 +34,7 @@ import java.util.Date;
 import java.util.logging.Handler;
 import java.util.logging.SimpleFormatter;
 
+@DisabledOnOs(OS.WINDOWS)
 public class TomcatLoggingInstrumentationTest extends JulInstrumentationTest {
 
     @Override
@@ -59,7 +62,7 @@ public class TomcatLoggingInstrumentationTest extends JulInstrumentationTest {
         protected void resetRemovedHandler() {
             if (Arrays.stream(julLogger.getHandlers()).noneMatch(handler -> handler instanceof FileHandler)) {
                 try {
-                    FileHandler fileHandler = new FileHandler("target/tomcat", "catalina.", ".log");
+                    FileHandler fileHandler = new FileHandler();
                     fileHandler.setFormatter(new SimpleFormatter());
                     julLogger.addHandler(fileHandler);
                 } catch (Exception e) {

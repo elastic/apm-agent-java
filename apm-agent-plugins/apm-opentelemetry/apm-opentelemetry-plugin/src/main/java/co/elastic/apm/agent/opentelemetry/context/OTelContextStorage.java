@@ -21,7 +21,7 @@ package co.elastic.apm.agent.opentelemetry.context;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.opentelemetry.sdk.OTelBridgeContext;
+import co.elastic.apm.agent.opentelemetry.tracing.OTelBridgeContext;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import io.opentelemetry.context.Context;

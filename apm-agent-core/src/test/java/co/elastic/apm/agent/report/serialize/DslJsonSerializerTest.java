@@ -1360,6 +1360,19 @@ class DslJsonSerializerTest {
         assertThat(jsonSpan.get("sample_rate").asDouble()).isEqualTo(0.42d);
     }
 
+    @Test
+    void testNonSampledTransaction() {
+        Sampler sampler = mock(Sampler.class);
+        doReturn(false).when(sampler).isSampled(any(Id.class));
+        doReturn(0.42d).when(sampler).getSampleRate();
+        Transaction transaction = createRootTransaction(sampler);
+        TraceContext transactionContext = transaction.getTraceContext();
+        assertThat(transactionContext.isSampled()).isFalse();
+        assertThat(transactionContext.getSampleRate()).isEqualTo(0.0d);
+        JsonNode transactionSpan = readJsonString(serializer.toJsonString(transaction));
+        assertThat(transactionSpan.get("sample_rate").asDouble()).isEqualTo(0.0d);
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void multiValueHeaders(boolean supportsMulti) {
@@ -1496,6 +1509,36 @@ class DslJsonSerializerTest {
         assertThat(parent2link.get("span_id").textValue()).isEqualTo(parent2.getTraceContext().getId().toString());
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSerializeLog(boolean asString) {
+        String ecsJsonLog = "{\"@timestamp\":\"2022-10-27T12:38:00.593Z\",\"log.level\": \"INFO\",\"message\":\"msg\",\"ecs.version\": \"1.2.0\",\"service.name\":\"opbeans\",\"service.version\":\"0.0.1-SNAPSHOT\",\"event.dataset\":\"opbeans.console\",\"process.thread.name\":\"main\",\"log.logger\":\"logger\"}\n";
+        if (asString) {
+            serializer.serializeLogNdJson(ecsJsonLog);
+        } else {
+            serializer.serializeLogNdJson(ecsJsonLog.getBytes(StandardCharsets.UTF_8));
+        }
+        String serializedJson = getAndResetSerializerJson();
+
+        // this is probably an implementation detail, as generated JSON could be "equivalent" while not being exactly
+        // identical, but it allows to ensure that the original log event is sent as-is without alteration
+        assertThat(serializedJson)
+            .describedAs("original ECS formatted log event should be copied as-is (minus the EOL)")
+            .contains(ecsJsonLog.trim());
+
+        // original EOL should be discarded in provided log event otherwise it breaks ND-JSON
+        assertThat(serializedJson.indexOf("\n"))
+            .describedAs("only single EOL character expected at the end of serialized ND-JSON")
+            .isEqualTo(serializedJson.length() - 1);
+
+        JsonNode ndJsonLog = readJsonString(serializedJson);
+        assertThat(ndJsonLog.has("log")).isTrue();
+        // only testing a single field is enough to test structure as we already checked that the original event was copied as-is
+        assertThat(ndJsonLog.get("log").get("message").asText()).isEqualTo("msg");
+
+
+    }
+
     private static void checkSingleValueHeader(JsonNode json, String fieldName, String value) {
         JsonNode fieldValue = json.get(fieldName);
         assertThat(fieldValue.isTextual()).isTrue();
@@ -1573,4 +1616,5 @@ class DslJsonSerializerTest {
         serializer.jw.reset();
         return jsonString;
     }
+
 }

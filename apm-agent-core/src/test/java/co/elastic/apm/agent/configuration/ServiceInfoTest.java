@@ -81,7 +81,7 @@ class ServiceInfoTest extends CustomEnvVariables {
         final Map<String, String> awsLambdaEnvVariables = new HashMap<>();
         awsLambdaEnvVariables.put("AWS_LAMBDA_FUNCTION_NAME", "my-lambda-function");
         awsLambdaEnvVariables.put("AWS_LAMBDA_FUNCTION_VERSION", "24");
-        ServiceInfo serviceInfo = callWithCustomEnvVariables(awsLambdaEnvVariables, () -> ServiceInfo.autoDetect(new Properties(), Map.of()));
+        ServiceInfo serviceInfo = callWithCustomEnvVariables(awsLambdaEnvVariables, () -> ServiceInfo.autoDetect(System.getProperties(), System.getenv()));
         assertSoftly(softly -> {
             softly.assertThat(serviceInfo.getServiceName()).isEqualTo("my-lambda-function");
             softly.assertThat(serviceInfo.getServiceVersion()).isEqualTo("24");

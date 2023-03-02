@@ -31,6 +31,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 
+import javax.annotation.Nullable;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
@@ -84,6 +86,17 @@ public class S3ClientIT extends AbstractAwsClientIT {
     @Override
     protected String type() {
         return "storage";
+    }
+
+    @Override
+    protected String subtype() {
+        return "s3";
+    }
+
+    @Nullable
+    @Override
+    protected String expectedTargetName(@Nullable String entityName) {
+        return entityName; //entityName is BUCKET_NAME
     }
 
     @Override

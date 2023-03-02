@@ -75,6 +75,7 @@ public class PackagingTest {
 
             Set<AgentModule> dependencies = plugin.getInternalDependencies().stream()
                 .filter(d -> !d.equals("apm-agent-core")) // filter-out explicit dependencies to apm-agent-core
+                .filter(d -> !d.equals("apm-opentelemetry-embedded-metrics-sdk")) // embedded metricsdk is intentionally loaded by agent classloader
                 .map(modules::get)
                 .collect(Collectors.toSet());
 

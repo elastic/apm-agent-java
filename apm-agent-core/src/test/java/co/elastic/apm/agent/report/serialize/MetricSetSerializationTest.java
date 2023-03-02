@@ -21,7 +21,9 @@ package co.elastic.apm.agent.report.serialize;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.metrics.Labels;
+import co.elastic.apm.agent.metrics.MetricCollector;
 import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.metrics.MetricsProvider;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -31,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -68,6 +71,21 @@ class MetricSetSerializationTest {
         assertThat(samples.get("foo.bar.count").get("value").doubleValue()).isEqualTo(1);
         assertThat(samples.get("bar.baz.sum.us").get("value").doubleValue()).isEqualTo(42);
         assertThat(samples.get("bar.baz.count").get("value").doubleValue()).isEqualTo(2);
+    }
+
+    @Test
+    void testSerializeRawMetrics() throws Exception {
+        final Labels.Mutable labels = Labels.Mutable.of("foo.bar", "baz");
+
+        registry.addMetricsProvider(collector -> {
+            collector.addMetricValue("my.metric", labels, 42);
+        });
+        final JsonNode jsonNode = reportAsJson();
+        assertThat(jsonNode).isNotNull();
+        final JsonNode tags = jsonNode.get("metricset").get("tags");
+        assertThat(tags.get("foo_bar").asText()).isEqualTo("baz");
+        final JsonNode samples = jsonNode.get("metricset").get("samples");
+        assertThat(samples.get("my.metric").get("value").doubleValue()).isEqualTo(42);
     }
 
     @Test
@@ -178,6 +196,32 @@ class MetricSetSerializationTest {
         assertThat(samples.get("foo.sum.us").get("value").intValue()).isOne();
         assertThat(samples.get("foo.count").get("value").intValue()).isOne();
 
+        assertThat(reportAsJson()).isNull();
+    }
+
+
+    @Test
+    void testRawMetricReset() throws Exception {
+
+        AtomicBoolean doExposeMetric = new AtomicBoolean(true);
+        registry.addMetricsProvider(new MetricsProvider() {
+            @Override
+            public void collectAndReset(MetricCollector collector) {
+                if (doExposeMetric.get()) {
+                    collector.addMetricValue("provider.metric", Labels.EMPTY, 42.0);
+                }
+            }
+        });
+
+
+        JsonNode jsonNode = reportAsJson();
+        assertThat(jsonNode).isNotNull();
+
+        JsonNode samples = jsonNode.get("metricset").get("samples");
+        assertThat(samples.size()).isEqualTo(1);
+        assertThat(samples.get("provider.metric").get("value").doubleValue()).isEqualTo(42.0);
+
+        doExposeMetric.set(false);
         assertThat(reportAsJson()).isNull();
     }
 

@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.report.ReporterMonitor;
 import co.elastic.apm.agent.report.ReportingEvent;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.dslplatform.json.JsonWriter;
@@ -44,6 +45,7 @@ import specs.TestJsonSpec;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -81,6 +83,8 @@ public class MockReporter implements Reporter {
     private boolean checkUnknownOutcomes = true;
     // Allows optional opt-out from strict span type/sub-type checking
     private boolean checkStrictSpanType = true;
+    //Instead of recording data, they are recycled immediately. Mainly used in repeated tests to uncover issues with premature recycling.
+    private boolean enabledImmediateRecycling = false;
 
     /**
      * If set to {@code true}, the reporter will attempt to execute gc when asserting that all objects were properly
@@ -92,6 +96,7 @@ public class MockReporter implements Reporter {
     private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
     private final List<ErrorCapture> errors = Collections.synchronizedList(new ArrayList<>());
     private final List<byte[]> bytes = new CopyOnWriteArrayList<>();
+    private final List<String> logs = Collections.synchronizedList(new ArrayList<>());
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
 
@@ -170,6 +175,15 @@ public class MockReporter implements Reporter {
         gcWhenAssertingRecycling = true;
     }
 
+    /**
+     * If set to true, spans & transactions will not be recorded but instead immediately recycled.
+     *
+     * @param enable true to enable immediate recycling
+     */
+    public void setImmediateRecycling(boolean enable) {
+        this.enabledImmediateRecycling = enable;
+    }
+
     @Override
     public void start() {
     }
@@ -190,7 +204,11 @@ public class MockReporter implements Reporter {
         }
 
         verifyTransactionSchema(transaction);
-        transactions.add(transaction);
+        if (enabledImmediateRecycling) {
+            transaction.decrementReferences();
+        } else {
+            transactions.add(transaction);
+        }
     }
 
     @Override
@@ -215,8 +233,11 @@ public class MockReporter implements Reporter {
             e.printStackTrace(System.err);
             throw e;
         }
-
-        spans.add(span);
+        if (enabledImmediateRecycling) {
+            span.decrementReferences();
+        } else {
+            spans.add(span);
+        }
     }
 
 
@@ -444,6 +465,12 @@ public class MockReporter implements Reporter {
             .isEqualTo(count));
     }
 
+    public void awaitLogsCount(int count) {
+        awaitUntilAsserted(() -> assertThat(getNumReportedLogs())
+            .describedAs("expecting %d logs", count)
+            .isEqualTo(count));
+    }
+
     @Override
     public synchronized void report(ErrorCapture error) {
         if (closed) {
@@ -454,11 +481,26 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public synchronized void report(JsonWriter jsonWriter) {
+    public synchronized void reportMetrics(JsonWriter jsonWriter) {
         if (closed) {
             return;
         }
         this.bytes.add(jsonWriter.toByteArray());
+    }
+
+    @Override
+    public void reportLog(String log) {
+        this.logs.add(log);
+    }
+
+    @Override
+    public void reportLog(byte[] log) {
+        this.logs.add(new String(log, StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public void reportAgentLog(byte[] log) {
+        this.logs.add(new String(log, StandardCharsets.UTF_8));
     }
 
     @Override
@@ -475,6 +517,19 @@ public class MockReporter implements Reporter {
 
     public synchronized List<Span> getSpans() {
         return Collections.unmodifiableList(spans);
+    }
+
+    public synchronized JsonNode getFirstLog() {
+        assertThat(logs)
+            .describedAs("at least one log expected, none have been reported")
+            .isNotEmpty();
+        return asJson(logs.get(0));
+    }
+
+    public synchronized List<JsonNode> getLogs() {
+        return logs.stream()
+            .map(log -> asJson(log))
+            .collect(Collectors.toList());
     }
 
     public Span getSpanByName(String name) {
@@ -496,6 +551,10 @@ public class MockReporter implements Reporter {
 
     public synchronized int getNumReportedErrors() {
         return errors.size();
+    }
+
+    public synchronized int getNumReportedLogs() {
+        return logs.size();
     }
 
     public synchronized ErrorCapture getFirstError() {
@@ -723,6 +782,10 @@ public class MockReporter implements Reporter {
             InputStream input = Objects.requireNonNull(MockReporter.class.getResourceAsStream(resource), "missing resource " + resource);
             return JsonSchemaFactory.getInstance().getSchema(input);
         }
+    }
+
+    public void setReporterMonitor(ReporterMonitor monitor) {
+        throw new UnsupportedOperationException();
     }
 
 }

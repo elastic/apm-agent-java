@@ -270,6 +270,9 @@ public class AgentAttacher {
 
     private boolean attach(JvmInfo jvmInfo) throws Exception {
         final Map<String, String> agentArgs = getAgentArgs(jvmInfo);
+        if (!agentArgs.containsKey("activation_method")) {
+            agentArgs.put("activation_method", "APM_AGENT_ATTACH_CLI");
+        }
         logger.info("Attaching the Elastic APM agent to {} with arguments {}", jvmInfo, agentArgs);
 
         UserRegistry.User user = jvmInfo.getUser(userRegistry);
@@ -579,7 +582,7 @@ public class AgentAttacher {
             out.println();
             out.println("    -C --config <key=value>...");
             out.println("        This repeatable option sets one agent configuration option.");
-            out.println("        Example: --config server_url=http://localhost:8200.");
+            out.println("        Example: --config server_url=http://127.0.0.1:8200.");
             out.println();
             out.println("    -A, --args-provider <args_provider_script>");
             out.println("        The name of a program which is called when a new JVM starts up.");

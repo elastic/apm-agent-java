@@ -32,7 +32,7 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
@@ -336,45 +336,53 @@ class ElasticApmTracerTest {
 
     @Test
     void testActivationStackOverflow() {
-        doReturn(2).when(tracerImpl.getConfig(CoreConfiguration.class)).getTransactionMaxSpans();
-        Transaction transaction = startTestRootTransaction();
-        assertThat(tracerImpl.getActive()).isNull();
+        doReturn(2).when(config.getConfig(CoreConfiguration.class)).getTransactionMaxSpans();
+
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .configurationRegistry(config)
+            .withApmServerClient(mock(ApmServerClient.class))
+            .reporter(reporter)
+            .withObjectPoolFactory(objectPoolFactory)
+            .buildAndStart();
+
+        Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader());
+        assertThat(tracer.getActive()).isNull();
         try (Scope scope = transaction.activateInScope()) {
-            assertThat(tracerImpl.getActive()).isEqualTo(transaction);
+            assertThat(tracer.getActive()).isEqualTo(transaction);
             Span child1 = transaction.createSpan();
             try (Scope childScope = child1.activateInScope()) {
-                assertThat(tracerImpl.getActive()).isEqualTo(child1);
+                assertThat(tracer.getActive()).isEqualTo(child1);
                 Span grandchild1 = child1.createSpan();
                 try (Scope grandchildScope = grandchild1.activateInScope()) {
                     // latter activation should not be applied due to activation stack overflow
-                    assertThat(tracerImpl.getActive()).isEqualTo(child1);
+                    assertThat(tracer.getActive()).isEqualTo(child1);
                     Span ggc = grandchild1.createSpan();
                     try (Scope ggcScope = ggc.activateInScope()) {
-                        assertThat(tracerImpl.getActive()).isEqualTo(child1);
+                        assertThat(tracer.getActive()).isEqualTo(child1);
                         ggc.end();
                     }
                     grandchild1.end();
                 }
-                assertThat(tracerImpl.getActive()).isEqualTo(child1);
+                assertThat(tracer.getActive()).isEqualTo(child1);
                 child1.end();
             }
-            assertThat(tracerImpl.getActive()).isEqualTo(transaction);
+            assertThat(tracer.getActive()).isEqualTo(transaction);
             Span child2 = transaction.createSpan();
             try (Scope childScope = child2.activateInScope()) {
-                assertThat(tracerImpl.getActive()).isEqualTo(child2);
+                assertThat(tracer.getActive()).isEqualTo(child2);
                 Span grandchild2 = child2.createSpan();
                 try (Scope grandchildScope = grandchild2.activateInScope()) {
                     // latter activation should not be applied due to activation stack overflow
-                    assertThat(tracerImpl.getActive()).isEqualTo(child2);
+                    assertThat(tracer.getActive()).isEqualTo(child2);
                     grandchild2.end();
                 }
-                assertThat(tracerImpl.getActive()).isEqualTo(child2);
+                assertThat(tracer.getActive()).isEqualTo(child2);
                 child2.end();
             }
-            assertThat(tracerImpl.getActive()).isEqualTo(transaction);
+            assertThat(tracer.getActive()).isEqualTo(transaction);
             transaction.end();
         }
-        assertThat(tracerImpl.getActive()).isNull();
+        assertThat(tracer.getActive()).isNull();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(2);
     }

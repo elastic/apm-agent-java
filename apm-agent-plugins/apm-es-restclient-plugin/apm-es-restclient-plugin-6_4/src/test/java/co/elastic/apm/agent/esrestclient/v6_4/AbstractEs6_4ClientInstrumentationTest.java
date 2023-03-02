@@ -234,10 +234,15 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         Span span = spans.get(0);
-        validateSpanContent(span, String.format("Elasticsearch: GET /%s/_search/template", INDEX), 200, "GET");
+        String httpMethod = getSearchTemplateHttpMethod();
+        validateSpanContent(span, String.format("Elasticsearch: %s /%s/_search/template", httpMethod, INDEX), 200, httpMethod);
         validateDbContextContent(span, "{\"source\":\"{  \\\"query\\\": { \\\"term\\\" : { \\\"{{field}}\\\" : \\\"{{value}}\\\" } },  \\\"size\\\" : \\\"{{size}}\\\"}\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"},\"explain\":false,\"profile\":false}");
 
         deleteDocument();
+    }
+
+    protected String getSearchTemplateHttpMethod() {
+        return "GET";
     }
 
     @Test
@@ -264,13 +269,18 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
     }
 
     protected void createDocument() throws IOException, ExecutionException, InterruptedException {
-        IndexResponse ir = doIndex(new IndexRequest(INDEX, DOC_TYPE, DOC_ID).source(
+        IndexResponse ir = doIndex(createIndexRequest(DOC_ID).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE));
+        assertThat(ir.status().getStatus()).isEqualTo(201);
+    }
+
+    // protected so it can be overridden once the org.elasticsearch.common.xcontent package was changed to org.elasticsearch.xcontent
+    protected IndexRequest createIndexRequest(String docId) throws IOException {
+        return new IndexRequest(INDEX, DOC_TYPE, docId).source(
             jsonBuilder()
                 .startObject()
                 .field(FOO, BAR)
                 .endObject()
-        ).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE));
-        assertThat(ir.status().getStatus()).isEqualTo(201);
+        );
     }
 
     protected DeleteResponse deleteDocument() throws InterruptedException, ExecutionException, IOException {
@@ -309,12 +319,7 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
     @Test
     public void testScenarioAsBulkRequest() throws IOException, ExecutionException, InterruptedException {
         doBulk(new BulkRequest()
-            .add(new IndexRequest(INDEX, DOC_TYPE, "2").source(
-                jsonBuilder()
-                    .startObject()
-                    .field(FOO, BAR)
-                    .endObject()
-            ))
+            .add(createIndexRequest("2"))
             .add(new DeleteRequest(INDEX, DOC_TYPE, "2")));
 
         validateSpanContentAfterBulkRequest();

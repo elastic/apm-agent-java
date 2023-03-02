@@ -49,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -202,11 +203,6 @@ public class IndyBootstrap {
     public static final String LOOKUP_EXPOSER_CLASS_NAME = "co.elastic.apm.agent.bci.classloading.LookupExposer";
 
     /**
-     * The root package name prefix that all embedded plugins classes should start with
-     */
-    private static final String EMBEDDED_PLUGINS_PACKAGE_PREFIX = "co.elastic.apm.agent.";
-
-    /**
      * Caches the names of classes that are defined within a package and it's subpackages
      */
     private static final ConcurrentMap<String, List<String>> classesByPackage = new ConcurrentHashMap<>();
@@ -214,7 +210,15 @@ public class IndyBootstrap {
     @Nullable
     static Method indyBootstrapMethod;
 
+    @Nullable
+    static Method bootstrapLoggingMethod;
+
     private static final CallDepth callDepth = CallDepth.get(IndyBootstrap.class);
+
+    private static Logger logger() {
+        // must not be a static field as it would initialize logging before it's ready
+        return LoggerFactory.getLogger(IndyBootstrap.class);
+    }
 
     public static Method getIndyBootstrapMethod(final Logger logger) {
         if (indyBootstrapMethod != null) {
@@ -226,6 +230,22 @@ public class IndyBootstrap {
                 .getField("bootstrap")
                 .set(null, IndyBootstrap.class.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, MethodType.class, Object[].class));
             return indyBootstrapMethod = indyBootstrapClass.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, MethodType.class, Object[].class);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    public static Method getExceptionHandlerMethod(final Logger logger) {
+        if (bootstrapLoggingMethod != null) {
+            return bootstrapLoggingMethod;
+        }
+        try {
+            Class<?> indyBootstrapClass = initIndyBootstrap(logger);
+            indyBootstrapClass
+                .getField("logAdviceException")
+                .set(null, IndyBootstrap.class.getMethod("logExceptionThrownByAdvice", Throwable.class));
+            return bootstrapLoggingMethod = indyBootstrapClass.getMethod("logAdviceException", Throwable.class);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -298,6 +318,10 @@ public class IndyBootstrap {
         MethodHandles.lookup()
             .findStatic(moduleSetterClass, "setJavaBaseModule", MethodType.methodType(void.class, Class.class))
             .invoke(targetClass);
+    }
+
+    public static void logExceptionThrownByAdvice(Throwable exception) {
+        logger().error("Advice threw an exception, this should never happen!", exception);
     }
 
     /**
@@ -376,8 +400,7 @@ public class IndyBootstrap {
                 // avoid re-entrancy and stack overflow errors
                 // may happen when bootstrapping an instrumentation that also gets triggered during the bootstrap
                 // for example, adding correlation ids to the thread context when executing logger.debug.
-                // We cannot use a static logger field as it would initialize logging before it's ready
-                LoggerFactory.getLogger(IndyBootstrap.class).warn("Nested instrumented invokedynamic instruction linkage detected", new Throwable());
+                logger().warn("Nested instrumented invokedynamic instruction linkage detected", new Throwable());
                 return null;
             }
             String adviceClassName = (String) args[0];
@@ -390,6 +413,7 @@ public class IndyBootstrap {
             ClassLoader targetClassLoader = lookup.lookupClass().getClassLoader();
             ClassFileLocator classFileLocator;
             List<String> pluginClasses = new ArrayList<>();
+            Map<String, List<String>> requiredModuleOpens = Collections.emptyMap();
             if (instrumentationClassLoader instanceof ExternalPluginClassLoader) {
                 List<String> externalPluginClasses = ((ExternalPluginClassLoader) instrumentationClassLoader).getClassNames();
                 for (String externalPluginClass : externalPluginClasses) {
@@ -409,7 +433,9 @@ public class IndyBootstrap {
                     ClassFileLocator.ForJarFile.of(agentJarFile)
                 );
             } else {
-                pluginClasses.addAll(getClassNamesFromBundledPlugin(adviceClassName, instrumentationClassLoader));
+                String pluginPackage = PluginClassLoaderRootPackageCustomizer.getPluginPackageFromClassName(adviceClassName);
+                pluginClasses.addAll(getClassNamesFromBundledPlugin(pluginPackage, instrumentationClassLoader));
+                requiredModuleOpens = ElasticApmAgent.getRequiredPluginModuleOpens(pluginPackage);
                 classFileLocator = ClassFileLocator.ForClassLoader.of(instrumentationClassLoader);
             }
             pluginClasses.add(LOOKUP_EXPOSER_CLASS_NAME);
@@ -424,6 +450,13 @@ public class IndyBootstrap {
                     // if config classes would be loaded from the plugin CL,
                     // tracer.getConfig(Config.class) would return null when called from an advice as the classes are not the same
                     .or(nameContains("Config").and(hasSuperType(is(ConfigurationOptionProvider.class)))));
+            if (ElasticApmAgent.areModulesSupported() && !requiredModuleOpens.isEmpty()) {
+                boolean success = addRequiredModuleOpens(requiredModuleOpens, targetClassLoader, pluginClassLoader);
+                if (!success) {
+                    logger().error("Cannot bootstrap advice because required modules could not be opened!");
+                    return null;
+                }
+            }
             Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
             Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass(LOOKUP_EXPOSER_CLASS_NAME);
             // can't use MethodHandle.lookup(), see also https://github.com/elastic/apm-agent-java/issues/1450
@@ -432,19 +465,42 @@ public class IndyBootstrap {
             MethodHandle methodHandle = indyLookup.findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
             return new ConstantCallSite(methodHandle);
         } catch (Exception e) {
-            // must not be a static field as it would initialize logging before it's ready
-            LoggerFactory.getLogger(IndyBootstrap.class).error(e.getMessage(), e);
+            logger().error(e.getMessage(), e);
             return null;
         } finally {
             callDepth.decrement();
         }
     }
 
-    private static List<String> getClassNamesFromBundledPlugin(String adviceClassName, ClassLoader adviceClassLoader) throws IOException, URISyntaxException {
-        if (!adviceClassName.startsWith(EMBEDDED_PLUGINS_PACKAGE_PREFIX)) {
-            throw new IllegalArgumentException("invalid advice class location : " + adviceClassName);
+    /**
+     * Attempts to open required modules for a given plugin classloader.
+     *
+     * @param requiredModuleOpens A map of FQNs of "witness" classes from modules and the corresponding package names to be opened.
+     * @param targetClassLoader   the Classloader in which the class instrumented by the plugin classloader lives.
+     *                            Will be used to lookup "witness" classes from modules.
+     * @param pluginClassLoader   the instrumentation plugin classloader which will be given module access.
+     * @return true if all required modules could be opened. On java < 17, true may be returned
+     * even if not all modules could be opened because in these versions module boundaries are not enforced.
+     * If any of the provided witness classes is not found, false is always returned.
+     */
+    private static boolean addRequiredModuleOpens(Map<String, List<String>> requiredModuleOpens, ClassLoader targetClassLoader, ClassLoader pluginClassLoader) {
+        try {
+            for (Map.Entry<String, List<String>> requiredOpen : requiredModuleOpens.entrySet()) {
+                String witnessClassName = requiredOpen.getKey();
+                List<String> packagesToOpen = requiredOpen.getValue();
+                Class<?> witness = Class.forName(witnessClassName, false, targetClassLoader);
+                if (!ElasticApmAgent.openModule(witness, pluginClassLoader, packagesToOpen)) {
+                    return false;
+                }
+            }
+        } catch (ClassNotFoundException e) {
+            logger().error("Cannot open module because witness class is not found", e);
+            return false;
         }
-        String pluginPackage = adviceClassName.substring(0, adviceClassName.indexOf('.', EMBEDDED_PLUGINS_PACKAGE_PREFIX.length()));
+        return true;
+    }
+
+    private static List<String> getClassNamesFromBundledPlugin(String pluginPackage, ClassLoader adviceClassLoader) throws IOException, URISyntaxException {
         List<String> pluginClasses = classesByPackage.get(pluginPackage);
         if (pluginClasses == null) {
             pluginClasses = new ArrayList<>();
@@ -457,5 +513,4 @@ public class IndyBootstrap {
         }
         return pluginClasses;
     }
-
 }

@@ -20,20 +20,19 @@ package co.elastic.apm.agent.tomcatlogging.reformatting;
 
 import co.elastic.apm.agent.jul.reformatting.AbstractJulEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import org.apache.juli.FileHandler;
 
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.Handler;
 
-public class TomcatReformattingHelper extends AbstractJulEcsReformattingHelper {
+public class TomcatReformattingHelper extends AbstractJulEcsReformattingHelper<Handler> {
 
     private static final ThreadLocal<String> currentDirectory = new ThreadLocal<>();
     private static final ThreadLocal<String> currentPrefix = new ThreadLocal<>();
@@ -42,7 +41,7 @@ public class TomcatReformattingHelper extends AbstractJulEcsReformattingHelper {
     TomcatReformattingHelper() {
     }
 
-    public boolean onAppendEnter(FileHandler fileHandler, String directory, String prefix, String suffix) {
+    public boolean onAppendEnter(Handler fileHandler, String directory, String prefix, String suffix) {
         try {
             currentDirectory.set(directory);
             currentPrefix.set(prefix);
@@ -82,9 +81,7 @@ public class TomcatReformattingHelper extends AbstractJulEcsReformattingHelper {
         Path destinationDir = Utils.computeLogReformattingDir(destinationPattern, getConfiguredReformattingDir());
 
         if (destinationDir != null) {
-            if (!Files.exists(destinationDir)) {
-                Files.createDirectories(destinationDir);
-            }
+            PrivilegedActionUtils.createDirectories(destinationDir);
             pattern = destinationDir.resolve(destinationPattern.getFileName()).toString();
         }
 

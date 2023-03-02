@@ -25,7 +25,9 @@ When multiple JVMs are running on the same host and report data for the same ser
 * <<metrics-jvm>>
 * <<metrics-application>>
 * <<metrics-only-mode>>
+* <<metrics-otel>>
 * <<metrics-micrometer>>
+* <<metrics-agenthealth>>
 
 [float]
 [[metrics-system]]
@@ -332,6 +334,13 @@ In such cases, you may set the <<config-instrument, `instrument`>> config option
 minimize its effect on the application, while still collecting and sending metrics to the APM Server.
 
 [float]
+[[metrics-otel]]
+=== OpenTelemetry metrics
+
+The elastic APM Java Agent supports collecting metrics defined via OpenTelemetry.
+See the corresponding <<otel-metrics, documentation section>> for details.
+
+[float]
 [[metrics-micrometer]]
 === Micrometer metrics
 
@@ -354,34 +363,28 @@ The reason for that is that if you set your sampling rate to 10%, for example,
 you'll only be storing one out of 10 requests.
 The labels you set on non-sampled transactions will be lost.
 
-* <<metrics-micrometer-beta-caveats>>
+* <<metrics-micrometer-beta-notes>>
 * <<metrics-micrometer-get-started-existing>>
 * <<metrics-micrometer-get-started-from-scratch>>
 * <<metrics-micrometer-spring-boot>>
 * <<metrics-micrometer-fields>>
 
 [float]
-[[metrics-micrometer-beta-caveats]]
-==== Caveats
-
-To fix some of the caveats listed here, we may have to introduce breaking changes.
-Please look for Micrometer-related release notes before updating.
+[[metrics-micrometer-beta-notes]]
+==== Notes
 
 * Dots in metric names of Micrometer metrics get replaced with underscores to avoid mapping conflicts.
 De-dotting can be disabled via <<config-dedot-custom-metrics, `dedot_custom_metrics`>>.
 * Histograms (https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/DistributionSummary.html[DistributionSummary],
 https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/Timer.html[Timer],
 and https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/LongTaskTimer.html[LongTaskTimer])
-are partially supported by converting the histogram metric into two derived metrics: a counter of the values and the sum of the values.
-For example, `DistributionSummary.builder("order").register(...).record(orderPrice)` will create two metrics: `order.sum` and `order.count`.
-* When multiple `MeterRegistry` s are used, the metrics are de-duplicated based on their meter id.
-  However, it is non-deterministic which metrics are favored if multiple meter registries are used within a compound meter registry.
-See https://github.com/elastic/apm-agent-java/issues/1476[#1476]
-* When using `CountingMode.STEP`, the step duration has to be aligned with <<config-metrics-interval, `metrics_interval`>>.
-  But even if doing that there can be missing values. See https://github.com/elastic/apm-agent-java/issues/1476[#1476]
+are supported by converting the histogram metric into three derived metrics: a counter of the values, the sum of the values, and the https://www.elastic.co/guide/en/elasticsearch/reference/current/histogram.html[histogram].
+For example, `DistributionSummary.builder("order").register(...).record(orderPrice)` will create three metrics: `order.sum`, `order.count` and `order.histogram` (which has a `values` array for the buckets and a `counts` array for counts of samples in each bucket).
+* When multiple `MeterRegistry` s are used, the metrics are de-duplicated based on their meter id. A warning is issued if a collision occurs from multiple meter registries within a compound meter registry.
 * When using `CountingMode.CUMULATIVE`, you can use TSVB's "Positive Rate" aggregation to convert the counter to a rate.
   But you have to remember to group by a combination of dimensions that uniquely identify the time series.
   This may be a combination of `host.name` and `service.name`, or the `kubernetes.pod.id`.
+
 
 [float]
 [[metrics-micrometer-get-started-existing]]
@@ -573,4 +576,123 @@ Fields:
 Fields:
 
 * `${name}`: The value of `functionCounter.count()` (the delta when using `CountingMode.STEP`).
+--
+
+[float]
+[[metrics-agenthealth]]
+=== Agent Health Metrics
+
+experimental::[]
+
+The agent internally uses a queue to buffer the various events (e.g. transactions, spans, metrics) before sending them to the APM server.
+When <<config-agent-reporter-health-metrics, `agent_reporter_health_metrics`>> is enabled, the agent will expose several metrics regarding the health state of this queue and the network connectivity to the APM server.
+In addition, if <<config-agent-background-overhead-metrics, `agent_background_overhead_metrics`>> is enabled, the agent will continuously measure the resource consumption of its own background tasks and provide the results as metrics.
+
+[float]
+[[metrics-agenthealth-events]]
+==== Agent Reporting and Event Metrics
+
+*`agent.events.total`*::
++
+--
+type: long
+
+format: number of events
+
+The total number of events attempted to report to the APM server.
+--
+
+*`agent.events.dropped`*::
++
+--
+type: long
+
+format: number of events
+
+The number of events which could not be sent to the APM server, e.g. due to a full queue or an error.
+--
+
+*`agent.events.queue.min_size.pct`*::
++
+--
+type: double
+
+format: percentage [0-1]
+
+The minimum size of the reporting queue since the last metrics report.
+--
+
+*`agent.events.queue.max_size.pct`*::
++
+--
+type: double
+
+format: percentage [0-1]
+
+The maximum size of the reporting queue since the last metrics report.
+--
+
+
+*`agent.events.requests.count`*::
++
+--
+type: long
+
+format: number of requests
+
+The number of requests made (successful and failed) to the APM server to report data.
+--
+
+*`agent.events.requests.bytes`*::
++
+--
+type: long
+
+format: bytes
+
+The number of bytes attempted to send (successful and failed) to the APM server to report data.
+--
+
+[float]
+[[metrics-agenthealth-overhead]]
+==== Agent Background Resource Consumption Metrics
+
+*`agent.background.cpu.total.pct`*::
++
+--
+type: double
+
+format: percentage [0-1]
+
+The total CPU usage caused by background tasks running in the agent.
+--
+
+*`agent.background.cpu.overhead.pct`*::
++
+--
+type: double
+
+format: percentage [0-1]
+
+The share of process CPU usage caused by background tasks running in the agent.
+--
+
+*`agent.background.memory.allocation.bytes`*::
++
+--
+type: long
+
+format: bytes
+
+The number of bytes allocated in the heap by background tasks running in the agent.
+--
+
+*`agent.background.threads.count`*::
++
+--
+type: long
+
+format: number of threads
+
+The number of threads used by background tasks in the agent.
 --

@@ -37,16 +37,13 @@ import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
 public class AbstractIntakeApiHandler {
-    protected final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(AbstractIntakeApiHandler.class);
     private static final Object WAIT_LOCK = new Object();
 
     protected final ReporterConfiguration reporterConfiguration;
     protected final PayloadSerializer payloadSerializer;
     protected final ApmServerClient apmServerClient;
     protected Deflater deflater;
-    protected long currentlyTransmitting = 0;
-    protected long reported = 0;
-    protected long dropped = 0;
     @Nullable
     protected HttpURLConnection connection;
     @Nullable
@@ -58,7 +55,7 @@ public class AbstractIntakeApiHandler {
     private volatile boolean healthy = true;
     private long requestStartedNanos;
 
-    public AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
+    protected AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
         this.reporterConfiguration = reporterConfiguration;
         this.payloadSerializer = payloadSerializer;
         this.apmServerClient = apmServerClient;
@@ -122,32 +119,47 @@ public class AbstractIntakeApiHandler {
                 payloadSerializer.flushToOutputStream();
                 requestStartedNanos = System.nanoTime();
             } catch (IOException e) {
-                logger.error("Error trying to connect to APM Server at {}. Although not necessarily related to SSL, some related SSL " +
-                    "configurations corresponding the current connection are logged at INFO level.", connection.getURL());
-                if (logger.isInfoEnabled() && connection instanceof HttpsURLConnection) {
-                    HttpsURLConnection httpsURLConnection = (HttpsURLConnection) connection;
-                    try {
-                        logger.info("Cipher suite used for this connection: {}", httpsURLConnection.getCipherSuite());
-                    } catch (Exception e1) {
-                        SSLSocketFactory sslSocketFactory = httpsURLConnection.getSSLSocketFactory();
-                        logger.info("Default cipher suites: {}", Arrays.toString(sslSocketFactory.getDefaultCipherSuites()));
-                        logger.info("Supported cipher suites: {}", Arrays.toString(sslSocketFactory.getSupportedCipherSuites()));
+                try {
+                    logger.error("Error trying to connect to APM Server at {}. Although not necessarily related to SSL, some related SSL " +
+                        "configurations corresponding the current connection are logged at INFO level.", connection.getURL());
+                    if (logger.isInfoEnabled() && connection instanceof HttpsURLConnection) {
+                        HttpsURLConnection httpsURLConnection = (HttpsURLConnection) connection;
+                        try {
+                            logger.info("Cipher suite used for this connection: {}", httpsURLConnection.getCipherSuite());
+                        } catch (Exception e1) {
+                            SSLSocketFactory sslSocketFactory = httpsURLConnection.getSSLSocketFactory();
+                            logger.info("Default cipher suites: {}", Arrays.toString(sslSocketFactory.getDefaultCipherSuites()));
+                            logger.info("Supported cipher suites: {}", Arrays.toString(sslSocketFactory.getSupportedCipherSuites()));
+                        }
+                        try {
+                            logger.info("APM Server certificates: {}", Arrays.toString(httpsURLConnection.getServerCertificates()));
+                        } catch (Exception e1) {
+                            // ignore - invalid
+                        }
+                        try {
+                            logger.info("Local certificates: {}", Arrays.toString(httpsURLConnection.getLocalCertificates()));
+                        } catch (Exception e1) {
+                            // ignore - invalid
+                        }
                     }
-                    try {
-                        logger.info("APM Server certificates: {}", Arrays.toString(httpsURLConnection.getServerCertificates()));
-                    } catch (Exception e1) {
-                        // ignore - invalid
-                    }
-                    try {
-                        logger.info("Local certificates: {}", Arrays.toString(httpsURLConnection.getLocalCertificates()));
-                    } catch (Exception e1) {
-                        // ignore - invalid
-                    }
+                } finally {
+                    closeAndSuppressErrors(connection);
                 }
                 throw e;
+            } catch (Throwable t) {
+                closeAndSuppressErrors(connection);
+                throw t;
             }
         }
         return connection;
+    }
+
+    private void closeAndSuppressErrors(HttpURLConnection connection) {
+        try {
+            connection.disconnect();
+        } catch (Throwable t) {
+            logger.debug("Suppressed error on attempt to close connection", t);
+        }
     }
 
     private boolean isLocalhost(HttpURLConnection connection) {
@@ -162,28 +174,43 @@ public class AbstractIntakeApiHandler {
         }
     }
 
-    public void endRequest() {
+    protected void endRequest() {
+        endRequest(false);
+    }
+
+    protected void endRequestExceptionally() {
+        if (connection == null) {
+            //The HttpUrlConnection could not be established if connection == null
+            onConnectionError(null, null, 0L);
+        } else {
+            endRequest(true);
+        }
+    }
+
+    private void endRequest(boolean isFailed) {
         if (connection != null) {
+            long writtenBytes = countingOs != null ? countingOs.getCount() : 0L;
             try {
                 payloadSerializer.fullFlush();
                 if (os != null) {
                     os.close();
                 }
+                writtenBytes = countingOs != null ? countingOs.getCount() : 0L;
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Flushing {} uncompressed {} compressed bytes", deflater.getBytesRead(), deflater.getBytesWritten());
+                    logger.debug("Flushing {} uncompressed {} compressed bytes", deflater.getBytesRead(), writtenBytes);
                 }
                 InputStream inputStream = connection.getInputStream();
                 final int responseCode = connection.getResponseCode();
-                if (responseCode >= 400) {
-                    onRequestError(responseCode, inputStream, null);
+                if (isFailed || responseCode >= 400) {
+                    onRequestError(responseCode, writtenBytes, inputStream, null);
                 } else {
-                    onRequestSuccess();
+                    onRequestSuccess(writtenBytes);
                 }
             } catch (IOException e) {
                 try {
-                    onRequestError(connection.getResponseCode(), connection.getErrorStream(), e);
+                    onRequestError(connection.getResponseCode(), writtenBytes, connection.getErrorStream(), e);
                 } catch (IOException e1) {
-                    onRequestError(-1, connection.getErrorStream(), e);
+                    onRequestError(-1, writtenBytes, connection.getErrorStream(), e);
                 }
             } finally {
                 HttpUtils.consumeAndClose(connection);
@@ -191,7 +218,6 @@ public class AbstractIntakeApiHandler {
                 os = null;
                 countingOs = null;
                 deflater.reset();
-                currentlyTransmitting = 0;
             }
         }
     }
@@ -200,25 +226,22 @@ public class AbstractIntakeApiHandler {
         return System.nanoTime() >= requestStartedNanos + TimeUnit.MILLISECONDS.toNanos(reporterConfiguration.getApiRequestTime().getMillis());
     }
 
-    protected void onRequestError(Integer responseCode, InputStream inputStream, @Nullable IOException e) {
-        // TODO read accepted, dropped and invalid
-        onConnectionError(responseCode, currentlyTransmitting, 0);
+    private void onRequestError(Integer responseCode, long bytesWritten, InputStream inputStream, @Nullable IOException e) {
+        String responseBody = null;
+        try {
+            responseBody = IOUtils.toString(inputStream);
+            logger.warn("Response body: {}", responseBody);
+        } catch (IOException e1) {
+            logger.warn(e1.getMessage(), e1);
+        }
+        onConnectionError(responseCode, responseBody, bytesWritten);
         if (e != null) {
             logger.error("Error sending data to APM server: {}, response code is {}", e.getMessage(), responseCode);
             logger.debug("Sending payload to APM server failed", e);
         }
-        if (logger.isWarnEnabled()) {
-            try {
-                logger.warn(IOUtils.toString(inputStream));
-            } catch (IOException e1) {
-                logger.warn(e1.getMessage(), e);
-            }
-        }
     }
 
-    protected void onConnectionError(@Nullable Integer responseCode, long droppedEvents, long reportedEvents) {
-        dropped += droppedEvents;
-        reported += reportedEvents;
+    protected void onConnectionError(@Nullable Integer responseCode, @Nullable String responseBody, long bytesWritten) {
         // if the response code is null, the server did not even send a response
         if (responseCode == null || responseCode > 429) {
             // this server seems to have connection or capacity issues, try next
@@ -254,18 +277,6 @@ public class AbstractIntakeApiHandler {
         return healthy;
     }
 
-    public long getReported() {
-        return reported;
-    }
-
-    public long getDropped() {
-        return dropped;
-    }
-
-    public int getErrorCount() {
-        return errorCount;
-    }
-
     public void close() {
         shutDown = true;
         synchronized (WAIT_LOCK) {
@@ -273,8 +284,7 @@ public class AbstractIntakeApiHandler {
         }
     }
 
-    protected void onRequestSuccess() {
+    protected void onRequestSuccess(long bytesWritten) {
         errorCount = 0;
-        reported += currentlyTransmitting;
     }
 }

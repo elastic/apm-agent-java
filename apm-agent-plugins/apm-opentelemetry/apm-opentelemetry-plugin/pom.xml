@@ -4,7 +4,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-opentelemetry</artifactId>
-        <version>1.34.2-SNAPSHOT</version>
+        <version>1.36.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-opentelemetry-plugin</artifactId>
@@ -12,33 +12,54 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
-
-        <!-- those two properties should be updated in sync -->
-        <version.opentelemetry>1.0.0</version.opentelemetry>
-        <version.opentelemetry.semconv>1.0.0-alpha</version.opentelemetry.semconv>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
-            <!--
-            when updating the version, add the old version to OpenTelemetryVersionIT
-            to make sure we're compatible with both the old and the new version
-            -->
             <version>${version.opentelemetry}</version>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-semconv</artifactId>
-            <version>${version.opentelemetry.semconv}</version>
-            <scope>provided</scope>
+            <version>${version.opentelemetry}-alpha</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-embedded-metrics-sdk</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-metrics-bridge-latest</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-httpclient-core</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <!-- we reuse the existing metrics test to verify the Otel Metrics API Bridge instrumentation -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-metricsdk-plugin</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- The metricsdk-instrumentation is responsible for setting up the exporter -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-metricsdk-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <!-- TODO : find a way to reduce duplication of those dependencies -->

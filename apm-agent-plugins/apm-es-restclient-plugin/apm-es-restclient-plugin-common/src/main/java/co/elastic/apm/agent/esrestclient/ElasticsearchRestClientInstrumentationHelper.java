@@ -18,17 +18,18 @@
  */
 package co.elastic.apm.agent.esrestclient;
 
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.IOUtils;
+import co.elastic.apm.agent.util.LoggerUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;
@@ -36,7 +37,6 @@ import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.ResponseListener;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -44,6 +44,8 @@ import java.util.concurrent.CancellationException;
 public class ElasticsearchRestClientInstrumentationHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelper.class);
+
+    private static final Logger unsupportedOperationOnceLogger = LoggerUtils.logOnce(logger);
     private static final ElasticsearchRestClientInstrumentationHelper INSTANCE = new ElasticsearchRestClientInstrumentationHelper(GlobalTracer.requireTracerImpl());
 
     public static final List<WildcardMatcher> QUERY_WILDCARD_MATCHERS = Arrays.asList(
@@ -72,7 +74,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
     private class ResponseListenerAllocator implements Allocator<ResponseListenerWrapper> {
         @Override
         public ResponseListenerWrapper createInstance() {
-            return new ResponseListenerWrapper(ElasticsearchRestClientInstrumentationHelper.this);
+            return new ResponseListenerWrapper(ElasticsearchRestClientInstrumentationHelper.this, ElasticsearchRestClientInstrumentationHelper.this.tracer);
         }
     }
 
@@ -95,6 +97,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
             .withAction(SPAN_ACTION)
             .appendToName("Elasticsearch: ").appendToName(method).appendToName(" ").appendToName(endpoint);
         span.getContext().getDb().withType(ELASTICSEARCH);
+        span.getContext().getServiceTarget().withType(ELASTICSEARCH);
         span.activate();
 
         if (span.isSampled()) {
@@ -103,12 +106,16 @@ public class ElasticsearchRestClientInstrumentationHelper {
                 if (httpEntity != null && httpEntity.isRepeatable()) {
                     try {
                         IOUtils.readUtf8Stream(httpEntity.getContent(), span.getContext().getDb().withStatementBuffer());
-                    } catch (IOException e) {
+                    } catch (UnsupportedOperationException e) {
+                        // special case for hibernatesearch versions pre 6.0:
+                        // those don't support httpEntity.getContent() and throw an UnsupportedException when called.
+                        unsupportedOperationOnceLogger.error(
+                            "Failed to read Elasticsearch client query from request body, most likely because you are using hibernatesearch pre 6.0", e);
+                    } catch (Exception e) {
                         logger.error("Failed to read Elasticsearch client query from request body", e);
                     }
                 }
             }
-            span.getContext().getServiceTarget().withType(ELASTICSEARCH);
         }
         return span;
     }
@@ -155,8 +162,12 @@ public class ElasticsearchRestClientInstrumentationHelper {
         }
     }
 
-    public ResponseListener wrapResponseListener(ResponseListener listener, Span span) {
-        return responseListenerObjectPool.createInstance().with(listener, span);
+    public ResponseListener wrapClientResponseListener(ResponseListener listener, Span span) {
+        return responseListenerObjectPool.createInstance().withClientSpan(listener, span);
+    }
+
+    public ResponseListener wrapContextPropagationContextListener(ResponseListener listener, AbstractSpan<?> activeContext) {
+        return responseListenerObjectPool.createInstance().withContextPropagation(listener, activeContext);
     }
 
     void recycle(ResponseListenerWrapper listenerWrapper) {

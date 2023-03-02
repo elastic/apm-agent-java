@@ -19,6 +19,7 @@
 package co.elastic.apm.attach;
 
 import co.elastic.apm.agent.common.util.ResourceExtractionUtil;
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import net.bytebuddy.agent.ByteBuddyAgent;
 
 import javax.annotation.Nullable;
@@ -83,7 +84,7 @@ public class ElasticApmAttacher {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            SystemStandardOutputLogger.printStackTrace(e);
         }
         return propertyMap;
     }
@@ -124,7 +125,7 @@ public class ElasticApmAttacher {
                     properties.store(outputStream, null);
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                SystemStandardOutputLogger.printStackTrace(e);
             }
         }
         return tempFile;
@@ -148,6 +149,9 @@ public class ElasticApmAttacher {
      * @param agentJarFile  the agent jar file
      */
     public static void attach(String pid, Map<String, String> configuration, File agentJarFile) {
+        if (!configuration.containsKey("activation_method")) {
+            configuration.put("activation_method", "PROGRAMMATIC_SELF_ATTACH");
+        }
         File tempFile = createTempProperties(configuration, null);
         String agentArgs = tempFile == null ? null : TEMP_PROPERTIES_FILE_KEY + "=" + tempFile.getAbsolutePath();
 
@@ -170,11 +174,11 @@ public class ElasticApmAttacher {
                 ByteBuddyAgent.attach(agentJarFile, pid, agentArgs, ElasticAttachmentProvider.getFallback());
             } catch (RuntimeException e2) {
                 // output the two exceptions for debugging
-                System.err.println("Unable to attach with fallback provider:");
-                e2.printStackTrace();
+                SystemStandardOutputLogger.stdErrInfo("Unable to attach with fallback provider:");
+                SystemStandardOutputLogger.printStackTrace(e2);
 
-                System.err.println("Unable to attach with regular provider:");
-                e1.printStackTrace();
+                SystemStandardOutputLogger.stdErrInfo("Unable to attach with regular provider:");
+                SystemStandardOutputLogger.printStackTrace(e1);
             }
         }
     }

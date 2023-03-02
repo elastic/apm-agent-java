@@ -28,9 +28,9 @@ import java.net.URLClassLoader;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.security.ProtectionDomain;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
@@ -63,8 +63,21 @@ public class ShadedClassLoader extends URLClassLoader {
     public static final String SHADED_CLASS_EXTENSION = ".esclazz";
     private static final String CLASS_EXTENSION = ".class";
 
+    private static final ProtectionDomain PROTECTION_DOMAIN;
+
     static {
         ClassLoader.registerAsParallelCapable();
+
+        if (System.getSecurityManager() == null) {
+            PROTECTION_DOMAIN = ShadedClassLoader.class.getProtectionDomain();
+        } else {
+            PROTECTION_DOMAIN = AccessController.doPrivileged(new PrivilegedAction<ProtectionDomain>() {
+                @Override
+                public ProtectionDomain run() {
+                    return ShadedClassLoader.class.getProtectionDomain();
+                }
+            });
+        }
     }
 
     private final String customPrefix;
@@ -105,16 +118,10 @@ public class ShadedClassLoader extends URLClassLoader {
      *   lookup, but we guard from that through a {@link ThreadLocal}. </p></li>
      * </ol>
      *
-     * @param  name
-     *         The <a href="#binary-name">binary name</a> of the class
-     *
-     * @param  resolve
-     *         If {@code true} then resolve the class
-     *
-     * @return  The resulting {@code Class} object
-     *
-     * @throws  ClassNotFoundException
-     *          If the class could not be found
+     * @param name    The <a href="#binary-name">binary name</a> of the class
+     * @param resolve If {@code true} then resolve the class
+     * @return The resulting {@code Class} object
+     * @throws ClassNotFoundException If the class could not be found
      */
     @Override
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
@@ -161,14 +168,7 @@ public class ShadedClassLoader extends URLClassLoader {
             }
         }
 
-        ProtectionDomain protectionDomain = AccessController.doPrivileged(new PrivilegedAction<ProtectionDomain>() {
-            @Override
-            public ProtectionDomain run() {
-                return ShadedClassLoader.class.getProtectionDomain();
-            }
-        });
-
-        return defineClass(name, classBytes, 0, classBytes.length, protectionDomain);
+        return defineClass(name, classBytes, 0, classBytes.length, PROTECTION_DOMAIN);
     }
 
     @SuppressWarnings("deprecation")
@@ -208,6 +208,10 @@ public class ShadedClassLoader extends URLClassLoader {
     }
 
     private InputStream getPrivilegedResourceAsStream(final String name) {
+        if (System.getSecurityManager() == null) {
+            return getResourceAsStreamInternal(name);
+        }
+
         return AccessController.doPrivileged(new PrivilegedAction<InputStream>() {
             @Override
             public InputStream run() {
@@ -223,27 +227,31 @@ public class ShadedClassLoader extends URLClassLoader {
     /**
      * This class loader should only see classes and resources that start with the custom prefix.
      * It still allows for classes and resources of the parent to be resolved via the getResource methods
+     *
      * @param name the name of the resource
      * @return a {@code URL} for the resource, or {@code null}
      * if the resource could not be found, or if the loader is closed.
      */
     @Override
     public URL findResource(final String name) {
-        URL result = null;
-        if (!locallyNonAvailableResources.get().contains(name)) {
-
-            // while most of the body of default 'findResource' in JDK implementation is in a privileged action
-            // an extra URL check is performed just after it, hence we have to wrap the whole method call in a privileged
-            // action otherwise the security manager will complain about lack of proper read privileges on the agent jar
-            result = AccessController.doPrivileged(new PrivilegedAction<URL>() {
-                @Override
-                public URL run() {
-                    return findResourceInternal(getShadedResourceName(name));
-                }
-            });
+        if (locallyNonAvailableResources.get().contains(name)) {
+            return null;
         }
 
-        return result;
+        if (System.getSecurityManager() == null) {
+            return findResourceInternal(getShadedResourceName(name));
+        }
+
+        // while most of the body of default 'findResource' in JDK implementation is in a privileged action
+        // an extra URL check is performed just after it, hence we have to wrap the whole method call in a privileged
+        // action otherwise the security manager will complain about lack of proper read privileges on the agent jar
+        return AccessController.doPrivileged(new PrivilegedAction<URL>() {
+            @Override
+            public URL run() {
+                return findResourceInternal(getShadedResourceName(name));
+            }
+        });
+
     }
 
     private URL findResourceInternal(String name) {
@@ -253,6 +261,7 @@ public class ShadedClassLoader extends URLClassLoader {
     /**
      * This class loader should only see classes and resources that start with the custom prefix.
      * It still allows for classes and resources of the parent to be resolved via the getResource methods
+     *
      * @param name the name of the resource
      * @return a {@code URL} for the resource, or {@code null}
      * if the resource could not be found, or if the loader is closed.
@@ -341,18 +350,14 @@ public class ShadedClassLoader extends URLClassLoader {
      */
     private static class PrivilegedEnumeration<E> implements Enumeration<E> {
 
-        @Nullable
         private final Enumeration<E> delegate;
 
-        private PrivilegedEnumeration(@Nullable Enumeration<E> delegate){
+        private PrivilegedEnumeration(Enumeration<E> delegate) {
             this.delegate = delegate;
         }
 
         @Override
         public boolean hasMoreElements() {
-            if (delegate == null) {
-                return false;
-            }
             return AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
                 @Override
                 public Boolean run() {
@@ -363,9 +368,6 @@ public class ShadedClassLoader extends URLClassLoader {
 
         @Override
         public E nextElement() {
-            if (delegate == null) {
-                throw new NoSuchElementException();
-            }
             return AccessController.doPrivileged(new PrivilegedAction<E>() {
                 @Override
                 public E run() {

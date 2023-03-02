@@ -90,7 +90,7 @@ public class PackageScanner {
                 synchronized (PackageScanner.class) {
                     try (FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap())) {
                         Path basePath  = fileSystem.getPath(baseFolderResource).toAbsolutePath();
-                        if (!Files.exists(basePath)) {
+                        if (!Files.exists(basePath)) { // called in a privileged action, thus no need to deal with security manager
                             basePath = fileSystem.getPath("agent/" + baseFolderResource).toAbsolutePath();
                         }
                         result = listClassNames(basePackage, basePath);

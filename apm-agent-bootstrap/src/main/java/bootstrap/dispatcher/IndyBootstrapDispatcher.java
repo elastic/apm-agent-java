@@ -39,6 +39,7 @@ import java.lang.reflect.Method;
 public class IndyBootstrapDispatcher {
 
     public static Method bootstrap;
+    public static Method logAdviceException;
 
     private static final MethodHandle VOID_NOOP;
 
@@ -63,7 +64,7 @@ public class IndyBootstrapDispatcher {
                     adviceMethodType,
                     args);
             } catch (Exception e) {
-                e.printStackTrace();
+                printStackTrace(e);
             }
         }
         if (callSite == null) {
@@ -80,6 +81,34 @@ public class IndyBootstrapDispatcher {
             callSite = new ConstantCallSite(noop);
         }
         return callSite;
+    }
+
+    public static void logAdviceException(Throwable exception) {
+        try {
+            if (logAdviceException != null) {
+                logAdviceException.invoke(null, exception);
+            } else {
+                printStackTrace(exception);
+            }
+        } catch (Throwable t) {
+            printStackTrace(t);
+        }
+    }
+
+    /**
+     * Replicates the logic from SystemStandardOutputLogger, as it cannot be directly accessed here.
+     * Note that we don't log anything if the security manager is enabled, as we don't want to deal
+     * with doPrivileged() here.
+     *
+     * @param t the throwable to print
+     */
+    private static void printStackTrace(Throwable t) {
+        if (System.getSecurityManager() == null) {
+            boolean loggingDisabled = System.getProperty("elastic.apm.system_output_disabled") != null || System.getenv("ELASTIC_APM_SYSTEM_OUTPUT_DISABLED") != null;
+            if (!loggingDisabled) {
+                t.printStackTrace();
+            }
+        }
     }
 
     public static void voidNoop() {
