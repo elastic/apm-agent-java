@@ -279,7 +279,7 @@ public class ElasticApm {
             throw new IllegalArgumentException("There is no such option: " + key);
         } else if (value instanceof IllegalStateException) {
             return null;
-        } else if (value.getClass().equals(type)) {
+        } else if (type.isInstance(value)) {
             return (T) value;
         } else {
             throw new IllegalArgumentException("The option: '"+key+"' is not of type "+type.getName());
