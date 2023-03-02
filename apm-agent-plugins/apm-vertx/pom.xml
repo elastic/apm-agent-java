@@ -15,7 +15,8 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
-        <version.vertx.test>[4.0.2,)</version.vertx.test>
+        <!-- stick to a known older version that works with vertx3 -->
+        <version.vertx.test>4.3.2</version.vertx.test>
     </properties>
 
     <modules>
