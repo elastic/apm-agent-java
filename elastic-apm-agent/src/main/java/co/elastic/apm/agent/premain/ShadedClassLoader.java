@@ -268,10 +268,15 @@ public class ShadedClassLoader extends URLClassLoader {
      */
     @Override
     public Enumeration<URL> findResources(final String name) throws IOException {
-        Enumeration<URL> result = null;
-        if (!locallyNonAvailableResources.get().contains(name)) {
-            result = super.findResources(getShadedResourceName(name));
+        if (locallyNonAvailableResources.get().contains(name)) {
+            return Collections.emptyEnumeration();
         }
+
+        Enumeration<URL> result = super.findResources(getShadedResourceName(name));
+        if (System.getSecurityManager() == null) {
+            return result;
+        }
+
         return new PrivilegedEnumeration<URL>(result);
     }
 

@@ -44,7 +44,6 @@ class TestAppContainer extends GenericContainer<TestAppContainer> {
     private static final String APP_PATH = "/tmp/app.jar";
     private static final String SECURITY_POLICY = "/tmp/security.policy";
 
-
     private boolean appJar;
     private boolean javaAgent;
     private final List<String> jvmProperties;
