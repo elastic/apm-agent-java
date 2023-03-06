@@ -27,18 +27,20 @@ import org.testcontainers.utility.MountableFile;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TestAppContainer extends GenericContainer<TestAppContainer> {
 
     private static final Logger log = LoggerFactory.getLogger(TestAppContainer.class);
-
-    // TODO : add convenient remote debug option
 
     private static final String JAVAAGENT_PATH = "/tmp/elastic-apm-agent.jar";
     private static final String APP_PATH = "/tmp/app.jar";
@@ -49,6 +51,7 @@ class TestAppContainer extends GenericContainer<TestAppContainer> {
     private final List<String> jvmProperties;
 
     private String remoteDebugArg = null;
+    private List<String> arguments = new ArrayList<>();
 
     TestAppContainer(String image) {
         super(DockerImageName.parse(image));
@@ -106,20 +109,68 @@ class TestAppContainer extends GenericContainer<TestAppContainer> {
     }
 
     /**
-     * Configures remote debugging for the JVM running in the container
+     * Configures remote debugging automatically for the JVM running in the container.
+     * On the IDE side, all is required is to add debugger listening for incoming connections on port 5005
      *
-     * @param listenPort local port where the debugger is listening to
      * @return this
      */
-    public TestAppContainer withRemoteDebug(int listenPort) {
+    public TestAppContainer withRemoteDebug() {
+
+        int port = 5005;
+        boolean isDebugging = false;
+
+        // test if the test code is currently being debugged
+        List<String> jvmArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
+        for (String jvmArg : jvmArgs) {
+            if (jvmArg.contains("-agentlib:jdwp=")) {
+                isDebugging = true;
+            }
+        }
+        if (!isDebugging) {
+            // not debugging
+            return this;
+        }
+
+        if (!probeDebugger(port)) {
+            log.error("Unable to detect debugger listening on port {}, remote debugging JVM within container will be disabled", port);
+            return this;
+        }
+
         String dockerHostName = "host.docker.internal";
 
         // make the docker host IP available for remote debug
         // the 'host-gateway' is automatically translated by docker for all OSes
         withExtraHost(dockerHostName, "host-gateway");
 
-        remoteDebugArg = String.format("-agentlib:jdwp=transport=dt_socket,server=n,address=%s:%d,suspend=y", dockerHostName, listenPort);
+        remoteDebugArg = debuggerArgument(port, dockerHostName);
         return this;
+    }
+
+    private static String debuggerArgument(int port, String hostname) {
+        return String.format("-agentlib:jdwp=transport=dt_socket,server=n,address=%s:%d,suspend=y", hostname, port);
+    }
+
+    private boolean probeDebugger(int port) {
+        boolean isWindows = System.getProperty("os.name").startsWith("Windows");
+        String executable = isWindows ? "java.exe" : "java";
+        Path path = Paths.get(System.getProperty("java.home"), "bin", executable);
+        if (!Files.isExecutable(path)) {
+            throw new IllegalStateException("unable to find java path");
+        }
+
+        // the most straightforward way to probe for an active debugger listening on port is to start another JVM
+        // with the debug options and check the process exit status. Trying to probe for open network port messes with
+        // the debugger and makes IDEA stop it. The only downside of this is that the debugger will first attach to this
+        // probe JVM, then the one running in a docker container we are aiming to debug.
+        try {
+            Process process = new ProcessBuilder()
+                .command(path.toAbsolutePath().toString(), debuggerArgument(port, "localhost"), "-version")
+                .start();
+            process.waitFor(5, TimeUnit.SECONDS);
+            return process.exitValue() == 0;
+        } catch (InterruptedException | IOException e) {
+            return false;
+        }
     }
 
     @Override
@@ -128,12 +179,12 @@ class TestAppContainer extends GenericContainer<TestAppContainer> {
 
         args.add("java");
 
-        if (javaAgent) {
-            args.add("-javaagent:" + JAVAAGENT_PATH);
-        }
-
         if (remoteDebugArg != null) {
             args.add(remoteDebugArg);
+        }
+
+        if (javaAgent) {
+            args.add("-javaagent:" + JAVAAGENT_PATH);
         }
 
         args.addAll(jvmProperties);
@@ -141,6 +192,10 @@ class TestAppContainer extends GenericContainer<TestAppContainer> {
         if (appJar) {
             args.add("-jar");
             args.add(APP_PATH);
+        }
+
+        if(!arguments.isEmpty()){
+            args.addAll(arguments);
         }
 
         String command = String.join(" ", args);
@@ -156,5 +211,10 @@ class TestAppContainer extends GenericContainer<TestAppContainer> {
 
         // send container logs to logger for easier debug by default
         followOutput(new Slf4jLogConsumer(log));
+    }
+
+    public TestAppContainer withArguments(String... args) {
+        this.arguments.addAll(Arrays.asList(args));
+        return this;
     }
 }

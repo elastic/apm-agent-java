@@ -26,6 +26,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.containers.wait.strategy.WaitStrategy;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -81,18 +82,19 @@ class AgentSetupIT {
 
         try (TestAppContainer app = testAppWithJavaAgent("openjdk:17")) {
             app.withSecurityManager(tempPolicy)
-                .waitingFor(Wait.forLogMessage("Hello World!", 1))
-                .withStartupTimeout(Duration.ofSeconds(5))
-                .withRemoteDebug(5005);
-
-            app.start();
+                .withStartupTimeout(Duration.ofSeconds(10))
+                .waitingFor(Wait.forLogMessage(".*Hello World!.*", 1))
+                .start();
         }
     }
 
     private TestAppContainer testAppWithJavaAgent(String image) {
         return new TestAppContainer(image)
             .withAppJar(Path.of("target/main-app-test.jar"))
-            .withJavaAgent(AgentFileAccessor.getPathToJavaagent());
+            .withArguments("wait") // make test app wait a bit so we can stop it
+            .withJavaAgent(AgentFileAccessor.getPathToJavaagent())
+            // automatically enable remote debug
+            .withRemoteDebug();
     }
 
 }
