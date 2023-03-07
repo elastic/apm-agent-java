@@ -29,6 +29,7 @@ import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import org.HdrHistogram.WriterReaderPhaser;

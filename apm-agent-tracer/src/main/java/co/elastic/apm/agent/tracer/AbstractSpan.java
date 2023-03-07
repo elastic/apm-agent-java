@@ -157,6 +157,12 @@ public interface AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<
      */
     Outcome getOutcome();
 
+    /**
+     * Sets outcome
+     *
+     * @param outcome outcome
+     * @return this
+     */
     T withOutcome(Outcome outcome);
 
     T withSync(boolean sync);

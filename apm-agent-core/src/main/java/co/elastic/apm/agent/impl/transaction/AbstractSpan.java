@@ -26,6 +26,7 @@ import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
@@ -748,26 +749,10 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return outcome != null ? outcome : Outcome.UNKNOWN;
     }
 
-    /**
-     * Sets outcome
-     *
-     * @param outcome outcome
-     * @return this
-     */
+    @Override
     public T withOutcome(Outcome outcome) {
         this.outcome = outcome;
         return thiz();
-    }
-
-    @Override
-    public T withOutcome(co.elastic.apm.agent.tracer.Outcome outcome) {
-        if (outcome.name().equals(Outcome.FAILURE.name())) {
-            return withOutcome(Outcome.FAILURE);
-        } else if (outcome.name().equals(Outcome.SUCCESS.name())) {
-            return withOutcome(Outcome.SUCCESS);
-        } else {
-            return withOutcome(Outcome.UNKNOWN);
-        }
     }
 
     /**

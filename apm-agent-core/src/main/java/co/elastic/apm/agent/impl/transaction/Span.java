@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.util.CharSequenceUtils;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 

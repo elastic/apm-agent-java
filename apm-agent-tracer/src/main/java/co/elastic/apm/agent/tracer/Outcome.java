@@ -18,7 +18,23 @@
  */
 package co.elastic.apm.agent.tracer;
 
-public interface Outcome {
+public enum Outcome {
 
-    String name();
+    SUCCESS("success"),
+    FAILURE("failure"),
+    UNKNOWN("unknown");
+
+    /**
+     * String value used for serialization
+     */
+    private final String stringValue;
+
+    Outcome(String stringValue) {
+        this.stringValue = stringValue;
+    }
+
+    @Override
+    public String toString() {
+        return stringValue;
+    }
 }

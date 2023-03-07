@@ -19,7 +19,7 @@
 package specs;
 
 import co.elastic.apm.agent.grpc.GrpcHelper;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import io.cucumber.java.en.Given;
 import io.grpc.Status;
 
