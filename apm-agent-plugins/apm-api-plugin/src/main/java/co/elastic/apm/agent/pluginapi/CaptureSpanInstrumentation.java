@@ -70,7 +70,11 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "type") String type,
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "subtype") @Nullable String subtype,
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "action") @Nullable String action,
-            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "exit") @Nullable boolean exit,
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(
+                annotationClassName = "co.elastic.apm.api.CaptureSpan",
+                method = "exit",
+                defaultValueProvider = AnnotationValueOffsetMappingFactory.FalseDefaultValueProvider.class
+            ) boolean exit,
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(
                 annotationClassName = "co.elastic.apm.api.CaptureSpan",
                 method = "discardable",
