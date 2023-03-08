@@ -151,10 +151,6 @@ public class JmsInstrumentationHelper {
         return transaction;
     }
 
-    public void makeChildOf(Transaction<?> childTransaction, Message parentMessage) {
-        childTransaction.addLink(JmsMessagePropertyAccessor.instance(), parentMessage);
-    }
-
     @Nullable
     public MessageListener wrapLambda(@Nullable MessageListener listener) {
         // the name check also prevents from wrapping twice

@@ -171,8 +171,9 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         if (discard) {
                             transaction.ignoreTransaction();
                         } else {
-                            helper.makeChildOf(transaction, message);
-                            transaction.withType(MESSAGING_TYPE);
+                            transaction
+                                .withType(MESSAGING_TYPE)
+                                .addLink(JmsMessagePropertyAccessor.instance(), message);
                             helper.addMessageDetails(message, abstractSpan);
                         }
                     } else if (abstractSpan != null) {
