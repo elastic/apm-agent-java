@@ -35,7 +35,7 @@ public class SQSMessageAttributesGetter extends AbstractHeaderGetter<String, SQS
     @Nullable
     @Override
     public String getFirstHeader(String headerName, SQSEvent.SQSMessage carrier) {
-        if(null != carrier.getMessageAttributes() && carrier.getMessageAttributes().containsKey(headerName)){
+        if (null != carrier.getMessageAttributes() && carrier.getMessageAttributes().containsKey(headerName)) {
             return carrier.getMessageAttributes().get(headerName).getStringValue();
         }
         return null;
