@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.loginstr.error;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import net.bytebuddy.asm.Advice;
@@ -46,7 +47,7 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Tracer
 
     public static class LoggingAdvice {
 
-        private static final LoggerErrorHelper helper = new LoggerErrorHelper(LoggingAdvice.class, tracer);
+        private static final LoggerErrorHelper helper = new LoggerErrorHelper(LoggingAdvice.class, tracer.require(Tracer.class));
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)

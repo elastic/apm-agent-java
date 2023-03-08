@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.esrestclient;
 
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseListener;
@@ -49,7 +49,7 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
         this.tracer = tracer;
     }
 
-    ResponseListenerWrapper withClientSpan(ResponseListener delegate, Span span) {
+    ResponseListenerWrapper withClientSpan(ResponseListener delegate, Span<?> span) {
         // Order is important due to visibility - write to span last on this (initiating) thread
         this.delegate = delegate;
         this.isClientSpan = true;
@@ -144,8 +144,8 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
     private void finishClientSpan(@Nullable Response response, @Nullable Throwable throwable) {
         // First read volatile span to ensure visibility on executing thread
         AbstractSpan<?> localSpan = context;
-        if (localSpan instanceof Span) {
-            helper.finishClientSpan(response, (Span) localSpan, throwable);
+        if (localSpan instanceof Span<?>) {
+            helper.finishClientSpan(response, (Span<?>) localSpan, throwable);
         }
     }
 

@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.loginstr.correlation;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 
 import javax.annotation.Nullable;
 import java.util.AbstractMap;
@@ -43,7 +43,7 @@ public class CorrelationIdMapAdapter extends AbstractMap<String, String> {
     private static final CorrelationIdMapAdapter INSTANCE = new CorrelationIdMapAdapter();
     private static final Set<Entry<String, String>> ENTRY_SET = new TraceIdentifierEntrySet();
     private static final List<String> ALL_KEYS = Arrays.asList(TRACE_ID_MDC_KEY, TRANSACTION_ID_MDC_KEY, ERROR_ID_MDC_KEY);
-    private static final Tracer tracer = GlobalTracer.get();
+    private static final Tracer tracer = GlobalTracer.get().require(Tracer.class);
     private static final List<Entry<String, String>> ENTRIES = Arrays.<Entry<String, String>>asList(
         new LazyEntry(TRACE_ID_MDC_KEY, new Callable<String>() {
             @Override

@@ -18,7 +18,8 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -51,11 +52,12 @@ public class NewKafkaPollExitInstrumentation extends KafkaConsumerInstrumentatio
         public static void pollEnd(@Advice.Thrown final Throwable throwable,
                                    @Advice.Return @Nullable ConsumerRecords<?, ?> records) {
 
-            Span span = tracer.getActiveSpan();
-            if (span != null &&
-                span.getSubtype() != null && span.getSubtype().equals("kafka") &&
-                span.getAction() != null && span.getAction().equals("poll")
-            ) {
+            AbstractSpan<?> active = tracer.getActive();
+            if (!(active instanceof Span<?>)) {
+                return;
+            }
+            Span<?> span = (Span<?>) active;
+            if ("kafka".equals(span.getSubtype()) && "poll".equals(span.getAction())) {
                 helper.addSpanLinks(records, span);
                 span.captureException(throwable)
                     .deactivate()

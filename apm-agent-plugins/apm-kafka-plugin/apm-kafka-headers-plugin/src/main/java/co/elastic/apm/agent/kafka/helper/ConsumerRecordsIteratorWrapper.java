@@ -20,11 +20,11 @@ package co.elastic.apm.agent.kafka.helper;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.tracer.metadata.Message;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
@@ -40,11 +40,11 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
     public static final String FRAMEWORK_NAME = "Kafka";
 
     private final Iterator<ConsumerRecord<?, ?>> delegate;
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
     private final CoreConfiguration coreConfiguration;
     private final MessagingConfiguration messagingConfiguration;
 
-    public ConsumerRecordsIteratorWrapper(Iterator<ConsumerRecord<?, ?>> delegate, ElasticApmTracer tracer) {
+    public ConsumerRecordsIteratorWrapper(Iterator<ConsumerRecord<?, ?>> delegate, Tracer tracer) {
         this.delegate = delegate;
         this.tracer = tracer;
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
@@ -59,7 +59,7 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
 
     public void endCurrentTransaction() {
         try {
-            Transaction transaction = tracer.currentTransaction();
+            Transaction<?> transaction = tracer.currentTransaction();
             if (transaction != null && "messaging".equals(transaction.getType())) {
                 transaction.deactivate().end();
             }
@@ -75,7 +75,7 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
         try {
             String topic = record.topic();
             if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic)) {
-                Transaction transaction = tracer.startChildTransaction(record, KafkaRecordHeaderAccessor.instance(), PrivilegedActionUtils.getClassLoader(ConsumerRecordsIteratorWrapper.class));
+                Transaction<?> transaction = tracer.startChildTransaction(record, KafkaRecordHeaderAccessor.instance(), PrivilegedActionUtils.getClassLoader(ConsumerRecordsIteratorWrapper.class));
                 if (transaction != null) {
                     transaction.withType("messaging").withName("Kafka record from " + topic).activate();
                     transaction.setFrameworkName(FRAMEWORK_NAME);

@@ -19,8 +19,9 @@
 package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.configuration.ServiceInfo;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -176,7 +177,10 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static Object doGetConfig(@Advice.Argument(0) @Nullable String key) {
                 try {
-                    ConfigurationOption<?> configValue = GlobalTracer.getTracerImpl().getConfigurationRegistry().getConfigurationOptionByKey(key);
+                    ConfigurationOption<?> configValue = GlobalTracer.get()
+                        .require(ElasticApmTracer.class)
+                        .getConfigurationRegistry()
+                        .getConfigurationOptionByKey(key);
                     if (configValue == null) {
                         return null;
                     } else {

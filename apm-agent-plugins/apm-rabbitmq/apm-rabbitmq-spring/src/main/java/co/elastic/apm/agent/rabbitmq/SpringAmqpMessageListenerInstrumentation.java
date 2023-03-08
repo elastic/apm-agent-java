@@ -18,14 +18,13 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageListener;
-import org.springframework.amqp.core.MessageProperties;
 
 import javax.annotation.Nullable;
 
@@ -76,8 +75,8 @@ public class SpringAmqpMessageListenerInstrumentation extends SpringBaseInstrume
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
         public static void afterMessageHandle(@Advice.Enter @Nullable final Object transactionObject,
                                               @Advice.Thrown @Nullable final Throwable throwable) {
-            if (transactionObject instanceof Transaction) {
-                Transaction transaction = (Transaction) transactionObject;
+            if (transactionObject instanceof Transaction<?>) {
+                Transaction<?> transaction = (Transaction<?>) transactionObject;
                 transaction.captureException(throwable)
                     .deactivate()
                     .end();

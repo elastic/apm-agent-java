@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.jul.error;
 
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.loginstr.error.AbstractLoggerErrorCapturingInstrumentation;
 import co.elastic.apm.agent.loginstr.error.LoggerErrorHelper;
 import net.bytebuddy.asm.Advice;
@@ -59,7 +60,7 @@ public class JulLoggerErrorCapturingInstrumentation extends AbstractLoggerErrorC
 
     public static class LoggingAdvice {
 
-        private static final LoggerErrorHelper helper = new LoggerErrorHelper(LoggingAdvice.class, tracer);
+        private static final LoggerErrorHelper helper = new LoggerErrorHelper(LoggingAdvice.class, tracer.require(Tracer.class));
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)

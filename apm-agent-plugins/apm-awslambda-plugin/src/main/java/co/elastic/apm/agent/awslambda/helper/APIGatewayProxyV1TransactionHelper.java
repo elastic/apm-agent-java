@@ -20,7 +20,7 @@ package co.elastic.apm.agent.awslambda.helper;
 
 import co.elastic.apm.agent.awslambda.MapTextHeaderGetter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import com.amazonaws.services.lambda.runtime.Context;
@@ -41,7 +41,7 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
 
     public static APIGatewayProxyV1TransactionHelper getInstance() {
         if (INSTANCE == null) {
-            INSTANCE = new APIGatewayProxyV1TransactionHelper(GlobalTracer.requireTracerImpl());
+            INSTANCE = new APIGatewayProxyV1TransactionHelper(GlobalTracer.get().require(ElasticApmTracer.class));
         }
         return INSTANCE;
     }

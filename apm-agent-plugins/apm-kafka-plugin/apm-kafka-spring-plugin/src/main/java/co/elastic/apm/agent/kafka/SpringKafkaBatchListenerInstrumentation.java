@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.LoggerUtils;
@@ -75,7 +75,7 @@ public class SpringKafkaBatchListenerInstrumentation extends BaseKafkaInstrument
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This Object thiz) {
-            Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(thiz.getClass()));
+            Transaction<?> transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(thiz.getClass()));
             if (transaction != null) {
                 transaction
                     .withType("messaging")
@@ -85,13 +85,13 @@ public class SpringKafkaBatchListenerInstrumentation extends BaseKafkaInstrument
             } else {
                 oneTimeTransactionCreationWarningLogger.warn("Failed to start Spring Kafka transaction for batch processing");
             }
-            //we don't need to add span links here, they will be added by the KafkaConsumerRecordsInstrumentation
+            //we don't need to add Span<?> links here, they will be added by the KafkaConsumerRecordsInstrumentation
             return transaction;
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Nullable @Advice.Enter Object transactionObj) {
-            Transaction transaction = (Transaction) transactionObj;
+            Transaction<?> transaction = (Transaction<?>) transactionObj;
             if (transaction != null) {
                 transaction.deactivate().end();
             }

@@ -18,7 +18,8 @@
  */
 package co.elastic.apm.agent.jms.test;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import javax.jms.Message;
@@ -35,6 +36,6 @@ public class TestMessageListener implements MessageListener {
 
     @Override
     public void onMessage(Message message) {
-        transaction.set(GlobalTracer.get().currentTransaction());
+        transaction.set(GlobalTracer.get().require(Tracer.class).currentTransaction());
     }
 }

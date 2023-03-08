@@ -18,13 +18,15 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
@@ -49,9 +51,11 @@ import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
+public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
 
     public static final Logger logger = LoggerFactory.getLogger(CaptureSpanInstrumentation.class);
+
+    public static final Tracer tracer = GlobalTracer.get().require(Tracer.class);
 
     private final CoreConfiguration coreConfig;
     private final StacktraceConfiguration stacktraceConfig;

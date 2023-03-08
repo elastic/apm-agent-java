@@ -20,11 +20,11 @@ package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -84,11 +84,11 @@ public class JmsInstrumentationHelper {
     static final String FRAMEWORK_NAME = "JMS";
 
     private static final Logger logger = LoggerFactory.getLogger(JmsInstrumentationHelper.class);
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
     private final CoreConfiguration coreConfiguration;
     private final MessagingConfiguration messagingConfiguration;
 
-    public JmsInstrumentationHelper(ElasticApmTracer tracer) {
+    public JmsInstrumentationHelper(Tracer tracer) {
         this.tracer = tracer;
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
@@ -96,7 +96,7 @@ public class JmsInstrumentationHelper {
 
     @SuppressWarnings("Duplicates")
     @Nullable
-    public Span startJmsSendSpan(Destination destination, Message message) {
+    public Span<?> startJmsSendSpan(Destination destination, Message message) {
 
         final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan == null) {
@@ -113,7 +113,7 @@ public class JmsInstrumentationHelper {
             return null;
         }
 
-        Span span = activeSpan.createExitSpan();
+        Span<?> span = activeSpan.createExitSpan();
 
         if (span == null) {
             return null;
@@ -143,16 +143,16 @@ public class JmsInstrumentationHelper {
     }
 
     @Nullable
-    public Transaction startJmsTransaction(Message parentMessage, Class<?> instrumentedClass) {
-        Transaction transaction = tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), PrivilegedActionUtils.getClassLoader(instrumentedClass));
+    public Transaction<?> startJmsTransaction(Message parentMessage, Class<?> instrumentedClass) {
+        Transaction<?> transaction = tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), PrivilegedActionUtils.getClassLoader(instrumentedClass));
         if (transaction != null) {
             transaction.setFrameworkName(FRAMEWORK_NAME);
         }
         return transaction;
     }
 
-    public void makeChildOf(Transaction childTransaction, Message parentMessage) {
-        TraceContext.<Message>getFromTraceContextTextHeaders().asChildOf(childTransaction.getTraceContext(), parentMessage, JmsMessagePropertyAccessor.instance());
+    public void makeChildOf(Transaction<?> childTransaction, Message parentMessage) {
+        childTransaction.addLink(JmsMessagePropertyAccessor.instance(), parentMessage);
     }
 
     @Nullable
@@ -244,7 +244,7 @@ public class JmsInstrumentationHelper {
             return;
         }
         try {
-            co.elastic.apm.agent.impl.context.Message messageContext = span.getContext().getMessage();
+            co.elastic.apm.agent.tracer.metadata.Message messageContext = span.getContext().getMessage();
 
             // Currently only capturing body of TextMessages. The javax.jms.Message#getBody() API is since 2.0, so,
             // if we are supporting JMS 1.1, it makes no sense to rely on isAssignableFrom.
@@ -258,7 +258,7 @@ public class JmsInstrumentationHelper {
                 messageContext.addHeader(JMS_EXPIRATION_HEADER, String.valueOf(message.getJMSExpiration()));
                 messageContext.addHeader(JMS_TIMESTAMP_HEADER, String.valueOf(message.getJMSTimestamp()));
 
-                Enumeration properties = message.getPropertyNames();
+                Enumeration<?> properties = message.getPropertyNames();
                 if (properties != null) {
                     while (properties.hasMoreElements()) {
                         String propertyName = String.valueOf(properties.nextElement());

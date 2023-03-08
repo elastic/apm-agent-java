@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.asm.Advice;
@@ -46,9 +46,9 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 /**
- * This instrumentation sets the {@link Transaction#name} according to the handler responsible for this request.
+ * This instrumentation sets the transaction name according to the handler responsible for this request.
  * <p>
- * If the handler is a {@link org.springframework.stereotype.Controller}, the {@link Transaction#name} is set to
+ * If the handler is a {@link org.springframework.stereotype.Controller}, the transaction name is set to
  * {@code ControllerName#methodName}.
  * If it is a different kind of handler,
  * like a {@link org.springframework.web.servlet.resource.ResourceHttpRequestHandler},
@@ -102,12 +102,12 @@ public class SpringTransactionNameInstrumentation extends TracerAwareInstrumenta
 
     public static class HandlerAdapterAdvice {
 
-        private static final WebConfiguration webConfig = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);;
+        private static final WebConfiguration webConfig = GlobalTracer.get().getConfig(WebConfiguration.class);;
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void setTransactionName(@Advice.Argument(0) HttpServletRequest request,
                                               @Advice.Argument(2) Object handler) {
-            final Transaction transaction = tracer.currentTransaction();
+            final Transaction<?> transaction = tracer.currentTransaction();
             if (transaction == null) {
                 return;
             }

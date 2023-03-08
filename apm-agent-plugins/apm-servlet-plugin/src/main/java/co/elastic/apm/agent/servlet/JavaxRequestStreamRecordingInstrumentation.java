@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.servlet.helper.JavaxRecordingServletInputStreamWrapper;
 import net.bytebuddy.asm.Advice;

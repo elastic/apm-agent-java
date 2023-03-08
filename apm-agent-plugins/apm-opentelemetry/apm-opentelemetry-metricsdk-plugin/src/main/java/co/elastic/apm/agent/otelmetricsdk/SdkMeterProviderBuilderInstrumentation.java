@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.otelmetricsdk;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -69,7 +69,7 @@ public class SdkMeterProviderBuilderInstrumentation extends ElasticApmInstrument
         private static final Logger unsupportedVersionLogger = LoggerUtils.logOnce(logger);
 
         private static final WeakSet<SdkMeterProviderBuilder> ALREADY_REGISTERED_BUILDERS = WeakConcurrent.buildSet();
-        private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+        private static final ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onEnter(@Advice.This SdkMeterProviderBuilder thiz) {

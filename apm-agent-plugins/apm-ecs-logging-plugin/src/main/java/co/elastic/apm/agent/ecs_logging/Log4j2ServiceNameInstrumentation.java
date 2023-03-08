@@ -21,7 +21,7 @@ package co.elastic.apm.agent.ecs_logging;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.logging.log4j2.EcsLayout;
 import net.bytebuddy.asm.Advice;
 
@@ -29,7 +29,7 @@ public class Log4j2ServiceNameInstrumentation extends AbstractLog4j2ServiceInstr
 
     public static class AdviceClass {
 
-        private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+        private static final ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onEnter(@Advice.This EcsLayout.Builder builder) {

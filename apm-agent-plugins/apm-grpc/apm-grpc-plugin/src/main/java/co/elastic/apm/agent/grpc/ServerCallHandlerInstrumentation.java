@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
@@ -94,10 +94,10 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
                                   @Advice.Return @Nullable ServerCall.Listener<?> listener,
                                   @Advice.Enter @Nullable Object enterTransaction) {
 
-            if (!(enterTransaction instanceof Transaction)) {
+            if (!(enterTransaction instanceof Transaction<?>)) {
                 return;
             }
-            Transaction transaction = (Transaction) enterTransaction;
+            Transaction<?> transaction = (Transaction<?>) enterTransaction;
             if (thrown != null) {
                 // terminate transaction in case of exception as it won't be stored
                 transaction.deactivate().end();

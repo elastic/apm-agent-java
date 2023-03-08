@@ -22,7 +22,7 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.MethodMatcher;
@@ -125,7 +125,7 @@ public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
 
     public static class TraceMethodAdvice {
 
-        private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+        private static final ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
         private static final long traceMethodThresholdMicros;
 
         static {
