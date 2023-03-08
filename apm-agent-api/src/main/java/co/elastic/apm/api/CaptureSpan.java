@@ -98,5 +98,5 @@ public @interface CaptureSpan {
      * When set to {@literal true}, it is recommended to also set values for {@link #type()} and {@link #subtype()}
      * </p>
      */
-    boolean exit() default false;
+    boolean asExit() default false;
 }
