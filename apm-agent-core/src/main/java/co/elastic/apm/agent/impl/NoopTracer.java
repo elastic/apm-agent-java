@@ -169,7 +169,7 @@ class NoopTracer implements Tracer {
 
     @Override
     public <T> T getConfig(Class<T> configuration) {
-        return null;
+        throw new IllegalStateException();
     }
 
     @Override

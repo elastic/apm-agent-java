@@ -378,11 +378,14 @@ public class ElasticApmTracer implements Tracer {
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
     public <T> T getConfig(Class<T> configProvider) {
+        T configuration = null;
         if (ConfigurationOptionProvider.class.isAssignableFrom(configProvider)) {
-            return (T) configurationRegistry.getConfig((Class) configProvider);
-        } else {
-            return null;
+             configuration = (T) configurationRegistry.getConfig((Class) configProvider);
         }
+        if (configuration == null) {
+            throw new IllegalStateException("no configuration available for " + configProvider.getName());
+        }
+        return configuration;
     }
 
     public void endTransaction(Transaction transaction) {
