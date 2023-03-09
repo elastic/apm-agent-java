@@ -11,13 +11,6 @@ permissions:
 jobs:
   bump:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        pipeline:
-          - ./.ci/update-specs.yml
-          - ./.ci/update-gherkin-specs.yml
-          - ./.ci/update-json-specs.yml
     steps:
       - uses: actions/checkout@v3
       - uses: elastic/apm-pipeline-library/.github/actions/updatecli@current
@@ -25,7 +18,7 @@ jobs:
           vaultUrl: ${{ secrets.VAULT_ADDR }}
           vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
           vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
-          pipeline: ${{ matrix.pipeline }}
+          pipeline: .ci/updatecli.d
   notify:
     if: always()
     needs:

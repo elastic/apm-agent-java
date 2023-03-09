@@ -1,5 +1,4 @@
 name: update-gherkin-specs
-title: Update Gherkin specs
 pipelineid: update-gherkin-specs
 
 scms:
@@ -54,6 +53,7 @@ actions:
     kind: "github/pullrequest"
     scmid: default
     spec:
+      title: Update Gherkin specs
       automerge: false
       draft: false
       labels:
