@@ -75,14 +75,23 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "action") @Nullable String action,
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(
                 annotationClassName = "co.elastic.apm.api.Traced",
+                method = "asExit",
+                defaultValueProvider = AnnotationValueOffsetMappingFactory.FalseDefaultValueProvider.class
+            ) boolean asExit,
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(
+                annotationClassName = "co.elastic.apm.api.Traced",
                 method = "discardable",
                 defaultValueProvider = AnnotationValueOffsetMappingFactory.TrueDefaultValueProvider.class
             ) boolean discardable) {
 
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {
-                Span span = parent.createSpan()
-                    .withType(type.isEmpty() ? "app" : type)
+                Span span = asExit ? parent.createExitSpan() : parent.createSpan();
+                if (span == null) {
+                    return null;
+                }
+
+                span.withType(type.isEmpty() ? "app" : type)
                     .withSubtype(subtype)
                     .withAction(action)
                     .withName(spanName.isEmpty() ? signature : spanName);
