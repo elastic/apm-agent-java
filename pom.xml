@@ -129,9 +129,11 @@
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.json-schema-validator>1.0.77</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.12.22</version.byte-buddy>
+        <version.byte-buddy>1.14.0</version.byte-buddy>
         <version.asm>9.4</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
+
+        <version.mockito>5.1.1</version.mockito>
 
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
@@ -703,7 +705,14 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>4.11.0</version>
+            <version>${version.mockito}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- adding this to classpath allows to keep default behavior of mockito 4.x where mock subclassing is used.  -->
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-subclass</artifactId>
+            <version>${version.mockito}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

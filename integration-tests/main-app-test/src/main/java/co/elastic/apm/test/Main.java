@@ -18,8 +18,20 @@
  */
 package co.elastic.apm.test;
 
+import java.util.Arrays;
+
 public class Main {
 
     public static void main(String[] args) {
+        System.out.println("Hello World!");
+
+        // don't terminate the JVM too fast otherwise the container startup will appear to fail
+        if (Arrays.asList(args).contains("wait")) {
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                throw new IllegalStateException(e);
+            }
+        }
     }
 }

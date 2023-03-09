@@ -42,6 +42,18 @@ public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, A
         return thiz();
     }
 
+    public SELF isExit() {
+        isNotNull();
+        checkTrue("Expected exit span, but was non-exit span", actual.isExit());
+        return thiz();
+    }
+
+    public SELF isNotExit() {
+        isNotNull();
+        checkTrue("Expected a non-exit span, but was an exit span", !actual.isExit());
+        return thiz();
+    }
+
     public SELF hasParent(AbstractSpan<?> expectedParent) {
         TraceContext parentCtx = expectedParent.getTraceContext();
         TraceContext actualCtx = actual.getTraceContext();

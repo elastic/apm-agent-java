@@ -87,4 +87,16 @@ public @interface CaptureSpan {
      * </p>
      */
     boolean discardable() default true;
+
+    /**
+     * <p>
+     * Makes the captured span an exit span. Exit spans are usually meant to represent outgoing calls to external systems, like databases.
+     * When an exit span is created no nested span is created. For example when creating exit spans
+     * for a database, it can hide the fact that calls to this database are made through an HTTP client.
+     * </p>
+     * <p>
+     * When set to {@literal true}, it is recommended to also set values for {@link #type()} and {@link #subtype()}
+     * </p>
+     */
+    boolean asExit() default false;
 }
