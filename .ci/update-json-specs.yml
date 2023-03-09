@@ -74,46 +74,46 @@ targets:
     sourceid: cgroup_parsing.json
     kind: file
     spec:
-      file: test/Elastic.Apm.Tests.Utilities/TestResources/json-specs/cgroup_parsing.json
+      file: apm-agent-core/src/test/resources/json-specs/cgroup_parsing.json
   service_resource_inference.json:
     name: service_resource_inference.json
     scmid: default
     sourceid: service_resource_inference.json
     kind: file
     spec:
-      file: test/Elastic.Apm.Tests.Utilities/TestResources/json-specs/service_resource_inference.json
+      file: apm-agent-core/src/test/resources/json-specs/service_resource_inference.json
   span_types.json:
     name: span_types.json
     scmid: default
     sourceid: span_types.json
     kind: file
     spec:
-      file: test/Elastic.Apm.Tests.Utilities/TestResources/json-specs/span_types.json
+      file: apm-agent-core/src/test/resources/json-specs/span_types.json
   sql_signature_examples.json:
     name: sql_signature_examples.json
     scmid: default
     sourceid: sql_signature_examples.json
     kind: file
     spec:
-      file: test/Elastic.Apm.Tests.Utilities/TestResources/json-specs/sql_signature_examples.json
+      file: apm-agent-core/src/test/resources/json-specs/sql_signature_examples.json
   sql_token_examples.json:
     name: sql_token_examples.json
     scmid: default
     sourceid: sql_token_examples.json
     kind: file
     spec:
-      file: test/Elastic.Apm.Tests.Utilities/TestResources/json-specs/sql_token_examples.json
+      file: apm-agent-core/src/test/resources/json-specs/sql_token_examples.json
   w3c_distributed_tracing.json:
     name: w3c_distributed_tracing.json
     scmid: default
     sourceid: w3c_distributed_tracing.json
     kind: file
     spec:
-      file: test/Elastic.Apm.Tests.Utilities/TestResources/json-specs/w3c_distributed_tracing.json
+      file: apm-agent-core/src/test/resources/json-specs/w3c_distributed_tracing.json
   wildcard_matcher_tests.json:
     name: wildcard_matcher_tests.json
     scmid: default
     sourceid: wildcard_matcher_tests.json
     kind: file
     spec:
-      file: test/Elastic.Apm.Tests.Utilities/TestResources/json-specs/wildcard_matcher_tests.json
+      file: apm-agent-core/src/test/resources/json-specs/wildcard_matcher_tests.json

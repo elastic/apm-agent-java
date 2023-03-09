@@ -71,7 +71,7 @@ targets:
     sourceid: api_key.feature
     kind: file
     spec:
-      file: test/Elastic.Apm.Feature.Tests/Features/api_key.feature
+      file: apm-agent-core/src/test/resources/specs/api_key.feature
       forcecreate: true
   azure_app_service_metadata.feature:
     name: azure_app_service_metadata.feature
@@ -79,7 +79,7 @@ targets:
     sourceid: azure_app_service_metadata.feature
     kind: file
     spec:
-      file: test/Elastic.Apm.Feature.Tests/Features/azure_app_service_metadata.feature
+      file: apm-agent-core/src/test/resources/specs/azure_app_service_metadata.feature
       forcecreate: true
   azure_functions_metadata.feature:
     name: azure_functions_metadata.feature
@@ -87,7 +87,7 @@ targets:
     sourceid: azure_functions_metadata.feature
     kind: file
     spec:
-      file: test/Elastic.Apm.Feature.Tests/Features/azure_functions_metadata.feature
+      file: apm-agent-core/src/test/resources/specs/azure_functions_metadata.feature
       forcecreate: true
   otel_bridge.feature:
     name: otel_bridge.feature
@@ -95,7 +95,7 @@ targets:
     sourceid: otel_bridge.feature
     kind: file
     spec:
-      file: test/Elastic.Apm.Feature.Tests/Features/otel_bridge.feature
+      file: apm-agent-core/src/test/resources/specs/otel_bridge.feature
       forcecreate: true
   outcome.feature:
     name: outcome.feature
@@ -103,7 +103,7 @@ targets:
     sourceid: outcome.feature
     kind: file
     spec:
-      file: test/Elastic.Apm.Feature.Tests/Features/outcome.feature
+      file: apm-agent-core/src/test/resources/specs/outcome.feature
       forcecreate: true
   user_agent.feature:
     name: user_agent.feature
@@ -111,5 +111,5 @@ targets:
     sourceid: user_agent.feature
     kind: file
     spec:
-      file: test/Elastic.Apm.Feature.Tests/Features/user_agent.feature
+      file: apm-agent-core/src/test/resources/specs/user_agent.feature
       forcecreate: true
