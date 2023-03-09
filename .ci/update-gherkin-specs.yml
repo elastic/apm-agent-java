@@ -1,5 +1,6 @@
 name: update-gherkin-specs
 title: Update Gherkin specs
+pipelineid: update-gherkin-specs
 
 scms:
   default:

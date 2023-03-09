@@ -1,5 +1,6 @@
 name: update-jsons-specs
 title: Update JSON specs
+pipelineid: update-jsons-specs
 
 scms:
   default:
