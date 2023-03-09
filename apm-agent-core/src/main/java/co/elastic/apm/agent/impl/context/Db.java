@@ -23,7 +23,7 @@ import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.objectpool.Resetter;
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
 import javax.annotation.Nullable;
@@ -40,7 +40,7 @@ public class Db implements Recyclable {
         new Allocator<CharBuffer>() {
             @Override
             public CharBuffer createInstance() {
-                return CharBuffer.allocate(DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH);
+                return CharBuffer.allocate(SerializationConstants.getMaxLongStringValueLength());
             }
         },
         new Resetter<CharBuffer>() {

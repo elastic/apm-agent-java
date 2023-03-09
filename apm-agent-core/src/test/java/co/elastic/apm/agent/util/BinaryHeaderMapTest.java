@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.util;
 
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -84,14 +84,14 @@ class BinaryHeaderMapTest {
 
     @Test
     void testLongHeader() {
-        final String longRandomString = RandomStringUtils.randomAlphanumeric(DslJsonSerializer.MAX_VALUE_LENGTH + 1);
+        final String longRandomString = RandomStringUtils.randomAlphanumeric(SerializationConstants.MAX_VALUE_LENGTH + 1);
         headerMap.add("long", longRandomString.getBytes());
         headerMap.add("foo", "bar".getBytes());
         assertThat(headerMap.size()).isEqualTo(2);
         Iterator<BinaryHeaderMap.Entry> iterator = headerMap.iterator();
         BinaryHeaderMap.Entry longHeader = iterator.next();
         assertThat(longHeader.getKey()).isEqualTo("long");
-        assertThat(longHeader.getValue().toString().length()).isEqualTo(DslJsonSerializer.MAX_VALUE_LENGTH);
+        assertThat(longHeader.getValue().toString().length()).isEqualTo(SerializationConstants.MAX_VALUE_LENGTH);
         BinaryHeaderMap.Entry shortHeader = iterator.next();
         assertThat(shortHeader.getKey()).isEqualTo("foo");
         assertThat(shortHeader.getValue().toString()).isEqualTo("bar");
@@ -99,7 +99,7 @@ class BinaryHeaderMapTest {
 
     @Test
     void testMapOverflow() {
-        final String longRandomString = RandomStringUtils.randomAlphanumeric(DslJsonSerializer.MAX_VALUE_LENGTH + 3);
+        final String longRandomString = RandomStringUtils.randomAlphanumeric(SerializationConstants.MAX_VALUE_LENGTH + 3);
         for (int i = 0; i < 9; i++) {
             headerMap.add("long" + i, longRandomString.getBytes());
             headerMap.add("foo", "bar".getBytes());
@@ -111,7 +111,7 @@ class BinaryHeaderMapTest {
         for (int i = 0; i < 9; i++) {
             BinaryHeaderMap.Entry longHeader = iterator.next();
             assertThat(longHeader.getKey()).isEqualTo("long" + i);
-            assertThat(longHeader.getValue().toString().length()).isEqualTo(DslJsonSerializer.MAX_VALUE_LENGTH);
+            assertThat(longHeader.getValue().toString().length()).isEqualTo(SerializationConstants.MAX_VALUE_LENGTH);
             BinaryHeaderMap.Entry shortHeader = iterator.next();
             assertThat(shortHeader.getKey()).isEqualTo("foo");
             assertThat(shortHeader.getValue().toString()).isEqualTo("bar");
