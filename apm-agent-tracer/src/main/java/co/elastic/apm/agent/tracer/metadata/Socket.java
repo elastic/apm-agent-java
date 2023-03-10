@@ -16,17 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.objectpool;
+package co.elastic.apm.agent.tracer.metadata;
 
-/**
- * Defines pooled object factory
- *
- * @param <T> pooled object type
- */
-public interface Allocator<T> {
+import javax.annotation.Nullable;
 
-    /**
-     * @return new instance of pooled object type
-     */
-    T createInstance();
+public interface Socket {
+
+    Socket withRemoteAddress(@Nullable String remoteAddress);
 }

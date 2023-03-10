@@ -19,7 +19,7 @@
 package co.elastic.apm.esjavaclient;
 
 import co.elastic.apm.agent.esrestclient.AbstractEsClientInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;

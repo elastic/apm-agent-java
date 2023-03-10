@@ -29,7 +29,9 @@ import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
+import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import org.HdrHistogram.WriterReaderPhaser;
 
 import javax.annotation.Nullable;
@@ -41,7 +43,7 @@ import static co.elastic.apm.agent.configuration.CoreConfiguration.TraceContinua
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
-public class Transaction extends AbstractSpan<Transaction> {
+public class Transaction extends AbstractSpan<Transaction> implements co.elastic.apm.agent.tracer.Transaction<Transaction> {
 
     private static final ThreadLocal<Labels.Mutable> labelsThreadLocal = new ThreadLocal<Labels.Mutable>() {
         @Override
@@ -179,11 +181,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         return this;
     }
 
-    /**
-     * Context
-     * <p>
-     * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
-     */
     @Override
     public TransactionContext getContext() {
         return context;
@@ -209,11 +206,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         return result;
     }
 
-    /**
-     * The result of the transaction. HTTP status code for HTTP-related
-     * transactions. This sets the result only if it is not already set. should be
-     * used for instrumentations
-     */
+    @Override
     public Transaction withResultIfUnset(@Nullable String result) {
         if (this.result == null) {
             this.result = result;
@@ -221,11 +214,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         return this;
     }
 
-    /**
-     * The result of the transaction. HTTP status code for HTTP-related
-     * transactions. This sets the result regardless of an already existing value.
-     * should be used for user defined results
-     */
+    @Override
     public Transaction withResult(@Nullable String result) {
         this.result = result;
         return this;
@@ -311,13 +300,12 @@ public class Transaction extends AbstractSpan<Transaction> {
         // don't clear timerBySpanTypeAndSubtype map (see field-level javadoc)
     }
 
+    @Override
     public boolean isNoop() {
         return noop;
     }
 
-    /**
-     * Ignores this transaction, which makes it a noop so that it will not be reported to the APM Server.
-     */
+    @Override
     public void ignoreTransaction() {
         noop = true;
     }
@@ -355,6 +343,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         tracer.recycle(this);
     }
 
+    @Override
     public void setFrameworkName(@Nullable String frameworkName) {
         if (frameworkNameSetByUser) {
             return;
@@ -376,6 +365,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         return this.frameworkName;
     }
 
+    @Override
     public void setFrameworkVersion(@Nullable String frameworkVersion) {
         this.frameworkVersion = frameworkVersion;
     }

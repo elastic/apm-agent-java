@@ -24,6 +24,8 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.impl.BookkeeperObjectPool;
+import co.elastic.apm.agent.tracer.pooling.Allocator;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import java.util.ArrayList;
 import java.util.Collection;

@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.servlet.adapter;
 
 import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.servlet.helper.JakartaServletRequestHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.FilterConfig;
 import jakarta.servlet.RequestDispatcher;

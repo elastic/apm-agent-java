@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.util;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -34,7 +34,7 @@ import java.util.List;
  * {@link #get(String)} will return a collection of values.
  * </p>
  */
-public class PotentiallyMultiValuedMap implements Recyclable {
+public class PotentiallyMultiValuedMap implements Recyclable, co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap {
 
     private final List<String> keys;
     private final List<Object> values;
@@ -59,6 +59,7 @@ public class PotentiallyMultiValuedMap implements Recyclable {
      * @param key   The key.
      * @param value The value.
      */
+    @Override
     public void add(String key, String value) {
         final int index = indexOfIgnoreCase(key);
         if (index >= 0) {
@@ -102,6 +103,7 @@ public class PotentiallyMultiValuedMap implements Recyclable {
      * @param key The key you want to get the associated value for.
      * @return The first value which is associated with a given key.
      */
+    @Override
     @Nullable
     public String getFirst(String key) {
         Object valueOrValueList = get(key);
@@ -112,6 +114,7 @@ public class PotentiallyMultiValuedMap implements Recyclable {
         }
     }
 
+    @Override
     @Nullable
     public Object get(String key) {
         final int index = indexOfIgnoreCase(key);
@@ -155,6 +158,7 @@ public class PotentiallyMultiValuedMap implements Recyclable {
         values.set(index, valueList);
     }
 
+    @Override
     public boolean isEmpty() {
         return keys.isEmpty();
     }
@@ -194,6 +198,7 @@ public class PotentiallyMultiValuedMap implements Recyclable {
         values.set(index, value);
     }
 
+    @Override
     public boolean containsIgnoreCase(String key) {
         return indexOfIgnoreCase(key) != -1;
     }

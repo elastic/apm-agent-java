@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 
-public class Socket implements Recyclable {
+public class Socket implements Recyclable, co.elastic.apm.agent.tracer.metadata.Socket {
 
     @Nullable
     private String remoteAddress;
@@ -32,6 +32,7 @@ public class Socket implements Recyclable {
         return remoteAddress;
     }
 
+    @Override
     public Socket withRemoteAddress(@Nullable String remoteAddress) {
         this.remoteAddress = remoteAddress;
         return this;

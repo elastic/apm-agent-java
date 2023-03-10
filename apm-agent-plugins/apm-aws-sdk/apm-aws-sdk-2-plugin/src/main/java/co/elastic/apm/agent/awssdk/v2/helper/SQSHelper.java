@@ -22,8 +22,8 @@ import co.elastic.apm.agent.awssdk.common.AbstractSQSInstrumentationHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import software.amazon.awssdk.core.SdkRequest;
 import software.amazon.awssdk.core.SdkResponse;
 import software.amazon.awssdk.core.client.handler.ClientExecutionParams;
@@ -46,7 +46,7 @@ import java.util.Map;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, ExecutionContext, Message> implements TextHeaderSetter<Map<String, MessageAttributeValue>> {
-    
+
     private static final SQSHelper INSTANCE = new SQSHelper(GlobalTracer.requireTracerImpl());
 
     public static SQSHelper getInstance() {

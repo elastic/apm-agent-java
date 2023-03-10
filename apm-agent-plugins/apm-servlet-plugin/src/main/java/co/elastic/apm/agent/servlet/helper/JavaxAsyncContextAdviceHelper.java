@@ -21,9 +21,9 @@ package co.elastic.apm.agent.servlet.helper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
+import co.elastic.apm.agent.tracer.pooling.Allocator;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletRequest;

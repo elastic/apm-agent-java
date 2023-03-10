@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.context.web;
 
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 
 import javax.annotation.Nullable;
 

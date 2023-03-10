@@ -18,7 +18,6 @@
  */
 package specs;
 
-import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
@@ -28,6 +27,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.opentelemetry.global.ElasticOpenTelemetry;
 import co.elastic.apm.agent.opentelemetry.tracing.ElasticOpenTelemetryTest;
 import co.elastic.apm.agent.opentelemetry.tracing.OTelSpan;
+import co.elastic.apm.agent.tracer.Scope;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;

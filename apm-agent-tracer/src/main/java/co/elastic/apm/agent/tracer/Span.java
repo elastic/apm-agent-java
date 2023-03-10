@@ -16,9 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.transaction;
+package co.elastic.apm.agent.tracer;
 
-public interface HeaderSetter<T, C> {
+import javax.annotation.Nullable;
 
-    void setHeader(String headerName, T headerValue, C carrier);
+public interface Span<T extends Span<T>> extends AbstractSpan<T> {
+
+    @Override
+    SpanContext getContext();
+
+    @Nullable
+    String getSubtype();
+
+    /**
+     * Sets the span's subtype, related to the  (eg: 'mysql', 'postgresql', 'jsf' etc)
+     */
+    T withSubtype(@Nullable String subtype);
+
+    boolean isExit();
+
+    @Nullable
+    String getAction();
+
+    /**
+     * Action related to this span (eg: 'query', 'render' etc)
+     */
+    T withAction(@Nullable String action);
 }

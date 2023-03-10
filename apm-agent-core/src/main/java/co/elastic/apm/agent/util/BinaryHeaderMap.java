@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.util;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.nio.Buffer;

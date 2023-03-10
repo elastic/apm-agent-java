@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.objectpool;
 
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
+
 public class TestRecyclable implements Recyclable {
 
     private int state;
