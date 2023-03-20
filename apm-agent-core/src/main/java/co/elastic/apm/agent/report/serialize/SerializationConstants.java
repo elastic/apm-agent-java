@@ -19,8 +19,6 @@
 package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
 
 import javax.annotation.Nullable;
 
@@ -57,15 +55,7 @@ public class SerializationConstants {
             return INSTANCE;
         }
 
-        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
-        if (tracer == null) {
-            // should only happen before tracer is initialized, mostly in test
-            return new SerializationConstants(CoreConfiguration.DEFAULT_LONG_FIELD_MAX_LENGTH);
-        } else {
-            init(tracer.getConfig(CoreConfiguration.class));
-            return INSTANCE;
-        }
-
+        throw new IllegalStateException("serialization constants must be initialized first");
     }
 
 }

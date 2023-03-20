@@ -105,10 +105,12 @@ class DslJsonSerializerTest {
         doReturn(15).when(stacktraceConfiguration).getStackTraceLimit();
         apmServerClient = mock(ApmServerClient.class);
         metaData = MetaDataMock.create();
-        serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData);
-        serializer.blockUntilReady();
         objectMapper = new ObjectMapper();
         tracer = MockTracer.createRealTracer();
+        SerializationConstants.init(tracer.getConfig(CoreConfiguration.class));
+
+        serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData);
+        serializer.blockUntilReady();
     }
 
     @Test
