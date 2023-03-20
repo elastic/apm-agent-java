@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.objectpool;
+package co.elastic.apm.agent.tracer.dispatch;
 
-public interface Recyclable {
+public abstract class AbstractHeaderGetter<T, C> implements HeaderGetter<T, C> {
 
-    /**
-     * resets pooled object state so it can be reused
-     */
-    void resetState();
+    @Override
+    public <S> void forEach(String headerName, C carrier, S state, HeaderConsumer<T, S> consumer) {
+        T firstHeader = getFirstHeader(headerName, carrier);
+        if (firstHeader != null) {
+            consumer.accept(firstHeader, state);
+        }
+    }
 }

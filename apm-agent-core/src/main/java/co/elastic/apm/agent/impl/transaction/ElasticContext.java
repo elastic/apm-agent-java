@@ -18,32 +18,9 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.agent.impl.Scope;
-
 import javax.annotation.Nullable;
 
-public interface ElasticContext<T extends ElasticContext<T>> {
-
-    /**
-     * Makes the context active
-     *
-     * @return this
-     */
-    T activate();
-
-    /**
-     * Deactivates context
-     *
-     * @return this
-     */
-    T deactivate();
-
-    /**
-     * Activates context in a scope
-     *
-     * @return active scope that will deactivate context when closed
-     */
-    Scope activateInScope();
+public interface ElasticContext<T extends ElasticContext<T>> extends co.elastic.apm.agent.tracer.ElasticContext<T> {
 
     /**
      * Adds a span as active within context. Might return a different context instance if required, for example

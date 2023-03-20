@@ -26,17 +26,18 @@ import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.util.CharSequenceUtils;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-public class Span extends AbstractSpan<Span> implements Recyclable {
+public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.apm.agent.tracer.Span<Span> {
 
     private static final Logger logger = LoggerFactory.getLogger(Span.class);
     public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
@@ -155,17 +156,13 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return composite;
     }
 
-    /**
-     * Sets the span's subtype, related to the  (eg: 'mysql', 'postgresql', 'jsf' etc)
-     */
+    @Override
     public Span withSubtype(@Nullable String subtype) {
         this.subtype = normalizeEmpty(subtype);
         return this;
     }
 
-    /**
-     * Action related to this span (eg: 'query', 'render' etc)
-     */
+    @Override
     public Span withAction(@Nullable String action) {
         this.action = normalizeEmpty(action);
         return this;
@@ -204,11 +201,13 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return stacktrace;
     }
 
+    @Override
     @Nullable
     public String getSubtype() {
         return subtype;
     }
 
+    @Override
     @Nullable
     public String getAction() {
         return action;

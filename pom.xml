@@ -72,6 +72,7 @@
         <module>apm-agent-common</module>
         <module>apm-agent-cached-lookup-key</module>
         <module>apm-opentracing</module>
+        <module>apm-agent-tracer</module>
         <!-- IMPORTANT:
             For the nexus deployment to work correctly, the last project in the build order needs to have deployment
             enabled (maven-deploy-plugin.skip must be false).
@@ -127,7 +128,7 @@
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.spring-boot>2.2.2.RELEASE</version.spring-boot>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.0.77</version.json-schema-validator>
+        <version.json-schema-validator>1.0.78</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
         <version.byte-buddy>1.14.0</version.byte-buddy>
         <version.asm>9.4</version.asm>

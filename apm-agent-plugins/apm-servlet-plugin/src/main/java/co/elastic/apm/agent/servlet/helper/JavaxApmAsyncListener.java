@@ -20,8 +20,8 @@ package co.elastic.apm.agent.servlet.helper;
 
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import javax.servlet.AsyncContext;

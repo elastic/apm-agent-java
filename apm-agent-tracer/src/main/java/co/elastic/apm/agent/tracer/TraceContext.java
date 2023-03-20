@@ -16,7 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.transaction;
+package co.elastic.apm.agent.tracer;
 
-public interface TextHeaderSetter<C> extends HeaderSetter<String, C> {
+public interface TraceContext {
+
+    Id getId();
+
+    Id getTransactionId();
+
+    /**
+     * The ID of the whole trace forest
+     *
+     * @return the trace id
+     */
+    Id getTraceId();
+
+    /**
+     * The ID of the caller span (parent)
+     *
+     * @return the parent id
+     */
+    Id getParentId();
 }

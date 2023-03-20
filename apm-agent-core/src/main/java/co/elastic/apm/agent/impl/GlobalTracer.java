@@ -22,12 +22,13 @@ import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
+import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -230,5 +231,26 @@ public class GlobalTracer implements Tracer {
     @Override
     public Span createExitChildSpan() {
         return tracer.createExitChildSpan();
+    }
+
+    @Nullable
+    @Override
+    public <T extends co.elastic.apm.agent.tracer.Tracer> T probe(Class<T> type) {
+        return tracer.probe(type);
+    }
+
+    @Override
+    public <T extends co.elastic.apm.agent.tracer.Tracer> T require(Class<T> type) {
+        return tracer.require(type);
+    }
+
+    @Override
+    public <T> T getConfig(Class<T> configuration) {
+        return tracer.getConfig(configuration);
+    }
+
+    @Override
+    public ObjectPoolFactory getObjectPoolFactory() {
+        return tracer.getObjectPoolFactory();
     }
 }

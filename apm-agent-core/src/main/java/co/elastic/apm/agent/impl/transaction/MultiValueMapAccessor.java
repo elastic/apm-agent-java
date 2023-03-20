@@ -19,6 +19,10 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 
 import javax.annotation.Nullable;
 
@@ -43,7 +47,6 @@ public class MultiValueMapAccessor extends AbstractHeaderGetter<String, Potentia
         }
     }
 
-    @Override
     public void setHeader(String headerName, String headerValue, PotentiallyMultiValuedMap headerMap) {
         headerMap.add(headerName, headerValue);
     }

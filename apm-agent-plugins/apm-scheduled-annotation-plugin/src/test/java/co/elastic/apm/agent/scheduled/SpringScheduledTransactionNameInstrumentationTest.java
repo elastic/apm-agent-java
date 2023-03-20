@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.scheduled;
 
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.annotation.Scheduled;

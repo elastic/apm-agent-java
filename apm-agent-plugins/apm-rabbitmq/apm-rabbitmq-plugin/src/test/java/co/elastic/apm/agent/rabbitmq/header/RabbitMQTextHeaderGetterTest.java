@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.rabbitmq.header;
 
 import co.elastic.apm.agent.impl.transaction.AbstractTextHeaderGetterTest;
-import co.elastic.apm.agent.impl.transaction.HeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import com.rabbitmq.client.AMQP;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;

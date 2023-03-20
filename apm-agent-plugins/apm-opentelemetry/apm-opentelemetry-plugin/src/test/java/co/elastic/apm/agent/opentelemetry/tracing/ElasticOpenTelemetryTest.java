@@ -21,7 +21,7 @@ package co.elastic.apm.agent.opentelemetry.tracing;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
@@ -340,7 +340,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         ElasticContext<?> bridgedContext = checkBridgedContext(context);
 
         // activate context from elastic API using a bridged context
-        try (co.elastic.apm.agent.impl.Scope scope = bridgedContext.activateInScope()) {
+        try (co.elastic.apm.agent.tracer.Scope scope = bridgedContext.activateInScope()) {
 
             checkCurrentContext(context, "elastic and otel contexts should be the same");
 
@@ -481,7 +481,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
             assertThat(transaction).isNotNull();
 
             co.elastic.apm.agent.impl.transaction.Span elasticSpan = transaction.createSpan();
-            try (co.elastic.apm.agent.impl.Scope elasticScope = elasticSpan.activateInScope()) {
+            try (co.elastic.apm.agent.tracer.Scope elasticScope = elasticSpan.activateInScope()) {
                 assertThat(tracer.getActiveSpan()).isNotNull();
                 tracer.getActiveSpan().withName("elastic span");
             } finally {

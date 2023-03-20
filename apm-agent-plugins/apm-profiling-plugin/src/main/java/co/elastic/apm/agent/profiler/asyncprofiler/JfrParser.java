@@ -20,13 +20,13 @@ package co.elastic.apm.agent.profiler.asyncprofiler;
 
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.profiler.collections.Int2IntHashMap;
 import co.elastic.apm.agent.profiler.collections.Int2ObjectHashMap;
 import co.elastic.apm.agent.profiler.collections.Long2LongHashMap;
 import co.elastic.apm.agent.profiler.collections.Long2ObjectHashMap;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.io.File;

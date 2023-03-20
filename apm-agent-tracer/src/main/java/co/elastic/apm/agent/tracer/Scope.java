@@ -16,15 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl;
-
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+package co.elastic.apm.agent.tracer;
 
 /**
  * Within a scope, a {@link AbstractSpan} is active on the current thread.
  * Calling {@link #close()} detaches them from the active thread.
  * In a scope, you can get the currently active {@link AbstractSpan} via
- * {@link ElasticApmTracer#getActive()}.
+ * {@link Tracer#getActive()}.
  * <p>
  * During the duration of a {@link AbstractSpan},
  * it can be active multiple times on multiple threads.
@@ -34,24 +32,15 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
  * These types of application still might find it useful to scope a {@link AbstractSpan} on the currently processing thread.
  * For example, an instrumentation for {@link java.util.concurrent.ExecutorService} might want to propagate the currently
  * active {@link AbstractSpan} to thread which runs {@link java.util.concurrent.ExecutorService#execute(Runnable)},
- * so that {@link ElasticApmTracer#getActive()} returns the expected {@link AbstractSpan}.
+ * so that {@link Tracer#getActive()} returns the expected {@link AbstractSpan}.
  * </p>
  * <p>
- * Note: {@link #close() closing} a scope does not {@link co.elastic.apm.agent.impl.transaction.AbstractSpan#end() end} it's active
- * {@link co.elastic.apm.agent.impl.transaction.AbstractSpan}.
+ * Note: {@link #close() closing} a scope does not {@link AbstractSpan#end() end} it's active
+ * {@link AbstractSpan}.
  * </p>
  */
 public interface Scope extends AutoCloseable {
 
     @Override
     void close();
-
-    enum NoopScope implements Scope {
-        INSTANCE;
-
-        @Override
-        public void close() {
-            // noop
-        }
-    }
 }

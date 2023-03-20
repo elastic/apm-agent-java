@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.kafka.helper;
 
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.RecordMetadata;
 

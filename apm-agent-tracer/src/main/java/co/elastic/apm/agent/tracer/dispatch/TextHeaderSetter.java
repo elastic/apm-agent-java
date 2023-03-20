@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.transaction;
+package co.elastic.apm.agent.tracer.dispatch;
 
-public interface HeaderRemover<C> {
-
-    void remove(String headerName, C carrier);
+public interface TextHeaderSetter<C> extends HeaderSetter<String, C> {
 }

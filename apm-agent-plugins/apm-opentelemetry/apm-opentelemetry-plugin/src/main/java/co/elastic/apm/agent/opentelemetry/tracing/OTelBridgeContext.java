@@ -107,7 +107,7 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
     }
 
     @Override
-    public co.elastic.apm.agent.impl.Scope activateInScope() {
+    public co.elastic.apm.agent.tracer.Scope activateInScope() {
         return tracer.activateInScope(this);
     }
 
