@@ -1,4 +1,5 @@
 co.elastic.apm.agent.ecs_logging.log4j2.Log4j2ServiceNameInstrumentation
 co.elastic.apm.agent.ecs_logging.log4j2.Log4j2ServiceVersionInstrumentation
 
-co.elastic.apm.agent.ecs_logging.jul.JulEcsFormatterInstrumentation
+co.elastic.apm.agent.ecs_logging.jul.JulEcsMdcInstrumentation
+co.elastic.apm.agent.ecs_logging.jul.JulEcsServiceInstrumentation

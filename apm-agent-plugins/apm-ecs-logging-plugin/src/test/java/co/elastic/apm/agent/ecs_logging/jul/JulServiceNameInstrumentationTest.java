@@ -21,6 +21,8 @@ package co.elastic.apm.agent.ecs_logging.jul;
 import co.elastic.apm.agent.ecs_logging.EcsServiceNameTest;
 import co.elastic.logging.jul.EcsFormatter;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
@@ -35,12 +37,21 @@ public class JulServiceNameInstrumentationTest extends EcsServiceNameTest {
 
     @Override
     protected void initFormatterWithoutServiceNameSet() {
-        formatter = new EcsFormatter();
+        formatter = createFormatter(Collections.emptyMap());
     }
 
     @Override
     protected void initFormatterWithServiceName(String name) {
-        formatter = new EcsFormatter();
-        formatter.setServiceName(name);
+        formatter = createFormatter(Map.of("co.elastic.logging.jul.EcsFormatter.serviceName", name));
     }
+
+    private static EcsFormatter createFormatter(Map<String, String> map) {
+        try {
+            LogManagerTestInstrumentation.JulProperties.override(map);
+            return new EcsFormatter();
+        } finally {
+            LogManagerTestInstrumentation.JulProperties.restore();
+        }
+    }
+
 }

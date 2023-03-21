@@ -40,7 +40,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
  * for all of them.
  */
 @SuppressWarnings("JavadocReference")
-public class JulEcsFormatterInstrumentation extends TracerAwareInstrumentation {
+public abstract class JulEcsFormatterInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
@@ -56,21 +56,6 @@ public class JulEcsFormatterInstrumentation extends TracerAwareInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("co.elastic.logging.jul.EcsFormatter");
-    }
-
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("getMdcEntries");
-    }
-
-    public static class AdviceClass {
-
-        @Advice.AssignReturned.ToReturned
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static Map<String, String> onExit() {
-            return CorrelationIdMapAdapter.get();
-        }
-
     }
 
 

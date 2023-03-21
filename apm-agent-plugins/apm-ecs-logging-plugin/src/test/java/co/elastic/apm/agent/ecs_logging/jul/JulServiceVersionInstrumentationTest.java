@@ -21,6 +21,8 @@ package co.elastic.apm.agent.ecs_logging.jul;
 import co.elastic.apm.agent.ecs_logging.EcsServiceVersionTest;
 import co.elastic.logging.jul.EcsFormatter;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
@@ -35,12 +37,20 @@ public class JulServiceVersionInstrumentationTest extends EcsServiceVersionTest 
 
     @Override
     protected void initFormatterWithoutServiceVersionSet() {
-        formatter = new EcsFormatter();
+        formatter = createFormatter(Collections.emptyMap());
     }
 
     @Override
     protected void initFormatterWithServiceVersion(String version) {
-        formatter = new EcsFormatter();
-        formatter.setServiceVersion(version);
+        formatter = createFormatter(Map.of("co.elastic.logging.jul.EcsFormatter.serviceVersion", version));
+    }
+
+    private static EcsFormatter createFormatter(Map<String, String> map) {
+        try {
+            LogManagerTestInstrumentation.JulProperties.override(map);
+            return new EcsFormatter();
+        } finally {
+            LogManagerTestInstrumentation.JulProperties.restore();
+        }
     }
 }

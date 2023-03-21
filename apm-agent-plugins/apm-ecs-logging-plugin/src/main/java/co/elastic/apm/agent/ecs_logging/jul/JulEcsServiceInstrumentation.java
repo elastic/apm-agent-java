@@ -16,36 +16,49 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.ecs_logging.log4j2;
+package co.elastic.apm.agent.ecs_logging.jul;
 
 import co.elastic.apm.agent.ecs_logging.EcsLoggingUtils;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.logging.log4j2.EcsLayout;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
+import javax.annotation.Nullable;
+
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class Log4j2ServiceVersionInstrumentation extends Log4j2BuilderInstrumentation {
+/**
+ * Instruments {@link co.elastic.logging.jul.EcsFormatter#getProperty} to provide default values
+ */
+@SuppressWarnings("JavadocReference")
+public class JulEcsServiceInstrumentation extends JulEcsFormatterInstrumentation {
 
     @Override
-    public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
-        // setServiceVersion introduced in 1.4.0
-        return super.getTypeMatcher().and(declaresMethod(named("setServiceVersion")));
+    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        return named("getProperty");
     }
 
     public static class AdviceClass {
 
         private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void onEnter(@Advice.This EcsLayout.Builder builder) {
-            if (builder.getServiceVersion() == null || builder.getServiceVersion().isEmpty()) {
-                builder.setServiceVersion(EcsLoggingUtils.getServiceVersion(tracer));
+        @Advice.AssignReturned.ToReturned
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static String onExit(@Advice.Argument(0) String key,
+                                    @Advice.Return @Nullable String value) {
+
+            if (value == null) {
+                if ("co.elastic.logging.jul.EcsFormatter.serviceName".equals(key)) {
+                    value = EcsLoggingUtils.getServiceName(tracer);
+                } else if ("co.elastic.logging.jul.EcsFormatter.serviceVersion".equals(key)) {
+                    value = EcsLoggingUtils.getServiceVersion(tracer);
+                }
             }
+            return value;
         }
+
+
     }
 }
