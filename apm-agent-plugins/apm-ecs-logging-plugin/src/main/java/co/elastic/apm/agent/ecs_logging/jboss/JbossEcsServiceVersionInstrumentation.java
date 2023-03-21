@@ -52,7 +52,7 @@ public class JbossEcsServiceVersionInstrumentation extends EcsLoggingInstrumenta
 
         @Advice.OnMethodExit(inline = false)
         public static void onExit(@Advice.This EcsFormatter ecsFormatter) {
-            ecsFormatter.setServiceVersion(EcsLoggingUtils.getServiceName(tracer));
+            ecsFormatter.setServiceVersion(EcsLoggingUtils.getServiceVersion(tracer));
         }
     }
 }
