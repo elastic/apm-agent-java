@@ -158,6 +158,23 @@
                             <goal>run</goal>
                         </goals>
                     </execution>
+                    <execution>
+                        <id>combine-sources</id>
+                        <phase>package</phase>
+                        <configuration>
+
+                            <target name="merge-sources" description="Merge source jars">
+                                <zip destfile="${project.basedir}/target/${project.artifactId}-${project.version}-sources.jar">
+                                    <zipgroupfileset dir="${project.basedir}/../apm-agent/target/" includes="apm-agent-*-sources.jar"/>
+                                    <zipgroupfileset dir="${project.basedir}/target/" includes="original-elastic-apm-agent-*-sources.jar"/>
+                                </zip>
+                            </target>
+
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -218,6 +235,10 @@
                                 <relocation>
                                     <pattern>co.elastic.apm.agent.common</pattern>
                                     <shadedPattern>co.elastic.apm.agent.premain.common</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>co.elastic.apm.agent.configuration</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.premain.configuration</shadedPattern>
                                 </relocation>
                             </relocations>
                             <transformers>
