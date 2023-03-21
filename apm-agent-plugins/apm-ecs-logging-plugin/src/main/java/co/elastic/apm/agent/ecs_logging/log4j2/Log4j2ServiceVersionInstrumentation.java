@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.ecs_logging;
+package co.elastic.apm.agent.ecs_logging.log4j2;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
@@ -30,7 +30,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class Log4j2ServiceVersionInstrumentation extends AbstractLog4j2ServiceInstrumentation {
+public class Log4j2ServiceVersionInstrumentation extends Log4j2BuilderInstrumentation {
 
     @Override
     public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {

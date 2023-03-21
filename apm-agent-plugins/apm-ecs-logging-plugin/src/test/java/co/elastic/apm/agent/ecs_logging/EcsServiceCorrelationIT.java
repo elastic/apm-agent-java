@@ -24,22 +24,26 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.List;
 
-public class Log4j2ServiceCorrelationIT {
+public abstract class EcsServiceCorrelationIT {
 
-    @ParameterizedTest(name= "log4j2-ecs-layout {0}, supports version = {1}, supports environment = {2}")
+    protected abstract String getArtifactName();
+
+    protected abstract String getServiceNameTestClass();
+
+    protected abstract String getServiceVersionTestClass();
+
+    @ParameterizedTest(name= "ecs-logging {0}, supports version = {1}, supports environment = {2}")
     @CsvSource(delimiter = '|', value = {
         "1.3.2 | false | false", // 1.3.2 only supports service name
         "1.4.0 | true  | false", // 1.4.0 adds service version
         "1.5.0 | true  | true" // 1.5.0 adds service environment
     })
     void testVersion(String version, boolean serviceVersionSupported, boolean serviceEnvironmentSupported) throws Exception {
-        String dependency = String.format("co.elastic.logging:log4j2-ecs-layout:" + version);
-        new TestClassWithDependencyRunner(List.of(dependency), "co.elastic.apm.agent.ecs_logging.Log4j2ServiceNameInstrumentationTest").run();
+        String dependency = String.format("co.elastic.logging:%s:%s", getArtifactName(), version);
+        new TestClassWithDependencyRunner(List.of(dependency), getServiceNameTestClass()).run();
 
         if (serviceVersionSupported) {
-            new TestClassWithDependencyRunner(List.of(dependency), "co.elastic.apm.agent.ecs_logging.Log4j2ServiceVersionInstrumentationTest").run();
+            new TestClassWithDependencyRunner(List.of(dependency), getServiceVersionTestClass()).run();
         }
-
-
     }
 }

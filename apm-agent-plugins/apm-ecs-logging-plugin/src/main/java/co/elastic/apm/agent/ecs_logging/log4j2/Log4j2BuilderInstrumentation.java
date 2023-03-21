@@ -16,62 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.ecs_logging;
+package co.elastic.apm.agent.ecs_logging.log4j2;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
-import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
-import co.elastic.logging.jul.EcsFormatter;
-import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-/**
- * Instruments {@link EcsFormatter#getMdcEntries()} to provide correlation IDs at runtime.
- * Application(s) copies of ecs-logging and the one in the agent will be instrumented, hence providing log correlation
- * for all of them.
- */
-@SuppressWarnings("JavadocReference")
-public class JulEcsFormatterInstrumentation extends TracerAwareInstrumentation {
+public class Log4j2BuilderInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        // ECS formatter that is loaded within the agent should not be instrumented
-        return not(CustomElementMatchers.isInternalPluginClassLoader());
+        return not(CustomElementMatchers.isAgentClassLoader());
     }
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("logging", "jul-ecs");
-    }
-
-    @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.logging.jul.EcsFormatter");
+    public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
+        return named("co.elastic.logging.log4j2.EcsLayout$Builder");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("getMdcEntries");
+        return named("build");
     }
 
-    public static class AdviceClass {
-
-        @Advice.AssignReturned.ToReturned
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static Map<String, String> onExit() {
-            return CorrelationIdMapAdapter.get();
-        }
-
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList("logging", "log4j2-ecs");
     }
-
-
 }

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.ecs_logging;
+package co.elastic.apm.agent.ecs_logging.log4j2;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
@@ -25,7 +25,7 @@ import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.logging.log4j2.EcsLayout;
 import net.bytebuddy.asm.Advice;
 
-public class Log4j2ServiceNameInstrumentation extends AbstractLog4j2ServiceInstrumentation {
+public class Log4j2ServiceNameInstrumentation extends Log4j2BuilderInstrumentation {
 
     public static class AdviceClass {
 
