@@ -18,8 +18,6 @@
  */
 package co.elastic.apm.agent.ecs_logging.log4j2;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.ecs_logging.EcsLoggingUtils;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;

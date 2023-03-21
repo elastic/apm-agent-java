@@ -30,7 +30,8 @@ import javax.annotation.Nullable;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
- * Instruments {@link co.elastic.logging.jul.EcsFormatter#getProperty} to provide default values
+ * Instruments {@link co.elastic.logging.jul.EcsFormatter#getProperty} to provide default values.
+ * Note: we can't use setters as they might not be available in older versions of ecs-
  */
 @SuppressWarnings("JavadocReference")
 public class JulEcsServiceInstrumentation extends JulEcsFormatterInstrumentation {
@@ -44,6 +45,7 @@ public class JulEcsServiceInstrumentation extends JulEcsFormatterInstrumentation
 
         private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
 
+        @Nullable
         @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static String onExit(@Advice.Argument(0) String key,
