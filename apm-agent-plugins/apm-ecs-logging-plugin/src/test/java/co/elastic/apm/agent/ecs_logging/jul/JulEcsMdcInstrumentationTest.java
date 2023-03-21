@@ -29,7 +29,7 @@ import java.util.logging.LogRecord;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
-public class JulEcsFormatterInstrumentationTest extends EcsLoggingTest {
+public class JulEcsMdcInstrumentationTest extends EcsLoggingTest {
 
     private EcsFormatter formatter = new EcsFormatter();
 
