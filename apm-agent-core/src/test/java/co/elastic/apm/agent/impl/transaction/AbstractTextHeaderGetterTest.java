@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;

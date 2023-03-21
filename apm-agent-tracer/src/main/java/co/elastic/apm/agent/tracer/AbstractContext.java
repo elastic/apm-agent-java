@@ -16,24 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.transaction;
+package co.elastic.apm.agent.tracer;
 
-public enum Outcome {
-    SUCCESS("success"),
-    FAILURE("failure"),
-    UNKNOWN("unknown");
+import co.elastic.apm.agent.tracer.metadata.Message;
 
-    /**
-     * String value used for serialization
-     */
-    private final String stringValue;
+public interface AbstractContext {
 
-    Outcome(String stringValue) {
-        this.stringValue = stringValue;
-    }
-
-    @Override
-    public String toString() {
-        return stringValue;
-    }
+    Message getMessage();
 }

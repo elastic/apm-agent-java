@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import com.squareup.okhttp.Headers;
 import com.squareup.okhttp.Request;
 

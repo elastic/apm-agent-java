@@ -13,7 +13,8 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
-        <version.vertx>4.3.2</version.vertx>
+        <version.vertx>4.4.0</version.vertx>
+        <version.vertx.test>${version.vertx}</version.vertx.test>
     </properties>
 
     <dependencies>

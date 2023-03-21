@@ -18,17 +18,11 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 
-/**
- * Request
- * <p>
- * If a request originated from a cloud component that provides information about the cloud origin,
- * the cloud origin interface can be used to collect this information.
- */
-public class CloudOrigin implements Recyclable {
+public class CloudOrigin implements Recyclable, co.elastic.apm.agent.tracer.metadata.CloudOrigin {
 
     @Nullable
     protected String accountId;
@@ -47,6 +41,7 @@ public class CloudOrigin implements Recyclable {
         return accountId;
     }
 
+    @Override
     public CloudOrigin withAccountId(@Nullable String accountId) {
         this.accountId = accountId;
         return this;
@@ -57,6 +52,7 @@ public class CloudOrigin implements Recyclable {
         return provider;
     }
 
+    @Override
     public CloudOrigin withProvider(@Nullable String provider) {
         this.provider = provider;
         return this;
@@ -67,6 +63,7 @@ public class CloudOrigin implements Recyclable {
         return region;
     }
 
+    @Override
     public CloudOrigin withRegion(@Nullable String region) {
         this.region = region;
         return this;
@@ -77,6 +74,7 @@ public class CloudOrigin implements Recyclable {
         return serviceName;
     }
 
+    @Override
     public CloudOrigin withServiceName(@Nullable String serviceName) {
         this.serviceName = serviceName;
         return this;

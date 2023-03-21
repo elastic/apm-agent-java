@@ -20,7 +20,6 @@ package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractApiTest;
 import co.elastic.apm.agent.configuration.ServiceInfo;
-import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -148,13 +147,13 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
     void testGetId_distributedTracingEnabled() {
 
         co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startRootTransaction(null).withType(Transaction.TYPE_REQUEST);
-        try (Scope scope = transaction.activateInScope()) {
+        try (co.elastic.apm.agent.tracer.Scope scope = transaction.activateInScope()) {
             assertThat(ElasticApm.currentTransaction().getId()).isEqualTo(transaction.getTraceContext().getId().toString());
             assertThat(ElasticApm.currentTransaction().getTraceId()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
             assertThat(ElasticApm.currentSpan().getId()).isEqualTo(transaction.getTraceContext().getId().toString());
             assertThat(ElasticApm.currentSpan().getTraceId()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
             co.elastic.apm.agent.impl.transaction.Span span = transaction.createSpan().withType("db").withSubtype("mysql").withName("SELECT");
-            try (Scope spanScope = span.activateInScope()) {
+            try (co.elastic.apm.agent.tracer.Scope spanScope = span.activateInScope()) {
                 assertThat(ElasticApm.currentSpan().getId()).isEqualTo(span.getTraceContext().getId().toString());
                 assertThat(ElasticApm.currentSpan().getTraceId()).isEqualTo(span.getTraceContext().getTraceId().toString());
             } finally {

@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.agent.awslambda;
 
-import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 
 import javax.annotation.Nullable;
 
 public class SQSMessageAttributesGetter extends AbstractHeaderGetter<String, SQSEvent.SQSMessage> implements
-        TextHeaderGetter<SQSEvent.SQSMessage> {
+    TextHeaderGetter<SQSEvent.SQSMessage> {
 
     public static final SQSMessageAttributesGetter INSTANCE = new SQSMessageAttributesGetter();
 
@@ -35,7 +35,7 @@ public class SQSMessageAttributesGetter extends AbstractHeaderGetter<String, SQS
     @Nullable
     @Override
     public String getFirstHeader(String headerName, SQSEvent.SQSMessage carrier) {
-        if(null != carrier.getMessageAttributes() && carrier.getMessageAttributes().containsKey(headerName)){
+        if (null != carrier.getMessageAttributes() && carrier.getMessageAttributes().containsKey(headerName)) {
             return carrier.getMessageAttributes().get(headerName).getStringValue();
         }
         return null;

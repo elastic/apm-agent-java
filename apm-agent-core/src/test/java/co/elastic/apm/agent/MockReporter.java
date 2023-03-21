@@ -18,13 +18,15 @@
  */
 package co.elastic.apm.agent;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
@@ -775,6 +777,7 @@ public class MockReporter implements Reporter {
             doReturn(isLatest).when(client).supportsNonStringLabels();
             doReturn(isLatest).when(client).supportsLogsEndpoint();
 
+            SerializationConstants.init(spyConfig.getConfig(CoreConfiguration.class));
             this.serializer = new DslJsonSerializer(stacktraceConfiguration, client, metaData);
         }
 

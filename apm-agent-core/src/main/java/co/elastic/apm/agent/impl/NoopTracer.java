@@ -22,10 +22,11 @@ import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 
 import javax.annotation.Nullable;
 
@@ -153,5 +154,26 @@ class NoopTracer implements Tracer {
     @Override
     public Span createExitChildSpan() {
         return null;
+    }
+
+    @Nullable
+    @Override
+    public <T extends co.elastic.apm.agent.tracer.Tracer> T probe(Class<T> type) {
+        return null;
+    }
+
+    @Override
+    public <T extends co.elastic.apm.agent.tracer.Tracer> T require(Class<T> type) {
+        throw new IllegalStateException();
+    }
+
+    @Override
+    public <T> T getConfig(Class<T> configuration) {
+        throw new IllegalStateException();
+    }
+
+    @Override
+    public co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory getObjectPoolFactory() {
+        return new ObjectPoolFactory();
     }
 }

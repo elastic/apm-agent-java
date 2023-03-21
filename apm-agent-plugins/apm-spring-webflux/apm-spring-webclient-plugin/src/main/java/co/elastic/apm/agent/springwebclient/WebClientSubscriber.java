@@ -21,7 +21,6 @@ package co.elastic.apm.agent.springwebclient;
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
-import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.reactivestreams.Subscription;

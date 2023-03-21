@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.springwebclient;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import org.springframework.web.reactive.function.client.ClientRequest;
 
 public class WebClientRequestHeaderSetter implements TextHeaderSetter<ClientRequest.Builder> {

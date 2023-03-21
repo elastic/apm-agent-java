@@ -32,7 +32,7 @@ class OutcomeTest {
     void apiOutcomeMatchesInternalOutcome() {
 
         Set<String> apiEnumNames = getEnumValues(Outcome.values());
-        Set<String> internalEnumNames = getEnumValues(co.elastic.apm.agent.impl.transaction.Outcome.values());
+        Set<String> internalEnumNames = getEnumValues(co.elastic.apm.agent.tracer.Outcome.values());
 
         assertThat(apiEnumNames)
             .containsExactlyInAnyOrderElementsOf(internalEnumNames);

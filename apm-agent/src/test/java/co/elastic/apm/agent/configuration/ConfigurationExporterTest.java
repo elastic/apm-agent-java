@@ -100,21 +100,29 @@ class ConfigurationExporterTest {
         GlobalTracer.setNoop();
     }
 
+    /**
+     * This test compares the current state of the configuration docs with the auto-generated documentation and fails if there is a
+     * mismatch. As a side effect, it overwrites the docs with the generated ones, unless this capability is disabled through the
+     * {@code elastic.apm.overwrite.config.docs} system property. This allows to have different behavior between local tests and CI.
+     * Since we allow a limited number of unit-test failures, this test would have always passed without this configuration.
+     */
     @Test
     void testGeneratedConfigurationDocsAreUpToDate() throws IOException, TemplateException {
         String renderedDocumentation = renderDocumentation(configurationRegistry);
         String expected = new String(Files.readAllBytes(this.renderedDocumentationPath), StandardCharsets.UTF_8);
 
-        // even if this test fails, we want to update the documentation
-        Files.write(renderedDocumentationPath, renderedDocumentation.getBytes(StandardCharsets.UTF_8));
+        if (Boolean.parseBoolean(System.getProperty("elastic.apm.overwrite.config.docs", Boolean.TRUE.toString()))) {
+            // unless explicitly disabled (e.g. on CI) overwrite the current documentation
+            Files.write(renderedDocumentationPath, renderedDocumentation.getBytes(StandardCharsets.UTF_8));
+        }
 
         assertThat(renderedDocumentation)
             .withFailMessage("The rendered configuration documentation (/docs/configuration.asciidoc) is not up-to-date.\n" +
                 "If you see this error on CI, it means you have to execute the tests locally " +
                 "(./mvnw clean test -pl apm-agent -am -DfailIfNoTests=false -Dtest=ConfigurationExporterTest) " +
                 "which will update the rendered docs.\n" +
-                "If you see this error while running the tests locally, there's nothing more to do - the rendered docs have been updated. " +
-                "When you execute this test the next time, it will not fail anymore.")
+                "If you see this error while running the tests locally, there's nothing more to do - the rendered docs have been updated " +
+                "and the following test execution should not have failed.")
             .isEqualTo(expected);
     }
 

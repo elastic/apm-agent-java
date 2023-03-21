@@ -19,12 +19,14 @@
 package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
@@ -159,6 +161,31 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void setServiceInfoForClassLoader(@Advice.Argument(0) @Nullable ClassLoader classLoader, @Advice.Argument(1) String serviceName, @Advice.Argument(2) @Nullable String serviceVersion) {
                 tracer.setServiceInfoForClassLoader(classLoader, ServiceInfo.of(serviceName, serviceVersion));
+            }
+        }
+    }
+
+    public static class ConfigInstrumentation extends ElasticApmApiInstrumentation {
+        public ConfigInstrumentation() {
+            super(named("doGetConfig"));
+        }
+
+        public static class AdviceClass {
+            @Nullable
+            @Advice.AssignReturned.ToReturned
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static Object doGetConfig(@Advice.Argument(0) @Nullable String key) {
+                try {
+                    ConfigurationOption<?> configValue = GlobalTracer.getTracerImpl().getConfigurationRegistry().getConfigurationOptionByKey(key);
+                    if (configValue == null) {
+                        return null;
+                    } else {
+                        return configValue.getValue();
+                    }
+                } catch (NullPointerException e) {
+                    //this can only happen if the agent is messed up or not yet initialized
+                    return new IllegalStateException("The agent is not initialized");
+                }
             }
         }
     }

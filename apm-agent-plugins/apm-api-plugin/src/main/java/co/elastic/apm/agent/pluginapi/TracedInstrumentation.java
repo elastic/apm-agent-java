@@ -25,7 +25,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
@@ -75,14 +75,23 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "action") @Nullable String action,
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(
                 annotationClassName = "co.elastic.apm.api.Traced",
+                method = "asExit",
+                defaultValueProvider = AnnotationValueOffsetMappingFactory.FalseDefaultValueProvider.class
+            ) boolean asExit,
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(
+                annotationClassName = "co.elastic.apm.api.Traced",
                 method = "discardable",
                 defaultValueProvider = AnnotationValueOffsetMappingFactory.TrueDefaultValueProvider.class
             ) boolean discardable) {
 
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {
-                Span span = parent.createSpan()
-                    .withType(type.isEmpty() ? "app" : type)
+                Span span = asExit ? parent.createExitSpan() : parent.createSpan();
+                if (span == null) {
+                    return null;
+                }
+
+                span.withType(type.isEmpty() ? "app" : type)
                     .withSubtype(subtype)
                     .withAction(action)
                     .withName(spanName.isEmpty() ? signature : spanName);

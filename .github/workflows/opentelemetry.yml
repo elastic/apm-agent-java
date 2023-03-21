@@ -6,7 +6,7 @@ on:
     workflows:
       - main
       - test-reporter
-      - update-specs
+      - updatecli
     types: [completed]
 
 jobs:

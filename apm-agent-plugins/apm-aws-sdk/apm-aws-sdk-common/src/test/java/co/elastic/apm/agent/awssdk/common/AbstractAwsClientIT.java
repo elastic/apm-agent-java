@@ -20,7 +20,7 @@ package co.elastic.apm.agent.awssdk.common;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;

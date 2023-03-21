@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.servlet.adapter;
 
 import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.sdk.state.GlobalState;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 
 import javax.annotation.Nullable;
 import java.security.Principal;
