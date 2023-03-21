@@ -12,10 +12,6 @@ on:
     - '*.asciidoc'
     - 'docs/**'
 
-env:
-  JAVA_VERSION: 17
-  JAVA_DIST: temurin
-
 jobs:
   upload:
     runs-on: ubuntu-latest
@@ -24,8 +20,6 @@ jobs:
 
       - uses: ./.github/workflows/maven-goal
         with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
           command: ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
 
       - name: Publish snaphosts
