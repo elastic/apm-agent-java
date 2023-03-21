@@ -20,25 +20,25 @@ package co.elastic.apm.agent.ecs_logging;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.testutils.TestClassWithDependencyRunner;
 import co.elastic.logging.log4j2.EcsLayout;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.core.impl.Log4jLogEvent;
 import org.apache.logging.log4j.message.SimpleMessage;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
-@Ignore
+@TestClassWithDependencyRunner.DisableOutsideOfRunner
 public class Log4j2ServiceNameInstrumentationTest extends AbstractInstrumentationTest {
 
-    @BeforeClass
-    public static void setUp() {
+    @BeforeEach
+    public void setUp() {
         doReturn("foo").when(tracer.getConfig(CoreConfiguration.class)).getServiceName();
     }
 

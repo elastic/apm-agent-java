@@ -34,6 +34,7 @@ public class Log4j2ServiceVersionInstrumentation extends AbstractLog4j2ServiceIn
 
     @Override
     public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
+        // setServiceVersion introduced in 1.4.0
         return super.getTypeMatcher().and(declaresMethod(named("setServiceVersion")));
     }
 
