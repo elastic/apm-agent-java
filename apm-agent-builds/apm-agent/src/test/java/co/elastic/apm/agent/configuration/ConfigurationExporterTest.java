@@ -86,7 +86,7 @@ class ConfigurationExporterTest {
 
     @BeforeEach
     void setUp() {
-        renderedDocumentationPath = Paths.get("../docs/configuration.asciidoc");
+        renderedDocumentationPath = Paths.get("../../docs/configuration.asciidoc");
         ElasticApmTracer tracer = mock(ElasticApmTracer.class);
         doReturn(Tracer.TracerState.UNINITIALIZED).when(tracer).getState();
         GlobalTracer.init(tracer);

@@ -20,6 +20,9 @@ package co.elastic.apm.agent.premain;
 
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
+
 /**
  * Gracefully abort agent startup is better than unexpected failure down the road when we known a given JVM
  * version is not supported. Agent might trigger known JVM bugs causing JVM crashes, notably on early Java 8
@@ -54,8 +57,7 @@ public class JavaVersionBootstrapCheck implements BootstrapCheck {
      * @return true if the version is supported, false otherwise
      */
     public boolean isJavaVersionSupported() {
-        if (runtimeInfo.getMajorVersion() < 7) {
-            // given code is compiled with java 7, this one is unlikely in practice
+        if (runtimeInfo.getMajorVersion() < getMinSupportedMajorJavaVersion()) {
             return false;
         }
         if (runtimeInfo.isHotSpot()) {
@@ -65,6 +67,21 @@ public class JavaVersionBootstrapCheck implements BootstrapCheck {
         }
         // innocent until proven guilty
         return true;
+    }
+
+    private int getMinSupportedMajorJavaVersion() {
+        try {
+            try (JarFile jarFile = new JarFile(AgentJarLocator.getAgentJarFile())) {
+                Manifest manifest = jarFile.getManifest();
+                String variant = manifest.getMainAttributes().getValue("Elastic-Apm-Build-Variant");
+                if ("java8".equals(variant)) {
+                    return 8;
+                }
+            }
+        } catch (Exception e) {
+            //silently ignore
+        }
+        return 7;
     }
 
     private boolean isJavaVersionDeprecated() {

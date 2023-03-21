@@ -1,15 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
+        <groupId>co.elastic.apm</groupId>
         <version>1.36.1-SNAPSHOT</version>
     </parent>
+    <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>apm-agent</artifactId>
+    <artifactId>apm-agent-builds</artifactId>
+    <packaging>pom</packaging>
     <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
+        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+    </properties>
+
+    <modules>
+        <module>apm-agent</module>
+        <module>apm-agent-java8</module>
+    </modules>
 
     <licenses>
         <license>
@@ -18,9 +30,6 @@
         </license>
     </licenses>
 
-    <properties>
-        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
-    </properties>
 
     <dependencies>
         <dependency>
@@ -503,23 +512,6 @@
                                     </excludes>
                                 </filter>
                                 <filter>
-                                    <artifact>org.apache.logging.log4j:log4j-core</artifact>
-                                    <!--Keep in sync with apm-agent-attach-cli/pom.xml-->
-                                    <excludes>
-                                        <!--
-                                        Eliminating exposure to the log4j2 vulnerability related to the SMTP appender -
-                                        https://nvd.nist.gov/vuln/detail/CVE-2020-9488#vulnCurrentDescriptionTitle
-                                        -->
-                                        <exclude>org/apache/logging/log4j/core/appender/SmtpAppender.class</exclude>
-                                        <!--
-                                        Strip out JndiLookup class to avoid any possibility of exploitation of CVE-2021-44228
-                                        See: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44228
-                                        See: https://issues.apache.org/jira/browse/LOG4J2-3201
-                                        -->
-                                        <exclude>org/apache/logging/log4j/core/lookup/JndiLookup.class</exclude>
-                                    </excludes>
-                                </filter>
-                                <filter>
                                     <artifact>org.hdrhistogram:HdrHistogram</artifact>
                                     <!--
                                     Currently, we only need this single class.
@@ -540,14 +532,18 @@
 
                             </relocations>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
                                         <Automatic-Module-Name>${project.groupId}.agent</Automatic-Module-Name>
                                     </manifestEntries>
                                 </transformer>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer" />
-                                <transformer implementation="com.github.edwgiz.maven_shade_plugin.log4j2_cache_transformer.PluginsCacheFileTransformer" />
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer"/>
+                                <transformer
+                                    implementation="com.github.edwgiz.maven_shade_plugin.log4j2_cache_transformer.PluginsCacheFileTransformer"/>
                             </transformers>
                         </configuration>
                     </execution>

@@ -83,10 +83,10 @@ and contribute to the auto-instrumentation capabilities of the agent.
 === The Elastic APM Java Agent is not using the latest log4j2 version. Is it still safe?
 Yes, the log4j version used contains backports for all known security vulnerabilities, including log4shell. More info on 
 https://logging.apache.org/log4j/2.x/security.html[log4j2’s security page]. 
-As the Elastic APM Java Agent still supports Java 7, we can’t update beyond log4j 2.12.x. We 
-recently deprecated Java 7 support, but it may take some time before we create a non Java-7-compatible agent version, where we will happily upgrade to 
-the latest log4j2 version. Some security tools may still falsely flag the log4j2 version that the Elastic APM Java Agent uses as vulnerable. Please check 
-the description for the CVE whether the related version is actually vulnerable. If not, please contact your security tool vendor so that they can update 
-their policies. If there’s a new vulnerability that’s not yet patched in the latest version of the Elastic APM Java Agent, please report it as 
+As the Elastic APM Java Agent still supports Java 7, we can’t update beyond log4j 2.12.x.
+Some security tools may still falsely flag the log4j2 version that the Elastic APM Java Agent uses as vulnerable.
+For these cases we publish a dedicated build which ships the latest log4j2 dependency, which however therefore requires at least Java 8.
+You can find this version on Maven Central linked at our <<setup-javaagent-get-agent, setup documentation>>.
+If there’s a new vulnerability that’s not yet patched in the latest version of the Elastic APM Java Agent, please report it as
 described in https://www.elastic.co/community/security.
 

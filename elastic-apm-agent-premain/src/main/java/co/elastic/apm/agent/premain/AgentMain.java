@@ -24,13 +24,9 @@ import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 
 import java.io.File;
 import java.lang.instrument.Instrumentation;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.FileSystems;
 import java.security.AllPermission;
-import java.security.CodeSource;
-import java.security.ProtectionDomain;
 
 /**
  * This class is loaded by the system classloader,
@@ -149,7 +145,7 @@ public class AgentMain {
 
     private synchronized static void loadAndInitializeAgent(String agentArguments, Instrumentation instrumentation, boolean premain) {
         try {
-            File agentJar = getAgentJarFile();
+            File agentJar = AgentJarLocator.getAgentJarFile();
             if (lookupKeyClassLoader == null) {
                 // loads the CachedLookupKey class in a dedicated class loader that will never be un-loaded
                 lookupKeyClassLoader = new ShadedClassLoader(agentJar, getAgentClassLoaderParent(), "cached-lookup-key/");
@@ -221,23 +217,6 @@ public class AgentMain {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private static File getAgentJarFile() throws URISyntaxException {
-        ProtectionDomain protectionDomain = AgentMain.class.getProtectionDomain();
-        CodeSource codeSource = protectionDomain.getCodeSource();
-        if (codeSource == null) {
-            throw new IllegalStateException(String.format("Unable to get agent location, protection domain = %s", protectionDomain));
-        }
-        URL location = codeSource.getLocation();
-        if (location == null) {
-            throw new IllegalStateException(String.format("Unable to get agent location, code source = %s", codeSource));
-        }
-        final File agentJar = new File(location.toURI());
-        if (!agentJar.getName().endsWith(".jar")) {
-            throw new IllegalStateException("Agent is not a jar file: " + agentJar);
-        }
-        return agentJar.getAbsoluteFile();
     }
 
 }

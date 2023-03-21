@@ -294,7 +294,7 @@ public class PackagingTest {
         } catch (URISyntaxException e) {
             throw new IllegalStateException(e);
         }
-        Path moduleRoot = classLocation.getParent().getParent();
+        Path moduleRoot = classLocation.getParent().getParent().getParent();
         assertThat(moduleRoot).isDirectory();
         return moduleRoot;
     }
