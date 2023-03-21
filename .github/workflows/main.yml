@@ -50,10 +50,6 @@ on:
       - '**.md'
       - '**.asciidoc'
 
-env:
-  JAVA_VERSION: 17
-  JAVA_DIST: temurin
-
 # limit the access of the generated GITHUB_TOKEN
 permissions:
   contents: read
@@ -70,8 +66,6 @@ jobs:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/maven-goal
         with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
           command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
       - uses: ./.github/workflows/stash
         with:
@@ -93,8 +87,6 @@ jobs:
         with:
           # Need to install packages in m2 local repository
           command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
       - name: mvn license
         run: ./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
 
@@ -114,8 +106,6 @@ jobs:
       - uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw test -DargLine="-Delastic.apm.overwrite.config.docs=false"
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v3
@@ -142,8 +132,6 @@ jobs:
       - uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw -q -P ci-non-application-server-integration-tests verify
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v3
@@ -171,8 +159,6 @@ jobs:
       - uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw -q -P ci-application-server-integration-tests verify
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v3
@@ -195,8 +181,6 @@ jobs:
       - uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw compile javadoc:javadoc
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
 
   unit-tests-windows:
     name: Build & Test Windows
@@ -213,8 +197,6 @@ jobs:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/maven-goal
         with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
           command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
       - name: Run tests
         run: ./mvnw test
@@ -233,6 +215,8 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'ci:jdk-compatibility')
       || inputs.jdk_compatibility_ci == true
     runs-on: ubuntu-latest
+    env:
+      JAVA_DIST: 'temurin'
     strategy:
       matrix:
         version: [11, 17, 19]

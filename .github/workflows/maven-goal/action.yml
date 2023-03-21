@@ -7,9 +7,11 @@ inputs:
   java-version:
     description: 'Java version'
     required: true
+    default: '17'
   distribution:
     description: 'Java distribution'
     required: true
+    default: 'temurin'
   command:
     description: 'Command to execute'
     required: true
