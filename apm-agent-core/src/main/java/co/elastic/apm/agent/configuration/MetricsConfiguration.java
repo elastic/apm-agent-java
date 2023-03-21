@@ -49,7 +49,7 @@ public class MetricsConfiguration extends ConfigurationOptionProvider {
         .key("custom_metrics_histogram_boundaries")
         .configurationCategory(METRICS_CATEGORY)
         .description("Defines the default bucket boundaries to use for OpenTelemetry histograms.")
-        .dynamic(true)
+        .dynamic(false)
         .tags("added[1.37.0]", "experimental")
         .addValidator(new ConfigurationOption.Validator<List<Double>>() {
             @Override
