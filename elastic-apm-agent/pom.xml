@@ -77,6 +77,12 @@
                         <artifactId>apm-agent</artifactId>
                         <version>${project.version}</version>
                     </dependency>
+                    <dependency>
+                        <groupId>${project.groupId}</groupId>
+                        <artifactId>apm-agent</artifactId>
+                        <version>${project.version}</version>
+                        <classifier>sources</classifier>
+                    </dependency>
                 </dependencies>
                 <executions>
                     <execution>
@@ -113,6 +119,26 @@
                                     <outputDirectory>${project.basedir}/target/classes/agent</outputDirectory>
                                 </artifactItem>
                             </artifactItems>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-agent-sources-jar</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>apm-agent</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>jar</type>
+                                    <classifier>sources</classifier>
+                                    <outputDirectory>${project.basedir}/target/dependency-sources</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                            <stripVersion>true</stripVersion>
                         </configuration>
                     </execution>
                 </executions>
@@ -165,7 +191,8 @@
 
                             <target name="merge-sources" description="Merge source jars">
                                 <zip destfile="${project.basedir}/target/${project.artifactId}-${project.version}-sources.jar">
-                                    <zipgroupfileset dir="${project.basedir}/../apm-agent/target/" includes="apm-agent-*-sources.jar"/>
+                                    <zipgroupfileset dir="${project.basedir}/target/dependency-sources"
+                                                     includes="apm-agent-sources.jar"/>
                                     <zipgroupfileset dir="${project.basedir}/target/" includes="original-elastic-apm-agent-*-sources.jar"/>
                                 </zip>
                             </target>
