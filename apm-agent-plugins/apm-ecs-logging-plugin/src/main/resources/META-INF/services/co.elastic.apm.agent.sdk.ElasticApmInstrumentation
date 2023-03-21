@@ -9,3 +9,9 @@ co.elastic.apm.agent.ecs_logging.log4j2.Log4j2ServiceVersionInstrumentation
 # JUL
 co.elastic.apm.agent.ecs_logging.jul.JulEcsMdcInstrumentation
 co.elastic.apm.agent.ecs_logging.jul.JulEcsServiceInstrumentation
+
+# Logback
+
+# JBoss
+co.elastic.apm.agent.ecs_logging.jboss.JbossEcsServiceNameInstrumentation
+co.elastic.apm.agent.ecs_logging.jboss.JbossEcsServiceVersionInstrumentation

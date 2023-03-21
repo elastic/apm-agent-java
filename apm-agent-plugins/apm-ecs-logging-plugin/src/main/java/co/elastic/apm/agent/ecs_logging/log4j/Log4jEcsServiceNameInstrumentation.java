@@ -18,13 +18,30 @@
  */
 package co.elastic.apm.agent.ecs_logging.log4j;
 
+import co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation;
 import co.elastic.apm.agent.ecs_logging.EcsLoggingUtils;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.logging.log4j.EcsLayout;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.matcher.ElementMatcher;
 
-public class Log4jEcsServiceNameInstrumentation extends Log4jEcsLayoutInstrumentation {
+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
+import static net.bytebuddy.matcher.ElementMatchers.named;
+
+public class Log4jEcsServiceNameInstrumentation extends EcsLoggingInstrumentation {
+
+    @Override
+    public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
+        return named("co.elastic.logging.log4j.EcsLayout");
+    }
+
+    @Override
+    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        return isConstructor();
+    }
 
     public static class AdviceClass {
 

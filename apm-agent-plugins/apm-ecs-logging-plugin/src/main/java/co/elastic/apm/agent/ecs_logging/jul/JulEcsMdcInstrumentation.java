@@ -18,16 +18,30 @@
  */
 package co.elastic.apm.agent.ecs_logging.jul;
 
+import co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation;
 import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
+import co.elastic.logging.jul.EcsFormatter;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class JulEcsMdcInstrumentation extends JulEcsFormatterInstrumentation {
+/**
+ * Instruments {@link EcsFormatter#getMdcEntries()} to provide correlation IDs at runtime.
+ * Application(s) copies of ecs-logging and the one in the agent will be instrumented, hence providing log correlation
+ * for all of them.
+ */
+@SuppressWarnings("JavadocReference")
+public class JulEcsMdcInstrumentation extends EcsLoggingInstrumentation {
+
+    @Override
+    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        return named("co.elastic.logging.jul.EcsFormatter");
+    }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {

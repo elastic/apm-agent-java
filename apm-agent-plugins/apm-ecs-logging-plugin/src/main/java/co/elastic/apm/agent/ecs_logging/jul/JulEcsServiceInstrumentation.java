@@ -18,11 +18,13 @@
  */
 package co.elastic.apm.agent.ecs_logging.jul;
 
+import co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation;
 import co.elastic.apm.agent.ecs_logging.EcsLoggingUtils;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
@@ -34,7 +36,12 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * Note: we can't use setters as they might not be available in older versions of ecs-
  */
 @SuppressWarnings("JavadocReference")
-public class JulEcsServiceInstrumentation extends JulEcsFormatterInstrumentation {
+public class JulEcsServiceInstrumentation extends EcsLoggingInstrumentation {
+
+    @Override
+    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        return named("co.elastic.logging.jul.EcsFormatter");
+    }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
