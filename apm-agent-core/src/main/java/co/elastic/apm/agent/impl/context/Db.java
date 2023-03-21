@@ -21,7 +21,7 @@ package co.elastic.apm.agent.impl.context;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.objectpool.Resetter;
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
@@ -36,7 +36,7 @@ public class Db implements Recyclable, co.elastic.apm.agent.tracer.metadata.Db {
         new Allocator<CharBuffer>() {
             @Override
             public CharBuffer createInstance() {
-                return CharBuffer.allocate(DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH);
+                return CharBuffer.allocate(SerializationConstants.getMaxLongStringValueLength());
             }
         },
         new Resetter<CharBuffer>() {
