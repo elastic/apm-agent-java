@@ -11,6 +11,8 @@ co.elastic.apm.agent.ecs_logging.jul.JulEcsMdcInstrumentation
 co.elastic.apm.agent.ecs_logging.jul.JulEcsServiceInstrumentation
 
 # Logback
+co.elastic.apm.agent.ecs_logging.logback.LogbackServiceNameInstrumentation
+co.elastic.apm.agent.ecs_logging.logback.LogbackServiceVersionInstrumentation
 
 # JBoss
 co.elastic.apm.agent.ecs_logging.jboss.JbossEcsServiceNameInstrumentation
