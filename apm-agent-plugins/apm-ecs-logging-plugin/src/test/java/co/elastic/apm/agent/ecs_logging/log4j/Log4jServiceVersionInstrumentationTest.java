@@ -16,34 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.ecs_logging.log4j2;
+package co.elastic.apm.agent.ecs_logging.log4j;
 
-import co.elastic.apm.agent.ecs_logging.EcsServiceNameTest;
-import co.elastic.apm.agent.testutils.TestClassWithDependencyRunner;
-import co.elastic.logging.log4j2.EcsLayout;
-import org.apache.logging.log4j.core.impl.Log4jLogEvent;
-import org.apache.logging.log4j.message.SimpleMessage;
+import co.elastic.apm.agent.ecs_logging.EcsServiceVersionTest;
+import co.elastic.logging.log4j.EcsLayout;
+import org.apache.log4j.Category;
+import org.apache.log4j.Level;
+import org.apache.log4j.spi.LoggingEvent;
+import org.apache.log4j.spi.RootLogger;
 
-// log4j2 also used in agent, thus must be tested in isolation
-@TestClassWithDependencyRunner.DisableOutsideOfRunner
-public class Log4j2ServiceNameInstrumentationTest extends EcsServiceNameTest {
+public class Log4jServiceVersionInstrumentationTest extends EcsServiceVersionTest {
 
     private EcsLayout ecsLayout;
 
     @Override
-    protected void initFormatterWithoutServiceNameSet() {
-        ecsLayout = EcsLayout.newBuilder().build();
+    protected void initFormatterWithoutServiceVersionSet() {
+        ecsLayout = new EcsLayout();
     }
 
     @Override
-    protected void initFormatterWithServiceName(String name) {
-        ecsLayout = EcsLayout.newBuilder().setServiceName(name).build();
+    protected void initFormatterWithServiceVersion(String version) {
+        ecsLayout = new EcsLayout();
+        ecsLayout.setServiceVersion(version);
     }
 
     @Override
     protected String createLogMsg() {
-        Log4jLogEvent event = new Log4jLogEvent("", null, "", null, new SimpleMessage(), null, null);
-        return ecsLayout.toSerializable(event);
+        Category logger = new RootLogger(Level.ALL);
+        LoggingEvent event = new LoggingEvent("", logger, System.currentTimeMillis(), Level.INFO, "msg", null);
+        return ecsLayout.format(event);
     }
-
 }
