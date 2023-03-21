@@ -97,21 +97,15 @@ import static com.dslplatform.json.JsonWriter.QUOTE;
 
 public class DslJsonSerializer implements PayloadSerializer {
 
-    /**
-     * Matches default ZLIB buffer size.
-     * Lets us assume the ZLIB buffer is always empty,
-     * so that {@link #getBufferSize()} is the total amount of buffered bytes.
-     */
-    public static final int BUFFER_SIZE = 16384;
-    public static final int MAX_VALUE_LENGTH = 1024;
-    public static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_PROPERTY_NAME = new String[]{".", "*", "\""};
     private static final List<String> excludedStackFramesPrefixes = Arrays.asList("java.lang.reflect.", "com.sun.", "sun.", "jdk.internal.");
+
     // visible for testing
     final JsonWriter jw;
-    private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH + 1);
+
+    private final StringBuilder replaceBuilder = new StringBuilder(SerializationConstants.getMaxLongStringValueLength() + 1);
     private final StacktraceConfiguration stacktraceConfiguration;
     private final ApmServerClient apmServerClient;
     @Nullable
@@ -125,7 +119,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         this.stacktraceConfiguration = stacktraceConfiguration;
         this.apmServerClient = apmServerClient;
         this.metaData = metaData;
-        jw = new DslJson<>(new DslJson.Settings<>()).newWriter(BUFFER_SIZE);
+        jw = new DslJson<>(new DslJson.Settings<>()).newWriter(SerializationConstants.BUFFER_SIZE);
     }
 
     @Override
@@ -1681,8 +1675,8 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private static void writeStringBuilderValue(StringBuilder value, JsonWriter jw) {
-        if (value.length() > MAX_VALUE_LENGTH) {
-            value.setLength(MAX_VALUE_LENGTH - 1);
+        if (value.length() > SerializationConstants.MAX_VALUE_LENGTH) {
+            value.setLength(SerializationConstants.MAX_VALUE_LENGTH - 1);
             value.append('…');
         }
         jw.writeString(value);
@@ -1693,9 +1687,9 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     public static void writeStringValue(CharSequence value, final StringBuilder replaceBuilder, final JsonWriter jw) {
-        if (value.length() > MAX_VALUE_LENGTH) {
+        if (value.length() > SerializationConstants.MAX_VALUE_LENGTH) {
             replaceBuilder.setLength(0);
-            replaceBuilder.append(value, 0, Math.min(value.length(), MAX_VALUE_LENGTH + 1));
+            replaceBuilder.append(value, 0, Math.min(value.length(), SerializationConstants.MAX_VALUE_LENGTH + 1));
             writeStringBuilderValue(replaceBuilder, jw);
         } else {
             jw.writeString(value);
@@ -1703,8 +1697,8 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private static void writeLongStringBuilderValue(StringBuilder value, JsonWriter jw) {
-        if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
-            value.setLength(MAX_LONG_STRING_VALUE_LENGTH - 1);
+        if (value.length() > SerializationConstants.getMaxLongStringValueLength()) {
+            value.setLength(SerializationConstants.getMaxLongStringValueLength() - 1);
             value.append('…');
         }
         jw.writeString(value);
@@ -1715,9 +1709,9 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private static void writeLongStringValue(CharSequence value, final StringBuilder replaceBuilder, final JsonWriter jw) {
-        if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
+        if (value.length() > SerializationConstants.getMaxLongStringValueLength()) {
             replaceBuilder.setLength(0);
-            replaceBuilder.append(value, 0, Math.min(value.length(), MAX_LONG_STRING_VALUE_LENGTH + 1));
+            replaceBuilder.append(value, 0, Math.min(value.length(), SerializationConstants.getMaxLongStringValueLength() + 1));
             writeLongStringBuilderValue(replaceBuilder, jw);
         } else {
             jw.writeString(value);

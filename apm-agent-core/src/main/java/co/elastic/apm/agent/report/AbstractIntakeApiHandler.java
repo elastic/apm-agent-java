@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
@@ -101,7 +101,7 @@ public class AbstractIntakeApiHandler {
                 }
                 connection.setRequestMethod("POST");
                 connection.setDoOutput(true);
-                connection.setChunkedStreamingMode(DslJsonSerializer.BUFFER_SIZE);
+                connection.setChunkedStreamingMode(SerializationConstants.BUFFER_SIZE);
                 if (useCompression) {
                     connection.setRequestProperty("Content-Encoding", "deflate");
                 }
