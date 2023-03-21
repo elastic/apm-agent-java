@@ -113,7 +113,7 @@ jobs:
           path: ${{ github.workspace }}
       - uses: ./.github/workflows/maven-goal
         with:
-          command: ./mvnw test
+          command: ./mvnw test -DargLine="-Delastic.apm.overwrite.config.docs=false"
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DIST }}
       - name: Store test results
