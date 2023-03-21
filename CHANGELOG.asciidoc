@@ -32,6 +32,7 @@ communication - {pull}2996[#2996]
 * Added support for OpenTelemetry metrics - {pull}2968[#2968], {pull}3014[#3014]
 * Added agent.activation_method telemetry - {pull}2926[#2926]
 * Allow creation of exit spans with `@CaptureSpan` and `@Traced` annotations - {pull}3046[#3046]
+* Add the <<config-long-field-max-length>> config to enable capturing larger values for specific fields - {pull}3027[#3027]
 
 [float]
 ===== Bug fixes
