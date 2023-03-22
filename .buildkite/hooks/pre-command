@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+##  This script prepares the Vault context and required tooling
+##  for the release and snapshot pipelines.
+##
+##  NOTE: *_SECRET or *_TOKEN env variables are masked, hence if you'd like to avoid any
+##        surprises please use the suffix _SECRET or _TOKEN for those values that contain
+##        any sensitive data. Buildkite can mask those values automatically
+
+set -eo pipefail
+
+echo "--- Prepare vault context :vault:"
+VAULT_ROLE_ID_SECRET=$(vault read -field=role-id secret/ci/elastic-apm-agent-java/internal-ci-approle)
+export VAULT_ROLE_ID_SECRET
+
+VAULT_SECRET_ID_SECRET=$(vault read -field=secret-id secret/ci/elastic-apm-agent-java/internal-ci-approle)
+export VAULT_SECRET_ID_SECRET
+
+VAULT_ADDR=$(vault read -field=vault-url secret/ci/elastic-apm-agent-java/internal-ci-approle)
+export VAULT_ADDR
+
+# Delete the vault specific accessing the ci vault
+PREVIOUS_VAULT_TOKEN=$VAULT_TOKEN
+export PREVIOUS_VAULT_TOKEN
+unset VAULT_TOKEN
+
+echo "--- Prepare a secure temp :closed_lock_with_key:"
+# Prepare a secure temp folder not shared between other jobs to store the key ring
+export TMP_WORKSPACE=/tmp/secured
+export KEY_FILE=$TMP_WORKSPACE"/private.key"
+
+# Secure home for our keyring
+export GNUPGHOME=$TMP_WORKSPACE"/keyring"
+mkdir -p $GNUPGHOME
+chmod -R 700 $TMP_WORKSPACE
+
+echo "--- Prepare keys context :key:"
+VAULT_TOKEN=$(vault write -field=token auth/approle/login role_id="$VAULT_ROLE_ID_SECRET" secret_id="$VAULT_SECRET_ID_SECRET")
+export VAULT_TOKEN
+
+# Nexus credentials
+SERVER_USERNAME=$(vault read -field username secret/release/nexus)
+export SERVER_USERNAME
+SERVER_PASSWORD=$(vault read -field password secret/release/nexus)
+export SERVER_PASSWORD
+
+# Signing keys
+vault read -field=key secret/release/signing >$KEY_FILE
+KEYPASS_SECRET=$(vault read -field=passphrase secret/release/signing)
+export KEYPASS_SECRET
+export KEY_ID_SECRET=D88E42B4
+
+# Import the key into the keyring
+echo "$KEYPASS_SECRET" | gpg --batch --import "$KEY_FILE"
+
+echo "--- Configure git context :git:"
+# Configure the committer since the maven release requires to push changes to GitHub
+# This will help with the SLSA requirements.
+git config --global user.email "infra-root+apmmachine@elastic.co"
+git config --global user.name "apmmachine"
+
+echo "--- Install JDK17 :java:"
+# JDK version is defined in two different locations, here and .github/workflows/maven-goal/action.yml
+JAVA_URL=https://jvm-catalog.elastic.co/jdk
+JAVA_HOME=$(pwd)/.openjdk17
+JAVA_PKG="$JAVA_URL/latest_openjdk_17_linux.tar.gz"
+curl -L --output /tmp/jdk.tar.gz "$JAVA_PKG"
+mkdir -p "$JAVA_HOME"
+tar --extract --file /tmp/jdk.tar.gz --directory "$JAVA_HOME" --strip-components 1
+
+export JAVA_HOME
+PATH=$JAVA_HOME/bin:$PATH
+export PATH
+
+java -version || true
