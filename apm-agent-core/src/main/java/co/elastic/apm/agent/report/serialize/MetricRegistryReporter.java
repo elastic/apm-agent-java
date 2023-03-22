@@ -26,6 +26,8 @@ import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import com.dslplatform.json.JsonWriter;
 
 import java.util.List;
@@ -33,6 +35,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class MetricRegistryReporter extends AbstractLifecycleListener implements MetricRegistry.MetricsReporter, Runnable {
+
+    private static final Logger logger = LoggerFactory.getLogger(MetricRegistryReporter.class);
 
     private final Reporter reporter;
     private final ElasticApmTracer tracer;
@@ -70,6 +74,7 @@ public class MetricRegistryReporter extends AbstractLifecycleListener implements
     public void report(Map<? extends Labels, MetricSet> metricSets) {
         if (tracer.isRunning()) {
             List<ServiceInfo> serviceInfos = tracer.getServiceInfoOverrides();
+            logger.debug("Reporting metrics, detected the following services: {}", serviceInfos);
             for (MetricSet metricSet : metricSets.values()) {
                 JsonWriter jw = serializer.serialize(metricSet, serviceInfos);
                 if (jw != null) {

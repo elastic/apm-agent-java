@@ -22,6 +22,8 @@ import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.metrics.Timer;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
@@ -33,6 +35,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MetricRegistrySerializer {
+
+    private static final Logger logger = LoggerFactory.getLogger(MetricRegistrySerializer.class);
 
     private static final byte NEW_LINE = '\n';
 
@@ -53,9 +57,11 @@ public class MetricRegistrySerializer {
         JsonWriter jw = dslJson.newWriter(maxSerializedSize);
         boolean hasSamples = false;
         if (serviceInfos.isEmpty() || metricSet.getLabels().getServiceName() != null) {
+            logger.debug("Reporting Metricset ({}) (serviceName={}) without duplication for services", metricSet.getLabels(), metricSet.getLabels().getServiceName());
             hasSamples = serialize(metricSet, null, null, jw);
         } else {
             ServiceInfo serviceInfo = serviceInfos.get(0);
+            logger.debug("Reporting Metricset ({}) (serviceName={}) for each service", metricSet.getLabels(), metricSet.getLabels().getServiceName());
             hasSamples = serialize(metricSet, serviceInfo.getServiceName(), serviceInfo.getServiceVersion(), jw);
             if (hasSamples) {
                 for (int i = 1; i < serviceInfos.size(); ++i) {
