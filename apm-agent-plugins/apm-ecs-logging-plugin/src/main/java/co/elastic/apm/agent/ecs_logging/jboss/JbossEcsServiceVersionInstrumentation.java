@@ -46,6 +46,11 @@ public class JbossEcsServiceVersionInstrumentation extends EcsLoggingInstrumenta
         return isConstructor();
     }
 
+    @Override
+    protected String getLoggingInstrumentationGroupName() {
+        return "jboss-logging-ecs";
+    }
+
     public static class AdviceClass {
 
         private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();

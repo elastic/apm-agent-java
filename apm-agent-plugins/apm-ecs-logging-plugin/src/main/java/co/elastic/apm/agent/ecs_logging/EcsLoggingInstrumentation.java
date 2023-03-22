@@ -18,26 +18,17 @@
  */
 package co.elastic.apm.agent.ecs_logging;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
+import co.elastic.apm.agent.loginstr.AbstractLogIntegrationInstrumentation;
 import net.bytebuddy.matcher.ElementMatcher;
-
-import java.util.Arrays;
-import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public abstract class EcsLoggingInstrumentation extends TracerAwareInstrumentation {
+public abstract class EcsLoggingInstrumentation extends AbstractLogIntegrationInstrumentation {
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         // ECS formatter that is loaded within the agent should not be instrumented
         return not(CustomElementMatchers.isInternalPluginClassLoader());
     }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("logging", "logging-ecs");
-    }
-
 }

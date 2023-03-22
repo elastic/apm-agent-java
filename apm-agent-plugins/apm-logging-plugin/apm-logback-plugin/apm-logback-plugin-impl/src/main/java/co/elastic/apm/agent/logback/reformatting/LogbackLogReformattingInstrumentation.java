@@ -35,10 +35,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesGenericArgument;
 public abstract class LogbackLogReformattingInstrumentation extends AbstractLogIntegrationInstrumentation {
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("logback-ecs");
-        return ret;
+    protected String getLoggingInstrumentationGroupName() {
+        return "logback-ecs";
     }
 
     @Override

@@ -34,10 +34,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public abstract class TomcatLogReformattingInstrumentation extends AbstractLogIntegrationInstrumentation {
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        ArrayList<String> list = new ArrayList<>(super.getInstrumentationGroupNames());
-        list.add("tomcat-ecs");
-        return list;
+    protected String getLoggingInstrumentationGroupName() {
+        return "tomcat-ecs";
     }
 
     /**

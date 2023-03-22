@@ -42,6 +42,11 @@ public class Log4j2ServiceNameInstrumentation extends EcsLoggingInstrumentation 
         return named("build");
     }
 
+    @Override
+    protected String getLoggingInstrumentationGroupName() {
+        return "log4j2-ecs";
+    }
+
     public static class AdviceClass {
 
         private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();

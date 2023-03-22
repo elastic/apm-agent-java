@@ -46,6 +46,11 @@ public class LogbackServiceVersionInstrumentation extends EcsLoggingInstrumentat
         return isConstructor();
     }
 
+    @Override
+    protected String getLoggingInstrumentationGroupName() {
+        return "logback-ecs";
+    }
+
     public static class AdviceClass {
 
         private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();

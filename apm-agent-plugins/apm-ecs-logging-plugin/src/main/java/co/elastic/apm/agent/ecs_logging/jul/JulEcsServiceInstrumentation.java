@@ -48,6 +48,11 @@ public class JulEcsServiceInstrumentation extends EcsLoggingInstrumentation {
         return named("getProperty");
     }
 
+    @Override
+    protected String getLoggingInstrumentationGroupName() {
+        return "jul-ecs";
+    }
+
     public static class AdviceClass {
 
         private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
