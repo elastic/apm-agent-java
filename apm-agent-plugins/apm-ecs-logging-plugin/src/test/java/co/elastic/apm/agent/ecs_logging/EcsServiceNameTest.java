@@ -42,6 +42,7 @@ public abstract class EcsServiceNameTest extends EcsLoggingTest {
 
     @Test
     public void testBuildWithServiceNameSet() {
+        // this should also issue a warning as the value configured in ecs-logging differs from the agent
         initFormatterWithServiceName("bar");
         assertThat(getJson(createLogMsg(), "service.name")).isEqualTo("bar");
     }

@@ -56,6 +56,8 @@ public class JulEcsServiceInstrumentation extends EcsLoggingInstrumentation {
     public static class AdviceClass {
 
         private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+        private static final String SERVICE_NAME = "co.elastic.logging.jul.EcsFormatter.serviceName";
+        private static final String SERVICE_VERSION = "co.elastic.logging.jul.EcsFormatter.serviceVersion";
 
         @Nullable
         @Advice.AssignReturned.ToReturned
@@ -63,13 +65,20 @@ public class JulEcsServiceInstrumentation extends EcsLoggingInstrumentation {
         public static String onExit(@Advice.Argument(0) String key,
                                     @Advice.Return @Nullable String value) {
 
-            if (value == null) {
-                if ("co.elastic.logging.jul.EcsFormatter.serviceName".equals(key)) {
+            if (SERVICE_NAME.equals(key)) {
+                if (value != null) {
+                    EcsLoggingUtils.warnIfServiceNameMisconfigured(value, tracer);
+                } else {
                     value = EcsLoggingUtils.getServiceName(tracer);
-                } else if ("co.elastic.logging.jul.EcsFormatter.serviceVersion".equals(key)) {
+                }
+            } else if (SERVICE_VERSION.equals(key)) {
+                if (value != null) {
+                    EcsLoggingUtils.warnIfServiceVersionMisconfigured(value, tracer);
+                } else {
                     value = EcsLoggingUtils.getServiceVersion(tracer);
                 }
             }
+
             return value;
         }
 

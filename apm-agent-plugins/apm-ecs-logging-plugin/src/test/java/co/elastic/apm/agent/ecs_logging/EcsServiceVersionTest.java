@@ -42,6 +42,7 @@ public abstract class EcsServiceVersionTest extends EcsLoggingTest {
 
     @Test
     public void testBuildWithServiceVersionSet() {
+        // this should also issue a warning as the value configured in ecs-logging differs from the agent
         initFormatterWithServiceVersion("2.0");
         assertThat(getJson(createLogMsg(), "service.version")).isEqualTo("2.0");
     }

@@ -22,9 +22,15 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 public class EcsLoggingUtils {
+
+    private static final Logger log = LoggerFactory.getLogger(EcsLoggingUtils.class);
 
     @Nullable
     public static String getServiceName(ElasticApmTracer tracer) {
@@ -38,5 +44,19 @@ public class EcsLoggingUtils {
         ServiceInfo serviceInfo = tracer.getServiceInfoForClassLoader(Thread.currentThread().getContextClassLoader());
         String configuredServiceVersion = tracer.getConfig(CoreConfiguration.class).getServiceVersion();
         return serviceInfo != null ? serviceInfo.getServiceVersion() : configuredServiceVersion;
+    }
+
+    public static void warnIfServiceNameMisconfigured(@Nullable String configuredValue, ElasticApmTracer tracer) {
+        warnIfMisConfigured("service.name", configuredValue, getServiceName(tracer));
+    }
+
+    public static void warnIfServiceVersionMisconfigured(@Nullable String configuredValue, ElasticApmTracer tracer) {
+        warnIfMisConfigured("service.version", configuredValue, getServiceVersion(tracer));
+    }
+
+    private static void warnIfMisConfigured(String key, @Nullable String configuredValue, @Nullable String agentValue) {
+        if (!Objects.equals(agentValue, configuredValue)) {
+            log.warn("configuration values differ for '{}': ecs-logging='{}', agent='{}', traces and logs might not correlate properly", key, configuredValue, agentValue);
+        }
     }
 }
