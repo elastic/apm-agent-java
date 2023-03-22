@@ -71,6 +71,11 @@ jobs:
         with:
           name: build
           path: ${{ github.workspace }}
+      - name: Upload agent binaries as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: elastic-apm-agent
+          path: ./elastic-apm-agent/target/elastic-apm-agent-*.jar
 
   license:
     name: License
