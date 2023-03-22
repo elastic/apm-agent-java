@@ -22,8 +22,6 @@ import co.elastic.apm.agent.loginstr.error.AbstractLoggerErrorCapturingInstrumen
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Collection;
-
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -40,9 +38,7 @@ public class Slf4jLoggerErrorCapturingInstrumentation extends AbstractLoggerErro
     }
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("slf4j-error");
-        return ret;
+    protected String getLoggingInstrumentationGroupName() {
+        return "slf4j-error";
     }
 }

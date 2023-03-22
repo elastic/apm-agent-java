@@ -36,6 +36,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class Log4j1LoggerErrorCapturingInstrumentation extends AbstractLoggerErrorCapturingInstrumentation {
 
     @Override
+    protected String getLoggingInstrumentationGroupName() {
+        return "log4j1-error";
+    }
+
+    @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return any();
     }
@@ -48,12 +53,5 @@ public class Log4j1LoggerErrorCapturingInstrumentation extends AbstractLoggerErr
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("fatal").and(takesArgument(1, named("java.lang.Throwable"))).or(super.getMethodMatcher());
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("log4j1-error");
-        return ret;
     }
 }

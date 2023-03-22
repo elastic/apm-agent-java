@@ -21,6 +21,7 @@ package co.elastic.apm.agent.loginstr;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -30,7 +31,10 @@ public abstract class AbstractLogIntegrationInstrumentation extends TracerAwareI
     public Collection<String> getInstrumentationGroupNames() {
         Collection<String> ret = new ArrayList<>();
         ret.add("logging");
+        ret.add(getLoggingInstrumentationGroupName());
         return ret;
     }
+
+    protected abstract String getLoggingInstrumentationGroupName();
 
 }

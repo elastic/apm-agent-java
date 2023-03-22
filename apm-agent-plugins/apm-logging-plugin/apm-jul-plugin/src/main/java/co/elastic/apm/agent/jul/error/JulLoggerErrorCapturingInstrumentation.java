@@ -26,7 +26,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
 import java.util.logging.LogRecord;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -35,10 +34,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class JulLoggerErrorCapturingInstrumentation extends AbstractLoggerErrorCapturingInstrumentation {
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("jul-error");
-        return ret;
+    protected String getLoggingInstrumentationGroupName() {
+        return "jul-error";
     }
 
     @Override

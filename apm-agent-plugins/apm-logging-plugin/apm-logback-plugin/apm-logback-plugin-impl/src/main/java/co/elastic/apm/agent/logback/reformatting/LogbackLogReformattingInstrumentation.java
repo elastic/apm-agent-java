@@ -23,8 +23,6 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Collection;
-
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -56,6 +54,7 @@ public abstract class LogbackLogReformattingInstrumentation extends AbstractLogI
         /**
          * Instrumenting {@link ch.qos.logback.core.OutputStreamAppender#append(Object)}
          */
+        @SuppressWarnings("JavadocReference")
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("append").and(takesGenericArgument(0, TypeDescription.Generic.Builder.typeVariable("E").build()));
