@@ -19,12 +19,15 @@
 package co.elastic.apm.agent.ecs_logging.log4j;
 
 import co.elastic.apm.agent.ecs_logging.EcsServiceVersionTest;
+import co.elastic.apm.agent.testutils.TestClassWithDependencyRunner;
 import co.elastic.logging.log4j.EcsLayout;
 import org.apache.log4j.Category;
 import org.apache.log4j.Level;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.log4j.spi.RootLogger;
 
+// must be tested in isolation, either used in agent or has side effects
+@TestClassWithDependencyRunner.DisableOutsideOfRunner
 public class Log4jServiceVersionInstrumentationTest extends EcsServiceVersionTest {
 
     private EcsLayout ecsLayout;

@@ -24,7 +24,7 @@ import co.elastic.logging.log4j2.EcsLayout;
 import org.apache.logging.log4j.core.impl.Log4jLogEvent;
 import org.apache.logging.log4j.message.SimpleMessage;
 
-// log4j2 also used in agent, thus must be tested in isolation
+// must be tested in isolation, either used in agent or has side effects
 @TestClassWithDependencyRunner.DisableOutsideOfRunner
 public class Log4j2ServiceVersionInstrumentationTest extends EcsServiceVersionTest {
 

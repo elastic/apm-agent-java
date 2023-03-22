@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.ecs_logging.jul;
 
 import co.elastic.apm.agent.ecs_logging.EcsServiceNameTest;
+import co.elastic.apm.agent.testutils.TestClassWithDependencyRunner;
 import co.elastic.logging.jul.EcsFormatter;
 
 import java.util.Collections;
@@ -26,6 +27,8 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
+// must be tested in isolation, either used in agent or has side effects
+@TestClassWithDependencyRunner.DisableOutsideOfRunner
 public class JulServiceNameInstrumentationTest extends EcsServiceNameTest {
 
     private EcsFormatter formatter;

@@ -19,10 +19,13 @@
 package co.elastic.apm.agent.ecs_logging.jboss;
 
 import co.elastic.apm.agent.ecs_logging.EcsServiceVersionTest;
+import co.elastic.apm.agent.testutils.TestClassWithDependencyRunner;
 import co.elastic.logging.jboss.logmanager.EcsFormatter;
 import org.jboss.logmanager.ExtLogRecord;
 import org.jboss.logmanager.Level;
 
+// must be tested in isolation, either used in agent or has side effects
+@TestClassWithDependencyRunner.DisableOutsideOfRunner
 public class JbossServiceVersionInstrumentationTest extends EcsServiceVersionTest {
 
     EcsFormatter formatter;
