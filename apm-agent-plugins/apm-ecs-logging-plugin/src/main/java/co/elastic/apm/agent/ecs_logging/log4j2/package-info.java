@@ -16,25 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.ecs_logging.jboss;
+@NonnullApi
+package co.elastic.apm.agent.ecs_logging.log4j2;
 
-import co.elastic.apm.agent.ecs_logging.EcsServiceCorrelationIT;
-
-public class JbossServiceCorrelationIT extends EcsServiceCorrelationIT {
-
-    @Override
-    protected String getArtifactName() {
-        return "jboss-logmanager-ecs-formatter";
-    }
-
-    @Override
-    protected String getServiceNameTestClass() {
-        return "co.elastic.apm.agent.ecs_logging.jboss.JbossServiceNameInstrumentationTest";
-    }
-
-    @Override
-    protected String getServiceVersionTestClass() {
-        return "co.elastic.apm.agent.ecs_logging.jboss.JbossServiceVersionInstrumentationTest";
-    }
-
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

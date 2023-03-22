@@ -16,29 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.ecs_logging.jboss;
+package co.elastic.apm.agent.ecs_logging.log4j1;
 
 import co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation;
 import co.elastic.apm.agent.ecs_logging.EcsLoggingUtils;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.logging.jboss.logmanager.EcsFormatter;
+import co.elastic.logging.log4j.EcsLayout;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class JbossEcsServiceVersionInstrumentation extends EcsLoggingInstrumentation {
+public class Log4jEcsServiceNameInstrumentation extends EcsLoggingInstrumentation {
 
     @Override
     public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.logging.jboss.logmanager.EcsFormatter")
-            // setServiceVersion introduced in 1.4.0
-            .and(declaresMethod(named("setServiceVersion")));
+        return named("co.elastic.logging.log4j.EcsLayout");
     }
 
     @Override
@@ -48,7 +45,7 @@ public class JbossEcsServiceVersionInstrumentation extends EcsLoggingInstrumenta
 
     @Override
     protected String getLoggingInstrumentationGroupName() {
-        return "jboss-logging-ecs";
+        return "log4j1-ecs";
     }
 
     public static class AdviceClass {
@@ -56,8 +53,8 @@ public class JbossEcsServiceVersionInstrumentation extends EcsLoggingInstrumenta
         private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
 
         @Advice.OnMethodExit(inline = false)
-        public static void onExit(@Advice.This EcsFormatter ecsFormatter) {
-            ecsFormatter.setServiceVersion(EcsLoggingUtils.getServiceVersion(tracer));
+        public static void onExit(@Advice.This EcsLayout ecsLayout) {
+            ecsLayout.setServiceName(EcsLoggingUtils.getServiceName(tracer));
         }
     }
 }

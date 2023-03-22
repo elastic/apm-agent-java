@@ -16,23 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.ecs_logging;
+@NonnullApi
+package co.elastic.apm.agent.ecs_logging.log4j1;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.util.Map;
-
-public abstract class EcsLoggingTest extends AbstractInstrumentationTest {
-
-    protected abstract String createLogMsg();
-
-    protected String getJson(String json, String attribute) {
-        try {
-            return (String) new ObjectMapper().readValue(json, Map.class).get(attribute);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

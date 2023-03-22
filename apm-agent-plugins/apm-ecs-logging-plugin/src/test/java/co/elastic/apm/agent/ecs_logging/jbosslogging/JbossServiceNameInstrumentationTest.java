@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.ecs_logging.jboss;
+package co.elastic.apm.agent.ecs_logging.jbosslogging;
 
-import co.elastic.apm.agent.ecs_logging.EcsServiceVersionTest;
+import co.elastic.apm.agent.ecs_logging.EcsServiceNameTest;
 import co.elastic.apm.agent.testutils.TestClassWithDependencyRunner;
 import co.elastic.logging.jboss.logmanager.EcsFormatter;
 import org.jboss.logmanager.ExtLogRecord;
@@ -26,7 +26,7 @@ import org.jboss.logmanager.Level;
 
 // must be tested in isolation, either used in agent or has side effects
 @TestClassWithDependencyRunner.DisableOutsideOfRunner
-public class JbossServiceVersionInstrumentationTest extends EcsServiceVersionTest {
+public class JbossServiceNameInstrumentationTest extends EcsServiceNameTest {
 
     EcsFormatter formatter;
 
@@ -37,13 +37,13 @@ public class JbossServiceVersionInstrumentationTest extends EcsServiceVersionTes
     }
 
     @Override
-    protected void initFormatterWithoutServiceVersionSet() {
+    protected void initFormatterWithoutServiceNameSet() {
         formatter = new EcsFormatter();
     }
 
     @Override
-    protected void initFormatterWithServiceVersion(String version) {
+    protected void initFormatterWithServiceName(String name) {
         formatter = new EcsFormatter();
-        formatter.setServiceVersion(version);
+        formatter.setServiceName(name);
     }
 }

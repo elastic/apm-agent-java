@@ -16,37 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.ecs_logging.log4j;
+package co.elastic.apm.agent.ecs_logging.jbosslogging;
 
 import co.elastic.apm.agent.ecs_logging.EcsServiceVersionTest;
 import co.elastic.apm.agent.testutils.TestClassWithDependencyRunner;
-import co.elastic.logging.log4j.EcsLayout;
-import org.apache.log4j.Category;
-import org.apache.log4j.Level;
-import org.apache.log4j.spi.LoggingEvent;
-import org.apache.log4j.spi.RootLogger;
+import co.elastic.logging.jboss.logmanager.EcsFormatter;
+import org.jboss.logmanager.ExtLogRecord;
+import org.jboss.logmanager.Level;
 
 // must be tested in isolation, either used in agent or has side effects
 @TestClassWithDependencyRunner.DisableOutsideOfRunner
-public class Log4jServiceVersionInstrumentationTest extends EcsServiceVersionTest {
+public class JbossServiceVersionInstrumentationTest extends EcsServiceVersionTest {
 
-    private EcsLayout ecsLayout;
+    EcsFormatter formatter;
+
+    @Override
+    protected String createLogMsg() {
+        ExtLogRecord record = new ExtLogRecord(Level.INFO, "Example Message", "ExampleLoggerClass");
+        return formatter.format(record);
+    }
 
     @Override
     protected void initFormatterWithoutServiceVersionSet() {
-        ecsLayout = new EcsLayout();
+        formatter = new EcsFormatter();
     }
 
     @Override
     protected void initFormatterWithServiceVersion(String version) {
-        ecsLayout = new EcsLayout();
-        ecsLayout.setServiceVersion(version);
-    }
-
-    @Override
-    protected String createLogMsg() {
-        Category logger = new RootLogger(Level.ALL);
-        LoggingEvent event = new LoggingEvent("", logger, System.currentTimeMillis(), Level.INFO, "msg", null);
-        return ecsLayout.format(event);
+        formatter = new EcsFormatter();
+        formatter.setServiceVersion(version);
     }
 }

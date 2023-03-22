@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.ecs_logging.log4j;
+package co.elastic.apm.agent.ecs_logging.log4j1;
 
 import co.elastic.apm.agent.ecs_logging.EcsServiceNameTest;
 import co.elastic.apm.agent.testutils.TestClassWithDependencyRunner;
@@ -45,7 +45,7 @@ public class Log4jServiceNameInstrumentationTest extends EcsServiceNameTest {
 
     @Override
     protected String createLogMsg() {
-        Category logger= new RootLogger(Level.ALL);
+        Category logger = new RootLogger(Level.ALL);
         LoggingEvent event = new LoggingEvent("", logger, System.currentTimeMillis(), Level.INFO, "msg", null);
         return ecsLayout.format(event);
     }

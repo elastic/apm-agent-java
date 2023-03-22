@@ -32,7 +32,7 @@ public abstract class EcsServiceCorrelationIT {
 
     protected abstract String getServiceVersionTestClass();
 
-    @ParameterizedTest(name= "ecs-logging {0}, supports version = {1}, supports environment = {2}")
+    @ParameterizedTest(name = "ecs-logging {0}, supports version = {1}, supports environment = {2}")
     @CsvSource(delimiter = '|', value = {
         "1.3.2 | false | false", // 1.3.2 only supports service name
         "1.4.0 | true  | false", // 1.4.0 adds service version

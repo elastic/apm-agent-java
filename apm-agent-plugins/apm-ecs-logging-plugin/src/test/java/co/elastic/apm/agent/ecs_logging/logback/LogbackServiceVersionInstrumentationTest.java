@@ -37,7 +37,7 @@ public class LogbackServiceVersionInstrumentationTest extends EcsServiceVersionT
     protected String createLogMsg() {
         LoggerContext loggerContext = new LoggerContext();
         Logger logger = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME);
-        ILoggingEvent event = new LoggingEvent("co.elastic.apm.agent.ecs_logging.logback.LogbackServiceNameInstrumentationTest",logger, Level.INFO, "msg", null, null);
+        ILoggingEvent event = new LoggingEvent("co.elastic.apm.agent.ecs_logging.logback.LogbackServiceNameInstrumentationTest", logger, Level.INFO, "msg", null, null);
         return new String(ecsEncoder.encode(event));
     }
 

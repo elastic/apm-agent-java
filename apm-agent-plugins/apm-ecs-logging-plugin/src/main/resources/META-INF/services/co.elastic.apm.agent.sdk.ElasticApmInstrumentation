@@ -1,6 +1,6 @@
 # log4j 1.x
-co.elastic.apm.agent.ecs_logging.log4j.Log4jEcsServiceNameInstrumentation
-co.elastic.apm.agent.ecs_logging.log4j.Log4jEcsServiceVersionInstrumentation
+co.elastic.apm.agent.ecs_logging.log4j1.Log4jEcsServiceNameInstrumentation
+co.elastic.apm.agent.ecs_logging.log4j1.Log4jEcsServiceVersionInstrumentation
 
 # log4j 2.x
 co.elastic.apm.agent.ecs_logging.log4j2.Log4j2ServiceNameInstrumentation
@@ -15,5 +15,5 @@ co.elastic.apm.agent.ecs_logging.logback.LogbackServiceNameInstrumentation
 co.elastic.apm.agent.ecs_logging.logback.LogbackServiceVersionInstrumentation
 
 # JBoss
-co.elastic.apm.agent.ecs_logging.jboss.JbossEcsServiceNameInstrumentation
-co.elastic.apm.agent.ecs_logging.jboss.JbossEcsServiceVersionInstrumentation
+co.elastic.apm.agent.ecs_logging.jbosslogging.JbossEcsServiceNameInstrumentation
+co.elastic.apm.agent.ecs_logging.jbosslogging.JbossEcsServiceVersionInstrumentation

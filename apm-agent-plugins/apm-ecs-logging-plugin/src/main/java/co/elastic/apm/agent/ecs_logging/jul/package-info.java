@@ -16,25 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.ecs_logging.log4j;
+@NonnullApi
+package co.elastic.apm.agent.ecs_logging.jul;
 
-import co.elastic.apm.agent.ecs_logging.EcsServiceCorrelationIT;
-
-public class Log4jServiceCorrelationIT extends EcsServiceCorrelationIT {
-
-    @Override
-    protected String getArtifactName() {
-        return "log4j-ecs-layout";
-    }
-
-    @Override
-    protected String getServiceNameTestClass() {
-        return "co.elastic.apm.agent.ecs_logging.log4j.Log4jServiceNameInstrumentationTest";
-    }
-
-    @Override
-    protected String getServiceVersionTestClass() {
-        return "co.elastic.apm.agent.ecs_logging.log4j.Log4jServiceVersionInstrumentationTest";
-    }
-
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

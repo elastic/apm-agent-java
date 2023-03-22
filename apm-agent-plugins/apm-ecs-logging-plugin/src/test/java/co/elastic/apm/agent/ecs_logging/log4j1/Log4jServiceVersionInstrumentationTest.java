@@ -16,34 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.ecs_logging.jboss;
+package co.elastic.apm.agent.ecs_logging.log4j1;
 
-import co.elastic.apm.agent.ecs_logging.EcsServiceNameTest;
+import co.elastic.apm.agent.ecs_logging.EcsServiceVersionTest;
 import co.elastic.apm.agent.testutils.TestClassWithDependencyRunner;
-import co.elastic.logging.jboss.logmanager.EcsFormatter;
-import org.jboss.logmanager.ExtLogRecord;
-import org.jboss.logmanager.Level;
+import co.elastic.logging.log4j.EcsLayout;
+import org.apache.log4j.Category;
+import org.apache.log4j.Level;
+import org.apache.log4j.spi.LoggingEvent;
+import org.apache.log4j.spi.RootLogger;
 
 // must be tested in isolation, either used in agent or has side effects
 @TestClassWithDependencyRunner.DisableOutsideOfRunner
-public class JbossServiceNameInstrumentationTest extends EcsServiceNameTest {
+public class Log4jServiceVersionInstrumentationTest extends EcsServiceVersionTest {
 
-    EcsFormatter formatter;
+    private EcsLayout ecsLayout;
+
+    @Override
+    protected void initFormatterWithoutServiceVersionSet() {
+        ecsLayout = new EcsLayout();
+    }
+
+    @Override
+    protected void initFormatterWithServiceVersion(String version) {
+        ecsLayout = new EcsLayout();
+        ecsLayout.setServiceVersion(version);
+    }
 
     @Override
     protected String createLogMsg() {
-        ExtLogRecord record = new ExtLogRecord(Level.INFO, "Example Message", "ExampleLoggerClass");
-        return formatter.format(record);
-    }
-
-    @Override
-    protected void initFormatterWithoutServiceNameSet() {
-        formatter = new EcsFormatter();
-    }
-
-    @Override
-    protected void initFormatterWithServiceName(String name) {
-        formatter = new EcsFormatter();
-        formatter.setServiceName(name);
+        Category logger = new RootLogger(Level.ALL);
+        LoggingEvent event = new LoggingEvent("", logger, System.currentTimeMillis(), Level.INFO, "msg", null);
+        return ecsLayout.format(event);
     }
 }

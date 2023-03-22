@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
-public abstract class EcsServiceNameTest extends EcsLoggingTest{
+public abstract class EcsServiceNameTest extends EcsLoggingTest {
 
     @BeforeEach
     public void setUp() {

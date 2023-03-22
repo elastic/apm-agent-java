@@ -27,14 +27,14 @@ import javax.annotation.Nullable;
 public class EcsLoggingUtils {
 
     @Nullable
-    public static String getServiceName(ElasticApmTracer tracer){
+    public static String getServiceName(ElasticApmTracer tracer) {
         ServiceInfo serviceInfo = tracer.getServiceInfoForClassLoader(Thread.currentThread().getContextClassLoader());
         String configuredServiceName = tracer.getConfig(CoreConfiguration.class).getServiceName();
         return serviceInfo != null ? serviceInfo.getServiceName() : configuredServiceName;
     }
 
     @Nullable
-    public static String getServiceVersion(ElasticApmTracer tracer){
+    public static String getServiceVersion(ElasticApmTracer tracer) {
         ServiceInfo serviceInfo = tracer.getServiceInfoForClassLoader(Thread.currentThread().getContextClassLoader());
         String configuredServiceVersion = tracer.getConfig(CoreConfiguration.class).getServiceVersion();
         return serviceInfo != null ? serviceInfo.getServiceVersion() : configuredServiceVersion;
