@@ -26,7 +26,7 @@ java -version
 set +x
 echo "--- Deploy the snapshot :package:"
 if [[ "$dry_run" == "true" ]] ; then
-  echo './mvnw -V -s .ci/snapshot-settings.xml -Pgpg clean deploy --batch-mode'
+  echo './mvnw -V -s .ci/snapshot-settings.xml -Pgpg clean deploy -DskipTests --batch-mode'
 else
-  ./mvnw -V -s .ci/snapshot-settings.xml  -Pgpg clean deploy --batch-mode | tee snapshot.txt
+  ./mvnw -V -s .ci/snapshot-settings.xml -Pgpg clean deploy -DskipTests --batch-mode | tee snapshot.txt
 fi
