@@ -21,9 +21,11 @@ package co.elastic.apm.agent.ecs_logging;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
@@ -31,6 +33,11 @@ import java.util.Objects;
 public class EcsLoggingUtils {
 
     private static final Logger log = LoggerFactory.getLogger(EcsLoggingUtils.class);
+
+    public static final WeakSet<Object> nameChecked = WeakConcurrent.buildSet();
+    public static final WeakSet<Object> versionChecked = WeakConcurrent.buildSet();
+
+    private static final ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
 
     @Nullable
     public static String getServiceName(ElasticApmTracer tracer) {
@@ -57,6 +64,36 @@ public class EcsLoggingUtils {
     private static void warnIfMisConfigured(String key, @Nullable String configuredValue, @Nullable String agentValue) {
         if (!Objects.equals(agentValue, configuredValue)) {
             log.warn("configuration values differ for '{}': ecs-logging='{}', agent='{}', traces and logs might not correlate properly", key, configuredValue, agentValue);
+        }
+    }
+
+    @Nullable
+    public static String getProperty(String serviceNameKey, String serviceVersionKey, ElasticApmTracer tracer, String key, @Nullable String value) {
+        if (serviceNameKey.equals(key)) {
+            value = getOrWarnServiceName(tracer, value);
+        } else if (serviceVersionKey.equals(key)) {
+            value = getOrWarnServiceVersion(tracer, value);
+        }
+        return value;
+    }
+
+    @Nullable
+    public static String getOrWarnServiceVersion(ElasticApmTracer tracer, @Nullable String value) {
+        if (value == null) {
+            return EcsLoggingUtils.getServiceVersion(tracer);
+        } else {
+            EcsLoggingUtils.warnIfServiceVersionMisconfigured(value, tracer);
+            return value;
+        }
+    }
+
+    @Nullable
+    public static String getOrWarnServiceName(ElasticApmTracer tracer, @Nullable String value) {
+        if (value == null) {
+            return EcsLoggingUtils.getServiceName(tracer);
+        } else {
+            EcsLoggingUtils.warnIfServiceNameMisconfigured(value, tracer);
+            return value;
         }
     }
 }

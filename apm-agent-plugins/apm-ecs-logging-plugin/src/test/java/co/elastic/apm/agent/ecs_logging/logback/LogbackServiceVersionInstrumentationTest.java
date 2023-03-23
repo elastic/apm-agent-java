@@ -44,11 +44,13 @@ public class LogbackServiceVersionInstrumentationTest extends EcsServiceVersionT
     @Override
     protected void initFormatterWithoutServiceVersionSet() {
         ecsEncoder = new EcsEncoder();
+        ecsEncoder.start();
     }
 
     @Override
     protected void initFormatterWithServiceVersion(String version) {
         ecsEncoder = new EcsEncoder();
+        ecsEncoder.start();
         ecsEncoder.setServiceVersion(version);
     }
 }

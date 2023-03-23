@@ -28,10 +28,14 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
+
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
-import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
+/**
+ * Instruments {@link EcsFormatter#format}
+ */
 public abstract class JbossEcsServiceInstrumentation extends EcsLoggingInstrumentation {
 
     @Override
@@ -44,48 +48,31 @@ public abstract class JbossEcsServiceInstrumentation extends EcsLoggingInstrumen
         return named("co.elastic.logging.jboss.logmanager.EcsFormatter");
     }
 
-    /**
-     * Instruments {@link EcsFormatter} to set value for service name
-     */
-    public static class Name extends JbossEcsServiceInstrumentation {
+    @Override
+    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        return named("format");
+    }
 
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return isConstructor();
-        }
+    public static class Name extends JbossEcsServiceInstrumentation {
 
         public static class AdviceClass {
 
             private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
 
-            @Advice.OnMethodExit(inline = false)
-            public static void onExit(@Advice.This EcsFormatter ecsFormatter) {
-                ecsFormatter.setServiceName(EcsLoggingUtils.getServiceName(tracer));
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void onEnter(@Advice.This EcsFormatter formatter,
+                                       @Advice.FieldValue("serviceName") @Nullable String serviceName) {
+
+                if (!EcsLoggingUtils.nameChecked.add(formatter)) {
+                    return;
+                }
+                formatter.setServiceName(EcsLoggingUtils.getOrWarnServiceName(tracer, serviceName));
             }
         }
-    }
-
-    /**
-     * Instruments {@link EcsFormatter#setServiceName(String)} to warn potential mis-configuration
-     */
-    public static class NameWarn extends JbossEcsServiceInstrumentation {
-
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("setServiceName");
-        }
-
-        @Override
-        public String getAdviceClassName() {
-            return "co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation$NameWarnAdvice";
-        }
 
     }
 
-    /**
-     * Instruments {@link EcsFormatter} to set value for service version
-     */
-    public static class Version extends JbossEcsServiceInstrumentation{
+    public static class Version extends JbossEcsServiceInstrumentation {
 
         @Override
         public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
@@ -94,35 +81,19 @@ public abstract class JbossEcsServiceInstrumentation extends EcsLoggingInstrumen
                 .and(declaresMethod(named("setServiceVersion")));
         }
 
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return isConstructor();
-        }
-
         public static class AdviceClass {
 
             private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
 
-            @Advice.OnMethodExit(inline = false)
-            public static void onExit(@Advice.This EcsFormatter ecsFormatter) {
-                ecsFormatter.setServiceVersion(EcsLoggingUtils.getServiceVersion(tracer));
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void onEnter(@Advice.This EcsFormatter formatter,
+                                       @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
+
+                if (!EcsLoggingUtils.versionChecked.add(formatter)) {
+                    return;
+                }
+                formatter.setServiceVersion(EcsLoggingUtils.getOrWarnServiceVersion(tracer, serviceVersion));
             }
-        }
-    }
-
-    /**
-     * Instruments {@link EcsFormatter#setServiceVersion(String)} to warn potential mis-configuration
-     */
-    public static class VersionWarn extends JbossEcsServiceInstrumentation {
-
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("setServiceVersion");
-        }
-
-        @Override
-        public String getAdviceClassName() {
-            return "co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation$VersionWarnAdvice";
         }
 
     }

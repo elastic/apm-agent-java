@@ -28,10 +28,14 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
+
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
-import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
+/**
+ * Instruments {@link EcsEncoder#start()} to set value for service name
+ */
 public abstract class LogBackServiceInstrumentation extends EcsLoggingInstrumentation {
 
     @Override
@@ -44,86 +48,48 @@ public abstract class LogBackServiceInstrumentation extends EcsLoggingInstrument
         return named("co.elastic.logging.logback.EcsEncoder");
     }
 
-    /**
-     * Instruments {@link EcsEncoder} to set value for service name
-     */
-    public static class Name extends LogBackServiceInstrumentation {
+    @Override
+    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        return named("start");
+    }
 
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return isConstructor();
-        }
+    public static class Name extends LogBackServiceInstrumentation {
 
         public static class AdviceClass {
 
             private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
 
-            @Advice.OnMethodExit(inline = false)
-            public static void onExit(@Advice.This EcsEncoder ecsFormatter) {
-                ecsFormatter.setServiceName(EcsLoggingUtils.getServiceName(tracer));
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void onEnter(@Advice.This EcsEncoder ecsEncoder,
+                                       @Advice.FieldValue("serviceName") @Nullable String serviceName) {
+
+                ecsEncoder.setServiceName(EcsLoggingUtils.getOrWarnServiceName(tracer, serviceName));
             }
         }
-    }
-
-    /**
-     * Instruments {@link EcsEncoder#setServiceName(String)} to warn potential mis-configuration
-     */
-    public static class NameWarn extends LogBackServiceInstrumentation {
-
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("setServiceName");
-        }
-
-        @Override
-        public String getAdviceClassName() {
-            return "co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation$NameWarnAdvice";
-        }
 
     }
 
-    /**
-     * Instruments {@link EcsEncoder} to set value for service version
-     */
     public static class Version extends LogBackServiceInstrumentation {
 
         @Override
         public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
-            return named("co.elastic.logging.logback.EcsEncoder")
+            return super.getTypeMatcher()
                 // setServiceVersion introduced in 1.4.0
                 .and(declaresMethod(named("setServiceVersion")));
-        }
-
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return isConstructor();
         }
 
         public static class AdviceClass {
 
             private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
 
-            @Advice.OnMethodExit(inline = false)
-            public static void onExit(@Advice.This EcsEncoder ecsFormatter) {
-                ecsFormatter.setServiceVersion(EcsLoggingUtils.getServiceVersion(tracer));
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void onEnter(@Advice.This EcsEncoder ecsEncoder,
+                                       @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
+
+                ecsEncoder.setServiceVersion(EcsLoggingUtils.getOrWarnServiceVersion(tracer, serviceVersion));
             }
         }
-    }
-
-    /**
-     * Instruments {@link EcsEncoder#setServiceVersion(String)} to warn potential mis-configuration
-     */
-    public static class VersionWarn extends LogBackServiceInstrumentation {
-
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("setServiceVersion");
-        }
-
-        @Override
-        public String getAdviceClassName() {
-            return "co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation$VersionWarnAdvice";
-        }
 
     }
+
 }

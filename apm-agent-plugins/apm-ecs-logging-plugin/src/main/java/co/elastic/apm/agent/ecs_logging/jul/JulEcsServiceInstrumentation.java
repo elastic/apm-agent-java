@@ -22,30 +22,32 @@ import co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation;
 import co.elastic.apm.agent.ecs_logging.EcsLoggingUtils;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.logging.jul.EcsFormatter;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 
+import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
- * Instruments {@link co.elastic.logging.jul.EcsFormatter#getProperty} to provide default values.
- * Note: we can't use setters as they might not be available in older versions of ecs-
+ * Instruments {@link co.elastic.logging.jul.EcsFormatter#format}
  */
-@SuppressWarnings("JavadocReference")
-public class JulEcsServiceInstrumentation extends EcsLoggingInstrumentation {
+public abstract class JulEcsServiceInstrumentation extends EcsLoggingInstrumentation {
 
     @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+    public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
         return named("co.elastic.logging.jul.EcsFormatter");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("getProperty");
+        return named("format");
     }
 
     @Override
@@ -53,35 +55,52 @@ public class JulEcsServiceInstrumentation extends EcsLoggingInstrumentation {
         return "jul-ecs";
     }
 
-    public static class AdviceClass {
+    public static class Name extends JulEcsServiceInstrumentation {
 
-        private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
-        private static final String SERVICE_NAME = "co.elastic.logging.jul.EcsFormatter.serviceName";
-        private static final String SERVICE_VERSION = "co.elastic.logging.jul.EcsFormatter.serviceVersion";
+        public static class AdviceClass {
 
-        @Nullable
-        @Advice.AssignReturned.ToReturned
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static String onExit(@Advice.Argument(0) String key,
-                                    @Advice.Return @Nullable String value) {
+            private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
 
-            if (SERVICE_NAME.equals(key)) {
-                if (value != null) {
-                    EcsLoggingUtils.warnIfServiceNameMisconfigured(value, tracer);
-                } else {
-                    value = EcsLoggingUtils.getServiceName(tracer);
+            @Advice.AssignReturned.ToFields(@ToField(value = "serviceName", typing = Assigner.Typing.DYNAMIC))
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static String onEnter(@Advice.This EcsFormatter formatter,
+                                         @Advice.FieldValue("serviceName") @Nullable String serviceName) {
+
+                // setServiceName is protected in earlier versions, thus setting field directly
+                if (!EcsLoggingUtils.nameChecked.add(formatter)) {
+                    return serviceName;
                 }
-            } else if (SERVICE_VERSION.equals(key)) {
-                if (value != null) {
-                    EcsLoggingUtils.warnIfServiceVersionMisconfigured(value, tracer);
-                } else {
-                    value = EcsLoggingUtils.getServiceVersion(tracer);
-                }
+                return EcsLoggingUtils.getOrWarnServiceName(tracer, serviceName);
             }
-
-            return value;
         }
 
+    }
+
+    public static class Version extends JulEcsServiceInstrumentation {
+
+        @Override
+        public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
+            return super.getTypeMatcher()
+                // setServiceVersion introduced in 1.4.0
+                .and(declaresMethod(named("setServiceVersion")));
+        }
+
+        public static class AdviceClass {
+
+            private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void onEnter(@Advice.This EcsFormatter formatter,
+                                       @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
+
+                if (!EcsLoggingUtils.versionChecked.add(formatter)) {
+                    return;
+                }
+                formatter.setServiceVersion(EcsLoggingUtils.getOrWarnServiceVersion(tracer, serviceVersion));
+            }
+        }
 
     }
+
+
 }

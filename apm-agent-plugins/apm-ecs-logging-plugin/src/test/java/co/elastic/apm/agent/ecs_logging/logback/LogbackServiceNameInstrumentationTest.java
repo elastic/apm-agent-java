@@ -44,11 +44,13 @@ public class LogbackServiceNameInstrumentationTest extends EcsServiceNameTest {
     @Override
     protected void initFormatterWithoutServiceNameSet() {
         ecsEncoder = new EcsEncoder();
+        ecsEncoder.start();
     }
 
     @Override
     protected void initFormatterWithServiceName(String name) {
         ecsEncoder = new EcsEncoder();
         ecsEncoder.setServiceName(name);
+        ecsEncoder.start();
     }
 }
