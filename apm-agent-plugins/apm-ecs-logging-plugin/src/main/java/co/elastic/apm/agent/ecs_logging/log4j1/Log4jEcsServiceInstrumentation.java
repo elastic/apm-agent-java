@@ -22,6 +22,7 @@ import co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation;
 import co.elastic.apm.agent.ecs_logging.EcsLoggingUtils;
 import co.elastic.logging.log4j.EcsLayout;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -57,7 +58,7 @@ public abstract class Log4jEcsServiceInstrumentation extends EcsLoggingInstrumen
         public static class AdviceClass {
 
             @Nullable
-            @Advice.AssignReturned.ToFields(@Advice.AssignReturned.ToFields.ToField("serviceName"))
+            @Advice.AssignReturned.ToFields(@ToField("serviceName"))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static String onEnter(@Advice.FieldValue("serviceName") @Nullable String serviceName) {
                 return EcsLoggingUtils.getOrWarnServiceName(serviceName);
@@ -78,7 +79,7 @@ public abstract class Log4jEcsServiceInstrumentation extends EcsLoggingInstrumen
         public static class AdviceClass {
 
             @Nullable
-            @Advice.AssignReturned.ToFields(@Advice.AssignReturned.ToFields.ToField("serviceVersion"))
+            @Advice.AssignReturned.ToFields(@ToField("serviceVersion"))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static String onEnter(@Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
                 return EcsLoggingUtils.getOrWarnServiceVersion(serviceVersion);

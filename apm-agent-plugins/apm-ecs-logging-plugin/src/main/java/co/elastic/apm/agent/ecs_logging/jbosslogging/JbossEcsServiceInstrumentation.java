@@ -61,7 +61,7 @@ public abstract class JbossEcsServiceInstrumentation extends EcsLoggingInstrumen
             @Advice.AssignReturned.ToFields(@ToField(value = "serviceName", typing = Assigner.Typing.DYNAMIC))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static String onEnter(@Advice.This Object formatter,
-                                       @Advice.FieldValue("serviceName") @Nullable String serviceName) {
+                                         @Advice.FieldValue("serviceName") @Nullable String serviceName) {
 
                 if (!EcsLoggingUtils.nameChecked.add(formatter)) {
                     return serviceName;
@@ -87,7 +87,7 @@ public abstract class JbossEcsServiceInstrumentation extends EcsLoggingInstrumen
             @Advice.AssignReturned.ToFields(@ToField(value = "serviceVersion", typing = Assigner.Typing.DYNAMIC))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static String onEnter(@Advice.This Object formatter,
-                                       @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
+                                         @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
 
                 if (!EcsLoggingUtils.versionChecked.add(formatter)) {
                     return serviceVersion;
