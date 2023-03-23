@@ -33,7 +33,7 @@ public interface Url {
      */
     void fillFrom(URI uri);
 
-    void fillFrom(@Nullable String protocol, @Nullable String hostName, int port, @Nullable String pathname, @Nullable String search);
+    void fillFrom(@Nullable String protocol, @Nullable String hostname, int port, @Nullable String pathname, @Nullable String search);
 
     /**
      * The protocol of the request, e.g. 'https:'.
