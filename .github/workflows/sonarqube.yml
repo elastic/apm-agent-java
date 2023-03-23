@@ -41,7 +41,9 @@ jobs:
 
       - uses: ./.github/workflows/maven-goal
         with:
-          command: ./mvnw -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey="${{ env.SONAR_PROJECT_KEY }}"
+          command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
+      - name: mvn sonar
+        run: ./mvnw verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey="${{ env.SONAR_PROJECT_KEY }}"
         env:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
