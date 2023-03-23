@@ -35,7 +35,10 @@ import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * This is an implementation of the
@@ -97,6 +100,15 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
     private static final Logger logger = LoggerFactory.getLogger(TraceContext.class);
 
     private static final Double SAMPLE_RATE_ZERO = 0d;
+
+    public static final Set<String> TRACE_PARENT_TEXTUAL_HEADERS;
+
+    static {
+        Set<String> traceParentTextualHeaders = new HashSet<>();
+        traceParentTextualHeaders.add(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME);
+        traceParentTextualHeaders.add(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME);
+        TRACE_PARENT_TEXTUAL_HEADERS = Collections.unmodifiableSet(traceParentTextualHeaders);
+    }
 
     private static final ChildContextCreator<TraceContext> FROM_PARENT_CONTEXT = new ChildContextCreator<TraceContext>() {
         @Override

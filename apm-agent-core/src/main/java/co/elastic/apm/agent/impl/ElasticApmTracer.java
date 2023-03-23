@@ -66,6 +66,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -917,6 +918,11 @@ public class ElasticApmTracer implements Tracer {
             throw new IllegalStateException(this + " does not implement " + type.getName());
         }
         return cast;
+    }
+
+    @Override
+    public Set<String> getTraceParentHeaders() {
+        return TraceContext.TRACE_PARENT_TEXTUAL_HEADERS;
     }
 
     @Override

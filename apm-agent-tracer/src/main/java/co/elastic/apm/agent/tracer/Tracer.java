@@ -26,6 +26,7 @@ import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 
 import javax.annotation.Nullable;
+import java.util.Set;
 
 public interface Tracer {
 
@@ -83,6 +84,8 @@ public interface Tracer {
      */
     @Nullable
     <C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader);
+
+    Set<String> getTraceParentHeaders();
 
     <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter);
 

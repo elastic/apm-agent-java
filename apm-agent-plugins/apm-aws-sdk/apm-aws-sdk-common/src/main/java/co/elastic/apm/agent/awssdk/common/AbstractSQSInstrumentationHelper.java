@@ -22,7 +22,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
@@ -194,8 +193,7 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
             if (coreConfiguration.isCaptureHeaders()) {
                 for (String key : getMessageAttributeKeys(sqsMessage)) {
                     String value = getMessageAttribute(sqsMessage, key);
-                    if (!TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME.equals(key) &&
-                        !TraceContext.TRACESTATE_HEADER_NAME.equals(key) &&
+                    if (!tracer.getTraceParentHeaders().contains(key) &&
                         value != null &&
                         WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
                         message.addHeader(key, value);

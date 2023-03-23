@@ -25,6 +25,7 @@ import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 
 import javax.annotation.Nullable;
+import java.util.Set;
 
 public class GlobalTracer implements Tracer {
 
@@ -111,6 +112,11 @@ public class GlobalTracer implements Tracer {
     @Override
     public <C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return tracer.startChildTransaction(headerCarrier, binaryHeadersGetter, initiatingClassLoader);
+    }
+
+    @Override
+    public Set<String> getTraceParentHeaders() {
+        return tracer.getTraceParentHeaders();
     }
 
     @Override

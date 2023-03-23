@@ -25,6 +25,8 @@ import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.Set;
 
 class NoopTracer implements Tracer {
 
@@ -87,6 +89,11 @@ class NoopTracer implements Tracer {
     @Override
     public <C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return null;
+    }
+
+    @Override
+    public Set<String> getTraceParentHeaders() {
+        return Collections.<String>emptySet();
     }
 
     @Override

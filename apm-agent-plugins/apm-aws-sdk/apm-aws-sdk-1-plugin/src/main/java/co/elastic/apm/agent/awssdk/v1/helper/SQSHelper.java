@@ -24,7 +24,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
@@ -72,12 +71,10 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<Request<?>, Exec
 
     public void setMessageAttributeNames(ReceiveMessageRequest receiveMessageRequest) {
         List<String> messageAttributeNames = receiveMessageRequest.getMessageAttributeNames();
-        if (!messageAttributeNames.contains(ATTRIBUTE_NAME_ALL) && !messageAttributeNames.contains(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME)) {
-            messageAttributeNames.add(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME);
-        }
-
-        if (!messageAttributeNames.contains(ATTRIBUTE_NAME_ALL) && !messageAttributeNames.contains(TraceContext.TRACESTATE_HEADER_NAME)) {
-            messageAttributeNames.add(TraceContext.TRACESTATE_HEADER_NAME);
+        for (String header : tracer.getTraceParentHeaders()) {
+            if (!messageAttributeNames.contains(ATTRIBUTE_NAME_ALL) && !messageAttributeNames.contains(header)) {
+                messageAttributeNames.add(header);
+            }
         }
 
         List<String> attributeNames = receiveMessageRequest.getAttributeNames();
@@ -142,8 +139,7 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<Request<?>, Exec
             if (coreConfiguration.isCaptureHeaders()) {
                 for (Map.Entry<String, MessageAttributeValue> entry : sqsMessage.getMessageAttributes().entrySet()) {
                     String key = entry.getKey();
-                    if (!TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME.equals(key) &&
-                        !TraceContext.TRACESTATE_HEADER_NAME.equals(key) &&
+                    if (!tracer.getTraceParentHeaders().contains(key) &&
                         entry.getValue().getDataType().equals(ATTRIBUTE_DATA_TYPE_STRING) &&
                         WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
                         message.addHeader(key, entry.getValue().getStringValue());

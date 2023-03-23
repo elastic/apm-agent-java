@@ -21,7 +21,6 @@ package co.elastic.apm.agent.awssdk.v2.helper;
 import co.elastic.apm.agent.awssdk.common.AbstractSQSInstrumentationHelper;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import software.amazon.awssdk.core.SdkRequest;
@@ -127,13 +126,11 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, Exec
         } else if (sdkRequest instanceof ReceiveMessageRequest) {
             ReceiveMessageRequest receiveMessageRequest = (ReceiveMessageRequest) sdkRequest;
             if (!receiveMessageRequest.messageAttributeNames().contains(ATTRIBUTE_NAME_ALL) &&
-                !(receiveMessageRequest.messageAttributeNames().contains(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME) &&
-                    receiveMessageRequest.messageAttributeNames().contains(TraceContext.TRACESTATE_HEADER_NAME))) {
+                Collections.disjoint(receiveMessageRequest.messageAttributeNames(), tracer.getTraceParentHeaders())) {
 
                 List<String> newMessageAttributeNames = new ArrayList<>(receiveMessageRequest.messageAttributeNames().size() + 2);
                 newMessageAttributeNames.addAll(receiveMessageRequest.messageAttributeNames());
-                newMessageAttributeNames.add(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME);
-                newMessageAttributeNames.add(TraceContext.TRACESTATE_HEADER_NAME);
+                newMessageAttributeNames.addAll(tracer.getTraceParentHeaders());
 
                 List<String> attributeNames;
                 if (receiveMessageRequest.attributeNamesAsStrings().isEmpty()) {
