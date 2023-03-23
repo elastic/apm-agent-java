@@ -48,7 +48,7 @@ public abstract class Log4jEcsServiceInstrumentation extends EcsLoggingInstrumen
     }
 
     /**
-     * Instruments {@link EcsLayout()} to set value for service name
+     * Instruments {@link EcsLayout} to set value for service name
      */
     public static class Name extends Log4jEcsServiceInstrumentation {
 
@@ -90,7 +90,7 @@ public abstract class Log4jEcsServiceInstrumentation extends EcsLoggingInstrumen
     }
 
     /**
-     * Instruments {@link EcsLayout()} to set value for service version
+     * Instruments {@link EcsLayout} to set value for service version
      */
     public static class Version extends Log4jEcsServiceInstrumentation {
 

@@ -47,7 +47,7 @@ public abstract class LogBackServiceInstrumentation extends EcsLoggingInstrument
     }
 
     /**
-     * Instruments {@link EcsEncoder()} to set value for service name
+     * Instruments {@link EcsEncoder} to set value for service name
      */
     public static class Name extends LogBackServiceInstrumentation {
 
@@ -89,7 +89,7 @@ public abstract class LogBackServiceInstrumentation extends EcsLoggingInstrument
     }
 
     /**
-     * Instruments {@link EcsEncoder()} to set value for service version
+     * Instruments {@link EcsEncoder} to set value for service version
      */
     public static class Version extends LogBackServiceInstrumentation {
 

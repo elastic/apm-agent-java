@@ -23,7 +23,6 @@ import co.elastic.apm.agent.ecs_logging.EcsLoggingUtils;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.logging.log4j2.EcsLayout;
-import co.elastic.logging.logback.EcsEncoder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

@@ -47,7 +47,7 @@ public abstract class JbossEcsServiceInstrumentation extends EcsLoggingInstrumen
     }
 
     /**
-     * Instruments {@link EcsFormatter()} to set value for service name
+     * Instruments {@link EcsFormatter} to set value for service name
      */
     public static class Name extends JbossEcsServiceInstrumentation {
 
@@ -89,7 +89,7 @@ public abstract class JbossEcsServiceInstrumentation extends EcsLoggingInstrumen
     }
 
     /**
-     * Instruments {@link EcsFormatter()} to set value for service version
+     * Instruments {@link EcsFormatter} to set value for service version
      */
     public static class Version extends JbossEcsServiceInstrumentation{
 
