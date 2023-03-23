@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.loginstr.correlation;
 
-import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
+import co.elastic.apm.agent.tracer.Tracer;
 
 @GlobalState
 public abstract class AbstractLogCorrelationHelper {
@@ -69,7 +69,7 @@ public abstract class AbstractLogCorrelationHelper {
      */
     public static abstract class DefaultLogCorrelationHelper extends AbstractLogCorrelationHelper {
 
-        private final Tracer tracer = GlobalTracer.get().require(Tracer.class);
+        private final Tracer tracer = GlobalTracer.get();
 
         @Override
         protected boolean addToMdc() {

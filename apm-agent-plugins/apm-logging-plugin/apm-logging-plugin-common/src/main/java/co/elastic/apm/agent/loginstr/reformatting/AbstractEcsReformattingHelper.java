@@ -35,6 +35,7 @@ import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -168,7 +169,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
     private final Reporter reporter;
 
     public AbstractEcsReformattingHelper() {
-        ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
+        Tracer tracer = GlobalTracer.get();
         loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
         additionalFields = loggingConfiguration.getLogEcsReformattingAdditionalFields();
         Service service = new ServiceFactory().createService(
@@ -183,7 +184,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
         } else {
             configuredServiceNodeName = null;
         }
-        reporter = tracer.getReporter();
+        reporter = tracer.require(ElasticApmTracer.class).getReporter();
     }
 
     /**

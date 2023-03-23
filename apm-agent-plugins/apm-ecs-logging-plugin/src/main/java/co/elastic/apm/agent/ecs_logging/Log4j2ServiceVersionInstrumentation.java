@@ -20,8 +20,7 @@ package co.elastic.apm.agent.ecs_logging;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.logging.log4j2.EcsLayout;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.type.TypeDescription;
@@ -39,12 +38,10 @@ public class Log4j2ServiceVersionInstrumentation extends AbstractLog4j2ServiceIn
 
     public static class AdviceClass {
 
-        private static final ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
-
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onEnter(@Advice.This EcsLayout.Builder builder) {
             if (builder.getServiceVersion() == null || builder.getServiceVersion().isEmpty()) {
-                ServiceInfo serviceInfo = tracer.getServiceInfoForClassLoader(Thread.currentThread().getContextClassLoader());
+                ServiceInfo serviceInfo = tracer.require(Tracer.class).getServiceInfoForClassLoader(Thread.currentThread().getContextClassLoader());
                 String configuredServiceVersion = tracer.getConfig(CoreConfiguration.class).getServiceVersion();
                 builder.setServiceVersion(serviceInfo != null ? serviceInfo.getServiceVersion() : configuredServiceVersion);
             }

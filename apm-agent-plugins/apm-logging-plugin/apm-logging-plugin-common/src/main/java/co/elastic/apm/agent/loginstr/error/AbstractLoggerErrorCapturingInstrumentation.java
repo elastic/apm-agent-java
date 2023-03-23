@@ -47,7 +47,7 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Tracer
 
     public static class LoggingAdvice {
 
-        private static final LoggerErrorHelper helper = new LoggerErrorHelper(LoggingAdvice.class, tracer.require(Tracer.class));
+        private static final LoggerErrorHelper helper = new LoggerErrorHelper(LoggingAdvice.class, tracer);
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
