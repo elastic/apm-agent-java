@@ -85,7 +85,10 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
                                      @Advice.Thrown final Throwable throwable) {
             AbstractSpan<?> active = tracer.getActive();
             if (active instanceof Span<?>) {
-                helper.onSendEnd((Span<?>) active, record, thiz, throwable);
+                Span<?> activeSpan = (Span<?>) active;
+                if (activeSpan.isExit()) {
+                    helper.onSendEnd(activeSpan, record, thiz, throwable);
+                }
             }
         }
     }

@@ -89,10 +89,7 @@ public abstract class ServletApiAdvice {
                 return null;
             }
 
-            ElasticApmTracer elasticApmTracer = tracer.probe(ElasticApmTracer.class);
-            if (elasticApmTracer != null) {
-                ServletServiceNameHelper.determineServiceName(adapter, adapter.getServletContext(httpServletRequest), elasticApmTracer);
-            }
+            ServletServiceNameHelper.determineServiceName(adapter, adapter.getServletContext(httpServletRequest), tracer);
 
             Transaction<?> transaction = servletTransactionHelper.createAndActivateTransaction(adapter, adapter, httpServletRequest);
 
