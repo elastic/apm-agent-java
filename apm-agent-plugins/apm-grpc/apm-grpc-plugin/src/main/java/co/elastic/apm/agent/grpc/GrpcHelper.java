@@ -333,7 +333,7 @@ public class GrpcHelper {
             if (spanToMap == null) {
                 // handling nested newCall() invocations - we still want to map the client call to the same span
                 AbstractSpan<?> active = GlobalTracer.get().getActive();
-                if (active != null) {
+                if (active instanceof Span<?>) {
                     Span<?> tmp = (Span<?>) active;
                     if (tmp.getSubtype() != null && tmp.getSubtype().equals(GRPC) && tmp.isExit()) {
                         spanToMap = tmp;
