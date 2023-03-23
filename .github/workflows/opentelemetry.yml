@@ -6,6 +6,8 @@ on:
     workflows:
       - main
       - test-reporter
+      - snapshot
+      - Snapshoty
       - updatecli
     types: [completed]
 
