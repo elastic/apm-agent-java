@@ -85,7 +85,7 @@ public interface Tracer {
     @Nullable
     <C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader);
 
-    Set<String> getTraceParentHeaders();
+    Set<String> getTraceParentHeaders(TraceHeaderDisplay display);
 
     <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter);
 

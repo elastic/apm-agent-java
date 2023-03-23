@@ -18,9 +18,11 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
@@ -30,8 +32,6 @@ import javax.annotation.Nullable;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageNotWriteableException;
-
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
 
 public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Message> implements TextHeaderGetter<Message>, TextHeaderSetter<Message> {
 
@@ -43,7 +43,10 @@ public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Mes
         return INSTANCE;
     }
 
+    private final Tracer tracer;
+
     private JmsMessagePropertyAccessor() {
+        tracer = GlobalTracer.get();
     }
 
     @Nullable
@@ -61,9 +64,9 @@ public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Mes
 
     @Nonnull
     private String jmsifyHeaderName(String headerName) {
-        if (headerName.equals(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)) {
+        if (tracer.getTraceParentHeaders(TraceHeaderDisplay.REGULAR).contains(headerName)) {
             // replacing with the JMS equivalent
-            headerName = JMS_TRACE_PARENT_PROPERTY;
+            headerName = TraceHeaderDisplay.QUEUE.format(headerName);
         }
         return headerName;
     }

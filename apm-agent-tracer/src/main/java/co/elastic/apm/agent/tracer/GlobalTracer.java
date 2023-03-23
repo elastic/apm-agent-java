@@ -115,8 +115,8 @@ public class GlobalTracer implements Tracer {
     }
 
     @Override
-    public Set<String> getTraceParentHeaders() {
-        return tracer.getTraceParentHeaders();
+    public Set<String> getTraceParentHeaders(TraceHeaderDisplay display) {
+        return tracer.getTraceParentHeaders(display);
     }
 
     @Override

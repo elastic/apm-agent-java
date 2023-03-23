@@ -25,6 +25,7 @@ import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import com.amazonaws.AmazonWebServiceRequest;
@@ -71,7 +72,7 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<Request<?>, Exec
 
     public void setMessageAttributeNames(ReceiveMessageRequest receiveMessageRequest) {
         List<String> messageAttributeNames = receiveMessageRequest.getMessageAttributeNames();
-        for (String header : tracer.getTraceParentHeaders()) {
+        for (String header : tracer.getTraceParentHeaders(TraceHeaderDisplay.REGULAR)) {
             if (!messageAttributeNames.contains(ATTRIBUTE_NAME_ALL) && !messageAttributeNames.contains(header)) {
                 messageAttributeNames.add(header);
             }
@@ -139,7 +140,7 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<Request<?>, Exec
             if (coreConfiguration.isCaptureHeaders()) {
                 for (Map.Entry<String, MessageAttributeValue> entry : sqsMessage.getMessageAttributes().entrySet()) {
                     String key = entry.getKey();
-                    if (!tracer.getTraceParentHeaders().contains(key) &&
+                    if (!tracer.getTraceParentHeaders(TraceHeaderDisplay.REGULAR).contains(key) &&
                         entry.getValue().getDataType().equals(ATTRIBUTE_DATA_TYPE_STRING) &&
                         WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
                         message.addHeader(key, entry.getValue().getStringValue());

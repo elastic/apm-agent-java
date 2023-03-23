@@ -22,6 +22,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
@@ -101,13 +102,24 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
 
     private static final Double SAMPLE_RATE_ZERO = 0d;
 
-    public static final Set<String> TRACE_PARENT_TEXTUAL_HEADERS;
+    public static final Set<String> TRACE_PARENT_TEXTUAL_HEADERS_REGULAR;
+    public static final Set<String> TRACE_PARENT_TEXTUAL_HEADERS_BINARY;
+    public static final Set<String> TRACE_PARENT_TEXTUAL_HEADERS_QUEUE;
 
     static {
         Set<String> traceParentTextualHeaders = new HashSet<>();
         traceParentTextualHeaders.add(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME);
         traceParentTextualHeaders.add(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME);
-        TRACE_PARENT_TEXTUAL_HEADERS = Collections.unmodifiableSet(traceParentTextualHeaders);
+        TRACE_PARENT_TEXTUAL_HEADERS_REGULAR = Collections.unmodifiableSet(traceParentTextualHeaders);
+        Set<String> traceParentTextualHeadersBinary = new HashSet<>();
+        Set<String> traceParentTextualHeadersQueue = new HashSet<>();
+        for (String header : traceParentTextualHeaders) {
+            traceParentTextualHeadersBinary.add(TraceHeaderDisplay.BINARY.format(header));
+            traceParentTextualHeadersQueue.add(TraceHeaderDisplay.QUEUE.format(header));
+        }
+        TRACE_PARENT_TEXTUAL_HEADERS_BINARY = Collections.unmodifiableSet(traceParentTextualHeadersBinary);
+        TRACE_PARENT_TEXTUAL_HEADERS_QUEUE = Collections.unmodifiableSet(traceParentTextualHeadersQueue);
+
     }
 
     private static final ChildContextCreator<TraceContext> FROM_PARENT_CONTEXT = new ChildContextCreator<TraceContext>() {

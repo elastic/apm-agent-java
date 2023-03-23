@@ -22,7 +22,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
@@ -43,11 +43,6 @@ import javax.jms.Topic;
 import java.util.Enumeration;
 
 public class JmsInstrumentationHelper {
-
-    /**
-     * In some cases, dashes are not allowed in JMS Message property names
-     */
-    protected static String JMS_TRACE_PARENT_PROPERTY = TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME.replace('-', '_');
 
     /**
      * When the agent computes a destination name instead of using the default queue name- it should be passed as a
@@ -258,8 +253,9 @@ public class JmsInstrumentationHelper {
                 if (properties != null) {
                     while (properties.hasMoreElements()) {
                         String propertyName = String.valueOf(properties.nextElement());
-                        if (!propertyName.equals(JMS_DESTINATION_NAME_PROPERTY) && !propertyName.equals(JMS_TRACE_PARENT_PROPERTY)
-                            && WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), propertyName) == null) {
+                        if (!propertyName.equals(JMS_DESTINATION_NAME_PROPERTY) &&
+                            !tracer.getTraceParentHeaders(TraceHeaderDisplay.QUEUE).contains(propertyName) &&
+                            WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), propertyName) == null) {
                             messageContext.addHeader(propertyName, String.valueOf(message.getObjectProperty(propertyName)));
                         }
                     }

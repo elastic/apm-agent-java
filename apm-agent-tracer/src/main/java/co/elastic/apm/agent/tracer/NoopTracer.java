@@ -92,7 +92,7 @@ class NoopTracer implements Tracer {
     }
 
     @Override
-    public Set<String> getTraceParentHeaders() {
+    public Set<String> getTraceParentHeaders(TraceHeaderDisplay display) {
         return Collections.<String>emptySet();
     }
 

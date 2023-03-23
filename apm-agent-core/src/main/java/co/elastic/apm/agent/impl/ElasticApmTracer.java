@@ -47,6 +47,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
 import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
@@ -921,8 +922,17 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @Override
-    public Set<String> getTraceParentHeaders() {
-        return TraceContext.TRACE_PARENT_TEXTUAL_HEADERS;
+    public Set<String> getTraceParentHeaders(TraceHeaderDisplay display) {
+        switch (display) {
+            case REGULAR:
+                return TraceContext.TRACE_PARENT_TEXTUAL_HEADERS_REGULAR;
+            case BINARY:
+                return TraceContext.TRACE_PARENT_TEXTUAL_HEADERS_BINARY;
+            case QUEUE:
+                return TraceContext.TRACE_PARENT_TEXTUAL_HEADERS_QUEUE;
+            default:
+                throw new IllegalStateException();
+        }
     }
 
     @Override

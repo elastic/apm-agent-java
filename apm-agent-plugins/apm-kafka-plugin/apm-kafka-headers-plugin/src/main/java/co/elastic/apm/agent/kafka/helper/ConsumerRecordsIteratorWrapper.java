@@ -20,7 +20,7 @@ package co.elastic.apm.agent.kafka.helper;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
@@ -89,7 +89,7 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
                     if (transaction.isSampled() && coreConfiguration.isCaptureHeaders()) {
                         for (Header header : record.headers()) {
                             String key = header.key();
-                            if (!TraceContext.TRACE_PARENT_BINARY_HEADER_NAME.equals(key) &&
+                            if (!tracer.getTraceParentHeaders(TraceHeaderDisplay.BINARY).contains(key) &&
                                 WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
                                 message.addHeader(key, header.value());
                             }
