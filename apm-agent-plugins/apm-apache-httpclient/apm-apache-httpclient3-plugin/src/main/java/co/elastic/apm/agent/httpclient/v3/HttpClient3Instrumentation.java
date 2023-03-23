@@ -20,7 +20,6 @@ package co.elastic.apm.agent.httpclient.v3;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
@@ -121,10 +120,10 @@ public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
                 span.activate();
             }
 
-            if (!TraceContext.containsTraceContextTextHeaders(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
+            if (!tracer.containsTraceContextTextHeaders(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
                 if (span != null) {
                     span.propagateTraceContext(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE);
-                } else if (!TraceContext.containsTraceContextTextHeaders(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
+                } else if (!tracer.containsTraceContextTextHeaders(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
                     // re-adds the header on redirects
                     parent.propagateTraceContext(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE);
                 }

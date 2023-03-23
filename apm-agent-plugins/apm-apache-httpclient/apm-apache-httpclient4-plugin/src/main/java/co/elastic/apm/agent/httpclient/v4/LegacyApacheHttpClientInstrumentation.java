@@ -23,7 +23,6 @@ import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -106,10 +105,10 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                 span.activate();
             }
 
-            if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+            if (!tracer.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
                 if (span != null) {
                     span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
-                } else if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+                } else if (!tracer.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
                     // re-adds the header on redirects
                     parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
                 }

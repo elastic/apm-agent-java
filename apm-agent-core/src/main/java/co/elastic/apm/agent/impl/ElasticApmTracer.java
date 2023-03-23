@@ -47,6 +47,8 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.tracer.Scope;
@@ -915,5 +917,20 @@ public class ElasticApmTracer implements Tracer {
             throw new IllegalStateException(this + " does not implement " + type.getName());
         }
         return cast;
+    }
+
+    @Override
+    public <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter) {
+        return TraceContext.containsTraceContextTextHeaders(carrier, headerGetter);
+    }
+
+    @Override
+    public <S, D> void copyTraceContextTextHeaders(S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
+        TraceContext.copyTraceContextTextHeaders(source, headerGetter, destination, headerSetter);
+    }
+
+    @Override
+    public <C> void removeTraceContextHeaders(C carrier, HeaderRemover<C> headerRemover) {
+        TraceContext.removeTraceContextHeaders(carrier, headerRemover);
     }
 }

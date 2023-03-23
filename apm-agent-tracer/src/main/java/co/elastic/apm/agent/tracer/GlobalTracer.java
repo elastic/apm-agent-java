@@ -19,7 +19,9 @@
 package co.elastic.apm.agent.tracer;
 
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 
 import javax.annotation.Nullable;
@@ -109,5 +111,20 @@ public class GlobalTracer implements Tracer {
     @Override
     public <C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return tracer.startChildTransaction(headerCarrier, binaryHeadersGetter, initiatingClassLoader);
+    }
+
+    @Override
+    public <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter) {
+        return tracer.containsTraceContextTextHeaders(carrier, headerGetter);
+    }
+
+    @Override
+    public <S, D> void copyTraceContextTextHeaders(S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
+        tracer.copyTraceContextTextHeaders(source, headerGetter, destination, headerSetter);
+    }
+
+    @Override
+    public <C> void removeTraceContextHeaders(C carrier, HeaderRemover<C> headerRemover) {
+        tracer.removeTraceContextHeaders(carrier, headerRemover);
     }
 }

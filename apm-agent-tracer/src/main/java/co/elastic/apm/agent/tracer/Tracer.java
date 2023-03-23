@@ -20,7 +20,9 @@ package co.elastic.apm.agent.tracer;
 
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 
 import javax.annotation.Nullable;
@@ -81,4 +83,10 @@ public interface Tracer {
      */
     @Nullable
     <C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader);
+
+    <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter);
+
+    <S, D> void copyTraceContextTextHeaders(S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter);
+
+    <C> void removeTraceContextHeaders(C carrier, HeaderRemover<C> headerRemover);
 }

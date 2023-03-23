@@ -19,7 +19,9 @@
 package co.elastic.apm.agent.tracer;
 
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 
 import javax.annotation.Nullable;
@@ -85,5 +87,18 @@ class NoopTracer implements Tracer {
     @Override
     public <C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return null;
+    }
+
+    @Override
+    public <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter) {
+        return false;
+    }
+
+    @Override
+    public <S, D> void copyTraceContextTextHeaders(S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
+    }
+
+    @Override
+    public <C> void removeTraceContextHeaders(C carrier, HeaderRemover<C> headerRemover) {
     }
 }
