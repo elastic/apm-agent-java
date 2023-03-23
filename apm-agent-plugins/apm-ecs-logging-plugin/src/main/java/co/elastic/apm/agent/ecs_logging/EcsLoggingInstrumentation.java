@@ -19,8 +19,13 @@
 package co.elastic.apm.agent.ecs_logging;
 
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.loginstr.AbstractLogIntegrationInstrumentation;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.matcher.ElementMatcher;
+
+import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
@@ -30,5 +35,27 @@ public abstract class EcsLoggingInstrumentation extends AbstractLogIntegrationIn
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         // ECS formatter that is loaded within the agent should not be instrumented
         return not(CustomElementMatchers.isInternalPluginClassLoader());
+    }
+
+    @SuppressWarnings("unused")
+    public static class VersionWarnAdvice {
+
+        private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+
+        @Advice.OnMethodExit(inline = false)
+        public static void onExit(@Advice.Argument(0) @Nullable String version) {
+            EcsLoggingUtils.warnIfServiceVersionMisconfigured(version, tracer);
+        }
+    }
+
+    @SuppressWarnings("unused")
+    public static class NameWarnAdvice {
+
+        private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+
+        @Advice.OnMethodExit(inline = false)
+        public static void onExit(@Advice.Argument(0) @Nullable String name) {
+            EcsLoggingUtils.warnIfServiceNameMisconfigured(name, tracer);
+        }
     }
 }

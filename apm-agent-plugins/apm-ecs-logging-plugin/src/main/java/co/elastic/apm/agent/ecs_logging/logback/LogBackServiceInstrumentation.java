@@ -28,8 +28,6 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
-
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -77,15 +75,11 @@ public abstract class LogBackServiceInstrumentation extends EcsLoggingInstrument
             return named("setServiceName");
         }
 
-        public static class AdviceClass {
-
-            private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
-
-            @Advice.OnMethodExit(inline = false)
-            public static void onExit(@Advice.Argument(0) @Nullable String name) {
-                EcsLoggingUtils.warnIfServiceNameMisconfigured(name, tracer);
-            }
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation$NameWarnAdvice";
         }
+
     }
 
     /**
@@ -126,14 +120,10 @@ public abstract class LogBackServiceInstrumentation extends EcsLoggingInstrument
             return named("setServiceVersion");
         }
 
-        public static class AdviceClass {
-
-            private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
-
-            @Advice.OnMethodExit(inline = false)
-            public static void onExit(@Advice.Argument(0) @Nullable String version) {
-                EcsLoggingUtils.warnIfServiceVersionMisconfigured(version, tracer);
-            }
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation$VersionWarnAdvice";
         }
+
     }
 }

@@ -23,13 +23,10 @@ import co.elastic.apm.agent.ecs_logging.EcsLoggingUtils;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.logging.log4j.EcsLayout;
-import co.elastic.logging.logback.EcsEncoder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-
-import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
@@ -78,15 +75,11 @@ public abstract class Log4jEcsServiceInstrumentation extends EcsLoggingInstrumen
             return named("setServiceName");
         }
 
-        public static class AdviceClass {
-
-            private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
-
-            @Advice.OnMethodExit(inline = false)
-            public static void onExit(@Advice.Argument(0) @Nullable String name) {
-                EcsLoggingUtils.warnIfServiceNameMisconfigured(name, tracer);
-            }
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation$NameWarnAdvice";
         }
+
     }
 
     /**
@@ -127,14 +120,9 @@ public abstract class Log4jEcsServiceInstrumentation extends EcsLoggingInstrumen
             return named("setServiceVersion");
         }
 
-        public static class AdviceClass {
-
-            private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
-
-            @Advice.OnMethodExit(inline = false)
-            public static void onExit(@Advice.Argument(0) @Nullable String version) {
-                EcsLoggingUtils.warnIfServiceVersionMisconfigured(version, tracer);
-            }
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation$VersionWarnAdvice";
         }
 
     }
