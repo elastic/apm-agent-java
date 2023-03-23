@@ -35,10 +35,13 @@ jobs:
           roleId: ${{ secrets.VAULT_ROLE_ID }}
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           secrets: |
-            secret/observability-team/ci/sonarqube/apm-agent-python sonar-token | SONAR_TOKEN ;
-            secret/observability-team/ci/sonarqube/apm-agent-python sonar-host-url | SONAR_HOST_URL
-      - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@master
+            secret/observability-team/ci/sonarqube/apm-agent-java sonar-token | SONAR_TOKEN ;
+            secret/observability-team/ci/sonarqube/apm-agent-java sonar-host-url | SONAR_HOST_URL ;
+            secret/observability-team/ci/sonarqube/apm-agent-java project-key | SONAR_PROJECT_KEY
+
+      - uses: ./.github/workflows/maven-goal
+        with:
+          command: ./mvnw -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey="${{ env.SONAR_PROJECT_KEY }}"
         env:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
