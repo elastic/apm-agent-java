@@ -180,7 +180,7 @@ public class ElasticApmAgent {
     }
 
     @Nonnull
-    private static Iterable<ElasticApmInstrumentation> loadInstrumentations(ElasticApmTracer tracer) {
+    private static Iterable<ElasticApmInstrumentation> loadInstrumentations(Tracer tracer) {
         List<ClassLoader> pluginClassLoaders = new ArrayList<>();
         pluginClassLoaders.add(PrivilegedActionUtils.getClassLoader(ElasticApmAgent.class));
         pluginClassLoaders.addAll(createExternalPluginClassLoaders(tracer.getConfig(CoreConfiguration.class).getPluginsDir()));
@@ -309,7 +309,7 @@ public class ElasticApmAgent {
     }
 
     public static synchronized Future<?> reInitInstrumentation() {
-        final ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
+        final Tracer tracer = TracerAwareInstrumentation.tracer.require(Tracer.class);
         if (instrumentation == null) {
             throw new IllegalStateException("Can't re-init agent before it has been initialized");
         }
