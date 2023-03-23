@@ -3,7 +3,7 @@ name: Sync branches
 on:
   push:
     branches:
-      - feature/sync-branches
+      - main
 
 jobs:
   sync:
@@ -22,5 +22,5 @@ jobs:
           git rev-parse --abbrev-ref HEAD
           git push origin "${TARGET_BRANCH}"
         env:
-          SOURCE_BRANCH: feature/sync-branches
-          TARGET_BRANCH: feature/sync-branches-test
+          SOURCE_BRANCH: main
+          TARGET_BRANCH: stable
