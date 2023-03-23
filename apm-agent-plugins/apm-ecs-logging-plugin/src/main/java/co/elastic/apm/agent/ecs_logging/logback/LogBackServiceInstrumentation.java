@@ -20,17 +20,16 @@ package co.elastic.apm.agent.ecs_logging.logback;
 
 import co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation;
 import co.elastic.apm.agent.ecs_logging.EcsLoggingUtils;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.logging.logback.EcsEncoder;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 
-import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
+import static net.bytebuddy.matcher.ElementMatchers.declaresField;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -57,16 +56,14 @@ public abstract class LogBackServiceInstrumentation extends EcsLoggingInstrument
 
         public static class AdviceClass {
 
-            private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+            @Nullable
+            @Advice.AssignReturned.ToFields(@ToField("serviceName"))
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static String onExit(@Advice.FieldValue("serviceName") @Nullable String serviceName) {
 
-            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static void onEnter(@Advice.This EcsEncoder ecsEncoder,
-                                       @Advice.FieldValue("serviceName") @Nullable String serviceName) {
-
-                ecsEncoder.setServiceName(EcsLoggingUtils.getOrWarnServiceName(tracer, serviceName));
+                return EcsLoggingUtils.getOrWarnServiceName(serviceName);
             }
         }
-
     }
 
     public static class Version extends LogBackServiceInstrumentation {
@@ -74,22 +71,32 @@ public abstract class LogBackServiceInstrumentation extends EcsLoggingInstrument
         @Override
         public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
             return super.getTypeMatcher()
-                // setServiceVersion introduced in 1.4.0
-                .and(declaresMethod(named("setServiceVersion")));
+                // serviceVersion introduced in 1.4.0
+                .and(declaresField(named("serviceVersion")));
         }
 
         public static class AdviceClass {
 
-            private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+            @Nullable
+            @Advice.AssignReturned.ToFields(@ToField("serviceVersion"))
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static String onExit(@Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
 
-            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static void onEnter(@Advice.This EcsEncoder ecsEncoder,
-                                       @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
-
-                ecsEncoder.setServiceVersion(EcsLoggingUtils.getOrWarnServiceVersion(tracer, serviceVersion));
+                return EcsLoggingUtils.getOrWarnServiceVersion(serviceVersion);
             }
         }
 
+    }
+
+    public static class VersionAdvice {
+
+        @Nullable
+        @Advice.AssignReturned.ToFields(@ToField("serviceVersion"))
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static String onExit(@Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
+
+            return EcsLoggingUtils.getOrWarnServiceVersion(serviceVersion);
+        }
     }
 
 }

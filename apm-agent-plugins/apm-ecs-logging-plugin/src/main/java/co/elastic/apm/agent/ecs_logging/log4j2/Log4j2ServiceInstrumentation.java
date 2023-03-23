@@ -20,17 +20,20 @@ package co.elastic.apm.agent.ecs_logging.log4j2;
 
 import co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation;
 import co.elastic.apm.agent.ecs_logging.EcsLoggingUtils;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.logging.log4j2.EcsLayout;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
+import javax.annotation.Nullable;
+
+import static net.bytebuddy.matcher.ElementMatchers.declaresField;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
+/**
+ * Instruments {@link EcsLayout.Builder#build()}
+ */
 public abstract class Log4j2ServiceInstrumentation extends EcsLoggingInstrumentation {
 
     @Override
@@ -43,10 +46,6 @@ public abstract class Log4j2ServiceInstrumentation extends EcsLoggingInstrumenta
         return named("build");
     }
 
-
-    /**
-     * Instruments {@link EcsLayout.Builder#build()} to set value for service name
-     */
     public static class Name extends Log4j2ServiceInstrumentation{
 
         @Override
@@ -56,46 +55,31 @@ public abstract class Log4j2ServiceInstrumentation extends EcsLoggingInstrumenta
 
         public static class AdviceClass {
 
-            private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
-
+            @Nullable
+            @Advice.AssignReturned.ToFields(@Advice.AssignReturned.ToFields.ToField("serviceName"))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static void onEnter(@Advice.This EcsLayout.Builder builder) {
-                String ecsLoggingValue = builder.getServiceName();
-                String agentValue = EcsLoggingUtils.getServiceName(tracer);
-                if (ecsLoggingValue == null || ecsLoggingValue.isEmpty()) {
-                    builder.setServiceName(agentValue);
-                } else {
-                    EcsLoggingUtils.warnIfServiceNameMisconfigured(ecsLoggingValue, tracer);
-                }
+            public static String onEnter(@Advice.FieldValue("serviceName") @Nullable String serviceName) {
+                return EcsLoggingUtils.getOrWarnServiceName(serviceName);
             }
         }
     }
 
-    /**
-     * Instruments {@link EcsLayout.Builder#build()} to set value for service version
-     */
     public static class Version extends Log4j2ServiceInstrumentation {
 
         @Override
         public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
             return named("co.elastic.logging.log4j2.EcsLayout$Builder")
-                // setServiceVersion introduced in 1.4.0
-                .and(declaresMethod(named("setServiceVersion")));
+                // serviceVersion introduced in 1.4.0
+                .and(declaresField(named("serviceVersion")));
         }
 
         public static class AdviceClass {
 
-            private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
-
+            @Nullable
+            @Advice.AssignReturned.ToFields(@Advice.AssignReturned.ToFields.ToField("serviceVersion"))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static void onEnter(@Advice.This EcsLayout.Builder builder) {
-                String ecsLoggingValue = builder.getServiceVersion();
-                String agentValue = EcsLoggingUtils.getServiceVersion(tracer);
-                if (ecsLoggingValue == null || ecsLoggingValue.isEmpty()) {
-                    builder.setServiceVersion(agentValue);
-                } else {
-                    EcsLoggingUtils.warnIfServiceVersionMisconfigured(ecsLoggingValue, tracer);
-                }
+            public static String onEnter(@Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
+                return EcsLoggingUtils.getOrWarnServiceVersion(serviceVersion);
             }
         }
     }

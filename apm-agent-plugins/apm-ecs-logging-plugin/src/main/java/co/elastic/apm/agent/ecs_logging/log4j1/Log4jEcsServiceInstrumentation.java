@@ -20,9 +20,6 @@ package co.elastic.apm.agent.ecs_logging.log4j1;
 
 import co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation;
 import co.elastic.apm.agent.ecs_logging.EcsLoggingUtils;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.logging.jul.EcsFormatter;
 import co.elastic.logging.log4j.EcsLayout;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -59,16 +56,11 @@ public abstract class Log4jEcsServiceInstrumentation extends EcsLoggingInstrumen
 
         public static class AdviceClass {
 
-            private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
-
+            @Nullable
+            @Advice.AssignReturned.ToFields(@Advice.AssignReturned.ToFields.ToField("serviceName"))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static void onEnter(@Advice.This EcsLayout ecsLayout,
-                                       @Advice.FieldValue("serviceName") @Nullable String serviceName) {
-
-                if (!EcsLoggingUtils.nameChecked.add(ecsLayout)) {
-                    return;
-                }
-                ecsLayout.setServiceName(EcsLoggingUtils.getOrWarnServiceName(tracer, serviceName));
+            public static String onEnter(@Advice.FieldValue("serviceName") @Nullable String serviceName) {
+                return EcsLoggingUtils.getOrWarnServiceName(serviceName);
             }
         }
 
@@ -85,16 +77,11 @@ public abstract class Log4jEcsServiceInstrumentation extends EcsLoggingInstrumen
 
         public static class AdviceClass {
 
-            private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
-
+            @Nullable
+            @Advice.AssignReturned.ToFields(@Advice.AssignReturned.ToFields.ToField("serviceVersion"))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static void onEnter(@Advice.This EcsLayout ecsLayout,
-                                       @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
-
-                if (!EcsLoggingUtils.versionChecked.add(ecsLayout)) {
-                    return;
-                }
-                ecsLayout.setServiceVersion(EcsLoggingUtils.getOrWarnServiceVersion(tracer, serviceVersion));
+            public static String onEnter(@Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
+                return EcsLoggingUtils.getOrWarnServiceVersion(serviceVersion);
             }
         }
 

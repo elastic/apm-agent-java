@@ -20,8 +20,6 @@ package co.elastic.apm.agent.ecs_logging.jul;
 
 import co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation;
 import co.elastic.apm.agent.ecs_logging.EcsLoggingUtils;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.logging.jul.EcsFormatter;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
@@ -59,8 +57,7 @@ public abstract class JulEcsServiceInstrumentation extends EcsLoggingInstrumenta
 
         public static class AdviceClass {
 
-            private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
-
+            @Nullable
             @Advice.AssignReturned.ToFields(@ToField(value = "serviceName", typing = Assigner.Typing.DYNAMIC))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static String onEnter(@Advice.This EcsFormatter formatter,
@@ -70,7 +67,7 @@ public abstract class JulEcsServiceInstrumentation extends EcsLoggingInstrumenta
                 if (!EcsLoggingUtils.nameChecked.add(formatter)) {
                     return serviceName;
                 }
-                return EcsLoggingUtils.getOrWarnServiceName(tracer, serviceName);
+                return EcsLoggingUtils.getOrWarnServiceName(serviceName);
             }
         }
 
@@ -87,16 +84,16 @@ public abstract class JulEcsServiceInstrumentation extends EcsLoggingInstrumenta
 
         public static class AdviceClass {
 
-            private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
-
+            @Nullable
+            @Advice.AssignReturned.ToFields(@ToField(value = "serviceVersion", typing = Assigner.Typing.DYNAMIC))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static void onEnter(@Advice.This EcsFormatter formatter,
-                                       @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
+            public static String onEnter(@Advice.This EcsFormatter formatter,
+                                         @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
 
                 if (!EcsLoggingUtils.versionChecked.add(formatter)) {
-                    return;
+                    return serviceVersion;
                 }
-                formatter.setServiceVersion(EcsLoggingUtils.getOrWarnServiceVersion(tracer, serviceVersion));
+                return EcsLoggingUtils.getOrWarnServiceVersion(serviceVersion);
             }
         }
 

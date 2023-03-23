@@ -37,28 +37,20 @@ public class EcsLoggingUtils {
     public static final WeakSet<Object> nameChecked = WeakConcurrent.buildSet();
     public static final WeakSet<Object> versionChecked = WeakConcurrent.buildSet();
 
-    private static final ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
+    private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
 
     @Nullable
-    public static String getServiceName(ElasticApmTracer tracer) {
+    public static String getServiceName() {
         ServiceInfo serviceInfo = tracer.getServiceInfoForClassLoader(Thread.currentThread().getContextClassLoader());
         String configuredServiceName = tracer.getConfig(CoreConfiguration.class).getServiceName();
         return serviceInfo != null ? serviceInfo.getServiceName() : configuredServiceName;
     }
 
     @Nullable
-    public static String getServiceVersion(ElasticApmTracer tracer) {
+    public static String getServiceVersion() {
         ServiceInfo serviceInfo = tracer.getServiceInfoForClassLoader(Thread.currentThread().getContextClassLoader());
         String configuredServiceVersion = tracer.getConfig(CoreConfiguration.class).getServiceVersion();
         return serviceInfo != null ? serviceInfo.getServiceVersion() : configuredServiceVersion;
-    }
-
-    public static void warnIfServiceNameMisconfigured(@Nullable String configuredValue, ElasticApmTracer tracer) {
-        warnIfMisConfigured("service.name", configuredValue, getServiceName(tracer));
-    }
-
-    public static void warnIfServiceVersionMisconfigured(@Nullable String configuredValue, ElasticApmTracer tracer) {
-        warnIfMisConfigured("service.version", configuredValue, getServiceVersion(tracer));
     }
 
     private static void warnIfMisConfigured(String key, @Nullable String configuredValue, @Nullable String agentValue) {
@@ -68,31 +60,21 @@ public class EcsLoggingUtils {
     }
 
     @Nullable
-    public static String getProperty(String serviceNameKey, String serviceVersionKey, ElasticApmTracer tracer, String key, @Nullable String value) {
-        if (serviceNameKey.equals(key)) {
-            value = getOrWarnServiceName(tracer, value);
-        } else if (serviceVersionKey.equals(key)) {
-            value = getOrWarnServiceVersion(tracer, value);
-        }
-        return value;
-    }
-
-    @Nullable
-    public static String getOrWarnServiceVersion(ElasticApmTracer tracer, @Nullable String value) {
+    public static String getOrWarnServiceVersion(@Nullable String value) {
         if (value == null) {
-            return EcsLoggingUtils.getServiceVersion(tracer);
+            return getServiceVersion();
         } else {
-            EcsLoggingUtils.warnIfServiceVersionMisconfigured(value, tracer);
+            warnIfMisConfigured("service.version", value, getServiceVersion());
             return value;
         }
     }
 
     @Nullable
-    public static String getOrWarnServiceName(ElasticApmTracer tracer, @Nullable String value) {
+    public static String getOrWarnServiceName(@Nullable String value) {
         if (value == null) {
-            return EcsLoggingUtils.getServiceName(tracer);
+            return getServiceName();
         } else {
-            EcsLoggingUtils.warnIfServiceNameMisconfigured(value, tracer);
+            warnIfMisConfigured("service.name", value, getServiceName());
             return value;
         }
     }
