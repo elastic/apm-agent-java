@@ -27,7 +27,7 @@ import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -78,7 +78,7 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
                                            @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "type") String type) {
             final Object active = tracer.getActive();
             if (active == null) {
-                Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
+                Transaction<?> transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
                 if (transaction != null) {
                     if (transactionName.isEmpty()) {
                         transaction.withName(signature, PRIO_METHOD_SIGNATURE);
@@ -99,8 +99,8 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onMethodExit(@Advice.Enter @Nullable Object transaction,
                                         @Advice.Thrown @Nullable Throwable t) {
-            if (transaction instanceof Transaction) {
-                ((Transaction) transaction)
+            if (transaction instanceof Transaction<?>) {
+                ((Transaction<?>) transaction)
                     .captureException(t)
                     .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
                     .deactivate()

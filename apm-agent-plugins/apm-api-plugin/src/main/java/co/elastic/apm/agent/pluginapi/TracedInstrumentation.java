@@ -24,12 +24,12 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -90,7 +90,7 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
 
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {
-                Span span = asExit ? parent.createExitSpan() : parent.createSpan();
+                Span<?> span = asExit ? parent.createExitSpan() : parent.createSpan();
                 if (span == null) {
                     return null;
                 }
@@ -121,7 +121,7 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
                 namePriority = PRIO_USER_SUPPLIED;
             }
             return transaction.withName(name, namePriority)
-                .withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
+                .withType(type.isEmpty() ? co.elastic.apm.agent.impl.transaction.Transaction.TYPE_REQUEST : type)
                 .activate();
         }
 
