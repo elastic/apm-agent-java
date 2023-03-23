@@ -85,7 +85,7 @@ public class SpringKafkaBatchListenerInstrumentation extends BaseKafkaInstrument
             } else {
                 oneTimeTransactionCreationWarningLogger.warn("Failed to start Spring Kafka transaction for batch processing");
             }
-            //we don't need to add Span<?> links here, they will be added by the KafkaConsumerRecordsInstrumentation
+            //we don't need to add span links here, they will be added by the KafkaConsumerRecordsInstrumentation
             return transaction;
         }
 
