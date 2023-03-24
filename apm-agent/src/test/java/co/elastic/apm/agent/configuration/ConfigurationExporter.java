@@ -38,6 +38,7 @@ public class ConfigurationExporter {
 
     public static void main(String[] args) throws Exception {
         ElasticApmTracer tracer = mock(ElasticApmTracer.class);
+        doReturn(tracer).when(tracer).require(ElasticApmTracer.class);
         doReturn(Tracer.TracerState.UNINITIALIZED).when(tracer).getState();
         GlobalTracer.init(tracer);
         try {
