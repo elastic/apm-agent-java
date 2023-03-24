@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+# Limit permissions
+permissions:
+  contents: write
+
 jobs:
   sync:
     name: Sync branches
