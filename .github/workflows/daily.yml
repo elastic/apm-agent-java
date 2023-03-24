@@ -13,14 +13,6 @@ jobs:
   run-jdk-compatibility-and-windows:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v6
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: 'elastic',
-              repo: 'apm-agent-java',
-              workflow_id: 'main.yml',
-              ref: 'master',
-              inputs: {"jdk_compatibility_ci": "true", "windows_ci": "true"}
-            })
+      - run: gh workflow run main.yml -f jdk_compatibility_ci=true -f windows_ci=true --repo ${GITHUB_REPOSITORY}
+        env:
+          GH_TOKEN: ${{ github.token }}
