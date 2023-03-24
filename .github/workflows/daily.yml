@@ -1,0 +1,16 @@
+name: daily
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'
+  pull_request:
+
+permissions:
+  actions: read
+
+jobs:
+  run-jdk-compatibility-and-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh workflow run main.yml -f jdk_compatibility_ci=true -f windows_ci=true

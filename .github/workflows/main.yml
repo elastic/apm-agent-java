@@ -19,6 +19,7 @@ on:
         required: false
         type: boolean
       # disabled by default, not required for merge
+      # used by the daily job .github/workflows/daily.yml
       # opt-in with 'ci:jdk-compatibility' tag on PR
       jdk_compatibility_ci:
         description: 'Enable JDK compatibility tests'
@@ -26,6 +27,7 @@ on:
         required: false
         type: boolean
       # disabled by default, not required for merge
+      # used by the daily job .github/workflows/daily.yml
       # opt-in with 'ci:windows' tag on PR
       windows_ci:
         description: 'Enable Windows build & tests'
