@@ -150,34 +150,6 @@ pipeline {
         }
       }
     }
-    stage('Releases') {
-      when {
-        branch 'main'
-      }
-      stages {
-        stage('Stable') {
-          options { skipDefaultCheckout() }
-          when {
-            branch 'main'
-          }
-          steps {
-            deleteDir()
-            unstash 'source'
-            dir("${BASE_DIR}"){
-              setupAPMGitEmail(global: false)
-              sh(label: "checkout ${BRANCH_NAME} branch", script: "git checkout -f '${BRANCH_NAME}'")
-              sh(label: 'rebase stable', script: """
-                git checkout -f -b stable
-                git rebase '${BRANCH_NAME}'
-                git --no-pager log -n1 --pretty=oneline
-                git rev-parse --abbrev-ref HEAD
-              """)
-              gitPush()
-            }
-          }
-        }
-      }
-    }
   }
   post {
     cleanup {
