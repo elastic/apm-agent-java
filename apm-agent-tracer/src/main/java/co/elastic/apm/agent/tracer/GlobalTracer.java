@@ -57,7 +57,7 @@ public class GlobalTracer implements Tracer {
 
     @Override
     public boolean isRunning() {
-        return false;
+        return tracer.isRunning();
     }
 
     @Nullable
