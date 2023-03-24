@@ -1,7 +1,7 @@
 name: main
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       # enabled by default, required for merge through default GH check
       test_ci:
@@ -32,7 +32,6 @@ on:
         default: false
         required: false
         type: boolean
-  workflow_dispatch:
   push:
     branches:
       - main
