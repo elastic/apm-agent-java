@@ -21,6 +21,6 @@ jobs:
               owner: 'elastic',
               repo: 'apm-agent-java',
               workflow_id: 'main.yml',
-              ref: 'master',
+              ref: 'main',
               inputs: {"jdk_compatibility_ci": "true", "windows_ci": "true"}
             })
