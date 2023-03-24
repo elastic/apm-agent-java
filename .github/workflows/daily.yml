@@ -7,7 +7,7 @@ on:
   pull_request:
 
 permissions:
-  actions: read
+  actions: write
 
 jobs:
   run-jdk-compatibility-and-windows:
