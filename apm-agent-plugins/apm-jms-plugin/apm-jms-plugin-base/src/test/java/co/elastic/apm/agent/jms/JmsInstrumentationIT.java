@@ -536,8 +536,13 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         for (Transaction receiveTransaction : receiveTransactions) {
             assertThat(receiveTransaction.getNameAsString()).startsWith("JMS RECEIVE from ");
             assertThat(receiveTransaction.getNameAsString()).endsWith(destinationName);
-            // FIXME: addLink - assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
-            // FIXME: addLink - assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendInitialMessageSpan.getTraceContext().getId());
+            if (receiveTransaction.getSpanLinks().isEmpty()) {
+                assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
+                assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendInitialMessageSpan.getTraceContext().getId());
+            } else {
+                assertThat(receiveTransaction.getSpanLinks().get(0).getTraceId()).isEqualTo(currentTraceId);
+                assertThat(receiveTransaction.getSpanLinks().get(0).getParentId()).isEqualTo(sendInitialMessageSpan.getTraceContext().getId());
+            }
             assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
             assertThat(receiveTransaction.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
             StringBuilder body = receiveTransaction.getContext().getMessage().getBodyForRead();
