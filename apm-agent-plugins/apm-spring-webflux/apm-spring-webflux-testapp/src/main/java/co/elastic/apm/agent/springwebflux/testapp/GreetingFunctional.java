@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.springwebflux.testapp;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.springframework.context.annotation.Bean;
@@ -84,7 +84,7 @@ public class GreetingFunctional {
                 ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
                 Transaction transaction = Objects.requireNonNull(tracer.currentTransaction(), "active transaction is required");
                 // This mimics setting the name through the public API. We cannot use the public API if we want to test span recycling
-                transaction.withName("user-provided-name", AbstractSpan.PRIO_USER_SUPPLIED);
+                transaction.withName("user-provided-name", AbstractSpan.PRIORITY_USER_SUPPLIED);
                 return response(greetingHandler.helloMessage("transaction=" + Objects.requireNonNull(tracer.currentTransaction()).getTraceContext().getId()));
             })
             .GET("/functional/child-flux", accept(MediaType.TEXT_PLAIN), request -> ServerResponse.ok()

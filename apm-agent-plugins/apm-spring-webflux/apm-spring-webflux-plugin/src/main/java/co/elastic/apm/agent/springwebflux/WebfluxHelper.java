@@ -57,8 +57,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEWORK;
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
 public class WebfluxHelper {
@@ -189,10 +189,10 @@ public class WebfluxHelper {
         String path = null;
         PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
         if (pattern != null) {
-            namePriority = PRIO_HIGH_LEVEL_FRAMEWORK;
+            namePriority = PRIORITY_HIGH_LEVEL_FRAMEWORK;
             path = pattern.getPatternString();
         } else {
-            namePriority = PRIO_LOW_LEVEL_FRAMEWORK + 1;
+            namePriority = PRIORITY_LOW_LEVEL_FRAMEWORK + 1;
             if (webConfig.isUsePathAsName()) {
                 path = exchange.getRequest().getPath().value();
             }

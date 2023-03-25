@@ -47,7 +47,7 @@ public class DubboTraceHelper {
         span.withType(EXTERNAL_TYPE)
             .withSubtype(DUBBO_SUBTYPE);
 
-        StringBuilder spanName = span.getAndOverrideName(co.elastic.apm.agent.impl.transaction.Span.PRIO_DEFAULT);
+        StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIORITY_DEFAULT);
         if (spanName != null) {
             String className = apiClass.getName();
             spanName.append(className, className.lastIndexOf('.') + 1, className.length());
@@ -66,12 +66,12 @@ public class DubboTraceHelper {
     }
 
     public static void fillTransaction(Transaction<?> transaction, Class<?> apiClass, String methodName) {
-        StringBuilder spanName = transaction.getAndOverrideName(co.elastic.apm.agent.impl.transaction.Transaction.PRIO_DEFAULT);
+        StringBuilder spanName = transaction.getAndOverrideName(AbstractSpan.PRIORITY_DEFAULT);
         if (spanName != null) {
             String className = apiClass.getName();
             spanName.append(className, className.lastIndexOf('.') + 1, className.length());
             spanName.append("#").append(methodName);
         }
-        transaction.withType(co.elastic.apm.agent.impl.transaction.Transaction.TYPE_REQUEST);
+        transaction.withType(Transaction.TYPE_REQUEST);
     }
 }

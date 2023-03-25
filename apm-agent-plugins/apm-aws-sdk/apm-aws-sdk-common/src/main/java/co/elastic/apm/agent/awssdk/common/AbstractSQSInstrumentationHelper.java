@@ -118,14 +118,14 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
             .withAction(action);
 
         if (span.isSampled()) {
-            StringBuilder name = span.getAndOverrideName(co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT);
+            StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIORITY_DEFAULT);
             if (name != null) {
                 name.append("SQS ").append(spanNameOperation);
                 if (queueName != null && !queueName.isEmpty()) {
                     name.append(" ").append(queueName);
                 }
             }
-            span.withName("SQS", co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT - 1);
+            span.withName("SQS", AbstractSpan.PRIORITY_DEFAULT - 1);
 
             if (queueName != null) {
                 span.getContext().getMessage()
