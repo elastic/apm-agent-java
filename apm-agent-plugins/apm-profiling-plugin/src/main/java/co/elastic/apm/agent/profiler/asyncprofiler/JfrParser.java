@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
 import co.elastic.apm.agent.impl.transaction.StackFrame;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.profiler.collections.Int2IntHashMap;
 import co.elastic.apm.agent.profiler.collections.Int2ObjectHashMap;
 import co.elastic.apm.agent.profiler.collections.Long2LongHashMap;
@@ -297,7 +296,7 @@ public class JfrParser implements Recyclable {
      * These strings are currently not cached so this can create some GC pressure.
      * </p>
      * <p>
-     * Excludes frames based on the {@link WildcardMatcher}s supplied to {@link #parse(File, List, List)}.
+     * Excludes frames based on the {@link Matcher}s supplied to {@link #parse(File, List, List)}.
      * </p>
      *
      * @param stackTraceId   The id of the stack traced.

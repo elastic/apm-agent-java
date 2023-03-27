@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -54,7 +53,7 @@ public class ServletTransactionHelper {
     public static final String ASYNC_ATTRIBUTE = ServletApiAdvice.class.getName() + ".async";
 
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
-    private static final WildcardMatcher ENDS_WITH_JSP = WildcardMatcher.valueOf("*.jsp");
+    private static final String JSP_SUFFIX = ".jsp";
 
     private static final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
 
@@ -262,7 +261,7 @@ public class ServletTransactionHelper {
 
     void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, Transaction<?> transaction) {
         // JSPs don't contain path params and the name is more telling than the generated servlet class
-        if (webConfiguration.isUsePathAsName() || ENDS_WITH_JSP.matches(servletPath, pathInfo)) {
+        if (webConfiguration.isUsePathAsName() || (pathInfo == null ? servletPath : (servletPath + pathInfo)).endsWith(JSP_SUFFIX)) {
             // should override ServletName#doGet
             TransactionNameUtils.setNameFromHttpRequestPath(method, servletPath, pathInfo, transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1), webConfiguration.getUrlGroups());
         } else {

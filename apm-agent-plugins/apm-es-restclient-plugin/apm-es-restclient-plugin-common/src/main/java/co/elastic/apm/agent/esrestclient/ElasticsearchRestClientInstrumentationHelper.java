@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.esrestclient;
 
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
@@ -48,12 +47,12 @@ public class ElasticsearchRestClientInstrumentationHelper {
     private static final Logger unsupportedOperationOnceLogger = LoggerUtils.logOnce(logger);
     private static final ElasticsearchRestClientInstrumentationHelper INSTANCE = new ElasticsearchRestClientInstrumentationHelper(GlobalTracer.get());
 
-    public static final List<WildcardMatcher> QUERY_WILDCARD_MATCHERS = Arrays.asList(
-        WildcardMatcher.valueOf("*_search"),
-        WildcardMatcher.valueOf("*_msearch"),
-        WildcardMatcher.valueOf("*_msearch/template"),
-        WildcardMatcher.valueOf("*_search/template"),
-        WildcardMatcher.valueOf("*_count"));
+    public static final List<String> QUERY_SUFFIX = Arrays.asList(
+        "_search",
+        "_msearch",
+        "_msearch/template",
+        "_search/template",
+        "_count");
     public static final String SPAN_TYPE = "db";
     public static final String ELASTICSEARCH = "elasticsearch";
     public static final String SPAN_ACTION = "request";
@@ -102,7 +101,14 @@ public class ElasticsearchRestClientInstrumentationHelper {
 
         if (span.isSampled()) {
             span.getContext().getHttp().withMethod(method);
-            if (WildcardMatcher.isAnyMatch(QUERY_WILDCARD_MATCHERS, endpoint)) {
+            boolean matched = false;
+            for (String suffix : QUERY_SUFFIX) {
+                matched = endpoint.endsWith(suffix);
+                if (matched) {
+                    break;
+                }
+            }
+            if (matched) {
                 if (httpEntity != null && httpEntity.isRepeatable()) {
                     try {
                         IOUtils.readUtf8Stream(httpEntity.getContent(), span.getContext().getDb().withStatementBuffer());

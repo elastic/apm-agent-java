@@ -136,7 +136,7 @@ public class ElasticApmTracer implements Tracer {
     private final MetaDataFuture metaDataFuture;
 
     static {
-        checkClassloader(); // TracerConfiguration, CircutBreakerConfiguration, SpanConfiguration
+        checkClassloader();
         configTranslations.put(co.elastic.apm.agent.tracer.configuration.CoreConfiguration.class, CoreConfiguration.class);
         configTranslations.put(co.elastic.apm.agent.tracer.configuration.JaxRsConfiguration.class, JaxRsConfiguration.class);
         configTranslations.put(co.elastic.apm.agent.tracer.configuration.JmxConfiguration.class, JmxConfiguration.class);

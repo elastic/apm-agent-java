@@ -21,7 +21,6 @@ package co.elastic.apm.agent.vertx;
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.configuration.Matcher;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
@@ -46,7 +45,7 @@ public abstract class AbstractHttpTransactionHelper {
 
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
     private static final Set<String> METHODS_WITH_BODY = new HashSet<>(Arrays.asList("POST", "PUT", "PATCH", "DELETE"));
-    private static final WildcardMatcher ENDS_WITH_JSP = WildcardMatcher.valueOf("*.jsp");
+    private static final String JSP_SUFFIX = ".jsp";
 
 
     protected static final String CONTENT_TYPE_HEADER = "Content-Type";
@@ -96,7 +95,7 @@ public abstract class AbstractHttpTransactionHelper {
 
     public void applyDefaultTransactionName(String method, String pathFirstPart, @Nullable String pathSecondPart, Transaction<?> transaction, int priorityOffset) {
         // JSPs don't contain path params and the name is more telling than the generated servlet class
-        if (webConfiguration.isUsePathAsName() || ENDS_WITH_JSP.matches(pathFirstPart, pathSecondPart)) {
+        if (webConfiguration.isUsePathAsName() || (pathSecondPart == null ? pathFirstPart : (pathFirstPart + pathSecondPart)).endsWith(JSP_SUFFIX)) {
             // should override ServletName#doGet
             TransactionNameUtils.setNameFromHttpRequestPath(
                 method,
