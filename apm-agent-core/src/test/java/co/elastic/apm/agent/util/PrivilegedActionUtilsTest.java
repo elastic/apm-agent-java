@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.util;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
@@ -29,11 +30,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.AccessController;
-import java.security.Permission;
 import java.security.PrivilegedAction;
 import java.security.ProtectionDomain;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,18 +40,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @EnabledForJreRange(max = JRE.JAVA_17, disabledReason = "SecurityManager is not supported anymore")
 class PrivilegedActionUtilsTest {
 
-    private static final AtomicBoolean enabled = new AtomicBoolean(false);
-
-    private static void enableSecurityManager() {
-        enabled.set(false);
-        System.setSecurityManager(new TestSecurityManager(enabled));
-        enabled.set(true);
+    @BeforeEach
+    void beforeAll() {
+        // those tests rely on the SM to be disabled on startup
+        TestSecurityManager.disable();
     }
 
-    private static void disableSecurityManager() {
-        enabled.set(false);
-        System.setSecurityManager(null);
-    }
 
     @Test
     void getEnv() {
@@ -174,46 +167,12 @@ class PrivilegedActionUtilsTest {
     void testWithAndWithoutSecurityManager(Runnable assertions){
         assertions.run();
         try {
-            enableSecurityManager();
+            TestSecurityManager.enable();
             assertions.run();
         } finally {
-            disableSecurityManager();
+            TestSecurityManager.disable();
         }
         assertions.run();
     }
 
-    private static class TestSecurityManager extends SecurityManager {
-
-        private final AtomicBoolean enabled;
-
-        public TestSecurityManager(AtomicBoolean enabled) {
-            this.enabled = enabled;
-        }
-
-        @Override
-        public void checkPermission(Permission perm) {
-            if (!enabled.get()) {
-                return;
-            }
-            checkPrivileged();
-        }
-
-        @Override
-        public void checkPermission(Permission perm, Object context) {
-            if (!enabled.get()) {
-                return;
-            }
-            checkPrivileged();
-        }
-
-        private static void checkPrivileged() {
-            StackTraceElement[] stackTrace = new RuntimeException().getStackTrace();
-            for (StackTraceElement e : stackTrace) {
-                if(e.getClassName().equals("java.security.AccessController") && e.getMethodName().equals("doPrivileged")){
-                    return;
-                }
-            }
-            throw new SecurityException("missing privileged action");
-        }
-    }
 }
