@@ -230,9 +230,11 @@ jobs:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/maven-goal
         with:
-          java-version: ${{ matrix.version }}
-          distribution: ${{ env.JAVA_DIST }}
+          test-java-version: ${{ matrix.version }}
+          test-java- distribution: ${{ env.JAVA_DIST }}
           command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
+      - name: test echo variable
+        run: echo "${{ env.TEST_JAVA_BINARY }}"
       - name: Run tests for ${{ matrix.version }}:${{ env.JAVA_DIST }}
         run: ./mvnw test
       - name: Store test results
