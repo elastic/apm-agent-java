@@ -20,6 +20,7 @@ package co.elastic.apm.agent.metrics.builtin;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
@@ -362,7 +363,7 @@ public class AgentOverheadMetricsTest {
         "agent.background.cpu.total.pct"
     })
     public void testDisableMetric(String metric) throws InterruptedException {
-        doReturn(List.of(WildcardMatcher.valueOf(metric))).when(spyReporterConfig).getDisableMetrics();
+        doReturn(List.of(new WildcardMatcherMatcher(WildcardMatcher.valueOf(metric)))).when(spyReporterConfig).getDisableMetrics();
         doReturn(true).when(spyMetricsConfig).isOverheadMetricsEnabled();
         overheadMetrics.bindTo(metricRegistry, spyMetricsConfig);
 

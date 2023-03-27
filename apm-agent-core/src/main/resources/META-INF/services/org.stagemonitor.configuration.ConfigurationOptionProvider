@@ -12,3 +12,4 @@ co.elastic.apm.agent.configuration.MetricsConfiguration
 co.elastic.apm.agent.configuration.MongoConfiguration
 co.elastic.apm.agent.configuration.ProfilingConfiguration
 co.elastic.apm.agent.configuration.ServerlessConfiguration
+co.elastic.apm.agent.configuration.SpanConfiguration

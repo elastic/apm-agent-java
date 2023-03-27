@@ -503,7 +503,7 @@ public class ElasticApmTracer implements Tracer {
                 span.requestDiscarding();
             }
         } else if (!span.isComposite()) {
-            if (span.getDuration() < coreConfiguration.getSpanMinDuration().getMillis()) {
+            if (span.getDuration() < coreConfiguration.getSpanMinDuration().getMicros()) {
                 logger.debug("Span faster than span_min_duration. Request discarding {}", span);
                 span.requestDiscarding();
             }

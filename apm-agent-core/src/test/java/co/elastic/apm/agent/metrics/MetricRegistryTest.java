@@ -20,6 +20,7 @@ package co.elastic.apm.agent.metrics;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,7 +51,7 @@ class MetricRegistryTest {
 
     @Test
     void testDisabledMetrics() {
-        doReturn(List.of(WildcardMatcher.valueOf("jvm.gc.*"))).when(reporterConfiguration).getDisableMetrics();
+        doReturn(List.of(new WildcardMatcherMatcher(WildcardMatcher.valueOf("jvm.gc.*")))).when(reporterConfiguration).getDisableMetrics();
         final DoubleSupplier problematicMetric = () -> {
             throw new RuntimeException("Huston, we have a problem");
         };

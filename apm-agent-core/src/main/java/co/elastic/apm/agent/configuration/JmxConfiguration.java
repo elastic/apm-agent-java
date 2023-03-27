@@ -151,8 +151,9 @@ public class JmxConfiguration extends ConfigurationOptionProvider implements co.
     private final ConcurrentMap<ChangeListener, ConfigurationOption.ChangeListener<List<JmxMetric>>> listeners = new ConcurrentHashMap<>();
 
     @Override
+    @SuppressWarnings("unchecked")
     public List<co.elastic.apm.agent.tracer.configuration.JmxConfiguration.JmxMetric> getCaptureJmxMetrics() {
-        return Collections.unmodifiableList(captureJmxMetrics.get());
+        return (List) captureJmxMetrics.get();
     }
 
     public ConfigurationOption<List<JmxMetric>> getCaptureJmxMetricsOption() {
@@ -161,7 +162,7 @@ public class JmxConfiguration extends ConfigurationOptionProvider implements co.
 
     @Override
     public void addChangeListener(final ChangeListener changeListener) {
-        ConfigurationOption.ChangeListener<List<JmxMetric>> listener = new ConfigurationOption.ChangeListener<>() {
+        ConfigurationOption.ChangeListener<List<JmxMetric>> listener = new ConfigurationOption.ChangeListener<List<JmxMetric>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<JmxMetric> oldValue, List<JmxMetric> newValue) {
                 changeListener.onChange(oldValue, newValue);

@@ -20,6 +20,7 @@ package co.elastic.apm.agent.metrics.builtin;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
@@ -245,7 +246,7 @@ public class AgentReporterMetricsTest {
         "agent.events.queue.max_size.pct"
     })
     public void testDisableMetric(String metric) {
-        doReturn(List.of(WildcardMatcher.valueOf(metric))).when(mockReporterConfig).getDisableMetrics();
+        doReturn(List.of(new WildcardMatcherMatcher(WildcardMatcher.valueOf(metric)))).when(mockReporterConfig).getDisableMetrics();
         doReturn(true).when(mockMetricsConfig).isReporterHealthMetricsEnabled();
         reporterMetrics = new AgentReporterMetrics(metricRegistry, mockMetricsConfig);
 
