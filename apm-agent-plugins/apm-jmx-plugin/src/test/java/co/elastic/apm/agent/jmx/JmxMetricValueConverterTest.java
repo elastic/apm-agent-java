@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.jmx;
 
+import co.elastic.apm.agent.configuration.JmxConfiguration;
 import org.junit.jupiter.api.Test;
 
 import javax.management.MalformedObjectNameException;
@@ -29,15 +30,15 @@ class JmxMetricValueConverterTest {
 
     @Test
     void testFromString() {
-        JmxMetric expected = JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count]");
-        assertThat(JmxMetric.valueOf(expected.toString())).isEqualTo(expected);
-        JmxMetric expected2 = JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount]");
-        assertThat(JmxMetric.valueOf(expected2.toString())).isEqualTo(expected2);
+        JmxConfiguration.JmxMetric expected = JmxConfiguration.JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count]");
+        assertThat(JmxConfiguration.JmxMetric.valueOf(expected.toString())).isEqualTo(expected);
+        JmxConfiguration.JmxMetric expected2 = JmxConfiguration.JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount]");
+        assertThat(JmxConfiguration.JmxMetric.valueOf(expected2.toString())).isEqualTo(expected2);
     }
 
     @Test
     void testInvalidObjectName() {
-        assertThatThrownBy(() -> JmxMetric.valueOf("object_name[foo] attribute[foo]"))
+        assertThatThrownBy(() -> JmxConfiguration.JmxMetric.valueOf("object_name[foo] attribute[foo]"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Invalid syntax for object_name[foo]")
             .hasCauseInstanceOf(MalformedObjectNameException.class);
@@ -45,7 +46,7 @@ class JmxMetricValueConverterTest {
 
     @Test
     void testInvalidAttribute() {
-        assertThatThrownBy(() -> JmxMetric.valueOf("object_name[foo:bar=baz] attribute[foo:bar:baz]"))
+        assertThatThrownBy(() -> JmxConfiguration.JmxMetric.valueOf("object_name[foo:bar=baz] attribute[foo:bar:baz]"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Invalid syntax for attribute[foo:bar:baz]")
             .hasCauseInstanceOf(MalformedObjectNameException.class);
@@ -53,20 +54,20 @@ class JmxMetricValueConverterTest {
 
     @Test
     void testMissingAttributes() {
-        assertThatThrownBy(() -> JmxMetric.valueOf("attribute[CollectionCount:metric_name=collection_count]"))
+        assertThatThrownBy(() -> JmxConfiguration.JmxMetric.valueOf("attribute[CollectionCount:metric_name=collection_count]"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("object_name");
-        assertThatThrownBy(() -> JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*]"))
+        assertThatThrownBy(() -> JmxConfiguration.JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*]"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("attribute");
     }
 
     @Test
     void testUnknownAttributes() {
-        assertThatThrownBy(() -> JmxMetric.valueOf("object_name[foo:bar=baz] attribute[qux:quux=corge]"))
+        assertThatThrownBy(() -> JmxConfiguration.JmxMetric.valueOf("object_name[foo:bar=baz] attribute[qux:quux=corge]"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Unknown properties: [quux]");
-        assertThatThrownBy(() -> JmxMetric.valueOf("object_name[foo:bar=baz] attribute[foo] foo[bar]"))
+        assertThatThrownBy(() -> JmxConfiguration.JmxMetric.valueOf("object_name[foo:bar=baz] attribute[foo] foo[bar]"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Unknown keys: [foo]");
     }

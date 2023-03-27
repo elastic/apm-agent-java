@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.jmx;
 
+import co.elastic.apm.agent.configuration.JmxConfiguration;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -30,7 +31,7 @@ class MapsTokenScannerTest {
 
     @Test
     void testSimpleScan() {
-        MapsTokenScanner scanner = new MapsTokenScanner("foo[bar]");
+        JmxConfiguration.MapsTokenScanner scanner = new JmxConfiguration.MapsTokenScanner("foo[bar]");
         assertThat(scanner.scanKey()).isEqualTo("foo");
         assertThat(scanner.peek()).isEqualTo('[');
         assertThat(scanner.scanValue()).isEqualTo("bar");
@@ -39,7 +40,7 @@ class MapsTokenScannerTest {
     @Test
     void testMultiScan() {
         for (String input : List.of("foo[bar] baz[qux]", "foo[bar]baz[qux]", "foo[bar] baz[qux] ")) {
-            MapsTokenScanner scanner = new MapsTokenScanner(input);
+            JmxConfiguration.MapsTokenScanner scanner = new JmxConfiguration.MapsTokenScanner(input);
             assertThat(scanner.scanKey()).isEqualTo("foo");
             assertThat(scanner.scanValue()).isEqualTo("bar");
             scanner.skipWhiteSpace();
@@ -51,69 +52,69 @@ class MapsTokenScannerTest {
     @Test
     void testScanMap() {
         for (String input : List.of("foo[bar] baz[qux]", "foo[bar]baz[qux]", "foo[bar] baz[qux] ", "foo[bar] baz[qux], quux[corge]")) {
-            assertThat(new MapsTokenScanner(input).scanMap()).isEqualTo(Map.of("foo", "bar", "baz", "qux"));
+            assertThat(new JmxConfiguration.MapsTokenScanner(input).scanMap()).isEqualTo(Map.of("foo", "bar", "baz", "qux"));
         }
     }
 
     @Test
     void testScanMaps() {
-        assertThat(new MapsTokenScanner("f[b]").scanMaps())
+        assertThat(new JmxConfiguration.MapsTokenScanner("f[b]").scanMaps())
             .isEqualTo(List.of(Map.of("f", "b")));
-        assertThat(new MapsTokenScanner("foo bar[baz,qux ]").scanMaps())
+        assertThat(new JmxConfiguration.MapsTokenScanner("foo bar[baz,qux ]").scanMaps())
             .isEqualTo(List.of(Map.of("foo bar", "baz,qux ")));
-        assertThat(new MapsTokenScanner(" foo[bar] baz[qux] ").scanMaps())
+        assertThat(new JmxConfiguration.MapsTokenScanner(" foo[bar] baz[qux] ").scanMaps())
             .isEqualTo(List.of(Map.of("foo", "bar", "baz", "qux")));
 
-        assertThat(new MapsTokenScanner(" foo[bar] baz[qux], quux[corge] ").scanMaps())
+        assertThat(new JmxConfiguration.MapsTokenScanner(" foo[bar] baz[qux], quux[corge] ").scanMaps())
             .isEqualTo(List.of(Map.of("foo", "bar", "baz", "qux"), Map.of("quux", "corge")));
-        assertThat(new MapsTokenScanner(" foo[bar] baz[qux]  ,  quux[corge] ").scanMaps())
+        assertThat(new JmxConfiguration.MapsTokenScanner(" foo[bar] baz[qux]  ,  quux[corge] ").scanMaps())
             .isEqualTo(List.of(Map.of("foo", "bar", "baz", "qux"), Map.of("quux", "corge")));
     }
 
     @Test
     void testScanMultiValueMaps() {
-        assertThat(new MapsTokenScanner("a[a] a[b]").scanMultiValueMaps())
+        assertThat(new JmxConfiguration.MapsTokenScanner("a[a] a[b]").scanMultiValueMaps())
             .isEqualTo(List.of(Map.of("a", List.of("a", "b"))));
     }
 
     @Test
     void testMissingValue() {
-        assertThatThrownBy(() -> new MapsTokenScanner("foo").scanMap())
+        assertThatThrownBy(() -> new JmxConfiguration.MapsTokenScanner("foo").scanMap())
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Expected value start");
     }
 
     @Test
     void testMissingKey() {
-        assertThatThrownBy(() -> new MapsTokenScanner("foo[bar] [qux]").scanMap())
+        assertThatThrownBy(() -> new JmxConfiguration.MapsTokenScanner("foo[bar] [qux]").scanMap())
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Empty key");
     }
 
     @Test
     void testMissingClosingBracket() {
-        assertThatThrownBy(() -> new MapsTokenScanner("foo[bar").scanMap())
+        assertThatThrownBy(() -> new JmxConfiguration.MapsTokenScanner("foo[bar").scanMap())
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Expected end value token ']'");
     }
 
     @Test
     void testBracketWithinValue() {
-        MapsTokenScanner scanner = new MapsTokenScanner("foo[b[a]r]");
+        JmxConfiguration.MapsTokenScanner scanner = new JmxConfiguration.MapsTokenScanner("foo[b[a]r]");
         assertThat(scanner.scanKey()).isEqualTo("foo");
         assertThat(scanner.scanValue()).isEqualTo("b[a]r");
     }
 
     @Test
     void testMultipleBracketWithinValue() {
-        MapsTokenScanner scanner = new MapsTokenScanner("foo[b[[a]r]]");
+        JmxConfiguration.MapsTokenScanner scanner = new JmxConfiguration.MapsTokenScanner("foo[b[[a]r]]");
         assertThat(scanner.scanKey()).isEqualTo("foo");
         assertThat(scanner.scanValue()).isEqualTo("b[[a]r]");
     }
 
     @Test
     void testInvalidBracketWithinValue() {
-        assertThatThrownBy(() -> new MapsTokenScanner("foo[b[[a]r]").scanMap())
+        assertThatThrownBy(() -> new JmxConfiguration.MapsTokenScanner("foo[b[[a]r]").scanMap())
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Expected end value token ']' at pos");
     }
@@ -121,7 +122,7 @@ class MapsTokenScannerTest {
     @Test
     void testConversionRoundtrip() {
         List<Map<String, List<String>>> input = List.of(Map.of("foo", List.of("bar"), "baz", List.of("qux")), Map.of(), Map.of("quux", List.of("corge")));
-        assertThat(new MapsTokenScanner(MapsTokenScanner.toTokenString(input)).scanMultiValueMaps()).isEqualTo(input);
+        assertThat(new JmxConfiguration.MapsTokenScanner(JmxConfiguration.MapsTokenScanner.toTokenString(input)).scanMultiValueMaps()).isEqualTo(input);
     }
 
 }
