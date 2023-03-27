@@ -22,7 +22,12 @@ import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.JaxRsConfiguration;
+import co.elastic.apm.agent.configuration.JmxConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.MongoConfiguration;
+import co.elastic.apm.agent.configuration.ProfilingConfiguration;
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
@@ -131,12 +136,19 @@ public class ElasticApmTracer implements Tracer {
     private final MetaDataFuture metaDataFuture;
 
     static {
-        checkClassloader();
+        checkClassloader(); // TracerConfiguration, CircutBreakerConfiguration, SpanConfiguration
         configTranslations.put(co.elastic.apm.agent.tracer.configuration.CoreConfiguration.class, CoreConfiguration.class);
-        configTranslations.put(co.elastic.apm.agent.tracer.configuration.MessagingConfiguration.class, MessagingConfiguration.class);
-        configTranslations.put(co.elastic.apm.agent.tracer.configuration.WebConfiguration.class, WebConfiguration.class);
-        configTranslations.put(co.elastic.apm.agent.tracer.configuration.StacktraceConfiguration.class, StacktraceConfiguration.class);
         configTranslations.put(co.elastic.apm.agent.tracer.configuration.JaxRsConfiguration.class, JaxRsConfiguration.class);
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.JmxConfiguration.class, JmxConfiguration.class);
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.LoggingConfiguration.class, LoggingConfiguration.class);
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.MessagingConfiguration.class, MessagingConfiguration.class);
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.MetricsConfiguration.class, MetricsConfiguration.class);
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.MongoConfiguration.class, MongoConfiguration.class);
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.ProfilingConfiguration.class, ProfilingConfiguration.class);
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.ReporterConfiguration.class, ReporterConfiguration.class);
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration.class, ServerlessConfiguration.class);
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.StacktraceConfiguration.class, StacktraceConfiguration.class);
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.WebConfiguration.class, WebConfiguration.class);
     }
 
     private static void checkClassloader() {
@@ -491,7 +503,7 @@ public class ElasticApmTracer implements Tracer {
                 span.requestDiscarding();
             }
         } else if (!span.isComposite()) {
-            if (span.getDuration() < coreConfiguration.getSpanMinDuration(TimeUnit.MICROSECONDS)) {
+            if (span.getDuration() < coreConfiguration.getSpanMinDuration().getMillis()) {
                 logger.debug("Span faster than span_min_duration. Request discarding {}", span);
                 span.requestDiscarding();
             }

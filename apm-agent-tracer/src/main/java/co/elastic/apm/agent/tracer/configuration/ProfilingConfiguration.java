@@ -18,9 +18,33 @@
  */
 package co.elastic.apm.agent.tracer.configuration;
 
-import java.util.Collection;
+import java.util.List;
 
-public interface StacktraceConfiguration {
+public interface ProfilingConfiguration {
 
-    Collection<String> getApplicationPackages();
+    boolean isProfilingEnabled();
+
+    boolean isProfilingLoggingEnabled();
+
+    boolean isBackupDiagnosticFiles();
+
+    boolean isPostProcessingEnabled();
+
+    boolean isNonStopProfiling();
+
+    int getAsyncProfilerSafeMode();
+
+    String getProfilerLibDirectory();
+
+    List<Matcher> getExcludedClasses();
+
+    List<Matcher> getIncludedClasses();
+
+    long getProfilingIntervalMs();
+
+    long getProfilingDurationMs();
+
+    long getInferredSpansMinDurationMs();
+
+    long getSamplingIntervalMs();
 }

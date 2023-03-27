@@ -22,7 +22,7 @@ import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
-public class ServerlessConfiguration extends ConfigurationOptionProvider {
+public class ServerlessConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration {
     public static final String SERVERLESS_CATEGORY = "Serverless";
 
     private final ConfigurationOption<String> awsLambdaHandler = ConfigurationOption.stringOption()
@@ -42,10 +42,12 @@ public class ServerlessConfiguration extends ConfigurationOptionProvider {
                     "For serverless functions, APM data is written in a synchronous way, thus, blocking the termination of the function util data is written or the specified timeout is reached.")
             .buildWithDefault(1000L);
 
+    @Override
     public String getAwsLambdaHandler() {
         return awsLambdaHandler.get();
     }
 
+    @Override
     public long getDataFlushTimeout() {
         return dataFlushTimeout.get();
     }

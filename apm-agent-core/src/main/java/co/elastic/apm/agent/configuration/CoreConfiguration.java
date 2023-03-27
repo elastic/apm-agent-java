@@ -1029,7 +1029,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
     }
 
     @Override
-    public long getSpanMinDuration(TimeUnit unit) {
+    public long getSpanMinDurationMs() {
         return spanMinDuration.get().getMillis();
     }
 

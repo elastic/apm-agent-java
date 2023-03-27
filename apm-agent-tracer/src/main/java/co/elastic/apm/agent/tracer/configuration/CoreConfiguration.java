@@ -3,7 +3,6 @@ package co.elastic.apm.agent.tracer.configuration;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public interface CoreConfiguration {
 
@@ -22,7 +21,7 @@ public interface CoreConfiguration {
 
     List<Matcher> getSanitizeFieldNames();
 
-    long getSpanMinDuration(TimeUnit unit);
+    long getSpanMinDurationMs();
 
     boolean isEnablePublicApiAnnotationInheritance();
 

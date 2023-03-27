@@ -357,32 +357,39 @@ public class LoggingConfiguration extends ConfigurationOptionProvider implements
         Configurator.setLevel("com.networknt.schema", org.apache.logging.log4j.Level.WARN);
     }
 
+    @Override
     public LogEcsReformatting getLogEcsReformatting() {
         return logEcsReformatting.get();
     }
 
+    @Override
     public Map<String, String> getLogEcsReformattingAdditionalFields() {
         return logEcsReformattingAdditionalFields.get();
     }
 
+    @Override
     public List<Matcher> getLogEcsFormatterAllowList() {
         return WildcardMatcherMatcher.wrap(logEcsFormatterAllowList.get());
     }
 
+    @Override
     @Nullable
     public String getLogEcsFormattingDestinationDir() {
         String logReformattingDestDir = logEcsFormattingDestinationDir.get().trim();
         return (logReformattingDestDir.isEmpty()) ? null : logReformattingDestDir;
     }
 
+    @Override
     public long getLogFileSize() {
         return logFileSize.get().getBytes();
     }
 
+    @Override
     public long getDefaultLogFileSize() {
         return logFileSize.getValueConverter().convert(logFileSize.getDefaultValueAsString()).getBytes();
     }
 
+    @Override
     public boolean getSendLogs() {
         return sendLogs.get();
     }

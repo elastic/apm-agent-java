@@ -26,6 +26,7 @@ import co.elastic.apm.agent.profiler.collections.Long2LongHashMap;
 import co.elastic.apm.agent.profiler.collections.Long2ObjectHashMap;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
@@ -76,9 +77,9 @@ public class JfrParser implements Recyclable {
     @Nullable
     private boolean[] isJavaFrameType;
     @Nullable
-    private List<WildcardMatcher> excludedClasses;
+    private List<Matcher> excludedClasses;
     @Nullable
-    private List<WildcardMatcher> includedClasses;
+    private List<Matcher> includedClasses;
 
     public JfrParser() {
         this(ByteBuffer.allocateDirect(BIG_FILE_BUFFER_SIZE), ByteBuffer.allocateDirect(SMALL_FILE_BUFFER_SIZE));
@@ -96,7 +97,7 @@ public class JfrParser implements Recyclable {
      * @param includedClasses Class names to include in stack traces (has an effect on {@link #resolveStackTrace(long, boolean, List, int)})
      * @throws IOException if some I/O error occurs
      */
-    public void parse(File file, List<WildcardMatcher> excludedClasses, List<WildcardMatcher> includedClasses) throws IOException {
+    public void parse(File file, List<Matcher> excludedClasses, List<Matcher> includedClasses) throws IOException {
         this.excludedClasses = excludedClasses;
         this.includedClasses = includedClasses;
         bufferedFile.setFile(file);
@@ -373,7 +374,7 @@ public class JfrParser implements Recyclable {
     }
 
     private boolean isClassIncluded(CharSequence className) {
-        return WildcardMatcher.isAnyMatch(includedClasses, className) && WildcardMatcher.isNoneMatch(excludedClasses, className);
+        return Matcher.isAnyMatch(includedClasses, className) && Matcher.isNoneMatch(excludedClasses, className);
     }
 
     private StackFrame resolveStackFrame(long frameId) throws IOException {
@@ -382,7 +383,7 @@ public class JfrParser implements Recyclable {
             return stackFrame;
         }
         String className = resolveSymbol(classIdToClassNameSymbolId.get((int) frameIdToClassId.get(frameId)), true);
-        if (className == SYMBOL_EXCLUDED) {
+        if (className.equals(SYMBOL_EXCLUDED)) {
             stackFrame = FRAME_EXCLUDED;
         } else {
             String method = resolveSymbol((int) frameIdToMethodSymbol.get(frameId), false);

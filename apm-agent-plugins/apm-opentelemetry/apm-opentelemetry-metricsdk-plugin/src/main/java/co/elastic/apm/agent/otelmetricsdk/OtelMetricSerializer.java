@@ -18,12 +18,11 @@
  */
 package co.elastic.apm.agent.otelmetricsdk;
 
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
-import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
+import co.elastic.apm.agent.tracer.configuration.ReporterConfiguration;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.data.Data;
@@ -95,7 +94,7 @@ public class OtelMetricSerializer {
     }
 
     private boolean isMetricDisabled(CharSequence name) {
-        for (WildcardMatcher matcher : reporterConfig.getDisableMetrics()) {
+        for (Matcher matcher : reporterConfig.getDisableMetrics()) {
             if (matcher.matches(name)) {
                 return true;
             }

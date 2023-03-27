@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import org.junit.jupiter.api.Test;
 
@@ -43,7 +44,7 @@ class JfrParserTest {
 
         File file = Paths.get(JfrParserTest.class.getClassLoader().getResource("recording.jfr").toURI()).toFile();
 
-        jfrParser.parse(file, List.of(), List.of(caseSensitiveMatcher("co.elastic.apm.*")));
+        jfrParser.parse(file, List.of(), List.of(new WildcardMatcherMatcher(caseSensitiveMatcher("co.elastic.apm.*"))));
         AtomicInteger stackTraces = new AtomicInteger();
         ArrayList<StackFrame> stackFrames = new ArrayList<>();
         jfrParser.consumeStackTraces((threadId, stackTraceId, nanoTime) -> {

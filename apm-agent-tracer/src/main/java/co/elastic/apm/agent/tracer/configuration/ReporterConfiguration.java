@@ -18,9 +18,11 @@
  */
 package co.elastic.apm.agent.tracer.configuration;
 
-import java.util.Collection;
+import java.util.List;
 
-public interface StacktraceConfiguration {
+public interface ReporterConfiguration {
 
-    Collection<String> getApplicationPackages();
+    long getMetricsIntervalMs();
+
+    List<Matcher> getDisableMetrics();
 }

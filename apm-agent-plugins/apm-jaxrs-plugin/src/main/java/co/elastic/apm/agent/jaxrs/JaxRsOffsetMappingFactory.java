@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.jaxrs;
 
-import co.elastic.apm.agent.configuration.JaxRsConfiguration;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.JaxRsConfiguration;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.annotation.AnnotationDescription;
 import net.bytebuddy.description.annotation.AnnotationSource;

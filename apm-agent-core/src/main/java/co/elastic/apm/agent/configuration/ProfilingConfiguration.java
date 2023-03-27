@@ -16,23 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.profiler;
+package co.elastic.apm.agent.configuration;
 
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.converter.ListValueConverter;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.min;
 
-public class ProfilingConfiguration extends ConfigurationOptionProvider {
+public class ProfilingConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.ProfilingConfiguration {
 
     private static final String PROFILING_CATEGORY = "Profiling";
 
@@ -187,14 +189,17 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.18.0]")
         .build();
 
+    @Override
     public boolean isProfilingEnabled() {
         return profilingEnabled.get();
     }
 
+    @Override
     public boolean isProfilingLoggingEnabled() {
         return profilerLoggingEnabled.get();
     }
 
+    @Override
     public int getAsyncProfilerSafeMode() {
         return asyncProfilerSafeMode.get();
     }
@@ -207,34 +212,60 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         return inferredSpansMinDuration.get();
     }
 
-    public List<WildcardMatcher> getIncludedClasses() {
-        return includedClasses.get();
+    @Override
+    public List<Matcher> getIncludedClasses() {
+        return WildcardMatcherMatcher.wrap(includedClasses.get());
     }
 
-    public List<WildcardMatcher> getExcludedClasses() {
-        return excludedClasses.get();
+    @Override
+    public List<Matcher> getExcludedClasses() {
+        return WildcardMatcherMatcher.wrap(excludedClasses.get());
     }
 
     public TimeDuration getProfilingInterval() {
         return profilerInterval.get();
     }
 
+    @Override
+    public long getProfilingIntervalMs() {
+        return profilerInterval.get().getMillis();
+    }
+
+    @Override
+    public long getProfilingDurationMs() {
+        return profilingDuration.get().getMillis();
+    }
+
+    @Override
+    public long getInferredSpansMinDurationMs() {
+        return inferredSpansMinDuration.get().getMillis();
+    }
+
+    @Override
+    public long getSamplingIntervalMs() {
+        return samplingInterval.get().getMillis();
+    }
+
     public TimeDuration getProfilingDuration() {
         return profilingDuration.get();
     }
 
+    @Override
     public boolean isNonStopProfiling() {
         return getProfilingDuration().getMillis() >= getProfilingInterval().getMillis();
     }
 
+    @Override
     public boolean isBackupDiagnosticFiles() {
         return backupDiagnosticFiles.get();
     }
 
+    @Override
     public String getProfilerLibDirectory() {
         return profilerLibDirectory.isDefault() ? System.getProperty("java.io.tmpdir") : profilerLibDirectory.get();
     }
 
+    @Override
     public boolean isPostProcessingEnabled() {
         return postProcessingEnabled.get();
     }

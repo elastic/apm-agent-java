@@ -20,7 +20,6 @@ package co.elastic.apm.agent.awslambda.helper;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.InstrumentationStats;
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
 import co.elastic.apm.agent.impl.metadata.Framework;
@@ -30,6 +29,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.util.LoggerUtils;
 import co.elastic.apm.agent.util.VersionUtils;

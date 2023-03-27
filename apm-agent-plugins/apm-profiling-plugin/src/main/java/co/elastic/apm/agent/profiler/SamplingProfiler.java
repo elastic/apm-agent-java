@@ -31,6 +31,8 @@ import co.elastic.apm.agent.profiler.asyncprofiler.AsyncProfiler;
 import co.elastic.apm.agent.profiler.asyncprofiler.JfrParser;
 import co.elastic.apm.agent.profiler.collections.Long2ObjectHashMap;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
+import co.elastic.apm.agent.tracer.configuration.ProfilingConfiguration;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
 import com.lmax.disruptor.EventFactory;
@@ -92,7 +94,7 @@ import static java.nio.file.StandardOpenOption.WRITE;
  * <p>
  * The same background thread that processes the {@link ActivationEvent}s starts the wall clock profiler of async-profiler via
  * {@link AsyncProfiler#execute(String)}.
- * After the {@link ProfilingConfiguration#getProfilingDuration()} is over it stops the profiling and starts processing the JFR file created
+ * After the {@link ProfilingConfiguration#getProfilingDurationMs()} is over it stops the profiling and starts processing the JFR file created
  * by async-profiler with {@link JfrParser}.
  * </p>
  * <p>
@@ -110,7 +112,7 @@ import static java.nio.file.StandardOpenOption.WRITE;
  * </p>
  * <p>
  * Overall, the allocation rate does not depend on the number of {@link ActivationEvent}s but only on
- * {@link ProfilingConfiguration#getProfilingInterval()} and {@link ProfilingConfiguration#getSamplingInterval()}.
+ * {@link ProfilingConfiguration#getProfilingIntervalMs()} and {@link ProfilingConfiguration#getSamplingIntervalMs()}.
  * Having said that, there are some optimizations so that the JFR file is not processed at all if there have not been any
  * {@link ActivationEvent} in a given profiling session.
  * Also, only if there's a {@link CallTree.Root} for a {@link StackTraceEvent},
@@ -338,7 +340,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
                 jfrParser = null;
             }
             if (!scheduler.isShutdown()) {
-                scheduler.schedule(this, config.getProfilingInterval().getMillis(), TimeUnit.MILLISECONDS);
+                scheduler.schedule(this, config.getProfilingIntervalMs(), TimeUnit.MILLISECONDS);
             }
 
             if (hasBeenDisabled) {
@@ -362,7 +364,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             return;
         }
 
-        TimeDuration profilingDuration = config.getProfilingDuration();
+        long profilingDurationMs = config.getProfilingDurationMs();
         boolean postProcessingEnabled = config.isPostProcessingEnabled();
 
         setProfilingSessionOngoing(postProcessingEnabled);
@@ -373,7 +375,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             logger.debug("Start async-profiler profiling session");
         }
         try {
-            profile(profilingDuration);
+            profile(profilingDurationMs);
         } catch (Throwable t) {
             setProfilingSessionOngoing(false);
             logger.error("Stopping profiler", t);
@@ -386,12 +388,12 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         setProfilingSessionOngoing(continueProfilingSession);
 
         if (!interrupted && !scheduler.isShutdown()) {
-            long delay = config.getProfilingInterval().getMillis() - profilingDuration.getMillis();
+            long delay = config.getProfilingIntervalMs() - profilingDurationMs;
             scheduler.schedule(this, delay, TimeUnit.MILLISECONDS);
         }
     }
 
-    private void profile(TimeDuration profilingDuration) throws Exception {
+    private void profile(long profilingDurationMs) throws Exception {
         AsyncProfiler asyncProfiler = AsyncProfiler.getInstance(config.getProfilerLibDirectory(), config.getAsyncProfilerSafeMode());
         try {
             String startCommand = createStartCommand();
@@ -407,7 +409,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             // When post-processing is disabled activation events are ignored, but we still need to invoke this method
             // as it is the one enforcing the sampling session duration. As a side effect it will also consume
             // residual activation events if post-processing is disabled dynamically
-            consumeActivationEventsFromRingBufferAndWriteToFile(profilingDuration);
+            consumeActivationEventsFromRingBufferAndWriteToFile(profilingDurationMs);
 
             String stopMessage = asyncProfiler.execute("stop");
             logger.debug(stopMessage);
@@ -426,7 +428,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
 
     String createStartCommand() {
         StringBuilder startCommand = new StringBuilder("start,jfr,event=wall,cstack=n,interval=")
-            .append(config.getSamplingInterval().getMillis()).append("ms,filter,file=")
+            .append(config.getSamplingIntervalMs()).append("ms,filter,file=")
             .append(jfrFile)
             .append(",safemode=").append(config.getAsyncProfilerSafeMode());
         if (!config.isProfilingLoggingEnabled()) {
@@ -458,9 +460,9 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         );
     }
 
-    private void consumeActivationEventsFromRingBufferAndWriteToFile(TimeDuration profilingDuration) throws Exception {
+    private void consumeActivationEventsFromRingBufferAndWriteToFile(long profilingDurationMs) throws Exception {
         resetActivationEventBuffer();
-        long threshold = System.currentTimeMillis() + profilingDuration.getMillis();
+        long threshold = System.currentTimeMillis() + profilingDurationMs;
         long initialSleep = 100_000;
         long maxSleep = 10_000_000;
         long sleep = initialSleep;
@@ -504,8 +506,8 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             return;
         }
         long start = System.nanoTime();
-        List<WildcardMatcher> excludedClasses = config.getExcludedClasses();
-        List<WildcardMatcher> includedClasses = config.getIncludedClasses();
+        List<Matcher> excludedClasses = config.getExcludedClasses();
+        List<Matcher> includedClasses = config.getIncludedClasses();
         if (config.isBackupDiagnosticFiles()) {
             backupDiagnosticFiles(eof);
         }
@@ -572,7 +574,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     }
 
     private long getInferredSpansMinDurationNs() {
-        return Math.max(config.getInferredSpansMinDuration().getMillis(), coreConfig.getSpanMinDuration(TimeUnit.MILLISECONDS)) * 1_000_000;
+        return Math.max(config.getInferredSpansMinDurationMs(), coreConfig.getSpanMinDurationMs()) * 1_000_000;
     }
 
     /**

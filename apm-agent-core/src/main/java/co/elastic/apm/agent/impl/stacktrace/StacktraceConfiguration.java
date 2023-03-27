@@ -100,12 +100,10 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider impleme
         return applicationPackages.get();
     }
 
-    @Override
     public int getStackTraceLimit() {
         return stackTraceLimit.get();
     }
 
-    @Override
     public long getSpanStackTraceMinDurationMs() {
         if (spanStackTraceMinDurationMs.isDefault() && !spanFramesMinDurationMs.isDefault()) {
             long spanFramesMinDurationMsValue = spanFramesMinDurationMs.getValue().getMillis();

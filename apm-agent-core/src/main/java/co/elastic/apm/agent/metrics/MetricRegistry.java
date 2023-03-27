@@ -23,6 +23,7 @@ import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import org.HdrHistogram.WriterReaderPhaser;
 
 import javax.annotation.Nonnull;
@@ -148,7 +149,7 @@ public class MetricRegistry {
     }
 
     public boolean isDisabled(String name) {
-        return WildcardMatcher.anyMatch(reporterConfiguration.getDisableMetrics(), name) != null;
+        return Matcher.anyMatch(reporterConfiguration.getDisableMetrics(), name) != null;
     }
 
     public double getGaugeValue(String name, Labels labels) {

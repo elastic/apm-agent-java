@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.tracer.configuration;
 
-import java.util.Collection;
+public interface ServerlessConfiguration {
 
-public interface StacktraceConfiguration {
+    String getAwsLambdaHandler();
 
-    Collection<String> getApplicationPackages();
+    long getDataFlushTimeout();
 }

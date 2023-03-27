@@ -27,6 +27,7 @@ import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
@@ -206,7 +207,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public AbstractSpan(ElasticApmTracer tracer) {
         this.tracer = tracer;
         traceContext = TraceContext.with64BitId(this.tracer);
-        boolean selfTimeCollectionEnabled = !WildcardMatcher.isAnyMatch(tracer.getConfig(ReporterConfiguration.class).getDisableMetrics(), "span.self_time");
+        boolean selfTimeCollectionEnabled = !Matcher.isAnyMatch(tracer.getConfig(ReporterConfiguration.class).getDisableMetrics(), "span.self_time");
         boolean breakdownMetricsEnabled = tracer.getConfig(CoreConfiguration.class).isBreakdownMetricsEnabled();
         collectBreakdownMetrics = selfTimeCollectionEnabled && breakdownMetricsEnabled;
     }
