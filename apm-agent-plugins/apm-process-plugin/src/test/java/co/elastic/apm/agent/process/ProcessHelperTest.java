@@ -20,6 +20,7 @@ package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.TransactionUtils;
+import co.elastic.apm.agent.collections.WeakMapReferenceCounter;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -57,7 +58,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         TransactionUtils.fillTransaction(transaction);
 
         storageMap = WeakConcurrent.buildMap();
-        helper = new ProcessHelper(storageMap);
+        helper = new ProcessHelper(new WeakMapReferenceCounter<>(storageMap));
     }
 
     @Test

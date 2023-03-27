@@ -19,10 +19,9 @@
 package co.elastic.apm.agent.lettuce;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
 import io.lettuce.core.protocol.RedisCommand;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -46,7 +45,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  */
 public class Lettuce5StartSpanInstrumentation extends TracerAwareInstrumentation {
 
-    static final WeakMap<RedisCommand<?, ?, ?>, Span> commandToSpan = WeakConcurrentProviderImpl.createWeakSpanMap();
+    static final ReferenceCounter<RedisCommand<?, ?, ?>, Span> commandToSpan = tracer.createReferenceCounter();
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

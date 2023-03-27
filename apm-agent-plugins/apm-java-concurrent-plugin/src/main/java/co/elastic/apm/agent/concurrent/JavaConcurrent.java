@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.agent.concurrent;
 
-import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.common.ThreadUtils;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.state.GlobalState;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -42,7 +42,7 @@ import java.util.concurrent.ForkJoinTask;
 @GlobalState
 public class JavaConcurrent {
 
-    private static final WeakMap<Object, AbstractSpan<?>> contextMap = WeakConcurrentProviderImpl.createWeakSpanMap();
+    private static final ReferenceCounter<Object, AbstractSpan<?>> contextMap = GlobalTracer.get().createReferenceCounter();
 
     private static final List<Class<? extends ElasticApmInstrumentation>> RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION = Collections.
         <Class<? extends ElasticApmInstrumentation>>singletonList(RunnableCallableForkJoinTaskInstrumentation.class);

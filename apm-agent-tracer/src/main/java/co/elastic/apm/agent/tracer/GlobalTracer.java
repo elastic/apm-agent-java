@@ -21,6 +21,8 @@ package co.elastic.apm.agent.tracer;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
 
 import javax.annotation.Nullable;
 
@@ -79,6 +81,11 @@ public class GlobalTracer implements Tracer {
     @Override
     public ObjectPoolFactory getObjectPoolFactory() {
         return tracer.getObjectPoolFactory();
+    }
+
+    @Override
+    public <K, V extends ReferenceCounted> ReferenceCounter<K, V> createReferenceCounter() {
+        return tracer.createReferenceCounter();
     }
 
     @Nullable

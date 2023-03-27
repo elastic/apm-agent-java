@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
+import co.elastic.apm.agent.collections.WeakMapReferenceCounter;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
@@ -47,6 +49,8 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.tracer.Scope;
@@ -578,6 +582,11 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public ObjectPoolFactory getObjectPoolFactory() {
         return objectPoolFactory;
+    }
+
+    @Override
+    public <K, V extends ReferenceCounted> ReferenceCounter<K, V> createReferenceCounter() {
+        return new WeakMapReferenceCounter<>(WeakConcurrentProviderImpl.createWeakReferenceCountedMap());
     }
 
     @Override

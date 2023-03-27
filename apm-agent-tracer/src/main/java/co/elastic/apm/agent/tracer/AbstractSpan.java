@@ -20,13 +20,13 @@ package co.elastic.apm.agent.tracer;
 
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
-import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 
 import javax.annotation.Nullable;
 
-public interface AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<T> {
+public interface AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<T>, ReferenceCounted {
 
     AbstractContext getContext();
 
@@ -166,8 +166,4 @@ public interface AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<
     T withOutcome(Outcome outcome);
 
     T withSync(boolean sync);
-
-    void incrementReferences();
-
-    void decrementReferences();
 }

@@ -22,6 +22,8 @@ import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
 
 import javax.annotation.Nullable;
 
@@ -37,6 +39,8 @@ public interface Tracer {
     <T> T getConfig(Class<T> configuration);
 
     ObjectPoolFactory getObjectPoolFactory();
+
+    <K, V extends ReferenceCounted> ReferenceCounter<K, V> createReferenceCounter();
 
     @Nullable
     AbstractSpan<?> getActive();

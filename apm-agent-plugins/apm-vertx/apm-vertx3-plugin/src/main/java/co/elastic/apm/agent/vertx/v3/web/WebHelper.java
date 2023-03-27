@@ -25,6 +25,7 @@ import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
@@ -38,7 +39,7 @@ public class WebHelper extends AbstractVertxWebHelper {
 
     private static final WebHelper INSTANCE = new WebHelper(GlobalTracer.get());
 
-    static final WeakMap<Object, Transaction<?>> transactionMap = WeakConcurrentProviderImpl.createWeakSpanMap();
+    static final ReferenceCounter<Object, Transaction<?>> transactionMap = GlobalTracer.get().createReferenceCounter();
 
     public static WebHelper getInstance() {
         return INSTANCE;

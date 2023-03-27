@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.springwebclient;
 
-import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +35,7 @@ public class WebClientSubscriber<T> implements CoreSubscriber<T>, Subscription {
 
     private static final Logger logger = LoggerFactory.getLogger(WebClientSubscriber.class);
 
-    private static final WeakMap<WebClientSubscriber<?>, Span<?>> spanMap = WeakConcurrentProviderImpl.createWeakSpanMap();
+    private static final ReferenceCounter<WebClientSubscriber<?>, Span<?>> spanMap = GlobalTracer.get().createReferenceCounter();
 
     private final Tracer tracer;
     private final CoreSubscriber<? super T> subscriber;

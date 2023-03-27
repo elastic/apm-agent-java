@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -50,7 +51,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 @GlobalState
 public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstrumentation {
 
-    public static final WeakMap<HttpURLConnection, Span> inFlightSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
+    public static final ReferenceCounter<HttpURLConnection, Span<?>> inFlightSpans = tracer.createReferenceCounter();
     public static final CallDepth callDepth = CallDepth.get(HttpUrlConnectionInstrumentation.class);
 
     @Override

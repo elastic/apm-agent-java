@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.process;
 
-import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -34,7 +34,7 @@ import java.util.List;
  */
 class ProcessHelper {
 
-    private static final ProcessHelper INSTANCE = new ProcessHelper(WeakConcurrentProviderImpl.<Process, Span<?>>createWeakSpanMap());
+    private static final ProcessHelper INSTANCE = new ProcessHelper(GlobalTracer.get().<Process, Span<?>>createReferenceCounter());
 
     /**
      * A thread local used to indicate whether the currently invoked instrumented method is invoked by the plugin itself.
@@ -44,9 +44,9 @@ class ProcessHelper {
      */
     private static final ThreadLocal<Boolean> inTracingContext = GlobalVariables.get(ProcessHelper.class, "inTracingContext", new ThreadLocal<Boolean>());
 
-    private final WeakMap<Process, Span<?>> inFlightSpans;
+    private final ReferenceCounter<Process, Span<?>> inFlightSpans;
 
-    ProcessHelper(WeakMap<Process, Span<?>> inFlightSpans) {
+    ProcessHelper(ReferenceCounter<Process, Span<?>> inFlightSpans) {
         this.inFlightSpans = inFlightSpans;
     }
 
@@ -74,7 +74,7 @@ class ProcessHelper {
      * @param processName   process name
      */
     void doStartProcess(@Nonnull AbstractSpan<?> parentContext, @Nonnull Process process, @Nonnull String processName) {
-        if (inFlightSpans.containsKey(process)) {
+        if (inFlightSpans.contains(process)) {
             return;
         }
 
