@@ -37,8 +37,8 @@ import org.HdrHistogram.WriterReaderPhaser;
 import javax.annotation.Nullable;
 import java.util.List;
 
-import static co.elastic.apm.agent.configuration.CoreConfiguration.TraceContinuationStrategy.RESTART;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.TraceContinuationStrategy.RESTART_EXTERNAL;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.TraceContinuationStrategy.RESTART;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.TraceContinuationStrategy.RESTART_EXTERNAL;
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
@@ -140,9 +140,9 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         }
         CoreConfiguration.TraceContinuationStrategy traceContinuationStrategy = coreConfig.getTraceContinuationStrategy();
         boolean restartTrace = false;
-        if (traceContinuationStrategy.equals(RESTART)) {
+        if (traceContinuationStrategy == RESTART) {
             restartTrace = true;
-        } else if (traceContinuationStrategy.equals(RESTART_EXTERNAL)) {
+        } else if (traceContinuationStrategy == RESTART_EXTERNAL) {
             restartTrace = !TraceState.includesElasticVendor(headerGetter, parent);
         }
         if (restartTrace) {

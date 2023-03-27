@@ -19,7 +19,9 @@
 package co.elastic.apm.agent.impl.context.web;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
@@ -28,7 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class WebConfiguration extends ConfigurationOptionProvider {
+public class WebConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.WebConfiguration {
 
     private static final String HTTP_CATEGORY = "HTTP";
 
@@ -122,24 +124,29 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
-    public List<WildcardMatcher> getIgnoreUrls() {
-        return ignoreUrls.get();
+    @Override
+    public List<Matcher> getIgnoreUrls() {
+        return WildcardMatcherMatcher.wrap(ignoreUrls.get());
     }
 
-    public List<WildcardMatcher> getIgnoreUserAgents() {
-        return ignoreUserAgents.get();
+    @Override
+    public List<Matcher> getIgnoreUserAgents() {
+        return WildcardMatcherMatcher.wrap(ignoreUserAgents.get());
     }
 
+    @Override
     public boolean isUsePathAsName() {
         return usePathAsName.get();
     }
 
-    public List<WildcardMatcher> getUrlGroups() {
-        return urlGroups.get();
+    @Override
+    public List<Matcher> getUrlGroups() {
+        return WildcardMatcherMatcher.wrap(urlGroups.get());
     }
 
-    public List<WildcardMatcher> getCaptureContentTypes() {
-        return captureContentTypes.get();
+    @Override
+    public List<Matcher> getCaptureContentTypes() {
+        return WildcardMatcherMatcher.wrap(captureContentTypes.get());
     }
 
 }

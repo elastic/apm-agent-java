@@ -44,10 +44,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AWS;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AZURE;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.GCP;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.NONE;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.CloudProvider.AWS;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.CloudProvider.AZURE;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.CloudProvider.GCP;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.CloudProvider.NONE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class CloudMetadataProvider {

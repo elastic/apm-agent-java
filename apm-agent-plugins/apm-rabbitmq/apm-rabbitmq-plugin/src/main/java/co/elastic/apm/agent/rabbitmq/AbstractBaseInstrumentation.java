@@ -19,11 +19,11 @@
 package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.metadata.Message;
 
 import javax.annotation.Nullable;
@@ -40,7 +40,7 @@ public abstract class AbstractBaseInstrumentation extends TracerAwareInstrumenta
      * @return {@literal true} when exchange or queue is ignored, {@literal false otherwise}
      */
     protected static boolean isIgnored(String name) {
-        return WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), name);
+        return Matcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), name);
     }
 
     protected static boolean isCaptureHeaders() {
@@ -48,7 +48,7 @@ public abstract class AbstractBaseInstrumentation extends TracerAwareInstrumenta
     }
 
     protected static boolean captureHeaderKey(String key) {
-        return !WildcardMatcher.isAnyMatch(coreConfiguration.getSanitizeFieldNames(), key);
+        return !Matcher.isAnyMatch(coreConfiguration.getSanitizeFieldNames(), key);
     }
 
     /**

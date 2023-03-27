@@ -62,8 +62,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static co.elastic.apm.agent.configuration.MessagingConfiguration.JmsStrategy.BOTH;
-import static co.elastic.apm.agent.configuration.MessagingConfiguration.JmsStrategy.POLLING;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_EXPIRATION_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_MESSAGE_ID_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TIMESTAMP_HEADER;
@@ -72,6 +70,8 @@ import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.TEMP;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.TIBCO_TMP_QUEUE_PREFIX;
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
+import static co.elastic.apm.agent.tracer.configuration.MessagingConfiguration.JmsStrategy.BOTH;
+import static co.elastic.apm.agent.tracer.configuration.MessagingConfiguration.JmsStrategy.POLLING;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 

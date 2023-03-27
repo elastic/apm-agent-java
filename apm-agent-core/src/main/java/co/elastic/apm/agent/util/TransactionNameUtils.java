@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.util;
 
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -75,15 +75,15 @@ public class TransactionNameUtils {
 
     }
 
-    public static void setNameFromHttpRequestPath(String method, String path, @Nullable StringBuilder transactionName, List<WildcardMatcher> urlGroups) {
+    public static void setNameFromHttpRequestPath(String method, String path, @Nullable StringBuilder transactionName, List<Matcher> urlGroups) {
         setNameFromHttpRequestPath(method, path, null, transactionName, urlGroups);
     }
 
-    public static void setNameFromHttpRequestPath(String method, String pathFirstPart, @Nullable String pathSecondPart, @Nullable StringBuilder transactionName, List<WildcardMatcher> urlGroups) {
+    public static void setNameFromHttpRequestPath(String method, String pathFirstPart, @Nullable String pathSecondPart, @Nullable StringBuilder transactionName, List<Matcher> urlGroups) {
         if (transactionName == null) {
             return;
         }
-        WildcardMatcher groupMatcher = WildcardMatcher.anyMatch(urlGroups, pathFirstPart, pathSecondPart);
+        Matcher groupMatcher = Matcher.anyMatch(urlGroups, pathFirstPart, pathSecondPart);
         if (groupMatcher != null) {
             transactionName.append(method).append(' ').append(groupMatcher);
         } else {

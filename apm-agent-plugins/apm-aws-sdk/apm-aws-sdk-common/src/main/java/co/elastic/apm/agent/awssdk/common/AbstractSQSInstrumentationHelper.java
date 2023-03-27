@@ -18,16 +18,16 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.metadata.Message;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
@@ -85,7 +85,7 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
 
     @Nullable
     public Span<?> createSpan(@Nullable String queueName) {
-        if (WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), queueName)) {
+        if (Matcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), queueName)) {
             return null;
         }
         AbstractSpan<?> active = tracer.getActive();
@@ -160,7 +160,7 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
 
     public void startTransactionOnMessage(MessageT sqsMessage, String queueName, TextHeaderGetter<MessageT> headerGetter) {
         try {
-            if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), queueName)) {
+            if (!Matcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), queueName)) {
                 Transaction<?> transaction = tracer.startChildTransaction(sqsMessage, headerGetter, PrivilegedActionUtils.getClassLoader(AbstractSQSInstrumentationHelper.class));
                 if (transaction != null) {
                     transaction.withType(MESSAGING_TYPE).withName("SQS RECEIVE from " + queueName).activate();
@@ -197,7 +197,7 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
                     if (!TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME.equals(key) &&
                         !TraceContext.TRACESTATE_HEADER_NAME.equals(key) &&
                         value != null &&
-                        WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
+                        Matcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
                         message.addHeader(key, value);
                     }
                 }

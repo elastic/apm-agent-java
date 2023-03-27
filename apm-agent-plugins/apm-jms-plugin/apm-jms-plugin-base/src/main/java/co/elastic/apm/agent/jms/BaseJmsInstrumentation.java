@@ -19,10 +19,9 @@
 package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
@@ -48,7 +47,6 @@ public abstract class BaseJmsInstrumentation extends TracerAwareInstrumentation 
 
         protected static final JmsInstrumentationHelper helper;
         protected static final MessagingConfiguration messagingConfiguration;
-        protected static final CoreConfiguration coreConfiguration;
 
         static {
             Tracer tracer = GlobalTracer.get();
@@ -59,7 +57,6 @@ public abstract class BaseJmsInstrumentation extends TracerAwareInstrumentation 
             helper = new JmsInstrumentationHelper(tracer);
 
             messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
-            coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         }
     }
 }

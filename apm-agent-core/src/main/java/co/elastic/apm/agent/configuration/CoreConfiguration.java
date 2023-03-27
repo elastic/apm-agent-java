@@ -31,6 +31,7 @@ import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.AbstractValueConverter;
@@ -59,7 +60,7 @@ import java.util.concurrent.TimeUnit;
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACEHOLDER;
 
-public class CoreConfiguration extends ConfigurationOptionProvider {
+public class CoreConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.CoreConfiguration {
 
     public static final int DEFAULT_LONG_FIELD_MAX_LENGTH = 10000;
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -847,6 +848,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return Arrays.asList(instrument, traceMethods, enabledInstrumentations, disabledInstrumentations, enableExperimentalInstrumentations);
     }
 
+    @Override
     public String getServiceName() {
         return serviceName.get();
     }
@@ -868,6 +870,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return delayTracerStart.get().getMillis();
     }
 
+    @Override
     @Nullable
     public String getServiceVersion() {
         return serviceVersion.get();
@@ -895,10 +898,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return longFieldMaxLength.get();
     }
 
-    public List<WildcardMatcher> getSanitizeFieldNames() {
-        return sanitizeFieldNames.get();
+    @Override
+    public List<Matcher> getSanitizeFieldNames() {
+        return WildcardMatcherMatcher.wrap(sanitizeFieldNames.get());
     }
 
+    @Override
     public boolean isInstrumentationEnabled(String instrumentationGroupName) {
         final Collection<String> enabledInstrumentationGroupNames = enabledInstrumentations.get();
         final Collection<String> disabledInstrumentationGroupNames = disabledInstrumentations.get();
@@ -907,6 +912,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             (enableExperimentalInstrumentations.get() || !instrumentationGroupName.equals("experimental"));
     }
 
+    @Override
     public boolean isInstrumentationEnabled(Collection<String> instrumentationGroupNames) {
         return isGroupEnabled(instrumentationGroupNames) &&
             !isGroupDisabled(instrumentationGroupNames);
@@ -943,10 +949,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return ignoreExceptions.get();
     }
 
+    @Override
     public EventType getCaptureBody() {
         return captureBody.get();
     }
 
+    @Override
     public boolean isCaptureHeaders() {
         return captureHeaders.get();
     }
@@ -1018,6 +1026,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public int getTracestateSizeLimit() {
         return tracestateHeaderSizeLimit.get();
+    }
+
+    @Override
+    public long getSpanMinDuration(TimeUnit unit) {
+        return spanMinDuration.get().getMillis();
     }
 
     public TimeDuration getSpanMinDuration() {
@@ -1095,6 +1108,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return cloudProvider.get();
     }
 
+    @Override
     public boolean isEnablePublicApiAnnotationInheritance() {
         return enablePublicApiAnnotationInheritance.get();
     }
@@ -1110,48 +1124,4 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public ActivationMethod getActivationMethod() {
         return activationMethod.get();
     }
-
-    public enum EventType {
-        /**
-         * Request bodies will never be reported
-         */
-        OFF,
-        /**
-         * Request bodies will only be reported with errors
-         */
-        ERRORS,
-        /**
-         * Request bodies will only be reported with request transactions
-         */
-        TRANSACTIONS,
-        /**
-         * Request bodies will be reported with both errors and request transactions
-         */
-        ALL;
-
-        @Override
-        public String toString() {
-            return name().toLowerCase();
-        }
-    }
-
-    public enum CloudProvider {
-        AUTO,
-        AWS,
-        GCP,
-        AZURE,
-        NONE
-    }
-
-    public enum TraceContinuationStrategy {
-        CONTINUE,
-        RESTART,
-        RESTART_EXTERNAL;
-
-        @Override
-        public String toString() {
-            return name().toLowerCase();
-        }
-    }
-
 }

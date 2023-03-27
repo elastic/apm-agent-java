@@ -18,12 +18,13 @@
  */
 package co.elastic.apm.agent.vertx;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.metadata.Request;
 import co.elastic.apm.agent.tracer.metadata.Response;
 import co.elastic.apm.agent.util.TransactionNameUtils;
@@ -36,9 +37,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.EventType.OFF;
 
 public abstract class AbstractHttpTransactionHelper {
     private static final Logger logger = LoggerFactory.getLogger(AbstractHttpTransactionHelper.class);
@@ -72,7 +73,7 @@ public abstract class AbstractHttpTransactionHelper {
                 // form parameters are recorded via ServletRequest.getParameterMap
                 // as the container might not call ServletRequest.getInputStream
                 && !contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
-                && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader)) {
+                && Matcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader)) {
                 request.withBodyBuffer();
             } else {
                 request.redactBody();
@@ -137,7 +138,7 @@ public abstract class AbstractHttpTransactionHelper {
             && contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
             && hasBody(contentTypeHeader, method)
             && coreConfiguration.getCaptureBody() != OFF
-            && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader);
+            && Matcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader);
     }
 
     protected void fillResponse(Response response, @Nullable Boolean committed, int status) {

@@ -20,6 +20,7 @@ package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
@@ -28,7 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-public class MessagingConfiguration extends ConfigurationOptionProvider {
+public class MessagingConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.MessagingConfiguration {
     private static final String MESSAGING_CATEGORY = "Messaging";
     private static final String MESSAGE_POLLING_TRANSACTION_STRATEGY = "message_polling_transaction_strategy";
     private static final String MESSAGE_BATCH_STRATEGY = "message_batch_strategy";
@@ -106,59 +107,33 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(Collections.<String>emptyList());
 
+    @Override
     public JmsStrategy getMessagePollingTransactionStrategy() {
         return messagePollingTransactionStrategy.get();
     }
 
+    @Override
     public BatchStrategy getMessageBatchStrategy() {
         return messageBatchStrategy.get();
     }
 
-    public List<WildcardMatcher> getIgnoreMessageQueues() {
-        return ignoreMessageQueues.get();
+    @Override
+    public List<Matcher> getIgnoreMessageQueues() {
+        return WildcardMatcherMatcher.wrap(ignoreMessageQueues.get());
     }
 
+    @Override
     public boolean shouldCollectQueueAddress() {
         return collectQueueAddress.get();
     }
 
+    @Override
     public boolean shouldEndMessagingTransactionOnPoll() {
         return endMessagingTransactionOnPoll.get();
     }
 
+    @Override
     public Collection<String> getJmsListenerPackages() {
         return jmsListenerPackages.get();
-    }
-
-    public enum JmsStrategy {
-        /**
-         * Create a transaction capturing JMS {@code receive} invocations
-         */
-        POLLING,
-        /**
-         * Use heuristics to create a transaction that captures the JMS message handling execution. This strategy requires heuristics
-         * when JMS {@code receive} APIs are used (rather than {@code onMessage}), as there is no API representing message handling start
-         * and end. Even though this is riskier and less deterministic, it is the default JMS tracing strategy otherwise all
-         * "interesting" subsequent events that follow message receive will be missed because there will be no active transaction.
-         */
-        HANDLING,
-        /**
-         * Create a transaction both for the polling ({@code receive}) action AND the subsequent message handling.
-         */
-        BOTH
-    }
-
-    /**
-     * Only relevant for Spring wrappers around supported messaging clients, such as AMQP.
-     */
-    public enum BatchStrategy {
-        /**
-         * Create a transaction for each received message/record, typically by wrapping the message batch data structure
-         */
-        SINGLE_HANDLING,
-        /**
-         * Create a single transaction encapsulating the entire message/record batch-processing.
-         */
-        BATCH_HANDLING
     }
 }

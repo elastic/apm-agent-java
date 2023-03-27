@@ -38,9 +38,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AUTO;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AWS;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.NONE;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.CloudProvider.AUTO;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.CloudProvider.AWS;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.CloudProvider.NONE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.doReturn;

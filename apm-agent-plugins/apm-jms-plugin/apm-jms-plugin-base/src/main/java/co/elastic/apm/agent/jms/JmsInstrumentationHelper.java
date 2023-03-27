@@ -18,16 +18,16 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
@@ -201,7 +201,7 @@ public class JmsInstrumentationHelper {
     }
 
     public boolean ignoreDestination(@Nullable String destinationName) {
-        return WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), destinationName);
+        return Matcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), destinationName);
     }
 
     public void addDestinationDetails(Destination destination,
@@ -259,7 +259,7 @@ public class JmsInstrumentationHelper {
                     while (properties.hasMoreElements()) {
                         String propertyName = String.valueOf(properties.nextElement());
                         if (!propertyName.equals(JMS_DESTINATION_NAME_PROPERTY) && !propertyName.equals(JMS_TRACE_PARENT_PROPERTY)
-                            && WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), propertyName) == null) {
+                            && Matcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), propertyName) == null) {
                             messageContext.addHeader(propertyName, String.valueOf(message.getObjectProperty(propertyName)));
                         }
                     }

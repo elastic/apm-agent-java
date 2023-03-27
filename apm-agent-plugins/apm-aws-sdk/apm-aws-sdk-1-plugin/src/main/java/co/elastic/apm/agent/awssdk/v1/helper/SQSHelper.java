@@ -20,13 +20,13 @@ package co.elastic.apm.agent.awssdk.v1.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractSQSInstrumentationHelper;
 import co.elastic.apm.agent.awssdk.v1.helper.sqs.wrapper.ReceiveMessageResultWrapper;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.Request;
@@ -145,7 +145,7 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<Request<?>, Exec
                     if (!TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME.equals(key) &&
                         !TraceContext.TRACESTATE_HEADER_NAME.equals(key) &&
                         entry.getValue().getDataType().equals(ATTRIBUTE_DATA_TYPE_STRING) &&
-                        WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
+                        Matcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
                         message.addHeader(key, entry.getValue().getStringValue());
                     }
                 }

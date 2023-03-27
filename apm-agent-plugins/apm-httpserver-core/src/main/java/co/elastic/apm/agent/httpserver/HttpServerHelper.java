@@ -18,10 +18,11 @@
  */
 package co.elastic.apm.agent.httpserver;
 
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 
 import javax.annotation.Nullable;
 
@@ -36,12 +37,12 @@ public class HttpServerHelper {
     }
 
     public boolean isRequestExcluded(String path, @Nullable String userAgentHeader){
-        final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(configuration.getIgnoreUrls(), path);
+        final Matcher excludeUrlMatcher = Matcher.anyMatch(configuration.getIgnoreUrls(), path);
         if (excludeUrlMatcher != null && logger.isDebugEnabled()) {
             logger.debug("Not tracing this request as the path {} is ignored by the matcher {}",
                 path, excludeUrlMatcher);
         }
-        final WildcardMatcher excludeAgentMatcher = userAgentHeader != null ? WildcardMatcher.anyMatch(configuration.getIgnoreUserAgents(), userAgentHeader) : null;
+        final Matcher excludeAgentMatcher = userAgentHeader != null ? Matcher.anyMatch(configuration.getIgnoreUserAgents(), userAgentHeader) : null;
         if (excludeAgentMatcher != null) {
             logger.debug("Not tracing this request as the User-Agent {} is ignored by the matcher {}",
                 userAgentHeader, excludeAgentMatcher);

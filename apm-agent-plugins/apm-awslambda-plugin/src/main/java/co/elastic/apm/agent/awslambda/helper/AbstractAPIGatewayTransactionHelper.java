@@ -26,9 +26,9 @@ import co.elastic.apm.agent.impl.context.ServiceOrigin;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import com.amazonaws.services.lambda.runtime.Context;
 
 import javax.annotation.Nullable;
@@ -38,7 +38,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.EventType.OFF;
 
 public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends AbstractLambdaTransactionHelper<I, O> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractAPIGatewayTransactionHelper.class);
@@ -100,7 +100,7 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
                 // form parameters are recorded via ServletRequest.getParameterMap
                 // as the container might not call ServletRequest.getInputStream
                 && !contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
-                && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader)) {
+                && Matcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader)) {
                 return request.withBodyBuffer();
             } else {
                 request.redactBody();

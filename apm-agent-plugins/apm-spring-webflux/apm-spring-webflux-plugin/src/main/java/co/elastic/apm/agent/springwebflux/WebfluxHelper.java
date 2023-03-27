@@ -18,17 +18,17 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.tracer.metadata.Request;
 import co.elastic.apm.agent.tracer.metadata.Response;
@@ -81,9 +81,9 @@ public class WebfluxHelper {
     private static final WeakMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakConcurrent.buildMap();
 
     static {
-
-        coreConfig = GlobalTracer.get().getConfig(CoreConfiguration.class);
-        webConfig = GlobalTracer.get().getConfig(WebConfiguration.class);
+        Tracer tracer = GlobalTracer.get();
+        coreConfig = tracer.getConfig(CoreConfiguration.class);
+        webConfig = tracer.getConfig(WebConfiguration.class);
         serverHelper = new HttpServerHelper(webConfig);
     }
 

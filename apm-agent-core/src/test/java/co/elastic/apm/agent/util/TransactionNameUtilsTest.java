@@ -19,8 +19,10 @@
 package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -97,9 +99,9 @@ class TransactionNameUtilsTest extends AbstractInstrumentationTest {
 
     @Test
     void setNameFromHttpRequestPath() {
-        List<WildcardMatcher> urlGroups = List.of(
-            WildcardMatcher.valueOf("/foo/bar/*/qux"),
-            WildcardMatcher.valueOf("/foo/bar/*")
+        List<Matcher> urlGroups = List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("/foo/bar/*/qux")),
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("/foo/bar/*"))
         );
 
         // shuold be a no-op
@@ -116,7 +118,7 @@ class TransactionNameUtilsTest extends AbstractInstrumentationTest {
 
     }
 
-    private void testHttpRequestPath(String httpMethod, String firstPart, @Nullable String secondPart, List<WildcardMatcher> urlGroups, String expected) {
+    private void testHttpRequestPath(String httpMethod, String firstPart, @Nullable String secondPart, List<Matcher> urlGroups, String expected) {
         StringBuilder sb = new StringBuilder();
         TransactionNameUtils.setNameFromHttpRequestPath(httpMethod, firstPart, secondPart, sb, urlGroups);
         assertThat(sb.toString()).isEqualTo(expected);

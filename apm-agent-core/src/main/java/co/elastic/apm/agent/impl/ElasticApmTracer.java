@@ -19,11 +19,14 @@
 package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
@@ -35,7 +38,6 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
@@ -47,11 +49,11 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
-import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -68,6 +70,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -428,7 +431,13 @@ public class ElasticApmTracer implements Tracer {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public <T> T getConfig(Class<T> configProvider) {
         T configuration = null;
-        if (ConfigurationOptionProvider.class.isAssignableFrom(configProvider)) {
+        if (configProvider == co.elastic.apm.agent.tracer.configuration.CoreConfiguration.class) {
+            configuration = (T) configurationRegistry.getConfig(CoreConfiguration.class);
+        } else if (configProvider == co.elastic.apm.agent.tracer.configuration.MessagingConfiguration.class) {
+            configuration = (T) configurationRegistry.getConfig(MessagingConfiguration.class);
+        } else if (configProvider == co.elastic.apm.agent.tracer.configuration.WebConfiguration.class) {
+            configuration = (T) configurationRegistry.getConfig(WebConfiguration.class);
+        } else if (ConfigurationOptionProvider.class.isAssignableFrom(configProvider)) {
              configuration = (T) configurationRegistry.getConfig((Class) configProvider);
         }
         if (configuration == null) {
@@ -476,7 +485,7 @@ public class ElasticApmTracer implements Tracer {
                 span.requestDiscarding();
             }
         } else if (!span.isComposite()) {
-            if (span.getDuration() < coreConfiguration.getSpanMinDuration().getMicros()) {
+            if (span.getDuration() < coreConfiguration.getSpanMinDuration(TimeUnit.MICROSECONDS)) {
                 logger.debug("Span faster than span_min_duration. Request discarding {}", span);
                 span.requestDiscarding();
             }

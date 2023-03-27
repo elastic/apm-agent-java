@@ -21,8 +21,8 @@ package co.elastic.apm.agent.impl.context;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.processor.Processor;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -75,6 +75,6 @@ public class SanitizingWebProcessor implements Processor {
 
     private boolean isSensitive(String key) {
         assert config != null;
-        return WildcardMatcher.anyMatch(config.getSanitizeFieldNames(), key) != null;
+        return Matcher.anyMatch(config.getSanitizeFieldNames(), key) != null;
     }
 }

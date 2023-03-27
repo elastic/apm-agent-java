@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.profiler;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -31,6 +30,7 @@ import co.elastic.apm.agent.objectpool.impl.ListBasedObjectPool;
 import co.elastic.apm.agent.profiler.asyncprofiler.AsyncProfiler;
 import co.elastic.apm.agent.profiler.asyncprofiler.JfrParser;
 import co.elastic.apm.agent.profiler.collections.Long2ObjectHashMap;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
 import com.lmax.disruptor.EventFactory;
@@ -572,7 +572,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     }
 
     private long getInferredSpansMinDurationNs() {
-        return Math.max(config.getInferredSpansMinDuration().getMillis(), coreConfig.getSpanMinDuration().getMillis()) * 1_000_000;
+        return Math.max(config.getInferredSpansMinDuration().getMillis(), coreConfig.getSpanMinDuration(TimeUnit.MILLISECONDS)) * 1_000_000;
     }
 
     /**
