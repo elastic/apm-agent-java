@@ -19,6 +19,8 @@
 package co.elastic.apm.agent.mongodb;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.MongoConfiguration;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -208,7 +210,7 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
             return;
         }
 
-        doReturn(List.of(WildcardMatcher.valueOf("*")))
+        doReturn(List.of(new WildcardMatcherMatcher(WildcardMatcher.valueOf("*"))))
             .when(config.getConfig(MongoConfiguration.class))
             .getCaptureStatementCommands();
 

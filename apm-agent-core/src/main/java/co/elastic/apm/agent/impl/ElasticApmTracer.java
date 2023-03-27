@@ -21,6 +21,7 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.JaxRsConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
@@ -64,6 +65,7 @@ import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -81,6 +83,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class ElasticApmTracer implements Tracer {
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
+
+    private static final Map<Class<?>, Class<? extends ConfigurationOptionProvider>> configTranslations = new HashMap<>();
 
     private static final WeakMap<ClassLoader, ServiceInfo> serviceInfoByClassLoader = WeakConcurrent.buildMap();
 
@@ -128,6 +132,11 @@ public class ElasticApmTracer implements Tracer {
 
     static {
         checkClassloader();
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.CoreConfiguration.class, CoreConfiguration.class);
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.MessagingConfiguration.class, MessagingConfiguration.class);
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.WebConfiguration.class, WebConfiguration.class);
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.StacktraceConfiguration.class, StacktraceConfiguration.class);
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.JaxRsConfiguration.class, JaxRsConfiguration.class);
     }
 
     private static void checkClassloader() {
@@ -431,12 +440,9 @@ public class ElasticApmTracer implements Tracer {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public <T> T getConfig(Class<T> configProvider) {
         T configuration = null;
-        if (configProvider == co.elastic.apm.agent.tracer.configuration.CoreConfiguration.class) {
-            configuration = (T) configurationRegistry.getConfig(CoreConfiguration.class);
-        } else if (configProvider == co.elastic.apm.agent.tracer.configuration.MessagingConfiguration.class) {
-            configuration = (T) configurationRegistry.getConfig(MessagingConfiguration.class);
-        } else if (configProvider == co.elastic.apm.agent.tracer.configuration.WebConfiguration.class) {
-            configuration = (T) configurationRegistry.getConfig(WebConfiguration.class);
+        Class<? extends ConfigurationOptionProvider> translated = configTranslations.get(configProvider);
+        if (translated != null) {
+            configuration = (T) configurationRegistry.getConfig(translated);
         } else if (ConfigurationOptionProvider.class.isAssignableFrom(configProvider)) {
              configuration = (T) configurationRegistry.getConfig((Class) configProvider);
         }

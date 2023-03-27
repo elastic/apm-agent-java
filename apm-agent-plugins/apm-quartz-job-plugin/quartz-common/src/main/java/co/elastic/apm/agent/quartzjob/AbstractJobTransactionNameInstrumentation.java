@@ -20,11 +20,11 @@ package co.elastic.apm.agent.quartzjob;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.configuration.StacktraceConfiguration;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.description.NamedElement;

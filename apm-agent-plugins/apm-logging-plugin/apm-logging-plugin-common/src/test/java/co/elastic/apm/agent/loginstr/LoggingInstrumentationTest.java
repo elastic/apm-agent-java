@@ -23,7 +23,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.logging.TestUtils;
 import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
@@ -105,7 +104,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         childSpan = transaction.createSpan().activate();
     }
 
-    private void setEcsReformattingConfig(LogEcsReformatting ecsReformattingConfig) {
+    private void setEcsReformattingConfig(LoggingConfiguration.LogEcsReformatting ecsReformattingConfig) {
         doReturn(ecsReformattingConfig).when(loggingConfig).getLogEcsReformatting();
     }
 
@@ -131,7 +130,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
     @Test
     public void testSimpleLogReformatting() throws Exception {
-        setEcsReformattingConfig(LogEcsReformatting.SHADE);
+        setEcsReformattingConfig(LoggingConfiguration.LogEcsReformatting.SHADE);
         initializeReformattingDir("simple");
         runSimpleScenario();
     }
@@ -156,7 +155,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     @Test
     public void testMarkers() throws Exception {
         if (markersSupported()) {
-            setEcsReformattingConfig(LogEcsReformatting.SHADE);
+            setEcsReformattingConfig(LoggingConfiguration.LogEcsReformatting.SHADE);
             initializeReformattingDir("markers");
             logger.debugWithMarker(DEBUG_MESSAGE);
 
@@ -182,7 +181,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
     @Test
     public void testShadingIntoOriginalLogsDir() throws Exception {
-        setEcsReformattingConfig(LogEcsReformatting.SHADE);
+        setEcsReformattingConfig(LoggingConfiguration.LogEcsReformatting.SHADE);
         initializeReformattingDir("");
         runSimpleScenario();
     }
@@ -193,7 +192,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         logger.trace(TRACE_MESSAGE);
         logger.debug(DEBUG_MESSAGE);
         assertThat(Paths.get(getLogReformattingFilePath())).doesNotExist();
-        setEcsReformattingConfig(LogEcsReformatting.SHADE);
+        setEcsReformattingConfig(LoggingConfiguration.LogEcsReformatting.SHADE);
         logger.warn(WARN_MESSAGE);
         assertThat(Paths.get(getLogReformattingFilePath())).exists();
         logger.error(ERROR_MESSAGE, new Throwable());
@@ -210,7 +209,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     @Test
     public void testLogReformattingReplaceOriginal() throws IOException {
         initializeReformattingDir("replace");
-        setEcsReformattingConfig(LogEcsReformatting.REPLACE);
+        setEcsReformattingConfig(LoggingConfiguration.LogEcsReformatting.REPLACE);
         logger.trace(TRACE_MESSAGE);
         logger.debug(DEBUG_MESSAGE);
         logger.warn(WARN_MESSAGE);
@@ -226,7 +225,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
     @Test
     public void testLogOverride() throws IOException {
-        setEcsReformattingConfig(LogEcsReformatting.OVERRIDE);
+        setEcsReformattingConfig(LoggingConfiguration.LogEcsReformatting.OVERRIDE);
         logger.trace(TRACE_MESSAGE);
         logger.debug(DEBUG_MESSAGE);
         logger.warn(WARN_MESSAGE);
@@ -261,7 +260,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     @Test
     public void testEmptyFormatterAllowList() throws Exception {
         initializeReformattingDir("disabled");
-        setEcsReformattingConfig(LogEcsReformatting.SHADE);
+        setEcsReformattingConfig(LoggingConfiguration.LogEcsReformatting.SHADE);
         doReturn(Collections.EMPTY_LIST).when(loggingConfig).getLogEcsFormatterAllowList();
         logger.trace(TRACE_MESSAGE);
         logger.debug(DEBUG_MESSAGE);
@@ -275,13 +274,13 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     public void testDynamicConfiguration() throws Exception {
         initializeReformattingDir("dynamic");
         for (int i = 0; i < 2; i++) {
-            setEcsReformattingConfig(LogEcsReformatting.OFF);
+            setEcsReformattingConfig(LoggingConfiguration.LogEcsReformatting.OFF);
             logger.trace(TRACE_MESSAGE);
-            setEcsReformattingConfig(LogEcsReformatting.OVERRIDE);
+            setEcsReformattingConfig(LoggingConfiguration.LogEcsReformatting.OVERRIDE);
             logger.debug(DEBUG_MESSAGE);
-            setEcsReformattingConfig(LogEcsReformatting.SHADE);
+            setEcsReformattingConfig(LoggingConfiguration.LogEcsReformatting.SHADE);
             logger.warn(WARN_MESSAGE);
-            setEcsReformattingConfig(LogEcsReformatting.REPLACE);
+            setEcsReformattingConfig(LoggingConfiguration.LogEcsReformatting.REPLACE);
             logger.error(ERROR_MESSAGE, new Throwable());
         }
 
@@ -445,7 +444,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
      */
     @Test
     public void testReformattedLogRolling() throws IOException {
-        setEcsReformattingConfig(LogEcsReformatting.SHADE);
+        setEcsReformattingConfig(LoggingConfiguration.LogEcsReformatting.SHADE);
         initializeReformattingDir("rolling");
         doReturn(100L).when(loggingConfig).getLogFileSize();
         logger.trace("First line");

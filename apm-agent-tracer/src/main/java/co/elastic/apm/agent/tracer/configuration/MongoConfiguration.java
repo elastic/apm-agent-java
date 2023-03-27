@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.logging;
+package co.elastic.apm.agent.tracer.configuration;
 
-public enum LogEcsReformatting {
-    OFF,
-    SHADE,
-    REPLACE,
-    OVERRIDE
+import java.util.List;
+
+public interface MongoConfiguration {
+
+    List<Matcher> getCaptureStatementCommands();
 }

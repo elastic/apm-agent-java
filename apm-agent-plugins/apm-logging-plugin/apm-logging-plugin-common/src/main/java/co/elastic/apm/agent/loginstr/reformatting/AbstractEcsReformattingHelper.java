@@ -25,8 +25,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.ServiceFactory;
-import co.elastic.apm.agent.logging.LogEcsReformatting;
-import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -36,6 +34,8 @@ import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.LoggingConfiguration;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -61,11 +61,11 @@ import java.util.Map;
  *
  * <p>Following is the general algorithm that:</p>
  * <ul>
- *     <li>enables dynamic configuration of {@link LogEcsReformatting}</li>
+ *     <li>enables dynamic configuration of {@link LoggingConfiguration.LogEcsReformatting}</li>
  *     <li>guarantees that each log event is logged exactly once</li>
  *     <li>
- *         ensures lazy creation of ECS log files only if and when {@link LogEcsReformatting#SHADE SHADE} or
- *         {@link LogEcsReformatting#REPLACE REPLACE} are set
+ *         ensures lazy creation of ECS log files only if and when {@link LoggingConfiguration.LogEcsReformatting#SHADE SHADE} or
+ *         {@link LoggingConfiguration.LogEcsReformatting#REPLACE REPLACE} are set
  *     </li>
  * </ul>
  * <pre>
@@ -151,7 +151,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
      * No need to use {@link DetachedThreadLocalImpl} because we already annotate the class
      * with {@link GlobalState}.
      */
-    private static final ThreadLocal<LogEcsReformatting> configForCurrentLogEvent = new ThreadLocal<>();
+    private static final ThreadLocal<LoggingConfiguration.LogEcsReformatting> configForCurrentLogEvent = new ThreadLocal<>();
 
     private final LoggingConfiguration loggingConfiguration;
 
@@ -200,11 +200,11 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
             return false;
         }
 
-        LogEcsReformatting reformattingConfig = loggingConfiguration.getLogEcsReformatting();
+        LoggingConfiguration.LogEcsReformatting reformattingConfig = loggingConfiguration.getLogEcsReformatting();
         configForCurrentLogEvent.set(reformattingConfig);
 
         boolean currentlyOverriding = originalAppender2originalFormatter.containsKey(appender);
-        if (reformattingConfig == LogEcsReformatting.OVERRIDE) {
+        if (reformattingConfig == LoggingConfiguration.LogEcsReformatting.OVERRIDE) {
             if (!currentlyOverriding) {
                 startOverriding(appender);
             }
@@ -212,14 +212,14 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
             if (currentlyOverriding) {
                 stopOverriding(appender);
             }
-            if (reformattingConfig == LogEcsReformatting.SHADE || reformattingConfig == LogEcsReformatting.REPLACE) {
+            if (reformattingConfig == LoggingConfiguration.LogEcsReformatting.SHADE || reformattingConfig == LoggingConfiguration.LogEcsReformatting.REPLACE) {
                 Object ecsAppender = originalAppender2ecsAppender.get(appender);
                 if (ecsAppender == null) {
                     ecsAppender = createAndMapShadeAppenderFor(appender);
                 }
                 // if ECS-reformatting is configured to REPLACE the original file, and there is a valid shade appender, then
                 // it is safe enough to skip execution. And since we skip, no need to worry about nested calls.
-                return reformattingConfig == LogEcsReformatting.REPLACE && ecsAppender != NULL_APPENDER;
+                return reformattingConfig == LoggingConfiguration.LogEcsReformatting.REPLACE && ecsAppender != NULL_APPENDER;
             }
         }
         return false;
@@ -290,8 +290,8 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
         }
 
         try {
-            LogEcsReformatting logEcsReformatting = configForCurrentLogEvent.get();
-            if (logEcsReformatting == LogEcsReformatting.SHADE || logEcsReformatting == LogEcsReformatting.REPLACE) {
+            LoggingConfiguration.LogEcsReformatting logEcsReformatting = configForCurrentLogEvent.get();
+            if (logEcsReformatting == LoggingConfiguration.LogEcsReformatting.SHADE || logEcsReformatting == LoggingConfiguration.LogEcsReformatting.REPLACE) {
                 Object mappedAppender = originalAppender2ecsAppender.get(appender);
                 invokeAppender(logEvent, mappedAppender);
             }
@@ -383,8 +383,8 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
                 isAllowedFormatter(formatter, loggingConfiguration.getLogEcsFormatterAllowList());
     }
 
-    protected boolean isAllowedFormatter(F formatter, List<WildcardMatcher> allowList) {
-        return WildcardMatcher.anyMatch(allowList, formatter.getClass().getName()) != null;
+    protected boolean isAllowedFormatter(F formatter, List<Matcher> allowList) {
+        return Matcher.anyMatch(allowList, formatter.getClass().getName()) != null;
     }
 
     /**
@@ -396,7 +396,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
     @Nullable
     public F getEcsOverridingFormatterFor(A originalAppender) {
         F ecsFormatter = null;
-        if (configForCurrentLogEvent.get() == LogEcsReformatting.OVERRIDE) {
+        if (configForCurrentLogEvent.get() == LoggingConfiguration.LogEcsReformatting.OVERRIDE) {
             Object mappedFormatter = originalAppender2ecsFormatter.get(originalAppender);
             if (mappedFormatter != null && mappedFormatter != NULL_FORMATTER) {
                 ecsFormatter = (F) mappedFormatter;

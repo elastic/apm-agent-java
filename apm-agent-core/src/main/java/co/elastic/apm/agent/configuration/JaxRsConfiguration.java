@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jaxrs;
+package co.elastic.apm.agent.configuration;
 
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -24,7 +24,7 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 /**
  * Configuration provider for the apm jax-rs plugin
  */
-public class JaxRsConfiguration extends ConfigurationOptionProvider {
+public class JaxRsConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.JaxRsConfiguration {
     private static final String JAXRS_CATEGORY = "JAX-RS";
 
     private final ConfigurationOption<Boolean> enableJaxrsAnnotationInheritance = ConfigurationOption.booleanOption()
@@ -47,14 +47,12 @@ public class JaxRsConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(false);
 
-    /**
-     * @return if true, the jax-rs plugin must scan for @Path annotations in the class hierarchy of classes.
-     * if false, only @Path annotations on implementation classes are considered.
-     */
+    @Override
     public boolean isEnableJaxrsAnnotationInheritance() {
         return enableJaxrsAnnotationInheritance.get();
     }
 
+    @Override
     public boolean isUseJaxRsPathForTransactionName() {
         return useAnnotationValueForTransactionName.get();
     }

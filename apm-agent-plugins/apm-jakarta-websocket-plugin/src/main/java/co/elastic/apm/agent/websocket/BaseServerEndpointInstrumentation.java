@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.websocket;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.configuration.StacktraceConfiguration;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;

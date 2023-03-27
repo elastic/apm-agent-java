@@ -19,11 +19,13 @@
 package co.elastic.apm.agent.logging;
 
 import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -64,7 +66,7 @@ import java.util.Map;
  * so that the documentation gets generated for the options in this class.
  * </p>
  */
-public class LoggingConfiguration extends ConfigurationOptionProvider {
+public class LoggingConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.LoggingConfiguration {
 
     public static final String SYSTEM_OUT = "System.out";
     static final String LOG_LEVEL_KEY = "log_level";
@@ -363,8 +365,8 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         return logEcsReformattingAdditionalFields.get();
     }
 
-    public List<WildcardMatcher> getLogEcsFormatterAllowList() {
-        return logEcsFormatterAllowList.get();
+    public List<Matcher> getLogEcsFormatterAllowList() {
+        return WildcardMatcherMatcher.wrap(logEcsFormatterAllowList.get());
     }
 
     @Nullable

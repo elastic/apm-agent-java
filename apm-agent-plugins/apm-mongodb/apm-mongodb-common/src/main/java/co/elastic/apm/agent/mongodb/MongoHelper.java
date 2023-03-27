@@ -21,10 +21,11 @@ package co.elastic.apm.agent.mongodb;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
+import co.elastic.apm.agent.tracer.configuration.MongoConfiguration;
 import org.bson.BsonDocument;
 import org.bson.BsonValue;
 
@@ -63,7 +64,7 @@ public class MongoHelper {
             .withName(database);
 
         String statement = null;
-        if (command != null && commandDocument != null && WildcardMatcher.anyMatch(config.getCaptureStatementCommands(), command) != null) {
+        if (command != null && commandDocument != null && Matcher.anyMatch(config.getCaptureStatementCommands(), command) != null) {
             statement = commandDocument.toJson();
         }
 

@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.mongodb;
+package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
@@ -27,7 +28,7 @@ import org.stagemonitor.configuration.converter.ListValueConverter;
 import java.util.Arrays;
 import java.util.List;
 
-public class MongoConfiguration extends ConfigurationOptionProvider {
+public class MongoConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.MongoConfiguration {
 
     private final ConfigurationOption<List<WildcardMatcher>> captureStatementCommands = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -47,8 +48,9 @@ public class MongoConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("mapReduce")
         ));
 
-    public List<WildcardMatcher> getCaptureStatementCommands() {
-        return captureStatementCommands.get();
+    @Override
+    public List<Matcher> getCaptureStatementCommands() {
+        return WildcardMatcherMatcher.wrap(captureStatementCommands.get());
     }
 
 }

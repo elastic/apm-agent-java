@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.loginstr.reformatting;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import org.junit.jupiter.api.Test;
 
@@ -49,7 +48,7 @@ public class UtilsTest extends AbstractInstrumentationTest {
 
     @Test
     void testReplace() {
-        doReturn(LogEcsReformatting.REPLACE).when(config.getConfig(LoggingConfiguration.class)).getLogEcsReformatting();
+        doReturn(LoggingConfiguration.LogEcsReformatting.REPLACE).when(config.getConfig(LoggingConfiguration.class)).getLogEcsReformatting();
         assertThat(computeReformattedLogFilePathWithConfiguredDir("/test/absolute/path/app.log")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.ecs.json"));
         assertThat(computeReformattedLogFilePathWithConfiguredDir("/test/absolute/path/app")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.ecs.json"));
         assertThat(computeReformattedLogFilePathWithConfiguredDir("/test/absolute/path/app.log.1")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.log.ecs.json"));
