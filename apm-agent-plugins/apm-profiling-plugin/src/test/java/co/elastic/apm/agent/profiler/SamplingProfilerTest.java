@@ -151,7 +151,7 @@ class SamplingProfilerTest {
         assertThat(profiler.createStartCommand()).isEqualTo("start,jfr,event=wall,cstack=n,interval=5ms,filter,file=null,safemode=0");
         doReturn(false).when(profilingConfig).isProfilingLoggingEnabled();
         assertThat(profiler.createStartCommand()).isEqualTo("start,jfr,event=wall,cstack=n,interval=5ms,filter,file=null,safemode=0,log=none");
-        doReturn(TimeDuration.of("10ms")).when(profilingConfig).getSamplingInterval();
+        doReturn(10L).when(profilingConfig).getSamplingIntervalMs();
         doReturn(14).when(profilingConfig).getAsyncProfilerSafeMode();
         assertThat(profiler.createStartCommand()).isEqualTo("start,jfr,event=wall,cstack=n,interval=10ms,filter,file=null,safemode=14,log=none");
     }
@@ -252,9 +252,9 @@ class SamplingProfilerTest {
             new WildcardMatcherMatcher(WildcardMatcher.valueOf(getClass().getName()))
         )).when(profilingConfig).getIncludedClasses();
         doReturn(enabled).when(profilingConfig).isProfilingEnabled();
-        doReturn(TimeDuration.of("500ms")).when(profilingConfig).getProfilingDuration();
-        doReturn(TimeDuration.of("500ms")).when(profilingConfig).getProfilingInterval();
-        doReturn(TimeDuration.of("5ms")).when(profilingConfig).getSamplingInterval();
+        doReturn(500L).when(profilingConfig).getProfilingDurationMs();
+        doReturn(500L).when(profilingConfig).getProfilingIntervalMs();
+        doReturn(5L).when(profilingConfig).getSamplingIntervalMs();
         tracer = MockTracer.createRealTracer(reporter, config);
         profiler = tracer.getLifecycleListener(ProfilingFactory.class).getProfiler();
     }
