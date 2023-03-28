@@ -171,7 +171,9 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         String config = "curl/*";
         String userAgent = "curl/7.54.0";
 
-        doReturn(Collections.singletonList(WildcardMatcher.valueOf(config))).when(webConfiguration).getIgnoreUserAgents();
+        doReturn(Collections.singletonList(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf(config))
+        )).when(webConfiguration).getIgnoreUserAgents();
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("user-agent", userAgent);
         filterChain.doFilter(request, new MockHttpServletResponse());

@@ -45,6 +45,7 @@ package co.elastic.apm.agent.rabbitmq;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Message;
@@ -192,7 +193,9 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
     @Test
     void headersCaptureSanitize() throws IOException, InterruptedException {
         CoreConfiguration coreConfiguration = config.getConfig(CoreConfiguration.class);
-        doReturn(List.of(WildcardMatcher.valueOf("secret*"))).when(coreConfiguration).getSanitizeFieldNames();
+        doReturn(List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("secret*"))
+        )).when(coreConfiguration).getSanitizeFieldNames();
 
         testHeadersCapture(
             Map.of(
@@ -222,7 +225,9 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
     @Test
     void ignoreExchangeName() throws IOException, InterruptedException {
         MessagingConfiguration messagingConfiguration = config.getConfig(MessagingConfiguration.class);
-        doReturn(List.of(WildcardMatcher.valueOf("ignored-*"))).when(messagingConfiguration).getIgnoreMessageQueues();
+        doReturn(List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("ignored-*"))
+        )).when(messagingConfiguration).getIgnoreMessageQueues();
 
         performTest(emptyProperties(), true, randString("ignored"), (mt, ms) -> {
         });
@@ -370,7 +375,9 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         String exchange = createExchange(channel, "exchange");
 
         MessagingConfiguration messagingConfiguration = config.getConfig(MessagingConfiguration.class);
-        doReturn(List.of(WildcardMatcher.valueOf("ignored-qu*"))).when(messagingConfiguration).getIgnoreMessageQueues();
+        doReturn(List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("ignored-qu*"))
+        )).when(messagingConfiguration).getIgnoreMessageQueues();
 
         pollingTest(true, false, () -> declareAndBindQueue("ignored-queue", exchange, channel), exchange);
 
@@ -384,7 +391,9 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         String exchange = createExchange(channel, "ignored-exchange");
 
         MessagingConfiguration messagingConfiguration = config.getConfig(MessagingConfiguration.class);
-        doReturn(List.of(WildcardMatcher.valueOf("ignored-ex*"))).when(messagingConfiguration).getIgnoreMessageQueues();
+        doReturn(List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("ignored-ex*"))
+        )).when(messagingConfiguration).getIgnoreMessageQueues();
 
         pollingTest(true, true, () -> declareAndBindQueue("queue", exchange, channel), exchange);
 

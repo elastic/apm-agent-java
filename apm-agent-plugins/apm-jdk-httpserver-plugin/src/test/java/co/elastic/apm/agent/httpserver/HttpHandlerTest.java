@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.httpserver;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.Socket;
@@ -160,7 +161,9 @@ class HttpHandlerTest extends AbstractInstrumentationTest {
     @Test
     void testExcludedUrl() throws IOException {
         WebConfiguration webConfiguration = config.getConfig(WebConfiguration.class);
-        doReturn(List.of(WildcardMatcher.valueOf("/status_*"))).when(webConfiguration).getIgnoreUrls();
+        doReturn(List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("/status_*"))
+        )).when(webConfiguration).getIgnoreUrls();
         try {
             okhttp3.Request httpRequest = new okhttp3.Request.Builder()
                 .url("http://localhost:" + httpServer.getAddress().getPort() + "/status_200")
@@ -180,7 +183,9 @@ class HttpHandlerTest extends AbstractInstrumentationTest {
     @Test
     void testExcludedUserAgent() throws IOException {
         WebConfiguration webConfiguration = config.getConfig(WebConfiguration.class);
-        doReturn(List.of(WildcardMatcher.valueOf("okhttp"))).when(webConfiguration).getIgnoreUserAgents();
+        doReturn(List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("okhttp"))
+        )).when(webConfiguration).getIgnoreUserAgents();
 
         try {
             okhttp3.Request httpRequest = new okhttp3.Request.Builder()

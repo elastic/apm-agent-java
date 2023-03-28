@@ -21,6 +21,7 @@ package co.elastic.apm.agent.otelmetricsdk;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.util.AtomicDouble;
 import io.opentelemetry.api.common.Attributes;
@@ -258,7 +259,7 @@ public abstract class AbstractOtelMetricsTest extends AbstractInstrumentationTes
     public void testMetricDisabling() {
         MetricsConfiguration config = tracer.getConfig(MetricsConfiguration.class);
         doReturn(List.of(
-            WildcardMatcher.valueOf("metric.a")
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("metric.a"))
         )).when(reporterConfig).getDisableMetrics();
 
         Meter meter1 = createMeter("test");

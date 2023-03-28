@@ -21,6 +21,7 @@ package co.elastic.apm.agent.kafka;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Headers;
@@ -282,7 +283,9 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
     @Test
     public void testIgnoreTopic() {
-        doReturn(List.of(WildcardMatcher.valueOf(REQUEST_TOPIC))).when(messagingConfiguration).getIgnoreMessageQueues();
+        doReturn(List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf(REQUEST_TOPIC))
+        )).when(messagingConfiguration).getIgnoreMessageQueues();
         testScenario = TestScenario.IGNORE_REQUEST_TOPIC;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();

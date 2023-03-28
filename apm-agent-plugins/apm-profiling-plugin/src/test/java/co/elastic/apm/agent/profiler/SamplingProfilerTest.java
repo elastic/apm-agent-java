@@ -22,6 +22,7 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.ProfilingConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -247,7 +248,9 @@ class SamplingProfilerTest {
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         profilingConfig = config.getConfig(ProfilingConfiguration.class);
 
-        doReturn(List.of(WildcardMatcher.valueOf(getClass().getName()))).when(profilingConfig).getIncludedClasses();
+        doReturn(List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf(getClass().getName()))
+        )).when(profilingConfig).getIncludedClasses();
         doReturn(enabled).when(profilingConfig).isProfilingEnabled();
         doReturn(TimeDuration.of("500ms")).when(profilingConfig).getProfilingDuration();
         doReturn(TimeDuration.of("500ms")).when(profilingConfig).getProfilingInterval();

@@ -20,6 +20,7 @@ package co.elastic.apm.agent.awssdk.common;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -223,7 +224,9 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
     @ParameterizedTest
     @ValueSource(strings = {"sync", "async"})
     public void testQueueExclusion(String clientType) {
-        doReturn(Collections.singletonList(WildcardMatcher.valueOf(SQS_IGNORED_QUEUE_NAME))).when(messagingConfiguration).getIgnoreMessageQueues();
+        doReturn(Collections.singletonList(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf(SQS_IGNORED_QUEUE_NAME)))
+        ).when(messagingConfiguration).getIgnoreMessageQueues();
 
         String queueUrl = setupQueue();
         String ignoredQueueUrl = setupIgnoreQueue();

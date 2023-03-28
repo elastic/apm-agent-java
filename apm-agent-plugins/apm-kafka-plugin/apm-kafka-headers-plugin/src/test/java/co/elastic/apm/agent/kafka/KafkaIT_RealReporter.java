@@ -23,6 +23,7 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -260,7 +261,9 @@ public class KafkaIT_RealReporter {
 
     @Test
     public void testIgnoreTopic() {
-        doReturn(List.of(WildcardMatcher.valueOf(REQUEST_TOPIC))).when(messagingConfiguration).getIgnoreMessageQueues();
+        doReturn(List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf(REQUEST_TOPIC))
+        )).when(messagingConfiguration).getIgnoreMessageQueues();
         testScenario = TestScenario.IGNORE_REQUEST_TOPIC;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();

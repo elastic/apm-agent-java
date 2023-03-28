@@ -21,6 +21,7 @@ package co.elastic.apm.agent.micrometer;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -120,8 +121,10 @@ class MicrometerMetricsReporterTest {
 
     @Test
     void testDisabledMetrics() {
-        doReturn(List.of(WildcardMatcher.valueOf("root.metric"), WildcardMatcher.valueOf("root.metric.exclude.*")))
-            .when(tracer.getConfig(ReporterConfiguration.class)).getDisableMetrics();
+        doReturn(List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("root.metric")),
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("root.metric.exclude.*"))
+        )).when(tracer.getConfig(ReporterConfiguration.class)).getDisableMetrics();
 
         List<Tag> tags = List.of(Tag.of("foo", "bar"));
         meterRegistry.counter("root.metric", tags).increment(42);

@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.httpserver;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,7 +67,7 @@ class HttpServerHelperTest extends AbstractInstrumentationTest {
     }
 
     void checkRequestPathIgnored(String path, String config, boolean expectIgnored) {
-        doReturn(parseWildcard(config)).when(webConfig).getIgnoreUrls();
+        doReturn(WildcardMatcherMatcher.wrap(parseWildcard(config))).when(webConfig).getIgnoreUrls();
 
         boolean isIgnored = helper.isRequestExcluded(path, null);
         assertThat(isIgnored)
@@ -83,7 +84,7 @@ class HttpServerHelperTest extends AbstractInstrumentationTest {
         "anderson smith,anderson"
     })
     void requestUserAgentIgnored(String userAgent, String ignoreExpr) {
-        doReturn(parseWildcard(ignoreExpr)).when(webConfig).getIgnoreUserAgents();
+        doReturn(WildcardMatcherMatcher.wrap(parseWildcard(ignoreExpr))).when(webConfig).getIgnoreUserAgents();
 
         assertThat(helper.isRequestExcluded("/request/path", userAgent))
             .describedAs("request with user-agent '%s' should be ignored", userAgent)

@@ -22,6 +22,7 @@ package co.elastic.apm.agent.jms;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
@@ -279,7 +280,9 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     @Test
     public void testQueueDisablement() throws Exception {
         doReturn(BOTH).when(config.getConfig(MessagingConfiguration.class)).getMessagePollingTransactionStrategy();
-        doReturn(List.of(WildcardMatcher.valueOf("ignore-*"))).when(config.getConfig(MessagingConfiguration.class)).getIgnoreMessageQueues();
+        doReturn(List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("ignore-*"))
+        )).when(config.getConfig(MessagingConfiguration.class)).getIgnoreMessageQueues();
         final Queue queue = brokerFacade.createQueue("ignore-this");
         expectNoTraces.set(true);
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
