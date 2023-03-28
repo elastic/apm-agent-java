@@ -34,8 +34,8 @@ public class EcsLoggingUtils {
 
     private static final Logger log = LoggerFactory.getLogger(EcsLoggingUtils.class);
 
-    public static final WeakSet<Object> nameChecked = WeakConcurrent.buildSet();
-    public static final WeakSet<Object> versionChecked = WeakConcurrent.buildSet();
+    private static final WeakSet<Object> nameChecked = WeakConcurrent.buildSet();
+    private static final WeakSet<Object> versionChecked = WeakConcurrent.buildSet();
 
     private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
 
@@ -60,7 +60,10 @@ public class EcsLoggingUtils {
     }
 
     @Nullable
-    public static String getOrWarnServiceVersion(@Nullable String value) {
+    public static String getOrWarnServiceVersion(Object target, @Nullable String value) {
+        if (!versionChecked.add(target)) {
+            return value;
+        }
         if (value == null) {
             return getServiceVersion();
         } else {
@@ -70,7 +73,10 @@ public class EcsLoggingUtils {
     }
 
     @Nullable
-    public static String getOrWarnServiceName(@Nullable String value) {
+    public static String getOrWarnServiceName(Object target, @Nullable String value) {
+        if (!nameChecked.add(target)) {
+            return value;
+        }
         if (value == null) {
             return getServiceName();
         } else {

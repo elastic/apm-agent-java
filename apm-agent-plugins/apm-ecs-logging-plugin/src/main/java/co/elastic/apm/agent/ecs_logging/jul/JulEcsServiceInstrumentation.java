@@ -64,10 +64,7 @@ public abstract class JulEcsServiceInstrumentation extends EcsLoggingInstrumenta
                                          @Advice.FieldValue("serviceName") @Nullable String serviceName) {
 
                 // setServiceName is protected in earlier versions, thus setting field directly
-                if (!EcsLoggingUtils.nameChecked.add(formatter)) {
-                    return serviceName;
-                }
-                return EcsLoggingUtils.getOrWarnServiceName(serviceName);
+                return EcsLoggingUtils.getOrWarnServiceName(formatter, serviceName);
             }
         }
 
@@ -90,10 +87,7 @@ public abstract class JulEcsServiceInstrumentation extends EcsLoggingInstrumenta
             public static String onEnter(@Advice.This EcsFormatter formatter,
                                          @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
 
-                if (!EcsLoggingUtils.versionChecked.add(formatter)) {
-                    return serviceVersion;
-                }
-                return EcsLoggingUtils.getOrWarnServiceVersion(serviceVersion);
+                return EcsLoggingUtils.getOrWarnServiceVersion(formatter, serviceVersion);
             }
         }
 

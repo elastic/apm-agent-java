@@ -59,9 +59,11 @@ public abstract class LogBackServiceInstrumentation extends EcsLoggingInstrument
             @Nullable
             @Advice.AssignReturned.ToFields(@ToField("serviceName"))
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-            public static String onExit(@Advice.FieldValue("serviceName") @Nullable String serviceName) {
+            public static String onExit(
+                @Advice.This Object encoder,
+                @Advice.FieldValue("serviceName") @Nullable String serviceName) {
 
-                return EcsLoggingUtils.getOrWarnServiceName(serviceName);
+                return EcsLoggingUtils.getOrWarnServiceName(encoder, serviceName);
             }
         }
     }
@@ -80,9 +82,10 @@ public abstract class LogBackServiceInstrumentation extends EcsLoggingInstrument
             @Nullable
             @Advice.AssignReturned.ToFields(@ToField("serviceVersion"))
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-            public static String onExit(@Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
+            public static String onExit(@Advice.This Object encoder,
+                                        @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
 
-                return EcsLoggingUtils.getOrWarnServiceVersion(serviceVersion);
+                return EcsLoggingUtils.getOrWarnServiceVersion(encoder, serviceVersion);
             }
         }
 
@@ -95,7 +98,7 @@ public abstract class LogBackServiceInstrumentation extends EcsLoggingInstrument
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static String onExit(@Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
 
-            return EcsLoggingUtils.getOrWarnServiceVersion(serviceVersion);
+            return EcsLoggingUtils.getOrWarnServiceVersion(null, serviceVersion);
         }
     }
 

@@ -59,8 +59,10 @@ public abstract class Log4j2ServiceInstrumentation extends EcsLoggingInstrumenta
             @Nullable
             @Advice.AssignReturned.ToFields(@ToField("serviceName"))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static String onEnter(@Advice.FieldValue("serviceName") @Nullable String serviceName) {
-                return EcsLoggingUtils.getOrWarnServiceName(serviceName);
+            public static String onEnter(@Advice.This Object builder,
+                                         @Advice.FieldValue("serviceName") @Nullable String serviceName) {
+
+                return EcsLoggingUtils.getOrWarnServiceName(builder, serviceName);
             }
         }
     }
@@ -79,8 +81,10 @@ public abstract class Log4j2ServiceInstrumentation extends EcsLoggingInstrumenta
             @Nullable
             @Advice.AssignReturned.ToFields(@ToField("serviceVersion"))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static String onEnter(@Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
-                return EcsLoggingUtils.getOrWarnServiceVersion(serviceVersion);
+            public static String onEnter(@Advice.This Object builder,
+                                         @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
+
+                return EcsLoggingUtils.getOrWarnServiceVersion(builder, serviceVersion);
             }
         }
     }
