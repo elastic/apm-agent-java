@@ -120,17 +120,17 @@ public class GlobalTracer implements Tracer {
     }
 
     @Override
-    public <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter) {
-        return tracer.containsTraceContextTextHeaders(carrier, headerGetter);
+    public <C> boolean containsTraceContextTextHeaders(TraceHeaderDisplay display, C carrier, TextHeaderGetter<C> headerGetter) {
+        return tracer.containsTraceContextTextHeaders(display, carrier, headerGetter);
     }
 
     @Override
-    public <S, D> void copyTraceContextTextHeaders(S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
-        tracer.copyTraceContextTextHeaders(source, headerGetter, destination, headerSetter);
+    public <S, D> void copyTraceContextTextHeaders(TraceHeaderDisplay display, S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
+        tracer.copyTraceContextTextHeaders(display, source, headerGetter, destination, headerSetter);
     }
 
     @Override
-    public <C> void removeTraceContextHeaders(C carrier, HeaderRemover<C> headerRemover) {
-        tracer.removeTraceContextHeaders(carrier, headerRemover);
+    public <C> void removeTraceContextHeaders(TraceHeaderDisplay display, C carrier, HeaderRemover<C> headerRemover) {
+        tracer.removeTraceContextHeaders(display, carrier, headerRemover);
     }
 }

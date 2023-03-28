@@ -87,9 +87,9 @@ public interface Tracer {
 
     Set<String> getTraceParentHeaders(TraceHeaderDisplay display);
 
-    <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter);
+    <C> boolean containsTraceContextTextHeaders(TraceHeaderDisplay display, C carrier, TextHeaderGetter<C> headerGetter);
 
-    <S, D> void copyTraceContextTextHeaders(S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter);
+    <S, D> void copyTraceContextTextHeaders(TraceHeaderDisplay display, S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter);
 
-    <C> void removeTraceContextHeaders(C carrier, HeaderRemover<C> headerRemover);
+    <C> void removeTraceContextHeaders(TraceHeaderDisplay display, C carrier, HeaderRemover<C> headerRemover);
 }

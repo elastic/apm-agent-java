@@ -21,6 +21,7 @@ package co.elastic.apm.agent.kafka.helper;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
 import co.elastic.apm.agent.tracer.Tracer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -120,6 +121,6 @@ public class KafkaInstrumentationHeadersHelper {
     }
 
     public void removeTraceContextHeader(ProducerRecord<?, ?> producerRecord) {
-        tracer.removeTraceContextHeaders(producerRecord, KafkaRecordHeaderAccessor.instance());
+        tracer.removeTraceContextHeaders(TraceHeaderDisplay.REGULAR, producerRecord, KafkaRecordHeaderAccessor.instance());
     }
 }

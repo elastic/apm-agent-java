@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
+import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -31,6 +32,7 @@ import javax.annotation.Nullable;
 import java.security.ProtectionDomain;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionLte;
+import static co.elastic.apm.agent.tracer.TraceHeaderDisplay.REGULAR;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -48,8 +50,8 @@ public class ApacheHttpAsyncClientRedirectInstrumentation extends BaseApacheHttp
                 return;
             }
             // org.apache.http.HttpMessage#containsHeader implementations do not allocate iterator since 4.0.1
-            if (tracer.containsTraceContextTextHeaders(original, RequestHeaderAccessor.INSTANCE) && !tracer.containsTraceContextTextHeaders(redirect, RequestHeaderAccessor.INSTANCE)) {
-                tracer.copyTraceContextTextHeaders(original, RequestHeaderAccessor.INSTANCE, redirect, RequestHeaderAccessor.INSTANCE);
+            if (tracer.containsTraceContextTextHeaders(REGULAR, original, RequestHeaderAccessor.INSTANCE) && !tracer.containsTraceContextTextHeaders(REGULAR, redirect, RequestHeaderAccessor.INSTANCE)) {
+                tracer.copyTraceContextTextHeaders(REGULAR, original, RequestHeaderAccessor.INSTANCE, redirect, RequestHeaderAccessor.INSTANCE);
             }
         }
     }

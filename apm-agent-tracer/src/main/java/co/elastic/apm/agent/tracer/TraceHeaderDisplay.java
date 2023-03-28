@@ -12,7 +12,7 @@ public enum TraceHeaderDisplay {
     BINARY {
         @Override
         public String format(String header) {
-            return pattern.matcher(header).replaceAll("");
+            return PATTERN.matcher(header).replaceAll("");
         }
     },
     QUEUE {
@@ -22,7 +22,7 @@ public enum TraceHeaderDisplay {
         }
     };
 
-    final Pattern pattern = Pattern.compile("[^a-zA-Z0-9]");
+    static final Pattern PATTERN = Pattern.compile("[^a-zA-Z0-9]");
 
     public abstract String format(String header);
 }

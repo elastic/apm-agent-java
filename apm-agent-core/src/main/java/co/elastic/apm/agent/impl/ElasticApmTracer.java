@@ -936,17 +936,17 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @Override
-    public <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter) {
-        return TraceContext.containsTraceContextTextHeaders(carrier, headerGetter);
+    public <C> boolean containsTraceContextTextHeaders(TraceHeaderDisplay display, C carrier, TextHeaderGetter<C> headerGetter) {
+        return TraceContext.containsTraceContextTextHeaders(display, carrier, headerGetter);
     }
 
     @Override
-    public <S, D> void copyTraceContextTextHeaders(S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
-        TraceContext.copyTraceContextTextHeaders(source, headerGetter, destination, headerSetter);
+    public <S, D> void copyTraceContextTextHeaders(TraceHeaderDisplay display, S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
+        TraceContext.copyTraceContextTextHeaders(display, source, headerGetter, destination, headerSetter);
     }
 
     @Override
-    public <C> void removeTraceContextHeaders(C carrier, HeaderRemover<C> headerRemover) {
-        TraceContext.removeTraceContextHeaders(carrier, headerRemover);
+    public <C> void removeTraceContextHeaders(TraceHeaderDisplay display, C carrier, HeaderRemover<C> headerRemover) {
+        TraceContext.removeTraceContextHeaders(display, carrier, headerRemover);
     }
 }

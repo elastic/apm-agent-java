@@ -97,15 +97,15 @@ class NoopTracer implements Tracer {
     }
 
     @Override
-    public <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter) {
+    public <C> boolean containsTraceContextTextHeaders(TraceHeaderDisplay display, C carrier, TextHeaderGetter<C> headerGetter) {
         return false;
     }
 
     @Override
-    public <S, D> void copyTraceContextTextHeaders(S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
+    public <S, D> void copyTraceContextTextHeaders(TraceHeaderDisplay display, S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
     }
 
     @Override
-    public <C> void removeTraceContextHeaders(C carrier, HeaderRemover<C> headerRemover) {
+    public <C> void removeTraceContextHeaders(TraceHeaderDisplay display, C carrier, HeaderRemover<C> headerRemover) {
     }
 }

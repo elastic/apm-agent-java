@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
 import co.elastic.apm.agent.util.HexUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
@@ -179,7 +180,7 @@ class TraceContextTest {
         headerMap.put(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
         headerMap.put(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
         headerMap.put(TraceContext.TRACESTATE_HEADER_NAME, "foo=bar,baz=qux");
-        TraceContext.removeTraceContextHeaders(headerMap, TextHeaderMapAccessor.INSTANCE);
+        TraceContext.removeTraceContextHeaders(TraceHeaderDisplay.REGULAR, headerMap, TextHeaderMapAccessor.INSTANCE);
         assertThat(headerMap.get(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME)).isNull();
         assertThat(headerMap.get(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)).isNull();
         assertThat(headerMap.get(TraceContext.TRACESTATE_HEADER_NAME)).isNull();
@@ -189,7 +190,7 @@ class TraceContextTest {
     void testTraceContextBinaryHeadersRemoval() {
         Map<String, byte[]> headerMap = new HashMap<>();
         headerMap.put(TraceContext.TRACE_PARENT_BINARY_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01".getBytes(StandardCharsets.UTF_8));
-        TraceContext.removeTraceContextHeaders(headerMap, BinaryHeaderMapAccessor.INSTANCE);
+        TraceContext.removeTraceContextHeaders(TraceHeaderDisplay.BINARY, headerMap, BinaryHeaderMapAccessor.INSTANCE);
         assertThat(headerMap.get(TraceContext.TRACE_PARENT_BINARY_HEADER_NAME)).isNull();
     }
 
@@ -200,7 +201,7 @@ class TraceContextTest {
         original.put(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
         original.put(TraceContext.TRACESTATE_HEADER_NAME, "foo=bar,baz=qux");
         Map<String, String> copy = new HashMap<>();
-        TraceContext.copyTraceContextTextHeaders(original, TextHeaderMapAccessor.INSTANCE, copy, TextHeaderMapAccessor.INSTANCE);
+        TraceContext.copyTraceContextTextHeaders(TraceHeaderDisplay.REGULAR, original, TextHeaderMapAccessor.INSTANCE, copy, TextHeaderMapAccessor.INSTANCE);
         assertThat(copy.get(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME)).isNotNull();
         assertThat(copy.get(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)).isNotNull();
         assertThat(copy.get(TraceContext.TRACESTATE_HEADER_NAME)).isNotNull();
