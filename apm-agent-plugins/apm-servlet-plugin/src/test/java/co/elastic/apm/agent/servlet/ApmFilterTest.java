@@ -20,6 +20,7 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
@@ -28,6 +29,7 @@ import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockFilterChain;
@@ -127,7 +129,9 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     @Test
     void testIgnoreUrlStartWithNoMatch() throws IOException, ServletException {
-        doReturn(Collections.singletonList(WildcardMatcher.valueOf("/resources*"))).when(webConfiguration).getIgnoreUrls();
+        doReturn(Collections.singletonList(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("/resources*"))
+        )).when(webConfiguration).getIgnoreUrls();
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServletPath("/");
         filterChain.doFilter(request, new MockHttpServletResponse());
@@ -136,12 +140,15 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     @Test
     void testIgnoreUrl() {
-        List<WildcardMatcher> config = Stream.of("/context/resources*", "*.js").map(WildcardMatcher::valueOf).collect(Collectors.toList());
+        List<Matcher> config = Stream.of("/context/resources*", "*.js")
+            .map(WildcardMatcher::valueOf)
+            .map(WildcardMatcherMatcher::new)
+            .collect(Collectors.toList());
         testIgnoreUrl(config, "/context/resources/test.xml");
         testIgnoreUrl(config, "/ignored.js");
     }
 
-    void testIgnoreUrl(List<WildcardMatcher> ignoreConfig, String requestUri) {
+    void testIgnoreUrl(List<Matcher> ignoreConfig, String requestUri) {
         reset(webConfiguration);
         filterChain = new MockFilterChain(new HttpServlet() {
         });

@@ -20,6 +20,7 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
@@ -69,8 +70,8 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
     void testGroupUrls() {
         doReturn(true).when(webConfig).isUsePathAsName();
         doReturn(List.of(
-            WildcardMatcher.valueOf("/foo/bar/*/qux"),
-            WildcardMatcher.valueOf("/foo/bar/*")
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("/foo/bar/*/qux")),
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("/foo/bar/*"))
         )).when(webConfig).getUrlGroups();
 
         assertThat(getTransactionName("GET", "/foo/bar/baz")).isEqualTo("GET /foo/bar/*");
@@ -83,7 +84,7 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
     void testGroupUrlsOverridesServletName() {
         doReturn(true).when(webConfig).isUsePathAsName();
         doReturn(List.of(
-            WildcardMatcher.valueOf("/foo/bar/*")
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("/foo/bar/*"))
         )).when(webConfig).getUrlGroups();
 
         Transaction transaction = new Transaction(MockTracer.create());
