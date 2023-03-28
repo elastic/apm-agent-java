@@ -27,6 +27,12 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 public abstract class EcsLoggingInstrumentation extends AbstractLogIntegrationInstrumentation {
 
     @Override
+    protected String getLoggingInstrumentationGroupName() {
+        // so far all ECS logging instrumentation is for log correlation, at trace and service levels.
+        return LOG_CORRELATION;
+    }
+
+    @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         // ECS formatter that is loaded within the agent should not be instrumented
         return not(CustomElementMatchers.isInternalPluginClassLoader());

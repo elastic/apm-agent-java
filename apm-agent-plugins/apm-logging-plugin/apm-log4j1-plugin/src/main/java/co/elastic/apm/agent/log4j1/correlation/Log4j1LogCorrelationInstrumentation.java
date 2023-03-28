@@ -40,7 +40,7 @@ public class Log4j1LogCorrelationInstrumentation extends AbstractLogIntegrationI
 
     @Override
     protected String getLoggingInstrumentationGroupName() {
-        return "log4j1-correlation";
+        return LOG_CORRELATION;
     }
 
     @Override

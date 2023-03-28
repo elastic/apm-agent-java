@@ -48,11 +48,6 @@ public class Log4j2LoggerErrorCapturingInstrumentation extends AbstractLoggerErr
     }
 
     @Override
-    protected String getLoggingInstrumentationGroupName() {
-        return "log4j2-error";
-    }
-
-    @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         // Do not instrument the internal agent log4j2 loggers
         return not(CustomElementMatchers.isAgentClassLoader());

@@ -36,6 +36,11 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Abstra
     public static final String LOG4J2_LOGGER = "org.apache.logging.log4j.Logger";
 
     @Override
+    protected String getLoggingInstrumentationGroupName() {
+        return LOG_ERROR;
+    }
+
+    @Override
     public String getAdviceClassName() {
         return "co.elastic.apm.agent.loginstr.error.AbstractLoggerErrorCapturingInstrumentation$LoggingAdvice";
     }

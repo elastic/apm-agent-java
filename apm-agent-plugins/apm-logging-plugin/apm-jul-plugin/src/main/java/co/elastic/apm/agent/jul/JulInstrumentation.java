@@ -26,6 +26,6 @@ public abstract class JulInstrumentation extends AbstractLogIntegrationInstrumen
 
     @Override
     protected String getLoggingInstrumentationGroupName() {
-        return "jul-ecs";
+        return LOG_REFORMATTING;
     }
 }

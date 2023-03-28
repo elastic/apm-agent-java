@@ -39,11 +39,6 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 public abstract class Log4jEcsServiceInstrumentation extends EcsLoggingInstrumentation {
 
     @Override
-    protected String getLoggingInstrumentationGroupName() {
-        return "log4j1-ecs";
-    }
-
-    @Override
     public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
         return named("co.elastic.logging.log4j.EcsLayout");
     }

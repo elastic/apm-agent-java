@@ -34,11 +34,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class JulLoggerErrorCapturingInstrumentation extends AbstractLoggerErrorCapturingInstrumentation {
 
     @Override
-    protected String getLoggingInstrumentationGroupName() {
-        return "jul-error";
-    }
-
-    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("java.util.logging.Logger");
     }

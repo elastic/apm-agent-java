@@ -38,11 +38,6 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 public abstract class Log4j2ServiceInstrumentation extends EcsLoggingInstrumentation {
 
     @Override
-    protected String getLoggingInstrumentationGroupName() {
-        return "log4j2-ecs";
-    }
-
-    @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("build");
     }

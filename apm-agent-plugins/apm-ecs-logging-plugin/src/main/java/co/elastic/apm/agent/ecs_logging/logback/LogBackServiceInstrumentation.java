@@ -38,11 +38,6 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 public abstract class LogBackServiceInstrumentation extends EcsLoggingInstrumentation {
 
     @Override
-    protected String getLoggingInstrumentationGroupName() {
-        return "logback-ecs";
-    }
-
-    @Override
     public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
         return named("co.elastic.logging.logback.EcsEncoder");
     }

@@ -39,11 +39,6 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 public abstract class JbossEcsServiceInstrumentation extends EcsLoggingInstrumentation {
 
     @Override
-    protected String getLoggingInstrumentationGroupName() {
-        return "jboss-logging-ecs";
-    }
-
-    @Override
     public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
         return named("co.elastic.logging.jboss.logmanager.EcsFormatter");
     }

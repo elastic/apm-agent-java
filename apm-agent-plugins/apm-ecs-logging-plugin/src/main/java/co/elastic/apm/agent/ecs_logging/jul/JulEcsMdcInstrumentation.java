@@ -48,11 +48,6 @@ public class JulEcsMdcInstrumentation extends EcsLoggingInstrumentation {
         return named("getMdcEntries");
     }
 
-    @Override
-    protected String getLoggingInstrumentationGroupName() {
-        return "jul-correlation";
-    }
-
     public static class AdviceClass {
 
         @Advice.AssignReturned.ToReturned

@@ -38,7 +38,7 @@ public abstract class Log4j2EcsReformattingInstrumentation extends AbstractLogIn
 
     @Override
     protected String getLoggingInstrumentationGroupName() {
-        return "log4j2-ecs";
+        return LOG_REFORMATTING;
     }
 
     @Override

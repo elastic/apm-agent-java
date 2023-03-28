@@ -48,11 +48,6 @@ public abstract class JulEcsServiceInstrumentation extends EcsLoggingInstrumenta
         return named("format");
     }
 
-    @Override
-    protected String getLoggingInstrumentationGroupName() {
-        return "jul-ecs";
-    }
-
     public static class Name extends JulEcsServiceInstrumentation {
 
         public static class AdviceClass {

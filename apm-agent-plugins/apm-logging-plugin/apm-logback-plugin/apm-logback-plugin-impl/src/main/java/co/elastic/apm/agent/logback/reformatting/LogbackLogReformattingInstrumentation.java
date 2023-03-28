@@ -34,7 +34,7 @@ public abstract class LogbackLogReformattingInstrumentation extends AbstractLogI
 
     @Override
     protected String getLoggingInstrumentationGroupName() {
-        return "logback-ecs";
+        return LOG_REFORMATTING;
     }
 
     @Override

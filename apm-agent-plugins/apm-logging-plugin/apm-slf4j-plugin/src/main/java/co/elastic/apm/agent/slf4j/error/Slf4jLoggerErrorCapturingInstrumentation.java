@@ -37,8 +37,4 @@ public class Slf4jLoggerErrorCapturingInstrumentation extends AbstractLoggerErro
             .and(not(hasSuperType(named(LOG4J2_LOGGER)))));
     }
 
-    @Override
-    protected String getLoggingInstrumentationGroupName() {
-        return "slf4j-error";
-    }
 }

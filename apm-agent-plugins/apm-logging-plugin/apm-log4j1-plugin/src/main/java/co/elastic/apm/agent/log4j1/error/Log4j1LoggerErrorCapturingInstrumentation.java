@@ -36,11 +36,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class Log4j1LoggerErrorCapturingInstrumentation extends AbstractLoggerErrorCapturingInstrumentation {
 
     @Override
-    protected String getLoggingInstrumentationGroupName() {
-        return "log4j1-error";
-    }
-
-    @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return any();
     }

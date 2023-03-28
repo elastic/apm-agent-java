@@ -39,7 +39,7 @@ public class JBossLoggingCorrelationInstrumentation extends AbstractLogIntegrati
 
     @Override
     protected String getLoggingInstrumentationGroupName() {
-        return "jboss-logging-correlation";
+        return LOG_CORRELATION;
     }
 
     @Override
