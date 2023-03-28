@@ -32,6 +32,7 @@ communication - {pull}2996[#2996]
 * Added support for OpenTelemetry metrics - {pull}2968[#2968], {pull}3014[#3014]
 * Added agent.activation_method telemetry - {pull}2926[#2926]
 * Allow creation of exit spans with `@CaptureSpan` and `@Traced` annotations - {pull}3046[#3046]
+* Add the <<config-long-field-max-length>> config to enable capturing larger values for specific fields - {pull}3027[#3027]
 
 [float]
 ===== Bug fixes
@@ -41,6 +42,7 @@ communication - {pull}2996[#2996]
 * Fix context propagation for async 7.x and 8.x Elasticsearch clients - {pull}3015[#3015]
 * Fix exceptions filtering based on <<config-ignore-exceptions>> when those are <<config-unnest-exceptions, nested>> - {pull}3025[#3025]
 * Fix usage of `HttpUrlConnection.getResponseCode()` causing an error event due to exception capturing, even when it is internally handled - {pull}3024[#3024]
+* Fix source code jar to contain apm-agent sources - {pull}3063[#3063]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

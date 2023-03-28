@@ -37,7 +37,9 @@ class UserRegistryTest {
     @Test
     @DisabledOnOs(OS.WINDOWS)
     void testCannotSwitchToRoot() {
-        Assumptions.assumeTrue(!System.getProperty("user.name").equals("root"));
+        // In GitHub Action, it's possible to perform a privilege escalation from a non-root user to a root user.
+        boolean isInCI = System.getenv("CI") != null;
+        Assumptions.assumeTrue(!System.getProperty("user.name").equals("root") && !isInCI);
         assertThat(UserRegistry.empty().get("root").canSwitchToUser()).isFalse();
     }
 

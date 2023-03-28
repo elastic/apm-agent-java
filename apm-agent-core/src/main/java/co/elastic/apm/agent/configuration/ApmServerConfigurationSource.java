@@ -93,6 +93,17 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
         return Integer.parseInt(matcher.group(1));
     }
 
+    static int pollDelaySec(@Nullable String cacheControlHeader) {
+        Integer pollDelaySec = parseMaxAge(cacheControlHeader);
+        if (pollDelaySec == null) {
+            return DEFAULT_POLL_DELAY_SEC;
+        } else if (pollDelaySec < 5) { //spec defined minimum
+            return  5;
+        } else {
+            return pollDelaySec;
+        }
+    }
+
     /**
      * We want to reload the configuration in intervals which are determined based on the Cache-Control header from the APM Server
      * That's why we can't rely on the general {@link org.stagemonitor.configuration.ConfigurationRegistry} scheduled reload
@@ -128,10 +139,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
         while (!Thread.currentThread().isInterrupted()) {
             String cacheControlHeader = fetchConfig(configurationRegistry);
             // it doesn't make sense to poll more frequently than the max-age
-            Integer pollDelaySec = parseMaxAge(cacheControlHeader);
-            if (pollDelaySec == null) {
-                pollDelaySec = DEFAULT_POLL_DELAY_SEC;
-            }
+            int pollDelaySec = pollDelaySec(cacheControlHeader);
             try {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Scheduling next remote configuration reload in {}s", pollDelaySec);

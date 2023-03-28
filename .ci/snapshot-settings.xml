@@ -1,0 +1,30 @@
+<settings xmlns="http://maven.apache.org/SETTINGS/1.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0 http://maven.apache.org/xsd/settings-1.1.0.xsd">
+    <pluginGroups>
+        <pluginGroup>org.apache.maven.plugins</pluginGroup>
+        <pluginGroup>org.codehaus.mojo</pluginGroup>
+    </pluginGroups>
+    <servers>
+        <server>
+            <id>sonatype-nexus-snapshots</id>
+            <username>${env.SERVER_USERNAME}</username>
+            <password>${env.SERVER_PASSWORD}</password>
+        </server>
+        <server>
+            <id>sonatype-nexus-staging</id>
+            <username>${env.SERVER_USERNAME}</username>
+            <password>${env.SERVER_PASSWORD}</password>
+        </server>
+    </servers>
+    <profiles>
+        <profile>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <!-- this env variable is defined in .buildkite/hooks/pre-command -->
+                <gpg.passphrase>${env.KEYPASS_SECRET}</gpg.passphrase>
+            </properties>
+        </profile>
+    </profiles>
+</settings>

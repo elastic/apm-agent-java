@@ -1,5 +1,5 @@
 name: update-specs
-
+pipelineid: update-schema-specs
 title: synchronize schema specs
 
 scms:
@@ -49,6 +49,7 @@ actions:
     kind: "github/pullrequest"
     scmid: default
     sourceid: sha
+    title: '[Automation] Update JSON schema specs'
     spec:
       automerge: false
       draft: false
