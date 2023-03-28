@@ -18,8 +18,7 @@
  */
 package co.elastic.apm.agent.jdbc;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -82,7 +81,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
     @SuppressWarnings("DuplicatedCode")
     public static class ExecuteWithQueryInstrumentation extends StatementInstrumentation {
 
-        public ExecuteWithQueryInstrumentation(ElasticApmTracer tracer) {
+        public ExecuteWithQueryInstrumentation() {
             super(
                 named("execute").or(named("executeQuery"))
                     .and(takesArgument(0, String.class))
@@ -108,7 +107,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                     return;
                 }
 
-                ((Span) span).captureException(t)
+                ((Span<?>) span).captureException(t)
                     .deactivate()
                     .end();
 
@@ -131,7 +130,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      */
     public static class ExecuteUpdateWithQueryInstrumentation extends StatementInstrumentation {
 
-        public ExecuteUpdateWithQueryInstrumentation(ElasticApmTracer tracer) {
+        public ExecuteUpdateWithQueryInstrumentation() {
             super(
                 named("executeUpdate").or(named("executeLargeUpdate"))
                     .and(takesArgument(0, String.class))
@@ -157,12 +156,12 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                 }
 
                 if (t == null) {
-                    ((Span) span).getContext()
+                    ((Span<?>) span).getContext()
                         .getDb()
                         .withAffectedRowsCount(returnValue);
                 }
 
-                ((Span) span).captureException(t)
+                ((Span<?>) span).captureException(t)
                     .deactivate()
                     .end();
             }
@@ -174,7 +173,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      */
     public static class AddBatchInstrumentation extends StatementInstrumentation {
 
-        public AddBatchInstrumentation(ElasticApmTracer tracer) {
+        public AddBatchInstrumentation() {
             super(
                 nameStartsWith("addBatch")
                     .and(takesArgument(0, String.class))
@@ -200,7 +199,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      * </ul>
      */
     public static class ExecuteBatchInstrumentation extends StatementInstrumentation {
-        public ExecuteBatchInstrumentation(ElasticApmTracer tracer) {
+        public ExecuteBatchInstrumentation() {
             super(
                 named("executeBatch").or(named("executeLargeBatch"))
                     .and(takesArguments(0))
@@ -224,10 +223,10 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             public static void onAfterExecute(@Advice.Enter @Nullable Object spanObj,
                                               @Advice.Thrown @Nullable Throwable t,
                                               @Advice.Return @Nullable Object returnValue) {
-                if (!(spanObj instanceof Span)) {
+                if (!(spanObj instanceof Span<?>)) {
                     return;
                 }
-                Span span = (Span) spanObj;
+                Span<?> span = (Span<?>) spanObj;
 
                 // for 'executeBatch' and 'executeLargeBatch', we have to compute the sum as Statement.getUpdateCount()
                 // does not seem to return the sum of all elements. As we can use instanceof to check return type
@@ -265,7 +264,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      * </ul>
      */
     public static class ExecuteUpdateNoQueryInstrumentation extends StatementInstrumentation {
-        public ExecuteUpdateNoQueryInstrumentation(ElasticApmTracer tracer) {
+        public ExecuteUpdateNoQueryInstrumentation() {
             super(
                 named("executeUpdate").or(named("executeLargeUpdate"))
                     .and(takesArguments(0))
@@ -293,12 +292,12 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                 }
 
                 if (t == null) {
-                    ((Span) span).getContext()
+                    ((Span<?>) span).getContext()
                         .getDb()
                         .withAffectedRowsCount(returnValue);
                 }
 
-                ((Span) span).captureException(t)
+                ((Span<?>) span).captureException(t)
                     .deactivate()
                     .end();
             }
@@ -313,7 +312,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      * </ul>
      */
     public static class ExecutePreparedStatementInstrumentation extends StatementInstrumentation {
-        public ExecutePreparedStatementInstrumentation(ElasticApmTracer tracer) {
+        public ExecutePreparedStatementInstrumentation() {
             super(
                 named("execute").or(named("executeQuery"))
                     .and(takesArguments(0))
@@ -340,7 +339,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                     return;
                 }
 
-                ((Span) span).captureException(t)
+                ((Span<?>) span).captureException(t)
                     .deactivate()
                     .end();
             }
@@ -355,7 +354,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      */
     public static class CloseStatementInstrumentation extends StatementInstrumentation {
 
-        public CloseStatementInstrumentation(ElasticApmTracer tracer) {
+        public CloseStatementInstrumentation() {
             super(
                 named("close")
                     .and(takesArguments(0))

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.vertx.v3.web.http2;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.vertx.v3.web.WebHelper;
@@ -62,7 +62,7 @@ public abstract class Http2ServerResponseImplEndInstrumentation extends WebInstr
             public static void writeExit(@Advice.This Http2ServerResponseImpl response,
                                          @Advice.Argument(1) boolean end) {
                 if (end) {
-                    Transaction transaction = WebHelper.getInstance().removeTransactionMapping(response);
+                    Transaction<?> transaction = WebHelper.getInstance().removeTransactionMapping(response);
                     log.debug("VERTX-DEBUG: removing transaction {} mapping to response {}", transaction, response);
                 }
             }
@@ -89,7 +89,7 @@ public abstract class Http2ServerResponseImplEndInstrumentation extends WebInstr
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void closeExit(@Advice.This Http2ServerResponseImpl response) {
-                Transaction transaction = WebHelper.getInstance().removeTransactionMapping(response);
+                Transaction<?> transaction = WebHelper.getInstance().removeTransactionMapping(response);
                 log.debug("VERTX-DEBUG: removing transaction {} mapping to response {}", transaction, response);
             }
         }

@@ -21,8 +21,7 @@ package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.configuration.ActivationMethod;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 
 import java.lang.management.ManagementFactory;

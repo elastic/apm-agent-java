@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -80,7 +80,7 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
             if (!(enterTransaction instanceof Transaction)) {
                 return returnValue;
             }
-            Transaction transaction = (Transaction) enterTransaction;
+            Transaction<?> transaction = (Transaction<?>) enterTransaction;
             transaction.deactivate();
 
             if (thrown != null || returnValue == null) {

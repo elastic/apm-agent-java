@@ -18,7 +18,8 @@
  */
 package co.elastic.apm.agent.jms.spring;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.activemq.command.ActiveMQMapMessage;
 import org.springframework.jms.listener.SessionAwareMessageListener;
@@ -45,7 +46,7 @@ public class SpringMapMessageListener implements SessionAwareMessageListener<Map
         }
         System.out.println("Received map message: ");
         map.forEach((key, value) -> System.out.println("   " + key + " --> " + value));
-        Transaction transaction = GlobalTracer.getTracerImpl().currentTransaction();
+        Transaction transaction = GlobalTracer.get().require(ElasticApmTracer.class).currentTransaction();
         assertThat(transaction.isFinished()).isFalse();
         SpringJmsTest.resultQueue.offer(map);
     }

@@ -22,11 +22,12 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -57,7 +58,7 @@ public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
     private final MethodMatcher methodMatcher;
     private final CoreConfiguration config;
 
-    public TraceMethodInstrumentation(ElasticApmTracer tracer, MethodMatcher methodMatcher) {
+    public TraceMethodInstrumentation(Tracer tracer, MethodMatcher methodMatcher) {
         this.methodMatcher = methodMatcher;
         config = tracer.getConfig(CoreConfiguration.class);
     }
@@ -125,7 +126,7 @@ public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
 
     public static class TraceMethodAdvice {
 
-        private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+        private static final ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
         private static final long traceMethodThresholdMicros;
 
         static {

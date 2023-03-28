@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.cache.WeakKeySoftValueLoadingCache;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.springframework.http.server.reactive.AbstractServerHttpRequest;
@@ -55,20 +55,20 @@ public class WebfluxServletHelper {
     });
 
     @Nullable
-    public static Transaction getServletTransaction(ServerWebExchange exchange) {
+    public static Transaction<?> getServletTransaction(ServerWebExchange exchange) {
         // see ServletHttpHandlerAdapter and sub-classes for implementation details
 
         // While the active transaction is the one created by Servlet, it would rely on the fact that we are on the
         // same thread as the one that created the transaction, which is an implementation detail.
 
-        Transaction transaction = null;
+        Transaction<?> transaction = null;
 
         ServerHttpRequest exchangeRequest = exchange.getRequest();
         if (exchangeRequest instanceof AbstractServerHttpRequest) {
             Object nativeRequest = ((AbstractServerHttpRequest) exchangeRequest).getNativeRequest();
 
             // note: attribute name is defined in Servlet plugin and should be kept in sync
-            transaction = (Transaction) getServletAttribute(nativeRequest, "co.elastic.apm.agent.servlet.ServletApiAdvice.transaction");
+            transaction = (Transaction<?>) getServletAttribute(nativeRequest, "co.elastic.apm.agent.servlet.ServletApiAdvice.transaction");
 
         }
 

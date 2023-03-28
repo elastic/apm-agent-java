@@ -20,11 +20,10 @@ package co.elastic.apm.agent.rabbitmq;
 
 
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.rabbitmq.header.SpringRabbitMQTextHeaderGetter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -63,9 +62,9 @@ public class SpringAmqpBatchMessageListenerInstrumentation extends SpringBaseIns
         private static final MessagingConfiguration messagingConfiguration;
 
         static {
-            ElasticApmTracer elasticApmTracer = GlobalTracer.requireTracerImpl();
-            messageBatchHelper = new MessageBatchHelper(elasticApmTracer, transactionHelper);
-            messagingConfiguration = elasticApmTracer.getConfig(MessagingConfiguration.class);
+            Tracer tracer = GlobalTracer.get();
+            messageBatchHelper = new MessageBatchHelper(tracer, transactionHelper);
+            messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
             oneTimeTransactionCreationWarningLogger = LoggerUtils.logOnce(LoggerFactory.getLogger("Spring-AMQP-Batch-Logger"));
         }
 
@@ -75,7 +74,7 @@ public class SpringAmqpBatchMessageListenerInstrumentation extends SpringBaseIns
                                              @Advice.Argument(0) @Nullable final List<Message> messageBatch) {
 
             List<Message> processedBatch = messageBatch;
-            Transaction batchTransaction = null;
+            Transaction<?> batchTransaction = null;
 
             if (tracer.isRunning() && messageBatch != null && !messageBatch.isEmpty()) {
                 AbstractSpan<?> active = tracer.getActive();
@@ -98,11 +97,7 @@ public class SpringAmqpBatchMessageListenerInstrumentation extends SpringBaseIns
                     for (Message message : messageBatch) {
                         MessageProperties messageProperties = message.getMessageProperties();
                         if (messageProperties != null) {
-                            active.addSpanLink(
-                                TraceContext.<MessageProperties>getFromTraceContextTextHeaders(),
-                                SpringRabbitMQTextHeaderGetter.INSTANCE,
-                                messageProperties
-                            );
+                            active.addLink(SpringRabbitMQTextHeaderGetter.INSTANCE, messageProperties);
                         }
                     }
                 } else {
@@ -115,7 +110,7 @@ public class SpringAmqpBatchMessageListenerInstrumentation extends SpringBaseIns
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void afterOnBatch(@Advice.Enter @Nullable Object[] enter,
                                         @Advice.Thrown @Nullable Throwable throwable) {
-            Transaction batchTransaction = enter != null ? (Transaction) enter[1] : null;
+            Transaction<?> batchTransaction = enter != null ? (Transaction<?>) enter[1] : null;
             if (batchTransaction != null) {
                 try {
                     batchTransaction

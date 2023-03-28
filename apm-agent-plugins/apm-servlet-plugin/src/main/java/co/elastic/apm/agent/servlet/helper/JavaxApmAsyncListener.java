@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
+import co.elastic.apm.agent.tracer.metadata.Response;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
@@ -57,7 +57,7 @@ public class JavaxApmAsyncListener implements AsyncListener, Recyclable {
     private final JavaxAsyncContextAdviceHelper asyncContextAdviceHelperImpl;
     private final ServletTransactionHelper servletTransactionHelper;
     @Nullable
-    private volatile Transaction transaction;
+    private volatile Transaction<?> transaction;
     @Nullable
     private volatile Throwable throwable;
 
@@ -66,7 +66,7 @@ public class JavaxApmAsyncListener implements AsyncListener, Recyclable {
         this.servletTransactionHelper = asyncContextAdviceHelperImpl.getServletTransactionHelper();
     }
 
-    JavaxApmAsyncListener withTransaction(Transaction transaction) {
+    JavaxApmAsyncListener withTransaction(Transaction<?> transaction) {
         this.transaction = transaction;
         return this;
     }

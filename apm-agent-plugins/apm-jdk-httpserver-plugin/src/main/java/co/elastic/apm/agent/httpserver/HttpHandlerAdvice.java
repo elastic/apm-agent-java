@@ -19,16 +19,14 @@
 package co.elastic.apm.agent.httpserver;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.Response;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.metadata.Request;
+import co.elastic.apm.agent.tracer.metadata.Response;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -42,15 +40,13 @@ import java.util.Map;
 
 public class HttpHandlerAdvice {
 
-    private static final Logger logger = LoggerFactory.getLogger(HttpHandlerAdvice.class);
-
-    private static final ElasticApmTracer tracer;
+    private static final Tracer tracer;
     private static final HttpServerHelper serverHelper;
     private static final WebConfiguration webConfiguration;
     private static final CoreConfiguration coreConfiguration;
 
     static {
-        tracer = GlobalTracer.requireTracerImpl();
+        tracer = GlobalTracer.get();
         serverHelper = new HttpServerHelper(tracer.getConfig(WebConfiguration.class));
         webConfiguration = tracer.getConfig(WebConfiguration.class);
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
@@ -65,7 +61,7 @@ public class HttpHandlerAdvice {
             return null;
         }
 
-        Transaction transaction = tracer.startChildTransaction(exchange.getRequestHeaders(), HeadersHeaderGetter.INSTANCE, Thread.currentThread().getContextClassLoader());
+        Transaction<?> transaction = tracer.startChildTransaction(exchange.getRequestHeaders(), HeadersHeaderGetter.INSTANCE, Thread.currentThread().getContextClassLoader());
         if (transaction == null) {
             return null;
         }
@@ -76,7 +72,7 @@ public class HttpHandlerAdvice {
             transaction.getAndOverrideName(AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK),
             webConfiguration.getUrlGroups());
 
-        transaction.withType(Transaction.TYPE_REQUEST)
+        transaction.withType(co.elastic.apm.agent.impl.transaction.Transaction.TYPE_REQUEST)
             .setFrameworkName("JDK HTTP Server");
 
         Request request = transaction.getContext().getRequest();
@@ -136,7 +132,7 @@ public class HttpHandlerAdvice {
             return;
         }
 
-        Transaction transaction = (Transaction) transactionOrNull;
+        Transaction<?> transaction = (Transaction<?>) transactionOrNull;
         transaction
             .withResultIfUnset(ResultUtil.getResultByHttpStatus(exchange.getResponseCode()))
             .captureException(t);
@@ -146,8 +142,7 @@ public class HttpHandlerAdvice {
             .withFinished(true)
             .withStatusCode(exchange.getResponseCode());
 
-        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
-        if (transaction.isSampled() && tracer.getConfig(CoreConfiguration.class).isCaptureHeaders()) {
+        if (transaction.isSampled() && coreConfiguration.isCaptureHeaders()) {
             Headers headers = exchange.getResponseHeaders();
             if (headers != null) {
                 for (Map.Entry<String, List<String>> header : headers.entrySet()) {

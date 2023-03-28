@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -28,11 +28,11 @@ import java.net.URI;
 public abstract class AbstractDynamoDBInstrumentationHelper<R, C> extends AbstractAwsSdkInstrumentationHelper<R, C> {
     public static final String DYNAMO_DB_TYPE = "dynamodb";
 
-    protected AbstractDynamoDBInstrumentationHelper(ElasticApmTracer tracer, IAwsSdkDataSource<R, C> awsSdkDataSource) {
+    protected AbstractDynamoDBInstrumentationHelper(Tracer tracer, IAwsSdkDataSource<R, C> awsSdkDataSource) {
         super(tracer, awsSdkDataSource);
     }
 
-    public void enrichSpan(Span span, R sdkRequest, URI httpURI, C context) {
+    public void enrichSpan(Span<?> span, R sdkRequest, URI httpURI, C context) {
         String operationName = awsSdkDataSource.getOperationName(sdkRequest, context);
         String region = awsSdkDataSource.getRegion(sdkRequest, context);
         String tableName = awsSdkDataSource.getFieldValue(IAwsSdkDataSource.TABLE_NAME_FIELD, sdkRequest);
@@ -49,7 +49,7 @@ public abstract class AbstractDynamoDBInstrumentationHelper<R, C> extends Abstra
         }
 
 
-        StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
+        StringBuilder name = span.getAndOverrideName(co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT);
         if (name != null) {
             name.append("DynamoDB ").append(operationName);
 
@@ -62,8 +62,12 @@ public abstract class AbstractDynamoDBInstrumentationHelper<R, C> extends Abstra
     }
 
     @Nullable
-    public Span startSpan(R sdkRequest, URI httpURI, C context) {
-        Span span = tracer.createExitChildSpan();
+    public Span<?> startSpan(R sdkRequest, URI httpURI, C context) {
+        AbstractSpan<?> active = tracer.getActive();
+        if (active == null) {
+            return null;
+        }
+        Span<?> span = active.createExitSpan();
         if (span == null) {
             return null;
         }

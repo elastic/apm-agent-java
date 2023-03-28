@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.asm.Advice;
 
@@ -27,7 +27,7 @@ import javax.annotation.Nullable;
 
 public class JavaxJaxRsTransactionNameInstrumentation extends JaxRsTransactionNameInstrumentation {
 
-    public JavaxJaxRsTransactionNameInstrumentation(ElasticApmTracer tracer) {
+    public JavaxJaxRsTransactionNameInstrumentation(Tracer tracer) {
         super(tracer);
     }
 
