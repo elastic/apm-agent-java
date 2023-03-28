@@ -20,7 +20,7 @@ package co.elastic.apm.agent.esrestclient.v7_x;
 
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;

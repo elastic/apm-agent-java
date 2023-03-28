@@ -20,9 +20,9 @@ package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -100,7 +100,7 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                 } catch (URISyntaxException ignore) {
                 }
             }
-            Span span = HttpClientHelper.startHttpClientSpan(parent, method, uri, hostName);
+            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, method, uri, hostName);
 
             if (span != null) {
                 span.activate();
@@ -122,7 +122,7 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
         public static void onAfterExecute(@Advice.Return @Nullable HttpResponse response,
                                           @Advice.Enter @Nullable Object spanObj,
                                           @Advice.Thrown @Nullable Throwable t) {
-            Span span = (Span) spanObj;
+            Span<?> span = (Span<?>) spanObj;
             if (span == null) {
                 return;
             }

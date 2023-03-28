@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.grails;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import grails.core.GrailsControllerClass;
 import net.bytebuddy.asm.Advice;
@@ -82,7 +82,7 @@ public class GrailsTransactionNameInstrumentation extends TracerAwareInstrumenta
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void setTransactionName(@Advice.Argument(2) Object handler) {
-            final Transaction transaction = tracer.currentTransaction();
+            final Transaction<?> transaction = tracer.currentTransaction();
             if (transaction == null) {
                 return;
             }

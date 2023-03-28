@@ -19,8 +19,10 @@
 package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.configuration.ServiceInfo;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -65,7 +67,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static Object doStartTransaction(@Advice.Origin Class<?> clazz) {
-                Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
+                Transaction<?> transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
                 if (transaction != null) {
                     transaction.setFrameworkName(Utils.FRAMEWORK_NAME);
                 }
@@ -90,7 +92,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
                                                     @Advice.Argument(1) @Nullable Object headerExtractor,
                                                     @Advice.Argument(2) MethodHandle getAllHeaders,
                                                     @Advice.Argument(3) @Nullable Object headersExtractor) {
-                Transaction transaction = null;
+                Transaction<?> transaction = null;
                 ClassLoader classLoader = PrivilegedActionUtils.getClassLoader(clazz);
                 if (headersExtractor != null) {
                     HeadersExtractorBridge headersExtractorBridge = HeadersExtractorBridge.get(getFirstHeader, getAllHeaders);
@@ -147,7 +149,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) @Nullable Throwable e) {
-                tracer.captureAndReportException(e, PrivilegedActionUtils.getClassLoader(clazz));
+                tracer.require(Tracer.class).captureAndReportException(e, PrivilegedActionUtils.getClassLoader(clazz));
             }
         }
     }
@@ -160,7 +162,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         public static class AdviceClass {
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void setServiceInfoForClassLoader(@Advice.Argument(0) @Nullable ClassLoader classLoader, @Advice.Argument(1) String serviceName, @Advice.Argument(2) @Nullable String serviceVersion) {
-                tracer.setServiceInfoForClassLoader(classLoader, ServiceInfo.of(serviceName, serviceVersion));
+                tracer.require(Tracer.class).setServiceInfoForClassLoader(classLoader, ServiceInfo.of(serviceName, serviceVersion));
             }
         }
     }
@@ -176,7 +178,10 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static Object doGetConfig(@Advice.Argument(0) @Nullable String key) {
                 try {
-                    ConfigurationOption<?> configValue = GlobalTracer.getTracerImpl().getConfigurationRegistry().getConfigurationOptionByKey(key);
+                    ConfigurationOption<?> configValue = GlobalTracer.get()
+                        .require(ElasticApmTracer.class)
+                        .getConfigurationRegistry()
+                        .getConfigurationOptionByKey(key);
                     if (configValue == null) {
                         return null;
                     } else {

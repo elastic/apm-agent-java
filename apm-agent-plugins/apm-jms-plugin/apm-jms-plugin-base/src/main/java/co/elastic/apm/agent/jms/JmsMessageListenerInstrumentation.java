@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import net.bytebuddy.asm.Advice;
@@ -55,7 +55,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
 
     private MessagingConfiguration configuration;
 
-    public JmsMessageListenerInstrumentation(ElasticApmTracer tracer) {
+    public JmsMessageListenerInstrumentation(Tracer tracer) {
         this.configuration = tracer.getConfig(MessagingConfiguration.class);
     }
 
@@ -123,7 +123,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
             }
 
             // Create a transaction - even if running on same JVM as the sender
-            Transaction transaction = helper.startJmsTransaction(message, clazz);
+            Transaction<?> transaction = helper.startJmsTransaction(message, clazz);
             if (transaction != null) {
                 transaction.withType(MESSAGING_TYPE)
                     .withName(RECEIVE_NAME_PREFIX);
@@ -143,8 +143,8 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
         public static void afterOnMessage(@Advice.Enter @Nullable final Object transactionObj,
                                           @Advice.Thrown final Throwable throwable) {
-            if (transactionObj instanceof Transaction) {
-                Transaction transaction = (Transaction) transactionObj;
+            if (transactionObj instanceof Transaction<?>) {
+                Transaction<?> transaction = (Transaction<?>) transactionObj;
                 transaction.captureException(throwable);
                 transaction.deactivate().end();
             }

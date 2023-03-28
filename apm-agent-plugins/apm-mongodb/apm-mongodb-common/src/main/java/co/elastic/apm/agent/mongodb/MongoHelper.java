@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.mongodb;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Tracer;
 import org.bson.BsonDocument;
 import org.bson.BsonValue;
 
@@ -34,16 +34,16 @@ public class MongoHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(MongoHelper.class);
 
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
     private final MongoConfiguration config;
 
     public MongoHelper() {
-        this.tracer = GlobalTracer.getTracerImpl();
+        this.tracer = GlobalTracer.get();
         this.config = tracer.getConfig(MongoConfiguration.class);
     }
 
-    public Span startSpan(@Nullable String database, @Nullable String collection, @Nullable String command, String host, int port, @Nullable BsonDocument commandDocument) {
-        Span span = null;
+    public Span<?> startSpan(@Nullable String database, @Nullable String collection, @Nullable String command, String host, int port, @Nullable BsonDocument commandDocument) {
+        Span<?> span = null;
         final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan != null) {
             span = activeSpan.createExitSpan();
@@ -71,7 +71,7 @@ public class MongoHelper {
             .withInstance(database)
             .withStatement(statement);
 
-        StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
+        StringBuilder name = span.getAndOverrideName(co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT);
         if (name != null) {
             appendToName(name, database);
             appendToName(name, collection);

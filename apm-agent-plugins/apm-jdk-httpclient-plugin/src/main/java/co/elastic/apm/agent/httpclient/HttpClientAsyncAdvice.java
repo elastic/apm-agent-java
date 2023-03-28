@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
@@ -37,8 +37,8 @@ public class HttpClientAsyncAdvice {
     public static void onAfterExecute(@Advice.Return @Nullable CompletableFuture<HttpResponse<?>> completableFuture,
                                       @Advice.Enter @Nullable Object spanObj,
                                       @Advice.Thrown @Nullable Throwable t) {
-        if (spanObj instanceof Span) {
-            final Span span = (Span) spanObj;
+        if (spanObj instanceof Span<?>) {
+            final Span<?> span = (Span<?>) spanObj;
             span.deactivate();
             if (completableFuture == null) {
                 span.captureException(t)

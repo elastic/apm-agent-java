@@ -18,7 +18,8 @@
  */
 package co.elastic.apm.agent.awslambda.lambdas;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 
@@ -27,7 +28,7 @@ import java.util.Objects;
 public abstract class AbstractFunction<ReqE, ResE> implements RequestHandler<ReqE, ResE> {
 
     protected void createChildSpan() {
-        Objects.requireNonNull(GlobalTracer.requireTracerImpl().getActive())
+        Objects.requireNonNull(GlobalTracer.get().require(ElasticApmTracer.class).getActive())
             .createSpan()
             .withName("child-span")
             .activate()

@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.rabbitmq.header.SpringRabbitMQTextHeaderGetter;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import org.springframework.amqp.core.Message;
@@ -29,14 +29,14 @@ import javax.annotation.Nullable;
 
 public class SpringAmqpTransactionHelper {
 
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
 
-    public SpringAmqpTransactionHelper(ElasticApmTracer tracer) {
+    public SpringAmqpTransactionHelper(Tracer tracer) {
         this.tracer = tracer;
     }
 
     @Nullable
-    public Transaction createTransaction(Message message, String transactionNamePrefix) {
+    public Transaction<?> createTransaction(Message message, String transactionNamePrefix) {
         String exchange = null;
         MessageProperties messageProperties = message.getMessageProperties();
         if (messageProperties != null) {
@@ -46,7 +46,7 @@ public class SpringAmqpTransactionHelper {
             return null;
         }
 
-        Transaction transaction = tracer.currentTransaction();
+        Transaction<?> transaction = tracer.currentTransaction();
         if (transaction != null) {
             return null;
         }

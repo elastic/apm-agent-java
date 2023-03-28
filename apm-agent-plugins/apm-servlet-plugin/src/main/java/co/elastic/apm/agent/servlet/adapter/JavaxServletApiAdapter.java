@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.servlet.adapter;
 
-import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.servlet.helper.JavaxServletRequestHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.metadata.Request;
 
 import javax.annotation.Nullable;
 import javax.servlet.DispatcherType;
