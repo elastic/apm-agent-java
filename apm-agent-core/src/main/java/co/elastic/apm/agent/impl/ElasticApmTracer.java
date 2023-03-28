@@ -586,7 +586,7 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     public <K, V extends ReferenceCounted> ReferenceCounter<K, V> createReferenceCounter() {
-        return new WeakMapReferenceCounter<>(WeakConcurrentProviderImpl.createWeakReferenceCountedMap());
+        return new WeakMapReferenceCounter<>(WeakConcurrentProviderImpl.<K, V>createWeakReferenceCountedMap());
     }
 
     @Override
