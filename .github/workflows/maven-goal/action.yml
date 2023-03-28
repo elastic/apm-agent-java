@@ -7,7 +7,7 @@ inputs:
   java-version:
     description: 'Java version'
     required: true
-    default: '17'
+    default: '17'  # NOTE: This version is also defined in .buildkite/hooks/pre-command
   distribution:
     description: 'Java distribution'
     required: true

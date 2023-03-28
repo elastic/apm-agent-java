@@ -21,9 +21,9 @@ package co.elastic.apm.agent.cassandra3;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.cassandra.CassandraHelper;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.ResultSet;
@@ -111,10 +111,10 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
         public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
                                   @Advice.Return ResultSetFuture result,
                                   @Nullable @Advice.Enter Object spanObj) {
-            if (!(spanObj instanceof Span)) {
+            if (!(spanObj instanceof Span<?>)) {
                 return;
             }
-            final Span span = (Span) spanObj;
+            final Span<?> span = (Span<?>) spanObj;
             span.captureException(thrown).deactivate();
             Futures.addCallback(result, new FutureCallback<ResultSet>() {
                 @Override
@@ -130,14 +130,14 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
 
                 @Override
                 public void onFailure(Throwable t) {
-                    span.endExceptionally(t);
+                    span.captureException(t).end();
                 }
             });
         }
     }
 
     private interface DestinationAddressSetter {
-        void setDestination(Span span, Host host);
+        void setDestination(Span<?> span, Host host);
 
         class Resolver {
 
@@ -171,7 +171,7 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
             INSTANCE;
 
             @Override
-            public void setDestination(Span span, Host host) {
+            public void setDestination(Span<?> span, Host host) {
                 span.getContext().getDestination().withSocketAddress(host.getSocketAddress());
             }
         }
@@ -180,7 +180,7 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
             INSTANCE;
 
             @Override
-            public void setDestination(Span span, Host host) {
+            public void setDestination(Span<?> span, Host host) {
                 span.getContext().getDestination().withInetAddress(host.getAddress());
             }
         }

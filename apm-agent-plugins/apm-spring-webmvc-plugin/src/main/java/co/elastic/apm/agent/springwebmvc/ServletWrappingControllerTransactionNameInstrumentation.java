@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -57,7 +57,7 @@ public class ServletWrappingControllerTransactionNameInstrumentation extends Tra
     public static class AdviceClass {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onEnter(@Advice.FieldValue("servletClass") Class<?> servletClass, @Advice.Argument(0) HttpServletRequest request) {
-            final Transaction transaction = tracer.currentTransaction();
+            final Transaction<?> transaction = tracer.currentTransaction();
             if (transaction == null) {
                 return;
             }

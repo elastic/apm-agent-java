@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.rabbitmq;
 
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import org.springframework.amqp.core.Message;
 
 import java.util.Collection;
@@ -30,10 +30,10 @@ import java.util.ListIterator;
 public class MessageBatchListWrapper implements List<Message> {
 
     private final List<Message> delegate;
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
     private final SpringAmqpTransactionHelper transactionHelper;
 
-    public MessageBatchListWrapper(List<Message> delegate, ElasticApmTracer tracer, SpringAmqpTransactionHelper transactionHelper) {
+    public MessageBatchListWrapper(List<Message> delegate, Tracer tracer, SpringAmqpTransactionHelper transactionHelper) {
         this.delegate = delegate;
         this.tracer = tracer;
         this.transactionHelper = transactionHelper;

@@ -20,7 +20,7 @@ package co.elastic.apm.agent.esrestclient.v6_4;
 
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -67,7 +67,7 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
         public static void onAfterExecute(@Advice.Return @Nullable Response response,
                                           @Advice.Enter @Nullable Object spanObj,
                                           @Advice.Thrown @Nullable Throwable t) {
-            Span span = (Span) spanObj;
+            Span<?> span = (Span<?>) spanObj;
             if (span != null) {
                 try {
                     helper.finishClientSpan(response, span, t);

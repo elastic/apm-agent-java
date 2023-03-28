@@ -20,8 +20,8 @@ package co.elastic.apm.agent.cassandra4;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.cassandra.CassandraHelper;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Span;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
@@ -117,10 +117,10 @@ public class Cassandra4Instrumentation extends TracerAwareInstrumentation {
         public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
                                   @Advice.Return Object result,
                                   @Nullable @Advice.Enter Object spanObj) {
-            if (!(spanObj instanceof Span)) {
+            if (!(spanObj instanceof Span<?>)) {
                 return;
             }
-            Span span = (Span) spanObj;
+            Span<?> span = (Span<?>) spanObj;
             span.captureException(thrown).deactivate();
             if (result instanceof ResultSet) {
                 setDestination(span, ((ResultSet) result).getExecutionInfo());
@@ -137,7 +137,7 @@ public class Cassandra4Instrumentation extends TracerAwareInstrumentation {
             }
         }
 
-        private static void setDestination(Span span, ExecutionInfo info) {
+        private static void setDestination(Span<?> span, ExecutionInfo info) {
             Node coordinator = info.getCoordinator();
             if (coordinator != null) {
                 span.getContext().getDestination().withSocketAddress(coordinator.getEndPoint().resolve());

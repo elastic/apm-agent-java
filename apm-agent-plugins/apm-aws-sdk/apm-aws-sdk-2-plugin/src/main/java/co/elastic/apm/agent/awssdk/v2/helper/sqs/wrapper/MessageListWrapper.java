@@ -23,11 +23,11 @@ import co.elastic.apm.agent.awssdk.common.IAwsSdkDataSource;
 import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
 import co.elastic.apm.agent.awssdk.v2.helper.SdkV2DataSource;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.Tracer;
 import software.amazon.awssdk.core.SdkRequest;
 import software.amazon.awssdk.core.SdkResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
@@ -43,7 +43,7 @@ public class MessageListWrapper extends AbstractMessageListWrapper<Message> {
     public static final CallDepth jmsReceiveMessageCallDepth = CallDepth.get(MessageListWrapper.class);
     private static final WeakMap<ReceiveMessageResponse, List<Message>> sqsResponseToWrappedMessageListMap = WeakConcurrent.buildMap();
 
-    public static void registerWrapperListForResponse(@Nullable SdkRequest sdkRequest, @Nullable SdkResponse sdkResponse, ElasticApmTracer tracer) {
+    public static void registerWrapperListForResponse(@Nullable SdkRequest sdkRequest, @Nullable SdkResponse sdkResponse, Tracer tracer) {
         if (sdkResponse instanceof ReceiveMessageResponse && sdkRequest instanceof ReceiveMessageRequest) {
             String queueName = SdkV2DataSource.getInstance().getFieldValue(IAwsSdkDataSource.QUEUE_NAME_FIELD, sdkRequest);
             ReceiveMessageResponse receiveMessageResponse = (ReceiveMessageResponse) sdkResponse;
@@ -66,7 +66,7 @@ public class MessageListWrapper extends AbstractMessageListWrapper<Message> {
         return sqsResponseToWrappedMessageListMap.get(response);
     }
 
-    public MessageListWrapper(List<Message> delegate, ElasticApmTracer tracer, String queueName) {
+    public MessageListWrapper(List<Message> delegate, Tracer tracer, String queueName) {
         super(delegate, tracer, queueName, SQSHelper.getInstance(), SQSHelper.getInstance());
     }
 

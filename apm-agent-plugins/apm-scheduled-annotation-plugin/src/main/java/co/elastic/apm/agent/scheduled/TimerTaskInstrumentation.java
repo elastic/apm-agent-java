@@ -20,10 +20,10 @@ package co.elastic.apm.agent.scheduled;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -51,7 +51,7 @@ public class TimerTaskInstrumentation extends TracerAwareInstrumentation {
 
     private final Collection<String> applicationPackages;
 
-    public TimerTaskInstrumentation(ElasticApmTracer tracer) {
+    public TimerTaskInstrumentation(Tracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 
@@ -62,7 +62,7 @@ public class TimerTaskInstrumentation extends TracerAwareInstrumentation {
                                                  @Advice.Origin Class<?> clazz) {
             AbstractSpan<?> active = tracer.getActive();
             if (active == null) {
-                Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
+                Transaction<?> transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
                 if (transaction != null) {
                     transaction.withName(signature)
                         .withType("scheduled")
@@ -79,8 +79,8 @@ public class TimerTaskInstrumentation extends TracerAwareInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onMethodExit(@Advice.Enter @Nullable Object transactionObj,
                                         @Advice.Thrown Throwable t) {
-            if (transactionObj instanceof Transaction) {
-                Transaction transaction = (Transaction) transactionObj;
+            if (transactionObj instanceof Transaction<?>) {
+                Transaction<?> transaction = (Transaction<?>) transactionObj;
                 transaction.captureException(t)
                     .deactivate()
                     .end();

@@ -21,9 +21,9 @@ package co.elastic.apm.agent.urlconnection;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
@@ -82,7 +82,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                 if (parent == null) {
                     return null;
                 }
-                Span span = inFlightSpans.get(thiz);
+                Span<?> span = inFlightSpans.get(thiz);
                 if (span == null && !connected) {
                     final URL url = thiz.getURL();
                     span = HttpClientHelper.startHttpClientSpan(parent, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
@@ -109,7 +109,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                                     @Advice.Origin String signature) {
 
                 callDepth.decrement();
-                Span span = (Span) spanObject;
+                Span<?> span = (Span<?>) spanObject;
                 if (span == null) {
                     return;
                 }
@@ -165,7 +165,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
             public static void afterDisconnect(@Advice.This HttpURLConnection thiz,
                                                @Advice.Thrown @Nullable Throwable t,
                                                @Advice.FieldValue("responseCode") int responseCode) {
-                Span span = inFlightSpans.remove(thiz);
+                Span<?> span = inFlightSpans.remove(thiz);
                 if (span != null) {
                     span.captureException(t)
                         .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)

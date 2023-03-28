@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.hibernatesearch;
 
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 
 public final class HibernateSearchHelper {
 
@@ -28,17 +28,17 @@ public final class HibernateSearchHelper {
 
     }
 
-    public static Span createAndActivateSpan(final Tracer tracer, final String methodName,
-                                             final String query) {
+    public static Span<?> createAndActivateSpan(final Tracer tracer, final String methodName,
+                                                final String query) {
 
         AbstractSpan<?> active = tracer.getActive();
         // avoid creating the same span twice for example, when an instrumented API is wrapped
-        if (active == null || active instanceof Span && HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE
-            .equals(((Span) active).getSubtype())) {
+        if (active == null || active instanceof Span<?> && HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE
+            .equals(((Span<?>) active).getSubtype())) {
             return null;
         }
 
-        Span span = active.createSpan().activate();
+        Span<?> span = active.createSpan().activate();
 
         span.withType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_TYPE)
                 .withSubtype(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)

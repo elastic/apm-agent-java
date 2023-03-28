@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import java.util.Iterator;
@@ -26,9 +26,9 @@ import java.util.Iterator;
 class ConsumerRecordsIterableWrapper implements Iterable<ConsumerRecord<?, ?>> {
 
     private final Iterable<ConsumerRecord<?, ?>> delegate;
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
 
-    public ConsumerRecordsIterableWrapper(Iterable<ConsumerRecord<?, ?>> delegate, ElasticApmTracer tracer) {
+    public ConsumerRecordsIterableWrapper(Iterable<ConsumerRecord<?, ?>> delegate, Tracer tracer) {
         this.delegate = delegate;
         this.tracer = tracer;
     }

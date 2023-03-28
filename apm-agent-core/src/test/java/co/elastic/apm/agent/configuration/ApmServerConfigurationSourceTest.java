@@ -154,6 +154,9 @@ public class ApmServerConfigurationSourceTest {
         assertThat(ApmServerConfigurationSource.parseMaxAge("max-age= 42 , public")).isEqualTo(42);
         assertThat(ApmServerConfigurationSource.parseMaxAge("public")).isNull();
         assertThat(ApmServerConfigurationSource.parseMaxAge(null)).isNull();
+
+        assertThat(ApmServerConfigurationSource.pollDelaySec("max-age=13")).isEqualTo(13);
+        assertThat(ApmServerConfigurationSource.pollDelaySec("max-age=3")).isEqualTo(5);
     }
 
 }

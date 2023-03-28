@@ -1,5 +1,6 @@
-name: update-jsons-specs
-pipelineid: update-jsons-specs
+name: update-json-specs
+pipelineid: update-json-specs
+title: synchronize json specs
 
 scms:
   default:
@@ -55,8 +56,8 @@ actions:
   pr:
     kind: "github/pullrequest"
     scmid: default
+    title: '[Automation] Update JSON specs'
     spec:
-      title: Update JSON specs
       automerge: false
       draft: false
       labels:

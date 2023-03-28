@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -96,8 +96,8 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
             public static void afterSend(@Advice.Enter @Nullable final Object spanObj,
                                          @Advice.Thrown final Throwable throwable) {
 
-                if (spanObj instanceof Span) {
-                    Span span = (Span) spanObj;
+                if (spanObj instanceof Span<?>) {
+                    Span<?> span = (Span<?>) spanObj;
                     span.captureException(throwable);
                     span.deactivate().end();
                 }
@@ -133,8 +133,8 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
             public static void endSpan(@Advice.Enter @Nullable final Object spanObj,
                                        @Advice.Thrown final Throwable throwable) {
 
-                if (spanObj instanceof Span) {
-                    Span span = (Span) spanObj;
+                if (spanObj instanceof Span<?>) {
+                    Span<?> span = (Span<?>) spanObj;
                     span.captureException(throwable);
                     span.deactivate().end();
                 }

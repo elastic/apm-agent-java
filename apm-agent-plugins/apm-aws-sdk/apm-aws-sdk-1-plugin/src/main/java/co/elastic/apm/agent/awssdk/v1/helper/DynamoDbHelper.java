@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.awssdk.v1.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractDynamoDBInstrumentationHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.Request;
 import com.amazonaws.http.ExecutionContext;
@@ -31,22 +31,22 @@ import java.net.URI;
 
 public class DynamoDbHelper extends AbstractDynamoDBInstrumentationHelper<Request<?>, ExecutionContext> {
 
-    private static final DynamoDbHelper INSTANCE = new DynamoDbHelper(GlobalTracer.requireTracerImpl());
+    private static final DynamoDbHelper INSTANCE = new DynamoDbHelper(GlobalTracer.get());
 
     public static DynamoDbHelper getInstance() {
         return INSTANCE;
     }
 
-    public DynamoDbHelper(ElasticApmTracer tracer) {
+    public DynamoDbHelper(Tracer tracer) {
         super(tracer, SdkV1DataSource.getInstance());
     }
 
     @Nullable
     @Override
-    public Span startSpan(Request<?> request, URI httpURI, ExecutionContext context) {
+    public Span<?> startSpan(Request<?> request, URI httpURI, ExecutionContext context) {
         AmazonWebServiceRequest amazonRequest = request.getOriginalRequest();
 
-        Span span = super.startSpan(request, httpURI, context);
+        Span<?> span = super.startSpan(request, httpURI, context);
         if (span != null) {
             span.withSync(!isRequestAsync(amazonRequest));
         }

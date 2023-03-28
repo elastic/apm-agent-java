@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.websocket;
 
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.util.VersionUtils;
 import jakarta.websocket.server.ServerEndpoint;
 import net.bytebuddy.asm.Advice;
@@ -30,7 +30,7 @@ import java.util.Collection;
 
 public class JakartaServerEndpointInstrumentation extends BaseServerEndpointInstrumentation {
 
-    public JakartaServerEndpointInstrumentation(ElasticApmTracer tracer) {
+    public JakartaServerEndpointInstrumentation(Tracer tracer) {
         super(tracer);
     }
 

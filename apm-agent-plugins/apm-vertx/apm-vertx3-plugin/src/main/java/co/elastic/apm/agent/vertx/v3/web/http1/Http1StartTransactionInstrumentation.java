@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.vertx.v3.web.http1;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.vertx.v3.web.WebHelper;
@@ -58,7 +58,7 @@ public class Http1StartTransactionInstrumentation extends WebInstrumentation {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object enter(@Advice.This HttpServerRequestImpl request) {
-            Transaction transaction = helper.startOrGetTransaction(request);
+            Transaction<?> transaction = helper.startOrGetTransaction(request);
             if (transaction != null) {
                 transaction.activate();
             }
@@ -69,8 +69,8 @@ public class Http1StartTransactionInstrumentation extends WebInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
         public static void exit(@Advice.Enter Object transactionObj,
                                 @Advice.Thrown @Nullable Throwable thrown) {
-            if (transactionObj instanceof Transaction) {
-                Transaction transaction = (Transaction) transactionObj;
+            if (transactionObj instanceof Transaction<?>) {
+                Transaction<?> transaction = (Transaction<?>) transactionObj;
                 transaction.captureException(thrown).deactivate();
             }
         }

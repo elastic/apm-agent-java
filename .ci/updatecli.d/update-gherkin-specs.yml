@@ -1,5 +1,6 @@
 name: update-gherkin-specs
 pipelineid: update-gherkin-specs
+title: synchronize gherkin specs
 
 scms:
   default:
@@ -52,15 +53,15 @@ actions:
   pr:
     kind: "github/pullrequest"
     scmid: default
+    title: '[Automation] Update Gherkin specs'
     spec:
-      title: Update Gherkin specs
       automerge: false
       draft: false
       labels:
         - "automation"
       description: |-
         ### What
-        APM agent specs automatic sync
+        APM agent Gherkin specs automatic sync
         ### Why
         *Changeset*
         * https://github.com/elastic/apm/commit/{{ source "sha" }}

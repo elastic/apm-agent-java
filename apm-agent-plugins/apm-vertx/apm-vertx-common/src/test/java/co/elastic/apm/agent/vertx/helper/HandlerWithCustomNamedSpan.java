@@ -18,7 +18,8 @@
  */
 package co.elastic.apm.agent.vertx.helper;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import io.vertx.core.Handler;
@@ -38,7 +39,7 @@ public class HandlerWithCustomNamedSpan implements Handler<Void> {
 
     @Override
     public void handle(Void v) {
-        AbstractSpan<?> active = GlobalTracer.requireTracerImpl().getActive();
+        AbstractSpan<?> active = GlobalTracer.get().require(ElasticApmTracer.class).getActive();
         if (active == null) {
             return;
         }
