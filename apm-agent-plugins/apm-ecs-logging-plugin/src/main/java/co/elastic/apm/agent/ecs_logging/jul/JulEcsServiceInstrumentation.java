@@ -55,7 +55,7 @@ public abstract class JulEcsServiceInstrumentation extends EcsLoggingInstrumenta
             @Nullable
             @Advice.AssignReturned.ToFields(@ToField(value = "serviceName", typing = Assigner.Typing.DYNAMIC))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static String onEnter(@Advice.This EcsFormatter formatter,
+            public static String onEnter(@Advice.This Object formatter,
                                          @Advice.FieldValue("serviceName") @Nullable String serviceName) {
 
                 // setServiceName is protected in earlier versions, thus setting field directly
@@ -79,7 +79,7 @@ public abstract class JulEcsServiceInstrumentation extends EcsLoggingInstrumenta
             @Nullable
             @Advice.AssignReturned.ToFields(@ToField(value = "serviceVersion", typing = Assigner.Typing.DYNAMIC))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-            public static String onEnter(@Advice.This EcsFormatter formatter,
+            public static String onEnter(@Advice.This Object formatter,
                                          @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
 
                 return EcsLoggingUtils.getOrWarnServiceVersion(formatter, serviceVersion);
