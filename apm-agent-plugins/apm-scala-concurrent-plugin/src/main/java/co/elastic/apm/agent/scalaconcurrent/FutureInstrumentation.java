@@ -20,7 +20,7 @@ package co.elastic.apm.agent.scalaconcurrent;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;

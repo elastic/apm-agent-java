@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.jul.error;
 
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.loginstr.error.AbstractLoggerErrorCapturingInstrumentation;
 import co.elastic.apm.agent.loginstr.error.LoggerErrorHelper;
 import net.bytebuddy.asm.Advice;

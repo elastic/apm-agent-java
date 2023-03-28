@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.vertx.v3.web.http1;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.vertx.v3.web.WebHelper;
@@ -62,7 +62,7 @@ public class Http1EndTransactionInstrumentation extends WebInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void exit(@Advice.FieldValue("responseInProgress") HttpServerRequestImpl responseInProgress) {
-            Transaction transaction = helper.removeTransactionMapping(responseInProgress);
+            Transaction<?> transaction = helper.removeTransactionMapping(responseInProgress);
             if (transaction != null) {
                 HttpServerResponseImpl response = responseInProgress.response();
                 if (response != null) {

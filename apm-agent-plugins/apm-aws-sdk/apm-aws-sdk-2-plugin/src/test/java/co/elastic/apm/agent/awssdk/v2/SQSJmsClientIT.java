@@ -21,7 +21,8 @@ package co.elastic.apm.agent.awssdk.v2;
 import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -301,7 +302,7 @@ public class SQSJmsClientIT extends AbstractAwsClientIT {
         @Override
         public void onMessage(Message message) {
             try {
-                Tracer tracer = GlobalTracer.getTracerImpl();
+                Tracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
                 assertThat(tracer).isNotNull();
                 AbstractSpan<?> parent = tracer.getActive();
                 assertThat(parent).isNotNull();

@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.javalin;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -89,7 +89,7 @@ public class JavalinRenderInstrumentation extends TracerAwareInstrumentation {
         public static void onAfterExecute(@Advice.Enter @Nullable Object spanObj,
                                           @Advice.Thrown @Nullable Throwable t) {
             if (spanObj != null) {
-                final Span span = (Span) spanObj;
+                final Span<?> span = (Span<?>) spanObj;
                 span.deactivate();
                 span.captureException(t);
                 span.end();

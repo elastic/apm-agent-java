@@ -18,7 +18,8 @@
  */
 package co.elastic.apm.agent.awslambda.lambdas;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import com.amazonaws.services.lambda.runtime.Context;
 
 import java.io.InputStream;
@@ -28,7 +29,7 @@ import java.util.Objects;
 public class CustomStreamHandler {
 
     public void customHandleRequest(InputStream inputStream, OutputStream outputStream, Context context) {
-        Objects.requireNonNull(GlobalTracer.requireTracerImpl().getActive())
+        Objects.requireNonNull(GlobalTracer.get().require(ElasticApmTracer.class).getActive())
             .createSpan()
             .withName("child-span")
             .activate()

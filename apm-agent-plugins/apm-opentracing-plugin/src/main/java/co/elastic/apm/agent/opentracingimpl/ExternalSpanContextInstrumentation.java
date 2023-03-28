@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.opentracingimpl;
 
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
@@ -117,7 +117,7 @@ public abstract class ExternalSpanContextInstrumentation extends OpenTracingBrid
 
     @Nullable
     public static TraceContext parseTextMap(Iterable<Map.Entry<String, String>> textMap) {
-        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
+        ElasticApmTracer tracer = TracerAwareInstrumentation.tracer.require(ElasticApmTracer.class);
         if (tracer != null) {
             TraceContext childTraceContext = TraceContext.with64BitId(tracer);
             if (TraceContext.<Iterable<Map.Entry<String, String>>>getFromTraceContextTextHeaders().asChildOf(childTraceContext, textMap, OpenTracingTextMapBridge.instance())) {

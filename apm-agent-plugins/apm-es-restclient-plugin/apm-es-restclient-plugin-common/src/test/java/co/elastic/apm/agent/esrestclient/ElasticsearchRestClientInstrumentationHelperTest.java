@@ -56,7 +56,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
 
     @Test
     void testCreateSpan() {
-        Span span = helper.createClientSpan("GET", "/_test", null);
+        Span span = (Span) helper.createClientSpan("GET", "/_test", null);
         assertThat(span).isNotNull();
 
         assertThat(tracer.getActive()).isEqualTo(span);
@@ -81,7 +81,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
 
     @Test
     void testCreateSpanWithClusterName() {
-        Span span = helper.createClientSpan("GET", "/_test", null);
+        Span span = (Span) helper.createClientSpan("GET", "/_test", null);
         assertThat(span).isNotNull();
 
         assertThat(tracer.getActive()).isEqualTo(span);
@@ -121,7 +121,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
     @Test
     void testNonSampledSpan() {
         TransactionTest.setRecorded(false, transaction);
-        Span esSpan = helper.createClientSpan("SEARCH", "/test", null);
+        Span esSpan = (Span) helper.createClientSpan("SEARCH", "/test", null);
         assertThat(esSpan).isNotNull();
         try {
             assertThat(esSpan.isSampled()).isFalse();

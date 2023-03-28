@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.vertx.v3.web;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.vertx.v3.Vertx3Instrumentation;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
@@ -76,7 +76,7 @@ public abstract class WebInstrumentation extends Vertx3Instrumentation {
             @Nullable
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object nextEnter(@Advice.Argument(value = 0) RoutingContext routingContext) {
-                Transaction transaction = WebHelper.getInstance().setRouteBasedNameForCurrentTransaction(routingContext);
+                Transaction<?> transaction = WebHelper.getInstance().setRouteBasedNameForCurrentTransaction(routingContext);
 
                 if (transaction != null) {
                     transaction.activate();
@@ -89,7 +89,7 @@ public abstract class WebInstrumentation extends Vertx3Instrumentation {
             public static void nextExit(@Advice.Argument(value = 0) RoutingContext routingContext,
                                         @Nullable @Advice.Enter Object transactionObj, @Nullable @Advice.Thrown Throwable thrown) {
                 if (transactionObj instanceof Transaction) {
-                    Transaction transaction = (Transaction) transactionObj;
+                    Transaction<?> transaction = (Transaction<?>) transactionObj;
                     transaction.captureException(thrown).deactivate();
                 }
             }
@@ -135,7 +135,7 @@ public abstract class WebInstrumentation extends Vertx3Instrumentation {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void captureBody(@Advice.This HttpServerRequest request, @Advice.Argument(value = 0) Buffer requestDataBuffer) {
-                Transaction transaction = WebHelper.getInstance().getTransactionForRequest(request);
+                Transaction<?> transaction = WebHelper.getInstance().getTransactionForRequest(request);
                 helper.captureBody(transaction, requestDataBuffer);
             }
         }

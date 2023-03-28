@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import java.util.Collection;
@@ -29,9 +29,9 @@ import java.util.ListIterator;
 class ConsumerRecordsListWrapper implements List<ConsumerRecord<?, ?>> {
 
     private final List<ConsumerRecord<?, ?>> delegate;
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
 
-    public ConsumerRecordsListWrapper(List<ConsumerRecord<?, ?>> delegate, ElasticApmTracer tracer) {
+    public ConsumerRecordsListWrapper(List<ConsumerRecord<?, ?>> delegate, Tracer tracer) {
         this.delegate = delegate;
         this.tracer = tracer;
     }

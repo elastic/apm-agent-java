@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -87,7 +87,7 @@ public class BodyInsertersInstrumentation extends WebFluxInstrumentation {
             }
 
             if (type.getType().getTypeName().equals(WebfluxHelper.SSE_EVENT_CLASS)) {
-                Transaction transaction = GlobalTracer.get().currentTransaction();
+                Transaction<?> transaction = GlobalTracer.get().currentTransaction();
                 if (transaction != null) {
                     // mark the transaction to be ignored and later discarded
                     transaction.ignoreTransaction();

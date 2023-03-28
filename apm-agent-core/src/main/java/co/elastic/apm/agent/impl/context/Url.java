@@ -226,16 +226,16 @@ public class Url implements Recyclable, co.elastic.apm.agent.tracer.metadata.Url
     }
 
     @Override
-    public void fillFrom(@Nullable String scheme,
-                         @Nullable String serverName,
-                         int serverPort,
-                         @Nullable String requestURI,
-                         @Nullable String queryString) {
-        withProtocol(scheme)
+    public void fillFrom(@Nullable String protocol,
+                         @Nullable String hostname,
+                         int port,
+                         @Nullable String pathname,
+                         @Nullable String search) {
+        withProtocol(protocol)
             .withHostname(hostname)
-            .withPort(normalizePort(port, scheme))
+            .withPort(normalizePort(port, protocol))
             .withPathname(pathname)
-            .withSearch(queryString)
+            .withSearch(search)
             .updateFull();
     }
 

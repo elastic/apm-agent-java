@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -32,14 +32,14 @@ public class HttpClientAdviceHelper {
     private static final Tracer tracer = GlobalTracer.get();
 
     @Nullable
-    public static Span startSpan(HttpRequest httpRequest) {
+    public static Span<?> startSpan(HttpRequest httpRequest) {
         final AbstractSpan<?> parent = tracer.getActive();
         if (parent == null) {
             return null;
         }
 
         URI uri = httpRequest.uri();
-        Span span = HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri, uri.getHost());
+        Span<?> span = HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri, uri.getHost());
         if (span != null) {
             span.activate();
         }

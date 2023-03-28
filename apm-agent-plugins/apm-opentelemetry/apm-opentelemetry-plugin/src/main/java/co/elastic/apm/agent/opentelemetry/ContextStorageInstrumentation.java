@@ -18,7 +18,8 @@
  */
 package co.elastic.apm.agent.opentelemetry;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.opentelemetry.context.OTelContextStorage;
 import io.opentelemetry.context.ContextStorage;
 import net.bytebuddy.asm.Advice;
@@ -51,7 +52,7 @@ public class ContextStorageInstrumentation extends AbstractOpenTelemetryInstrume
 
     public static class ContextStorageAdvice {
 
-        private static final OTelContextStorage CONTEXT_STORAGE = new OTelContextStorage(GlobalTracer.requireTracerImpl());
+        private static final OTelContextStorage CONTEXT_STORAGE = new OTelContextStorage(GlobalTracer.get().require(ElasticApmTracer.class));
 
         @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)

@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -41,7 +41,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
 
     private static final Logger log = LoggerFactory.getLogger(TransactionAwareSubscriber.class);
 
-    private static final WeakMap<TransactionAwareSubscriber<?>, Transaction> transactionMap = WeakConcurrentProviderImpl.createWeakSpanMap();
+    private static final WeakMap<TransactionAwareSubscriber<?>, Transaction<?>> transactionMap = WeakConcurrentProviderImpl.createWeakSpanMap();
 
     private final CoreSubscriber<? super T> subscriber;
 
@@ -60,7 +60,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
      * @param description human-readable description to make debugging easier
      */
     TransactionAwareSubscriber(CoreSubscriber<? super T> subscriber,
-                               Transaction transaction,
+                               Transaction<?> transaction,
                                ServerWebExchange exchange,
                                String description) {
 
@@ -99,7 +99,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
     @Override
     public void onSubscribe(Subscription s) {
         this.subscription = s;
-        Transaction transaction = getTransaction();
+        Transaction<?> transaction = getTransaction();
         doEnter("onSubscribe", transaction);
         Throwable thrown = null;
         try {
@@ -120,7 +120,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
      */
     @Override
     public void onNext(T next) {
-        Transaction transaction = getTransaction();
+        Transaction<?> transaction = getTransaction();
         doEnter("onNext", transaction);
         Throwable thrown = null;
         try {
@@ -142,7 +142,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
      */
     @Override
     public void onError(Throwable t) {
-        Transaction transaction = getTransaction();
+        Transaction<?> transaction = getTransaction();
         doEnter("onError", transaction);
         try {
 
@@ -164,7 +164,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
      */
     @Override
     public void onComplete() {
-        Transaction transaction = getTransaction();
+        Transaction<?> transaction = getTransaction();
         doEnter("onComplete", transaction);
         try {
 
@@ -179,7 +179,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
         }
     }
 
-    private void doEnter(String method, @Nullable Transaction transaction) {
+    private void doEnter(String method, @Nullable Transaction<?> transaction) {
         debugTrace(true, method, transaction);
 
         if (transaction == null) {
@@ -189,7 +189,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
         transaction.activate();
     }
 
-    private void doExit(boolean discard, String method, @Nullable Transaction transaction) {
+    private void doExit(boolean discard, String method, @Nullable Transaction<?> transaction) {
         debugTrace(false, method, transaction);
 
         if (transaction == null) {
@@ -203,7 +203,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
     }
 
     private void cancelTransaction() {
-        Transaction transaction = getTransaction();
+        Transaction<?> transaction = getTransaction();
         debugTrace(true, "cancelTransaction", transaction);
         try {
             if (transaction == null) {
@@ -220,11 +220,11 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
     }
 
     @Nullable
-    private Transaction getTransaction() {
+    private Transaction<?> getTransaction() {
         return transactionMap.get(this);
     }
 
-    private void debugTrace(boolean isEnter, String method, @Nullable Transaction transaction) {
+    private void debugTrace(boolean isEnter, String method, @Nullable Transaction<?> transaction) {
         if (!log.isTraceEnabled()) {
             return;
         }

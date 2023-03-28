@@ -20,7 +20,7 @@ package co.elastic.apm.agent.lettuce;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import io.lettuce.core.protocol.RedisCommand;
@@ -71,7 +71,7 @@ public class Lettuce5StartSpanInstrumentation extends TracerAwareInstrumentation
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object beforeDispatch(@Nullable @Advice.Argument(0) RedisCommand<?, ?, ?> command) {
             if (command != null) {
-                Span span = RedisSpanUtils.createRedisSpan(command.getType().name());
+                Span<?> span = RedisSpanUtils.createRedisSpan(command.getType().name());
                 if (span != null) {
                     commandToSpan.put(command, span);
                     return span;
@@ -82,7 +82,7 @@ public class Lettuce5StartSpanInstrumentation extends TracerAwareInstrumentation
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void afterDispatch(@Nullable @Advice.Enter Object spanObj) {
-            Span span = (Span) spanObj;
+            Span<?> span = (Span<?>) spanObj;
             if (span != null) {
                 span.deactivate();
             }
