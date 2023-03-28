@@ -16,15 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.ecs_logging;
+package co.elastic.apm.agent.ecs_logging.jul;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.ecs_logging.EcsLoggingTest;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.logging.jul.EcsFormatter;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import java.util.logging.Level;
@@ -32,24 +29,24 @@ import java.util.logging.LogRecord;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
-public class JulEcsFormatterInstrumentationTest extends AbstractInstrumentationTest {
+public class JulEcsMdcInstrumentationTest extends EcsLoggingTest {
+
+    private EcsFormatter formatter = new EcsFormatter();
 
     @Test
     void testNoCorrelation() {
-        JsonNode logLine = logSomething();
-
-        assertThat(logLine.get("transaction.id")).isNull();
-        assertThat(logLine.get("trace.id")).isNull();
+        String json = createLogMsg();
+        assertThat(getJson(json, "transaction.id")).isNull();
+        assertThat(getJson(json, "trace.id")).isNull();
     }
 
     @Test
     void testActiveTransaction() {
         Transaction transaction = startTestRootTransaction("log");
         try {
-            JsonNode logLine = logSomething();
-
-            assertThat(logLine.get("transaction.id").textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
-            assertThat(logLine.get("trace.id").textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
+            String json = createLogMsg();
+            assertThat(getJson(json, "transaction.id")).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
+            assertThat(getJson(json, "trace.id")).isEqualTo(transaction.getTraceContext().getTraceId().toString());
         } finally {
             transaction.deactivate().end();
         }
@@ -61,22 +58,16 @@ public class JulEcsFormatterInstrumentationTest extends AbstractInstrumentationT
 
         error.activate();
         try {
-            JsonNode logLine = logSomething();
-
-            assertThat(logLine.get("error.id").textValue()).isEqualTo(error.getTraceContext().getId().toString());
+            String json = createLogMsg();
+            assertThat(getJson(json, "error.id")).isEqualTo(error.getTraceContext().getId().toString());
         } finally {
             error.deactivate();
         }
-
     }
 
-    private static JsonNode logSomething() {
-        EcsFormatter formatter = new EcsFormatter();
-        LogRecord record = new LogRecord(Level.INFO, "msg");
-        try {
-            return new ObjectMapper().readTree(formatter.format(record));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+    @Override
+    protected String createLogMsg() {
+        return formatter.format(new LogRecord(Level.INFO, "msg"));
     }
+
 }

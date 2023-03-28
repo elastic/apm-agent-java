@@ -20,6 +20,7 @@ package co.elastic.apm.agent.logback.correlation;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.loginstr.AbstractLogIntegrationInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -33,11 +34,11 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 /**
  * Instruments {@link ch.qos.logback.classic.Logger#callAppenders(ILoggingEvent)}
  */
-public class LogbackLogCorrelationInstrumentation extends TracerAwareInstrumentation {
+public class LogbackLogCorrelationInstrumentation extends AbstractLogIntegrationInstrumentation {
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("logback-correlation");
+    protected String getLoggingInstrumentationGroupName() {
+        return LOG_CORRELATION;
     }
 
     @Override

@@ -18,37 +18,23 @@
  */
 package co.elastic.apm.agent.ecs_logging;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
-import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.type.TypeDescription;
+import co.elastic.apm.agent.loginstr.AbstractLogIntegrationInstrumentation;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Arrays;
-import java.util.Collection;
-
-import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class AbstractLog4j2ServiceInstrumentation extends TracerAwareInstrumentation {
+public abstract class EcsLoggingInstrumentation extends AbstractLogIntegrationInstrumentation {
+
+    @Override
+    protected String getLoggingInstrumentationGroupName() {
+        // so far all ECS logging instrumentation is for log correlation, at trace and service levels.
+        return LOG_CORRELATION;
+    }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return not(CustomElementMatchers.isAgentClassLoader());
-    }
-
-    @Override
-    public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.logging.log4j2.EcsLayout$Builder");
-    }
-
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("build");
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("logging", "log4j2-ecs");
+        // ECS formatter that is loaded within the agent should not be instrumented
+        return not(CustomElementMatchers.isInternalPluginClassLoader());
     }
 }
