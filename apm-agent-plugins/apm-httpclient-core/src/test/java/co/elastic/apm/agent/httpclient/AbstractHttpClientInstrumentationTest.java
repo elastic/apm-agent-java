@@ -28,6 +28,7 @@ import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -300,7 +301,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
                 verifyTraceContextHeaders(span, path);
             } else {
                 findLoggedRequests(path).forEach(request ->
-                    assertThat(TraceContext.containsTraceContextTextHeaders(request, HeaderAccessor.INSTANCE)).isFalse()
+                    assertThat(TraceContext.containsTraceContextTextHeaders(TraceHeaderDisplay.REGULAR, request, HeaderAccessor.INSTANCE)).isFalse()
                 );
             }
         }
@@ -318,7 +319,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(headerMap).isNotEmpty();
         final List<LoggedRequest> loggedRequests = findLoggedRequests(path);
         loggedRequests.forEach(request -> {
-            assertThat(TraceContext.containsTraceContextTextHeaders(request, HeaderAccessor.INSTANCE)).isTrue();
+            assertThat(TraceContext.containsTraceContextTextHeaders(TraceHeaderDisplay.REGULAR, request, HeaderAccessor.INSTANCE)).isTrue();
             AtomicInteger headerCount = new AtomicInteger();
             HeaderAccessor.INSTANCE.forEach(
                 W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME,

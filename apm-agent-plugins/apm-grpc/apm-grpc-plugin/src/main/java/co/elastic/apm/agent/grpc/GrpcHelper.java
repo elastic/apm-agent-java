@@ -23,6 +23,7 @@ import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
@@ -450,7 +451,7 @@ public class GrpcHelper {
 
         clientCallListenerSpans.put(listener, span);
 
-        if (!tracer.containsTraceContextTextHeaders(headers, headerGetter)) {
+        if (!tracer.containsTraceContextTextHeaders(TraceHeaderDisplay.REGULAR, headers, headerGetter)) {
             span.propagateTraceContext(headers, headerSetter);
         }
 

@@ -28,6 +28,7 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
 import com.twitter.finagle.http.Request;
 import com.twitter.finagle.http.Response;
 import com.twitter.finagle.tracing.Trace;
@@ -148,10 +149,10 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
                 }
             }
 
-            if (!tracer.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+            if (!tracer.containsTraceContextTextHeaders(TraceHeaderDisplay.REGULAR, request, RequestHeaderAccessor.INSTANCE)) {
                 if (span != null) {
                     span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
-                } else if (!tracer.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+                } else if (!tracer.containsTraceContextTextHeaders(TraceHeaderDisplay.REGULAR, request, RequestHeaderAccessor.INSTANCE)) {
                     // adds headers of potential parent exit-spans
                     parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
                 }
