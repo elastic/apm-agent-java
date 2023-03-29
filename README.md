@@ -41,7 +41,7 @@ Those snapshots include features & bugfixes for the next release, see [releases 
 
 ## Build form source
 
-Execute `./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true` to build the artifacts and to install them to your local maven repository. The build process requires JDK 9.
+Execute `./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true` to build the artifacts and to install them to your local maven repository. The build process requires JDK 17.
 The agent jar is in the folder `elastic-apm-agent/target`.
 
 ## License

@@ -47,9 +47,18 @@ For small changes you don't have to execute them locally.
 When creating a pull requests,
 they will be executed by a CI server.
 
+The code requires at least Java 17 to be built.
+The tests require at least Java 11 to run.
+You can use a different JVM for testing than building by passing the `test_java_binary` to maven:
+
+```bash
+./mvnw clean test -Dtest_java_binary=/path/to/java_home/bin/java
+```
+
 #### Performance testing
 
 We have some JMH Tests that allow to track the following performance metrics deltas when agent is activated.
+
 - memory allocation rate (GC pressure)
 - cpu time
 
