@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.vertx;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.impl.HttpContext;
@@ -50,10 +50,10 @@ public abstract class AbstractVertxWebClientHelper {
         if (existingSpanObj != null) {
             // there is already an active span for this HTTP request,
             // don't create a new span but propagate tracing headers
-            ((Span) existingSpanObj).propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
+            ((Span<?>) existingSpanObj).propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
         } else {
             URI requestUri = URI.create(httpRequest.absoluteURI());
-            Span span = HttpClientHelper.startHttpClientSpan(parent, getMethod(httpRequest), requestUri, null);
+            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, getMethod(httpRequest), requestUri, null);
 
             if (span != null) {
                 span.propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
@@ -68,7 +68,7 @@ public abstract class AbstractVertxWebClientHelper {
     public void followRedirect(HttpContext<?> httpContext, HttpClientRequest httpRequest) {
         Object existingSpanObj = httpContext.get(WEB_CLIENT_SPAN_KEY);
         if (existingSpanObj != null) {
-            Span existingSpan = (Span) existingSpanObj;
+            Span<?> existingSpan = (Span<?>) existingSpanObj;
             existingSpan.propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
         }
     }
@@ -88,7 +88,7 @@ public abstract class AbstractVertxWebClientHelper {
             // Setting to null removes from the attributes map
             httpContext.set(WEB_CLIENT_SPAN_KEY, null);
 
-            Span span = (Span) spanObj;
+            Span<?> span = (Span<?>) spanObj;
             span.decrementReferences();
 
             if (thrown != null) {

@@ -34,6 +34,9 @@ import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import static co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader.startsWith;
+import static net.bytebuddy.matcher.ElementMatchers.not;
+
 /**
  * Loads plugins from {@link CoreConfiguration#getPluginsDir() plugins_dir}
  *
@@ -44,13 +47,19 @@ public class ExternalPluginClassLoader extends URLClassLoader {
     private final File pluginJar;
 
     public ExternalPluginClassLoader(File pluginJar, ClassLoader parent) throws IOException {
-        super(new URL[]{pluginJar.toURI().toURL()}, parent);
+        super(new URL[]{pluginJar.toURI().toURL()}, createFilteringClassLoader(parent));
         this.pluginJar = pluginJar;
         classNames = Collections.unmodifiableList(scanForClasses(pluginJar));
         if (classNames.contains(ElasticApmInstrumentation.class.getName())) {
             throw new IllegalStateException(String.format("The plugin %s contains the plugin SDK. Please make sure the " +
                 "scope for the dependency apm-agent-plugin-sdk is set to provided.", pluginJar.getName()));
         }
+    }
+
+    private static ClassLoader createFilteringClassLoader(ClassLoader parent) {
+        // The agent classloader contains "hidden" Otel dependencies due to the embedded metric SDK
+        // We force plugins to provide their own Otel version
+        return new DiscriminatingMultiParentClassLoader(parent, not(startsWith("io.opentelemetry.")));
     }
 
     private List<String> scanForClasses(File pluginJar) throws IOException {

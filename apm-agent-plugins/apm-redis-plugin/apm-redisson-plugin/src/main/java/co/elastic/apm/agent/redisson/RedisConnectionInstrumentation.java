@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.redisson;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
 import io.netty.channel.Channel;
 import net.bytebuddy.asm.Advice;
@@ -47,7 +47,7 @@ public class RedisConnectionInstrumentation extends TracerAwareInstrumentation {
         @Advice.OnMethodEnter(inline = false)
         public static Object beforeSend(@Advice.This RedisConnection connection,
                                        @Advice.Argument(0) Object args) {
-            Span span = RedisSpanUtils.createRedisSpan("");
+            Span<?> span = RedisSpanUtils.createRedisSpan("");
             if (span != null) {
                 // get command
                 if (args instanceof CommandsData) {
@@ -72,7 +72,7 @@ public class RedisConnectionInstrumentation extends TracerAwareInstrumentation {
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
         public static void afterSend(@Nullable @Advice.Enter Object spanObj,
                                      @Nullable @Advice.Thrown Throwable thrown) {
-            Span span = (Span) spanObj;
+            Span<?> span = (Span<?>) spanObj;
             if (span != null) {
                 span.captureException(thrown)
                     .deactivate()

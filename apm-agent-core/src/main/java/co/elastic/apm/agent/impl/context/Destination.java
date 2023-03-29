@@ -18,17 +18,14 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 
-/**
- * Context information about a destination of outgoing calls.
- */
-public class Destination implements Recyclable {
+public class Destination implements Recyclable, co.elastic.apm.agent.tracer.metadata.Destination {
 
     /**
      * An IP (v4 or v6) or a host/domain name.
@@ -44,6 +41,7 @@ public class Destination implements Recyclable {
 
     private boolean portSetByUser;
 
+    @Override
     public Destination withAddress(@Nullable CharSequence address) {
         if (address != null && !addressSetByUser) {
             withAddress(address, 0, address.length());
@@ -65,6 +63,7 @@ public class Destination implements Recyclable {
         return address;
     }
 
+    @Override
     public Destination withPort(int port) {
         if (!portSetByUser) {
             this.port = port;
@@ -82,10 +81,7 @@ public class Destination implements Recyclable {
         return port;
     }
 
-    /**
-     * @param addressPort host address and port in the following format 'host:3128'
-     * @return destination with updated address and port
-     */
+    @Override
     public Destination withAddressPort(@Nullable String addressPort) {
         if (addressPort != null) {
             int separator = addressPort.lastIndexOf(':');
@@ -143,6 +139,7 @@ public class Destination implements Recyclable {
 
     private final Cloud cloud = new Cloud();
 
+    @Override
     public Cloud getCloud() {
         return cloud;
     }
@@ -161,6 +158,7 @@ public class Destination implements Recyclable {
         cloud.resetState();
     }
 
+    @Override
     public Destination withSocketAddress(SocketAddress socketAddress) {
         if (socketAddress instanceof InetSocketAddress) {
             withInetSocketAddress((InetSocketAddress) socketAddress);
@@ -168,6 +166,7 @@ public class Destination implements Recyclable {
         return this;
     }
 
+    @Override
     public Destination withInetSocketAddress(InetSocketAddress inetSocketAddress) {
         InetAddress inetAddress = inetSocketAddress.getAddress();
         if (inetAddress != null) {
@@ -179,14 +178,16 @@ public class Destination implements Recyclable {
         return this;
     }
 
+    @Override
     public Destination withInetAddress(InetAddress inetAddress) {
         withAddress(inetAddress.getHostAddress());
         return this;
     }
 
-    public static class Cloud implements Recyclable {
+    public static class Cloud implements Recyclable, co.elastic.apm.agent.tracer.metadata.Cloud {
         private final StringBuilder region = new StringBuilder();
 
+        @Override
         public Cloud withRegion(@Nullable String region) {
             this.region.setLength(0);
             if (region != null) {

@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
@@ -32,13 +32,13 @@ class CallbackWrapper implements Callback, Recyclable {
     @Nullable
     private Callback delegate;
     @SuppressWarnings("NotNullFieldNotInitialized")
-    private volatile Span span;
+    private volatile Span<?> span;
 
     CallbackWrapper(KafkaInstrumentationHelper helper) {
         this.helper = helper;
     }
 
-    Callback wrap(@Nullable Callback delegate, Span span) {
+    Callback wrap(@Nullable Callback delegate, Span<?> span) {
         this.delegate = delegate;
         this.span = span;
         return this;

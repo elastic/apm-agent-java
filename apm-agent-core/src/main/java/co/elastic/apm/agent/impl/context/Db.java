@@ -18,29 +18,25 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.objectpool.Resetter;
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
+import co.elastic.apm.agent.tracer.pooling.Allocator;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
 import javax.annotation.Nullable;
 import java.nio.Buffer;
 import java.nio.CharBuffer;
 
-
-/**
- * An object containing contextual data for database spans
- */
-public class Db implements Recyclable {
+public class Db implements Recyclable, co.elastic.apm.agent.tracer.metadata.Db {
 
     private static final ObjectPool<CharBuffer> charBufferPool = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<CharBuffer>(128), false,
         new Allocator<CharBuffer>() {
             @Override
             public CharBuffer createInstance() {
-                return CharBuffer.allocate(DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH);
+                return CharBuffer.allocate(SerializationConstants.getMaxLongStringValueLength());
             }
         },
         new Resetter<CharBuffer>() {
@@ -94,9 +90,7 @@ public class Db implements Recyclable {
         return instance;
     }
 
-    /**
-     * Database instance name
-     */
+    @Override
     public Db withInstance(@Nullable String instance) {
         this.instance = instance;
         return this;
@@ -110,25 +104,13 @@ public class Db implements Recyclable {
         return statement;
     }
 
-    /**
-     * A database statement (e.g. query) for the given database type
-     */
+    @Override
     public Db withStatement(@Nullable String statement) {
         this.statement = statement;
         return this;
     }
 
-    /**
-     * Gets a pooled {@link CharBuffer} to record the DB statement and associates it with this instance.
-     * <p>
-     * Note: you may not hold a reference to the returned {@link CharBuffer} as it will be reused.
-     * </p>
-     * <p>
-     * Note: This method is not thread safe
-     * </p>
-     *
-     * @return a {@link CharBuffer} to record the DB statement
-     */
+    @Override
     public CharBuffer withStatementBuffer() {
         if (this.statementBuffer == null) {
             this.statementBuffer = charBufferPool.createInstance();
@@ -136,14 +118,7 @@ public class Db implements Recyclable {
         return this.statementBuffer;
     }
 
-    /**
-     * Returns the associated pooled {@link CharBuffer} to record the DB statement.
-     * <p>
-     * Note: returns {@code null} unless {@link #withStatementBuffer()} has previously been called
-     * </p>
-     *
-     * @return a {@link CharBuffer} to record the DB statement, or {@code null}
-     */
+    @Override
     @Nullable
     public CharBuffer getStatementBuffer() {
         return statementBuffer;
@@ -157,9 +132,7 @@ public class Db implements Recyclable {
         return type;
     }
 
-    /**
-     * Database type. For any SQL database, "sql". For others, the lower-case database category, e.g. "cassandra", "hbase", or "redis"
-     */
+    @Override
     public Db withType(@Nullable String type) {
         this.type = type;
         return this;
@@ -173,9 +146,7 @@ public class Db implements Recyclable {
         return user;
     }
 
-    /**
-     * Username for accessing database
-     */
+    @Override
     public Db withUser(@Nullable String user) {
         this.user = user;
         return this;
@@ -204,12 +175,7 @@ public class Db implements Recyclable {
         return affectedRowsCount;
     }
 
-    /**
-     * Sets the number of affected rows by statement execution
-     *
-     * @param count number of affected rows
-     * @return this
-     */
+    @Override
     public Db withAffectedRowsCount(long count){
         this.affectedRowsCount = count;
         return this;

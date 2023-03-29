@@ -270,6 +270,9 @@ public class AgentAttacher {
 
     private boolean attach(JvmInfo jvmInfo) throws Exception {
         final Map<String, String> agentArgs = getAgentArgs(jvmInfo);
+        if (!agentArgs.containsKey("activation_method")) {
+            agentArgs.put("activation_method", "APM_AGENT_ATTACH_CLI");
+        }
         logger.info("Attaching the Elastic APM agent to {} with arguments {}", jvmInfo, agentArgs);
 
         UserRegistry.User user = jvmInfo.getUser(userRegistry);

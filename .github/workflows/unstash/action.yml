@@ -1,0 +1,23 @@
+---
+
+name: unstash action
+inputs:
+  name:
+    description: 'Unstash name'
+    default: 'unstash'
+  path:
+    description: 'A directory that describes where to extract stashed files'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download stash
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ runner.temp }}
+
+    - name: Extract stash
+      run: tar -xf ${{ runner.temp }}/${{ inputs.name }}.tar.zst -C ${{ inputs.path }}
+      shell: bash

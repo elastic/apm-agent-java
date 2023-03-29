@@ -24,8 +24,8 @@ import co.elastic.apm.agent.awssdk.v1.helper.DynamoDbHelper;
 import co.elastic.apm.agent.awssdk.v1.helper.S3Helper;
 import co.elastic.apm.agent.awssdk.v1.helper.SQSHelper;
 import co.elastic.apm.agent.awssdk.v1.helper.SdkV1DataSource;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
 import com.amazonaws.Request;
 import com.amazonaws.handlers.HandlerContextKey;
 import com.amazonaws.http.ExecutionContext;
@@ -76,7 +76,7 @@ public class AmazonHttpClientInstrumentation extends AbstractAwsSdkInstrumentati
                 return null;
             }
 
-            Span span = helper.startSpan(request, request.getEndpoint(), executionContext);
+            Span<?> span = helper.startSpan(request, request.getEndpoint(), executionContext);
 
             if (span != null) {
                 span.activate();
@@ -90,8 +90,8 @@ public class AmazonHttpClientInstrumentation extends AbstractAwsSdkInstrumentati
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
         public static void exitInvoke(@Nullable @Advice.Enter Object spanObj,
                                       @Nullable @Advice.Thrown Throwable thrown) {
-            if (spanObj instanceof Span) {
-                Span span = (Span) spanObj;
+            if (spanObj instanceof Span<?>) {
+                Span<?> span = (Span<?>) spanObj;
                 span.deactivate();
                 if (thrown != null) {
                     span.captureException(thrown);

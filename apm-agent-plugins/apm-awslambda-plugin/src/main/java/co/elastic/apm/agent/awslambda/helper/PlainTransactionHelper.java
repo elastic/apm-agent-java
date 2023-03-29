@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.awslambda.helper;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import com.amazonaws.services.lambda.runtime.Context;
@@ -39,7 +39,7 @@ public class PlainTransactionHelper extends AbstractLambdaTransactionHelper<Obje
 
     public static PlainTransactionHelper getInstance() {
         if (INSTANCE == null) {
-            INSTANCE = new PlainTransactionHelper(GlobalTracer.requireTracerImpl());
+            INSTANCE = new PlainTransactionHelper(GlobalTracer.get().require(ElasticApmTracer.class));
         }
         return INSTANCE;
     }

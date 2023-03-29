@@ -20,30 +20,36 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-x.x.x]]
-==== x.x.x - YYYY/MM/DD
-
-[float]
-===== Breaking changes
-
-[float]
-===== Features
-
-* Cool new feature: {pull}2526[#2526]
-
-[float]
-===== Bug fixes
-
 [[release-notes-1.37.0]]
 ==== 1.37.0 - YYYY/MM/DD
 
 [float]
+===== Potentially breaking changes
+* The list of instrumentation groups for log-related features have been simplified to `logging`, `log-reformatting`, `log-correlation` and `log-error`,
+as a consequence any agent configuration with `enable_instrumentations` or `disable_instrumentations` might require adjustments as the following instrumentation
+groups no longer exist: `jul-ecs`, `jul-error`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, 
+`logback-correlation`, `logback-ecs` and `slf4j-error`.
+
+[float]
 ===== Features
-* Added the <<config-disable-outgoing-tracecontext-headers>> config option to disable injection of `tracecontext` on outgoing
+* Add the <<config-disable-outgoing-tracecontext-headers>> config option to disable injection of `tracecontext` on outgoing
 communication - {pull}2996[#2996]
+* Add the <<config-profiling-inferred-spans-logging-enabled>> config option to suppress async profiler warning messages - {pull}3002[#3002]
+* Added support for OpenTelemetry metrics - {pull}2968[#2968], {pull}3014[#3014]
+* Added agent.activation_method telemetry - {pull}2926[#2926]
+* Allow creation of exit spans with `@CaptureSpan` and `@Traced` annotations - {pull}3046[#3046]
+* Add the <<config-long-field-max-length>> config to enable capturing larger values for specific fields - {pull}3027[#3027]
+* Provide fallback correlation when `ecs-logging-java` is used - {pull}3064[#3064]
 
 [float]
 ===== Bug fixes
+* Fixed used instrumentations printed on shutdown {pull}3001[#3001]
+* Prevent potential connection leak on network failure - {pull}2869[#2869]
+* Fix for inferred spans where the parent id was also a child id - {pull}2686[#2686]
+* Fix context propagation for async 7.x and 8.x Elasticsearch clients - {pull}3015[#3015]
+* Fix exceptions filtering based on <<config-ignore-exceptions>> when those are <<config-unnest-exceptions, nested>> - {pull}3025[#3025]
+* Fix usage of `HttpUrlConnection.getResponseCode()` causing an error event due to exception capturing, even when it is internally handled - {pull}3024[#3024]
+* Fix source code jar to contain apm-agent sources - {pull}3063[#3063]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
@@ -51,6 +57,7 @@ communication - {pull}2996[#2996]
 [[release-notes-1.36.0]]
 ==== 1.36.0 - 2023/01/27
 
+[float]
 ===== Potentially breaking changes
 * Previously, agent instrumented all implementations of `javax.jms.MessageListener`, which could cause performance issues.
 From now on, the instrumentation is limited to implementations that fit at least one of the following criteria:

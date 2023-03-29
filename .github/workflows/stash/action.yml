@@ -1,0 +1,23 @@
+---
+
+name: stash action
+inputs:
+  name:
+    description: 'Stash name'
+    default: 'stash'
+  path:
+    description: 'A directory that describes what to stash'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create stash
+      run: tar -acf ${{ runner.temp }}/${{ inputs.name }}.tar.zst -C ${{ inputs.path }} ./
+      shell: bash
+
+    - name: Upload stash
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ runner.temp }}/${{ inputs.name }}.tar.zst

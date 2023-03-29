@@ -18,12 +18,11 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.objectpool.Allocator;
-import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
+import co.elastic.apm.agent.tracer.pooling.Allocator;
+import co.elastic.apm.agent.tracer.pooling.ObjectPool;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletRequest;
@@ -39,7 +38,7 @@ public class JavaxAsyncContextAdviceHelper implements AsyncContextAdviceHelper<A
     private final ServletTransactionHelper servletTransactionHelper;
     private final Tracer tracer;
 
-    public JavaxAsyncContextAdviceHelper(ElasticApmTracer tracer) {
+    public JavaxAsyncContextAdviceHelper(Tracer tracer) {
         this.tracer = tracer;
         this.servletTransactionHelper = new ServletTransactionHelper(tracer);
         this.asyncListenerObjectPool = tracer.getObjectPoolFactory().createRecyclableObjectPool(MAX_POOLED_ELEMENTS,
@@ -63,7 +62,7 @@ public class JavaxAsyncContextAdviceHelper implements AsyncContextAdviceHelper<A
         if (request.getAttribute(ASYNC_LISTENER_ADDED) != null) {
             return;
         }
-        final Transaction transaction = tracer.currentTransaction();
+        final Transaction<?> transaction = tracer.currentTransaction();
         if (transaction != null && transaction.isSampled() && request.getAttribute(ASYNC_LISTENER_ADDED) == null) {
             // makes sure that the listener is only added once, even if the request is wrapped
             // which leads to multiple invocations of startAsync for the same underlying request

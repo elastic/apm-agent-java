@@ -18,14 +18,21 @@
  */
 package co.elastic.apm.agent.opentelemetry;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.opentelemetry.sdk.ElasticOpenTelemetry;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.opentelemetry.global.ElasticOpenTelemetry;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.lang.reflect.Constructor;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
@@ -51,18 +58,51 @@ public class GlobalOpenTelemetryInstrumentation extends AbstractOpenTelemetryIns
 
     public static class GlobalOpenTelemetryAdvice {
 
-        private static final OpenTelemetry ELASTIC_OPEN_TELEMETRY = new ElasticOpenTelemetry(GlobalTracer.requireTracerImpl());
+        private static final Logger logger = LoggerFactory.getLogger(GlobalOpenTelemetryAdvice.class);
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false, skipOn = Advice.OnNonDefaultValue.class)
-        public static boolean onEnter() {
-            // skips actual method and directly goes to exit advice
-            return true;
-        }
+        @Nullable
+        private static volatile OpenTelemetry elasticOpenTelemetry;
 
         @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static OpenTelemetry onExit() {
-            return ELASTIC_OPEN_TELEMETRY;
+        public static OpenTelemetry onExit(@Advice.Return OpenTelemetry originalOtel) {
+            return getElasticOpenTelemetry(originalOtel);
+        }
+
+        @Nonnull
+        private static OpenTelemetry buildOpenTelemetry(OpenTelemetry delegate) {
+            ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
+            try {
+                //Check if the provided Otel-API supports metrics
+                OpenTelemetry.class.getMethod("getMeterProvider");
+                //Lookup The with-metrics variant via reflection to guarantee it is only loaded if metrics are supported
+                Class<?> clazz = Class.forName("co.elastic.apm.agent.opentelemetry.global.ElasticOpenTelemetryWithMetrics");
+                Constructor<?> constructor = clazz.getConstructor(OpenTelemetry.class, ElasticApmTracer.class);
+                return (OpenTelemetry) constructor.newInstance(delegate, tracer);
+            } catch (Throwable e) {
+                logger.debug("Falling back to OpenTelemetry without metrics", e);
+                return new ElasticOpenTelemetry(tracer);
+            }
+        }
+
+        private static OpenTelemetry getElasticOpenTelemetry(OpenTelemetry delegate) {
+            if (elasticOpenTelemetry == null) {
+                synchronized (GlobalOpenTelemetryAdvice.class) {
+                    if (elasticOpenTelemetry == null) {
+                        elasticOpenTelemetry = buildOpenTelemetry(delegate);
+                    }
+                }
+            }
+            return elasticOpenTelemetry;
+        }
+
+        /**
+         * Must only be called from tests!
+         * Allows tests to retrigger the creation of the elastic provided OpenTelemetry.
+         * Currently invoked from OtelTestUtils.resetElasticOpenTelemetry() via reflection.
+         */
+        static void resetElasticOpenTelemetryForTests() {
+            elasticOpenTelemetry = null;
         }
     }
 }

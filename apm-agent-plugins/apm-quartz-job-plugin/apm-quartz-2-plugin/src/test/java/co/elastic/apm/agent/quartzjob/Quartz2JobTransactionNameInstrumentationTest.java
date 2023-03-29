@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.quartzjob;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.quartz.Job;
 import org.quartz.JobBuilder;

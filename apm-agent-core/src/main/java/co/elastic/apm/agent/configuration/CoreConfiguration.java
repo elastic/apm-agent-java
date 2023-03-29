@@ -61,6 +61,7 @@ import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACE
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
 
+    public static final int DEFAULT_LONG_FIELD_MAX_LENGTH = 10000;
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final String INSTRUMENT = "instrument";
@@ -248,6 +249,23 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "A message will be logged when the max number of spans has been exceeded but only at a rate of once every " + TimeUnit.MICROSECONDS.toMinutes(Span.MAX_LOG_INTERVAL_MICRO_SECS) + " minutes to ensure performance is not impacted.")
         .dynamic(true)
         .buildWithDefault(500);
+
+    private final ConfigurationOption<Integer> longFieldMaxLength = ConfigurationOption.integerOption()
+        .key("long_field_max_length")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("performance", "added[1.37.0]")
+        .description("\n" +
+            "The following transaction, span, and error fields will be truncated at this number of unicode characters " +
+            "before being sent to APM server:\n\n" +
+            "- `transaction.context.request.body`, `error.context.request.body`\n" +
+            "- `transaction.context.message.body`, `error.context.message.body`\n" +
+            "- `span.context.db.statement`\n" +
+            "\nNote that tracing data is limited at the upstream APM server to \n" +
+            "{apm-guide-ref}/configuration-process.html#max_event_size[`max_event_size`], \n" +
+            "which defaults to 300kB. If you configure `long_field_max_length` too large, it \n" +
+            "could result in transactions, spans, or errors that are rejected by APM server.")
+        .dynamic(false)
+        .buildWithDefault(DEFAULT_LONG_FIELD_MAX_LENGTH);
 
     private final ConfigurationOption<List<WildcardMatcher>> sanitizeFieldNames = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -809,6 +827,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(TraceContinuationStrategy.CONTINUE);
 
+    private final ConfigurationOption<ActivationMethod> activationMethod = ConfigurationOption.enumOption(ActivationMethod.class)
+        .key("activation_method")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("telling the agent what activated it, used for telemetry and should not be set unless supported by ActivationMethod")
+        .dynamic(true)
+        .buildWithDefault(ActivationMethod.UNKNOWN);
+
     public boolean isEnabled() {
         return enabled.get();
     }
@@ -863,6 +889,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public int getTransactionMaxSpans() {
         return transactionMaxSpans.get();
+    }
+
+    public int getLongFieldMaxLength() {
+        return longFieldMaxLength.get();
     }
 
     public List<WildcardMatcher> getSanitizeFieldNames() {
@@ -1077,6 +1107,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return traceContinuationStrategy.get();
     }
 
+    public ActivationMethod getActivationMethod() {
+        return activationMethod.get();
+    }
+
     public enum EventType {
         /**
          * Request bodies will never be reported
@@ -1119,4 +1153,5 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             return name().toLowerCase();
         }
     }
+
 }

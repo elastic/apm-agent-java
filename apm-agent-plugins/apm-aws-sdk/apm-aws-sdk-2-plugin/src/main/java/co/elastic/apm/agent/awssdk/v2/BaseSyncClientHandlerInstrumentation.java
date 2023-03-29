@@ -24,8 +24,8 @@ import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
 import co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper.MessageListWrapper;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -84,7 +84,7 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
             String awsService = executionContext.executionAttributes().getAttribute(AwsSignerExecutionAttribute.SERVICE_NAME);
             SdkRequest sdkRequest = clientExecutionParams.getInput();
             URI uri = clientConfiguration.option(SdkClientOption.ENDPOINT);
-            Span span = null;
+            Span<?> span = null;
             if ("S3".equalsIgnoreCase(awsService)) {
                 span = S3Helper.getInstance().startSpan(sdkRequest, uri, executionContext);
             } else if ("DynamoDb".equalsIgnoreCase(awsService)) {
@@ -110,8 +110,8 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
                                          @Advice.This Object thiz) {
             String awsService = executionContext.executionAttributes().getAttribute(AwsSignerExecutionAttribute.SERVICE_NAME);
             SdkRequest sdkRequest = clientExecutionParams.getInput();
-            if (spanObj instanceof Span) {
-                Span span = (Span) spanObj;
+            if (spanObj instanceof Span<?>) {
+                Span<?> span = (Span<?>) spanObj;
                 span.deactivate();
                 if (thrown != null) {
                     if (JVM_RUNTIME_INFO.isCoretto() && JVM_RUNTIME_INFO.getMajorVersion() > 16) {

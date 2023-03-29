@@ -158,6 +158,7 @@ public class MockTracer {
      */
     public static ElasticApmTracer create(ConfigurationRegistry configurationRegistry) {
         final ElasticApmTracer tracer = mock(ElasticApmTracer.class);
+        doReturn(tracer).when(tracer).require(ElasticApmTracer.class);
         doReturn(configurationRegistry).when(tracer).getConfigurationRegistry();
         doAnswer(invocation -> configurationRegistry.getConfig(invocation.getArgument(0))).when(tracer).getConfig(any());
         return tracer;

@@ -18,17 +18,12 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 
 
-/**
- * User
- * <p>
- * Describes the authenticated User for a request.
- */
-public class User implements Recyclable {
+public class User implements Recyclable, co.elastic.apm.agent.tracer.metadata.User {
 
     /**
      * Domain of the logged in user
@@ -101,17 +96,13 @@ public class User implements Recyclable {
         return this;
     }
 
-    /**
-     * The username of the logged in user
-     */
+    @Override
     @Nullable
     public String getUsername() {
         return username;
     }
 
-    /**
-     * The username of the logged in user
-     */
+    @Override
     public User withUsername(@Nullable String username) {
         this.username = username;
         return this;

@@ -23,7 +23,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -156,12 +156,12 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
     @Test
     void testReadLongText() throws Exception {
-        final byte[] longBody = RandomStringUtils.randomAlphanumeric(DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH * 2).getBytes(StandardCharsets.UTF_8);
+        final byte[] longBody = RandomStringUtils.randomAlphanumeric(SerializationConstants.getMaxLongStringValueLength() * 2).getBytes(StandardCharsets.UTF_8);
         executeRequest(filterChain, longBody, "text/plain");
 
         final Object body = reporter.getFirstTransaction().getContext().getRequest().getBody();
         assertThat(body).isNotNull();
-        assertThat(body.toString().length()).isEqualTo(DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH);
+        assertThat(body.toString().length()).isEqualTo(SerializationConstants.getMaxLongStringValueLength());
     }
 
     @Test

@@ -20,8 +20,8 @@ package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpAsyncClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
@@ -93,7 +93,7 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
             if (parent == null) {
                 return null;
             }
-            Span span = parent.createExitSpan();
+            Span<?> span = parent.createExitSpan();
             HttpAsyncRequestProducer wrappedProducer = requestProducer;
             FutureCallback<?> wrappedFutureCallback = futureCallback;
             boolean responseFutureWrapped = false;
@@ -114,7 +114,7 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Enter @Nullable Object[] enter,
                                           @Advice.Thrown @Nullable Throwable t) {
-            Span span = enter != null ? (Span) enter[3] : null;
+            Span<?> span = enter != null ? (Span<?>) enter[3] : null;
             if (span != null) {
                 // Deactivate in this thread. Span will be ended and reported by the listener
                 span.deactivate();

@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.httpclient.v4.helper;
 
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.concurrent.FutureCallback;
@@ -35,13 +35,13 @@ class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
     private FutureCallback<T> delegate;
     @Nullable
     private HttpContext context;
-    private volatile Span span;
+    private volatile Span<?> span;
 
     FutureCallbackWrapper(ApacheHttpAsyncClientHelper helper) {
         this.helper = helper;
     }
 
-    FutureCallbackWrapper<T> with(@Nullable FutureCallback<T> delegate, @Nullable HttpContext context, Span span) {
+    FutureCallbackWrapper<T> with(@Nullable FutureCallback<T> delegate, @Nullable HttpContext context, Span<?> span) {
         this.delegate = delegate;
         this.context = context;
         // write to volatile field last
@@ -87,7 +87,7 @@ class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
 
     private void finishSpan(@Nullable Exception e) {
         // start by reading the volatile field
-        final Span localSpan = span;
+        final Span<?> localSpan = span;
         try {
             if (context != null) {
                 Object responseObject = context.getAttribute(HttpCoreContext.HTTP_RESPONSE);

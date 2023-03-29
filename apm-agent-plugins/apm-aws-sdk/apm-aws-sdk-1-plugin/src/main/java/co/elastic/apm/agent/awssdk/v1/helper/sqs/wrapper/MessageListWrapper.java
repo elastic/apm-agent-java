@@ -20,7 +20,7 @@ package co.elastic.apm.agent.awssdk.v1.helper.sqs.wrapper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractMessageListWrapper;
 import co.elastic.apm.agent.awssdk.v1.helper.SQSHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import com.amazonaws.services.sqs.model.Message;
 
 import java.util.Iterator;
@@ -28,7 +28,7 @@ import java.util.List;
 
 public class MessageListWrapper extends AbstractMessageListWrapper<Message> {
 
-    public MessageListWrapper(List<Message> delegate, ElasticApmTracer tracer, String queueName) {
+    public MessageListWrapper(List<Message> delegate, Tracer tracer, String queueName) {
         super(delegate, tracer, queueName, SQSHelper.getInstance(), SQSHelper.getInstance());
     }
 

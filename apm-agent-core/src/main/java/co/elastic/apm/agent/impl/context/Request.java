@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.objectpool.Resetter;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.tracer.pooling.Allocator;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
 import javax.annotation.Nullable;
@@ -34,20 +34,14 @@ import java.util.Enumeration;
 
 import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
 
-
-/**
- * Request
- * <p>
- * If a log record was generated as a result of a http request, the http interface can be used to collect this information.
- */
-public class Request implements Recyclable {
+public class Request implements Recyclable, co.elastic.apm.agent.tracer.metadata.Request {
 
 
     private static final ObjectPool<CharBuffer> charBufferPool = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<CharBuffer>(128), false,
         new Allocator<CharBuffer>() {
             @Override
             public CharBuffer createInstance() {
-                return CharBuffer.allocate(DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH);
+                return CharBuffer.allocate(SerializationConstants.getMaxLongStringValueLength());
             }
         },
         new Resetter<CharBuffer>() {
@@ -111,11 +105,7 @@ public class Request implements Recyclable {
         return rawBody;
     }
 
-    /**
-     * Sets the body as a raw string and removes any previously set {@link #postParams} or {@link #bodyBuffer}.
-     *
-     * @param rawBody the body as a raw string
-     */
+    @Override
     public void setRawBody(String rawBody) {
         postParams.resetState();
         if (bodyBuffer != null) {
@@ -125,6 +115,7 @@ public class Request implements Recyclable {
         this.rawBody = rawBody;
     }
 
+    @Override
     public void redactBody() {
         setRawBody(REDACTED_CONTEXT_STRING);
     }
@@ -134,26 +125,13 @@ public class Request implements Recyclable {
         return this;
     }
 
+    @Override
     public Request addFormUrlEncodedParameters(String key, String[] values) {
         this.postParams.set(key, values);
         return this;
     }
 
-    /**
-     * Gets a pooled {@link CharBuffer} to record the request body and associates it with this instance.
-     * <p>
-     * Note: you may not hold a reference to the returned {@link CharBuffer} as it will be reused.
-     * </p>
-     * <p>
-     * Note: this method is not thread safe
-     * </p>
-     * <p>
-     * Note: In order for the value written to the body buffer to be used, you must call {@link Request#endOfBufferInput()},
-     * which is the only valid way to invoke {@link CharBuffer#flip()} on the body buffer.
-     * </p>
-     *
-     * @return a {@link CharBuffer} to record the request body
-     */
+    @Override
     public CharBuffer withBodyBuffer() {
         if (this.bodyBuffer == null) {
             this.bodyBuffer = charBufferPool.createInstance();
@@ -161,6 +139,7 @@ public class Request implements Recyclable {
         return this.bodyBuffer;
     }
 
+    @Override
     public void endOfBufferInput() {
         if (bodyBuffer != null && !bodyBufferFinished) {
             bodyBufferFinished = true;
@@ -168,14 +147,7 @@ public class Request implements Recyclable {
         }
     }
 
-    /**
-     * Returns the associated pooled {@link CharBuffer} to record the request body.
-     * <p>
-     * Note: returns {@code null} unless {@link #withBodyBuffer()} has previously been called
-     * </p>
-     *
-     * @return a {@link CharBuffer} to record the request body, or {@code null}
-     */
+    @Override
     @Nullable
     public CharBuffer getBodyBuffer() {
         if (!bodyBufferFinished) {
@@ -217,6 +189,7 @@ public class Request implements Recyclable {
         return this;
     }
 
+    @Override
     public Request addHeader(String headerName, @Nullable Enumeration<String> headerValues) {
         if (headerValues != null) {
             while (headerValues.hasMoreElements()) {
@@ -226,9 +199,7 @@ public class Request implements Recyclable {
         return this;
     }
 
-    /**
-     * Should include any headers sent by the requester.
-     */
+    @Override
     public PotentiallyMultiValuedMap getHeaders() {
         return headers;
     }
@@ -241,6 +212,7 @@ public class Request implements Recyclable {
         return httpVersion;
     }
 
+    @Override
     public Request withHttpVersion(@Nullable String httpVersion) {
         if (httpVersion != null) {
             this.httpVersion = getHttpVersion(httpVersion);
@@ -271,32 +243,28 @@ public class Request implements Recyclable {
         return method;
     }
 
+    @Override
     public Request withMethod(@Nullable String method) {
         this.method = method;
         return this;
     }
 
+    @Override
     public Socket getSocket() {
         return socket;
     }
 
-    /**
-     * A complete Url, with scheme, host and path.
-     * (Required)
-     */
+    @Override
     public Url getUrl() {
         return url;
     }
 
-
+    @Override
     public Request addCookie(String cookieName, String cookieValue) {
         cookies.add(cookieName, cookieValue);
         return this;
     }
 
-    /**
-     * A parsed key-value object of cookies
-     */
     public PotentiallyMultiValuedMap getCookies() {
         return cookies;
     }
@@ -342,6 +310,7 @@ public class Request implements Recyclable {
         this.rawBody = other.rawBody;
     }
 
+    @Override
     public boolean hasContent() {
         return method != null ||
             headers.size() > 0 ||

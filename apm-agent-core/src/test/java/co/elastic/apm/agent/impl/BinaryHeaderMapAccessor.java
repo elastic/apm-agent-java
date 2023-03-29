@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.BinaryHeaderSetter;
-import co.elastic.apm.agent.impl.transaction.HeaderRemover;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;

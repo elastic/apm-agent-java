@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.esrestclient.v5_6;
 
 import co.elastic.apm.agent.esrestclient.AbstractEsClientInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;

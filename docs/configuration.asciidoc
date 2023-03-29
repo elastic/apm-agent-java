@@ -111,6 +111,7 @@ Click on a key to get more information.
 ** <<config-environment>>
 ** <<config-transaction-sample-rate>>
 ** <<config-transaction-max-spans>>
+** <<config-long-field-max-length>>
 ** <<config-sanitize-field-names>>
 ** <<config-enable-instrumentations>>
 ** <<config-disable-instrumentations>>
@@ -167,6 +168,7 @@ Click on a key to get more information.
 ** <<config-jms-listener-packages>>
 * <<config-metrics>>
 ** <<config-dedot-custom-metrics>>
+** <<config-custom-metrics-histogram-boundaries>>
 ** <<config-metric-set-limit>>
 ** <<config-agent-reporter-health-metrics>>
 ** <<config-agent-background-overhead-metrics>>
@@ -174,6 +176,7 @@ Click on a key to get more information.
 ** <<config-mongodb-capture-statement-commands>>
 * <<config-profiling>>
 ** <<config-profiling-inferred-spans-enabled>>
+** <<config-profiling-inferred-spans-logging-enabled>>
 ** <<config-profiling-inferred-spans-sampling-interval>>
 ** <<config-profiling-inferred-spans-min-duration>>
 ** <<config-profiling-inferred-spans-included-classes>>
@@ -736,6 +739,39 @@ A message will be logged when the max number of spans has been exceeded but only
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[[config-long-field-max-length]]
+==== `long_field_max_length` (performance added[1.37.0])
+
+
+The following transaction, span, and error fields will be truncated at this number of unicode characters before being sent to APM server:
+
+- `transaction.context.request.body`, `error.context.request.body`
+- `transaction.context.message.body`, `error.context.message.body`
+- `span.context.db.statement`
+
+Note that tracing data is limited at the upstream APM server to 
+{apm-guide-ref}/configuration-process.html#max_event_size[`max_event_size`], 
+which defaults to 300kB. If you configure `long_field_max_length` too large, it 
+could result in transactions, spans, or errors that are rejected by APM server.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `10000` | Integer | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.long_field_max_length` | `long_field_max_length` | `ELASTIC_APM_LONG_FIELD_MAX_LENGTH`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
 [[config-sanitize-field-names]]
 ==== `sanitize_field_names` (security)
 
@@ -780,7 +816,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `enable_instrumentations` (added[1.28.0])
 
 A list of instrumentations which should be selectively enabled.
-Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `jul-error`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `tomcat-ecs`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log-correlation`, `log-error`, `log-reformatting`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentelemetry-metrics`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 
@@ -808,7 +844,7 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `jul-error`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `tomcat-ecs`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log-correlation`, `log-error`, `log-reformatting`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentelemetry-metrics`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -2357,7 +2393,7 @@ This configuration option helps to make MessageListener type matching faster and
 [[config-dedot-custom-metrics]]
 ==== `dedot_custom_metrics` (added[1.22.0])
 
-Replaces dots with underscores in the metric names for custom metrics, such as Micrometer metrics.
+Replaces dots with underscores in the metric names for Micrometer metrics.
 
 WARNING: Setting this to `false` can lead to mapping conflicts as dots indicate nesting in Elasticsearch.
 An example of when a conflict happens is two metrics with the name `foo` and `foo.bar`.
@@ -2377,6 +2413,31 @@ The first metric maps `foo` to a number and the second metric maps `foo` as an o
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.dedot_custom_metrics` | `dedot_custom_metrics` | `ELASTIC_APM_DEDOT_CUSTOM_METRICS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-custom-metrics-histogram-boundaries]]
+==== `custom_metrics_histogram_boundaries` (added[1.37.0] experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+Defines the default bucket boundaries to use for OpenTelemetry histograms.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0.00390625, 0.00552427, 0.0078125, 0.0110485, 0.015625, 0.0220971, 0.03125, 0.0441942, 0.0625, 0.0883883, 0.125, 0.176777, 0.25, 0.353553, 0.5, 0.707107, 1.0, 1.41421, 2.0, 2.82843, 4.0, 5.65685, 8.0, 11.3137, 16.0, 22.6274, 32.0, 45.2548, 64.0, 90.5097, 128.0, 181.019, 256.0, 362.039, 512.0, 724.077, 1024.0, 1448.15, 2048.0, 2896.31, 4096.0, 5792.62, 8192.0, 11585.2, 16384.0, 23170.5, 32768.0, 46341.0, 65536.0, 92681.9, 131072.0` | List | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.custom_metrics_histogram_boundaries` | `custom_metrics_histogram_boundaries` | `ELASTIC_APM_CUSTOM_METRICS_HISTOGRAM_BOUNDARIES`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -2531,6 +2592,30 @@ NOTE: This feature is not available on Windows and on OpenJ9
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.profiling_inferred_spans_enabled` | `profiling_inferred_spans_enabled` | `ELASTIC_APM_PROFILING_INFERRED_SPANS_ENABLED`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-profiling-inferred-spans-logging-enabled]]
+==== `profiling_inferred_spans_logging_enabled` (added[1.37.0])
+
+By default, async profiler prints warning messages about missing JVM symbols to standard output. 
+Set this option to `true` to suppress such messages
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.profiling_inferred_spans_logging_enabled` | `profiling_inferred_spans_logging_enabled` | `ELASTIC_APM_PROFILING_INFERRED_SPANS_LOGGING_ENABLED`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -3488,6 +3573,24 @@ Example: `5ms`.
 #
 # transaction_max_spans=500
 
+# 
+# The following transaction, span, and error fields will be truncated at this number of unicode characters before being sent to APM server:
+# 
+# - `transaction.context.request.body`, `error.context.request.body`
+# - `transaction.context.message.body`, `error.context.message.body`
+# - `span.context.db.statement`
+# 
+# Note that tracing data is limited at the upstream APM server to 
+# {apm-guide-ref}/configuration-process.html#max_event_size[`max_event_size`], 
+# which defaults to 300kB. If you configure `long_field_max_length` too large, it 
+# could result in transactions, spans, or errors that are rejected by APM server.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Integer
+# Default value: 10000
+#
+# long_field_max_length=10000
+
 # Sometimes it is necessary to sanitize the data sent to Elastic APM,
 # e.g. remove sensitive data.
 # 
@@ -3514,7 +3617,7 @@ Example: `5ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,*auth*,*principal*,set-cookie
 
 # A list of instrumentations which should be selectively enabled.
-# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `jul-error`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `tomcat-ecs`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log-correlation`, `log-error`, `log-reformatting`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentelemetry-metrics`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 # When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 # When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 # 
@@ -3527,7 +3630,7 @@ Example: `5ms`.
 # enable_instrumentations=
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jboss-logging-correlation`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `jul-ecs`, `jul-error`, `kafka`, `lettuce`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, `logback-correlation`, `logback-ecs`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `slf4j-error`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `tomcat-ecs`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log-correlation`, `log-error`, `log-reformatting`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentelemetry-metrics`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 # For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -4354,7 +4457,7 @@ Example: `5ms`.
 # Metrics                                  #
 ############################################
 
-# Replaces dots with underscores in the metric names for custom metrics, such as Micrometer metrics.
+# Replaces dots with underscores in the metric names for Micrometer metrics.
 # 
 # WARNING: Setting this to `false` can lead to mapping conflicts as dots indicate nesting in Elasticsearch.
 # An example of when a conflict happens is two metrics with the name `foo` and `foo.bar`.
@@ -4365,6 +4468,14 @@ Example: `5ms`.
 # Default value: true
 #
 # dedot_custom_metrics=true
+
+# Defines the default bucket boundaries to use for OpenTelemetry histograms.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: comma separated list
+# Default value: 0.00390625,0.00552427,0.0078125,0.0110485,0.015625,0.0220971,0.03125,0.0441942,0.0625,0.0883883,0.125,0.176777,0.25,0.353553,0.5,0.707107,1.0,1.41421,2.0,2.82843,4.0,5.65685,8.0,11.3137,16.0,22.6274,32.0,45.2548,64.0,90.5097,128.0,181.019,256.0,362.039,512.0,724.077,1024.0,1448.15,2048.0,2896.31,4096.0,5792.62,8192.0,11585.2,16384.0,23170.5,32768.0,46341.0,65536.0,92681.9,131072.0
+#
+# custom_metrics_histogram_boundaries=0.00390625,0.00552427,0.0078125,0.0110485,0.015625,0.0220971,0.03125,0.0441942,0.0625,0.0883883,0.125,0.176777,0.25,0.353553,0.5,0.707107,1.0,1.41421,2.0,2.82843,4.0,5.65685,8.0,11.3137,16.0,22.6274,32.0,45.2548,64.0,90.5097,128.0,181.019,256.0,362.039,512.0,724.077,1024.0,1448.15,2048.0,2896.31,4096.0,5792.62,8192.0,11585.2,16384.0,23170.5,32768.0,46341.0,65536.0,92681.9,131072.0
 
 # Limits the number of active metric sets.
 # The metrics sets have associated labels, and the metrics sets are held internally in a map using the labels as keys. The map is limited in size by this option to prevent unbounded growth. If you hit the limit, you'll receive a warning in the agent log.
@@ -4432,6 +4543,15 @@ Example: `5ms`.
 # Default value: false
 #
 # profiling_inferred_spans_enabled=false
+
+# By default, async profiler prints warning messages about missing JVM symbols to standard output. 
+# Set this option to `true` to suppress such messages
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: true
+#
+# profiling_inferred_spans_logging_enabled=true
 
 # The frequency at which stack traces are gathered within a profiling session.
 # The lower you set it, the more accurate the durations will be.

@@ -22,7 +22,8 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.jms.test.TestMessageConsumer;
 import co.elastic.apm.agent.jms.test.TestMessageListener;
@@ -121,7 +122,7 @@ public class JmsMessageListenerTest {
             case LAMBDA:
                 // lambda is instrumented through wrapping on the message consumer
                 MessageListener listener = msg -> {
-                    transaction.set(GlobalTracer.get().currentTransaction());
+                    transaction.set(GlobalTracer.get().require(Tracer.class).currentTransaction());
                 };
                 TestMessageConsumer consumer = new TestMessageConsumer();
                 // listener should be wrapped on setter entry
@@ -159,7 +160,7 @@ public class JmsMessageListenerTest {
 
         @Override
         public void onMessage(Message message) {
-            transaction.set(GlobalTracer.get().currentTransaction());
+            transaction.set(GlobalTracer.get().require(Tracer.class).currentTransaction());
         }
     }
 

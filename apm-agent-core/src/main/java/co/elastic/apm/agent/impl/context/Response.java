@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
 
-public class Response implements Recyclable {
+public class Response implements Recyclable, co.elastic.apm.agent.tracer.metadata.Response {
 
     /**
      * A mapping of HTTP headers of the response object
@@ -47,9 +47,7 @@ public class Response implements Recyclable {
         return finished;
     }
 
-    /**
-     * A boolean indicating whether the response was finished or not
-     */
+    @Override
     public Response withFinished(boolean finished) {
         this.finished = finished;
         return this;
@@ -67,6 +65,7 @@ public class Response implements Recyclable {
         return this;
     }
 
+    @Override
     public Response addHeader(String headerName, @Nullable Collection<String> headerValues) {
         if (headerValues != null) {
             for (String headerValue : headerValues) {
@@ -76,9 +75,7 @@ public class Response implements Recyclable {
         return this;
     }
 
-    /**
-     * A mapping of HTTP headers of the response object
-     */
+    @Override
     public PotentiallyMultiValuedMap getHeaders() {
         return headers;
     }
@@ -88,6 +85,7 @@ public class Response implements Recyclable {
         return headersSent;
     }
 
+    @Override
     public Response withHeadersSent(boolean headersSent) {
         this.headersSent = headersSent;
         return this;
@@ -100,9 +98,7 @@ public class Response implements Recyclable {
         return statusCode;
     }
 
-    /**
-     * The HTTP status code of the response.
-     */
+    @Override
     public Response withStatusCode(int statusCode) {
         this.statusCode = statusCode;
         return this;

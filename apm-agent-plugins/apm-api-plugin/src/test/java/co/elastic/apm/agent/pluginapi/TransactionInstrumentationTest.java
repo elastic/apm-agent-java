@@ -337,7 +337,7 @@ class TransactionInstrumentationTest extends AbstractApiTest {
         assertThat(reporter.getTransactions()).hasSize(1);
     }
 
-    private co.elastic.apm.agent.impl.transaction.Outcome convertOutcome(Outcome apiOutcome) {
-        return co.elastic.apm.agent.impl.transaction.Outcome.valueOf(apiOutcome.toString());
+    private co.elastic.apm.agent.tracer.Outcome convertOutcome(Outcome apiOutcome) {
+        return co.elastic.apm.agent.tracer.Outcome.valueOf(apiOutcome.toString());
     }
 }

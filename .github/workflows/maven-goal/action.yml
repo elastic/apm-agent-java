@@ -1,0 +1,34 @@
+---
+
+name: common build tasks
+description: Install specific JDK and run a command
+
+inputs:
+  java-version:
+    description: 'Java version'
+    required: true
+    default: '17'  # NOTE: This version is also defined in .buildkite/hooks/pre-command
+  distribution:
+    description: 'Java distribution'
+    required: true
+    default: 'temurin'
+  command:
+    description: 'Command to execute'
+    required: true
+  shell:
+    description: 'Default shell'
+    default: 'bash'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up JDK ${{ inputs.java-version }}
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ inputs.java-version }}
+        distribution: ${{ inputs.distribution }}
+        cache: 'maven'
+
+    - run: ${{ inputs.command }}
+      shell: ${{ inputs.shell }}

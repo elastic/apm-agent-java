@@ -20,11 +20,11 @@ package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.TransactionUtils;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -48,7 +48,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
     private Transaction transaction;
 
-    private WeakMap<Process, Span> storageMap;
+    private WeakMap<Process, co.elastic.apm.agent.tracer.Span<?>> storageMap;
     private ProcessHelper helper;
 
     @BeforeEach
@@ -85,7 +85,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         Process process = mock(Process.class);
 
         helper.doStartProcess(transaction, process, "hello");
-        Span span = storageMap.get(process);
+        Span span = (Span) storageMap.get(process);
 
         helper.doStartProcess(transaction, process, "hello");
         assertThat(storageMap.get(process))

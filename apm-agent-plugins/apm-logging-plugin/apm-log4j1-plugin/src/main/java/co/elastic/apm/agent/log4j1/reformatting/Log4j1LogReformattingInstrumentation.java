@@ -35,10 +35,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public abstract class Log4j1LogReformattingInstrumentation extends AbstractLogIntegrationInstrumentation {
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("log4j1-ecs");
-        return ret;
+    protected String getLoggingInstrumentationGroupName() {
+        return LOG_REFORMATTING;
     }
 
     @Override

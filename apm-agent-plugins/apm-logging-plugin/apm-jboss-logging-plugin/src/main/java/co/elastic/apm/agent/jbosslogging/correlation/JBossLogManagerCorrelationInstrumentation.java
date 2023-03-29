@@ -18,15 +18,12 @@
  */
 package co.elastic.apm.agent.jbosslogging.correlation;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.loginstr.AbstractLogIntegrationInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.jboss.logmanager.ExtLogRecord;
-
-import java.util.Collection;
-import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
@@ -37,11 +34,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 /**
  * Instruments {@link org.jboss.logmanager.Logger#logRaw}
  */
-public class JBossLogManagerCorrelationInstrumentation extends TracerAwareInstrumentation {
+public class JBossLogManagerCorrelationInstrumentation extends AbstractLogIntegrationInstrumentation {
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("jboss-logging-correlation");
+    protected String getLoggingInstrumentationGroupName() {
+        return LOG_CORRELATION;
     }
 
     @Override

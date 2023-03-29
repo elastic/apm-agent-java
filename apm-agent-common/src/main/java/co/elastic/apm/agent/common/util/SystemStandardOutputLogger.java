@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.common.util;
 
+import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
@@ -25,6 +26,8 @@ import java.security.PrivilegedAction;
  * A utility for writing to System standard output and standard error output streams.
  * Prints can be disabled through the {@code elastic.apm.system_output_disabled} system property or the corresponding
  * {@code ELASTIC_APM_SYSTEM_OUTPUT_DISABLED} environment variable.
+ * <p>
+ * Important: The logic here is replicated in IndyBootstrapDispatcher, as it cannot access this class directly.
  */
 public class SystemStandardOutputLogger {
     private static final String DISABLED_SYSTEM_PROPERTY = "elastic.apm.system_output_disabled";
@@ -52,7 +55,21 @@ public class SystemStandardOutputLogger {
     }
 
     private static boolean isDisabledThroughConfiguration() {
-        return System.getProperty(DISABLED_SYSTEM_PROPERTY) != null || System.getenv(DISABLED_ENV_VARIABLE) != null;
+        if (System.getSecurityManager() == null) {
+            return System.getProperty(DISABLED_SYSTEM_PROPERTY) != null || System.getenv(DISABLED_ENV_VARIABLE) != null;
+        } else {
+            try {
+                return AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
+                    @Override
+                    public Boolean run() {
+                        return System.getProperty(DISABLED_SYSTEM_PROPERTY) != null || System.getenv(DISABLED_ENV_VARIABLE) != null;
+                    }
+                });
+            } catch (AccessControlException ace) {
+                // we can't use JVM system properties because security manager prevents it, we'd better be able to log something for the end user
+                return false;
+            }
+        }
     }
 
     public static void printStackTrace(Throwable throwable) {

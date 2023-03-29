@@ -21,8 +21,8 @@ package co.elastic.apm.agent.awssdk.v1;
 import co.elastic.apm.agent.awssdk.common.AbstractAwsSdkInstrumentation;
 import co.elastic.apm.agent.awssdk.v1.helper.SQSHelper;
 import co.elastic.apm.agent.awssdk.v1.helper.SdkV1DataSource;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
@@ -49,8 +49,8 @@ public abstract class SQSMessageDispatchingInstrumentation extends AbstractAwsSd
     }
 
     protected static void endSpan(@Nullable Object spanObj, @Nullable Throwable thrown) {
-        if (spanObj instanceof Span) {
-            Span span = (Span) spanObj;
+        if (spanObj instanceof Span<?>) {
+            Span<?> span = (Span<?>) spanObj;
             span.deactivate();
             if (thrown != null) {
                 span.captureException(thrown);
@@ -91,7 +91,7 @@ public abstract class SQSMessageDispatchingInstrumentation extends AbstractAwsSd
                     return null;
                 }
 
-                Span span = SQSHelper.getInstance().createSpan(queueName);
+                Span<?> span = SQSHelper.getInstance().createSpan(queueName);
 
                 if (span != null) {
                     SQSHelper.getInstance().propagateContext(span, request);
@@ -123,7 +123,7 @@ public abstract class SQSMessageDispatchingInstrumentation extends AbstractAwsSd
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object enterReceiveMessage(@Advice.Argument(value = 0) ReceiveMessageRequest receiveMessageRequest) {
                 String queueName = SdkV1DataSource.getInstance().getQueueNameFromQueueUrl(receiveMessageRequest.getQueueUrl());
-                Span span = SQSHelper.getInstance().createSpan(queueName);
+                Span<?> span = SQSHelper.getInstance().createSpan(queueName);
 
                 if (span != null) {
                     span.activate();
@@ -141,8 +141,8 @@ public abstract class SQSMessageDispatchingInstrumentation extends AbstractAwsSd
                                                                   @Advice.Argument(value = 0) ReceiveMessageRequest receiveMessageRequest,
                                                                   @Advice.Return ReceiveMessageResult result,
                                                                   @Nullable @Advice.Thrown Throwable thrown) {
-                if (spanObj instanceof Span) {
-                    SQSHelper.getInstance().handleReceivedMessages((Span) spanObj, receiveMessageRequest.getQueueUrl(), result.getMessages());
+                if (spanObj instanceof Span<?>) {
+                    SQSHelper.getInstance().handleReceivedMessages((Span<?>) spanObj, receiveMessageRequest.getQueueUrl(), result.getMessages());
                 }
                 endSpan(spanObj, thrown);
 

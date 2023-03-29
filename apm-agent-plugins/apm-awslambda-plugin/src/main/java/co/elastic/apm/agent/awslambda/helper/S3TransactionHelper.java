@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.awslambda.helper;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.context.CloudOrigin;
 import co.elastic.apm.agent.impl.context.ServiceOrigin;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.FaasTrigger;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
@@ -44,7 +44,7 @@ public class S3TransactionHelper extends AbstractLambdaTransactionHelper<S3Event
 
     public static S3TransactionHelper getInstance() {
         if (INSTANCE == null) {
-            INSTANCE = new S3TransactionHelper(GlobalTracer.requireTracerImpl());
+            INSTANCE = new S3TransactionHelper(GlobalTracer.get().require(ElasticApmTracer.class));
         }
         return INSTANCE;
     }

@@ -20,17 +20,17 @@ package co.elastic.apm.agent.awssdk.common;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.context.Message;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.metadata.Message;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -77,18 +77,22 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
 
     protected abstract boolean isReceiveMessageRequest(R request);
 
-    protected AbstractSQSInstrumentationHelper(ElasticApmTracer tracer, IAwsSdkDataSource<R, C> awsSdkDataSource) {
+    protected AbstractSQSInstrumentationHelper(Tracer tracer, IAwsSdkDataSource<R, C> awsSdkDataSource) {
         super(tracer, awsSdkDataSource);
         this.messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
         this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
     }
 
     @Nullable
-    public Span createSpan(@Nullable String queueName) {
+    public Span<?> createSpan(@Nullable String queueName) {
         if (WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), queueName)) {
             return null;
         }
-        Span span = tracer.createExitChildSpan();
+        AbstractSpan<?> active = tracer.getActive();
+        if (active == null) {
+            return null;
+        }
+        Span<?> span = active.createExitSpan();
         if (span != null) {
             span.withType(MESSAGING_TYPE)
                 .withSubtype(SQS_TYPE);
@@ -96,7 +100,7 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
         return span;
     }
 
-    public void enrichSpan(Span span, R request, URI httpURI, C context) {
+    public void enrichSpan(Span<?> span, R request, URI httpURI, C context) {
         String operationName = awsSdkDataSource.getOperationName(request, context);
         String queueName = awsSdkDataSource.getFieldValue(IAwsSdkDataSource.QUEUE_NAME_FIELD, request);
 
@@ -114,14 +118,14 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
             .withAction(action);
 
         if (span.isSampled()) {
-            StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
+            StringBuilder name = span.getAndOverrideName(co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT);
             if (name != null) {
                 name.append("SQS ").append(spanNameOperation);
                 if (queueName != null && !queueName.isEmpty()) {
                     name.append(" ").append(queueName);
                 }
             }
-            span.withName("SQS", AbstractSpan.PRIO_DEFAULT - 1);
+            span.withName("SQS", co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT - 1);
 
             if (queueName != null) {
                 span.getContext().getMessage()
@@ -133,11 +137,11 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
     }
 
     @Nullable
-    public Span startSpan(R request, URI httpURI, C context) {
+    public Span<?> startSpan(R request, URI httpURI, C context) {
         AbstractSpan<?> activeSpan = tracer.getActive();
 
         if (isReceiveMessageRequest(request) && messagingConfiguration.shouldEndMessagingTransactionOnPoll() && activeSpan instanceof Transaction) {
-            Transaction transaction = (Transaction) activeSpan;
+            Transaction<?> transaction = (Transaction<?>) activeSpan;
             if (MESSAGING_TYPE.equals(transaction.getType())) {
                 transaction.deactivate().end();
                 return null;
@@ -146,7 +150,7 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
 
         String queueName = awsSdkDataSource.getFieldValue(IAwsSdkDataSource.QUEUE_NAME_FIELD, request);
 
-        Span span = createSpan(queueName);
+        Span<?> span = createSpan(queueName);
         if (span != null) {
             enrichSpan(span, request, httpURI, context);
         }
@@ -157,7 +161,7 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
     public void startTransactionOnMessage(MessageT sqsMessage, String queueName, TextHeaderGetter<MessageT> headerGetter) {
         try {
             if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), queueName)) {
-                Transaction transaction = tracer.startChildTransaction(sqsMessage, headerGetter, PrivilegedActionUtils.getClassLoader(AbstractSQSInstrumentationHelper.class));
+                Transaction<?> transaction = tracer.startChildTransaction(sqsMessage, headerGetter, PrivilegedActionUtils.getClassLoader(AbstractSQSInstrumentationHelper.class));
                 if (transaction != null) {
                     transaction.withType(MESSAGING_TYPE).withName("SQS RECEIVE from " + queueName).activate();
                     transaction.setFrameworkName(FRAMEWORK_NAME);
@@ -172,12 +176,8 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
         }
     }
 
-    private void addSpanLink(Span span, MessageT sqsMessage, TextHeaderGetter<MessageT> headerGetter) {
-        span.addSpanLink(
-            TraceContext.<MessageT>getFromTraceContextTextHeaders(),
-            headerGetter,
-            sqsMessage
-        );
+    private void addSpanLink(Span<?> span, MessageT sqsMessage, TextHeaderGetter<MessageT> headerGetter) {
+        span.addLink(headerGetter, sqsMessage);
     }
 
     protected void setMessageContext(@Nullable MessageT sqsMessage, @Nullable String queueName, Message message) {
@@ -209,7 +209,7 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
         }
     }
 
-    public void handleReceivedMessages(Span span, String queueUrl, @Nullable List<MessageT> messages) {
+    public void handleReceivedMessages(Span<?> span, String queueUrl, @Nullable List<MessageT> messages) {
         String queueName = awsSdkDataSource.getQueueNameFromQueueUrl(queueUrl);
         MessageT singleMessage = null;
         if (messages != null) {

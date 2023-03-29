@@ -18,17 +18,18 @@
  */
 package co.elastic.apm.agent.esrestclient;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.objectpool.Allocator;
-import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.pooling.ObjectPool;
 import co.elastic.apm.agent.util.IOUtils;
+import co.elastic.apm.agent.util.LoggerUtils;
+import co.elastic.apm.agent.tracer.pooling.Allocator;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;
@@ -36,7 +37,6 @@ import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.ResponseListener;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -44,7 +44,9 @@ import java.util.concurrent.CancellationException;
 public class ElasticsearchRestClientInstrumentationHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelper.class);
-    private static final ElasticsearchRestClientInstrumentationHelper INSTANCE = new ElasticsearchRestClientInstrumentationHelper(GlobalTracer.requireTracerImpl());
+
+    private static final Logger unsupportedOperationOnceLogger = LoggerUtils.logOnce(logger);
+    private static final ElasticsearchRestClientInstrumentationHelper INSTANCE = new ElasticsearchRestClientInstrumentationHelper(GlobalTracer.get());
 
     public static final List<WildcardMatcher> QUERY_WILDCARD_MATCHERS = Arrays.asList(
         WildcardMatcher.valueOf("*_search"),
@@ -56,7 +58,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
     public static final String ELASTICSEARCH = "elasticsearch";
     public static final String SPAN_ACTION = "request";
     private static final int MAX_POOLED_ELEMENTS = 256;
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
 
     private final ObjectPool<ResponseListenerWrapper> responseListenerObjectPool;
 
@@ -64,7 +66,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
         return INSTANCE;
     }
 
-    private ElasticsearchRestClientInstrumentationHelper(ElasticApmTracer tracer) {
+    private ElasticsearchRestClientInstrumentationHelper(Tracer tracer) {
         this.tracer = tracer;
         this.responseListenerObjectPool = tracer.getObjectPoolFactory().createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new ResponseListenerAllocator());
     }
@@ -72,18 +74,18 @@ public class ElasticsearchRestClientInstrumentationHelper {
     private class ResponseListenerAllocator implements Allocator<ResponseListenerWrapper> {
         @Override
         public ResponseListenerWrapper createInstance() {
-            return new ResponseListenerWrapper(ElasticsearchRestClientInstrumentationHelper.this);
+            return new ResponseListenerWrapper(ElasticsearchRestClientInstrumentationHelper.this, ElasticsearchRestClientInstrumentationHelper.this.tracer);
         }
     }
 
     @Nullable
-    public Span createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity) {
+    public Span<?> createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity) {
         final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan == null) {
             return null;
         }
 
-        Span span = activeSpan.createExitSpan();
+        Span<?> span = activeSpan.createExitSpan();
 
         // Don't record nested spans. In 5.x clients the instrumented sync method is calling the instrumented async method
         if (span == null) {
@@ -104,7 +106,12 @@ public class ElasticsearchRestClientInstrumentationHelper {
                 if (httpEntity != null && httpEntity.isRepeatable()) {
                     try {
                         IOUtils.readUtf8Stream(httpEntity.getContent(), span.getContext().getDb().withStatementBuffer());
-                    } catch (IOException e) {
+                    } catch (UnsupportedOperationException e) {
+                        // special case for hibernatesearch versions pre 6.0:
+                        // those don't support httpEntity.getContent() and throw an UnsupportedException when called.
+                        unsupportedOperationOnceLogger.error(
+                            "Failed to read Elasticsearch client query from request body, most likely because you are using hibernatesearch pre 6.0", e);
+                    } catch (Exception e) {
                         logger.error("Failed to read Elasticsearch client query from request body", e);
                     }
                 }
@@ -113,7 +120,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
         return span;
     }
 
-    public void finishClientSpan(@Nullable Response response, Span span, @Nullable Throwable t) {
+    public void finishClientSpan(@Nullable Response response, Span<?> span, @Nullable Throwable t) {
         try {
             String url = null;
             int statusCode = -1;
@@ -155,8 +162,12 @@ public class ElasticsearchRestClientInstrumentationHelper {
         }
     }
 
-    public ResponseListener wrapResponseListener(ResponseListener listener, Span span) {
-        return responseListenerObjectPool.createInstance().with(listener, span);
+    public ResponseListener wrapClientResponseListener(ResponseListener listener, Span<?> span) {
+        return responseListenerObjectPool.createInstance().withClientSpan(listener, span);
+    }
+
+    public ResponseListener wrapContextPropagationContextListener(ResponseListener listener, AbstractSpan<?> activeContext) {
+        return responseListenerObjectPool.createInstance().withContextPropagation(listener, activeContext);
     }
 
     void recycle(ResponseListenerWrapper listenerWrapper) {

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.rabbitmq.header;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 
 import javax.annotation.Nullable;
 import java.util.Map;

@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.awslambda;
 
-import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 
 import javax.annotation.Nullable;

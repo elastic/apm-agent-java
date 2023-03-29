@@ -82,6 +82,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-es-restclient-plugin-7_x</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-grails-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -193,6 +198,16 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-opentelemetry-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-metricsdk-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-embedded-metrics-sdk</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

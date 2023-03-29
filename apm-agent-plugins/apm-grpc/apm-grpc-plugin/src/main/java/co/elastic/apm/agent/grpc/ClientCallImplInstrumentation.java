@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import io.grpc.ClientCall;
@@ -96,7 +96,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
                                       @Advice.Thrown @Nullable Throwable thrown,
                                       @Advice.Enter @Nullable Object span) {
 
-                GrpcHelper.getInstance().clientCallStartExit((Span) span, listener, thrown);
+                GrpcHelper.getInstance().clientCallStartExit((Span<?>) span, listener, thrown);
             }
         }
     }

@@ -20,8 +20,8 @@ package co.elastic.apm.agent.awssdk.v2;
 
 import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
 import co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper.MessageListWrapper;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
 import org.reactivestreams.Publisher;
 import software.amazon.awssdk.core.Response;
 import software.amazon.awssdk.core.SdkRequest;
@@ -37,11 +37,11 @@ public class ResponseHandlerWrapper<T> implements TransformingAsyncResponseHandl
 
     private final TransformingAsyncResponseHandler<Response<T>> delegate;
     @Nullable
-    private final Span span;
+    private final Span<?> span;
     private final SdkRequest sdkRequest;
     private final String awsService;
 
-    public ResponseHandlerWrapper(String awsService, TransformingAsyncResponseHandler<Response<T>> delegate, SdkRequest request, @Nullable Span span) {
+    public ResponseHandlerWrapper(String awsService, TransformingAsyncResponseHandler<Response<T>> delegate, SdkRequest request, @Nullable Span<?> span) {
         this.awsService = awsService;
         this.delegate = delegate;
         this.span = span;

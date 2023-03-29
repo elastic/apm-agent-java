@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.vertx.v4.web;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.vertx.v4.Vertx4Instrumentation;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
@@ -155,8 +155,8 @@ public abstract class WebInstrumentation extends Vertx4Instrumentation {
                                               @Nullable @Advice.Argument(value = 3) Throwable failure) {
 
                 Object transactionObj = context.getLocal(WebHelper.CONTEXT_TRANSACTION_KEY);
-                if (transactionObj instanceof Transaction) {
-                    Transaction transaction = (Transaction) transactionObj;
+                if (transactionObj instanceof Transaction<?>) {
+                    Transaction<?> transaction = (Transaction<?>) transactionObj;
                     if (failure != null) {
                         transaction.captureException(failure);
                     }
@@ -199,7 +199,7 @@ public abstract class WebInstrumentation extends Vertx4Instrumentation {
             @Nullable
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object nextEnter(@Advice.Argument(value = 0) RoutingContext routingContext) {
-                Transaction transaction = helper.setRouteBasedNameForCurrentTransaction(routingContext);
+                Transaction<?> transaction = helper.setRouteBasedNameForCurrentTransaction(routingContext);
 
                 if (transaction != null) {
                     transaction.activate();
@@ -211,8 +211,8 @@ public abstract class WebInstrumentation extends Vertx4Instrumentation {
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
             public static void nextExit(@Advice.Argument(value = 0) RoutingContext routingContext,
                                         @Nullable @Advice.Enter Object transactionObj, @Nullable @Advice.Thrown Throwable thrown) {
-                if (transactionObj instanceof Transaction) {
-                    Transaction transaction = (Transaction) transactionObj;
+                if (transactionObj instanceof Transaction<?>) {
+                    Transaction<?> transaction = (Transaction<?>) transactionObj;
                     transaction.captureException(thrown).deactivate();
                 }
             }
@@ -261,7 +261,7 @@ public abstract class WebInstrumentation extends Vertx4Instrumentation {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void wrapHandler(@Advice.Argument(value = 0) Buffer requestDataBuffer, @Advice.FieldValue(value = "context") Context context) {
-                Transaction transaction = context.getLocal(WebHelper.CONTEXT_TRANSACTION_KEY);
+                Transaction<?> transaction = context.getLocal(WebHelper.CONTEXT_TRANSACTION_KEY);
                 helper.captureBody(transaction, requestDataBuffer);
             }
         }
