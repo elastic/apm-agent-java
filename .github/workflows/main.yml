@@ -77,6 +77,11 @@ jobs:
         with:
           name: elastic-apm-agent
           path: ./elastic-apm-agent/target/elastic-apm-agent-*.jar
+      - name: Upload agent java 8 binaries as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: elastic-apm-agent
+          path: ./elastic-apm-agent-java8/target/elastic-apm-agent-java8-*.jar
 
   license:
     name: License
