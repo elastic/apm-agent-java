@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.ecs_logging;
+package co.elastic.apm.agent.ecs_logging.jul;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
+import co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation;
 import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
 import co.elastic.logging.jul.EcsFormatter;
 import net.bytebuddy.asm.Advice;
@@ -27,12 +26,9 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
  * Instruments {@link EcsFormatter#getMdcEntries()} to provide correlation IDs at runtime.
@@ -40,18 +36,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
  * for all of them.
  */
 @SuppressWarnings("JavadocReference")
-public class JulEcsFormatterInstrumentation extends TracerAwareInstrumentation {
-
-    @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        // ECS formatter that is loaded within the agent should not be instrumented
-        return not(CustomElementMatchers.isInternalPluginClassLoader());
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("logging", "jul-ecs");
-    }
+public class JulEcsMdcInstrumentation extends EcsLoggingInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -72,6 +57,4 @@ public class JulEcsFormatterInstrumentation extends TracerAwareInstrumentation {
         }
 
     }
-
-
 }

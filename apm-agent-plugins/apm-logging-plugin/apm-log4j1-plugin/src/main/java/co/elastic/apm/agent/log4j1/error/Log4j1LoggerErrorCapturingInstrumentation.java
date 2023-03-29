@@ -49,11 +49,4 @@ public class Log4j1LoggerErrorCapturingInstrumentation extends AbstractLoggerErr
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("fatal").and(takesArgument(1, named("java.lang.Throwable"))).or(super.getMethodMatcher());
     }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("log4j1-error");
-        return ret;
-    }
 }
