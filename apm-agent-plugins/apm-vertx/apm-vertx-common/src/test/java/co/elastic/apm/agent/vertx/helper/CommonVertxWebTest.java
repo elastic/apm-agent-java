@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.vertx.helper;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.TransactionContext;
@@ -129,7 +130,9 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
     @Test
     void testCallWithPathGroupAsTransactionName() throws Exception {
         doReturn(true).when(webConfiguration).isUsePathAsName();
-        doReturn(List.of(WildcardMatcher.valueOf("/test/*/group"))).when(webConfiguration).getUrlGroups();
+        doReturn(List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("/test/*/group"))
+        )).when(webConfiguration).getUrlGroups();
         Response response = http().get("/test/secondSegment/group");
         expectTransaction(response, "/test/secondSegment/group", DEFAULT_RESPONSE_BODY, "GET /test/*/group", 200);
     }

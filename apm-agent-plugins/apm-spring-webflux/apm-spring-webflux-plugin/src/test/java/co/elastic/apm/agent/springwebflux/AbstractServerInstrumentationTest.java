@@ -184,7 +184,9 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     void dispatch404_usePathAsName() {
         doReturn(true).when(getConfig().getConfig(WebConfiguration.class)).isUsePathAsName();
         // Testing that the `url_group` config is applied as well
-        doReturn(List.of(WildcardMatcher.valueOf("/*/error-404"))).when(config.getConfig(WebConfiguration.class)).getUrlGroups();
+        doReturn(List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("/*/error-404"))
+        )).when(config.getConfig(WebConfiguration.class)).getUrlGroups();
 
         StepVerifier.create(client.getMappingError404())
             .expectErrorMatches(expectClientError(404))
