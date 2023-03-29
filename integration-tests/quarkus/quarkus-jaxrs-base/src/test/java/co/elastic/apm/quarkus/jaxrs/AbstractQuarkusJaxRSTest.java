@@ -18,22 +18,23 @@
  */
 package co.elastic.apm.quarkus.jaxrs;
 
+import co.elastic.apm.agent.test.AgentFileAccessor;
 import com.jayway.jsonpath.JsonPath;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
+import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
-import java.io.File;
-import java.io.FileFilter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -46,60 +47,77 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.JsonBody.json;
 
-@Testcontainers
 public abstract class AbstractQuarkusJaxRSTest {
 
-    private static final Network NETWORK = Network.newNetwork();
+    private static final int DEBUG_PORT = -1; // set to something else (e.g. 5005) to enable remote debugging of the quarkus app
 
-    @Container
-    private static final GenericContainer<?> MOCK_SERVER = new GenericContainer<>(DockerImageName.parse("mockserver/mockserver:mockserver-5.4.1"))
-        .withNetwork(NETWORK)
-        .withNetworkAliases("apm-server")
-        .withExposedPorts(1080)
-        .waitingFor(Wait.forHttp("/mockserver/status").withMethod("PUT").forStatusCode(200));
 
-    private static MockServerClient MOCK_SERVER_CLIENT;
+    private static MockServerContainer mockServer;
 
-    @Container
-    final GenericContainer<?> APP = new GenericContainer<>("openjdk:11")
-        .withCommand("java -javaagent:/tmp/elastic-apm-agent.jar -jar /srv/quarkus-app/quarkus-run.jar")
-        .withFileSystemBind(getAgentJar(), "/tmp/elastic-apm-agent.jar")
-        .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
-        .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
-        .withEnv("ELASTIC_APM_DISABLE_METRICS", "true")
-        .withEnv("ELASTIC_APM_APPLICATION_PACKAGES", "co.elastic.apm.quarkus.jaxrs")
-        .withEnv("ELASTIC_APM_ENABLE_EXPERIMENTAL_INSTRUMENTATIONS", "true")
-        .withFileSystemBind("target/quarkus-app", "/srv/quarkus-app")
-        .withEnv("QUARKUS_HTTP_PORT", "8080")
-        .withNetwork(NETWORK)
-        .withExposedPorts(8080)
-        .waitingFor(Wait.forLogMessage(".*Installed features.*", 1))
-        .dependsOn(MOCK_SERVER);
+    private static MockServerClient mockServerClient;
+
+    private static GenericContainer<?> app;
+
 
     @BeforeAll
-    static void setUpMockServerClient() {
-        MOCK_SERVER_CLIENT = new MockServerClient(MOCK_SERVER.getContainerIpAddress(), MOCK_SERVER.getMappedPort(1080));
-        MOCK_SERVER_CLIENT.when(request("/")).respond(response().withStatusCode(200).withBody(json("{\"version\": \"7.13.0\"}")));
-        MOCK_SERVER_CLIENT.when(request("/config/v1/agents")).respond(response().withStatusCode(403));
-        MOCK_SERVER_CLIENT.when(request("/intake/v2/events")).respond(response().withStatusCode(200));
+    static void setUpAppAndApmServer() {
+        Network network = Network.newNetwork();
+        mockServer = new MockServerContainer(DockerImageName
+            .parse("mockserver/mockserver")
+            .withTag("mockserver-" + MockServerClient.class.getPackage().getImplementationVersion()))
+            .withNetwork(network)
+            .withNetworkAliases("apm-server");
+        mockServer.start();
+        mockServerClient = new MockServerClient(mockServer.getHost(), mockServer.getServerPort());
+        mockServerClient.when(request("/")).respond(response().withStatusCode(200).withBody(json("{\"version\": \"7.13.0\"}")));
+        mockServerClient.when(request("/config/v1/agents")).respond(response().withStatusCode(403));
+        mockServerClient.when(request("/intake/v2/events")).respond(response().withStatusCode(200));
+
+        if (DEBUG_PORT > 0) {
+            Testcontainers.exposeHostPorts(DEBUG_PORT);
+        }
+
+        String cmd = new StringBuilder()
+            .append("java ")
+            .append(DEBUG_PORT <= 0 ? "" : String.format("-agentlib:jdwp=transport=dt_socket,server=n,address=%s:%d,suspend=y ", "host.testcontainers.internal", DEBUG_PORT))
+            .append("-javaagent:/tmp/elastic-apm-agent.jar -jar /srv/quarkus-app/quarkus-run.jar")
+            .toString();
+
+        app = new GenericContainer<>("openjdk:11")
+            .withCommand(cmd)
+            .withCopyFileToContainer(MountableFile.forHostPath(AgentFileAccessor.getPathToJavaagent()), "/tmp/elastic-apm-agent.jar")
+            .withCopyFileToContainer(MountableFile.forHostPath("target/quarkus-app"), "/srv/quarkus-app")
+            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:" + MockServerContainer.PORT)
+            .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
+            .withEnv("ELASTIC_APM_DISABLE_METRICS", "true")
+            .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
+            .withEnv("ELASTIC_APM_APPLICATION_PACKAGES", "co.elastic.apm.quarkus.jaxrs")
+            .withEnv("ELASTIC_APM_ENABLE_EXPERIMENTAL_INSTRUMENTATIONS", "true")
+            .withEnv("QUARKUS_HTTP_PORT", "8080")
+            .withNetwork(network)
+            .withExposedPorts(8080)
+            .waitingFor(Wait.forLogMessage(".*Installed features.*", 1))
+            .dependsOn(mockServer);
+        app.start();
+    }
+
+    @AfterAll
+    public static void destroyContainers() {
+        if (app != null) {
+            app.stop();
+        }
+        if (mockServer != null) {
+            mockServer.stop();
+        }
     }
 
     @AfterEach
     void clearMockServerLog() {
-        MOCK_SERVER_CLIENT.clear(request(), ClearType.LOG);
-    }
-
-    private static String getAgentJar() {
-        File agentBuildDir = new File("../../../elastic-apm-agent/target/");
-        FileFilter fileFilter = file -> file.getName().matches("elastic-apm-agent-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?.jar");
-        return Arrays.stream(agentBuildDir.listFiles(fileFilter))
-            .map(File::getAbsolutePath)
-            .findFirst()
-            .orElse(null);
+        mockServerClient.clear(request(), ClearType.LOG);
     }
 
     private static List<Map<String, Object>> getReportedTransactions() {
-        return Arrays.stream(MOCK_SERVER_CLIENT.retrieveRecordedRequests(request("/intake/v2/events")))
+        return Arrays.stream(mockServerClient.retrieveRecordedRequests(request("/intake/v2/events")))
             .map(HttpRequest::getBodyAsString)
             .flatMap(s -> Arrays.stream(s.split("\r?\n")))
             .map(JsonPath::parse)
@@ -110,7 +128,7 @@ public abstract class AbstractQuarkusJaxRSTest {
     @Test
     public void greetingShouldReturnDefaultMessage() {
         given()
-            .baseUri("http://" + APP.getContainerIpAddress() + ":" + APP.getMappedPort(8080))
+            .baseUri("http://" + app.getHost() + ":" + app.getMappedPort(8080))
             .when()
             .get("/")
             .then()
