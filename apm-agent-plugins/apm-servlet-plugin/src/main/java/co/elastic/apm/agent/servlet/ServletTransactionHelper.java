@@ -261,7 +261,7 @@ public class ServletTransactionHelper {
 
     void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, Transaction<?> transaction) {
         // JSPs don't contain path params and the name is more telling than the generated servlet class
-        if (webConfiguration.isUsePathAsName() || (pathInfo == null ? servletPath : (servletPath + pathInfo)).endsWith(JSP_SUFFIX)) {
+        if (webConfiguration.isUsePathAsName() || (pathInfo == null ? servletPath : pathInfo).endsWith(JSP_SUFFIX)) {
             // should override ServletName#doGet
             TransactionNameUtils.setNameFromHttpRequestPath(method, servletPath, pathInfo, transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1), webConfiguration.getUrlGroups());
         } else {

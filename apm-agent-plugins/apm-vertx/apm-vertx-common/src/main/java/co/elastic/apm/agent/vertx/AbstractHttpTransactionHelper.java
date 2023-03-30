@@ -95,7 +95,7 @@ public abstract class AbstractHttpTransactionHelper {
 
     public void applyDefaultTransactionName(String method, String pathFirstPart, @Nullable String pathSecondPart, Transaction<?> transaction, int priorityOffset) {
         // JSPs don't contain path params and the name is more telling than the generated servlet class
-        if (webConfiguration.isUsePathAsName() || (pathSecondPart == null ? pathFirstPart : (pathFirstPart + pathSecondPart)).endsWith(JSP_SUFFIX)) {
+        if (webConfiguration.isUsePathAsName() || (pathSecondPart == null ? pathFirstPart : pathSecondPart).endsWith(JSP_SUFFIX)) {
             // should override ServletName#doGet
             TransactionNameUtils.setNameFromHttpRequestPath(
                 method,
