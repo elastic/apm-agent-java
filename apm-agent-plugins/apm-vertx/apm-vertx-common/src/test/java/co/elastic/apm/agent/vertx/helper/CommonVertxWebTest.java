@@ -140,7 +140,9 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
     @Test
     void testCallWithQueryParameters() throws Exception {
         doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
-        doReturn(List.of(WildcardMatcher.valueOf("application/x-www-form-urlencoded*"))).when(webConfiguration).getCaptureContentTypes();
+        doReturn(List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("application/x-www-form-urlencoded*"))
+        )).when(webConfiguration).getCaptureContentTypes();
 
         Response response = http().post("/post?par1=abc&par2=xyz", "Some Body", MediaType.get("application/x-www-form-urlencoded"));
         expectTransaction(response, "/post", DEFAULT_RESPONSE_BODY, "POST /post", 200);
@@ -159,7 +161,9 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
     @Test
     void testCallWithBodyCapturing() throws Exception {
         doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
-        doReturn(List.of(WildcardMatcher.valueOf("application/json*"))).when(webConfiguration).getCaptureContentTypes();
+        doReturn(List.of(
+            new WildcardMatcherMatcher(WildcardMatcher.valueOf("application/json*"))
+        )).when(webConfiguration).getCaptureContentTypes();
 
         String jsonBody = "{\"key\":\"Some JSON\"}";
 
