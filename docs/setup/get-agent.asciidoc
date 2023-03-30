@@ -2,7 +2,8 @@
 
 Java agent releases are published to https://repo.maven.apache.org/maven2/[Maven central], in order to get a copy you can either:
 
-- download manually from https://search.maven.org/artifact/co.elastic.apm/elastic-apm-agent[Maven central].
+- download manually the https://oss.sonatype.org/service/local/artifact/maven/redirect?r=releases&g=co.elastic.apm&a=elastic-apm-agent&v=LATEST[latest agent]
+or https://mvnrepository.com/artifact/co.elastic.apm/elastic-apm-agent[previous releases] from Maven central.
 - download with `curl`:
 +
 [source,bash]
