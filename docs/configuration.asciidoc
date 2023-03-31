@@ -1558,7 +1558,7 @@ Valid options: `continue`, `restart`, `restart_external`
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-elasticsearch-capture-body-urls]]
-==== `elasticsearch_capture_body_urls`
+==== `elasticsearch_capture_body_urls` (added[1.37.0])
 
 The URL path patterns for which the APM agent will capture the request body of outgoing requests to Elasticsearch made with the `elasticsearch-restclient` instrumentation. The default setting captures the body for https://www.elastic.co/guide/en/elasticsearch/reference/current/rest-apis.html[Elasticsearch REST APIs] making a search.
 
