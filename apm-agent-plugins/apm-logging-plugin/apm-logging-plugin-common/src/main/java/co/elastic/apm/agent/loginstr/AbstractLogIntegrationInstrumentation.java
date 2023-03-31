@@ -21,16 +21,20 @@ package co.elastic.apm.agent.loginstr;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 
 public abstract class AbstractLogIntegrationInstrumentation extends TracerAwareInstrumentation {
 
+    protected static String LOG_CORRELATION = "log-correlation";
+    protected static String LOG_REFORMATTING = "log-reformatting";
+    protected static String LOG_ERROR = "log-error";
+
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = new ArrayList<>();
-        ret.add("logging");
-        return ret;
+        return Arrays.asList("logging", getLoggingInstrumentationGroupName());
     }
+
+    protected abstract String getLoggingInstrumentationGroupName();
 
 }

@@ -24,6 +24,13 @@ endif::[]
 ==== 1.37.0 - YYYY/MM/DD
 
 [float]
+===== Potentially breaking changes
+* The list of instrumentation groups for log-related features have been simplified to `logging`, `log-reformatting`, `log-correlation` and `log-error`,
+as a consequence any agent configuration with `enable_instrumentations` or `disable_instrumentations` might require adjustments as the following instrumentation
+groups no longer exist: `jul-ecs`, `jul-error`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`,
+`logback-correlation`, `logback-ecs` and `slf4j-error`.
+
+[float]
 ===== Features
 * Add the <<config-disable-outgoing-tracecontext-headers>> config option to disable injection of `tracecontext` on outgoing
 communication - {pull}2996[#2996]
@@ -32,6 +39,8 @@ communication - {pull}2996[#2996]
 * Added agent.activation_method telemetry - {pull}2926[#2926]
 * Allow creation of exit spans with `@CaptureSpan` and `@Traced` annotations - {pull}3046[#3046]
 * Add the <<config-long-field-max-length>> config to enable capturing larger values for specific fields - {pull}3027[#3027]
+* Provide fallback correlation when `ecs-logging-java` is used - {pull}3064[#3064]
+* Added separate Java 8 build with updated log4j2 - {pull}3076[#3076]
 
 [float]
 ===== Bug fixes
@@ -49,6 +58,7 @@ communication - {pull}2996[#2996]
 [[release-notes-1.36.0]]
 ==== 1.36.0 - 2023/01/27
 
+[float]
 ===== Potentially breaking changes
 * Previously, agent instrumented all implementations of `javax.jms.MessageListener`, which could cause performance issues.
 From now on, the instrumentation is limited to implementations that fit at least one of the following criteria:

@@ -25,8 +25,6 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Collection;
-
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
@@ -39,10 +37,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public abstract class Log4j2EcsReformattingInstrumentation extends AbstractLogIntegrationInstrumentation {
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("log4j2-ecs");
-        return ret;
+    protected String getLoggingInstrumentationGroupName() {
+        return LOG_REFORMATTING;
     }
 
     @Override
