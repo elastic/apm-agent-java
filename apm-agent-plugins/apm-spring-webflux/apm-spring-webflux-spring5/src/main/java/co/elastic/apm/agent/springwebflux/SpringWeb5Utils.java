@@ -16,11 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-/**
- * This package is common as it needs to be used by Spring WebFlux instrumentations from different modules (compiled by different Java
- * versions). It must have the same package name as used by the WebFlux instrumentation, as it is expected to be loaded by the same
- * plugin class loader that loads the WebFlux advice and helper classes.
- */
 package co.elastic.apm.agent.springwebflux;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.ServerHttpResponse;
+
+/**
+ * This class is compiled with spring-web 5.x, relying on the {@link ServerHttpResponse#getStatusCode()}, which changed in 6.0.0.
+ * Therefore, it MUST only be loaded through its class name through {@link SpringWebVersionUtils}.
+ */
+@SuppressWarnings("unused") //Created via reflection
+public class SpringWeb5Utils implements SpringWebVersionUtils.ISpringWebVersionUtils {
+
+    @Override
+    public int getStatusCode(Object response) {
+        HttpStatus statusCode = ((ServerHttpResponse) response).getStatusCode();
+        return statusCode != null ? statusCode.value() : 200;
+    }
+}

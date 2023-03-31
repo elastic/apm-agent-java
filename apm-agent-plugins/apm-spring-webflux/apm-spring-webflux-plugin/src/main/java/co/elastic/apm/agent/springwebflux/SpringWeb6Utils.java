@@ -18,18 +18,18 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 
 /**
- * This class is compiled with spring-web 5.x, relying on the {@link ServerHttpResponse#getStatusCode()}, which changed in 6.0.0.
+ * This class is compiled with spring-web 6.x, as it relies on {@link HttpStatusCode} and an API that was introduced in 6.0.0.
  * Therefore, it MUST only be loaded through its class name through {@link SpringWebVersionUtils}.
  */
-public class SpringWeb5Utils implements SpringWebVersionUtils.ISpringWebVersionUtils {
-
+@SuppressWarnings("unused") //Created via reflection
+public class SpringWeb6Utils implements SpringWebVersionUtils.ISpringWebVersionUtils {
     @Override
     public int getStatusCode(Object response) {
-        HttpStatus statusCode = ((ServerHttpResponse) response).getStatusCode();
+        HttpStatusCode statusCode = ((ServerHttpResponse) response).getStatusCode();
         return statusCode != null ? statusCode.value() : 200;
     }
 }
