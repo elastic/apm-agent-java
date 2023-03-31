@@ -12,7 +12,7 @@ curl -o 'elastic-apm-agent.jar' -L 'https://oss.sonatype.org/service/local/artif
 ----
 
 In addition, we also publish a dedicated build of the Java agent which ships the latest log4j2 version and for that reason requires at least Java 8.
-This build can also be found on link:https://mvnrepository.com/artifact/co.elastic.apm/elastic-apm-agent-java8[Maven central].
+This build can also be found on link:https://mvnrepository.com/artifact/co.elastic.apm/elastic-apm-agent-java8/latest[Maven central].
 
 // end::maven-central[]
 
