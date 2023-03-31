@@ -136,6 +136,9 @@ Click on a key to get more information.
 ** <<config-enable-public-api-annotation-inheritance>>
 ** <<config-transaction-name-groups>>
 ** <<config-trace-continuation-strategy>>
+* <<config-datastore>>
+** <<config-elasticsearch-capture-body-urls>>
+** <<config-mongodb-capture-statement-commands>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
 ** <<config-transaction-ignore-urls>>
@@ -172,8 +175,6 @@ Click on a key to get more information.
 ** <<config-metric-set-limit>>
 ** <<config-agent-reporter-health-metrics>>
 ** <<config-agent-background-overhead-metrics>>
-* <<config-mongodb>>
-** <<config-mongodb-capture-statement-commands>>
 * <<config-profiling>>
 ** <<config-profiling-inferred-spans-enabled>>
 ** <<config-profiling-inferred-spans-logging-enabled>>
@@ -1547,6 +1548,71 @@ Valid options: `continue`, `restart`, `restart_external`
 | `elastic.apm.trace_continuation_strategy` | `trace_continuation_strategy` | `ELASTIC_APM_TRACE_CONTINUATION_STRATEGY`
 |============
 
+[[config-datastore]]
+=== Datastore configuration options
+
+++++
+<titleabbrev>Datastore</titleabbrev>
+++++
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-elasticsearch-capture-body-urls]]
+==== `elasticsearch_capture_body_urls`
+
+The URL path patterns for which the APM agent will capture the request body of outgoing requests to Elasticsearch made with the `elasticsearch-restclient` instrumentation. The default setting captures the body for https://www.elastic.co/guide/en/elasticsearch/reference/current/rest-apis.html[Elasticsearch REST APIs] making a search.
+
+The captured request body (if any) is stored on the `span.db.statement` field. Captured request bodies are truncated to a maximum length defined by <<config-long-field-max-length>>.
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `*_search, *_msearch, *_msearch/template, *_search/template, *_count, *_sql, *_eql/search, *_async_search` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.elasticsearch_capture_body_urls` | `elasticsearch_capture_body_urls` | `ELASTIC_APM_ELASTICSEARCH_CAPTURE_BODY_URLS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-mongodb-capture-statement-commands]]
+==== `mongodb_capture_statement_commands`
+
+MongoDB command names for which the command document will be captured, limited to common read-only operations by default.
+Set to ` ""` (empty) to disable capture, and `"*"` to capture all (which is discouraged as it may lead to sensitive information capture).
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `find, aggregate, count, distinct, mapReduce` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.mongodb_capture_statement_commands` | `mongodb_capture_statement_commands` | `ELASTIC_APM_MONGODB_CAPTURE_STATEMENT_COMMANDS`
+|============
+
 [[config-http]]
 === HTTP configuration options
 
@@ -2514,42 +2580,6 @@ Enables metrics which capture the resource consumption of agent background tasks
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.agent_background_overhead_metrics` | `agent_background_overhead_metrics` | `ELASTIC_APM_AGENT_BACKGROUND_OVERHEAD_METRICS`
-|============
-
-[[config-mongodb]]
-=== MongoDB configuration options
-
-++++
-<titleabbrev>MongoDB</titleabbrev>
-++++
-
-// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
-[float]
-[[config-mongodb-capture-statement-commands]]
-==== `mongodb_capture_statement_commands`
-
-MongoDB command names for which the command document will be captured, limited to common read-only operations by default.
-Set to ` ""` (empty) to disable capture, and `"*"` to capture all (which is discouraged as it may lead to sensitive information capture).
-
-This option supports the wildcard `*`, which matches zero or more characters.
-Examples: `/foo/*/bar/*/baz*`, `*foo*`.
-Matching is case insensitive by default.
-Prepending an element with `(?-i)` makes the matching case sensitive.
-
-<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
-
-
-[options="header"]
-|============
-| Default                          | Type                | Dynamic
-| `find, aggregate, count, distinct, mapReduce` | List | true
-|============
-
-
-[options="header"]
-|============
-| Java System Properties      | Property file   | Environment
-| `elastic.apm.mongodb_capture_statement_commands` | `mongodb_capture_statement_commands` | `ELASTIC_APM_MONGODB_CAPTURE_STATEMENT_COMMANDS`
 |============
 
 [[config-profiling]]
@@ -4005,6 +4035,38 @@ Example: `5ms`.
 # trace_continuation_strategy=CONTINUE
 
 ############################################
+# Datastore                                #
+############################################
+
+# The URL path patterns for which the APM agent will capture the request body of outgoing requests to Elasticsearch made with the `elasticsearch-restclient` instrumentation. The default setting captures the body for https://www.elastic.co/guide/en/elasticsearch/reference/current/rest-apis.html[Elasticsearch REST APIs] making a search.
+# 
+# The captured request body (if any) is stored on the `span.db.statement` field. Captured request bodies are truncated to a maximum length defined by <<config-long-field-max-length>>.
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: *_search,*_msearch,*_msearch/template,*_search/template,*_count,*_sql,*_eql/search,*_async_search
+#
+# elasticsearch_capture_body_urls=*_search,*_msearch,*_msearch/template,*_search/template,*_count,*_sql,*_eql/search,*_async_search
+
+# MongoDB command names for which the command document will be captured, limited to common read-only operations by default.
+# Set to ` ""` (empty) to disable capture, and `"*"` to capture all (which is discouraged as it may lead to sensitive information capture).
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: find,aggregate,count,distinct,mapReduce
+#
+# mongodb_capture_statement_commands=find,aggregate,count,distinct,mapReduce
+
+############################################
 # HTTP                                     #
 ############################################
 
@@ -4503,24 +4565,6 @@ Example: `5ms`.
 # Default value: false
 #
 # agent_background_overhead_metrics=false
-
-############################################
-# MongoDB                                  #
-############################################
-
-# MongoDB command names for which the command document will be captured, limited to common read-only operations by default.
-# Set to ` ""` (empty) to disable capture, and `"*"` to capture all (which is discouraged as it may lead to sensitive information capture).
-# 
-# This option supports the wildcard `*`, which matches zero or more characters.
-# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
-# Matching is case insensitive by default.
-# Prepending an element with `(?-i)` makes the matching case sensitive.
-#
-# This setting can be changed at runtime
-# Type: comma separated list
-# Default value: find,aggregate,count,distinct,mapReduce
-#
-# mongodb_capture_statement_commands=find,aggregate,count,distinct,mapReduce
 
 ############################################
 # Profiling                                #
