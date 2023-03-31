@@ -19,8 +19,6 @@
 package co.elastic.apm.agent.test;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,9 +29,27 @@ import java.util.Objects;
  */
 public class AgentFileAccessor {
 
+    public enum Variant {
+        STANDARD,
+        JAVA8_BUILD
+    }
+
     public static Path getPathToJavaagent() {
+        return getPathToJavaagent(Variant.STANDARD);
+    }
+
+    public static Path getPathToJavaagent(Variant agentBuild) {
+        String project = "elastic-apm-agent";
+        switch (agentBuild) {
+            case STANDARD:
+                project = "elastic-apm-agent";
+                break;
+            case JAVA8_BUILD:
+                project = "elastic-apm-agent-java8";
+                break;
+        }
         return getArtifactPath(
-            Path.of("elastic-apm-agent"),
+            Path.of(project),
             "",
             ".jar");
     }

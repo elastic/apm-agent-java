@@ -31,5 +31,6 @@
         <module>apm-spring-webflux-plugin</module>
         <module>apm-spring-webclient-plugin</module>
         <module>apm-spring-webflux-testapp</module>
+        <module>apm-spring-webflux-spring5</module>
     </modules>
 </project>
