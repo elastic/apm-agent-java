@@ -38,6 +38,7 @@ public class ElasticsearchConfiguration extends ConfigurationOptionProvider {
             "\n" +
             WildcardMatcher.DOCUMENTATION
         )
+        .tags("added[1.37.0]")
         .dynamic(true)
         .buildWithDefault(Arrays.asList(
             WildcardMatcher.valueOf("*_search"),
