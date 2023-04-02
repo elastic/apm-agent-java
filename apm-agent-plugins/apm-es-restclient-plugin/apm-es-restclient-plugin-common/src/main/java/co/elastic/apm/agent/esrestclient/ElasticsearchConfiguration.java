@@ -32,7 +32,7 @@ public class ElasticsearchConfiguration extends ConfigurationOptionProvider {
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("elasticsearch_capture_body_urls")
         .configurationCategory("Datastore")
-        .description("The URL path patterns for which the APM agent will capture the request body of outgoing requests to Elasticsearch made with the `elasticsearch-restclient` instrumentation. The default setting captures the body for https://www.elastic.co/guide/en/elasticsearch/reference/current/rest-apis.html[Elasticsearch REST APIs] making a search.\n" +
+        .description("The URL path patterns for which the APM agent will capture the request body of outgoing requests to Elasticsearch made with the `elasticsearch-restclient` instrumentation. The default setting captures the body for Elasticsearch REST APIs searches and counts.\n" +
             "\n" +
             "The captured request body (if any) is stored on the `span.db.statement` field. Captured request bodies are truncated to a maximum length defined by <<config-long-field-max-length>>." +
             "\n" +
