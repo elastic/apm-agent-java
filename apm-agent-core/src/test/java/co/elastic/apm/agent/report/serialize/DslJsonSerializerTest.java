@@ -1323,11 +1323,7 @@ class DslJsonSerializerTest {
         Service service = new Service().withAgent(new Agent("name", "version")).withName("name");
         final ProcessInfo processInfo = new ProcessInfo("title");
         processInfo.getArgv().add("test");
-        try {
-            return MetaDataMock.create(processInfo, service, system, createCloudProviderInfo(), new HashMap<>(0), createFaaSMetaDataExtension()).get();
-        } catch (InterruptedException|ExecutionException e) {
-            throw new RuntimeException(e);
-        }
+        return MetaDataMock.create(processInfo, service, system, createCloudProviderInfo(), new HashMap<>(0), createFaaSMetaDataExtension()).get();
     }
 
     private CloudProviderInfo createCloudProviderInfo() {
