@@ -87,6 +87,7 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.dslplatform.json.JsonWriter.ARRAY_END;
 import static com.dslplatform.json.JsonWriter.ARRAY_START;
@@ -184,10 +185,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(NEW_LINE);
     }
 
-    static void serializeMetadata(MetaData metaData, JsonWriter metadataJW, boolean supportsConfiguredAndDetectedHostname) {
+    static void serializeMetadata(MetaData metaData, JsonWriter metadataJW, boolean supportsConfiguredAndDetectedHostname, boolean supportsAgentActivationMethod) {
         StringBuilder metadataReplaceBuilder = new StringBuilder();
         metadataJW.writeByte(JsonWriter.OBJECT_START);
-        serializeService(metaData.getService(), metadataReplaceBuilder, metadataJW);
+        serializeService(metaData.getService(), metadataReplaceBuilder, metadataJW, supportsAgentActivationMethod);
         metadataJW.writeByte(COMMA);
         serializeProcess(metaData.getProcess(), metadataReplaceBuilder, metadataJW);
         metadataJW.writeByte(COMMA);
@@ -233,9 +234,19 @@ public class DslJsonSerializer implements PayloadSerializer {
      */
     @Override
     public void blockUntilReady() throws Exception {
-        if (serializedMetaData == null) {
+
+        boolean supportsActivationMethod = apmServerClient.supportsActivationMethod();
+        Boolean serializedActivationMethodValue = serializedActivationMethod.get();
+        boolean updateRequired = serializedActivationMethodValue == null || supportsActivationMethod != serializedActivationMethodValue.booleanValue();
+
+        if (serializedMetaData == null || updateRequired) {
+            serializedActivationMethod.set(supportsActivationMethod);
+
             JsonWriter metadataJW = new DslJson<>(new DslJson.Settings<>()).newWriter(4096);
-            serializeMetadata(metaData.get(5, TimeUnit.SECONDS), metadataJW, apmServerClient.supportsConfiguredAndDetectedHostname());
+            MetaData meta = metaData.get(5, TimeUnit.SECONDS);
+            boolean supportsConfiguredAndDetectedHostname = apmServerClient.supportsConfiguredAndDetectedHostname();
+
+            serializeMetadata(meta, metadataJW, supportsConfiguredAndDetectedHostname, true);
             serializedMetaData = metadataJW.toByteArray();
         }
     }
@@ -447,7 +458,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         return jw.toString();
     }
 
-    private static void serializeService(final Service service, final StringBuilder replaceBuilder, final JsonWriter jw) {
+    private static void serializeService(final Service service, final StringBuilder replaceBuilder, final JsonWriter jw, boolean supportsAgentActivationMethod) {
         writeFieldName("service", jw);
         jw.writeByte(JsonWriter.OBJECT_START);
 
@@ -457,7 +468,7 @@ public class DslJsonSerializer implements PayloadSerializer {
 
         final Agent agent = service.getAgent();
         if (agent != null) {
-            serializeAgent(agent, replaceBuilder, jw);
+            serializeAgent(agent, replaceBuilder, jw, supportsAgentActivationMethod);
         }
 
         final Language language = service.getLanguage();
@@ -536,10 +547,12 @@ public class DslJsonSerializer implements PayloadSerializer {
         serializeService(name, version, null, replaceBuilder, jw);
     }
 
-    private static void serializeAgent(final Agent agent, final StringBuilder replaceBuilder, final JsonWriter jw) {
+    private static void serializeAgent(final Agent agent, final StringBuilder replaceBuilder, final JsonWriter jw, boolean supportsAgentActivationMethod) {
         writeFieldName("agent", jw);
         jw.writeByte(JsonWriter.OBJECT_START);
-        writeField("activation_method", agent.getActivationMethod(), replaceBuilder, jw);
+        if (supportsAgentActivationMethod) {
+            writeField("activation_method", agent.getActivationMethod(), replaceBuilder, jw);
+        }
         writeField("name", agent.getName(), replaceBuilder, jw);
         writeField("ephemeral_id", agent.getEphemeralId(), replaceBuilder, jw);
         writeLastField("version", agent.getVersion(), replaceBuilder, jw);
