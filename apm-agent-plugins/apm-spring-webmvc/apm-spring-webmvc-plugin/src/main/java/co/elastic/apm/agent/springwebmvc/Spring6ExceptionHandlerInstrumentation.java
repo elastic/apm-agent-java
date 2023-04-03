@@ -18,56 +18,26 @@
  */
 package co.elastic.apm.agent.springwebmvc;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.servlet.Constants;
+import co.elastic.apm.agent.servlet.adapter.JakartaServletApiAdapter;
 import jakarta.servlet.http.HttpServletRequest;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collection;
 
-import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.returns;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
-
-public class Spring6ExceptionHandlerInstrumentation extends TracerAwareInstrumentation {
+public class Spring6ExceptionHandlerInstrumentation extends AbstractSpringExceptionHandlerInstrumentation {
 
     @Override
-    public String getAdviceClassName() {
-        return Spring6ExceptionHandlerInstrumentation.class.getName() + "$ExceptionHandlerAdviceService";
+    public Constants.ServletImpl servletImpl() {
+        return Constants.ServletImpl.JAKARTA;
     }
 
-    public static class ExceptionHandlerAdviceService {
+    public static class AdviceClass extends AbstractSpringExceptionHandlerInstrumentation.AdviceClass {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void captureException(@Advice.Argument(0) @Nullable HttpServletRequest request,
                                             @Advice.Argument(3) @Nullable Exception e) {
-            if (request != null && e != null) {
-                request.setAttribute("co.elastic.apm.exception", e);
-            }
+            onEnter(JakartaServletApiAdapter.get(), request, e);
         }
-    }
-
-    @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.springframework.web.servlet.DispatcherServlet");
-    }
-
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("processHandlerException")
-            .and(takesArgument(0, named("jakarta.servlet.http.HttpServletRequest")))
-            .and(takesArgument(1, named("jakarta.servlet.http.HttpServletResponse")))
-            .and(takesArgument(2, named("java.lang.Object")))
-            .and(takesArgument(3, named("java.lang.Exception")))
-            .and(returns(named("org.springframework.web.servlet.ModelAndView")));
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("exception-handler");
     }
 }
