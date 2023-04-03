@@ -67,6 +67,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -1258,19 +1259,60 @@ class DslJsonSerializerTest {
         DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true, supportsActivationMethod);
         serializer.appendMetadataToStream();
 
-        JsonNode service = readJsonString(serializer.toString()).get("service");
+        checkMetadataActivationMethod(serializer.toString(), supportsActivationMethod ? "unknown" : null);
+    }
 
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+        "true  | false", // likely when going from "version unknown" to "known unsupported version"
+        "false | true", // unlikey to happen in practice, but worth testing anyway
+    })
+    void testActivationMethodMetadataUpdate(boolean value1, boolean value2 ) throws Exception {
+        // because metadata is serialized only once, we need to ensure it's properly updated whenever needed
+        // in particular when going from 'apm server version unknown' to 'apm server version known'
+
+        StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
+        apmServerClient = mock(ApmServerClient.class);
+        doReturn(value1).when(apmServerClient).supportsActivationMethod();
+
+        Service service = mock(Service.class);
+        Agent agent = new Agent("java-test", "1.0.0");
+        doReturn(agent).when(service).getAgent();
+        MetaData mockMetada = MetaDataMock.createDefaultMock();
+        doReturn(service).when(mockMetada).getService();
+
+        serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, MetaDataMock.create(mockMetada));
+        serializer.blockUntilReady();
+        serializer.appendMetadataToStream();
+
+        checkMetadataActivationMethod(serializer.toString(), value1 ? "unknown": null);
+        serializer.jw.reset();
+
+        doReturn(value2).when(apmServerClient).supportsActivationMethod();
+
+        serializer.blockUntilReady();
+        serializer.appendMetadataToStream();
+
+        checkMetadataActivationMethod(serializer.toString(), value2 ? "unknown": null);
+    }
+
+    private void checkMetadataActivationMethod(String json, @Nullable String expectedValue) {
+        JsonNode root = readJsonString(json);
+
+        JsonNode service = root.get("service");
         assertThat(service).isNotNull();
 
-        JsonNode activationMethod = service.get("agent").get("activation_method");
+        JsonNode agent = service.get("agent");
+        assertThat(agent).isNotNull();
 
-        if (!supportsActivationMethod) {
+        JsonNode activationMethod = agent.get("activation_method");
+
+        if (expectedValue == null) {
             assertThat(activationMethod).isNull();
         } else {
             assertThat(activationMethod.isTextual()).isTrue();
-            assertThat(activationMethod.asText()).isEqualTo("unknown");
+            assertThat(activationMethod.asText()).isEqualTo(expectedValue);
         }
-
     }
 
     private MetaData createMetaData() throws Exception {

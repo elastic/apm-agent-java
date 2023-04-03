@@ -116,6 +116,8 @@ public class DslJsonSerializer implements PayloadSerializer {
     @Nullable
     private byte[] serializedMetaData;
 
+    private final AtomicReference<Boolean> serializedActivationMethod = new AtomicReference<>(null);
+
     public DslJsonSerializer(StacktraceConfiguration stacktraceConfiguration, ApmServerClient apmServerClient, final Future<MetaData> metaData) {
         this.stacktraceConfiguration = stacktraceConfiguration;
         this.apmServerClient = apmServerClient;
@@ -246,7 +248,7 @@ public class DslJsonSerializer implements PayloadSerializer {
             MetaData meta = metaData.get(5, TimeUnit.SECONDS);
             boolean supportsConfiguredAndDetectedHostname = apmServerClient.supportsConfiguredAndDetectedHostname();
 
-            serializeMetadata(meta, metadataJW, supportsConfiguredAndDetectedHostname, true);
+            serializeMetadata(meta, metadataJW, supportsConfiguredAndDetectedHostname, supportsActivationMethod);
             serializedMetaData = metadataJW.toByteArray();
         }
     }
