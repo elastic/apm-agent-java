@@ -119,18 +119,6 @@ pipeline {
             NO_BUILD = "true"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
-          when {
-            beforeAgent true
-            allOf {
-              expression { return env.ONLY_DOCS == "false" }
-              anyOf {
-                branch 'main'
-                expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
-                expression { matchesPrLabel(label: 'ci:benchmarks') }
-                expression { return params.bench_ci }
-              }
-            }
-          }
           steps {
             withGithubNotify(context: "${STAGE_NAME}", tab: 'artifacts') {
               deleteDir()
