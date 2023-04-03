@@ -41,6 +41,7 @@ communication - {pull}2996[#2996]
 * Add the <<config-long-field-max-length>> config to enable capturing larger values for specific fields - {pull}3027[#3027]
 * Provide fallback correlation when `ecs-logging-java` is used - {pull}3064[#3064]
 * Added separate Java 8 build with updated log4j2 - {pull}3076[#3076]
+* Add <<config-elasticsearch-capture-body-urls, elasticsearch_capture_body_urls>> option to customize which Elasticsearch request bodies are captured - {pull}3091[#3091]
 
 [float]
 ===== Bug fixes

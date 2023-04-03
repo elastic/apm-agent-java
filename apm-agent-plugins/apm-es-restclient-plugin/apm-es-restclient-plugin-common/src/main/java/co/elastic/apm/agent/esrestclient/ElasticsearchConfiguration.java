@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.mongodb;
+package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
@@ -27,28 +27,31 @@ import org.stagemonitor.configuration.converter.ListValueConverter;
 import java.util.Arrays;
 import java.util.List;
 
-public class MongoConfiguration extends ConfigurationOptionProvider {
-
-    private final ConfigurationOption<List<WildcardMatcher>> captureStatementCommands = ConfigurationOption
+public class ElasticsearchConfiguration extends ConfigurationOptionProvider {
+    private final ConfigurationOption<List<WildcardMatcher>> captureBodyUrls = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
-        .key("mongodb_capture_statement_commands")
+        .key("elasticsearch_capture_body_urls")
         .configurationCategory("Datastore")
-        .description("MongoDB command names for which the command document will be captured, limited to common read-only operations by default.\n" +
-            "Set to ` \"\"` (empty) to disable capture, and `\"*\"` to capture all (which is discouraged as it may lead to sensitive information capture).\n" +
+        .description("The URL path patterns for which the APM agent will capture the request body of outgoing requests to Elasticsearch made with the `elasticsearch-restclient` instrumentation. The default setting captures the body for Elasticsearch REST APIs searches and counts.\n" +
+            "\n" +
+            "The captured request body (if any) is stored on the `span.db.statement` field. Captured request bodies are truncated to a maximum length defined by <<config-long-field-max-length>>." +
             "\n" +
             WildcardMatcher.DOCUMENTATION
         )
+        .tags("added[1.37.0]")
         .dynamic(true)
         .buildWithDefault(Arrays.asList(
-            WildcardMatcher.valueOf("find"),
-            WildcardMatcher.valueOf("aggregate"),
-            WildcardMatcher.valueOf("count"),
-            WildcardMatcher.valueOf("distinct"),
-            WildcardMatcher.valueOf("mapReduce")
+            WildcardMatcher.valueOf("*_search"),
+            WildcardMatcher.valueOf("*_msearch"),
+            WildcardMatcher.valueOf("*_msearch/template"),
+            WildcardMatcher.valueOf("*_search/template"),
+            WildcardMatcher.valueOf("*_count"),
+            WildcardMatcher.valueOf("*_sql"),
+            WildcardMatcher.valueOf("*_eql/search"),
+            WildcardMatcher.valueOf("*_async_search")
         ));
 
-    public List<WildcardMatcher> getCaptureStatementCommands() {
-        return captureStatementCommands.get();
+    public List<WildcardMatcher> getCaptureBodyUrls() {
+        return captureBodyUrls.get();
     }
-
 }
