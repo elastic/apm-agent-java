@@ -62,12 +62,6 @@ pipeline {
             env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
             env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
             env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
-
-            if (env.ONLY_DOCS == "true") {
-              // those GH checks are required, and docs build skips them we artificially make them as OK
-              githubCheck(name: "Application Server integration tests", status: 'neutral');
-              githubCheck(name: "Non-Application Server integration tests", status: 'neutral');
-            }
           }
         }
       }
@@ -78,6 +72,18 @@ pipeline {
         HOME = "${env.WORKSPACE}"
         JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
+      }
+      when {
+        beforeAgent true
+        allOf {
+          expression { return env.ONLY_DOCS == "false" }
+          anyOf {
+            branch 'main'
+            expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
+            expression { matchesPrLabel(label: 'ci:benchmarks') }
+            expression { return params.bench_ci }
+          }
+        }
       }
       stages {
         /**
@@ -149,11 +155,6 @@ pipeline {
           }
         }
       }
-    }
-  }
-  post {
-    cleanup {
-      notifyBuildResult(analyzeFlakey: !isTag(), flakyReportIdx: 'reporter-apm-agent-java-apm-agent-java-main', flakyDisableGHIssueCreation: true)
     }
   }
 }
