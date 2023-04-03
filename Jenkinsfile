@@ -46,6 +46,15 @@ pipeline {
   }
   stages {
     stage('Checkout') {
+      when {
+        beforeAgent true
+        anyOf {
+          branch 'main'
+          expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
+          expression { matchesPrLabel(label: 'ci:benchmarks') }
+          expression { return params.bench_ci }
+        }
+      }
       options { skipDefaultCheckout() }
       steps {
         pipelineManager([ cancelPreviousRunningBuilds: [ when: 'PR' ] ])
