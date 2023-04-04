@@ -241,7 +241,7 @@ jobs:
             additionalArgs: ''
           - version: 21-ea
             distribution: 'zulu'
-            additionalArgs: '-DargLine=-Dnet.bytebuddy.experimental=true'
+            additionalArgs: '-DsurefireArgLine=-Dnet.bytebuddy.experimental=true'
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/maven-goal
