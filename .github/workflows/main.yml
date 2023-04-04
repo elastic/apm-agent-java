@@ -230,7 +230,7 @@ jobs:
       JAVA_DIST: 'temurin'
     strategy:
       matrix:
-        version: [11, 17, 19]
+        version: [ 11, 17, 20, 21-ea ]
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/maven-goal
