@@ -150,8 +150,6 @@
 
         <skip.integration.test>false</skip.integration.test>
         <skip.unit.test>false</skip.unit.test>
-
-        <argLine></argLine>
     </properties>
 
     <profiles>
