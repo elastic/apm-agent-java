@@ -34,6 +34,7 @@
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
         <!-- only testing code here -->
         <animal.sniffer.skip>true</animal.sniffer.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
 </project>
