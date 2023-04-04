@@ -232,12 +232,16 @@ jobs:
         include:
           - version: 11
             distribution: 'temurin'
+            additionalArgs: ''
           - version: 17
             distribution: 'temurin'
+            additionalArgs: ''
           - version: 20
             distribution: 'temurin'
+            additionalArgs: ''
           - version: 21-ea
             distribution: 'zulu'
+            additionalArgs: '-DargLine=-Dnet.bytebuddy.experimental'
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/maven-goal
@@ -246,7 +250,7 @@ jobs:
           test-java-distribution: ${{ matrix.distribution }}
           command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
       - name: Run tests for ${{ matrix.version }}:${{ matrix.distribution }}
-        run: ./mvnw test -Dtest_java_binary=${{ env.TEST_JAVA_BINARY }}
+        run: ./mvnw test -Dtest_java_binary=${{ env.TEST_JAVA_BINARY }} ${{ matrix.additionalArgs }}
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v3
