@@ -18,10 +18,12 @@
  */
 package co.elastic.apm.agent.common.util;
 
+import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -29,6 +31,7 @@ import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -60,21 +63,31 @@ class ResourceExtractionUtilTest {
     }
 
     @Test
-    void testContentDoesNotMatch(@TempDir Path tmpDir) throws Exception {
+    void testContentDoesNotMatch(final @TempDir Path tmpDir) throws Exception {
         Path tmp = ResourceExtractionUtil.extractResourceToDirectory("test.txt", "test", ".tmp", tmpDir);
-        Files.writeString(tmp, "changed");
-        assertThatThrownBy(() -> ResourceExtractionUtil.extractResourceToDirectory("test.txt", "test", ".tmp", tmpDir))
+        Files.write(tmp, "changed".getBytes(StandardCharsets.UTF_8));
+        assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
+            @Override
+            public void call() throws Throwable {
+                ResourceExtractionUtil.extractResourceToDirectory("test.txt", "test", ".tmp", tmpDir);
+            }
+        })
             .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
-    void exportResourceToDirectory_throwExceptionIfNotFound(@TempDir Path tmpDir) {
-        assertThatThrownBy(() -> ResourceExtractionUtil.extractResourceToDirectory("nonexist", "nonexist", ".tmp", tmpDir))
+    void exportResourceToDirectory_throwExceptionIfNotFound(final @TempDir Path tmpDir) {
+        assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
+            @Override
+            public void call() throws Throwable {
+                ResourceExtractionUtil.extractResourceToDirectory("nonexist", "nonexist", ".tmp", tmpDir);
+            }
+        })
             .hasMessage("nonexist not found");
     }
 
     @Test
-    void exportResourceToDirectoryInMultipleThreads(@TempDir Path tmpDir) throws InterruptedException, ExecutionException {
+    void exportResourceToDirectoryInMultipleThreads(final @TempDir Path tmpDir) throws InterruptedException, ExecutionException {
         final int nbThreads = 10;
         final ExecutorService executorService = Executors.newFixedThreadPool(nbThreads);
         final CountDownLatch countDownLatch = new CountDownLatch(nbThreads);
@@ -82,10 +95,13 @@ class ResourceExtractionUtilTest {
         final String tempFileNamePrefix = UUID.randomUUID().toString();
 
         for (int i = 0; i < nbThreads; i++) {
-            futureList.add(executorService.submit(() -> {
-                countDownLatch.countDown();
-                countDownLatch.await();
-                return ResourceExtractionUtil.extractResourceToDirectory("test.txt", tempFileNamePrefix, ".tmp", tmpDir);
+            futureList.add(executorService.submit(new Callable<Path>() {
+                @Override
+                public Path call() throws Exception {
+                    countDownLatch.countDown();
+                    countDownLatch.await();
+                    return ResourceExtractionUtil.extractResourceToDirectory("test.txt", tempFileNamePrefix, ".tmp", tmpDir);
+                }
             }));
         }
 

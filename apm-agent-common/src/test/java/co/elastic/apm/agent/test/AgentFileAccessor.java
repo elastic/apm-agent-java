@@ -19,10 +19,12 @@
 package co.elastic.apm.agent.test;
 
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * Provides access to packaged agent artifacts
@@ -49,21 +51,21 @@ public class AgentFileAccessor {
                 break;
         }
         return getArtifactPath(
-            Path.of(project),
+            Paths.get(project),
             "",
             ".jar");
     }
 
     public static Path getPathToAttacher() {
         return getArtifactPath(
-            Path.of("apm-agent-attach-cli"),
+            Paths.get("apm-agent-attach-cli"),
             "",
             ".jar");
     }
 
     public static Path getPathToSlimAttacher() {
         return getArtifactPath(
-            Path.of("apm-agent-attach-cli"),
+            Paths.get("apm-agent-attach-cli"),
             "-slim",
             ".jar");
     }
@@ -100,14 +102,20 @@ public class AgentFileAccessor {
                 throw new IllegalStateException(errorMsg);
             }
 
-            return Files.find(targetFolder, 1, (path, attr) -> path.getFileName().toString()
-                    .matches(artifactName + "-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?" + artifactSuffix + extension))
-                .findFirst()
-                .map(Path::toAbsolutePath)
-                .orElseThrow(() -> new IllegalStateException(errorMsg));
-        } catch (IOException e) {
+            Pattern pattern = Pattern.compile(artifactName + "-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?" + artifactSuffix + extension);
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(targetFolder)) {
+                for (Path filePath : stream) {
+                    if (pattern.matcher(filePath.getFileName().getFileName().toString()).matches()) {
+                        return filePath.toAbsolutePath();
+                    }
+                }
+            }
+
+        } catch (IOException e){
             throw new IllegalStateException(e);
         }
+
+        throw new IllegalStateException();
     }
 
 }

@@ -13,6 +13,9 @@
     <properties>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+
+        <!-- keep the test code compatible with java7, mostly for integration test applications -->
+        <maven.compiler.testTarget>7</maven.compiler.testTarget>
     </properties>
 
 
