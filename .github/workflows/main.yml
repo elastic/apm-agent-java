@@ -227,6 +227,7 @@ jobs:
       || inputs.jdk_compatibility_ci == true
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false #Even if the tests fail on one JDK we want to know if it also fails on others
       matrix:
         include:
           - version: 11
