@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.configuration;
 
+import co.elastic.apm.agent.test.AgentFileAccessor;
+import co.elastic.apm.agent.test.JavaExecutable;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,6 +38,7 @@ import java.lang.ref.Cleaner;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -59,14 +62,11 @@ public class ActivationTypeIT {
 
     @BeforeAll
     public static void setUp() throws IOException {
-        ElasticAgentJarFileLocation = getJarPath("elastic-apm-agent", false);
-        assertThat(ElasticAgentJarFileLocation).isNotNull();
-        ElasticAgentAttachJarFileLocation = getJarPath("apm-agent-attach", false);
-        assertThat(ElasticAgentAttachJarFileLocation).isNotNull();
-        ElasticAgentAttachTestJarFileLocation = getJarPath("apm-agent-attach", true);
-        assertThat(ElasticAgentAttachTestJarFileLocation).isNotNull();
-        ElasticAgentAttachCliJarFileLocation = getJarPath("apm-agent-attach-cli", false);
-        assertThat(ElasticAgentAttachCliJarFileLocation).isNotNull();
+
+        ElasticAgentJarFileLocation = AgentFileAccessor.getPathToJavaagent().toAbsolutePath().toString();
+        ElasticAgentAttachJarFileLocation = AgentFileAccessor.getPathToAttacher().toAbsolutePath().toString();
+        ElasticAgentAttachTestJarFileLocation = AgentFileAccessor.getArtifactPath(Path.of("apm-agent-attach"), "-tests", ".jar").toAbsolutePath().toString();
+        ElasticAgentAttachCliJarFileLocation = AgentFileAccessor.getPathToAttacher().toAbsolutePath().toString();
     }
 
     public MockServer startServer() throws IOException {
@@ -76,34 +76,6 @@ public class ActivationTypeIT {
         assertThat(server.port()).isGreaterThan(0);
         MockCleaner.register(server, () -> server.stop());
         return server;
-    }
-
-    private static String getJarPath(String project, boolean findTestJar) {
-        File rootDir = new File("..");
-        File projectDir = new File(rootDir, project);
-        assertThat(projectDir.exists()).isTrue();
-        assertThat(projectDir.isDirectory()).isTrue();
-        File targetDir = new File(projectDir, "target");
-        assertThat(targetDir.exists()).isTrue();
-        assertThat(targetDir.isDirectory()).isTrue();
-        String jarName = null;
-        for (String file : targetDir.list()) {
-            if (file.matches("^"+project+".*"+".jar$")
-                && !file.contains("-sources") && !file.contains("-slim")) {
-                if (!findTestJar && file.contains("-tests")) {
-                    continue;
-                }
-                if (findTestJar && !file.contains("-tests")) {
-                    continue;
-                }
-                File jarNameFile = new File(targetDir, file);
-                assertThat(jarNameFile.exists()).isTrue();
-                assertThat(jarNameFile.isDirectory()).isFalse();
-                assertThat(jarNameFile.canRead()).isTrue();
-                jarName = jarNameFile.getPath();
-            }
-        }
-        return jarName;
     }
 
     @Test
@@ -196,12 +168,12 @@ public class ActivationTypeIT {
             if (serviceName != null) {
                 ProcessBuilder pbAttach;
                 if ("fleet".equals(activationMethod)) {
-                    pbAttach = new ProcessBuilder("java",
+                    pbAttach = new ProcessBuilder(JavaExecutable.getBinaryPath().toString(),
                         "-jar", ElasticAgentAttachCliJarFileLocation,
                         "--include-vmarg", serviceName,
                         "-C", "activation_method=FLEET");
                 } else {
-                    pbAttach = new ProcessBuilder("java",
+                    pbAttach = new ProcessBuilder(JavaExecutable.getBinaryPath().toString(),
                         "-jar", ElasticAgentAttachCliJarFileLocation,
                         "--include-vmarg", serviceName);
                 }
@@ -325,7 +297,7 @@ public class ActivationTypeIT {
 
         public void init() {
             command.clear();
-            addOption("java");
+            addOption(JavaExecutable.getBinaryPath());
             addOption("-Xmx32m");
             addOption("-classpath");
             addOption(Classpath);

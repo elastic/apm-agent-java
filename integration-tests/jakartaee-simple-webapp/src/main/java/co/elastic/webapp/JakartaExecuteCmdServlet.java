@@ -18,15 +18,14 @@
  */
 package co.elastic.webapp;
 
+import co.elastic.apm.agent.test.JavaExecutable;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 
 public class JakartaExecuteCmdServlet extends HttpServlet {
@@ -38,7 +37,7 @@ public class JakartaExecuteCmdServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
-        String[] cmd = new String[]{getJavaBinaryPath(), "-version"};
+        String[] cmd = new String[]{JavaExecutable.getBinaryPath(), "-version"};
 
         String variant = req.getParameter("variant");
         Variant v = variant != null ? Variant.valueOf(variant) : Variant.WAIT_FOR;
@@ -74,16 +73,6 @@ public class JakartaExecuteCmdServlet extends HttpServlet {
 
     private static void writeMsg(PrintWriter writer, String msg, Object... msgArgs) {
         writer.println(String.format(msg, msgArgs));
-    }
-
-    private static String getJavaBinaryPath() {
-        boolean isWindows = System.getProperty("os.name").startsWith("Windows");
-        String executable = isWindows ? "java.exe" : "java";
-        Path path = Paths.get(System.getProperty("java.home"), "bin", executable);
-        if (!Files.isExecutable(path)) {
-            throw new IllegalStateException("unable to find java path");
-        }
-        return path.toAbsolutePath().toString();
     }
 
 }
