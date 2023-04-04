@@ -236,7 +236,7 @@ jobs:
           - version: 20
             distribution: 'temurin'
           - version: 21-ea
-            distribution: 'oracle'
+            distribution: 'zulu'
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/maven-goal
