@@ -18,5 +18,14 @@
  */
 package co.elastic.apm.agent.springwebmvc.template;
 
-public class Spring6GroovyTemplateTest extends Spring5GroovyTemplateTest {
+import co.elastic.apm.agent.springwebmvc.Java17OnlyTest;
+
+public class Spring6GroovyTemplateTest extends Java17OnlyTest {
+
+    public Spring6GroovyTemplateTest() {
+        super(Impl.class);
+    }
+
+    public static class Impl extends Spring5GroovyTemplateTest {
+    }
 }

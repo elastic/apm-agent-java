@@ -18,5 +18,15 @@
  */
 package co.elastic.apm.agent.springwebmvc.exception;
 
-public class Spring6ExceptionHandlerInstrumentationWithGlobalAdviceTest extends Spring5ExceptionHandlerInstrumentationWithGlobalAdviceTest {
+import co.elastic.apm.agent.springwebmvc.Java17OnlyTest;
+
+public class Spring6ExceptionHandlerInstrumentationWithGlobalAdviceTest extends Java17OnlyTest {
+
+    public Spring6ExceptionHandlerInstrumentationWithGlobalAdviceTest() {
+        super(Impl.class);
+    }
+
+    public static class Impl extends Spring5ExceptionHandlerInstrumentationWithGlobalAdviceTest {
+
+    }
 }

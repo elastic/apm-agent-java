@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.springwebmvc.template;
 
 
+import co.elastic.apm.agent.springwebmvc.Java17OnlyTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
@@ -27,36 +28,41 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.spring6.templateresolver.SpringResourceTemplateResolver;
 import org.thymeleaf.spring6.view.ThymeleafViewResolver;
 
-@ContextConfiguration(classes = {Spring6ThymeleafTest.ThymeleafConfiguration.class})
-class Spring6ThymeleafTest extends AbstractThymeleafTest {
-
-    @Configuration
-    @EnableWebMvc
-    public static class ThymeleafConfiguration {
-
-        @Bean
-        public SpringTemplateEngine templateEngine() {
-            SpringTemplateEngine templateEngine = new SpringTemplateEngine();
-            templateEngine.setTemplateResolver(thymeleafTemplateResolver());
-            return templateEngine;
-        }
-
-        @Bean
-        public SpringResourceTemplateResolver thymeleafTemplateResolver() {
-            SpringResourceTemplateResolver templateResolver
-                = new SpringResourceTemplateResolver();
-            templateResolver.setPrefix("/thymeleaf/");
-            templateResolver.setSuffix(".html");
-            templateResolver.setTemplateMode("HTML5");
-            return templateResolver;
-        }
-
-        @Bean
-        public ThymeleafViewResolver thymeleafViewResolver() {
-            ThymeleafViewResolver viewResolver = new ThymeleafViewResolver();
-            viewResolver.setTemplateEngine(templateEngine());
-            return viewResolver;
-        }
+public class Spring6ThymeleafTest extends Java17OnlyTest {
+    public Spring6ThymeleafTest() {
+        super(AbstractThymeleafTest.class);
     }
 
+    @ContextConfiguration(classes = {Spring6ThymeleafTest.Impl.ThymeleafConfiguration.class})
+    public static class Impl extends AbstractThymeleafTest {
+
+        @Configuration
+        @EnableWebMvc
+        public static class ThymeleafConfiguration {
+
+            @Bean
+            public SpringTemplateEngine templateEngine() {
+                SpringTemplateEngine templateEngine = new SpringTemplateEngine();
+                templateEngine.setTemplateResolver(thymeleafTemplateResolver());
+                return templateEngine;
+            }
+
+            @Bean
+            public SpringResourceTemplateResolver thymeleafTemplateResolver() {
+                SpringResourceTemplateResolver templateResolver
+                    = new SpringResourceTemplateResolver();
+                templateResolver.setPrefix("/thymeleaf/");
+                templateResolver.setSuffix(".html");
+                templateResolver.setTemplateMode("HTML5");
+                return templateResolver;
+            }
+
+            @Bean
+            public ThymeleafViewResolver thymeleafViewResolver() {
+                ThymeleafViewResolver viewResolver = new ThymeleafViewResolver();
+                viewResolver.setTemplateEngine(templateEngine());
+                return viewResolver;
+            }
+        }
+    }
 }

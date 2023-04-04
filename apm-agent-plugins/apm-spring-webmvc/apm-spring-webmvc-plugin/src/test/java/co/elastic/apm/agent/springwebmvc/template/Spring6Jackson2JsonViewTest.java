@@ -18,5 +18,15 @@
  */
 package co.elastic.apm.agent.springwebmvc.template;
 
-public class Spring6Jackson2JsonViewTest extends Spring5Jackson2JsonViewTest {
+import co.elastic.apm.agent.springwebmvc.Java17OnlyTest;
+
+public class Spring6Jackson2JsonViewTest extends Java17OnlyTest {
+
+    public Spring6Jackson2JsonViewTest() {
+        super(Impl.class);
+    }
+
+    public static class Impl extends Spring5Jackson2JsonViewTest {
+
+    }
 }

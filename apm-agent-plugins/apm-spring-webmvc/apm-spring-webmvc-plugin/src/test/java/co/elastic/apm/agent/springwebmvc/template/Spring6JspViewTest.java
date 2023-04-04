@@ -18,5 +18,15 @@
  */
 package co.elastic.apm.agent.springwebmvc.template;
 
-public class Spring6JspViewTest extends Spring5JspViewTest {
+import co.elastic.apm.agent.springwebmvc.Java17OnlyTest;
+
+public class Spring6JspViewTest extends Java17OnlyTest {
+
+    public Spring6JspViewTest() {
+        super(Impl.class);
+    }
+
+    public static class Impl extends Spring5JspViewTest {
+
+    }
 }

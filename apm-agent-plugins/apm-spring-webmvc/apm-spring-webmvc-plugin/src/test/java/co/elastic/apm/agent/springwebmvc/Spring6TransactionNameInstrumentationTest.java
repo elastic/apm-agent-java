@@ -31,56 +31,62 @@ import java.io.PrintWriter;
 import java.util.function.Function;
 
 
-public class Spring6TransactionNameInstrumentationTest extends AbstractSpringTransactionNameInstrumentationTest {
+public class Spring6TransactionNameInstrumentationTest extends Java17OnlyTest {
 
-    public static class TestServlet extends HttpServlet {
-        @Override
-        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-            resp.getWriter().print("TestServlet");
-        }
+    public Spring6TransactionNameInstrumentationTest() {
+        super(Impl.class);
     }
 
-    @Configuration
-    public static class TestConfiguration extends AbstractTestConfiguration {
-
-        @Override
-        protected Class<?> getTestServletClass() {
-            return TestServlet.class;
+    public static class Impl extends AbstractSpringTransactionNameInstrumentationTest {
+        public static class TestServlet extends HttpServlet {
+            @Override
+            protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+                resp.getWriter().print("TestServlet");
+            }
         }
 
-        @Override
-        protected void configureTestServletOnController(ServletWrappingController controller) {
-            controller.setServletClass(TestServlet.class);
+        @Configuration
+        public static class TestConfiguration extends AbstractTestConfiguration {
+
+            @Override
+            protected Class<?> getTestServletClass() {
+                return TestServlet.class;
+            }
+
+            @Override
+            protected void configureTestServletOnController(ServletWrappingController controller) {
+                controller.setServletClass(TestServlet.class);
+            }
+
+            @Override
+            protected ServletWrappingController createMyCustomController(Function<PrintWriter, ModelAndView> handler) {
+                return new MyCustomController(handler);
+            }
+
+            @Override
+            protected ServletWrappingController createAnonymousController(Function<PrintWriter, ModelAndView> handler) {
+                return new ServletWrappingController() {
+                    @Override
+                    public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
+                        return handler.apply(response.getWriter());
+                    }
+                };
+            }
         }
 
-        @Override
-        protected ServletWrappingController createMyCustomController(Function<PrintWriter, ModelAndView> handler) {
-            return new MyCustomController(handler);
-        }
 
-        @Override
-        protected ServletWrappingController createAnonymousController(Function<PrintWriter, ModelAndView> handler) {
-            return new ServletWrappingController() {
-                @Override
-                public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
-                    return handler.apply(response.getWriter());
-                }
-            };
-        }
-    }
+        private static class MyCustomController extends ServletWrappingController {
 
+            private final Function<PrintWriter, ModelAndView> handler;
 
-    private static class MyCustomController extends ServletWrappingController {
+            public MyCustomController(Function<PrintWriter, ModelAndView> handler) {
+                this.handler = handler;
+            }
 
-        private final Function<PrintWriter, ModelAndView> handler;
-
-        public MyCustomController(Function<PrintWriter, ModelAndView> handler) {
-            this.handler = handler;
-        }
-
-        @Override
-        public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
-            return handler.apply(response.getWriter());
+            @Override
+            public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
+                return handler.apply(response.getWriter());
+            }
         }
     }
 }

@@ -18,5 +18,14 @@
  */
 package co.elastic.apm.agent.springwebmvc.exception;
 
-public class Spring6ExceptionHandlerInstrumentationWithResponseStatusExceptionTest extends Spring5ExceptionHandlerInstrumentationWithResponseStatusExceptionTest {
+import co.elastic.apm.agent.springwebmvc.Java17OnlyTest;
+
+public class Spring6ExceptionHandlerInstrumentationWithResponseStatusExceptionTest extends Java17OnlyTest {
+
+    public Spring6ExceptionHandlerInstrumentationWithResponseStatusExceptionTest() {
+        super(Impl.class);
+    }
+
+    public static class Impl extends Spring5ExceptionHandlerInstrumentationWithResponseStatusExceptionTest {
+    }
 }

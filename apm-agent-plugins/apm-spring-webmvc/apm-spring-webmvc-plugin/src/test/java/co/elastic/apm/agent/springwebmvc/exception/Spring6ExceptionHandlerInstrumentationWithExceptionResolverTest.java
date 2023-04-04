@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.springwebmvc.exception;
 
+import co.elastic.apm.agent.springwebmvc.Java17OnlyTest;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_resolver.AbstractRestResponseStatusExceptionResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,18 +26,24 @@ import org.springframework.stereotype.Component;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.servlet.ModelAndView;
 
-@ContextConfiguration(classes = {
-    Spring6ExceptionHandlerInstrumentationWithExceptionResolverTest.Spring6ResponseStatusExceptionResolver.class
-})
-public class Spring6ExceptionHandlerInstrumentationWithExceptionResolverTest extends
-    AbstractExceptionHandlerInstrumentationWithExceptionResolverTest {
+public class Spring6ExceptionHandlerInstrumentationWithExceptionResolverTest extends Java17OnlyTest {
 
-    @Component
-    public static class Spring6ResponseStatusExceptionResolver extends AbstractRestResponseStatusExceptionResolver {
+    public Spring6ExceptionHandlerInstrumentationWithExceptionResolverTest() {
+        super(Impl.class);
+    }
 
-        @Override
-        protected ModelAndView doResolveException(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
-            return super.doResolveException(handler, ex);
+    @ContextConfiguration(classes = {
+        Spring6ExceptionHandlerInstrumentationWithExceptionResolverTest.Impl.Spring6ResponseStatusExceptionResolver.class
+    })
+    public static class Impl extends AbstractExceptionHandlerInstrumentationWithExceptionResolverTest {
+
+        @Component
+        public static class Spring6ResponseStatusExceptionResolver extends AbstractRestResponseStatusExceptionResolver {
+
+            @Override
+            protected ModelAndView doResolveException(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+                return super.doResolveException(handler, ex);
+            }
         }
     }
 }
