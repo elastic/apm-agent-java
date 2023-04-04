@@ -115,8 +115,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private final Future<MetaData> metaData;
     @Nullable
     private byte[] serializedMetaData;
-
-    private final AtomicReference<Boolean> serializedActivationMethod = new AtomicReference<>(null);
+    private boolean serializedActivationMethod;
 
     public DslJsonSerializer(StacktraceConfiguration stacktraceConfiguration, ApmServerClient apmServerClient, final Future<MetaData> metaData) {
         this.stacktraceConfiguration = stacktraceConfiguration;
@@ -235,22 +234,20 @@ public class DslJsonSerializer implements PayloadSerializer {
      * @throws Exception if blocking was interrupted, or timed out or an error occurred in the underlying implementation
      */
     @Override
-    public void blockUntilReady() throws Exception {
-
+    public synchronized void blockUntilReady() throws Exception {
         boolean supportsActivationMethod = apmServerClient.supportsActivationMethod();
-        Boolean serializedActivationMethodValue = serializedActivationMethod.get();
-        boolean updateRequired = serializedActivationMethodValue == null || supportsActivationMethod != serializedActivationMethodValue.booleanValue();
-
-        if (serializedMetaData == null || updateRequired) {
-            serializedActivationMethod.set(supportsActivationMethod);
-
-            JsonWriter metadataJW = new DslJson<>(new DslJson.Settings<>()).newWriter(4096);
-            MetaData meta = metaData.get(5, TimeUnit.SECONDS);
-            boolean supportsConfiguredAndDetectedHostname = apmServerClient.supportsConfiguredAndDetectedHostname();
-
-            serializeMetadata(meta, metadataJW, supportsConfiguredAndDetectedHostname, supportsActivationMethod);
-            serializedMetaData = metadataJW.toByteArray();
+        if (null != serializedMetaData && serializedActivationMethod == supportsActivationMethod) {
+            return;
         }
+
+        serializedActivationMethod = supportsActivationMethod;
+
+        JsonWriter metadataJW = new DslJson<>(new DslJson.Settings<>()).newWriter(4096);
+        MetaData meta = metaData.get(5, TimeUnit.SECONDS);
+        boolean supportsConfiguredAndDetectedHostname = apmServerClient.supportsConfiguredAndDetectedHostname();
+
+        serializeMetadata(meta, metadataJW, supportsConfiguredAndDetectedHostname, supportsActivationMethod);
+        serializedMetaData = metadataJW.toByteArray();
     }
 
     private static void serializeGlobalLabels(ArrayList<String> globalLabelKeys, ArrayList<String> globalLabelValues,
