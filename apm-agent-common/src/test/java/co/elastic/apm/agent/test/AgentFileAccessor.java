@@ -30,8 +30,13 @@ import java.util.Objects;
 public class AgentFileAccessor {
 
     public enum Variant {
-        STANDARD,
-        JAVA8_BUILD
+        STANDARD("elastic-apm-agent"),
+        JAVA8_BUILD("elastic-apm-agent-java8");
+
+        private String artifact;
+        Variant(String artifact){
+            this.artifact = artifact;
+        }
     }
 
     public static Path getPathToJavaagent() {
@@ -39,17 +44,8 @@ public class AgentFileAccessor {
     }
 
     public static Path getPathToJavaagent(Variant agentBuild) {
-        String project = "elastic-apm-agent";
-        switch (agentBuild) {
-            case STANDARD:
-                project = "elastic-apm-agent";
-                break;
-            case JAVA8_BUILD:
-                project = "elastic-apm-agent-java8";
-                break;
-        }
         return getArtifactPath(
-            Path.of(project),
+            Path.of(agentBuild.artifact),
             "",
             ".jar");
     }

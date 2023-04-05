@@ -50,6 +50,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -400,16 +401,48 @@ public class ApmServerClientTest {
 
     @Test
     public void testSupportLogsEnpoint() {
-        testSupportLogsEndpoint(null, false);
-        testSupportLogsEndpoint("8.5.99", false);
-        testSupportLogsEndpoint("8.6.0", true);
-        testSupportLogsEndpoint("9.0.0", true);
+        String feature = "logs endpoint";
+        Callable<Boolean> featureMethod = () -> apmServerClient.supportsLogsEndpoint();
+
+        testSupportedFeature(feature, featureMethod,null, false);
+        testSupportedFeature(feature, featureMethod,"8.5.99", false);
+        testSupportedFeature(feature, featureMethod,"8.6.0", true);
+        testSupportedFeature(feature, featureMethod,"9.0.0", true);
     }
 
-    private void testSupportLogsEndpoint(@Nullable String version, boolean expected) {
+    @Test
+    public void testSupportsActivationMethod() {
+        String feature = "agent activation method";
+        Callable<Boolean> featureMethod = () -> apmServerClient.supportsActivationMethod();
+
+        testSupportedFeature(feature, featureMethod, null, true);
+        testSupportedFeature(feature, featureMethod, "8.6.99", false);
+        testSupportedFeature(feature, featureMethod, "8.7.0", false);
+        testSupportedFeature(feature, featureMethod, "8.7.1", true);
+        testSupportedFeature(feature, featureMethod, "9.0.0", true);
+    }
+
+    @Test
+    public void testSupportsSendingUnsampledTransactions() {
+        String feature = "keep unsampled transactions";
+        Callable<Boolean> featureMethod = () -> apmServerClient.supportsKeepingUnsampledTransaction();
+
+        testSupportedFeature(feature, featureMethod, null, true);
+        testSupportedFeature(feature, featureMethod, "7.99.99", true);
+        testSupportedFeature(feature, featureMethod, "8.0.0", false);
+        testSupportedFeature(feature, featureMethod, "9.0.0", false);
+    }
+
+    private void testSupportedFeature(String feature, Callable<Boolean> featureMethod, @Nullable String version, boolean expected) {
         stubServerVersion(version);
-        assertThat(apmServerClient.supportsLogsEndpoint())
-            .describedAs("logs endpoint for version %s is expected to be %s", expected ? "supported": "not supported")
+        Boolean result;
+        try {
+            result = featureMethod.call();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        assertThat(result)
+            .describedAs("%s for version '%s' is expected to be %s", feature, version, expected ? "supported" : "not supported")
             .isEqualTo(expected);
     }
 
