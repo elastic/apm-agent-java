@@ -49,11 +49,11 @@ NOTE: As of version 1.33.0, Java 7 support is deprecated and will be removed in 
 |Vendor |Supported versions |Notes
 
 |Oracle JDK
-|7u60+*, 8u40+, 9, 10, 11, 17
+|7u60+*, 8u40+, 9, 10, 11, 17, 20
 |`--module-path` has not been tested yet
 
 |OpenJDK
-|7u60+*, 8u40+, 9, 10, 11, 17
+|7u60+*, 8u40+, 9, 10, 11, 17, 20
 |`--module-path` has not been tested yet
 
 |IBM J9 VM
