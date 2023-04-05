@@ -47,6 +47,13 @@
             <version>${version.reactor}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-spring-webflux-spring5</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+            <type>test-jar</type>
+        </dependency>
     </dependencies>
 
 </project>
