@@ -20,24 +20,25 @@ package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.test.AgentFileAccessor;
 import co.elastic.apm.agent.test.JavaExecutable;
+import co.elastic.apm.agent.testutils.TestPort;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.net.httpserver.HttpContext;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.lang.ref.Cleaner;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketException;
+import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,24 +46,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
-@Execution(ExecutionMode.CONCURRENT)
 public class ActivationTypeIT {
-    // Activation is about how an external config or process activates the agent,
-    // so tests here spawn a full JVM with an agent to test the activation method
-    private static final int TIMEOUT_IN_SECONDS = 200;
 
     private static String ElasticAgentAttachJarFileLocation;
     private static String ElasticAgentAttachTestJarFileLocation;
     private static String ElasticAgentAttachCliJarFileLocation;
     private static String ElasticAgentJarFileLocation;
-    private static final Cleaner MockCleaner = Cleaner.create();
 
     @BeforeAll
     public static void setUp() throws IOException {
-
         ElasticAgentJarFileLocation = AgentFileAccessor.getPathToJavaagent().toAbsolutePath().toString();
         ElasticAgentAttachJarFileLocation = AgentFileAccessor.getPathToAttacher().toAbsolutePath().toString();
         ElasticAgentAttachTestJarFileLocation = AgentFileAccessor.getArtifactPath(Path.of("apm-agent-attach"), "-tests", ".jar").toAbsolutePath().toString();
@@ -72,9 +69,7 @@ public class ActivationTypeIT {
     public MockServer startServer() throws IOException {
         final MockServer server = new MockServer();
         server.start();
-        assertThat(server.waitUntilStarted(500)).isTrue();
         assertThat(server.port()).isGreaterThan(0);
-        MockCleaner.register(server, () -> server.stop());
         return server;
     }
 
@@ -92,7 +87,7 @@ public class ActivationTypeIT {
     }
 
     @Test
-    public void testCLIAttach() throws Exception {
+    public void testJavaAgentAttach() throws Exception {
         try (MockServer server = startServer()) {
             JvmAgentProcess proc = new JvmAgentProcess(server, "JavaAgentCLI",
                 "co.elastic.apm.agent.configuration.ActivationTestExampleApp",
@@ -148,14 +143,18 @@ public class ActivationTypeIT {
     }
 
     static class ExternalProcess {
+        @Nullable
         volatile Process child;
         boolean debug = true;
 
         private static void pauseSeconds(int seconds) {
-            try {Thread.sleep(seconds*1_000L);} catch (InterruptedException e) {}
+            try {
+                Thread.sleep(seconds * 1_000L);
+            } catch (InterruptedException e) {
+            }
         }
 
-        public void executeCommandInNewThread(ProcessBuilder pb, ActivationHandler handler, String activationMethod, String serviceName) throws IOException, InterruptedException {
+        public void executeCommandInNewThread(ProcessBuilder pb, String activationMethod, MockServer mockServer, @Nullable String serviceName) throws IOException {
             ExternalProcess spawnedProcess = new ExternalProcess();
             new Thread(() -> {
                 try {
@@ -168,33 +167,58 @@ public class ActivationTypeIT {
             if (serviceName != null) {
                 ProcessBuilder pbAttach;
                 if ("fleet".equals(activationMethod)) {
-                    pbAttach = new ProcessBuilder(JavaExecutable.getBinaryPath().toString(),
+                    pbAttach = new ProcessBuilder(JavaExecutable.getBinaryPath(),
                         "-jar", ElasticAgentAttachCliJarFileLocation,
                         "--include-vmarg", serviceName,
                         "-C", "activation_method=FLEET");
                 } else {
-                    pbAttach = new ProcessBuilder(JavaExecutable.getBinaryPath().toString(),
+                    pbAttach = new ProcessBuilder(JavaExecutable.getBinaryPath(),
                         "-jar", ElasticAgentAttachCliJarFileLocation,
                         "--include-vmarg", serviceName);
                 }
                 executeCommandSynchronously(pbAttach);
             }
-            waitForActivationMethod(handler, TIMEOUT_IN_SECONDS*1000);
-            assertThat(handler.found()).isTrue();
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            await().until(() -> !mockServer.getReceivedBodyLines().isEmpty());
+
+            List<JsonNode> jsonLines = mockServer.getReceivedBodyLines().stream()
+                .map(line -> {
+                        try {
+                            return objectMapper.readTree(line);
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                ).collect(Collectors.toList());
+
+            String foundServiceName = null;
+            String foundActivationMethod = null;
+            for (JsonNode jsonLine : jsonLines) {
+                JsonNode service = jsonLine.get("service");
+                if (service != null) {
+                    JsonNode name = service.get("name");
+                    if (name != null && name.isTextual()) {
+                        foundServiceName = name.asText();
+                    }
+                    JsonNode agent = service.get("agent");
+                    if (agent != null) {
+                        JsonNode am = agent.get("activation_method");
+                        if (am != null && am.isTextual()) {
+                            foundActivationMethod = am.asText();
+                        }
+                    }
+                }
+            }
+            if (serviceName != null) {
+                assertThat(foundServiceName).isEqualTo(serviceName);
+            }
+
+            assertThat(foundActivationMethod).isEqualTo(activationMethod);
+
             terminate();
             spawnedProcess.terminate();
         }
-
-        private static void waitForActivationMethod(ActivationHandler handler, long timeoutInMillis) {
-            long start = System.currentTimeMillis();
-            while (System.currentTimeMillis() - start < timeoutInMillis) {
-                if (handler.found()) {
-                    return;
-                }
-                try {Thread.sleep(5);} catch (InterruptedException e) {}
-            }
-        }
-
 
         private void terminate() {
             if (child != null) {
@@ -210,7 +234,7 @@ public class ActivationTypeIT {
 
         public void executeCommandSynchronously(ProcessBuilder pb) throws IOException {
             if (debug) {
-                System.out.println("Executing command: "+ Arrays.toString(pb.command().toArray()));
+                System.out.println("Executing command: " + Arrays.toString(pb.command().toArray()));
             }
             pb.redirectErrorStream(true);
             Process childProcess = pb.start();
@@ -239,7 +263,10 @@ public class ActivationTypeIT {
 
             //Cleanup as well as I can
             boolean exited = false;
-            try {exited = childProcess.waitFor(3, TimeUnit.SECONDS);}catch (InterruptedException e) {}
+            try {
+                exited = childProcess.waitFor(3, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+            }
             if (!exited) {
                 childProcess.destroy();
                 pauseSeconds(1);
@@ -263,7 +290,7 @@ public class ActivationTypeIT {
         String serviceName;
         String targetClass;
         String activationMethod;
-        Map<String,String> env;
+        Map<String, String> env = new HashMap<>();
         boolean attachRemotely;
         List<String> targetParams = new ArrayList<>();
 
@@ -271,28 +298,24 @@ public class ActivationTypeIT {
             this.attachRemotely = attachRemotely1;
         }
 
-        public JvmAgentProcess(MockServer server, String serviceName1, String targetClass1, String activationMethod1) {
-            apmServer = server;
-            serviceName = serviceName1;
-            targetClass = targetClass1;
-            activationMethod = activationMethod1;
+        public JvmAgentProcess(MockServer server, String serviceName, String targetClass, String activationMethod) {
+            this.apmServer = server;
+            this.serviceName = serviceName;
+            this.targetClass = targetClass;
+            this.activationMethod = activationMethod;
             init();
         }
 
         public void addEnv(String key, String value) {
-            if(env == null) {
-                env = new HashMap<>();
-            }
             env.put(key, value);
         }
 
         public void prependToClasspath(String location) {
-            command.set(3, location+System.getProperty("path.separator")+command.get(3));
+            command.set(3, location + System.getProperty("path.separator") + command.get(3));
         }
 
-        public void executeCommand() throws IOException, InterruptedException {
-            executeCommandInNewThread(buildProcess(), apmServer.getHandler(),
-                activationMethod, attachRemotely? serviceName : null);
+        public void executeCommand() throws IOException {
+            executeCommandInNewThread(buildProcess(), activationMethod, apmServer, attachRemotely ? serviceName : null);
         }
 
         public void init() {
@@ -301,29 +324,24 @@ public class ActivationTypeIT {
             addOption("-Xmx32m");
             addOption("-classpath");
             addOption(Classpath);
-            addAgentOption("server_url=http://localhost:"+apmServer.port());
+            addAgentOption("server_url=http://localhost:" + apmServer.port());
             for (String keyEqualsValue : TestAgentParams) {
                 addAgentOption(keyEqualsValue);
             }
-            addAgentOption("service_name="+serviceName);
-            apmServer.getHandler().setActivationToWaitFor(serviceName, activationMethod);
+            addAgentOption("service_name=" + serviceName);
         }
 
         public void addAgentOption(String keyEqualsValue) {
-            command.add("-Delastic.apm."+keyEqualsValue);
+            command.add("-Delastic.apm." + keyEqualsValue);
         }
 
         public void addOption(String option) {
             command.add(option);
         }
 
-        public void addTargetParam(String param) {
-            targetParams.add(param);
-        }
-
         private ProcessBuilder buildProcess() {
             command.add(targetClass);
-            for (String param :targetParams) {
+            for (String param : targetParams) {
                 command.add(param);
             }
             ProcessBuilder pb = new ProcessBuilder(command);
@@ -337,160 +355,69 @@ public class ActivationTypeIT {
 
     }
 
-    static class ActivationHandler {
+    static class MockServer implements AutoCloseable {
 
-        private volatile String serviceNameToWaitFor;
-        private volatile String activationMethodToWaitFor;
-        private volatile boolean found;
-        private final ObjectMapper objectMapper = new ObjectMapper();
+        private static final Logger log = LoggerFactory.getLogger(MockServer.class);
 
-        public boolean found() {
-            return found;
-        }
+        @Nullable
+        private HttpServer httpServer;
 
-        public void setActivationToWaitFor(String serviceNameToWaitFor1, String activationMethodToWaitFor1) {
-            this.serviceNameToWaitFor = serviceNameToWaitFor1;
-            this.activationMethodToWaitFor = activationMethodToWaitFor1;
-            found = false;
-        }
-
-        public void handle(String line) {
-            try {
-                report(line);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
-        }
-
-        private void report(String line) throws JsonProcessingException {
-            System.out.println("MockServer line read: "+line);
-            JsonNode messageRootNode = objectMapper.readTree(line);
-            JsonNode metadataNode = messageRootNode.get("metadata");
-            if (metadataNode != null) {
-                JsonNode serviceNode = metadataNode.get("service");
-                if (serviceNode != null) {
-                    String name = serviceNode.get("name").asText();
-                    JsonNode agentNode = serviceNode.get("agent");
-                    if (agentNode != null) {
-                        JsonNode activationNode = agentNode.get("activation_method");
-                        if(activationNode != null) {
-                            String activationMethod = activationNode.asText();
-                            if (name.equals(serviceNameToWaitFor) && activationMethod.equals(activationMethodToWaitFor)) {
-                                found = true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-    }
-
-    class MockServer implements AutoCloseable {
-
-        private static final String HTTP_HEADER ="HTTP/1.0 200 OK\nContent-Type: text/html; charset=utf-8\nServer: MockApmServer\n\n";
-
-        private volatile ServerSocket server;
-        private volatile boolean keepGoing = true;
-        private final ActivationHandler handler = new ActivationHandler();
-
+        private List<String> requestBodyLines = new ArrayList<>();
 
         public MockServer() {
         }
 
-        public ActivationHandler getHandler() {
-            return handler;
-        }
-
         public void stop() {
-            keepGoing = false;
-            try {
-                if (this.server != null) {
-                    this.server.close();
-                }
-            } catch (IOException e) {
-                System.out.println("MockApmServer: Unsuccessfully called stop(), stack trace follows, error is:"+e.getLocalizedMessage());
-                e.printStackTrace(System.out);
+            if (httpServer == null) {
+                return;
             }
+            httpServer.stop(0);
+            httpServer = null;
         }
 
         public int port() {
-            if (this.server != null) {
-                return this.server.getLocalPort();
-            } else {
+            if (httpServer == null) {
                 return -1;
             }
-        }
-
-        public boolean waitUntilStarted(long timeoutInMillis) {
-            long start = System.currentTimeMillis();
-            while((System.currentTimeMillis() - start < timeoutInMillis) && server == null) {
-                try {Thread.sleep(1);} catch (InterruptedException e) {}
-            }
-            return server != null;
+            return httpServer.getAddress().getPort();
         }
 
         public void start() throws IOException {
-            if (this.server != null) {
-                throw new IOException("MockApmServer: Ooops, you can't start this instance more than once");
+            if (httpServer != null) {
+                throw new IllegalStateException("Ooops, you can't start this instance more than once");
             }
-            new Thread(() -> {
-                try {
-                    _start();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }).start();
+
+            int serverPort = TestPort.getAvailableRandomPort();
+            httpServer = HttpServer.create(new InetSocketAddress(serverPort), 0);
+            HttpContext context = httpServer.createContext("/");
+            context.setHandler(httpHandler());
+            httpServer.start();
+
+            log.info("starting mock APM server on port {}", serverPort);
         }
 
-        private synchronized void _start() throws IOException {
-            if (this.server != null) {
-                throw new IOException("MockApmServer: Ooops, you can't start this instance more than once");
-            }
-            this.server = new ServerSocket(0);
-            System.out.println("MockApmServer: Successfully called start(), now listening for requests on port "+this.server.getLocalPort());
-            while(keepGoing) {
-                try(Socket client = this.server.accept()) {
-                    while(!client.isClosed() && !client.isInputShutdown() && !client.isOutputShutdown()) {
-                        try (BufferedReader clientInput = new BufferedReader(new InputStreamReader(client.getInputStream()))) {
-                            String line = clientInput.readLine();
-                            if(line == null) {
-                                //hmmm, try again
-                                try {Thread.sleep(10);} catch (InterruptedException e) {}
-                                line = clientInput.readLine();
-                                if (line == null) {
-                                    clientInput.close();
-                                    break;
-                                }
-                            }
-                            if (line.startsWith("GET /exit")) {
-                                keepGoing = false;
-                            }
-                            while ( (line = clientInput.readLine()) != null) {
-                                if (line.strip().startsWith("{")) {
-                                    try {
-                                        handler.handle(line.strip());
-                                    } catch (Throwable e) {
-                                        //ignore, the report() is responsible to have log it
-                                    }
-                                }
-                            }
-                            PrintWriter outputToClient = new PrintWriter(client.getOutputStream());
-                            outputToClient.println(HTTP_HEADER);
-                            outputToClient.println("{}");
-                            outputToClient.flush();
-                            outputToClient.close();
-                        } catch (IOException e) {
-                            if (!e.getMessage().equals("Connection reset")) {
-                                e.printStackTrace();
-                            }
+        public List<String> getReceivedBodyLines() {
+            return requestBodyLines;
+        }
+
+        @NotNull
+        private HttpHandler httpHandler() {
+            return exchange -> {
+
+                InputStream requestBody = exchange.getRequestBody();
+                if (requestBody != null) {
+                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(requestBody))) {
+                        String line = reader.readLine();
+                        if (!line.isEmpty()) {
+                            requestBodyLines.add(line);
                         }
                     }
-                } catch (SocketException e) {
-                    //ignore, we exit regardless and stop() at the end of the method
                 }
-            }
-            stop();
+
+                String response = "{}";
+                exchange.sendResponseHeaders(200, response.getBytes().length);
+                exchange.getResponseBody().write(response.getBytes());
+            };
         }
 
         @Override
