@@ -87,7 +87,6 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static com.dslplatform.json.JsonWriter.ARRAY_END;
 import static com.dslplatform.json.JsonWriter.ARRAY_START;
