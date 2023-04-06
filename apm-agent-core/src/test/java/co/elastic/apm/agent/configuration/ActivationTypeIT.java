@@ -404,19 +404,24 @@ public class ActivationTypeIT {
         private HttpHandler httpHandler() {
             return exchange -> {
 
-                InputStream requestBody = exchange.getRequestBody();
-                if (requestBody != null) {
-                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(requestBody))) {
-                        String line = reader.readLine();
-                        if (!line.isEmpty()) {
-                            requestBodyLines.add(line);
+                String response;
+                if (exchange.getRequestURI().getPath().equals("/")) { // health check
+                    response = "{\"version\" : \"8.7.1\"}";
+                } else {
+                    InputStream requestBody = exchange.getRequestBody();
+                    if (requestBody != null) {
+                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(requestBody))) {
+                            String line = reader.readLine();
+                            if (!line.isEmpty()) {
+                                requestBodyLines.add(line);
+                            }
                         }
                     }
+                    response = "{}";
                 }
-
-                String response = "{}";
                 exchange.sendResponseHeaders(200, response.getBytes().length);
                 exchange.getResponseBody().write(response.getBytes());
+                exchange.close();
             };
         }
 
