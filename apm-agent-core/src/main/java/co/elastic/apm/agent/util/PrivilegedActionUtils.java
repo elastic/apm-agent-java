@@ -65,7 +65,7 @@ public class PrivilegedActionUtils {
 
 
     @Nullable
-    public static String getProperty(String name) {
+    public static String getProperty(final String name) {
         if (System.getSecurityManager() == null) {
             return System.getProperty(name);
         }
