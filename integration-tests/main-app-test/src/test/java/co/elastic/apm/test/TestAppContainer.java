@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.test;
 
+import co.elastic.apm.agent.test.JavaExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -151,20 +152,13 @@ class TestAppContainer extends GenericContainer<TestAppContainer> {
     }
 
     private boolean probeDebugger(int port) {
-        boolean isWindows = System.getProperty("os.name").startsWith("Windows");
-        String executable = isWindows ? "java.exe" : "java";
-        Path path = Paths.get(System.getProperty("java.home"), "bin", executable);
-        if (!Files.isExecutable(path)) {
-            throw new IllegalStateException("unable to find java path");
-        }
-
         // the most straightforward way to probe for an active debugger listening on port is to start another JVM
         // with the debug options and check the process exit status. Trying to probe for open network port messes with
         // the debugger and makes IDEA stop it. The only downside of this is that the debugger will first attach to this
         // probe JVM, then the one running in a docker container we are aiming to debug.
         try {
             Process process = new ProcessBuilder()
-                .command(path.toAbsolutePath().toString(), debuggerArgument(port, "localhost"), "-version")
+                .command(JavaExecutable.getBinaryPath().toString(), debuggerArgument(port, "localhost"), "-version")
                 .start();
             process.waitFor(5, TimeUnit.SECONDS);
             return process.exitValue() == 0;
