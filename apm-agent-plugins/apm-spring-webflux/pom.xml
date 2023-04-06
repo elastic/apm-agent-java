@@ -33,4 +33,31 @@
         <module>apm-spring-webflux-testapp</module>
         <module>apm-spring-webflux-spring5</module>
     </modules>
+
+    <dependencies>
+
+        <!-- required for context-propagation during tests, but only at runtime -->
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-reactor-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-reactor-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+            <type>test-jar</type>
+        </dependency>
+
+        <!-- required to test integration with servlet instrumentation -->
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-servlet-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>
