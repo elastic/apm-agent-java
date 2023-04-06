@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.springwebmvc.exception;
+package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.testutils.Java17OnlyTest;
 
-public class Spring6ExceptionHandlerInstrumentationWithResponseStatusExceptionTest extends Java17OnlyTest {
+public class Spring6ServerAnnotatedInstrumentationTest extends Java17OnlyTest {
 
-    public Spring6ExceptionHandlerInstrumentationWithResponseStatusExceptionTest() {
-        super(Impl.class);
+    public Spring6ServerAnnotatedInstrumentationTest() {
+        super(Spring6ServerFunctionalInstrumentationTest.Impl.class);
     }
 
-    public static class Impl extends Spring5ExceptionHandlerInstrumentationWithResponseStatusExceptionTest {
+    public static class Impl extends ServerAnnotatedInstrumentationTest {
     }
 }
