@@ -43,6 +43,7 @@ communication - {pull}2996[#2996]
 * Fix exceptions filtering based on <<config-ignore-exceptions>> when those are <<config-unnest-exceptions, nested>> - {pull}3025[#3025]
 * Fix usage of `HttpUrlConnection.getResponseCode()` causing an error event due to exception capturing, even when it is internally handled - {pull}3024[#3024]
 * Fix source code jar to contain apm-agent sources - {pull}3063[#3063]
+* Fix security exception when security manager is used with `log_level=debug` - {pull}3077[#3077]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
