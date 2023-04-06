@@ -213,7 +213,7 @@ public class ElasticApmAttacher {
 
             // Running attacher without proper packaging is quite common when running it from the IDE without having
             // it packaged from CLI beforehand
-            throw new IllegalStateException("unable to get packaged agent within attacher jar, make sure to execute 'mvn clean package' first.");
+            throw new IllegalStateException("unable to get packaged agent within attacher jar.");
         }
     }
 
