@@ -20,9 +20,9 @@ package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.servlet.ServletServiceNameHelper;
 import co.elastic.apm.agent.servlet.adapter.JavaxServletApiAdapter;
-import co.elastic.apm.agent.servlet.adapter.ServletApiAdapter;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -72,6 +72,11 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void afterInitPropertySources(@Advice.This WebApplicationContext applicationContext) {
+            ElasticApmTracer elasticApmTracer = tracer.probe(ElasticApmTracer.class);
+            if (elasticApmTracer == null) {
+                return;
+            }
+
             // avoid having two service names for a standalone jar
             // one based on Implementation-Title and one based on spring.application.name
             if (!ServiceInfo.autoDetected().isMultiServiceContainer()) {
@@ -97,7 +102,7 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
             ServiceInfo fromSpringApplicationNameProperty = ServiceInfo.of(applicationContext.getEnvironment().getProperty("spring.application.name", ""));
             ServiceInfo fromApplicationContextApplicationName = ServiceInfo.of(removeLeadingSlash(applicationContext.getApplicationName()));
 
-            tracer.setServiceInfoForClassLoader(classLoader, fromSpringApplicationNameProperty
+            elasticApmTracer.setServiceInfoForClassLoader(classLoader, fromSpringApplicationNameProperty
                 .withFallback(fromServletContext)
                 .withFallback(fromApplicationContextApplicationName));
         }

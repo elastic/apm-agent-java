@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
@@ -97,8 +97,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 if (parent == null) {
                     createPollingTransaction = true;
                 } else {
-                    if (parent instanceof Transaction) {
-                        Transaction transaction = (Transaction) parent;
+                    if (parent instanceof Transaction<?>) {
+                        Transaction<?> transaction = (Transaction<?>) parent;
                         if (MESSAGE_POLLING.equals(transaction.getType())) {
                             // Avoid duplications for nested calls
                             return null;
@@ -111,8 +111,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         } else {
                             createPollingSpan = true;
                         }
-                    } else if (parent instanceof Span) {
-                        Span parentSpan = (Span) parent;
+                    } else if (parent instanceof Span<?>) {
+                        Span<?> parentSpan = (Span<?>) parent;
                         if (MESSAGING_TYPE.equals(parentSpan.getType()) && "receive".equals(parentSpan.getAction())) {
                             // Avoid duplication for nested calls
                             return null;
@@ -132,7 +132,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 } else if (createPollingTransaction) {
                     createdSpan = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
                     if (createdSpan != null) {
-                        ((Transaction) createdSpan).withType(MESSAGE_POLLING);
+                        ((Transaction<?>) createdSpan).withType(MESSAGE_POLLING);
                     }
                 }
 
@@ -166,25 +166,22 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         logger.error("Failed to retrieve meta info from Message", e);
                     }
 
-                    if (abstractSpan instanceof Transaction) {
-                        Transaction transaction = (Transaction) abstractSpan;
+                    if (abstractSpan instanceof Transaction<?>) {
+                        Transaction<?> transaction = (Transaction<?>) abstractSpan;
                         if (discard) {
                             transaction.ignoreTransaction();
                         } else {
-                            helper.makeChildOf(transaction, message);
-                            transaction.withType(MESSAGING_TYPE);
+                            transaction
+                                .withType(MESSAGING_TYPE)
+                                .addLink(JmsMessagePropertyAccessor.instance(), message);
                             helper.addMessageDetails(message, abstractSpan);
                         }
                     } else if (abstractSpan != null) {
-                        abstractSpan.addSpanLink(
-                            TraceContext.<Message>getFromTraceContextTextHeaders(),
-                            JmsMessagePropertyAccessor.instance(),
-                            message
-                        );
+                        abstractSpan.addLink(JmsMessagePropertyAccessor.instance(), message);
                     }
                 } else if (abstractSpan instanceof Transaction) {
                     // Do not report polling transactions if not yielding messages
-                    ((Transaction) abstractSpan).ignoreTransaction();
+                    ((Transaction<?>) abstractSpan).ignoreTransaction();
                     addDetails = false;
                 }
 
@@ -210,7 +207,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     && messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.JmsStrategy.POLLING
                     && !"receiveNoWait".equals(methodName)) {
 
-                    Transaction messageHandlingTransaction = helper.startJmsTransaction(message, clazz);
+                    Transaction<?> messageHandlingTransaction = helper.startJmsTransaction(message, clazz);
                     if (messageHandlingTransaction != null) {
                         messageHandlingTransaction.withType(MESSAGE_HANDLING)
                             .withName(RECEIVE_NAME_PREFIX);

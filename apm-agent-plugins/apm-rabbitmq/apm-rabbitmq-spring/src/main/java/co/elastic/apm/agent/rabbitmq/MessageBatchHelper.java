@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Tracer;
 import org.springframework.amqp.core.Message;
 
 import java.util.List;
@@ -29,10 +29,10 @@ public class MessageBatchHelper {
 
     public static final Logger logger = LoggerFactory.getLogger(MessageBatchHelper.class);
 
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
     private final SpringAmqpTransactionHelper transactionHelper;
 
-    public MessageBatchHelper(ElasticApmTracer tracer, SpringAmqpTransactionHelper transactionHelper) {
+    public MessageBatchHelper(Tracer tracer, SpringAmqpTransactionHelper transactionHelper) {
         this.tracer = tracer;
         this.transactionHelper = transactionHelper;
     }

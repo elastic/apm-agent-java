@@ -2,13 +2,17 @@
 
 Java agent releases are published to https://repo.maven.apache.org/maven2/[Maven central], in order to get a copy you can either:
 
-- download manually from link:https://central.sonatype.com/search?q=g%253Aco.elastic.apm%2520a%253Aelastic-apm-agent&sort=published[Maven central].
+- download manually the link:https://oss.sonatype.org/service/local/artifact/maven/redirect?r=releases&g=co.elastic.apm&a=elastic-apm-agent&v=LATEST[latest agent]
+or link:https://mvnrepository.com/artifact/co.elastic.apm/elastic-apm-agent[previous releases] from Maven central.
 - download with `curl`:
 +
 [source,bash]
 ----
 curl -o 'elastic-apm-agent.jar' -L 'https://oss.sonatype.org/service/local/artifact/maven/redirect?r=releases&g=co.elastic.apm&a=elastic-apm-agent&v=LATEST'
 ----
+
+In addition, we also publish a dedicated build of the Java agent which ships the latest log4j2 version and for that reason requires at least Java 8.
+This build can also be found on link:https://mvnrepository.com/artifact/co.elastic.apm/elastic-apm-agent-java8/latest[Maven central].
 
 // end::maven-central[]
 

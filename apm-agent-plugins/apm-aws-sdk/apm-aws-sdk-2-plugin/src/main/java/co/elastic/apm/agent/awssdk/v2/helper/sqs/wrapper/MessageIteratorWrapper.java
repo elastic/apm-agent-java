@@ -20,13 +20,13 @@ package co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractMessageIteratorWrapper;
 import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import software.amazon.awssdk.services.sqs.model.Message;
 
 import java.util.Iterator;
 
 class MessageIteratorWrapper extends AbstractMessageIteratorWrapper<Message> {
-    public MessageIteratorWrapper(Iterator<Message> delegate, ElasticApmTracer tracer, String queueName) {
+    public MessageIteratorWrapper(Iterator<Message> delegate, Tracer tracer, String queueName) {
         super(delegate, tracer, queueName, SQSHelper.getInstance(), SQSHelper.getInstance());
     }
 }

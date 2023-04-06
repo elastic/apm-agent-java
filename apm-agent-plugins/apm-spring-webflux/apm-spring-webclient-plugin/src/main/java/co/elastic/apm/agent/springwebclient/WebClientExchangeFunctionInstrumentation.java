@@ -20,8 +20,8 @@ package co.elastic.apm.agent.springwebclient;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
@@ -80,7 +80,7 @@ public class WebClientExchangeFunctionInstrumentation extends TracerAwareInstrum
             }
             ClientRequest.Builder builder = ClientRequest.from(clientRequest);
             URI uri = clientRequest.url();
-            Span span = HttpClientHelper.startHttpClientSpan(parent, clientRequest.method().name(), uri, uri.getHost());
+            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, clientRequest.method().name(), uri, uri.getHost());
             if (span != null) {
                 span.activate();
                 span.propagateTraceContext(builder, WebClientRequestHeaderSetter.INSTANCE);
@@ -101,10 +101,10 @@ public class WebClientExchangeFunctionInstrumentation extends TracerAwareInstrum
                 return returnValue;
             }
             Object spanObj = spanRequestObj[1];
-            if (!(spanObj instanceof Span)) {
+            if (!(spanObj instanceof Span<?>)) {
                 return returnValue;
             }
-            Span span = (Span) spanObj;
+            Span<?> span = (Span<?>) spanObj;
             span = span.captureException(t).deactivate();
             if (t != null || returnValue == null) {
                 return returnValue;

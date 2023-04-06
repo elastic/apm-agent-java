@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import io.grpc.CallOptions;
@@ -92,7 +92,7 @@ public class ChannelInstrumentation extends BaseInstrumentation {
             if (clientCall != null) {
                 DynamicTransformer.ensureInstrumented(clientCall.getClass(), CLIENT_CALL_INSTRUMENTATION);
             }
-            GrpcHelper.getInstance().onClientCallCreationExit(clientCall, (Span) span);
+            GrpcHelper.getInstance().onClientCallCreationExit(clientCall, (Span<?>) span);
         }
     }
 }

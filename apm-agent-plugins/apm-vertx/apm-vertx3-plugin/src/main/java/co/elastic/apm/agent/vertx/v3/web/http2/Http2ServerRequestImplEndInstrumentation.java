@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.vertx.v3.web.http2;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.vertx.v3.web.WebHelper;
@@ -64,7 +64,7 @@ public class Http2ServerRequestImplEndInstrumentation extends WebInstrumentation
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void exit(@Advice.This Http2ServerRequestImpl request,
                                 @Advice.FieldValue("response") @Nullable Http2ServerResponseImpl response) {
-            Transaction transaction = helper.removeTransactionMapping(request);
+            Transaction<?> transaction = helper.removeTransactionMapping(request);
             if (transaction != null) {
                 helper.finalizeTransaction(response, transaction);
                 log.debug("VERTX-DEBUG: ended Vert.x HTTP 2 transaction {} with details from this response: {}", transaction, response);

@@ -60,6 +60,8 @@
     <modules>
         <module>apm-agent-core</module>
         <module>elastic-apm-agent</module>
+        <module>elastic-apm-agent-premain</module>
+        <module>elastic-apm-agent-java8</module>
         <module>apm-agent-benchmarks</module>
         <module>apm-agent-plugins</module>
         <module>apm-agent-api</module>
@@ -67,12 +69,12 @@
         <module>apm-agent-attach</module>
         <module>apm-agent-plugin-sdk</module>
         <module>apm-agent-bootstrap</module>
-        <module>apm-agent</module>
+        <module>apm-agent-builds</module>
         <module>apm-agent-attach-cli</module>
         <module>apm-agent-common</module>
         <module>apm-agent-cached-lookup-key</module>
-        <module>apm-opentracing</module>
         <module>apm-agent-tracer</module>
+        <module>apm-opentracing</module>
         <!-- IMPORTANT:
             For the nexus deployment to work correctly, the last project in the build order needs to have deployment
             enabled (maven-deploy-plugin.skip must be false).
@@ -220,32 +222,45 @@
           </properties>
           <build>
             <plugins>
-              <plugin>
-                  <artifactId>maven-failsafe-plugin</artifactId>
-                  <configuration>
-                      <skipTests>${skip.integration.test}</skipTests>
-                      <rerunFailingTestsCount>3</rerunFailingTestsCount>
-                  </configuration>
-              </plugin>
-              <plugin>
-                  <artifactId>maven-surefire-plugin</artifactId>
-                  <configuration>
-                      <skipTests>true</skipTests>
-                  </configuration>
-              </plugin>
+                <plugin>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <configuration>
+                        <skipTests>${skip.integration.test}</skipTests>
+                        <rerunFailingTestsCount>3</rerunFailingTestsCount>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <configuration>
+                        <skipTests>true</skipTests>
+                    </configuration>
+                </plugin>
             </plugins>
           </build>
         </profile>
         <profile>
-          <!-- this profile should actually be active whenever running on Java 17 or higher, but since the only pre-Java-17 version we
-          test with is 11, this should be sufficient -->
-          <id>non-java-11</id>
-          <activation>
-              <jdk>!11</jdk>
-          </activation>
-          <modules>
-              <module>apm-agent-java-17</module>
-          </modules>
+            <id>different-test-jdk</id>
+            <activation>
+                <property>
+                    <name>test_java_binary</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <jvm>${test_java_binary}</jvm>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <jvm>${test_java_binary}</jvm>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
         <profile>
             <id>no-errorprone</id>
@@ -433,7 +448,6 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>

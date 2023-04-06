@@ -1,7 +1,7 @@
 name: main
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       # enabled by default, required for merge through default GH check
       test_ci:
@@ -19,6 +19,7 @@ on:
         required: false
         type: boolean
       # disabled by default, not required for merge
+      # used by the daily job .github/workflows/daily.yml
       # opt-in with 'ci:jdk-compatibility' tag on PR
       jdk_compatibility_ci:
         description: 'Enable JDK compatibility tests'
@@ -26,13 +27,13 @@ on:
         required: false
         type: boolean
       # disabled by default, not required for merge
+      # used by the daily job .github/workflows/daily.yml
       # opt-in with 'ci:windows' tag on PR
       windows_ci:
         description: 'Enable Windows build & tests'
         default: false
         required: false
         type: boolean
-  workflow_dispatch:
   push:
     branches:
       - main
@@ -76,6 +77,11 @@ jobs:
         with:
           name: elastic-apm-agent
           path: ./elastic-apm-agent/target/elastic-apm-agent-*.jar
+      - name: Upload agent java 8 binaries as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: elastic-apm-agent-java8
+          path: ./elastic-apm-agent-java8/target/elastic-apm-agent-java8-*.jar
 
   license:
     name: License
@@ -229,11 +235,11 @@ jobs:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/maven-goal
         with:
-          java-version: ${{ matrix.version }}
-          distribution: ${{ env.JAVA_DIST }}
+          test-java-version: ${{ matrix.version }}
+          test-java-distribution: ${{ env.JAVA_DIST }}
           command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
       - name: Run tests for ${{ matrix.version }}:${{ env.JAVA_DIST }}
-        run: ./mvnw test
+        run: ./mvnw test -Dtest_java_binary=${{ env.TEST_JAVA_BINARY }}
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v3

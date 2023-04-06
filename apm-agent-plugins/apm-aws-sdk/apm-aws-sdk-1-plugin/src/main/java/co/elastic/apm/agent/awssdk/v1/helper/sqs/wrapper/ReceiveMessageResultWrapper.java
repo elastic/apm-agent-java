@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.awssdk.v1.helper.sqs.wrapper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
@@ -27,12 +27,12 @@ import java.util.List;
 
 public class ReceiveMessageResultWrapper extends ReceiveMessageResult {
     private final ReceiveMessageResult delegate;
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
     private final String queueName;
 
     private final MessageListWrapper listWrapper;
 
-    public ReceiveMessageResultWrapper(ReceiveMessageResult delegate, ElasticApmTracer tracer, String queueName) {
+    public ReceiveMessageResultWrapper(ReceiveMessageResult delegate, Tracer tracer, String queueName) {
         this.delegate = delegate;
         this.tracer = tracer;
         this.queueName = queueName;

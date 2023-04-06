@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.opentelemetry;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.opentelemetry.global.ElasticOpenTelemetry;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -71,7 +71,7 @@ public class GlobalOpenTelemetryInstrumentation extends AbstractOpenTelemetryIns
 
         @Nonnull
         private static OpenTelemetry buildOpenTelemetry(OpenTelemetry delegate) {
-            ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+            ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
             try {
                 //Check if the provided Otel-API supports metrics
                 OpenTelemetry.class.getMethod("getMeterProvider");

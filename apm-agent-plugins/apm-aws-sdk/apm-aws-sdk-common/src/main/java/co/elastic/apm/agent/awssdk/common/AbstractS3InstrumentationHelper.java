@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -28,14 +28,18 @@ import java.net.URI;
 public abstract class AbstractS3InstrumentationHelper<R, C> extends AbstractAwsSdkInstrumentationHelper<R, C> {
     public static final String S3_TYPE = "s3";
 
-    protected AbstractS3InstrumentationHelper(ElasticApmTracer tracer, IAwsSdkDataSource<R, C> awsSdkDataSource) {
+    protected AbstractS3InstrumentationHelper(Tracer tracer, IAwsSdkDataSource<R, C> awsSdkDataSource) {
         super(tracer, awsSdkDataSource);
     }
 
 
     @Nullable
-    public Span startSpan(R request, URI httpURI, C context) {
-        Span span = tracer.createExitChildSpan();
+    public Span<?> startSpan(R request, URI httpURI, C context) {
+        AbstractSpan<?> active = tracer.getActive();
+        if (active == null) {
+            return null;
+        }
+        Span<?> span = active.createExitSpan();
         if (span == null) {
             return null;
         }
@@ -45,14 +49,14 @@ public abstract class AbstractS3InstrumentationHelper<R, C> extends AbstractAwsS
         span.withType("storage")
             .withSubtype(S3_TYPE)
             .withAction(operationName);
-        StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
+        StringBuilder name = span.getAndOverrideName(co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT);
         if (name != null) {
             name.append("S3 ").append(operationName);
             if (bucketName != null && !bucketName.isEmpty()) {
                 name.append(" ").append(bucketName);
             }
         }
-        span.withName("S3", AbstractSpan.PRIO_DEFAULT - 1);
+        span.withName("S3", co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT - 1);
         setDestinationContext(span, httpURI, request, context, S3_TYPE, bucketName);
 
         return span;

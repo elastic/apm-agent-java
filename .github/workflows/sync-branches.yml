@@ -1,0 +1,30 @@
+name: Sync branches
+
+on:
+  push:
+    branches:
+      - main
+
+# Limit permissions
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Sync branches
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Synchronize source to target branch
+        run: |
+          git checkout -f "${SOURCE_BRANCH}"
+          git checkout -f -b "${TARGET_BRANCH}"
+          git rebase "${SOURCE_BRANCH}"
+          git --no-pager log -n1 --pretty=oneline
+          git rev-parse --abbrev-ref HEAD
+          git push origin "${TARGET_BRANCH}"
+        env:
+          SOURCE_BRANCH: main
+          TARGET_BRANCH: stable

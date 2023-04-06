@@ -32,7 +32,7 @@ public class MongoConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<List<WildcardMatcher>> captureStatementCommands = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("mongodb_capture_statement_commands")
-        .configurationCategory("MongoDB")
+        .configurationCategory("Datastore")
         .description("MongoDB command names for which the command document will be captured, limited to common read-only operations by default.\n" +
             "Set to ` \"\"` (empty) to disable capture, and `\"*\"` to capture all (which is discouraged as it may lead to sensitive information capture).\n" +
             "\n" +

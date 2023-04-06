@@ -21,10 +21,10 @@ package co.elastic.apm.agent.rabbitmq;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.context.Message;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.tracer.metadata.Message;
 
 import javax.annotation.Nullable;
 import java.util.Date;
@@ -32,8 +32,8 @@ import java.util.Map;
 
 public abstract class AbstractBaseInstrumentation extends TracerAwareInstrumentation {
 
-    private static final CoreConfiguration coreConfiguration = GlobalTracer.requireTracerImpl().getConfig(CoreConfiguration.class);
-    private static final MessagingConfiguration messagingConfiguration = GlobalTracer.requireTracerImpl().getConfig(MessagingConfiguration.class);
+    private static final CoreConfiguration coreConfiguration = GlobalTracer.get().getConfig(CoreConfiguration.class);
+    private static final MessagingConfiguration messagingConfiguration = GlobalTracer.get().getConfig(MessagingConfiguration.class);
 
     /**
      * @param name name of the exchange or queue
@@ -77,7 +77,7 @@ public abstract class AbstractBaseInstrumentation extends TracerAwareInstrumenta
     }
 
     protected static void captureHeaders(@Nullable Map<String, Object> headers, Message message) {
-        if (!isCaptureHeaders() || headers == null || headers.size() <= 0) {
+        if (!isCaptureHeaders() || headers == null || headers.isEmpty()) {
             return;
         }
 

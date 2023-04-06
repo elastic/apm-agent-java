@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.vertx;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.metadata.Request;
+import co.elastic.apm.agent.tracer.metadata.Response;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import io.netty.buffer.ByteBuf;
@@ -56,13 +56,13 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
 
     private final MultiMapHeadersGetterSetter headerGetter = new MultiMapHeadersGetterSetter();
 
-    protected AbstractVertxWebHelper(ElasticApmTracer tracer) {
+    protected AbstractVertxWebHelper(Tracer tracer) {
         super(tracer);
     }
 
     @Nullable
-    protected Transaction startOrGetTransaction(HttpServerRequest httpServerRequest) {
-        Transaction transaction = tracer.currentTransaction();
+    protected Transaction<?> startOrGetTransaction(HttpServerRequest httpServerRequest) {
+        Transaction<?> transaction = tracer.currentTransaction();
         if (transaction != null) {
             return transaction;
         } else if (!serverHelper.isRequestExcluded(httpServerRequest.uri(), httpServerRequest.headers().get(USER_AGENT_HEADER))) {
@@ -72,9 +72,9 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
     }
 
     @Nullable
-    public abstract Transaction setRouteBasedNameForCurrentTransaction(RoutingContext routingContext);
+    public abstract Transaction<?> setRouteBasedNameForCurrentTransaction(RoutingContext routingContext);
 
-    protected void setRouteBasedTransactionName(Transaction transaction, RoutingContext routingContext) {
+    protected void setRouteBasedTransactionName(Transaction<?> transaction, RoutingContext routingContext) {
         if (!webConfiguration.isUsePathAsName()) {
             String path = routingContext.currentRoute().getPath();
             if (path != null) {
@@ -87,7 +87,7 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
         }
     }
 
-    public void finalizeTransaction(@Nullable HttpServerResponse httpServerResponse, Transaction transaction) {
+    public void finalizeTransaction(@Nullable HttpServerResponse httpServerResponse, Transaction<?> transaction) {
         try {
             if (httpServerResponse != null) {
                 final Response response = transaction.getContext().getResponse();
@@ -104,7 +104,7 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
         }
     }
 
-    public void captureBody(@Nullable Transaction transaction, Buffer requestDataBuffer) {
+    public void captureBody(@Nullable Transaction<?> transaction, Buffer requestDataBuffer) {
         if (transaction == null || transaction.getContext().getRequest().getBodyBuffer() == null) {
             return;
         }
@@ -123,7 +123,7 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
         }
     }
 
-    protected void enrichRequest(HttpServerRequest httpServerRequest, Transaction transaction) {
+    protected void enrichRequest(HttpServerRequest httpServerRequest, Transaction<?> transaction) {
         transaction.setFrameworkName(FRAMEWORK_NAME);
         transaction.setFrameworkVersion(VersionUtils.getVersion(HttpServerRequest.class, "io.vertx", "vertx-web"));
         transaction.withType(SPAN_TYPE);
@@ -148,7 +148,7 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
     }
 
 
-    private void setResponseHeaders(Transaction transaction, HttpServerResponse httpServerResponse, Response response) {
+    private void setResponseHeaders(Transaction<?> transaction, HttpServerResponse httpServerResponse, Response response) {
         if (transaction.isSampled() && isCaptureHeaders()) {
             final Set<String> headerNames = httpServerResponse.headers().names();
             if (headerNames != null) {
@@ -160,7 +160,7 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
     }
 
 
-    private void setRequestParameters(Transaction transaction, HttpServerRequest httpServerRequest, String method, String contentType) {
+    private void setRequestParameters(Transaction<?> transaction, HttpServerRequest httpServerRequest, String method, String contentType) {
         if (transaction.isSampled() && captureParameters(method, contentType)) {
             final Map<String, String[]> parameterMap = new HashMap<>();
             for (String name : httpServerRequest.params().names()) {
@@ -173,7 +173,7 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
         }
     }
 
-    private void setRequestHeaders(Transaction transaction, HttpServerRequest httpServerRequest) {
+    private void setRequestHeaders(Transaction<?> transaction, HttpServerRequest httpServerRequest) {
         final Request req = transaction.getContext().getRequest();
         if (transaction.isSampled() && isCaptureHeaders()) {
             setCookies(httpServerRequest, req);

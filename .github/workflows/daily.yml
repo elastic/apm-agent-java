@@ -1,0 +1,17 @@
+name: daily
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'
+
+permissions:
+  actions: write
+
+jobs:
+  run-jdk-compatibility-and-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh workflow run main.yml -f jdk_compatibility_ci=true -f windows_ci=true --repo ${GITHUB_REPOSITORY}
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -19,14 +19,14 @@
 package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.pooling.ObjectPool;
 import co.elastic.apm.agent.util.IOUtils;
 import co.elastic.apm.agent.util.LoggerUtils;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
@@ -46,19 +46,14 @@ public class ElasticsearchRestClientInstrumentationHelper {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelper.class);
 
     private static final Logger unsupportedOperationOnceLogger = LoggerUtils.logOnce(logger);
-    private static final ElasticsearchRestClientInstrumentationHelper INSTANCE = new ElasticsearchRestClientInstrumentationHelper(GlobalTracer.requireTracerImpl());
+    private static final ElasticsearchRestClientInstrumentationHelper INSTANCE = new ElasticsearchRestClientInstrumentationHelper(GlobalTracer.get());
 
-    public static final List<WildcardMatcher> QUERY_WILDCARD_MATCHERS = Arrays.asList(
-        WildcardMatcher.valueOf("*_search"),
-        WildcardMatcher.valueOf("*_msearch"),
-        WildcardMatcher.valueOf("*_msearch/template"),
-        WildcardMatcher.valueOf("*_search/template"),
-        WildcardMatcher.valueOf("*_count"));
     public static final String SPAN_TYPE = "db";
     public static final String ELASTICSEARCH = "elasticsearch";
     public static final String SPAN_ACTION = "request";
     private static final int MAX_POOLED_ELEMENTS = 256;
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
+    private final ElasticsearchConfiguration config;
 
     private final ObjectPool<ResponseListenerWrapper> responseListenerObjectPool;
 
@@ -66,9 +61,11 @@ public class ElasticsearchRestClientInstrumentationHelper {
         return INSTANCE;
     }
 
-    private ElasticsearchRestClientInstrumentationHelper(ElasticApmTracer tracer) {
+
+    private ElasticsearchRestClientInstrumentationHelper(Tracer tracer) {
         this.tracer = tracer;
         this.responseListenerObjectPool = tracer.getObjectPoolFactory().createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new ResponseListenerAllocator());
+        this.config = tracer.getConfig(ElasticsearchConfiguration.class);
     }
 
     private class ResponseListenerAllocator implements Allocator<ResponseListenerWrapper> {
@@ -79,13 +76,13 @@ public class ElasticsearchRestClientInstrumentationHelper {
     }
 
     @Nullable
-    public Span createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity) {
+    public Span<?> createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity) {
         final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan == null) {
             return null;
         }
 
-        Span span = activeSpan.createExitSpan();
+        Span<?> span = activeSpan.createExitSpan();
 
         // Don't record nested spans. In 5.x clients the instrumented sync method is calling the instrumented async method
         if (span == null) {
@@ -99,10 +96,9 @@ public class ElasticsearchRestClientInstrumentationHelper {
         span.getContext().getDb().withType(ELASTICSEARCH);
         span.getContext().getServiceTarget().withType(ELASTICSEARCH);
         span.activate();
-
         if (span.isSampled()) {
             span.getContext().getHttp().withMethod(method);
-            if (WildcardMatcher.isAnyMatch(QUERY_WILDCARD_MATCHERS, endpoint)) {
+            if (WildcardMatcher.isAnyMatch(config.getCaptureBodyUrls(), endpoint)) {
                 if (httpEntity != null && httpEntity.isRepeatable()) {
                     try {
                         IOUtils.readUtf8Stream(httpEntity.getContent(), span.getContext().getDb().withStatementBuffer());
@@ -120,7 +116,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
         return span;
     }
 
-    public void finishClientSpan(@Nullable Response response, Span span, @Nullable Throwable t) {
+    public void finishClientSpan(@Nullable Response response, Span<?> span, @Nullable Throwable t) {
         try {
             String url = null;
             int statusCode = -1;
@@ -162,7 +158,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
         }
     }
 
-    public ResponseListener wrapClientResponseListener(ResponseListener listener, Span span) {
+    public ResponseListener wrapClientResponseListener(ResponseListener listener, Span<?> span) {
         return responseListenerObjectPool.createInstance().withClientSpan(listener, span);
     }
 

@@ -22,8 +22,8 @@ package co.elastic.apm.agent.finaglehttpclient;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.finaglehttpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -109,7 +109,7 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
         }
 
         @Nullable
-        public static Span getAndRemoveSpanWithUnknownHostForRequest(Request forRequest) {
+        public static Span<?> getAndRemoveSpanWithUnknownHostForRequest(Request forRequest) {
             return inflightSpansWithUnknownHost.remove(forRequest);
         }
 
@@ -140,7 +140,7 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
             }
 
             URI uri = resolveURI(request, host);
-            Span span = HttpClientHelper.startHttpClientSpan(parent, request.method().name(), uri, null);
+            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, request.method().name(), uri, null);
 
             if (span != null) {
                 span.activate();
@@ -185,7 +185,7 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
             if (spanObj == null) {
                 return;
             }
-            final Span span = (Span) spanObj;
+            final Span<?> span = (Span<?>) spanObj;
             span.deactivate();
             if (thrown != null) {
                 span.captureException(thrown);
@@ -210,8 +210,8 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
             }
         }
 
-        private static void endSpanForRequest(@Nullable Request request, Span span) {
-            if (request != null) { // should always be true because otherwise no span is created
+        private static void endSpanForRequest(@Nullable Request request, Span<?> span) {
+            if (request != null) { // should always be true because otherwise no Span<?> is created
                 inflightSpansWithUnknownHost.remove(request);
             }
             span.end();

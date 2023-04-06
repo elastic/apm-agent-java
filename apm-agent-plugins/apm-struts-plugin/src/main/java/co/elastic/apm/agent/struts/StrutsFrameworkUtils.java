@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.struts;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.VersionUtils;
 import com.opensymphony.xwork2.ActionProxy;
 
 public class StrutsFrameworkUtils {
 
-    public static void setFrameworkNameAndVersion(Transaction transaction) {
+    public static void setFrameworkNameAndVersion(Transaction<?> transaction) {
         transaction.setFrameworkName("Struts");
         transaction.setFrameworkVersion(VersionUtils.getVersion(ActionProxy.class, "org.apache.struts", "struts2-core"));
     }
