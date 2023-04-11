@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm;
+package co.elastic.apm.premain.java8;
 
 /**
  * Required to force javadoc generation.

@@ -17,6 +17,6 @@
  * under the License.
  */
 /**
- * This project contains the Java 7 build of the elastic apm java agent.
+ * This project contains the Java 8 build of the elastic apm java agent.
  */
-package co.elastic.apm;
+package co.elastic.apm.premain.java8;

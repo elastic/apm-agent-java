@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm;
-
 /**
- * Required to force javadoc generation.
+ * This project contains the Java 7 build of the elastic apm java agent.
  */
-public class JavadocPlaceHolder {
-}
+package co.elastic.apm.premain.java7;
