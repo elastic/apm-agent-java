@@ -6,7 +6,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.36.1-SNAPSHOT</version>
+        <version>1.37.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>spring-boot-3</artifactId>
@@ -15,16 +15,18 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <modules>
+        <module>spring-boot-3-jetty</module>
+        <module>spring-boot-3-tomcat</module>
+        <module>spring-boot-3-undertow</module>
     </modules>
 
     <properties>
-        <version.spring-boot>2.1.8.RELEASE</version.spring-boot>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <!-- using spring bom dependency to resolve dependencies -->
+            <!-- This will upgrade all dependencies on the spring-boot-2 integrations tests to spring boot 3 -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>

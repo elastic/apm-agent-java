@@ -35,16 +35,15 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -127,6 +126,7 @@ public abstract class AbstractSpringBootTest {
 
     @RestController
     @SpringBootApplication
+    @EnableWebSecurity
     public static class TestApp {
 
         public static void main(String[] args) {
@@ -139,26 +139,22 @@ public abstract class AbstractSpringBootTest {
             return "Hello World";
         }
 
-        @Configuration
-        @EnableWebSecurity
-        public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
-            @Override
-            protected void configure(HttpSecurity http) throws Exception {
-                http.authorizeRequests()
-                    .anyRequest().authenticated()
-                    .and()
-                    .httpBasic();
-            }
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+            http.authorizeRequests()
+                .anyRequest().authenticated()
+                .and()
+                .httpBasic();
+            return http.build();
+        }
 
-            @Bean
-            @Override
-            public UserDetailsService userDetailsService() {
-                return new InMemoryUserDetailsManager(User.withDefaultPasswordEncoder()
-                    .username("username")
-                    .password("password")
-                    .roles("USER")
-                    .build());
-            }
+        @Bean
+        public UserDetailsService userDetailsService() {
+            return new InMemoryUserDetailsManager(User.withDefaultPasswordEncoder()
+                .username("username")
+                .password("password")
+                .roles("USER")
+                .build());
         }
 
     }

@@ -22,7 +22,6 @@
             <artifactId>spring-boot-2-base</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
-            <scope>test</scope>
             <exclusions>
                 <!-- Exclude the Tomcat dependency -->
                 <exclusion>
