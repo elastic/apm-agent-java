@@ -23,6 +23,10 @@ endif::[]
 [[release-notes-1.38.0]]
 ==== 1.38.0 - YYYY/MM/DD
 
+[float]
+===== Features
+* Added support for Spring WebMVC 6.x and Spring Boot 3.x - {pull}3094[#3094]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
