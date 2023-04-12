@@ -131,4 +131,12 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
             return Boolean.TRUE;
         }
     }
+
+    public static class FalseDefaultValueProvider implements DefaultValueProvider {
+        @Nullable
+        @Override
+        public Object getDefaultValue() {
+            return Boolean.FALSE;
+        }
+    }
 }

@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.collections;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import com.blogspot.mydailyjava.weaklockfree.AbstractWeakConcurrentMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
 

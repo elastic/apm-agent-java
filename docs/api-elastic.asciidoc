@@ -29,7 +29,7 @@ compile "co.elastic.apm:apm-agent-api:$elasticApmVersion"
 ----
 
 Replace the version placeholders with the
-link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:apm-agent-api[
+link:https://mvnrepository.com/artifact/co.elastic.apm/apm-agent-api/latest[
 latest version from maven central]:
 image:https://img.shields.io/maven-central/v/co.elastic.apm/apm-agent-api.svg[Maven Central]
 
@@ -244,6 +244,8 @@ When there is no current span or transaction, no span will be created.
 * `subtype`: The subtype of the span, e.g. `mysql` for DB span. Defaults to empty string
 * `action`: The action related to the span, e.g. `query` for DB spans. Defaults to empty string
 * `discardable`: By default, spans may be discarded in certain scenarios. Set this attribute to `false` to make this span non-discardable.
+* `exit`: By default, spans are internal spans, making it an exit span prevents the creation of nested spans and is intended
+to represent calls to an external system like a database or third-party service.
 
 NOTE: Using this annotation implicitly creates a Span and activates it when entering the annotated
 method. It also implicitly ends it and deactivates it before exiting the annotated method.

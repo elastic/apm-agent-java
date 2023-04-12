@@ -1,6 +1,6 @@
 [![Build Status](https://apm-ci.elastic.co/buildStatus/icon?job=apm-agent-java%2Fapm-agent-java-mbp%2Fmain)](https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/main/)
 [![codecov](https://codecov.io/gh/elastic/apm-agent-java/branch/main/graph/badge.svg)](https://codecov.io/gh/elastic/apm-agent-java)
-[![Maven Central](https://img.shields.io/maven-central/v/co.elastic.apm/apm-agent-api.svg)](https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:elastic-apm-agent)
+[![Maven Central](https://img.shields.io/maven-central/v/co.elastic.apm/apm-agent-api.svg)](https://mvnrepository.com/artifact/co.elastic.apm/elastic-apm-agent/latest)
 
 # apm-agent-java
 
@@ -41,7 +41,7 @@ Those snapshots include features & bugfixes for the next release, see [releases 
 
 ## Build form source
 
-Execute `./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true` to build the artifacts and to install them to your local maven repository. The build process requires JDK 9.
+Execute `./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true` to build the artifacts and to install them to your local maven repository. The build process requires JDK 17.
 The agent jar is in the folder `elastic-apm-agent/target`.
 
 ## License

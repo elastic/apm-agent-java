@@ -39,6 +39,7 @@ import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.ReporterFactory;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
@@ -156,6 +157,8 @@ public class ElasticApmTracerBuilder {
         if (apmServerClient == null) {
             apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class), configurationRegistry.getConfig(CoreConfiguration.class));
         }
+
+        SerializationConstants.init(configurationRegistry.getConfig(CoreConfiguration.class));
 
         MetaDataFuture metaDataFuture = MetaData.create(configurationRegistry, ephemeralId);
         if (addApmServerConfigSource) {

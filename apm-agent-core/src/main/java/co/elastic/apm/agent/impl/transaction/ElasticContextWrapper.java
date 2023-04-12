@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.tracer.Scope;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;

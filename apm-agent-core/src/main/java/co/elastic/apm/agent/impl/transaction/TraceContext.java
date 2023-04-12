@@ -22,11 +22,16 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.util.ByteUtils;
 import co.elastic.apm.agent.util.HexUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
@@ -66,7 +71,7 @@ import java.util.Objects;
  *                      2, 1]
  * </pre>
  */
-public class TraceContext implements Recyclable {
+public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.TraceContext {
 
     public static final String ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME = "elastic-apm-traceparent";
     public static final String W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME = "traceparent";
@@ -450,28 +455,22 @@ public class TraceContext implements Recyclable {
         traceState.setSizeLimit(coreConfiguration.getTracestateSizeLimit());
     }
 
-    /**
-     * The ID of the whole trace forest
-     *
-     * @return the trace id
-     */
+    @Override
     public Id getTraceId() {
         return traceId;
     }
 
+    @Override
     public Id getId() {
         return id;
     }
 
-    /**
-     * The ID of the caller span (parent)
-     *
-     * @return the parent id
-     */
+    @Override
     public Id getParentId() {
         return parentId;
     }
 
+    @Override
     public Id getTransactionId() {
         return transactionId;
     }
@@ -545,6 +544,11 @@ public class TraceContext implements Recyclable {
      * @param <C>          the header carrier type, for example - an HTTP request
      */
     <C> void propagateTraceContext(C carrier, TextHeaderSetter<C> headerSetter) {
+        if (coreConfiguration.isOutgoingTraceContextHeadersInjectionDisabled()) {
+            logger.debug("Outgoing TraceContext header injection is disabled");
+            return;
+        }
+
         String outgoingTraceParent = getOutgoingTraceParentTextHeader().toString();
 
         headerSetter.setHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, outgoingTraceParent, carrier);
@@ -568,6 +572,10 @@ public class TraceContext implements Recyclable {
      * @return true if Trace Context headers were set; false otherwise
      */
     <C> boolean propagateTraceContext(C carrier, BinaryHeaderSetter<C> headerSetter) {
+        if (coreConfiguration.isOutgoingTraceContextHeadersInjectionDisabled()) {
+            logger.debug("Outgoing TraceContext header injection is disabled");
+            return false;
+        }
         byte[] buffer = headerSetter.getFixedLengthByteArray(TRACE_PARENT_BINARY_HEADER_NAME, BINARY_FORMAT_EXPECTED_LENGTH);
         if (buffer == null || buffer.length != BINARY_FORMAT_EXPECTED_LENGTH) {
             logger.warn("Header setter {} failed to provide a byte buffer with the proper length. Allocating a buffer for each header.",

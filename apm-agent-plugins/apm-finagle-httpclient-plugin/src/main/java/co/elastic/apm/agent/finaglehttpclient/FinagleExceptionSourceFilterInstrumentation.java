@@ -21,7 +21,7 @@ package co.elastic.apm.agent.finaglehttpclient;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import com.twitter.finagle.http.Request;
@@ -91,7 +91,7 @@ public class FinagleExceptionSourceFilterInstrumentation extends TracerAwareInst
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onBeforeExecute(@Nullable @Advice.Argument(0) Object serviceArg, @Nullable @Advice.FieldValue(SERVICE_NAME_FIELD) String serviceName) {
             if (serviceArg instanceof Request) {
-                Span spanToEnhance = FinaglePayloadSizeFilterInstrumentation.PayloadSizeFilterAdvice
+                Span<?> spanToEnhance = FinaglePayloadSizeFilterInstrumentation.PayloadSizeFilterAdvice
                     .getAndRemoveSpanWithUnknownHostForRequest((Request) serviceArg);
                 if (spanToEnhance != null && serviceName != null && !serviceName.isEmpty()) {
                     updateSpanHostname(spanToEnhance, serviceName);
@@ -100,7 +100,7 @@ public class FinagleExceptionSourceFilterInstrumentation extends TracerAwareInst
             }
         }
 
-        private static void updateSpanHostname(Span spanToEnhance, String serviceName) {
+        private static void updateSpanHostname(Span<?> spanToEnhance, String serviceName) {
             CharSequence currentUriStr = spanToEnhance.getContext().getHttp().getUrl();
             String method = spanToEnhance.getContext().getHttp().getMethod();
             if (currentUriStr.length() == 0 || method == null || method.isEmpty()) {

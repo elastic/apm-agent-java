@@ -19,12 +19,12 @@
 package co.elastic.apm.agent.quartzjob;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.description.NamedElement;
@@ -51,7 +51,7 @@ public abstract class AbstractJobTransactionNameInstrumentation extends TracerAw
 
     private final Collection<String> applicationPackages;
 
-    protected AbstractJobTransactionNameInstrumentation(ElasticApmTracer tracer) {
+    protected AbstractJobTransactionNameInstrumentation(Tracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 
@@ -73,9 +73,9 @@ public abstract class AbstractJobTransactionNameInstrumentation extends TracerAw
         private static final Logger logger = LoggerFactory.getLogger(BaseAdvice.class);
 
         @Nullable
-        protected static <T> Transaction createAndActivateTransaction(@Nullable T jobExecutionContext, String signature, Class<?> clazz, JobExecutionContextHandler<T> helper) {
-            Transaction transaction = null;
-            AbstractSpan<?> active = GlobalTracer.get().getActive();
+        protected static <T> Transaction<?> createAndActivateTransaction(@Nullable T jobExecutionContext, String signature, Class<?> clazz, JobExecutionContextHandler<T> helper) {
+            Transaction<?> transaction = null;
+            AbstractSpan<?> active = tracer.getActive();
             if (active == null) {
                 String transactionName = null;
                 if (jobExecutionContext != null) {
@@ -98,7 +98,7 @@ public abstract class AbstractJobTransactionNameInstrumentation extends TracerAw
                                                  @Nullable Throwable t,
                                                  JobExecutionContextHandler<T> helper) {
             if (transactionObj instanceof Transaction) {
-                Transaction transaction = (Transaction) transactionObj;
+                Transaction<?> transaction = (Transaction<?>) transactionObj;
                 if (jobExecutionContext != null) {
                     Object result = helper.getResult(jobExecutionContext);
                     if (result != null) {
@@ -113,8 +113,8 @@ public abstract class AbstractJobTransactionNameInstrumentation extends TracerAw
         }
 
         @Nullable
-        private static Transaction createAndActivateTransaction(Class<?> originClass, String name) {
-            Transaction transaction = GlobalTracer.get().startRootTransaction(PrivilegedActionUtils.getClassLoader(originClass));
+        private static Transaction<?> createAndActivateTransaction(Class<?> originClass, String name) {
+            Transaction<?> transaction = GlobalTracer.get().startRootTransaction(PrivilegedActionUtils.getClassLoader(originClass));
             if (transaction != null) {
                 transaction.withName(name)
                     .withType(AbstractJobTransactionNameInstrumentation.TRANSACTION_TYPE)

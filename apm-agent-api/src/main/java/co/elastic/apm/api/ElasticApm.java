@@ -249,4 +249,62 @@ public class ElasticApm {
     public static void setServiceInfoForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName, @Nullable String serviceVersion) {
         // co.elastic.apm.api.ElasticApmInstrumentation.SetServiceInfoForClassLoader.setServiceInfoForClassLoader
     }
+
+    /**
+     * Returns the current value of a config option (regardless of however and whenever that option was (re)set)
+     * <p>
+     * This applies to dynamically updated values too, so for example "transaction_sample_rate"
+     * can be dynamically reset (eg by executing
+     *   System.setProperty("elastic.apm.transaction_sample_rate", "0.6")
+     * or changing the "transaction_sample_rate" in the property file or from fleet UI)
+     * and calling getConfig("transaction_sample_rate") would provide the current value
+     * </p>
+     * <p>
+     * If an invalid key is passed as the first argument, or if the incorrect type for
+     * the key is passed as the second argument, the method will throw an IllegalArgumentException
+     * </p>
+     * <p>
+     * Note the value returned can be null if the "public-api" set of instrumentations
+     * has not been applied and also if the agent hasn't finished initializing
+     * </p>
+     *
+     * @param key the string option
+     * @param type the type of the option (String, Long, Integer, etc)
+     * @return The current value for the option, per the option type (String, Long, Integer, etc)
+     * @since 1.37.0
+     */
+    public static <T> T getConfig(String key, Class<T> type) {
+        Object value = doGetConfig(key);
+        if (value == null) {
+            throw new IllegalArgumentException("There is no such option: " + key);
+        } else if (value instanceof IllegalStateException) {
+            return null;
+        } else if (type.isInstance(value)) {
+            return (T) value;
+        } else {
+            throw new IllegalArgumentException("The option: '"+key+"' is not of type "+type.getName());
+        }
+    }
+
+    private static Object doGetConfig(String key) {
+        // co.elastic.apm.api.ElasticApmInstrumentation.ConfigInstrumentation.doGetConfig
+        return null;
+    }
+
+    /**
+     * Convenience method that just calls System.setProperty("elastic.apm."+key, value);
+     * <p>
+     * Note there is a delay between executing the update and it taking effect. The corresponding
+     * {@link #getConfig(String, Class)} ()} will only report the new value after it has taken effect.
+     * Note also that only dynamic options can be updated, other updates will simply be ignored.
+     * </p>
+     *
+     * @param key the string option
+     * @param value the value for that option. No validation is applied here, so invalid
+     *              values for an option will be ignored by the configuration system
+     * @since 1.37.0
+     */
+    public static void setConfig(String key, String value) {
+        System.setProperty("elastic.apm."+key, value);
+    }
 }

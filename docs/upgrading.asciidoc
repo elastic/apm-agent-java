@@ -15,7 +15,7 @@ Before upgrading the agent, be sure to review the:
 
 . Shut down the application.
 . Download the latest release of the agent jar file from
-https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:elastic-apm-agent[maven central].
+link:https://mvnrepository.com/artifact/co.elastic.apm/elastic-apm-agent/latest[maven central].
 . Optionally change JVM settings, e.g., if the path to the agent jar has changed due to a different file name.
 . Restart the application.
 

@@ -45,6 +45,10 @@ public final class VersionUtils {
                 version = version + "." + gitRev;
             }
         }
+        String variant = getManifestEntry(agentJar, "Elastic-Apm-Build-Variant");
+        if (variant != null) {
+            version += "-" + variant;
+        }
         AGENT_VERSION = version;
     }
 

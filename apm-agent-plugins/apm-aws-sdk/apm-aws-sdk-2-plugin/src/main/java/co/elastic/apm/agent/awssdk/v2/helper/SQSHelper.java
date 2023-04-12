@@ -19,11 +19,11 @@
 package co.elastic.apm.agent.awssdk.v2.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractSQSInstrumentationHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import software.amazon.awssdk.core.SdkRequest;
 import software.amazon.awssdk.core.SdkResponse;
 import software.amazon.awssdk.core.client.handler.ClientExecutionParams;
@@ -46,18 +46,18 @@ import java.util.Map;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, ExecutionContext, Message> implements TextHeaderSetter<Map<String, MessageAttributeValue>> {
-    
-    private static final SQSHelper INSTANCE = new SQSHelper(GlobalTracer.requireTracerImpl());
+
+    private static final SQSHelper INSTANCE = new SQSHelper(GlobalTracer.get());
 
     public static SQSHelper getInstance() {
         return INSTANCE;
     }
 
-    public SQSHelper(ElasticApmTracer tracer) {
+    public SQSHelper(Tracer tracer) {
         super(tracer, SdkV2DataSource.getInstance());
     }
 
-    private SdkRequest propagateContext(Span span, SdkRequest sdkRequest) {
+    private SdkRequest propagateContext(Span<?> span, SdkRequest sdkRequest) {
         if (sdkRequest instanceof SendMessageRequest) {
             SendMessageRequest sendMessageRequest = (SendMessageRequest) sdkRequest;
             Map<String, MessageAttributeValue> attributesMap = new HashMap<>(sendMessageRequest.messageAttributes());
@@ -119,7 +119,7 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, Exec
         return request instanceof ReceiveMessageRequest;
     }
 
-    public void modifyRequestObject(@Nullable Span span, ClientExecutionParams clientExecutionParams, ExecutionContext executionContext) {
+    public void modifyRequestObject(@Nullable Span<?> span, ClientExecutionParams clientExecutionParams, ExecutionContext executionContext) {
         SdkRequest sdkRequest = clientExecutionParams.getInput();
         SdkRequest newRequestObj = null;
         if (span != null && clientExecutionParams.getOperationName().startsWith("SendMessage")) {
@@ -179,7 +179,7 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, Exec
         }
     }
 
-    public void handleReceivedMessages(Span span, @Nullable SdkRequest sdkRequest, @Nullable SdkResponse sdkResponse) {
+    public void handleReceivedMessages(Span<?> span, @Nullable SdkRequest sdkRequest, @Nullable SdkResponse sdkResponse) {
         if (sdkResponse instanceof ReceiveMessageResponse && sdkRequest instanceof ReceiveMessageRequest) {
             SQSHelper.getInstance().handleReceivedMessages(span, ((ReceiveMessageRequest) sdkRequest).queueUrl(), ((ReceiveMessageResponse) sdkResponse).messages());
         }

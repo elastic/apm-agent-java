@@ -97,21 +97,15 @@ import static com.dslplatform.json.JsonWriter.QUOTE;
 
 public class DslJsonSerializer implements PayloadSerializer {
 
-    /**
-     * Matches default ZLIB buffer size.
-     * Lets us assume the ZLIB buffer is always empty,
-     * so that {@link #getBufferSize()} is the total amount of buffered bytes.
-     */
-    public static final int BUFFER_SIZE = 16384;
-    public static final int MAX_VALUE_LENGTH = 1024;
-    public static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_PROPERTY_NAME = new String[]{".", "*", "\""};
     private static final List<String> excludedStackFramesPrefixes = Arrays.asList("java.lang.reflect.", "com.sun.", "sun.", "jdk.internal.");
+
     // visible for testing
     final JsonWriter jw;
-    private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH + 1);
+
+    private final StringBuilder replaceBuilder = new StringBuilder(SerializationConstants.getMaxLongStringValueLength() + 1);
     private final StacktraceConfiguration stacktraceConfiguration;
     private final ApmServerClient apmServerClient;
     @Nullable
@@ -120,12 +114,13 @@ public class DslJsonSerializer implements PayloadSerializer {
     private final Future<MetaData> metaData;
     @Nullable
     private byte[] serializedMetaData;
+    private boolean serializedActivationMethod;
 
     public DslJsonSerializer(StacktraceConfiguration stacktraceConfiguration, ApmServerClient apmServerClient, final Future<MetaData> metaData) {
         this.stacktraceConfiguration = stacktraceConfiguration;
         this.apmServerClient = apmServerClient;
         this.metaData = metaData;
-        jw = new DslJson<>(new DslJson.Settings<>()).newWriter(BUFFER_SIZE);
+        jw = new DslJson<>(new DslJson.Settings<>()).newWriter(SerializationConstants.BUFFER_SIZE);
     }
 
     @Override
@@ -190,10 +185,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(NEW_LINE);
     }
 
-    static void serializeMetadata(MetaData metaData, JsonWriter metadataJW, boolean supportsConfiguredAndDetectedHostname) {
+    static void serializeMetadata(MetaData metaData, JsonWriter metadataJW, boolean supportsConfiguredAndDetectedHostname, boolean supportsAgentActivationMethod) {
         StringBuilder metadataReplaceBuilder = new StringBuilder();
         metadataJW.writeByte(JsonWriter.OBJECT_START);
-        serializeService(metaData.getService(), metadataReplaceBuilder, metadataJW);
+        serializeService(metaData.getService(), metadataReplaceBuilder, metadataJW, supportsAgentActivationMethod);
         metadataJW.writeByte(COMMA);
         serializeProcess(metaData.getProcess(), metadataReplaceBuilder, metadataJW);
         metadataJW.writeByte(COMMA);
@@ -238,12 +233,20 @@ public class DslJsonSerializer implements PayloadSerializer {
      * @throws Exception if blocking was interrupted, or timed out or an error occurred in the underlying implementation
      */
     @Override
-    public void blockUntilReady() throws Exception {
-        if (serializedMetaData == null) {
-            JsonWriter metadataJW = new DslJson<>(new DslJson.Settings<>()).newWriter(4096);
-            serializeMetadata(metaData.get(5, TimeUnit.SECONDS), metadataJW, apmServerClient.supportsConfiguredAndDetectedHostname());
-            serializedMetaData = metadataJW.toByteArray();
+    public synchronized void blockUntilReady() throws Exception {
+        boolean supportsActivationMethod = apmServerClient.supportsActivationMethod();
+        if (null != serializedMetaData && serializedActivationMethod == supportsActivationMethod) {
+            return;
         }
+
+        serializedActivationMethod = supportsActivationMethod;
+
+        JsonWriter metadataJW = new DslJson<>(new DslJson.Settings<>()).newWriter(4096);
+        MetaData meta = metaData.get(5, TimeUnit.SECONDS);
+        boolean supportsConfiguredAndDetectedHostname = apmServerClient.supportsConfiguredAndDetectedHostname();
+
+        serializeMetadata(meta, metadataJW, supportsConfiguredAndDetectedHostname, supportsActivationMethod);
+        serializedMetaData = metadataJW.toByteArray();
     }
 
     private static void serializeGlobalLabels(ArrayList<String> globalLabelKeys, ArrayList<String> globalLabelValues,
@@ -453,7 +456,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         return jw.toString();
     }
 
-    private static void serializeService(final Service service, final StringBuilder replaceBuilder, final JsonWriter jw) {
+    private static void serializeService(final Service service, final StringBuilder replaceBuilder, final JsonWriter jw, boolean supportsAgentActivationMethod) {
         writeFieldName("service", jw);
         jw.writeByte(JsonWriter.OBJECT_START);
 
@@ -463,7 +466,7 @@ public class DslJsonSerializer implements PayloadSerializer {
 
         final Agent agent = service.getAgent();
         if (agent != null) {
-            serializeAgent(agent, replaceBuilder, jw);
+            serializeAgent(agent, replaceBuilder, jw, supportsAgentActivationMethod);
         }
 
         final Language language = service.getLanguage();
@@ -542,9 +545,12 @@ public class DslJsonSerializer implements PayloadSerializer {
         serializeService(name, version, null, replaceBuilder, jw);
     }
 
-    private static void serializeAgent(final Agent agent, final StringBuilder replaceBuilder, final JsonWriter jw) {
+    private static void serializeAgent(final Agent agent, final StringBuilder replaceBuilder, final JsonWriter jw, boolean supportsAgentActivationMethod) {
         writeFieldName("agent", jw);
         jw.writeByte(JsonWriter.OBJECT_START);
+        if (supportsAgentActivationMethod) {
+            writeField("activation_method", agent.getActivationMethod(), replaceBuilder, jw);
+        }
         writeField("name", agent.getName(), replaceBuilder, jw);
         writeField("ephemeral_id", agent.getEphemeralId(), replaceBuilder, jw);
         writeLastField("version", agent.getVersion(), replaceBuilder, jw);
@@ -1680,8 +1686,8 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private static void writeStringBuilderValue(StringBuilder value, JsonWriter jw) {
-        if (value.length() > MAX_VALUE_LENGTH) {
-            value.setLength(MAX_VALUE_LENGTH - 1);
+        if (value.length() > SerializationConstants.MAX_VALUE_LENGTH) {
+            value.setLength(SerializationConstants.MAX_VALUE_LENGTH - 1);
             value.append('…');
         }
         jw.writeString(value);
@@ -1692,9 +1698,9 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     public static void writeStringValue(CharSequence value, final StringBuilder replaceBuilder, final JsonWriter jw) {
-        if (value.length() > MAX_VALUE_LENGTH) {
+        if (value.length() > SerializationConstants.MAX_VALUE_LENGTH) {
             replaceBuilder.setLength(0);
-            replaceBuilder.append(value, 0, Math.min(value.length(), MAX_VALUE_LENGTH + 1));
+            replaceBuilder.append(value, 0, Math.min(value.length(), SerializationConstants.MAX_VALUE_LENGTH + 1));
             writeStringBuilderValue(replaceBuilder, jw);
         } else {
             jw.writeString(value);
@@ -1702,8 +1708,8 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private static void writeLongStringBuilderValue(StringBuilder value, JsonWriter jw) {
-        if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
-            value.setLength(MAX_LONG_STRING_VALUE_LENGTH - 1);
+        if (value.length() > SerializationConstants.getMaxLongStringValueLength()) {
+            value.setLength(SerializationConstants.getMaxLongStringValueLength() - 1);
             value.append('…');
         }
         jw.writeString(value);
@@ -1714,9 +1720,9 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private static void writeLongStringValue(CharSequence value, final StringBuilder replaceBuilder, final JsonWriter jw) {
-        if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
+        if (value.length() > SerializationConstants.getMaxLongStringValueLength()) {
             replaceBuilder.setLength(0);
-            replaceBuilder.append(value, 0, Math.min(value.length(), MAX_LONG_STRING_VALUE_LENGTH + 1));
+            replaceBuilder.append(value, 0, Math.min(value.length(), SerializationConstants.getMaxLongStringValueLength() + 1));
             writeLongStringBuilderValue(replaceBuilder, jw);
         } else {
             jw.writeString(value);

@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.tracer.Tracer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -36,7 +36,7 @@ import java.util.List;
 public class KafkaInstrumentationHeadersHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaInstrumentationHeadersHelper.class);
-    private static final KafkaInstrumentationHeadersHelper INSTANCE = new KafkaInstrumentationHeadersHelper(GlobalTracer.requireTracerImpl());
+    private static final KafkaInstrumentationHeadersHelper INSTANCE = new KafkaInstrumentationHeadersHelper(GlobalTracer.get());
 
     private static final ThreadLocal<Boolean> wrappingDisabled = new ThreadLocal<Boolean>() {
         @Override
@@ -45,13 +45,13 @@ public class KafkaInstrumentationHeadersHelper {
         }
     };
 
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
 
     public static KafkaInstrumentationHeadersHelper get() {
         return INSTANCE;
     }
 
-    public KafkaInstrumentationHeadersHelper(ElasticApmTracer tracer) {
+    public KafkaInstrumentationHeadersHelper(Tracer tracer) {
         this.tracer = tracer;
     }
 
@@ -108,11 +108,7 @@ public class KafkaInstrumentationHeadersHelper {
             wrappingDisabled.set(Boolean.TRUE);
             try {
                 for (ConsumerRecord<?, ?> record : records) {
-                    span.addSpanLink(
-                        TraceContext.<ConsumerRecord>getFromTraceContextBinaryHeaders(),
-                        KafkaRecordHeaderAccessor.instance(),
-                        record
-                    );
+                    span.addLink(KafkaRecordHeaderAccessor.instance(), record);
                 }
             } finally {
                 wrappingDisabled.set(false);
@@ -120,7 +116,7 @@ public class KafkaInstrumentationHeadersHelper {
         }
     }
 
-    public void setOutgoingTraceContextHeaders(Span span, ProducerRecord<?, ?> producerRecord) {
+    public void setOutgoingTraceContextHeaders(Span<?> span, ProducerRecord<?, ?> producerRecord) {
         span.propagateTraceContext(producerRecord, KafkaRecordHeaderAccessor.instance());
     }
 

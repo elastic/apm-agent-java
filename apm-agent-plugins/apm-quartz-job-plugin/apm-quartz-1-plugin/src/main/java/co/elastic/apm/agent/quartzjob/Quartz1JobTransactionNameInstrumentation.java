@@ -20,6 +20,7 @@ package co.elastic.apm.agent.quartzjob;
 
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -33,7 +34,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class Quartz1JobTransactionNameInstrumentation extends AbstractJobTransactionNameInstrumentation {
-    public Quartz1JobTransactionNameInstrumentation(ElasticApmTracer tracer) {
+    public Quartz1JobTransactionNameInstrumentation(Tracer tracer) {
         super(tracer);
     }
 

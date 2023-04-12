@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.HeaderRemover;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 
 import javax.annotation.Nullable;
 import java.util.Map;

@@ -24,6 +24,7 @@ import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
+import co.elastic.apm.agent.tracer.Outcome;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;

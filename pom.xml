@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.36.0</version>
+    <version>1.37.0</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -30,7 +30,7 @@
         <connection>scm:git:git@github.com:elastic/apm-agent-java.git</connection>
         <developerConnection>scm:git:git@github.com:elastic/apm-agent-java.git</developerConnection>
         <url>https://github.com/elastic/apm-agent-java</url>
-        <tag>v1.36.0</tag>
+        <tag>v1.37.0</tag>
     </scm>
 
     <developers>
@@ -60,18 +60,31 @@
     <modules>
         <module>apm-agent-core</module>
         <module>elastic-apm-agent</module>
+        <module>elastic-apm-agent-premain</module>
+        <module>elastic-apm-agent-java8</module>
         <module>apm-agent-benchmarks</module>
         <module>apm-agent-plugins</module>
         <module>apm-agent-api</module>
-        <module>apm-opentracing</module>
         <module>integration-tests</module>
         <module>apm-agent-attach</module>
         <module>apm-agent-plugin-sdk</module>
         <module>apm-agent-bootstrap</module>
-        <module>apm-agent</module>
+        <module>apm-agent-builds</module>
         <module>apm-agent-attach-cli</module>
         <module>apm-agent-common</module>
         <module>apm-agent-cached-lookup-key</module>
+        <module>apm-agent-tracer</module>
+        <module>apm-opentracing</module>
+        <!-- IMPORTANT:
+            For the nexus deployment to work correctly, the last project in the build order needs to have deployment
+            enabled (maven-deploy-plugin.skip must be false).
+            The reason is that for SNAPSHOT builds the upload is performed by the nexus-staging-maven-plugin
+            after the last project build and EVERYTHING is skipped if this project is not part of the deployment.
+            See the documentation (https://github.com/sonatype/nexus-maven-plugins/tree/main/staging/maven-plugin#plugin-flags)
+            and the related issue (https://issues.sonatype.org/browse/NEXUS-9138).
+
+            You can verify the build order by executing ./mvnw clean and looking for the "Reactor Build Order log".
+        -->
     </modules>
 
     <properties>
@@ -117,11 +130,13 @@
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.spring-boot>2.2.2.RELEASE</version.spring-boot>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.0.72</version.json-schema-validator>
+        <version.json-schema-validator>1.0.78</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.12.21</version.byte-buddy>
+        <version.byte-buddy>1.14.2</version.byte-buddy>
         <version.asm>9.4</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
+
+        <version.mockito>5.1.1</version.mockito>
 
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
@@ -177,7 +192,8 @@
               <plugin>
                   <artifactId>maven-failsafe-plugin</artifactId>
                   <configuration>
-                    <skipTests>${skip.integration.test}</skipTests>
+                      <skipTests>${skip.integration.test}</skipTests>
+                      <rerunFailingTestsCount>3</rerunFailingTestsCount>
                   </configuration>
               </plugin>
               <plugin>
@@ -206,31 +222,45 @@
           </properties>
           <build>
             <plugins>
-              <plugin>
-                  <artifactId>maven-failsafe-plugin</artifactId>
-                  <configuration>
-                    <skipTests>${skip.integration.test}</skipTests>
-                  </configuration>
-              </plugin>
-              <plugin>
-                  <artifactId>maven-surefire-plugin</artifactId>
-                  <configuration>
-                      <skipTests>true</skipTests>
-                  </configuration>
-              </plugin>
+                <plugin>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <configuration>
+                        <skipTests>${skip.integration.test}</skipTests>
+                        <rerunFailingTestsCount>3</rerunFailingTestsCount>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <configuration>
+                        <skipTests>true</skipTests>
+                    </configuration>
+                </plugin>
             </plugins>
           </build>
         </profile>
         <profile>
-          <!-- this profile should actually be active whenever running on Java 17 or higher, but since the only pre-Java-17 version we
-          test with is 11, this should be sufficient -->
-          <id>non-java-11</id>
-          <activation>
-              <jdk>!11</jdk>
-          </activation>
-          <modules>
-              <module>apm-agent-java-17</module>
-          </modules>
+            <id>different-test-jdk</id>
+            <activation>
+                <property>
+                    <name>test_java_binary</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <jvm>${test_java_binary}</jvm>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <jvm>${test_java_binary}</jvm>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
         <profile>
             <id>no-errorprone</id>
@@ -327,9 +357,16 @@
                 </configuration>
             </plugin>
             <plugin>
-                <artifactId>maven-deploy-plugin</artifactId>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <extensions>true</extensions>
                 <configuration>
-                    <skip>${maven-deploy-plugin.skip}</skip>
+                    <!-- The Base URL of Nexus instance where we want to stage -->
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <!-- The server "id" element from settings to use authentication from -->
+                    <serverId>sonatype-nexus-staging</serverId>
+                    <skipNexusStagingDeployMojo>${maven-deploy-plugin.skip}</skipNexusStagingDeployMojo>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
             </plugin>
             <!-- The shadowed source files of this module need to be included explicitly to create a javadoc artifact.-->
@@ -397,6 +434,7 @@
                 <configuration>
                     <enableAssertions>true</enableAssertions>
                     <trimStackTrace>false</trimStackTrace>
+                    <rerunFailingTestsCount>3</rerunFailingTestsCount>
                 </configuration>
             </plugin>
             <plugin>
@@ -410,7 +448,6 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -485,11 +522,11 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.22.2</version>
+                    <version>3.0.0-M8</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>2.22.2</version>
+                    <version>3.0.0-M8</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-jar-plugin</artifactId>
@@ -501,7 +538,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-dependency-plugin</artifactId>
-                    <version>3.1.1</version>
+                    <version>3.5.0</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-release-plugin</artifactId>
@@ -512,8 +549,9 @@
                     <version>1.6</version>
                 </plugin>
                 <plugin>
-                    <artifactId>maven-deploy-plugin</artifactId>
-                    <version>2.8.2</version>
+                    <groupId>org.sonatype.plugins</groupId>
+                    <artifactId>nexus-staging-maven-plugin</artifactId>
+                    <version>1.6.13</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-javadoc-plugin</artifactId>
@@ -676,13 +714,20 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.23.1</version>
+            <version>3.24.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>4.11.0</version>
+            <version>${version.mockito}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- adding this to classpath allows to keep default behavior of mockito 4.x where mock subclassing is used.  -->
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-subclass</artifactId>
+            <version>${version.mockito}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

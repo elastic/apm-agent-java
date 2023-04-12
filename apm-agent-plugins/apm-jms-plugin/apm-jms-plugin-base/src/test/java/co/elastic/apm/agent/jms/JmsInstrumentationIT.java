@@ -22,19 +22,15 @@ package co.elastic.apm.agent.jms;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.Id;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.jms.test.TestMessageConsumer;
-import co.elastic.apm.agent.jms.test.TestMessageListener;
-import co.elastic.apm.agent.jms.test.TestMsgHandler;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -47,7 +43,6 @@ import javax.annotation.Nullable;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
-import javax.jms.MessageListener;
 import javax.jms.Queue;
 import javax.jms.TemporaryQueue;
 import javax.jms.TextMessage;
@@ -541,8 +536,13 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         for (Transaction receiveTransaction : receiveTransactions) {
             assertThat(receiveTransaction.getNameAsString()).startsWith("JMS RECEIVE from ");
             assertThat(receiveTransaction.getNameAsString()).endsWith(destinationName);
-            assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
-            assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendInitialMessageSpan.getTraceContext().getId());
+            if (receiveTransaction.getSpanLinks().isEmpty()) {
+                assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
+                assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendInitialMessageSpan.getTraceContext().getId());
+            } else {
+                assertThat(receiveTransaction.getSpanLinks().get(0).getTraceId()).isEqualTo(currentTraceId);
+                assertThat(receiveTransaction.getSpanLinks().get(0).getParentId()).isEqualTo(sendInitialMessageSpan.getTraceContext().getId());
+            }
             assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
             assertThat(receiveTransaction.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
             StringBuilder body = receiveTransaction.getContext().getMessage().getBodyForRead();

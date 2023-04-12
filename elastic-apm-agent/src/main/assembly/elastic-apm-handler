@@ -6,6 +6,7 @@ export ELASTIC_APM_AWS_LAMBDA_HANDLER="${_HANDLER}"
 export ELASTIC_APM_METRICS_INTERVAL="0s"
 export ELASTIC_APM_CENTRAL_CONFIG="false"
 export ELASTIC_APM_CLOUD_PROVIDER="none"
+export ELASTIC_APM_ACTIVATION_METHOD="AWS_LAMBDA_LAYER"
 
 CMD="$(echo "$@" | sed 's/-Xshare:on/-Xshare:auto/g')"
 exec $CMD

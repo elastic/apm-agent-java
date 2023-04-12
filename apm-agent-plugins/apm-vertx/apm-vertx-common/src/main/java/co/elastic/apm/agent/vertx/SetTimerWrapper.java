@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.vertx;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import io.vertx.core.Handler;
 
 public class SetTimerWrapper extends GenericHandlerWrapper<Long> {

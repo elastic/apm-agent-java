@@ -23,11 +23,11 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
+import co.elastic.apm.agent.tracer.Scope;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -141,6 +141,17 @@ class SamplingProfilerTest {
 
         assertThat(tempFile1).exists();
         assertThat(tempFile2).exists();
+    }
+
+    @Test
+    void testStartCommand() {
+        setupProfiler(true);
+        assertThat(profiler.createStartCommand()).isEqualTo("start,jfr,event=wall,cstack=n,interval=5ms,filter,file=null,safemode=0");
+        doReturn(false).when(profilingConfig).isProfilingLoggingEnabled();
+        assertThat(profiler.createStartCommand()).isEqualTo("start,jfr,event=wall,cstack=n,interval=5ms,filter,file=null,safemode=0,log=none");
+        doReturn(TimeDuration.of("10ms")).when(profilingConfig).getSamplingInterval();
+        doReturn(14).when(profilingConfig).getAsyncProfilerSafeMode();
+        assertThat(profiler.createStartCommand()).isEqualTo("start,jfr,event=wall,cstack=n,interval=10ms,filter,file=null,safemode=14,log=none");
     }
 
     @Test

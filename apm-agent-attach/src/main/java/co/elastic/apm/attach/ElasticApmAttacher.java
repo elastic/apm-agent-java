@@ -149,6 +149,9 @@ public class ElasticApmAttacher {
      * @param agentJarFile  the agent jar file
      */
     public static void attach(String pid, Map<String, String> configuration, File agentJarFile) {
+        if (!configuration.containsKey("activation_method")) {
+            configuration.put("activation_method", "PROGRAMMATIC_SELF_ATTACH");
+        }
         File tempFile = createTempProperties(configuration, null);
         String agentArgs = tempFile == null ? null : TEMP_PROPERTIES_FILE_KEY + "=" + tempFile.getAbsolutePath();
 
@@ -210,7 +213,7 @@ public class ElasticApmAttacher {
 
             // Running attacher without proper packaging is quite common when running it from the IDE without having
             // it packaged from CLI beforehand
-            throw new IllegalStateException("unable to get packaged agent within attacher jar, make sure to execute 'mvn clean package' first.");
+            throw new IllegalStateException("unable to get packaged agent within attacher jar.");
         }
     }
 

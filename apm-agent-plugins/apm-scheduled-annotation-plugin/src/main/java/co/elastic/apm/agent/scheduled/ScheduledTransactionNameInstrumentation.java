@@ -20,11 +20,11 @@ package co.elastic.apm.agent.scheduled;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -52,7 +52,7 @@ public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrume
 
     private final Collection<String> applicationPackages;
 
-    public ScheduledTransactionNameInstrumentation(ElasticApmTracer tracer) {
+    public ScheduledTransactionNameInstrumentation(Tracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 
@@ -63,7 +63,7 @@ public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrume
                                                 @Advice.Origin Class<?> clazz) {
             AbstractSpan<?> active = tracer.getActive();
             if (active == null) {
-                Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
+                Transaction<?> transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
                 if (transaction != null) {
                     transaction.withName(signature)
                         .withType("scheduled")
@@ -79,8 +79,8 @@ public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrume
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onMethodExit(@Advice.Enter @Nullable Object transactionObj,
                                         @Advice.Thrown @Nullable Throwable t) {
-            if (transactionObj instanceof Transaction) {
-                Transaction transaction = (Transaction) transactionObj;
+            if (transactionObj instanceof Transaction<?>) {
+                Transaction<?> transaction = (Transaction<?>) transactionObj;
                 transaction.captureException(t)
                     .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
                     .deactivate()

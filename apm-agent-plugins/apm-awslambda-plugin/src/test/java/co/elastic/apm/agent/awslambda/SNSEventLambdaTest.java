@@ -19,11 +19,10 @@
 package co.elastic.apm.agent.awslambda;
 
 import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
-import co.elastic.apm.agent.awslambda.lambdas.S3EventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.SNSEventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.transaction.Faas;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.services.lambda.runtime.events.SNSEvent;

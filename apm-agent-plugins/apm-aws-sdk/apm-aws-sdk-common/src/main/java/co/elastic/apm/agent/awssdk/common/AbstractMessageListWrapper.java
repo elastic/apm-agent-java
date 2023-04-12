@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 
 import java.util.Collection;
 import java.util.List;
@@ -28,13 +28,13 @@ import java.util.ListIterator;
 public abstract class AbstractMessageListWrapper<Message> implements List<Message> {
 
     protected List<Message> delegate;
-    protected final ElasticApmTracer tracer;
+    protected final Tracer tracer;
     protected final String queueName;
 
     protected final AbstractSQSInstrumentationHelper<?, ?, Message> sqsInstrumentationHelper;
     protected final TextHeaderGetter<Message> textHeaderGetter;
 
-    public AbstractMessageListWrapper(List<Message> delegate, ElasticApmTracer tracer, String queueName,
+    public AbstractMessageListWrapper(List<Message> delegate, Tracer tracer, String queueName,
                                       AbstractSQSInstrumentationHelper<?, ?, Message> sqsInstrumentationHelper,
                                       TextHeaderGetter<Message> textHeaderGetter) {
         this.delegate = delegate;

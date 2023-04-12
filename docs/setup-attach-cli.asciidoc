@@ -31,7 +31,7 @@ It's not possible to attach to a J9 VM from a HotSpot-based VM and vice-versa.
 ==== Download
 
 You can download the attach program from maven central:
-link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:apm-agent-attach-cli[maven central]
+link:https://mvnrepository.com/artifact/co.elastic.apm/apm-agent-attach-cli/latest[maven central]
 
 NOTE: In versions prior to 1.22.0, you will have to download the `standalone` jar of the `apm-agent-attach` artifact.
 

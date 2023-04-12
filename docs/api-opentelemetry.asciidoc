@@ -7,7 +7,7 @@ endif::[]
 === OpenTelemetry bridge
 
 The Elastic APM OpenTelemetry bridge allows creating Elastic APM `Transactions` and `Spans`,
-using the OpenTelemetry API.
+using the OpenTelemetry API. OpenTelemetry metrics are also collected.
 In other words,
 it translates the calls to the OpenTelemetry API to Elastic APM and thus allows for reusing existing instrumentation.
 
@@ -137,15 +137,104 @@ To learn more about the OpenTelemetry API,
 head over do https://opentelemetry.io/docs/java/manual_instrumentation/[their documentation].
 
 [float]
+[[otel-metrics]]
+==== Metrics
+
+experimental::[]
+
+The Elastic APM Java Agent supports collecting metrics defined via OpenTelemetry.
+You can either use the <<otel-metrics-api, OpenTelemetry API>> or the <<otel-metrics-sdk, OpenTelemetry SDK>> in case you need more customizations.
+
+In both cases the Elastic APM Agent will respect the <<config-disable-metrics, `disable_metrics`>> and <<config-metrics-interval, `metrics_interval`>> settings for OpenTelemetry metrics.
+
+You can use the <<config-custom-metrics-histogram-boundaries, `custom_metrics_histogram_boundaries`>> setting to customize histogram bucket boundaries.
+Alternatively you can use OpenTelemetry `Views` to define histogram buckets on a per-metric basis when providing your own `MeterProvider`.
+
+[float]
+[[otel-metrics-api]]
+==== API Usage
+
+You can define metrics and report metric data via `GlobalOpenTelemetry`:
+
+[source,java]
+----
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.Meter;
+
+Meter myMeter = GlobalOpenTelemetry.getMeter("my_meter");
+LongCounter counter = meter.counterBuilder("my_counter").build();
+counter.add(42);
+----
+
+We don't require you to setup an OpenTelemetry `MeterProvider` within `GlobalOpenTelemetry` yourself.
+The Elastic APM Java Agent will detect if no `MeterProvider` was configured and will provide its own automatically in this case.
+If you provide your own `MeterProvider` (see <<otel-metrics-sdk>>), the agent will use the provided instance.
+
+[float]
+[[otel-metrics-sdk]]
+==== Using a customized MeterProvider
+
+In some cases using just the <<otel-metrics-api, OpenTelemetry API for metrics>> might not be flexible enough.
+Some example use cases are:
+
+ * Using OpenTelemetry Views (e.g. to customize histogram buckets on a per-metric basis)
+ * Exporting metrics to other tools in addition to Elastic APM (e.g. prometheus)
+
+For these use cases you can just setup you OpenTelemetry SDK `MeterProvider`.
+The Elastic APM Agent will take care of installing an additional `MetricExporter` via instrumentation,
+which will ship the metric data to Elastic APM.
+This requires using OpenTelemetry version `1.16.0` or newer.
+
+To create your own `MeterProvider`, you will need to add the OpenTelemetry Metric SDK as dependency to your project:
+
+[source,xml]
+.pom.xml
+----
+<dependency>
+    <groupId>io.opentelemetry</groupId>
+    <artifactId>opentelemetry-sdk-metrics</artifactId>
+    <version>${version.opentelemetry}</version>
+</dependency>
+----
+
+[source,groovy]
+.build.gradle
+----
+compile "io.opentelemetry:opentelemetry-sdk-metrics:$openTelemetryVersion"
+----
+
+Afterwards you can create and use your own `MeterProvider` as shown below:
+
+[source,java]
+----
+import io.opentelemetry.sdk.metrics.SdkMeterProvider;
+import io.opentelemetry.api.metrics.DoubleHistogram;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.api.metrics.MeterProvider;
+import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.View;
+
+//Elastic APM MetricReader will be registered automatically by the agent
+SdkMeterProvider meterProvider = SdkMeterProvider.builder()
+    .registerMetricReader(PrometheusHttpServer.create())
+    .registerView(
+        InstrumentSelector.builder().setName("my_histogram").build(),
+        View.builder().setAggregation(Aggregation.explicitBucketHistogram(List.of(1.0, 5.0))).build()
+    )
+    .build();
+
+Meter testMeter = meterProvider.get("my_meter");
+DoubleHistogram my_histogram = testMeter.histogramBuilder("my_histogram").build();
+
+my_histogram.record(0.5);
+----
+
+[float]
 [[otel-caveats]]
 ==== Caveats
 Not all features of the OpenTelemetry API are supported.
-
-[float]
-[[otel-metrics]]
-===== Metrics
-This bridge only supports the tracing API.
-The Metrics API is currently not supported.
 
 [float]
 [[otel-propagation]]

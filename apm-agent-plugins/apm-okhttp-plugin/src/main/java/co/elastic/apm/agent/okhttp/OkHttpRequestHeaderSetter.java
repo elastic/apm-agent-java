@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import com.squareup.okhttp.Request;
 
 @SuppressWarnings("unused")

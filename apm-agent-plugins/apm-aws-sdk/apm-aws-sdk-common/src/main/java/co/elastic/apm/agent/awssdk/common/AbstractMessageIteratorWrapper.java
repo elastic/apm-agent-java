@@ -19,10 +19,11 @@
 package co.elastic.apm.agent.awssdk.common;
 
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,12 +39,12 @@ public abstract class AbstractMessageIteratorWrapper<Message> implements Iterato
     public static final Logger logger = LoggerFactory.getLogger(AbstractMessageIteratorWrapper.class);
 
     private final Iterator<Message> delegate;
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
     private final String queueName;
     private final AbstractSQSInstrumentationHelper<?, ?, Message> sqsInstrumentationHelper;
     private final TextHeaderGetter<Message> textHeaderGetter;
 
-    public AbstractMessageIteratorWrapper(Iterator<Message> delegate, ElasticApmTracer tracer,
+    public AbstractMessageIteratorWrapper(Iterator<Message> delegate, Tracer tracer,
                                           String queueName,
                                           AbstractSQSInstrumentationHelper<?, ?, Message> sqsInstrumentationHelper,
                                           TextHeaderGetter<Message> textHeaderGetter) {
@@ -62,8 +63,8 @@ public abstract class AbstractMessageIteratorWrapper<Message> implements Iterato
     }
 
     @Nullable
-    public Transaction endCurrentTransaction() {
-        Transaction transaction = null;
+    public Transaction<?> endCurrentTransaction() {
+        Transaction<?> transaction = null;
         try {
             transaction = tracer.currentTransaction();
             if (transaction != null && MESSAGING_TYPE.equals(transaction.getType())) {
@@ -77,10 +78,13 @@ public abstract class AbstractMessageIteratorWrapper<Message> implements Iterato
     }
 
     public void endMessageProcessingSpan() {
-        Span span = tracer.getActiveSpan();
+        AbstractSpan<?> active = tracer.getActive();
+        if (!(active instanceof Span<?>)) {
+            return;
+        }
 
-        if (span != null
-            && span.getType() != null && span.getType().equals(MESSAGING_TYPE)
+        Span<?> span = (Span<?>) active;
+        if (span.getType() != null && span.getType().equals(MESSAGING_TYPE)
             && span.getSubtype() != null && span.getSubtype().equals(SQS_TYPE)
             && span.getAction() != null && span.getAction().equals(MESSAGE_PROCESSING_ACTION)) {
             span.deactivate().end();
@@ -89,7 +93,7 @@ public abstract class AbstractMessageIteratorWrapper<Message> implements Iterato
 
     @Override
     public Message next() {
-        Transaction currentTransaction = endCurrentTransaction();
+        Transaction<?> currentTransaction = endCurrentTransaction();
         Message sqsMessage = delegate.next();
         if (currentTransaction == null) {
             sqsInstrumentationHelper.startTransactionOnMessage(sqsMessage, queueName, textHeaderGetter);

@@ -20,12 +20,12 @@ package co.elastic.apm.agent.dubbo.advice;
 
 import co.elastic.apm.agent.dubbo.helper.AlibabaDubboTextMapPropagator;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import com.alibaba.dubbo.rpc.Invocation;
 import com.alibaba.dubbo.rpc.Result;
@@ -37,7 +37,7 @@ import javax.annotation.Nullable;
 
 public class AlibabaMonitorFilterAdvice {
 
-    private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+    private static final Tracer tracer = GlobalTracer.get();
 
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -46,7 +46,7 @@ public class AlibabaMonitorFilterAdvice {
         // for consumer side, just create span, more information will be collected in provider side
         AbstractSpan<?> active = tracer.getActive();
         if (context.isConsumerSide() && active != null) {
-            Span span = DubboTraceHelper.createConsumerSpan(tracer, invocation.getInvoker().getInterface(),
+            Span<?> span = DubboTraceHelper.createConsumerSpan(tracer, invocation.getInvoker().getInterface(),
                 invocation.getMethodName(), context.getRemoteAddress());
             if (span != null) {
                 span.propagateTraceContext(context, AlibabaDubboTextMapPropagator.INSTANCE);
@@ -54,7 +54,7 @@ public class AlibabaMonitorFilterAdvice {
             }
         } else if (context.isProviderSide() && active == null) {
             // for provider side
-            Transaction transaction = tracer.startChildTransaction(context, AlibabaDubboTextMapPropagator.INSTANCE, PrivilegedActionUtils.getClassLoader(Invocation.class));
+            Transaction<?> transaction = tracer.startChildTransaction(context, AlibabaDubboTextMapPropagator.INSTANCE, PrivilegedActionUtils.getClassLoader(Invocation.class));
             if (transaction != null) {
                 transaction.activate();
                 DubboTraceHelper.fillTransaction(transaction, invocation.getInvoker().getInterface(), invocation.getMethodName());

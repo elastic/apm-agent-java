@@ -12,36 +12,15 @@ on:
     - '*.asciidoc'
     - 'docs/**'
 
-env:
-  MAVEN_CONFIG: >-
-    -V
-    -B
-    -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-    -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3
-    -Dmaven.wagon.httpconnectionManager.ttlSeconds=25
-  JAVA_VERSION: 17
-  JAVA_DIST: adopt
-  GOAL: clean install -DskipTests=true -Dmaven.javadoc.skip=true
-
 jobs:
   upload:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v3
+      - uses: ./.github/workflows/maven-goal
         with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
-          cache: 'maven'
-
-      # Install with a retry
-      - run: ./mvnw $GOAL
-        id: install
-        continue-on-error: true
-      - run: ./mvnw $GOAL
-        if: steps.install.outcome == 'failure'
+          command: ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
 
       - name: Publish snaphosts
         uses: elastic/apm-pipeline-library/.github/actions/snapshoty-simple@current

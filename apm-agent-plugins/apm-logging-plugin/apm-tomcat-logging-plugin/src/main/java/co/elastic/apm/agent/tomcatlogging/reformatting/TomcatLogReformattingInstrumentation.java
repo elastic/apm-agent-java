@@ -23,8 +23,6 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.logging.LogRecord;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -34,10 +32,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public abstract class TomcatLogReformattingInstrumentation extends AbstractLogIntegrationInstrumentation {
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        ArrayList<String> list = new ArrayList<>(super.getInstrumentationGroupNames());
-        list.add("tomcat-ecs");
-        return list;
+    protected String getLoggingInstrumentationGroupName() {
+        return LOG_REFORMATTING;
     }
 
     /**

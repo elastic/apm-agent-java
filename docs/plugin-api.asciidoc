@@ -29,8 +29,7 @@ compile "co.elastic.apm:apm-agent-plugin-sdk:$elasticApmVersion"
 ----
 
 Replace the version placeholders with the
-link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:apm-agent-api[
-latest version from maven central]:
+link:https://mvnrepository.com/artifact/co.elastic.apm/apm-agent-api/latest[latest version from maven central]:
 image:https://img.shields.io/maven-central/v/co.elastic.apm/apm-agent-api.svg[Maven Central]
 
 An https://github.com/elastic/apm-agent-java-plugin-example[example repo] and an

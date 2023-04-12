@@ -19,19 +19,25 @@
 package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.impl.transaction.TransactionTest;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpVersion;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.message.BasicStatusLine;
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.client.Response;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 
+import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.ELASTICSEARCH;
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -56,7 +62,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
 
     @Test
     void testCreateSpan() {
-        Span span = helper.createClientSpan("GET", "/_test", null);
+        Span span = (Span) helper.createClientSpan("GET", "/_test", null);
         assertThat(span).isNotNull();
 
         assertThat(tracer.getActive()).isEqualTo(span);
@@ -81,7 +87,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
 
     @Test
     void testCreateSpanWithClusterName() {
-        Span span = helper.createClientSpan("GET", "/_test", null);
+        Span span = (Span) helper.createClientSpan("GET", "/_test", null);
         assertThat(span).isNotNull();
 
         assertThat(tracer.getActive()).isEqualTo(span);
@@ -121,7 +127,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
     @Test
     void testNonSampledSpan() {
         TransactionTest.setRecorded(false, transaction);
-        Span esSpan = helper.createClientSpan("SEARCH", "/test", null);
+        Span esSpan = (Span) helper.createClientSpan("SEARCH", "/test", null);
         assertThat(esSpan).isNotNull();
         try {
             assertThat(esSpan.isSampled()).isFalse();
@@ -130,6 +136,47 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
                 .isNotNull();
         } finally {
             esSpan.deactivate().end();
+        }
+    }
+
+
+    @Test
+    public void testCaptureBodyUrls() throws Exception {
+        testCaptureBodyUrls(false);
+        testCaptureBodyUrls(true);
+    }
+
+    public void testCaptureBodyUrls(boolean captureEverything) throws Exception {
+        if (captureEverything) {
+            doReturn(List.of(WildcardMatcher.valueOf("*")))
+                .when(config.getConfig(ElasticsearchConfiguration.class))
+                .getCaptureBodyUrls();
+            assertThat(config.getConfig(ElasticsearchConfiguration.class).getCaptureBodyUrls()).hasSize(1);
+        } else {
+            assertThat(config.getConfig(ElasticsearchConfiguration.class).getCaptureBodyUrls()).hasSizeGreaterThan(5);
+        }
+
+        Span span = (Span) helper.createClientSpan("GET", "/_test",
+            new ByteArrayEntity(new byte[0]));
+        assertThat(span).isNotNull();
+        assertThat(tracer.getActive()).isEqualTo(span);
+
+        Response response = mockResponse(Map.of());
+        helper.finishClientSpan(response, span, null);
+        span.deactivate();
+
+        assertThat(tracer.getActive()).isEqualTo(transaction);
+        assertThat(span).hasType("db").hasSubType("elasticsearch");
+        assertThat(span.getContext().getServiceTarget())
+            .hasType("elasticsearch")
+            .hasNoName();
+
+        Db db = span.getContext().getDb();
+        Assertions.assertThat(db.getType()).isEqualTo(ELASTICSEARCH);
+        if (captureEverything) {
+            assertThat((CharSequence) db.getStatementBuffer()).isNotNull();
+        } else {
+            assertThat((CharSequence) db.getStatementBuffer()).isNull();
         }
     }
 }

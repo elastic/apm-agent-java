@@ -270,6 +270,9 @@ public class AgentAttacher {
 
     private boolean attach(JvmInfo jvmInfo) throws Exception {
         final Map<String, String> agentArgs = getAgentArgs(jvmInfo);
+        if (!agentArgs.containsKey("activation_method")) {
+            agentArgs.put("activation_method", "APM_AGENT_ATTACH_CLI");
+        }
         logger.info("Attaching the Elastic APM agent to {} with arguments {}", jvmInfo, agentArgs);
 
         UserRegistry.User user = jvmInfo.getUser(userRegistry);
@@ -377,7 +380,8 @@ public class AgentAttacher {
                 if (!agentJar.canRead()) {
                     throw new IllegalArgumentException(String.format("Agent jar %s is not readable", agentJarString));
                 }
-            } else {
+            } else if (downloadAgentVersion == null) {
+                // this would fail if using the slim attacher CLI jar without providing either --agent-jar or --download-agent-version
                 this.agentJar = ElasticApmAttacher.getBundledAgentJarFile();
             }
             if (!config.isEmpty() && argsProvider != null) {

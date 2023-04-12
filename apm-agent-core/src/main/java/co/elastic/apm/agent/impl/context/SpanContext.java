@@ -22,7 +22,7 @@ package co.elastic.apm.agent.impl.context;
 /**
  * Any other arbitrary data captured by the agent, optionally provided by the user
  */
-public class SpanContext extends AbstractContext {
+public class SpanContext extends AbstractContext implements co.elastic.apm.agent.tracer.SpanContext {
 
     /**
      * An object containing contextual data for database spans
@@ -44,27 +44,22 @@ public class SpanContext extends AbstractContext {
      */
     private final ServiceTarget serviceTarget = new ServiceTarget();
 
-    /**
-     * An object containing contextual data for database spans
-     */
+    @Override
     public Db getDb() {
         return db;
     }
 
-    /**
-     * An object containing contextual data for outgoing HTTP spans
-     */
+    @Override
     public Http getHttp() {
         return http;
     }
 
-    /**
-     * An object containing contextual data for service maps
-     */
+    @Override
     public Destination getDestination() {
         return destination;
     }
 
+    @Override
     public ServiceTarget getServiceTarget() {
         return serviceTarget;
     }

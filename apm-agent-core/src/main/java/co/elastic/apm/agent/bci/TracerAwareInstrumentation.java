@@ -18,13 +18,12 @@
  */
 package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.Tracer;
 
 /**
- * The constructor can optionally have a {@link ElasticApmTracer} parameter.
+ * The constructor can optionally have a {@link Tracer} parameter.
  */
 public abstract class TracerAwareInstrumentation extends ElasticApmInstrumentation {
 

@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static org.mockito.Mockito.spy;
+
 public class MetaDataMock {
 
     /**
@@ -33,7 +35,7 @@ public class MetaDataMock {
      */
     public static Future<MetaData> create(ProcessInfo process, Service service, SystemInfo system, @Nullable CloudProviderInfo cloudProviderInfo,
                                           Map<String, String> globalLabels, @Nullable FaaSMetaDataExtension faaSMetaDataExtension) {
-        return new NoWaitFuture<MetaData>(new MetaData(process, service, system, cloudProviderInfo, globalLabels, faaSMetaDataExtension));
+        return create(new MetaData(process, service, system, cloudProviderInfo, globalLabels, faaSMetaDataExtension));
     }
 
     /**
@@ -42,7 +44,7 @@ public class MetaDataMock {
      * @return a mock future, already containing the medata info
      */
     public static Future<MetaData> create() {
-        return new NoWaitFuture<>(new MetaData(
+        return create(new MetaData(
             new ProcessInfo("test-process"),
             new Service(),
             new SystemInfo("x64", "localhost", null, "platform"),
@@ -50,6 +52,23 @@ public class MetaDataMock {
             Collections.emptyMap(),
             null
         ));
+    }
+
+    public static Future<MetaData> create(MetaData value) {
+        return new NoWaitFuture<>(value);
+    }
+
+    /**
+     * @return a metadata spy with some default values
+     */
+    public static MetaData createDefaultMock() {
+        return spy(new MetaData(
+            new ProcessInfo("test-process"),
+            new Service(),
+            new SystemInfo("x64", "localhost", null, "platform"),
+            null,
+            Collections.emptyMap(),
+            null));
     }
 
     private static class NoWaitFuture<V> implements Future<V> {

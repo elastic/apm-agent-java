@@ -19,8 +19,10 @@
 package co.elastic.apm.agent.esrestclient.v7_x;
 
 import co.elastic.apm.agent.esrestclient.v6_4.AbstractEs6_4ClientInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -44,7 +46,10 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Cancellable;
+import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.ResponseListener;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -62,7 +67,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.xcontent.XContentFactory.jsonBuilder;
@@ -71,6 +80,8 @@ import static org.elasticsearch.xcontent.XContentFactory.jsonBuilder;
 public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4ClientInstrumentationTest {
 
     private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:7.11.0";
+
+    private static RestClientBuilder clientBuilder;
 
     public ElasticsearchRestClientInstrumentationIT(boolean async) {
         this.async = async;
@@ -83,10 +94,10 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
         CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(USER_NAME, PASSWORD));
 
-        RestClientBuilder builder = RestClient.builder(HttpHost.create(container.getHttpHostAddress()))
+        clientBuilder = RestClient.builder(HttpHost.create(container.getHttpHostAddress()))
             .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
 
-        client = new RestHighLevelClient(builder);
+        client = new RestHighLevelClient(clientBuilder);
 
         client.indices().create(new CreateIndexRequest(INDEX), RequestOptions.DEFAULT);
         reporter.reset();
@@ -135,6 +146,45 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
             .isEqualTo(Outcome.UNKNOWN);
 
         deleteDocument();
+    }
+
+    @Test
+    public void testRestClientAsyncContextPropagation() throws InterruptedException, ExecutionException, TimeoutException {
+        if(!async) {
+            // test only relevant when testing async stuff
+            return;
+        }
+
+        AbstractSpan<?> active = tracer.getActive();
+        assertThat(active).isInstanceOf(Transaction.class);
+
+        reporter.reset();
+
+        AtomicReference<AbstractSpan<?>> observedActive = new AtomicReference<>();
+        CountDownLatch endLatch = new CountDownLatch(1);
+
+        RestClient restClient = clientBuilder.build();
+
+        Request request = new Request("GET", "/");
+
+        restClient.performRequestAsync(request, new ResponseListener() {
+            @Override
+            public void onSuccess(Response response) {
+                observedActive.set(tracer.getActive());
+                endLatch.countDown();
+            }
+
+            @Override
+            public void onFailure(Exception exception) {
+                observedActive.set(tracer.getActive());
+                endLatch.countDown();
+            }
+        });
+
+        endLatch.await(1, TimeUnit.SECONDS);
+
+        assertThat(observedActive.get())
+            .isSameAs(active);
     }
 
     @Override

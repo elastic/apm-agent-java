@@ -30,8 +30,8 @@ import org.reactivestreams.Publisher;
 import java.io.IOException;
 import java.util.Arrays;
 
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.asynchttpclient.Dsl.asyncHttpClient;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(Parameterized.class)
 public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
@@ -46,21 +46,18 @@ public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstru
     public static AsyncHandler<Response> customAsyncHandler = new AsyncCompletionHandler<Response>() {
         @Override
         public State onStatusReceived(HttpResponseStatus responseStatus) {
-            assertThat(tracer.getActive()).isNotNull();
-            assertThat(tracer.getActive().isExit()).isTrue();
+            assertThat(tracer.getActive()).isExit();
             return State.CONTINUE;
         }
 
         @Override
         public void onThrowable(Throwable t) {
-            assertThat(tracer.getActive()).isNotNull();
-            assertThat(tracer.getActive().isExit()).isTrue();
+            assertThat(tracer.getActive()).isExit();
         }
 
         @Override
         public Response onCompleted(Response response) {
-            assertThat(tracer.getActive()).isNotNull();
-            assertThat(tracer.getActive().isExit()).isTrue();
+            assertThat(tracer.getActive()).isExit();
             return response;
         }
 
@@ -70,15 +67,13 @@ public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstru
 
         @Override
         public Response onCompleted(Response response) {
-            assertThat(tracer.getActive()).isNotNull();
-            assertThat(tracer.getActive().isExit()).isTrue();
+            assertThat(tracer.getActive()).isExit();
             return response;
         }
 
         @Override
         public State onStream(Publisher<HttpResponseBodyPart> publisher) {
-            assertThat(tracer.getActive()).isNotNull();
-            assertThat(tracer.getActive().isExit()).isTrue();
+            assertThat(tracer.getActive()).isExit();
             return State.ABORT;
         }
     }

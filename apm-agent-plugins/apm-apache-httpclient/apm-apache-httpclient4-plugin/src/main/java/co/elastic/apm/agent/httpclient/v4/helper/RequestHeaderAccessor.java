@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.httpclient.v4.helper;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import org.apache.http.Header;
 import org.apache.http.HttpRequest;
 

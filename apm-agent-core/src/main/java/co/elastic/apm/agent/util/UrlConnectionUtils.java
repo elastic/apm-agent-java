@@ -46,13 +46,13 @@ public class UrlConnectionUtils {
     }
 
     private static void debugPrintProxySettings(URL url) {
-        ProxySelector proxySelector = ProxySelector.getDefault();
+        ProxySelector proxySelector = PrivilegedActionUtils.getDefaultProxySelector();
         if (proxySelector == null || proxySelector.getClass().getName().equals("sun.net.spi.DefaultProxySelector")) {
             String proxyHostProperty = url.getProtocol() + ".proxyHost";
             String proxyPortProperty = url.getProtocol() + ".proxyPort";
-            String proxyHost = System.getProperty(proxyHostProperty);
-            String proxyPort = System.getProperty(proxyPortProperty);
-            String nonProxyHosts = System.getProperty("http.nonProxyHosts"); // common to http & https
+            String proxyHost = PrivilegedActionUtils.getProperty(proxyHostProperty);
+            String proxyPort = PrivilegedActionUtils.getProperty(proxyPortProperty);
+            String nonProxyHosts = PrivilegedActionUtils.getProperty("http.nonProxyHosts"); // common to http & https
             if (proxyHost == null || proxyHost.isEmpty()) {
                 logger.debug("Opening {} without proxy", url);
             } else {

@@ -18,8 +18,7 @@
  */
 package co.elastic.apm.agent.mongodb.v4;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.mongodb.MongoHelper;
 import com.mongodb.ServerAddress;
 import com.mongodb.internal.connection.Connection;
@@ -75,8 +74,8 @@ public class ConnectionCommandInstrumentation extends Mongo4Instrumentation {
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Nullable @Advice.Enter Object spanObj, @Advice.Thrown Throwable thrown) {
-            if (spanObj instanceof Span) {
-                Span span = (Span) spanObj;
+            if (spanObj instanceof Span<?>) {
+                Span<?> span = (Span<?>) spanObj;
                 span.deactivate()
                     .captureException(thrown)
                     .end();
