@@ -50,6 +50,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.time.Duration;
 import java.util.Collections;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
@@ -78,9 +79,9 @@ public abstract class AbstractSpringBootTest {
     public void setUp() {
         doReturn(true).when(config.getConfig(ReporterConfiguration.class)).isReportSynchronously();
         restTemplate = new TestRestTemplate(new RestTemplateBuilder()
-            .setConnectTimeout(0)
-            .setReadTimeout(0)
-            .basicAuthorization("username", "password"));
+            .setConnectTimeout(Duration.ZERO)
+            .setReadTimeout(Duration.ZERO)
+            .basicAuthentication("username", "password"));
         reporter.reset();
     }
 
@@ -106,7 +107,11 @@ public abstract class AbstractSpringBootTest {
         // the service.name will not be overwritten for the webapp class loader based on spring.application.name
         assertThat(transaction.getTraceContext().getServiceName()).isNull();
         assertThat(transaction.getFrameworkName()).isEqualTo("Spring Web MVC");
-        assertThat(transaction.getFrameworkVersion()).isEqualTo("5.1.9.RELEASE");
+        assertThat(transaction.getFrameworkVersion()).matches(getExpectedSpringVersionRegex());
+    }
+
+    protected String getExpectedSpringVersionRegex() {
+        return "5\\.[0-9]+\\.[0-9]+";
     }
 
     @Test
