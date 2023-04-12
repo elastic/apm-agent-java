@@ -25,7 +25,7 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>2.7.10</version>
+                <version>${version.spring-boot-3}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -42,6 +42,18 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <!--
+                    jcl needs to be excluded because of the integration tests.
+                    jcl seems to provide apache commons logging classes, but compiled with java 17.
+                    Wiremock does some reflective lookup on these classes, which causes the tests to fail with Java 11.
+                    As a workaround, jcl has been excluded and commons-logging has been included as test dependency instead
+                    -->
+                    <groupId>org.springframework</groupId>
+                    <artifactId>spring-jcl</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -84,6 +96,17 @@
         <dependency>
             <groupId>org.apache.httpcomponents.core5</groupId>
             <artifactId>httpcore5-reactive</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.ivy</groupId>
+            <artifactId>ivy</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>1.2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
