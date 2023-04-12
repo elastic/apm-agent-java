@@ -28,6 +28,7 @@
         <module>runtime-attach</module>
         <module>jakartaee-jsf-app</module>
         <module>main-app-test</module>
+        <module>spring-boot-3</module>
     </modules>
 
     <properties>
