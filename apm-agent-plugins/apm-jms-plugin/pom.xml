@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.36.1-SNAPSHOT</version>
+        <version>1.37.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-jms-plugin</artifactId>
