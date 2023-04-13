@@ -6,7 +6,7 @@
     <parent>
         <artifactId>external-plugin-test</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.36.1-SNAPSHOT</version>
+        <version>1.37.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>external-plugin-jakarta-app</artifactId>

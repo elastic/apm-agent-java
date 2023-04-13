@@ -72,6 +72,7 @@ public class ApmServerClient {
     private static final Version VERSION_7_4 = Version.of("7.4.0");
     private static final Version VERSION_8_0 = Version.of("8.0.0");
     private static final Version VERSION_8_6 = Version.of("8.6.0");
+    private static final Version VERSION_8_7_1 = Version.of("8.7.1");
 
     private final ReporterConfiguration reporterConfiguration;
     @Nullable
@@ -115,6 +116,11 @@ public class ApmServerClient {
         this.serverUrls = serverUrls;
         this.apmServerVersion = healthChecker.checkHealthAndGetMinVersion();
         this.errorCount.set(0);
+    }
+
+    public boolean isServerVersionReady() {
+        Future<Version> localValue = apmServerVersion;
+        return localValue != null && localValue.isDone();
     }
 
     private static List<URL> shuffleUrls(List<URL> serverUrls) {
@@ -339,10 +345,17 @@ public class ApmServerClient {
         return isAtLeast(VERSION_8_6);
     }
 
+    public boolean supportsActivationMethod() {
+        if (!isServerVersionReady()) {
+            return true;
+        }
+        return isAtLeast(VERSION_8_7_1);
+    }
+
     public boolean supportsKeepingUnsampledTransaction() {
         // Method is called from application threads thus we have to return fast to avoid blocking application threads
         // When server version is not known we assume that it's a 7.x or earlier and keep sending unsampled.
-        if (apmServerVersion != null && !apmServerVersion.isDone()) {
+        if (!isServerVersionReady()) {
             return true;
         }
         return isLowerThan(VERSION_8_0);

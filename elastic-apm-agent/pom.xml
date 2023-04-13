@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.36.1-SNAPSHOT</version>
+        <version>1.37.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
@@ -191,9 +191,8 @@
 
                             <target name="merge-sources" description="Merge source jars">
                                 <zip destfile="${project.basedir}/target/${project.artifactId}-${project.version}-sources.jar">
-                                    <zipgroupfileset dir="${project.basedir}/target/dependency-sources"
-                                                     includes="apm-agent-sources.jar"/>
-                                    <zipgroupfileset dir="${project.basedir}/target/" includes="original-elastic-apm-agent-*-sources.jar"/>
+                                    <zipgroupfileset dir="${project.basedir}/target/dependency-sources" includes="apm-agent-sources.jar" />
+                                    <zipgroupfileset dir="${project.basedir}/target/" includes="original-elastic-apm-agent-*-sources.jar" />
                                 </zip>
                             </target>
 

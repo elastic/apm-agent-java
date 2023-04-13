@@ -21,15 +21,13 @@ package co.elastic.apm.agent.process;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.test.JavaExecutable;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecuteResultHandler;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
 import org.junit.jupiter.api.Test;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -103,7 +101,7 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
             }
         };
 
-        new DefaultExecutor().execute(new CommandLine(getJavaBinaryPath()).addArgument("-version"), handler);
+        new DefaultExecutor().execute(new CommandLine(JavaExecutable.getBinaryPath()).addArgument("-version"), handler);
         handler.waitFor();
 
         assertThat(future.isCompletedExceptionally())
@@ -111,16 +109,6 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
             .isFalse();
 
         return future;
-    }
-
-    private static String getJavaBinaryPath() {
-        boolean isWindows = System.getProperty("os.name").startsWith("Windows");
-        String executable = isWindows ? "java.exe" : "java";
-        Path path = Paths.get(System.getProperty("java.home"), "bin", executable);
-        if (!Files.isExecutable(path)) {
-            throw new IllegalStateException("unable to find java path");
-        }
-        return path.toAbsolutePath().toString();
     }
 
     private static void startTransaction() {
