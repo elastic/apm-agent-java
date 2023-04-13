@@ -20,6 +20,8 @@ package co.elastic.apm.agent.vertx;
 
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.tracer.metadata.Request;
@@ -34,8 +36,6 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.nio.CharBuffer;
@@ -78,7 +78,7 @@ public abstract class AbstractVertxWebHelper extends AbstractHttpTransactionHelp
         if (!webConfiguration.isUsePathAsName()) {
             String path = routingContext.currentRoute().getPath();
             if (path != null) {
-                StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
+                StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK - 1);
                 if (transactionName != null) {
                     transactionName.append(routingContext.request().method().name())
                         .append(" ").append(path);

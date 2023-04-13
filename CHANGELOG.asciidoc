@@ -23,6 +23,10 @@ endif::[]
 [[release-notes-1.38.0]]
 ==== 1.38.0 - YYYY/MM/DD
 
+[float]
+===== Features
+* Added tests for Quarkus / RestEasy, adjusted vert.x router transaction name priority - {pull}1765[#1765]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 

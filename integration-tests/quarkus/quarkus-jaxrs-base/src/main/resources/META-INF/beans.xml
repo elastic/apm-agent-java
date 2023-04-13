@@ -1,0 +1,1 @@
+<!-- empty file is required for proper quarkus context setup, quarkus looks for its presence to do CDI -->
