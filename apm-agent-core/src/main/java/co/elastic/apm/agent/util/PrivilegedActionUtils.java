@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.ProxySelector;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.AccessController;
@@ -58,6 +59,35 @@ public class PrivilegedActionUtils {
             @Override
             public Map<String, String> run() {
                 return System.getenv();
+            }
+        });
+    }
+
+
+    @Nullable
+    public static String getProperty(final String name) {
+        if (System.getSecurityManager() == null) {
+            return System.getProperty(name);
+        }
+
+        return AccessController.doPrivileged(new PrivilegedAction<String>() {
+            @Override
+            public String run() {
+                return System.getProperty(name);
+            }
+        });
+    }
+
+    @Nullable
+    public static ProxySelector getDefaultProxySelector() {
+        if (System.getSecurityManager() == null) {
+            return ProxySelector.getDefault();
+        }
+
+        return AccessController.doPrivileged(new PrivilegedAction<ProxySelector>() {
+            @Override
+            public ProxySelector run() {
+                return ProxySelector.getDefault();
             }
         });
     }
