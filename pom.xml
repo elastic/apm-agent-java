@@ -150,8 +150,6 @@
 
         <skip.integration.test>false</skip.integration.test>
         <skip.unit.test>false</skip.unit.test>
-        <!-- this property can be passed in from the command line to provide additional JVM properties when testing -->
-        <surefireArgLine></surefireArgLine>
     </properties>
 
     <profiles>
@@ -437,7 +435,6 @@
                     <enableAssertions>true</enableAssertions>
                     <trimStackTrace>false</trimStackTrace>
                     <rerunFailingTestsCount>3</rerunFailingTestsCount>
-                    <argLine>@{argLine} ${surefireArgLine}</argLine>
                 </configuration>
             </plugin>
             <plugin>

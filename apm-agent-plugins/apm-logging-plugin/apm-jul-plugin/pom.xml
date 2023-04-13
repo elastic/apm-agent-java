@@ -41,8 +41,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <!-- adds the ability to use reflection to inspect java.util.logging classes -->
-                    <argLine>@{argLine} ${surefireArgLine} --add-opens java.logging/java.util.logging=ALL-UNNAMED
-                    </argLine>
+                    <argLine>--add-opens java.logging/java.util.logging=ALL-UNNAMED</argLine>
                 </configuration>
             </plugin>
             <!-- packaging test code so tomcat logging plugin can reuse them -->
