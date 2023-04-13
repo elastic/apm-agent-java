@@ -142,7 +142,7 @@ public class ApmServerClient {
 
     @Nonnull
     private HttpURLConnection startRequestToUrl(URL url) throws IOException {
-        final URLConnection connection = UrlConnectionUtils.openUrlConnectionThreadSafely(url);
+        final URLConnection connection = UrlConnectionUtils.openUrlConnectionThreadSafely(url, true);
 
         // change SSL socket factory to support both TLS fallback and disabling certificate validation
         if (connection instanceof HttpsURLConnection) {
