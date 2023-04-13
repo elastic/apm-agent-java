@@ -56,14 +56,6 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- required to test integration with API, for example custom transaction naming -->
-        <dependency>
-            <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-api-plugin</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-
         <!-- required for context-propagation during tests, but only at runtime -->
         <dependency>
             <groupId>co.elastic.apm</groupId>

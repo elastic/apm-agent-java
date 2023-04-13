@@ -16,23 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.springwebflux.testapp;
+package co.elastic.apm.quarkus.jaxrs;
 
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-@ExtendWith(SpringExtension.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class AnnotatedEndpointTest extends ApplicationTest {
-
-    @LocalServerPort
-    private int serverPort;
-
-    @Override
-    protected GreetingWebClient createClient() {
-        return new GreetingWebClient("localhost", serverPort, false, true);
-    }
+class VertxIT extends AbstractQuarkusJaxRSTest {
 
 }
