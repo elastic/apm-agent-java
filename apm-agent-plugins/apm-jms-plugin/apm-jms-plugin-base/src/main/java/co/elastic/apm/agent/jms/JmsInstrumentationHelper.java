@@ -23,7 +23,6 @@ import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
@@ -101,7 +100,7 @@ public class JmsInstrumentationHelper {
         this.tracer = tracer;
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
-        Set<String> traceHeaders = tracer.getTraceHeaderNames(TraceHeaderNameEncoding.REGULAR);
+        Set<String> traceHeaders = tracer.getTraceHeaderNames();
         for (String traceHeader : traceHeaders) {
             String jmsTraceHeader = traceHeader.replace('-', '_');
             if (!jmsTraceHeaders.add(jmsTraceHeader)) {

@@ -19,9 +19,7 @@
 package co.elastic.apm.agent.tracer;
 
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 
 import javax.annotation.Nullable;
@@ -61,6 +59,11 @@ class NoopTracer implements Tracer {
         throw new IllegalStateException();
     }
 
+    @Override
+    public Set<String> getTraceHeaderNames() {
+        return Collections.<String>emptySet();
+    }
+
     @Nullable
     @Override
     public AbstractSpan<?> getActive() {
@@ -89,23 +92,5 @@ class NoopTracer implements Tracer {
     @Override
     public <C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return null;
-    }
-
-    @Override
-    public Set<String> getTraceHeaderNames(TraceHeaderNameEncoding display) {
-        return Collections.<String>emptySet();
-    }
-
-    @Override
-    public <C> boolean containsTraceHeaders(TraceHeaderNameEncoding encoding, C carrier, TextHeaderGetter<C> headerGetter) {
-        return false;
-    }
-
-    @Override
-    public <S, D> void copyTraceHeaders(TraceHeaderNameEncoding encoding, S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
-    }
-
-    @Override
-    public <C> void removeTraceHeaders(TraceHeaderNameEncoding encoding, C carrier, HeaderRemover<C> headerRemover) {
     }
 }

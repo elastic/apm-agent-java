@@ -19,9 +19,7 @@
 package co.elastic.apm.agent.tracer;
 
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 
 import javax.annotation.Nullable;
@@ -84,6 +82,11 @@ public class GlobalTracer implements Tracer {
         return tracer.getObjectPoolFactory();
     }
 
+    @Override
+    public Set<String> getTraceHeaderNames() {
+        return tracer.getTraceHeaderNames();
+    }
+
     @Nullable
     @Override
     public AbstractSpan<?> getActive() {
@@ -112,25 +115,5 @@ public class GlobalTracer implements Tracer {
     @Override
     public <C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return tracer.startChildTransaction(headerCarrier, binaryHeadersGetter, initiatingClassLoader);
-    }
-
-    @Override
-    public Set<String> getTraceHeaderNames(TraceHeaderNameEncoding display) {
-        return tracer.getTraceHeaderNames(display);
-    }
-
-    @Override
-    public <C> boolean containsTraceHeaders(TraceHeaderNameEncoding encoding, C carrier, TextHeaderGetter<C> headerGetter) {
-        return tracer.containsTraceHeaders(encoding, carrier, headerGetter);
-    }
-
-    @Override
-    public <S, D> void copyTraceHeaders(TraceHeaderNameEncoding encoding, S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
-        tracer.copyTraceHeaders(encoding, source, headerGetter, destination, headerSetter);
-    }
-
-    @Override
-    public <C> void removeTraceHeaders(TraceHeaderNameEncoding encoding, C carrier, HeaderRemover<C> headerRemover) {
-        tracer.removeTraceHeaders(encoding, carrier, headerRemover);
     }
 }

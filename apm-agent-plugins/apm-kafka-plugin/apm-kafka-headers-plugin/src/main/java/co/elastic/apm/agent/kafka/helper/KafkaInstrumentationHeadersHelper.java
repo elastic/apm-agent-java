@@ -21,8 +21,8 @@ package co.elastic.apm.agent.kafka.helper;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -61,7 +61,7 @@ public class KafkaInstrumentationHeadersHelper {
     public KafkaInstrumentationHeadersHelper(Tracer tracer) {
         this.tracer = tracer;
         Pattern pattern = Pattern.compile("[^a-zA-Z0-9]");
-        Set<String> traceHeaders = tracer.getTraceHeaderNames(TraceHeaderNameEncoding.REGULAR);
+        Set<String> traceHeaders = tracer.getTraceHeaderNames();
         for (String traceHeader : traceHeaders) {
             String binaryTraceHeader = pattern.matcher(traceHeader).replaceAll("");
             if (!binaryTraceHeaders.add(binaryTraceHeader)) {
@@ -142,6 +142,6 @@ public class KafkaInstrumentationHeadersHelper {
     }
 
     public void removeTraceContextHeader(ProducerRecord<?, ?> producerRecord) {
-        tracer.removeTraceHeaders(TraceHeaderNameEncoding.BINARY, producerRecord, KafkaRecordHeaderAccessor.instance());
+        HeaderUtils.remove(binaryTraceHeaders, producerRecord, KafkaRecordHeaderAccessor.instance());
     }
 }

@@ -21,7 +21,7 @@ package co.elastic.apm.agent.httpclient.v4.helper;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
+import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
@@ -95,7 +95,7 @@ class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyc
                 }
             }
 
-            if (!asyncClientHelper.getTracer().containsTraceHeaders(TraceHeaderNameEncoding.REGULAR, request, RequestHeaderAccessor.INSTANCE)) {
+            if (!HeaderUtils.containsAny(asyncClientHelper.getTracer().getTraceHeaderNames(), request, RequestHeaderAccessor.INSTANCE)) {
                 if (span != null) {
                     span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
                 } else if (parent != null) {

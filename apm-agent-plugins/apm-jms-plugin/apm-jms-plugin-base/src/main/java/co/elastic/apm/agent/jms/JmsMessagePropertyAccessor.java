@@ -20,14 +20,10 @@ package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
-import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jms.JMSException;
 import javax.jms.Message;

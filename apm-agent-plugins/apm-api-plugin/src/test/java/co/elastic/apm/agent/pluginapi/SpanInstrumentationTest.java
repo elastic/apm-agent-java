@@ -22,7 +22,6 @@ import co.elastic.apm.AbstractApiTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.objectpool.impl.BookkeeperObjectPool;
-import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Scope;
 import co.elastic.apm.api.Span;
@@ -246,7 +245,7 @@ class SpanInstrumentationTest extends AbstractApiTest {
             final Map<String, String> tracingHeaders = new HashMap<>();
             span.injectTraceHeaders(tracingHeaders::put);
             span.injectTraceHeaders(null);
-            assertThat(TraceContext.containsTraceContextTextHeaders(TraceHeaderNameEncoding.REGULAR, tracingHeaders, TextHeaderMapAccessor.INSTANCE)).isTrue();
+            assertThat(TraceContext.containsTraceContextTextHeaders(tracingHeaders, TextHeaderMapAccessor.INSTANCE)).isTrue();
         }
     }
 }

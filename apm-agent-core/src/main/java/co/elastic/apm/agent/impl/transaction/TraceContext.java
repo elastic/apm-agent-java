@@ -22,7 +22,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
-import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
@@ -102,25 +101,14 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
 
     private static final Double SAMPLE_RATE_ZERO = 0d;
 
-    public static final Set<String> TRACE_TEXTUAL_HEADERS_REGULAR;
-    public static final Set<String> TRACE_TEXTUAL_HEADERS_BINARY;
-    public static final Set<String> TRACE_TEXTUAL_HEADERS_QUEUE;
+    public static final Set<String> TRACE_TEXTUAL_HEADERS;
 
     static {
         Set<String> traceParentTextualHeaders = new HashSet<>();
         traceParentTextualHeaders.add(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME);
         traceParentTextualHeaders.add(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME);
         traceParentTextualHeaders.add(TRACESTATE_HEADER_NAME);
-        TRACE_TEXTUAL_HEADERS_REGULAR = Collections.unmodifiableSet(traceParentTextualHeaders);
-        Set<String> traceParentTextualHeadersBinary = new HashSet<>();
-        Set<String> traceParentTextualHeadersQueue = new HashSet<>();
-        for (String header : traceParentTextualHeaders) {
-            traceParentTextualHeadersBinary.add(TraceHeaderNameEncoding.BINARY.encode(header));
-            traceParentTextualHeadersQueue.add(TraceHeaderNameEncoding.QUEUE.encode(header));
-        }
-        TRACE_TEXTUAL_HEADERS_BINARY = Collections.unmodifiableSet(traceParentTextualHeadersBinary);
-        TRACE_TEXTUAL_HEADERS_QUEUE = Collections.unmodifiableSet(traceParentTextualHeadersQueue);
-
+        TRACE_TEXTUAL_HEADERS = Collections.unmodifiableSet(traceParentTextualHeaders);
     }
 
     private static final ChildContextCreator<TraceContext> FROM_PARENT_CONTEXT = new ChildContextCreator<TraceContext>() {
@@ -208,30 +196,31 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
     };
 
 
-    public static <C> boolean containsTraceContextTextHeaders(TraceHeaderNameEncoding encoding, C carrier, TextHeaderGetter<C> headerGetter) {
+    public static <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter) {
         // We assume that this header is always present if we found any of the other headers.
-        return headerGetter.getFirstHeader(encoding.encode(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME), carrier) != null;
+        return headerGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier) != null;
     }
 
-    public static <C> void removeTraceContextHeaders(TraceHeaderNameEncoding encoding, C carrier, HeaderRemover<C> headerRemover) {
-        headerRemover.remove(encoding.encode(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME), carrier);
-        headerRemover.remove(encoding.encode(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME), carrier);
-        headerRemover.remove(encoding.encode(TRACESTATE_HEADER_NAME), carrier);
+    public static <C> void removeTraceContextHeaders(C carrier, HeaderRemover<C> headerRemover) {
+        headerRemover.remove(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+        headerRemover.remove(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+        headerRemover.remove(TRACE_PARENT_BINARY_HEADER_NAME, carrier);
+        headerRemover.remove(TRACESTATE_HEADER_NAME, carrier);
     }
 
-    public static <S, D> void copyTraceContextTextHeaders(TraceHeaderNameEncoding encoding, S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
-        String w3cApmTraceParent = headerGetter.getFirstHeader(encoding.encode(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME), source);
+    public static <S, D> void copyTraceContextTextHeaders(S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
+        String w3cApmTraceParent = headerGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, source);
         if (w3cApmTraceParent != null) {
-            headerSetter.setHeader(encoding.encode(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME), w3cApmTraceParent, destination);
+            headerSetter.setHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, w3cApmTraceParent, destination);
         }
-        String elasticApmTraceParent = headerGetter.getFirstHeader(encoding.encode(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME), source);
+        String elasticApmTraceParent = headerGetter.getFirstHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, source);
         if (elasticApmTraceParent != null) {
-            headerSetter.setHeader(encoding.encode(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME), elasticApmTraceParent, destination);
+            headerSetter.setHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, elasticApmTraceParent, destination);
         }
         // copying only the first tracestate header
-        String tracestate = headerGetter.getFirstHeader(encoding.encode(TRACESTATE_HEADER_NAME), source);
+        String tracestate = headerGetter.getFirstHeader(TRACESTATE_HEADER_NAME, source);
         if (tracestate != null) {
-            headerSetter.setHeader(encoding.encode(TRACESTATE_HEADER_NAME), tracestate, destination);
+            headerSetter.setHeader(TRACESTATE_HEADER_NAME, tracestate, destination);
         }
     }
 

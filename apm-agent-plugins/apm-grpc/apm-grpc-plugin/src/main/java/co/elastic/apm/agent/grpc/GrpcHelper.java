@@ -23,12 +23,12 @@ import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import io.grpc.CallOptions;
@@ -451,7 +451,7 @@ public class GrpcHelper {
 
         clientCallListenerSpans.put(listener, span);
 
-        if (!tracer.containsTraceHeaders(TraceHeaderNameEncoding.REGULAR, headers, headerGetter)) {
+        if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), headers, headerGetter)) {
             span.propagateTraceContext(headers, headerSetter);
         }
 
