@@ -21,6 +21,7 @@ package co.elastic.apm.agent.jms;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -41,6 +42,10 @@ import javax.jms.TemporaryTopic;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class JmsInstrumentationHelper {
 
@@ -79,14 +84,36 @@ public class JmsInstrumentationHelper {
     static final String FRAMEWORK_NAME = "JMS";
 
     private static final Logger logger = LoggerFactory.getLogger(JmsInstrumentationHelper.class);
+
+    private static final JmsInstrumentationHelper INSTANCE = new JmsInstrumentationHelper(GlobalTracer.get());
+
     private final Tracer tracer;
     private final CoreConfiguration coreConfiguration;
     private final MessagingConfiguration messagingConfiguration;
+    private final Set<String> jmsTraceHeaders = new HashSet<>();
+    private final Map<String, String> translatedTraceHeaders = new HashMap<>();
 
-    public JmsInstrumentationHelper(Tracer tracer) {
+    public static JmsInstrumentationHelper get() {
+        return INSTANCE;
+    }
+
+    private JmsInstrumentationHelper(Tracer tracer) {
         this.tracer = tracer;
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
+        Set<String> traceHeaders = tracer.getTraceHeaderNames(TraceHeaderNameEncoding.REGULAR);
+        for (String traceHeader : traceHeaders) {
+            String jmsTraceHeader = traceHeader.replace('-', '_');
+            if (!jmsTraceHeaders.add(jmsTraceHeader)) {
+                throw new IllegalStateException("Ambiguous translation of trace headers into JMS-compatible format: " + traceHeaders);
+            }
+            translatedTraceHeaders.put(traceHeader, jmsTraceHeader);
+        }
+    }
+
+    public String resolvePossibleTraceHeader(String header) {
+        String translation = translatedTraceHeaders.get(header);
+        return translation == null ? header : translation;
     }
 
     @SuppressWarnings("Duplicates")
@@ -254,7 +281,7 @@ public class JmsInstrumentationHelper {
                     while (properties.hasMoreElements()) {
                         String propertyName = String.valueOf(properties.nextElement());
                         if (!propertyName.equals(JMS_DESTINATION_NAME_PROPERTY) &&
-                            !tracer.getTraceHeaderNames(TraceHeaderNameEncoding.QUEUE).contains(propertyName) &&
+                            !jmsTraceHeaders.contains(propertyName) &&
                             WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), propertyName) == null) {
                             messageContext.addHeader(propertyName, String.valueOf(message.getObjectProperty(propertyName)));
                         }

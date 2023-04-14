@@ -43,16 +43,16 @@ public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Mes
         return INSTANCE;
     }
 
-    private final Tracer tracer;
+    private final JmsInstrumentationHelper helper;
 
     private JmsMessagePropertyAccessor() {
-        tracer = GlobalTracer.get();
+        helper = JmsInstrumentationHelper.get();
     }
 
     @Nullable
     @Override
     public String getFirstHeader(String headerName, Message message) {
-        headerName = jmsifyHeaderName(headerName);
+        headerName = helper.resolvePossibleTraceHeader(headerName);
         String value = null;
         try {
             value = message.getStringProperty(headerName);
@@ -62,18 +62,9 @@ public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Mes
         return value;
     }
 
-    @Nonnull
-    private String jmsifyHeaderName(String headerName) {
-        if (tracer.getTraceHeaderNames(TraceHeaderNameEncoding.REGULAR).contains(headerName)) {
-            // replacing with the JMS equivalent
-            headerName = TraceHeaderNameEncoding.QUEUE.encode(headerName);
-        }
-        return headerName;
-    }
-
     @Override
     public void setHeader(String headerName, String headerValue, Message message) {
-        headerName = jmsifyHeaderName(headerName);
+        headerName = helper.resolvePossibleTraceHeader(headerName);
         if (getFirstHeader(headerName, message) != null) {
             return;
         }
