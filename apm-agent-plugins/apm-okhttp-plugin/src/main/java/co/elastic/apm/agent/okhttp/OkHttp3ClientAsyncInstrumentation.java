@@ -22,7 +22,7 @@ import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
+import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
@@ -87,7 +87,7 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
                 span.activate();
             }
 
-            if (!tracer.containsTraceContextTextHeaders(TraceHeaderDisplay.REGULAR, request, OkHttp3RequestHeaderGetter.INSTANCE)) {
+            if (!tracer.containsTraceHeaders(TraceHeaderNameEncoding.REGULAR, request, OkHttp3RequestHeaderGetter.INSTANCE)) {
                 Request.Builder builder = originalRequest.newBuilder();
                 if (span != null) {
                     span.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);

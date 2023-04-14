@@ -85,11 +85,11 @@ public interface Tracer {
     @Nullable
     <C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader);
 
-    Set<String> getTraceParentHeaders(TraceHeaderDisplay display);
+    Set<String> getTraceHeaderNames(TraceHeaderNameEncoding display);
 
-    <C> boolean containsTraceContextTextHeaders(TraceHeaderDisplay display, C carrier, TextHeaderGetter<C> headerGetter);
+    <C> boolean containsTraceHeaders(TraceHeaderNameEncoding encoding, C carrier, TextHeaderGetter<C> headerGetter);
 
-    <S, D> void copyTraceContextTextHeaders(TraceHeaderDisplay display, S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter);
+    <S, D> void copyTraceHeaders(TraceHeaderNameEncoding encoding, S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter);
 
-    <C> void removeTraceContextHeaders(TraceHeaderDisplay display, C carrier, HeaderRemover<C> headerRemover);
+    <C> void removeTraceHeaders(TraceHeaderNameEncoding encoding, C carrier, HeaderRemover<C> headerRemover);
 }

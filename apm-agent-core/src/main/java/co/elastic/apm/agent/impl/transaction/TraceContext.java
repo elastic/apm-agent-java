@@ -22,7 +22,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
-import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
+import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
@@ -102,23 +102,24 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
 
     private static final Double SAMPLE_RATE_ZERO = 0d;
 
-    public static final Set<String> TRACE_PARENT_TEXTUAL_HEADERS_REGULAR;
-    public static final Set<String> TRACE_PARENT_TEXTUAL_HEADERS_BINARY;
-    public static final Set<String> TRACE_PARENT_TEXTUAL_HEADERS_QUEUE;
+    public static final Set<String> TRACE_TEXTUAL_HEADERS_REGULAR;
+    public static final Set<String> TRACE_TEXTUAL_HEADERS_BINARY;
+    public static final Set<String> TRACE_TEXTUAL_HEADERS_QUEUE;
 
     static {
         Set<String> traceParentTextualHeaders = new HashSet<>();
         traceParentTextualHeaders.add(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME);
         traceParentTextualHeaders.add(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME);
-        TRACE_PARENT_TEXTUAL_HEADERS_REGULAR = Collections.unmodifiableSet(traceParentTextualHeaders);
+        traceParentTextualHeaders.add(TRACESTATE_HEADER_NAME);
+        TRACE_TEXTUAL_HEADERS_REGULAR = Collections.unmodifiableSet(traceParentTextualHeaders);
         Set<String> traceParentTextualHeadersBinary = new HashSet<>();
         Set<String> traceParentTextualHeadersQueue = new HashSet<>();
         for (String header : traceParentTextualHeaders) {
-            traceParentTextualHeadersBinary.add(TraceHeaderDisplay.BINARY.format(header));
-            traceParentTextualHeadersQueue.add(TraceHeaderDisplay.QUEUE.format(header));
+            traceParentTextualHeadersBinary.add(TraceHeaderNameEncoding.BINARY.encode(header));
+            traceParentTextualHeadersQueue.add(TraceHeaderNameEncoding.QUEUE.encode(header));
         }
-        TRACE_PARENT_TEXTUAL_HEADERS_BINARY = Collections.unmodifiableSet(traceParentTextualHeadersBinary);
-        TRACE_PARENT_TEXTUAL_HEADERS_QUEUE = Collections.unmodifiableSet(traceParentTextualHeadersQueue);
+        TRACE_TEXTUAL_HEADERS_BINARY = Collections.unmodifiableSet(traceParentTextualHeadersBinary);
+        TRACE_TEXTUAL_HEADERS_QUEUE = Collections.unmodifiableSet(traceParentTextualHeadersQueue);
 
     }
 
@@ -207,29 +208,30 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
     };
 
 
-    public static <C> boolean containsTraceContextTextHeaders(TraceHeaderDisplay display, C carrier, TextHeaderGetter<C> headerGetter) {
-        return headerGetter.getFirstHeader(display.format(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME), carrier) != null;
+    public static <C> boolean containsTraceContextTextHeaders(TraceHeaderNameEncoding encoding, C carrier, TextHeaderGetter<C> headerGetter) {
+        // We assume that this header is always present if we found any of the other headers.
+        return headerGetter.getFirstHeader(encoding.encode(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME), carrier) != null;
     }
 
-    public static <C> void removeTraceContextHeaders(TraceHeaderDisplay display, C carrier, HeaderRemover<C> headerRemover) {
-        headerRemover.remove(display.format(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME), carrier);
-        headerRemover.remove(display.format(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME), carrier);
-        headerRemover.remove(display.format(TRACESTATE_HEADER_NAME), carrier);
+    public static <C> void removeTraceContextHeaders(TraceHeaderNameEncoding encoding, C carrier, HeaderRemover<C> headerRemover) {
+        headerRemover.remove(encoding.encode(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME), carrier);
+        headerRemover.remove(encoding.encode(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME), carrier);
+        headerRemover.remove(encoding.encode(TRACESTATE_HEADER_NAME), carrier);
     }
 
-    public static <S, D> void copyTraceContextTextHeaders(TraceHeaderDisplay display, S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
-        String w3cApmTraceParent = headerGetter.getFirstHeader(display.format(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME), source);
+    public static <S, D> void copyTraceContextTextHeaders(TraceHeaderNameEncoding encoding, S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
+        String w3cApmTraceParent = headerGetter.getFirstHeader(encoding.encode(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME), source);
         if (w3cApmTraceParent != null) {
-            headerSetter.setHeader(display.format(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME), w3cApmTraceParent, destination);
+            headerSetter.setHeader(encoding.encode(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME), w3cApmTraceParent, destination);
         }
-        String elasticApmTraceParent = headerGetter.getFirstHeader(display.format(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME), source);
+        String elasticApmTraceParent = headerGetter.getFirstHeader(encoding.encode(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME), source);
         if (elasticApmTraceParent != null) {
-            headerSetter.setHeader(display.format(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME), elasticApmTraceParent, destination);
+            headerSetter.setHeader(encoding.encode(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME), elasticApmTraceParent, destination);
         }
         // copying only the first tracestate header
-        String tracestate = headerGetter.getFirstHeader(display.format(TRACESTATE_HEADER_NAME), source);
+        String tracestate = headerGetter.getFirstHeader(encoding.encode(TRACESTATE_HEADER_NAME), source);
         if (tracestate != null) {
-            headerSetter.setHeader(display.format(TRACESTATE_HEADER_NAME), tracestate, destination);
+            headerSetter.setHeader(encoding.encode(TRACESTATE_HEADER_NAME), tracestate, destination);
         }
     }
 

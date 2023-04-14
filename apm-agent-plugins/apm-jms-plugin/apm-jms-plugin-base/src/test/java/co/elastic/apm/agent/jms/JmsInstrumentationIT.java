@@ -32,7 +32,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
+import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -78,7 +78,7 @@ import static org.mockito.Mockito.mock;
 @RunWith(Parameterized.class)
 public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
-    private static final String JMS_TRACE_PARENT_PROPERTY = TraceHeaderDisplay.QUEUE.format(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME);
+    private static final String JMS_TRACE_PARENT_PROPERTY = TraceHeaderNameEncoding.QUEUE.encode(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME);
 
     // Keeping a static reference for resource cleaning
     private final static Set<BrokerFacade> staticBrokerFacade = new HashSet<>();
@@ -485,7 +485,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(String.valueOf(message.getStringProperty("passwd"))).isEqualTo("secret");
         assertThat(headersMap.get("passwd")).isNull();
         assertThat(headersMap.get("null_property")).isEqualTo("null");
-        assertThat(String.valueOf(message.getStringProperty(TraceHeaderDisplay.QUEUE.format(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)))).isNotNull();
+        assertThat(String.valueOf(message.getStringProperty(JMS_TRACE_PARENT_PROPERTY))).isNotNull();
         assertThat(headersMap.get(JMS_TRACE_PARENT_PROPERTY)).isNull();
     }
 

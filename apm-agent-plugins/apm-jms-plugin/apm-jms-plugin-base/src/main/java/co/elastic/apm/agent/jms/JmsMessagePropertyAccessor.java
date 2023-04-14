@@ -21,7 +21,7 @@ package co.elastic.apm.agent.jms;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
+import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
@@ -64,9 +64,9 @@ public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Mes
 
     @Nonnull
     private String jmsifyHeaderName(String headerName) {
-        if (tracer.getTraceParentHeaders(TraceHeaderDisplay.REGULAR).contains(headerName)) {
+        if (tracer.getTraceHeaderNames(TraceHeaderNameEncoding.REGULAR).contains(headerName)) {
             // replacing with the JMS equivalent
-            headerName = TraceHeaderDisplay.QUEUE.format(headerName);
+            headerName = TraceHeaderNameEncoding.QUEUE.encode(headerName);
         }
         return headerName;
     }

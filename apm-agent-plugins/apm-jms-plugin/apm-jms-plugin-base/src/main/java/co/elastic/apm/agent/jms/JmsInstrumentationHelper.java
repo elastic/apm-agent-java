@@ -22,7 +22,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
+import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
@@ -254,7 +254,7 @@ public class JmsInstrumentationHelper {
                     while (properties.hasMoreElements()) {
                         String propertyName = String.valueOf(properties.nextElement());
                         if (!propertyName.equals(JMS_DESTINATION_NAME_PROPERTY) &&
-                            !tracer.getTraceParentHeaders(TraceHeaderDisplay.QUEUE).contains(propertyName) &&
+                            !tracer.getTraceHeaderNames(TraceHeaderNameEncoding.QUEUE).contains(propertyName) &&
                             WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), propertyName) == null) {
                             messageContext.addHeader(propertyName, String.valueOf(message.getObjectProperty(propertyName)));
                         }

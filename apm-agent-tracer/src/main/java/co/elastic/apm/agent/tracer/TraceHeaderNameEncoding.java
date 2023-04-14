@@ -20,27 +20,27 @@ package co.elastic.apm.agent.tracer;
 
 import java.util.regex.Pattern;
 
-public enum TraceHeaderDisplay {
+public enum TraceHeaderNameEncoding {
     REGULAR {
         @Override
-        public String format(String header) {
+        public String encode(String header) {
             return header;
         }
     },
     BINARY {
         @Override
-        public String format(String header) {
+        public String encode(String header) {
             return PATTERN.matcher(header).replaceAll("");
         }
     },
     QUEUE {
         @Override
-        public String format(String header) {
+        public String encode(String header) {
             return header.replace('-', '_');
         }
     };
 
     static final Pattern PATTERN = Pattern.compile("[^a-zA-Z0-9]");
 
-    public abstract String format(String header);
+    public abstract String encode(String header);
 }

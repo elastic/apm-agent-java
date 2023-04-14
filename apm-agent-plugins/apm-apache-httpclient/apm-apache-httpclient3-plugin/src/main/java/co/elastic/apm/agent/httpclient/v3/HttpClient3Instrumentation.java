@@ -25,7 +25,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
+import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
 import co.elastic.apm.agent.util.LoggerUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -121,10 +121,10 @@ public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
                 span.activate();
             }
 
-            if (!tracer.containsTraceContextTextHeaders(TraceHeaderDisplay.REGULAR, httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
+            if (!tracer.containsTraceHeaders(TraceHeaderNameEncoding.REGULAR, httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
                 if (span != null) {
                     span.propagateTraceContext(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE);
-                } else if (!tracer.containsTraceContextTextHeaders(TraceHeaderDisplay.REGULAR, httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
+                } else if (!tracer.containsTraceHeaders(TraceHeaderNameEncoding.REGULAR, httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
                     // re-adds the header on redirects
                     parent.propagateTraceContext(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE);
                 }

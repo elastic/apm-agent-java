@@ -27,7 +27,7 @@ import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
-import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
+import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -86,7 +86,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                 if (span == null && !connected) {
                     final URL url = thiz.getURL();
                     span = HttpClientHelper.startHttpClientSpan(parent, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
-                    if (!tracer.containsTraceContextTextHeaders(TraceHeaderDisplay.REGULAR, thiz, UrlConnectionPropertyAccessor.instance())) {
+                    if (!tracer.containsTraceHeaders(TraceHeaderNameEncoding.REGULAR, thiz, UrlConnectionPropertyAccessor.instance())) {
                         if (span != null) {
                             span.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
                         } else {

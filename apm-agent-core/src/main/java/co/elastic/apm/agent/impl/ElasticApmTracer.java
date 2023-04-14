@@ -47,7 +47,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.TraceHeaderDisplay;
+import co.elastic.apm.agent.tracer.TraceHeaderNameEncoding;
 import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
@@ -922,31 +922,31 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @Override
-    public Set<String> getTraceParentHeaders(TraceHeaderDisplay display) {
+    public Set<String> getTraceHeaderNames(TraceHeaderNameEncoding display) {
         switch (display) {
             case REGULAR:
-                return TraceContext.TRACE_PARENT_TEXTUAL_HEADERS_REGULAR;
+                return TraceContext.TRACE_TEXTUAL_HEADERS_REGULAR;
             case BINARY:
-                return TraceContext.TRACE_PARENT_TEXTUAL_HEADERS_BINARY;
+                return TraceContext.TRACE_TEXTUAL_HEADERS_BINARY;
             case QUEUE:
-                return TraceContext.TRACE_PARENT_TEXTUAL_HEADERS_QUEUE;
+                return TraceContext.TRACE_TEXTUAL_HEADERS_QUEUE;
             default:
                 throw new IllegalStateException();
         }
     }
 
     @Override
-    public <C> boolean containsTraceContextTextHeaders(TraceHeaderDisplay display, C carrier, TextHeaderGetter<C> headerGetter) {
-        return TraceContext.containsTraceContextTextHeaders(display, carrier, headerGetter);
+    public <C> boolean containsTraceHeaders(TraceHeaderNameEncoding encoding, C carrier, TextHeaderGetter<C> headerGetter) {
+        return TraceContext.containsTraceContextTextHeaders(encoding, carrier, headerGetter);
     }
 
     @Override
-    public <S, D> void copyTraceContextTextHeaders(TraceHeaderDisplay display, S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
-        TraceContext.copyTraceContextTextHeaders(display, source, headerGetter, destination, headerSetter);
+    public <S, D> void copyTraceHeaders(TraceHeaderNameEncoding encoding, S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
+        TraceContext.copyTraceContextTextHeaders(encoding, source, headerGetter, destination, headerSetter);
     }
 
     @Override
-    public <C> void removeTraceContextHeaders(TraceHeaderDisplay display, C carrier, HeaderRemover<C> headerRemover) {
-        TraceContext.removeTraceContextHeaders(display, carrier, headerRemover);
+    public <C> void removeTraceHeaders(TraceHeaderNameEncoding encoding, C carrier, HeaderRemover<C> headerRemover) {
+        TraceContext.removeTraceContextHeaders(encoding, carrier, headerRemover);
     }
 }

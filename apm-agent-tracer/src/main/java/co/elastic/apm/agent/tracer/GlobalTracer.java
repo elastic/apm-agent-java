@@ -115,22 +115,22 @@ public class GlobalTracer implements Tracer {
     }
 
     @Override
-    public Set<String> getTraceParentHeaders(TraceHeaderDisplay display) {
-        return tracer.getTraceParentHeaders(display);
+    public Set<String> getTraceHeaderNames(TraceHeaderNameEncoding display) {
+        return tracer.getTraceHeaderNames(display);
     }
 
     @Override
-    public <C> boolean containsTraceContextTextHeaders(TraceHeaderDisplay display, C carrier, TextHeaderGetter<C> headerGetter) {
-        return tracer.containsTraceContextTextHeaders(display, carrier, headerGetter);
+    public <C> boolean containsTraceHeaders(TraceHeaderNameEncoding encoding, C carrier, TextHeaderGetter<C> headerGetter) {
+        return tracer.containsTraceHeaders(encoding, carrier, headerGetter);
     }
 
     @Override
-    public <S, D> void copyTraceContextTextHeaders(TraceHeaderDisplay display, S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
-        tracer.copyTraceContextTextHeaders(display, source, headerGetter, destination, headerSetter);
+    public <S, D> void copyTraceHeaders(TraceHeaderNameEncoding encoding, S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
+        tracer.copyTraceHeaders(encoding, source, headerGetter, destination, headerSetter);
     }
 
     @Override
-    public <C> void removeTraceContextHeaders(TraceHeaderDisplay display, C carrier, HeaderRemover<C> headerRemover) {
-        tracer.removeTraceContextHeaders(display, carrier, headerRemover);
+    public <C> void removeTraceHeaders(TraceHeaderNameEncoding encoding, C carrier, HeaderRemover<C> headerRemover) {
+        tracer.removeTraceHeaders(encoding, carrier, headerRemover);
     }
 }
