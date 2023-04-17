@@ -96,7 +96,7 @@ public class JdbcHelper {
         if (sql.isEmpty()) {
             span.withName("empty query");
         } else if (span.isSampled()) {
-            StringBuilder spanName = span.getAndOverrideName(co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT);
+            StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIORITY_DEFAULT);
             if (spanName != null) {
                 signatureParser.querySignature(sql, spanName, preparedStatement);
             }

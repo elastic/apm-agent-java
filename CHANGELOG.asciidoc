@@ -28,6 +28,10 @@ endif::[]
 * Added tests for Quarkus / RestEasy, adjusted vert.x router transaction name priority - {pull}1765[#1765]
 * Added support for Spring WebMVC 6.x and Spring Boot 3.x - {pull}3094[#3094]
 
+[float]
+===== Bug fixes
+* Do not use proxy to retrieve cloud metadata - {pull}3108[#3108]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 

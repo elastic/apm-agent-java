@@ -35,8 +35,8 @@ import java.util.Collection;
 import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -121,7 +121,7 @@ public abstract class AbstractSpringTransactionNameInstrumentation extends Trace
                 TransactionNameUtils.setNameFromClassAndMethod(
                     className,
                     methodName,
-                    transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK)
+                    transaction.getAndOverrideName(PRIORITY_HIGH_LEVEL_FRAMEWORK)
                 );
             } else if (webConfig.isUsePathAsName()) {
                 // When method name or class name are not known, we treat the calculated name as a fallback only, thus using lower priority.
@@ -130,7 +130,7 @@ public abstract class AbstractSpringTransactionNameInstrumentation extends Trace
                     adapter.getMethod(request),
                     adapter.getServletPath(request),
                     adapter.getPathInfo(request),
-                    transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1),
+                    transaction.getAndOverrideName(PRIORITY_LOW_LEVEL_FRAMEWORK + 1),
                     webConfig.getUrlGroups()
                 );
             } else if (!className.isEmpty()) {
@@ -138,11 +138,11 @@ public abstract class AbstractSpringTransactionNameInstrumentation extends Trace
                 TransactionNameUtils.setNameFromClassAndMethod(
                     className,
                     methodName,
-                    transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1)
+                    transaction.getAndOverrideName(PRIORITY_LOW_LEVEL_FRAMEWORK + 1)
                 );
             } else {
                 // Class name is empty - probably an anonymous handler class
-                StringBuilder transactionName = transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1);
+                StringBuilder transactionName = transaction.getAndOverrideName(PRIORITY_LOW_LEVEL_FRAMEWORK + 1);
                 if (transactionName != null) {
                     transactionName.append(adapter.getMethod(request)).append(" unknown route");
                 }

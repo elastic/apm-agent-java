@@ -37,7 +37,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isDeclaredBy;
@@ -61,7 +61,7 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
         public static void setTransactionName(@SimpleMethodSignature String signature) {
             final Transaction<?> transaction = tracer.currentTransaction();
             if (transaction != null) {
-                transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK, false);
+                transaction.withName(signature, PRIORITY_HIGH_LEVEL_FRAMEWORK, false);
                 transaction.setFrameworkName(FRAMEWORK_NAME);
             }
         }

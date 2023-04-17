@@ -49,7 +49,7 @@ public abstract class AbstractDynamoDBInstrumentationHelper<R, C> extends Abstra
         }
 
 
-        StringBuilder name = span.getAndOverrideName(co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT);
+        StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIORITY_DEFAULT);
         if (name != null) {
             name.append("DynamoDB ").append(operationName);
 

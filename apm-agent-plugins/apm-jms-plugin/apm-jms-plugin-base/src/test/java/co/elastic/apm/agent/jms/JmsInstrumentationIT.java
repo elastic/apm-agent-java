@@ -67,7 +67,6 @@ import static co.elastic.apm.agent.configuration.MessagingConfiguration.JmsStrat
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_EXPIRATION_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_MESSAGE_ID_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TIMESTAMP_HEADER;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.TEMP;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.TIBCO_TMP_QUEUE_PREFIX;
@@ -77,6 +76,8 @@ import static org.mockito.Mockito.mock;
 
 @RunWith(Parameterized.class)
 public class JmsInstrumentationIT extends AbstractInstrumentationTest {
+
+    private static final String JMS_TRACE_PARENT_PROPERTY = TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME.replace('-', '_');
 
     // Keeping a static reference for resource cleaning
     private final static Set<BrokerFacade> staticBrokerFacade = new HashSet<>();

@@ -37,6 +37,9 @@ runs:
         cache: 'maven'
     - name: Set up TEST_JAVA_BINARY environment variable
       shell: bash
-      run: echo "TEST_JAVA_BINARY=$JAVA_HOME_${{ inputs.test-java-version }}_${{ runner.arch }}/bin/java" >> $GITHUB_ENV
+      run: |
+        major_version="$(echo '${{ inputs.test-java-version }}' | sed 's/\([0-9]*\).*/\1/')"
+        java_home_var=JAVA_HOME_${major_version}_${{ runner.arch }}
+        echo "TEST_JAVA_BINARY=${!java_home_var}/bin/java" >> $GITHUB_ENV
     - run: ${{ inputs.command }}
       shell: ${{ inputs.shell }}

@@ -52,7 +52,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_USER_SUPPLIED;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doReturn;
@@ -327,7 +327,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
         @Override
         public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-            Objects.requireNonNull(tracer.currentTransaction()).withName(customName, PRIO_USER_SUPPLIED);
+            Objects.requireNonNull(tracer.currentTransaction()).withName(customName, PRIORITY_USER_SUPPLIED);
             chain.doFilter(request, response);
         }
 

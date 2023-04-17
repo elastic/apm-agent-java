@@ -70,6 +70,10 @@ public class StartupInfo extends AbstractLifecycleListener {
             serviceNameAndVersion.append(" (").append(serviceVersion).append(")");
         }
 
+        if (elasticApmVersion.contains("-SNAPSHOT")) {
+            logger.warn("This is a pre-release snapshot version, usage in production is not recommended unless instructed otherwise.");
+        }
+
         logger.info("Starting Elastic APM {} as {} on {}",
             elasticApmVersion,
             serviceNameAndVersion,
