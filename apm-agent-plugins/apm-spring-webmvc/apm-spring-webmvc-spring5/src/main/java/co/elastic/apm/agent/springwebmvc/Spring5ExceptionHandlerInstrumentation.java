@@ -32,12 +32,12 @@ public class Spring5ExceptionHandlerInstrumentation extends AbstractSpringExcept
         return Constants.ServletImpl.JAVAX;
     }
 
-    public static class AdviceClass extends AbstractSpringExceptionHandlerInstrumentation.AdviceClass {
+    public static class AdviceClass {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void captureException(@Advice.Argument(0) @Nullable HttpServletRequest request,
                                             @Advice.Argument(3) @Nullable Exception e) {
-            onEnter(JavaxServletApiAdapter.get(), request, e);
+            Helper.captureRequestError(JavaxServletApiAdapter.get(), request, e);
         }
     }
 

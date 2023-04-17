@@ -12,6 +12,7 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
+        <animal.sniffer.skip>true</animal.sniffer.skip>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
     </properties>
 

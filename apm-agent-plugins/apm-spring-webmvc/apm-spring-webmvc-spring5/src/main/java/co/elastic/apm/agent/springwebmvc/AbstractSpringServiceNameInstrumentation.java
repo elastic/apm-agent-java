@@ -20,8 +20,8 @@ package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.configuration.ServiceInfo;
-import co.elastic.apm.agent.servlet.Constants;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.servlet.Constants;
 import co.elastic.apm.agent.servlet.ServletServiceNameHelper;
 import co.elastic.apm.agent.servlet.adapter.ServletContextAdapter;
 import net.bytebuddy.description.NamedElement;
@@ -68,10 +68,10 @@ public abstract class AbstractSpringServiceNameInstrumentation extends TracerAwa
         return Collections.singletonList("spring-service-name");
     }
 
-    public static class AdviceClass {
+    public static class Helper {
 
-        public static <ServletContext> void onExit(ServletContextAdapter<ServletContext> adapter,
-                                                   WebApplicationContext applicationContext, @Nullable ServletContext servletContext) {
+        public static <ServletContext> void detectSpringServiceName(ServletContextAdapter<ServletContext> adapter,
+                                                                    WebApplicationContext applicationContext, @Nullable ServletContext servletContext) {
             ElasticApmTracer elasticApmTracer = tracer.probe(ElasticApmTracer.class);
             if (elasticApmTracer == null) {
                 return;

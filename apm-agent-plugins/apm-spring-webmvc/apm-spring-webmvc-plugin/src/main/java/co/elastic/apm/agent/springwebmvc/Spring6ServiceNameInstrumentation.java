@@ -30,11 +30,11 @@ public class Spring6ServiceNameInstrumentation extends AbstractSpringServiceName
         return Constants.ServletImpl.JAKARTA;
     }
 
-    public static class AdviceClass extends AbstractSpringServiceNameInstrumentation.AdviceClass {
+    public static class AdviceClass {
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void onExit(@Advice.This WebApplicationContext applicationContext) {
-            onExit(JakartaServletApiAdapter.get(), applicationContext, applicationContext.getServletContext());
+            Helper.detectSpringServiceName(JakartaServletApiAdapter.get(), applicationContext, applicationContext.getServletContext());
         }
 
     }

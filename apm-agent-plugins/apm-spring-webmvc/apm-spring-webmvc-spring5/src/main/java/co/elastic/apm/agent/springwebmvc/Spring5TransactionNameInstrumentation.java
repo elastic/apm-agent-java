@@ -30,17 +30,12 @@ public class Spring5TransactionNameInstrumentation extends AbstractSpringTransac
         return Constants.ServletImpl.JAVAX;
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return Spring5TransactionNameInstrumentation.class.getName() + "$HandlerAdapterAdvice";
-    }
-
-    public static class HandlerAdapterAdvice extends AbstractSpringTransactionNameInstrumentation.HandlerAdapterAdvice {
+    public static class AdviceClass {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onEnter(@Advice.Argument(0) HttpServletRequest request,
                                    @Advice.Argument(2) Object handler) {
-            onEnter(JavaxServletApiAdapter.get(), request, handler);
+            Helper.updateTransactionNameFromHandler(JavaxServletApiAdapter.get(), request, handler);
         }
     }
 }

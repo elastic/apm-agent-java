@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.servlet.Constants;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
@@ -134,11 +135,12 @@ public class ViewRenderInstrumentation extends TracerAwareInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
 
-        ElementMatcher.Junction<MethodDescription> javaxMatcher = takesArgument(1, named("javax.servlet.http.HttpServletRequest"))
-            .and(takesArgument(2, named("javax.servlet.http.HttpServletResponse")));
+        ElementMatcher.Junction<MethodDescription> javaxMatcher =
+            takesArgument(1, Constants.ServletImpl.JAVAX.httpRequestClassMatcher())
+                .and(takesArgument(2, Constants.ServletImpl.JAVAX.httpResponseClassMatcher()));
         ElementMatcher.Junction<MethodDescription> jakartaMatcher =
-            takesArgument(1, named("jakarta.servlet.http.HttpServletRequest"))
-                .and(takesArgument(2, named("jakarta.servlet.http.HttpServletResponse")));
+            takesArgument(1, Constants.ServletImpl.JAKARTA.httpRequestClassMatcher())
+                .and(takesArgument(2, Constants.ServletImpl.JAKARTA.httpResponseClassMatcher()));
 
         return named("render")
             .and(takesArgument(0, named("java.util.Map")))

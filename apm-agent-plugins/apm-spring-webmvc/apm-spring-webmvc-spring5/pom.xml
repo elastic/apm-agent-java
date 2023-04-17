@@ -13,7 +13,8 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <animal.sniffer.skip>false</animal.sniffer.skip>
+        <!-- animal sniffer needs to be reenabled because it is disabled in the parent project -->
+        <animal.sniffer.skip>true</animal.sniffer.skip>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
     </properties>
 

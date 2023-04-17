@@ -30,7 +30,7 @@ import org.thymeleaf.spring6.view.ThymeleafViewResolver;
 
 public class Spring6ThymeleafTest extends Java17OnlyTest {
     public Spring6ThymeleafTest() {
-        super(AbstractThymeleafTest.class);
+        super(Impl.class);
     }
 
     @ContextConfiguration(classes = {Spring6ThymeleafTest.Impl.ThymeleafConfiguration.class})

@@ -97,11 +97,11 @@ public abstract class AbstractSpringTransactionNameInstrumentation extends Trace
         return Collections.singleton("spring-mvc");
     }
 
-    public static class HandlerAdapterAdvice {
+    public static class Helper {
 
         private static final WebConfiguration webConfig = GlobalTracer.get().getConfig(WebConfiguration.class);
 
-        public static <HttpServletRequest> void onEnter(ServletRequestAdapter<HttpServletRequest, ?> adapter, HttpServletRequest request, Object handler) {
+        public static <HttpServletRequest> void updateTransactionNameFromHandler(ServletRequestAdapter<HttpServletRequest, ?> adapter, HttpServletRequest request, Object handler) {
             final Transaction<?> transaction = tracer.currentTransaction();
             if (transaction == null) {
                 return;

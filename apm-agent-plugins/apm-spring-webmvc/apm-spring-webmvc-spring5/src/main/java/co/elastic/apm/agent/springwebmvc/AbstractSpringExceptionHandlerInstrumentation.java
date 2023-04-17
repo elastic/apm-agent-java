@@ -57,11 +57,11 @@ public abstract class AbstractSpringExceptionHandlerInstrumentation extends Trac
         return Collections.singletonList("exception-handler");
     }
 
-    public static class AdviceClass {
+    public static class Helper {
 
-        public static <HttpServletRequest> void onEnter(ServletRequestAdapter<HttpServletRequest, ?> adapter,
-                                                        @Nullable HttpServletRequest request,
-                                                        @Nullable Exception e) {
+        public static <HttpServletRequest> void captureRequestError(ServletRequestAdapter<HttpServletRequest, ?> adapter,
+                                                                    @Nullable HttpServletRequest request,
+                                                                    @Nullable Exception e) {
             if (request != null && e != null) {
                 adapter.setAttribute(request, "co.elastic.apm.exception", e);
             }

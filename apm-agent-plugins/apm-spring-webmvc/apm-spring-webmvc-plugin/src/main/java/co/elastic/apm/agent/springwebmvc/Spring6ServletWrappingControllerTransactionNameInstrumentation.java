@@ -31,10 +31,10 @@ public class Spring6ServletWrappingControllerTransactionNameInstrumentation exte
         return Constants.ServletImpl.JAKARTA;
     }
 
-    public static class AdviceClass extends AbstractServletWrappingControllerTransactionNameInstrumentation.AdviceClass {
+    public static class AdviceClass {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onEnter(@Advice.FieldValue("servletClass") Class<?> servletClass, @Advice.Argument(0) HttpServletRequest request) {
-            onEnter(JakartaServletApiAdapter.get(), servletClass, request);
+            Helper.updateTransactionNameFromRequest(JakartaServletApiAdapter.get(), servletClass, request);
         }
     }
 

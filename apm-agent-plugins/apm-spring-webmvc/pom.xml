@@ -14,6 +14,7 @@
     <packaging>pom</packaging>
 
     <properties>
+        <!-- animal sniffer needs to be disabled to prevent analyzing spring-6 dependencies -->
         <animal.sniffer.skip>true</animal.sniffer.skip>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
     </properties>
