@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.awslambda.helper;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.context.CloudOrigin;
 import co.elastic.apm.agent.impl.context.ServiceOrigin;
@@ -91,7 +91,7 @@ public class S3TransactionHelper extends AbstractLambdaTransactionHelper<S3Event
     @Override
     protected void setTransactionName(Transaction transaction, S3Event s3Event, Context lambdaContext) {
         S3EventNotification.S3EventNotificationRecord s3NotificationRecord = getS3NotificationRecord(s3Event);
-        StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
+        StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK);
         if (transactionName != null && null != s3NotificationRecord && null != s3NotificationRecord.getS3() && null != s3NotificationRecord.getS3().getBucket()) {
             transactionName.append(s3NotificationRecord.getEventName()).append(" ").append(s3NotificationRecord.getS3().getBucket().getName());
         } else {

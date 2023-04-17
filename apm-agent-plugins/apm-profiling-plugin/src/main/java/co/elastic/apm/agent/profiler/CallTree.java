@@ -20,7 +20,6 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -405,7 +404,7 @@ public class CallTree implements Recyclable {
 
         String classFqn = frame.getClassName();
         if (classFqn != null) {
-            span.appendToName(classFqn, AbstractSpan.PRIO_DEFAULT, frame.getSimpleClassNameOffset(), classFqn.length());
+            span.appendToName(classFqn, co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_DEFAULT, frame.getSimpleClassNameOffset(), classFqn.length());
         } else {
             span.appendToName("null");
         }

@@ -46,8 +46,8 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_METHOD_SIGNATURE;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_METHOD_SIGNATURE;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_USER_SUPPLIED;
 import static co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static co.elastic.apm.agent.pluginapi.Utils.FRAMEWORK_NAME;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
@@ -115,13 +115,13 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
             int namePriority;
             if (spanName.isEmpty()) {
                 name = signature;
-                namePriority = PRIO_METHOD_SIGNATURE;
+                namePriority = PRIORITY_METHOD_SIGNATURE;
             } else {
                 name = spanName;
-                namePriority = PRIO_USER_SUPPLIED;
+                namePriority = PRIORITY_USER_SUPPLIED;
             }
             return transaction.withName(name, namePriority)
-                .withType(type.isEmpty() ? co.elastic.apm.agent.impl.transaction.Transaction.TYPE_REQUEST : type)
+                .withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
                 .activate();
         }
 

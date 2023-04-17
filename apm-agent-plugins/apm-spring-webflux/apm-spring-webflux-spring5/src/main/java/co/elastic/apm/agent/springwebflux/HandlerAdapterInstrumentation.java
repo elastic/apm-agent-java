@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
@@ -82,7 +82,7 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
                 TransactionNameUtils.setNameFromClassAndMethod(
                     handlerMethod.getBeanType().getSimpleName(),
                     handlerMethod.getMethod().getName(),
-                    ((Transaction<?>) exchangeTransaction).getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK, false));
+                    ((Transaction<?>) exchangeTransaction).getAndOverrideName(AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK, false));
 
             }
 

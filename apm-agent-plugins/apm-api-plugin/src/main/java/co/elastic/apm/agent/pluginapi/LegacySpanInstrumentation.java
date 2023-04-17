@@ -27,7 +27,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_USER_SUPPLIED;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -71,7 +71,7 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             public static void setName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
                                        @Advice.Argument(0) String name) {
                 if (span instanceof Span<?>) {
-                    ((Span<?>) span).withName(name, PRIO_USER_SUPPLIED);
+                    ((Span<?>) span).withName(name, PRIORITY_USER_SUPPLIED);
                 }
             }
         }

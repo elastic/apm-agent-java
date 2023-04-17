@@ -21,8 +21,8 @@ package co.elastic.apm.agent.awslambda.helper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.CloudOrigin;
 import co.elastic.apm.agent.impl.context.ServiceOrigin;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import com.amazonaws.services.lambda.runtime.Context;
 
@@ -108,7 +108,7 @@ public abstract class AbstractMessageBasedTransactionHelper<I, O, R> extends Abs
     }
 
     private void updateTransactionName(Transaction transaction, @Nullable String queueName) {
-        StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
+        StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK);
         if (null != transactionName && null != queueName && !queueName.isEmpty()) {
             transactionName.append("RECEIVE ").append(queueName);
         }

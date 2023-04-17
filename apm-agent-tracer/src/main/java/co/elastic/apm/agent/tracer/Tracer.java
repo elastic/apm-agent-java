@@ -24,6 +24,7 @@ import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 
 import javax.annotation.Nullable;
+import java.util.Set;
 
 public interface Tracer {
 
@@ -37,6 +38,8 @@ public interface Tracer {
     <T> T getConfig(Class<T> configuration);
 
     ObjectPoolFactory getObjectPoolFactory();
+
+    Set<String> getTraceHeaderNames();
 
     @Nullable
     AbstractSpan<?> getActive();

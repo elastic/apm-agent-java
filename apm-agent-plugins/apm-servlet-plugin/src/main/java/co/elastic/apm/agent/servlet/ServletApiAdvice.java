@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
@@ -41,7 +40,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEWORK;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 
 public abstract class ServletApiAdvice {
@@ -189,7 +188,7 @@ public abstract class ServletApiAdvice {
         if (adapter.isInstanceOfHttpServlet(thiz) && httpServletRequest != null) {
             Transaction<?> currentTransaction = tracer.currentTransaction();
             if (currentTransaction != null) {
-                TransactionNameUtils.setTransactionNameByServletClass(adapter.getMethod(httpServletRequest), thiz.getClass(), currentTransaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK));
+                TransactionNameUtils.setTransactionNameByServletClass(adapter.getMethod(httpServletRequest), thiz.getClass(), currentTransaction.getAndOverrideName(PRIORITY_LOW_LEVEL_FRAMEWORK));
 
                 String userName = ServletTransactionHelper.getUserFromPrincipal(adapter.getUserPrincipal(httpServletRequest));
                 if (userName != null) {

@@ -107,7 +107,7 @@ class HttpHandlerTest extends AbstractInstrumentationTest {
 
         Transaction transaction = reporter.getFirstTransaction(500);
         assertThat(transaction.getTraceContext().getParentId().toString()).isEqualTo("0000000000000000");
-        assertThat(transaction.getType()).isEqualTo(Transaction.TYPE_REQUEST);
+        assertThat(transaction.getType()).isEqualTo(co.elastic.apm.agent.tracer.Transaction.TYPE_REQUEST);
         assertThat(transaction.getNameAsString()).isEqualTo("GET /status_%d", expectedStatus);
         assertThat(transaction.getResult()).isEqualTo(ResultUtil.getResultByHttpStatus(expectedStatus));
         assertThat(transaction.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpServerStatus(expectedStatus));

@@ -49,14 +49,14 @@ public abstract class AbstractS3InstrumentationHelper<R, C> extends AbstractAwsS
         span.withType("storage")
             .withSubtype(S3_TYPE)
             .withAction(operationName);
-        StringBuilder name = span.getAndOverrideName(co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT);
+        StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIORITY_DEFAULT);
         if (name != null) {
             name.append("S3 ").append(operationName);
             if (bucketName != null && !bucketName.isEmpty()) {
                 name.append(" ").append(bucketName);
             }
         }
-        span.withName("S3", co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT - 1);
+        span.withName("S3", AbstractSpan.PRIORITY_DEFAULT - 1);
         setDestinationContext(span, httpURI, request, context, S3_TYPE, bucketName);
 
         return span;

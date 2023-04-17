@@ -30,7 +30,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -61,7 +61,7 @@ public class ServletWrappingControllerTransactionNameInstrumentation extends Tra
             if (transaction == null) {
                 return;
             }
-            TransactionNameUtils.setTransactionNameByServletClass(request.getMethod(), servletClass, transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
+            TransactionNameUtils.setTransactionNameByServletClass(request.getMethod(), servletClass, transaction.getAndOverrideName(PRIORITY_HIGH_LEVEL_FRAMEWORK));
         }
     }
 

@@ -20,13 +20,18 @@ package co.elastic.apm.agent.tracer;
 
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
-import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 
 import javax.annotation.Nullable;
 
 public interface AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<T> {
+
+    int PRIORITY_DEFAULT = 0;
+    int PRIORITY_LOW_LEVEL_FRAMEWORK = 10;
+    int PRIORITY_METHOD_SIGNATURE = 10 * PRIORITY_LOW_LEVEL_FRAMEWORK;
+    int PRIORITY_HIGH_LEVEL_FRAMEWORK = 10 * PRIORITY_LOW_LEVEL_FRAMEWORK;
+    int PRIORITY_USER_SUPPLIED = 100 * PRIORITY_LOW_LEVEL_FRAMEWORK;
 
     AbstractContext getContext();
 

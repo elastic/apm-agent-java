@@ -71,7 +71,7 @@ public class MongoHelper {
             .withInstance(database)
             .withStatement(statement);
 
-        StringBuilder name = span.getAndOverrideName(co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT);
+        StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIORITY_DEFAULT);
         if (name != null) {
             appendToName(name, database);
             appendToName(name, collection);
