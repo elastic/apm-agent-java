@@ -48,17 +48,12 @@ public class ElasticsearchRestClientInstrumentationHelper {
     private static final Logger unsupportedOperationOnceLogger = LoggerUtils.logOnce(logger);
     private static final ElasticsearchRestClientInstrumentationHelper INSTANCE = new ElasticsearchRestClientInstrumentationHelper(GlobalTracer.get());
 
-    public static final List<WildcardMatcher> QUERY_WILDCARD_MATCHERS = Arrays.asList(
-        WildcardMatcher.valueOf("*_search"),
-        WildcardMatcher.valueOf("*_msearch"),
-        WildcardMatcher.valueOf("*_msearch/template"),
-        WildcardMatcher.valueOf("*_search/template"),
-        WildcardMatcher.valueOf("*_count"));
     public static final String SPAN_TYPE = "db";
     public static final String ELASTICSEARCH = "elasticsearch";
     public static final String SPAN_ACTION = "request";
     private static final int MAX_POOLED_ELEMENTS = 256;
     private final Tracer tracer;
+    private final ElasticsearchConfiguration config;
 
     private final ObjectPool<ResponseListenerWrapper> responseListenerObjectPool;
 
@@ -66,9 +61,11 @@ public class ElasticsearchRestClientInstrumentationHelper {
         return INSTANCE;
     }
 
+
     private ElasticsearchRestClientInstrumentationHelper(Tracer tracer) {
         this.tracer = tracer;
         this.responseListenerObjectPool = tracer.getObjectPoolFactory().createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new ResponseListenerAllocator());
+        this.config = tracer.getConfig(ElasticsearchConfiguration.class);
     }
 
     private class ResponseListenerAllocator implements Allocator<ResponseListenerWrapper> {
@@ -99,10 +96,9 @@ public class ElasticsearchRestClientInstrumentationHelper {
         span.getContext().getDb().withType(ELASTICSEARCH);
         span.getContext().getServiceTarget().withType(ELASTICSEARCH);
         span.activate();
-
         if (span.isSampled()) {
             span.getContext().getHttp().withMethod(method);
-            if (WildcardMatcher.isAnyMatch(QUERY_WILDCARD_MATCHERS, endpoint)) {
+            if (WildcardMatcher.isAnyMatch(config.getCaptureBodyUrls(), endpoint)) {
                 if (httpEntity != null && httpEntity.isRepeatable()) {
                     try {
                         IOUtils.readUtf8Stream(httpEntity.getContent(), span.getContext().getDb().withStatementBuffer());

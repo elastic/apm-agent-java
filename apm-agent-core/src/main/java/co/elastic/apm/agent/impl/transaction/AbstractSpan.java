@@ -45,11 +45,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recyclable, ElasticContext<T>, co.elastic.apm.agent.tracer.AbstractSpan<T> {
-    public static final int PRIO_USER_SUPPLIED = 1000;
-    public static final int PRIO_HIGH_LEVEL_FRAMEWORK = 100;
-    public static final int PRIO_METHOD_SIGNATURE = 100;
-    public static final int PRIO_LOW_LEVEL_FRAMEWORK = 10;
-    public static final int PRIO_DEFAULT = 0;
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
     private static final Logger oneTimeDuplicatedEndLogger = LoggerUtils.logOnce(logger);
     private static final Logger oneTimeMaxSpanLinksLogger = LoggerUtils.logOnce(logger);
@@ -69,7 +64,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     private ChildDurationTimer childDurations = new ChildDurationTimer();
     protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
-    private int namePriority = PRIO_DEFAULT;
+    private int namePriority = PRIORITY_DEFAULT;
     private boolean discardRequested = false;
     /**
      * Flag to mark a span as representing an exit event
@@ -272,7 +267,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * @param methodName the method that should be part of this span's name
      */
     public void updateName(Class<?> clazz, String methodName) {
-        StringBuilder spanName = getAndOverrideName(PRIO_DEFAULT);
+        StringBuilder spanName = getAndOverrideName(PRIORITY_DEFAULT);
         if (spanName != null) {
             String className = clazz.getName();
             spanName.append(className, className.lastIndexOf('.') + 1, className.length());
@@ -291,7 +286,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     @Override
     public T appendToName(CharSequence cs) {
-        return appendToName(cs, PRIO_DEFAULT);
+        return appendToName(cs, PRIORITY_DEFAULT);
     }
 
     @Override
@@ -310,7 +305,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     @Override
     public T withName(@Nullable String name) {
-        return withName(name, PRIO_DEFAULT);
+        return withName(name, PRIORITY_DEFAULT);
     }
 
     @Override
@@ -451,7 +446,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         traceContext.resetState();
         childDurations.resetState();
         references.set(0);
-        namePriority = PRIO_DEFAULT;
+        namePriority = PRIORITY_DEFAULT;
         discardRequested = false;
         isExit = false;
         childIds = null;

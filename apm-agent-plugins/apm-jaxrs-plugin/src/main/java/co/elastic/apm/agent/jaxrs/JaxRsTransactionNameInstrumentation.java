@@ -38,7 +38,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
@@ -133,7 +133,7 @@ public abstract class JaxRsTransactionNameInstrumentation extends TracerAwareIns
                         transactionName = pathAnnotationValue;
                     }
                 }
-                transaction.withName(transactionName, PRIO_HIGH_LEVEL_FRAMEWORK, false);
+                transaction.withName(transactionName, PRIORITY_HIGH_LEVEL_FRAMEWORK, false);
                 transaction.setFrameworkName("JAX-RS");
                 transaction.setFrameworkVersion(frameworkVersion);
             }

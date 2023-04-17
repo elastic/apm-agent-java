@@ -1,0 +1,4 @@
+co.elastic.apm.agent.springwebmvc.Spring6ExceptionHandlerInstrumentation
+co.elastic.apm.agent.springwebmvc.Spring6TransactionNameInstrumentation
+co.elastic.apm.agent.springwebmvc.Spring6ServletWrappingControllerTransactionNameInstrumentation
+co.elastic.apm.agent.springwebmvc.Spring6ServiceNameInstrumentation

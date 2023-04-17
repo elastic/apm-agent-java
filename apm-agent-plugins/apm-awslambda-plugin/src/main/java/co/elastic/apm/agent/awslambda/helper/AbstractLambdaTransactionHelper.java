@@ -27,10 +27,10 @@ import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
 import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.util.LoggerUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import com.amazonaws.services.lambda.runtime.Context;
@@ -160,7 +160,7 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
     }
 
     protected void setTransactionName(Transaction transaction, I event, Context lambdaContext) {
-        StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
+        StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK);
         if (transactionName != null) {
             transactionName.append(lambdaContext.getFunctionName());
         }

@@ -43,8 +43,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_DEFAULT;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEWORK;
 
 public class ServletTransactionHelper {
 
@@ -263,9 +263,9 @@ public class ServletTransactionHelper {
         // JSPs don't contain path params and the name is more telling than the generated servlet class
         if (webConfiguration.isUsePathAsName() || ENDS_WITH_JSP.matches(servletPath, pathInfo)) {
             // should override ServletName#doGet
-            TransactionNameUtils.setNameFromHttpRequestPath(method, servletPath, pathInfo, transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1), webConfiguration.getUrlGroups());
+            TransactionNameUtils.setNameFromHttpRequestPath(method, servletPath, pathInfo, transaction.getAndOverrideName(PRIORITY_LOW_LEVEL_FRAMEWORK + 1), webConfiguration.getUrlGroups());
         } else {
-            TransactionNameUtils.setNameUnknownRoute(method, transaction.getAndOverrideName(PRIO_DEFAULT));
+            TransactionNameUtils.setNameUnknownRoute(method, transaction.getAndOverrideName(PRIORITY_DEFAULT));
         }
     }
 

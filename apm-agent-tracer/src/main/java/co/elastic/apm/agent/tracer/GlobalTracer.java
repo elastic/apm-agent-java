@@ -25,6 +25,7 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
 
 import javax.annotation.Nullable;
+import java.util.Set;
 
 public class GlobalTracer implements Tracer {
 
@@ -86,6 +87,11 @@ public class GlobalTracer implements Tracer {
     @Override
     public <K, V extends ReferenceCounted> ReferenceCounter<K, V> createReferenceCounter() {
         return tracer.createReferenceCounter();
+    }
+
+    @Override
+    public Set<String> getTraceHeaderNames() {
+        return tracer.getTraceHeaderNames();
     }
 
     @Nullable

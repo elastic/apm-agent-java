@@ -22,12 +22,12 @@ import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
@@ -88,6 +88,8 @@ public class GrpcHelper {
     private final TextHeaderSetter<Metadata> headerSetter;
     private final TextHeaderGetter<Metadata> headerGetter;
 
+    private final Tracer tracer;
+
     public GrpcHelper() {
         Tracer tracer = GlobalTracer.get();
         clientCallSpans = tracer.createReferenceCounter();
@@ -101,6 +103,8 @@ public class GrpcHelper {
 
         headerSetter = new GrpcHeaderSetter();
         headerGetter = new GrpcHeaderGetter();
+
+        tracer = GlobalTracer.get();
     }
 
     // transaction management (server part)
@@ -448,7 +452,7 @@ public class GrpcHelper {
 
         clientCallListenerSpans.put(listener, span);
 
-        if (!TraceContext.containsTraceContextTextHeaders(headers, headerGetter)) {
+        if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), headers, headerGetter)) {
             span.propagateTraceContext(headers, headerSetter);
         }
 

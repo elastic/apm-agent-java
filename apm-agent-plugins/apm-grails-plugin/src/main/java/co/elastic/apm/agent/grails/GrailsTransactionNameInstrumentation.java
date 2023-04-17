@@ -32,7 +32,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 import static grails.core.GrailsControllerClass.INDEX_ACTION;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -98,7 +98,7 @@ public class GrailsTransactionNameInstrumentation extends TracerAwareInstrumenta
                 className = handler.getClass().getSimpleName();
                 methodName = null;
             }
-            TransactionNameUtils.setNameFromClassAndMethod(className, methodName, transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
+            TransactionNameUtils.setNameFromClassAndMethod(className, methodName, transaction.getAndOverrideName(PRIORITY_HIGH_LEVEL_FRAMEWORK));
         }
     }
 }

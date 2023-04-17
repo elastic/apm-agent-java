@@ -26,6 +26,7 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
 
 import javax.annotation.Nullable;
+import java.util.Set;
 
 public interface Tracer {
 
@@ -41,6 +42,8 @@ public interface Tracer {
     ObjectPoolFactory getObjectPoolFactory();
 
     <K, V extends ReferenceCounted> ReferenceCounter<K, V> createReferenceCounter();
+
+    Set<String> getTraceHeaderNames();
 
     @Nullable
     AbstractSpan<?> getActive();

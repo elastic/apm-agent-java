@@ -237,11 +237,17 @@ public class JakartaServletApiAdapter implements ServletApiAdapter<HttpServletRe
         return servletRequest.getAttribute(attributeName);
     }
 
+    @Override
+    public void setAttribute(HttpServletRequest servletRequest, String attributeName, Object value) {
+        servletRequest.setAttribute(attributeName, value);
+    }
+
     @Nullable
     @Override
     public Object getHttpAttribute(HttpServletRequest httpServletRequest, String attributeName) {
         return httpServletRequest.getAttribute(attributeName);
     }
+
     @Override
     public Collection<String> getHeaderNames(HttpServletResponse httpServletResponse) {
         return httpServletResponse.getHeaderNames();

@@ -18,14 +18,11 @@
  */
 package co.elastic.apm.agent.jbosslogging.correlation;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.loginstr.AbstractLogIntegrationInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-
-import java.util.Collection;
-import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
@@ -37,11 +34,12 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
  * as well as {@link org.jboss.logging.JBossLogManagerLogger#doLog} and {@link org.jboss.logging.JBossLogManagerLogger#doLogf}.
  * This enables log correlation when JBoss is used with JULI.
  */
-public class JBossLoggingCorrelationInstrumentation extends TracerAwareInstrumentation {
+@SuppressWarnings("JavadocReference")
+public class JBossLoggingCorrelationInstrumentation extends AbstractLogIntegrationInstrumentation {
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("jboss-logging-correlation");
+    protected String getLoggingInstrumentationGroupName() {
+        return LOG_CORRELATION;
     }
 
     @Override

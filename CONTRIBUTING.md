@@ -47,9 +47,18 @@ For small changes you don't have to execute them locally.
 When creating a pull requests,
 they will be executed by a CI server.
 
+The code requires at least Java 17 to be built.
+The tests require at least Java 11 to run.
+You can use a different JVM for testing than building by passing the `test_java_binary` to maven:
+
+```bash
+./mvnw clean test -Dtest_java_binary=/path/to/java_home/bin/java
+```
+
 #### Performance testing
 
 We have some JMH Tests that allow to track the following performance metrics deltas when agent is activated.
+
 - memory allocation rate (GC pressure)
 - cpu time
 
@@ -256,7 +265,7 @@ See [`apm-agent-plugins/README.md`](apm-agent-plugins/README.md)
 
 HTML Documentation is generated from text files stored in `docs` folder using [AsciiDoc](http://asciidoc.org/) format.
 The `configuration.asciidoc` file is generated from running `co.elastic.apm.agent.configuration.ConfigurationExporter`
-(e.g. via `./mvnw test -Dtest="ConfigurationExporterTest" -DfailIfNoTests=false`). All the other asciidoc text files
+(e.g. via `./mvnw -Dsurefire.failIfNoTests=false -Dtest=ConfigurationExporterTest -pl apm-agent -am clean test`). All the other asciidoc text files
 are written manually.
 
 A preview of the documentation is generated for each pull-request.

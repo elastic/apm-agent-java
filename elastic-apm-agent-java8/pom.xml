@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>co.elastic.apm</groupId>
+        <artifactId>apm-agent-parent</artifactId>
+        <version>1.37.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>elastic-apm-agent-java8</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>elastic-apm-agent-premain</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+    <profiles>
+        <profile>
+            <id>git-worktree</id>
+            <activation>
+                <file>
+                    <!-- in a secondary worktree, '.git' is a file, not a folder -->
+                    <missing>.git/HEAD</missing>
+                </file>
+            </activation>
+            <properties>
+                <!-- when using git worktrees, native git client is required as JGit does not support this yet -->
+                <maven.gitcommitid.nativegit>true</maven.gitcommitid.nativegit>
+            </properties>
+        </profile>
+    </profiles>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>generate-source-jar</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <dependencies>
+                    <dependency>
+                        <groupId>${project.groupId}</groupId>
+                        <artifactId>apm-agent-cached-lookup-key</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>${project.groupId}</groupId>
+                        <artifactId>apm-agent-java8</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>${project.groupId}</groupId>
+                        <artifactId>apm-agent-java8</artifactId>
+                        <version>${project.version}</version>
+                        <classifier>sources</classifier>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>unpack-cached-lookup-key</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>apm-agent-cached-lookup-key</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>jar</type>
+                                    <outputDirectory>${project.basedir}/target/classes/cached-lookup-key
+                                    </outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>unpack-agent</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>apm-agent-java8</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>jar</type>
+                                    <outputDirectory>${project.basedir}/target/classes/agent</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-agent-sources-jar</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>apm-agent-java8</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>jar</type>
+                                    <classifier>sources</classifier>
+                                    <outputDirectory>${project.basedir}/target/dependency-sources</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                            <stripVersion>true</stripVersion>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>shade-cached-lookup-key</id>
+                        <phase>prepare-package</phase>
+                        <configuration>
+
+                            <target name="move-and-rename" description="Move and Rename">
+                                <move todir="${project.basedir}/target/classes/cached-lookup-key" overwrite="true">
+                                    <fileset dir="${project.basedir}/target/classes/cached-lookup-key" includes="**/*.class" />
+                                    <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz" />
+                                </move>
+                            </target>
+
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>shade-classes</id>
+                        <phase>prepare-package</phase>
+                        <configuration>
+
+                            <target name="move-and-rename" description="Move and Rename">
+                                <move todir="${project.basedir}/target/classes/agent" overwrite="true">
+                                    <fileset dir="${project.basedir}/target/classes/agent" includes="**/*.class" />
+                                    <mapper type="regexp" from="^(.*)\.class$$" to="\1\.esclazz" />
+                                </move>
+                                <move todir="${project.basedir}/target/classes/META-INF/versions" overwrite="true">
+                                    <fileset dir="${project.basedir}/target/classes/agent/META-INF/versions" includes="**" />
+                                    <mapper type="regexp" from="^(\d+)/(.*)$$" to="\1/agent/\2" />
+                                </move>
+                            </target>
+
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>combine-sources</id>
+                        <phase>package</phase>
+                        <configuration>
+
+                            <target name="merge-sources" description="Merge source jars">
+                                <zip destfile="${project.basedir}/target/${project.artifactId}-${project.version}-sources.jar">
+                                    <zipgroupfileset dir="${project.basedir}/target/dependency-sources" includes="apm-agent-java8-sources.jar" />
+                                    <zipgroupfileset dir="${project.basedir}/target/" includes="original-elastic-apm-agent-java8-*-sources.jar" />
+                                </zip>
+                            </target>
+
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.coderplus.maven.plugins</groupId>
+                <artifactId>copy-rename-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-file</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <fileSets>
+                                <fileSet>
+                                    <sourceFile>${apm-agent-parent.base.dir}/NOTICE</sourceFile>
+                                    <destinationFile>target/classes/META-INF/NOTICE</destinationFile>
+                                </fileSet>
+                                <fileSet>
+                                    <sourceFile>${apm-agent-parent.base.dir}/LICENSE</sourceFile>
+                                    <destinationFile>target/classes/META-INF/LICENSE</destinationFile>
+                                </fileSet>
+                            </fileSets>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <version>5.0.0</version>
+                <executions>
+                    <execution>
+                        <id>get-the-git-infos</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                        <configuration>
+                            <verbose>true</verbose>
+                            <failOnUnableToExtractRepoInfo>true</failOnUnableToExtractRepoInfo>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createSourcesJar>true</createSourcesJar>
+                            <shadeSourcesContent>true</shadeSourcesContent>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <relocations>
+                                <relocation>
+                                    <pattern>co.elastic.apm.agent.common</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.premain.common</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>co.elastic.apm.agent.configuration</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.premain.configuration</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Premain-Class>co.elastic.apm.agent.premain.AgentMain</Premain-Class>
+                                        <Agent-Class>co.elastic.apm.agent.premain.AgentMain</Agent-Class>
+                                        <SCM-Revision>${git.commit.id.abbrev}</SCM-Revision>
+                                        <Can-Redefine-Classes>true</Can-Redefine-Classes>
+                                        <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                                        <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
+                                        <Multi-Release>true</Multi-Release>
+                                        <Elastic-Apm-Build-Variant>java8</Elastic-Apm-Build-Variant>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -22,6 +22,8 @@ import javax.annotation.Nullable;
 
 public interface Transaction<T extends Transaction<T>> extends AbstractSpan<T> {
 
+    String TYPE_REQUEST = "request";
+
     /**
      * Context
      * <p>

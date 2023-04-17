@@ -25,6 +25,8 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.Set;
 
 class NoopTracer implements Tracer {
 
@@ -62,6 +64,11 @@ class NoopTracer implements Tracer {
     @Override
     public <K, V extends ReferenceCounted> ReferenceCounter<K, V> createReferenceCounter() {
         throw new IllegalStateException();
+    }
+
+    @Override
+    public Set<String> getTraceHeaderNames() {
+        return Collections.<String>emptySet();
     }
 
     @Nullable

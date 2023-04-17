@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.36.1-SNAPSHOT</version>
+        <version>1.37.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-ecs-logging-plugin</artifactId>
@@ -16,6 +16,8 @@
     </properties>
 
     <dependencies>
+
+        <!-- log4j 1.x -->
         <dependency>
             <groupId>co.elastic.logging</groupId>
             <artifactId>log4j-ecs-layout</artifactId>
@@ -23,21 +25,18 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- log4j 2.x -->
+        <dependency>
             <groupId>co.elastic.logging</groupId>
             <artifactId>log4j2-ecs-layout</artifactId>
             <version>${version.ecs.logging}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>co.elastic.logging</groupId>
-            <artifactId>jul-ecs-formatter</artifactId>
-            <version>${version.ecs.logging}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-logging-plugin-common</artifactId>
-            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -45,7 +44,54 @@
             <artifactId>log4j-core</artifactId>
             <version>2.20.0</version>
             <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
+
+        <!-- JUL -->
+        <dependency>
+            <groupId>co.elastic.logging</groupId>
+            <artifactId>jul-ecs-formatter</artifactId>
+            <version>${version.ecs.logging}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Jboss logmanager -->
+        <dependency>
+            <groupId>co.elastic.logging</groupId>
+            <artifactId>jboss-logmanager-ecs-formatter</artifactId>
+            <version>${version.ecs.logging}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.logmanager</groupId>
+            <artifactId>jboss-logmanager</artifactId>
+            <version>2.1.15.Final</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- logback -->
+        <dependency>
+            <groupId>co.elastic.logging</groupId>
+            <artifactId>logback-ecs-encoder</artifactId>
+            <version>${version.ecs.logging}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.8</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-logging-plugin-common</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.ivy</groupId>
             <artifactId>ivy</artifactId>
