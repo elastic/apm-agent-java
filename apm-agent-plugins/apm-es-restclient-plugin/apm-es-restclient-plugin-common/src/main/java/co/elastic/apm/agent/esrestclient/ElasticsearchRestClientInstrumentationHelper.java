@@ -25,6 +25,7 @@ import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.ElasticsearchConfiguration;
 import co.elastic.apm.agent.tracer.configuration.Matcher;
 import co.elastic.apm.agent.tracer.pooling.ObjectPool;
 import co.elastic.apm.agent.util.IOUtils;

@@ -21,6 +21,7 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ElasticsearchConfiguration;
 import co.elastic.apm.agent.configuration.JaxRsConfiguration;
 import co.elastic.apm.agent.configuration.JmxConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
@@ -139,6 +140,7 @@ public class ElasticApmTracer implements Tracer {
     static {
         checkClassloader();
         configTranslations.put(co.elastic.apm.agent.tracer.configuration.CoreConfiguration.class, CoreConfiguration.class);
+        configTranslations.put(co.elastic.apm.agent.tracer.configuration.ElasticsearchConfiguration.class, ElasticsearchConfiguration.class);
         configTranslations.put(co.elastic.apm.agent.tracer.configuration.JaxRsConfiguration.class, JaxRsConfiguration.class);
         configTranslations.put(co.elastic.apm.agent.tracer.configuration.JmxConfiguration.class, JmxConfiguration.class);
         configTranslations.put(co.elastic.apm.agent.tracer.configuration.LoggingConfiguration.class, LoggingConfiguration.class);

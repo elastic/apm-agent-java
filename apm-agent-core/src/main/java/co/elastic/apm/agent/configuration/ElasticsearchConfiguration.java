@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.esrestclient;
+package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.tracer.configuration.Matcher;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -29,7 +28,7 @@ import org.stagemonitor.configuration.converter.ListValueConverter;
 import java.util.Arrays;
 import java.util.List;
 
-public class ElasticsearchConfiguration extends ConfigurationOptionProvider {
+public class ElasticsearchConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.ElasticsearchConfiguration {
     private final ConfigurationOption<List<WildcardMatcher>> captureBodyUrls = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("elasticsearch_capture_body_urls")
@@ -53,6 +52,7 @@ public class ElasticsearchConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("*_async_search")
         ));
 
+    @Override
     public List<Matcher> getCaptureBodyUrls() {
         return WildcardMatcherMatcher.wrap(captureBodyUrls.get());
     }

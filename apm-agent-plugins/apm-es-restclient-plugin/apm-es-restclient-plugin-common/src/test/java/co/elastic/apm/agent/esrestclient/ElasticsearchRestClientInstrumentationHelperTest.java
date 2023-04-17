@@ -20,6 +20,7 @@ package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.ElasticsearchConfiguration;
 import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.transaction.Span;
