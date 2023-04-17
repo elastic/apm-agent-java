@@ -24,6 +24,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 
+import javax.annotation.Nullable;
 import java.lang.management.ManagementFactory;
 import java.util.List;
 import java.util.UUID;
@@ -61,7 +62,7 @@ public class Agent {
         this(name, version, UUID.randomUUID().toString(), null);
     }
 
-    public Agent(String name, String version, String ephemeralId, CoreConfiguration coreConfiguration) {
+    public Agent(String name, String version, String ephemeralId, @Nullable CoreConfiguration coreConfiguration) {
         this.name = name;
         this.version = version;
         this.ephemeralId = ephemeralId;
@@ -99,7 +100,7 @@ public class Agent {
         return activationMethod;
     }
 
-    private String getActivationMethod(CoreConfiguration coreConfiguration) {
+    private static String getActivationMethod(@Nullable CoreConfiguration coreConfiguration) {
         ActivationMethod activation = ActivationMethod.UNKNOWN;
         if (coreConfiguration != null) {
             activation = coreConfiguration.getActivationMethod();
@@ -117,6 +118,7 @@ public class Agent {
         return activation.toReferenceString();
     }
 
+    @Nullable
     private static String getAgentJarFilename() {
         String agentLocation = PrivilegedActionUtils.getProtectionDomain(GlobalTracer.class).getCodeSource().getLocation().getFile();
         if (agentLocation != null) {
@@ -131,6 +133,7 @@ public class Agent {
         }
     }
 
+    @Nullable
     private static String getElasticJavaagentOnTheCommandline() {
         String agentJarFile = getAgentJarFilename();
         if (agentJarFile != null) {

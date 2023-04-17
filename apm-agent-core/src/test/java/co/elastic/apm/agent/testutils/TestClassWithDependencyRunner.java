@@ -98,7 +98,9 @@ public class TestClassWithDependencyRunner extends AbstractTestClassWithDependen
             System.out.println(failure);
             failure.getException().printStackTrace();
         }
-        assertThat(listener.getSummary().getTestsFailedCount()).isZero();
+        assertThat(listener.getSummary().getTestsFailedCount())
+            .describedAs("at least one test failure reported, see stack trace for investigation")
+            .isZero();
     }
 
 }

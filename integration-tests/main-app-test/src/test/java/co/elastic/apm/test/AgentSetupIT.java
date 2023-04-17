@@ -22,11 +22,10 @@ import co.elastic.apm.agent.test.AgentFileAccessor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.containers.wait.strategy.WaitStrategy;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -40,9 +39,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AgentSetupIT {
 
     @ParameterizedTest
-    @ValueSource(strings = {"openjdk:8", "openjdk:11", "openjdk:17"})
-    void testServiceNameAndVersionFromManifest(String image) {
-        try (GenericContainer<TestAppContainer> app = testAppWithJavaAgent(image)) {
+    @CsvSource({
+        "openjdk:8,STANDARD",
+        "openjdk:8,JAVA8_BUILD",
+        "openjdk:11,STANDARD",
+        "openjdk:11,JAVA8_BUILD",
+        "openjdk:17,STANDARD",
+        "openjdk:17,JAVA8_BUILD"
+    })
+    void testServiceNameAndVersionFromManifest(String image, AgentFileAccessor.Variant agentVariant) {
+        try (GenericContainer<TestAppContainer> app = testAppWithJavaAgent(image, agentVariant)) {
 
             app.waitingFor(Wait.forLogMessage(".* Starting Elastic APM .*", 1))
                 .start();
@@ -55,7 +61,7 @@ class AgentSetupIT {
     void testSecurityManagerWarning() {
         String expectedMsg = "Security manager without agent grant-all permission";
 
-        try (TestAppContainer app = testAppWithJavaAgent("openjdk:17")) {
+        try (TestAppContainer app = testAppWithJavaAgent("openjdk:17", AgentFileAccessor.Variant.STANDARD)) {
 
             app.withSecurityManager()
                 .waitingFor(Wait.forLogMessage(expectedMsg, 1))
@@ -80,7 +86,7 @@ class AgentSetupIT {
             "};"), StandardOpenOption.CREATE
         );
 
-        try (TestAppContainer app = testAppWithJavaAgent("openjdk:17")) {
+        try (TestAppContainer app = testAppWithJavaAgent("openjdk:17", AgentFileAccessor.Variant.STANDARD)) {
             app.withSecurityManager(tempPolicy)
                 .withStartupTimeout(Duration.ofSeconds(10))
                 .waitingFor(Wait.forLogMessage(".*Hello World!.*", 1))
@@ -88,11 +94,11 @@ class AgentSetupIT {
         }
     }
 
-    private TestAppContainer testAppWithJavaAgent(String image) {
+    private TestAppContainer testAppWithJavaAgent(String image, AgentFileAccessor.Variant agentVariant) {
         return new TestAppContainer(image)
             .withAppJar(Path.of("target/main-app-test.jar"))
             .withArguments("wait") // make test app wait a bit so we can stop it
-            .withJavaAgent(AgentFileAccessor.getPathToJavaagent())
+            .withJavaAgent(AgentFileAccessor.getPathToJavaagent(agentVariant))
             // automatically enable remote debug
             .withRemoteDebug();
     }

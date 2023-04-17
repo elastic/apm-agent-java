@@ -25,9 +25,7 @@ import java.util.Collection;
 public abstract class JulInstrumentation extends AbstractLogIntegrationInstrumentation {
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("jul-ecs");
-        return ret;
+    protected String getLoggingInstrumentationGroupName() {
+        return LOG_REFORMATTING;
     }
 }

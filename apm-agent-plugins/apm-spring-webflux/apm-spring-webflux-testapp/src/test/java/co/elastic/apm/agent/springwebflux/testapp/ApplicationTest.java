@@ -113,7 +113,7 @@ public abstract class ApplicationTest {
     @Test
     void customTransactionName() {
         StepVerifier.create(client.customTransactionName())
-            .expectNext("Hello, transaction=!")
+            .expectNext("Hello, transaction=null!")
             .verifyComplete();
     }
 

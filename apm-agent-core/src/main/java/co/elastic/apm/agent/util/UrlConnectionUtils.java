@@ -33,26 +33,35 @@ public class UrlConnectionUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(UrlConnectionUtils.class);
 
-    public static URLConnection openUrlConnectionThreadSafely(URL url) throws IOException {
+    public static URLConnection openUrlConnectionThreadSafely(URL url, boolean allowProxy) throws IOException {
         GlobalLocks.JUL_INIT_LOCK.lock();
         try {
             if (logger.isDebugEnabled()) {
-                debugPrintProxySettings(url);
+                debugPrintProxySettings(url, allowProxy);
             }
-            return url.openConnection();
+            if (allowProxy) {
+                return url.openConnection();
+            } else {
+                return url.openConnection(Proxy.NO_PROXY);
+            }
         } finally {
             GlobalLocks.JUL_INIT_LOCK.unlock();
         }
     }
 
-    private static void debugPrintProxySettings(URL url) {
-        ProxySelector proxySelector = ProxySelector.getDefault();
+    private static void debugPrintProxySettings(URL url, boolean allowProxy) {
+        if (!allowProxy) {
+            logger.debug("Opening {} without proxy", url);
+            return;
+        }
+
+        ProxySelector proxySelector = PrivilegedActionUtils.getDefaultProxySelector();
         if (proxySelector == null || proxySelector.getClass().getName().equals("sun.net.spi.DefaultProxySelector")) {
             String proxyHostProperty = url.getProtocol() + ".proxyHost";
             String proxyPortProperty = url.getProtocol() + ".proxyPort";
-            String proxyHost = System.getProperty(proxyHostProperty);
-            String proxyPort = System.getProperty(proxyPortProperty);
-            String nonProxyHosts = System.getProperty("http.nonProxyHosts"); // common to http & https
+            String proxyHost = PrivilegedActionUtils.getProperty(proxyHostProperty);
+            String proxyPort = PrivilegedActionUtils.getProperty(proxyPortProperty);
+            String nonProxyHosts = PrivilegedActionUtils.getProperty("http.nonProxyHosts"); // common to http & https
             if (proxyHost == null || proxyHost.isEmpty()) {
                 logger.debug("Opening {} without proxy", url);
             } else {

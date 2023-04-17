@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-spring-webflux</artifactId>
-        <version>1.36.1-SNAPSHOT</version>
+        <version>1.37.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-spring-webflux-plugin</artifactId>
@@ -18,80 +18,35 @@
         <animal.sniffer.skip>true</animal.sniffer.skip>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>6.0.1</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-spring-webflux-spring5</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
-            <version>${version.spring}</version>
             <scope>provided</scope>
         </dependency>
-
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webflux</artifactId>
-            <version>${version.spring}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-spring-webflux-testapp</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-httpserver-core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <!-- required to test integration with API, for example custom transaction naming -->
-        <dependency>
-            <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-api-plugin</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- required for context-propagation during tests, but only at runtime -->
-        <dependency>
-            <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-reactor-plugin</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-reactor-plugin</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-            <type>test-jar</type>
-        </dependency>
-
-        <!-- required to test integration with servlet instrumentation -->
-        <dependency>
-            <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-servlet-plugin</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-test</artifactId>
-            <version>${version.spring}</version>
-            <scope>test</scope>
-        </dependency>
-
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-test</artifactId>
             <version>${version.reactor}</version>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
 </project>
