@@ -20,6 +20,7 @@ package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -148,7 +149,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
 
     public void testCaptureBodyUrls(boolean captureEverything) throws Exception {
         if (captureEverything) {
-            doReturn(List.of(WildcardMatcher.valueOf("*")))
+            doReturn(List.of(new WildcardMatcherMatcher(WildcardMatcher.valueOf("*"))))
                 .when(config.getConfig(ElasticsearchConfiguration.class))
                 .getCaptureBodyUrls();
             assertThat(config.getConfig(ElasticsearchConfiguration.class).getCaptureBodyUrls()).hasSize(1);

@@ -19,7 +19,9 @@
 package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
@@ -51,7 +53,7 @@ public class ElasticsearchConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("*_async_search")
         ));
 
-    public List<WildcardMatcher> getCaptureBodyUrls() {
-        return captureBodyUrls.get();
+    public List<Matcher> getCaptureBodyUrls() {
+        return WildcardMatcherMatcher.wrap(captureBodyUrls.get());
     }
 }

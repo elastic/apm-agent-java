@@ -25,6 +25,7 @@ import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.Matcher;
 import co.elastic.apm.agent.tracer.pooling.ObjectPool;
 import co.elastic.apm.agent.util.IOUtils;
 import co.elastic.apm.agent.util.LoggerUtils;
@@ -36,8 +37,6 @@ import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.ResponseListener;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.CancellationException;
 
 public class ElasticsearchRestClientInstrumentationHelper {
@@ -47,12 +46,6 @@ public class ElasticsearchRestClientInstrumentationHelper {
     private static final Logger unsupportedOperationOnceLogger = LoggerUtils.logOnce(logger);
     private static final ElasticsearchRestClientInstrumentationHelper INSTANCE = new ElasticsearchRestClientInstrumentationHelper(GlobalTracer.get());
 
-    public static final List<String> QUERY_SUFFIX = Arrays.asList(
-        "_search",
-        "_msearch",
-        "_msearch/template",
-        "_search/template",
-        "_count");
     public static final String SPAN_TYPE = "db";
     public static final String ELASTICSEARCH = "elasticsearch";
     public static final String SPAN_ACTION = "request";
@@ -103,14 +96,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
 
         if (span.isSampled()) {
             span.getContext().getHttp().withMethod(method);
-            boolean matched = false;
-            for (String suffix : QUERY_SUFFIX) {
-                matched = endpoint.endsWith(suffix);
-                if (matched) {
-                    break;
-                }
-            }
-            if (matched) {
+            if (Matcher.isAnyMatch(config.getCaptureBodyUrls(), endpoint)) {
                 if (httpEntity != null && httpEntity.isRepeatable()) {
                     try {
                         IOUtils.readUtf8Stream(httpEntity.getContent(), span.getContext().getDb().withStatementBuffer());
