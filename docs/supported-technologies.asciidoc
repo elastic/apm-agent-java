@@ -104,10 +104,10 @@ the JVM arguments, or setting `ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS=true` for th
 |1.0.0, 4.0+ (`jakarta.servlet`) since 1.28.0
 
 |Spring Web MVC
-|4.x, 5.x
+|4.x, 5.x, 6.x
 |If you are using Spring MVC (for example with Spring Boot),
   the transactions are named based on your controllers (`ControllerClass#controllerMethod`).
-|1.0.0
+|1.0.0, 6.x since 1.38.0
 
 |Spring Webflux
 |5.2.3+
@@ -121,9 +121,9 @@ rendering
 |1.0.0, `jakarta.faces` since 1.28.0
 
 |Spring Boot
-|1.5+, 2.x
+|1.5+, 2.x, 3.x
 |Supports embedded Tomcat, Jetty and Undertow
-|1.0.0
+|1.0.0, 3.x since 1.38.0
 
 |JAX-RS
 |2.x, 3.x

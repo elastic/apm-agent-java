@@ -23,7 +23,7 @@
         <module>apm-jsf-plugin</module>
         <module>apm-opentracing-plugin</module>
         <module>apm-servlet-plugin</module>
-        <module>apm-spring-webmvc-plugin</module>
+        <module>apm-spring-webmvc</module>
         <module>apm-spring-webflux</module>
         <module>apm-reactor-plugin</module>
         <module>apm-api-plugin</module>
