@@ -40,7 +40,7 @@ public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, A
         isNotNull();
         String actualName = normalizeToString(actual.getNameForSerialization());
         if (!actualName.contains(nameContains)) {
-            failWithMessage("Expected name '%s' to contains '%s'", actualName, nameContains);
+            failWithMessage("Expected name '%s' to contain '%s'", actualName, nameContains);
         }
         return thiz();
     }
