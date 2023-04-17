@@ -26,7 +26,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -60,9 +60,9 @@ public abstract class AbstractJsfLifecycleExecuteInstrumentation extends Abstrac
             if (transaction != null) {
                 try {
                     if (withExternalContext) {
-                        transaction.withName(requestServletPath, PRIO_HIGH_LEVEL_FRAMEWORK);
+                        transaction.withName(requestServletPath, PRIORITY_HIGH_LEVEL_FRAMEWORK);
                         if (requestPathInfo != null) {
-                            transaction.appendToName(requestPathInfo, PRIO_HIGH_LEVEL_FRAMEWORK);
+                            transaction.appendToName(requestPathInfo, PRIORITY_HIGH_LEVEL_FRAMEWORK);
                         }
                     }
                     transaction.setFrameworkName(FRAMEWORK_NAME);

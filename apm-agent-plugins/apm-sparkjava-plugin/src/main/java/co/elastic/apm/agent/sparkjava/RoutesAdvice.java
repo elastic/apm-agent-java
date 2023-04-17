@@ -28,7 +28,7 @@ import net.bytebuddy.asm.Advice;
 import spark.Route;
 import spark.routematch.RouteMatch;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEWORK;
 
 public class RoutesAdvice {
 
@@ -44,7 +44,7 @@ public class RoutesAdvice {
         String method = routeMatch.getHttpMethod().name().toUpperCase();
         TransactionNameUtils.setNameFromHttpRequestPath(method,
             routeMatch.getMatchUri(),
-            transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1),
+            transaction.getAndOverrideName(PRIORITY_LOW_LEVEL_FRAMEWORK + 1),
             tracer.getConfig(WebConfiguration.class).getUrlGroups());
 
         transaction.setFrameworkName("Spark");

@@ -26,7 +26,7 @@ import net.bytebuddy.asm.Advice;
 
 import javax.servlet.http.HttpServletRequest;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 
 public class ExecuteOperationsAdvice {
 
@@ -39,7 +39,7 @@ public class ExecuteOperationsAdvice {
             return;
         }
 
-        StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
+        StringBuilder transactionName = transaction.getAndOverrideName(PRIORITY_HIGH_LEVEL_FRAMEWORK);
         if (transactionName != null) {
             TransactionNameUtils.setNameFromHttpRequestPath(request.getMethod(), request.getServletPath(), transactionName, webConfig.getUrlGroups());
             StrutsFrameworkUtils.setFrameworkNameAndVersion(transaction);

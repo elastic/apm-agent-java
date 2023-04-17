@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -49,8 +49,8 @@ public class ApacheHttpAsyncClientRedirectInstrumentation extends BaseApacheHttp
                 return;
             }
             // org.apache.http.HttpMessage#containsHeader implementations do not allocate iterator since 4.0.1
-            if (TraceContext.containsTraceContextTextHeaders(original, RequestHeaderAccessor.INSTANCE) && !TraceContext.containsTraceContextTextHeaders(redirect, RequestHeaderAccessor.INSTANCE)) {
-                TraceContext.copyTraceContextTextHeaders(original, RequestHeaderAccessor.INSTANCE, redirect, RequestHeaderAccessor.INSTANCE);
+            if (HeaderUtils.containsAny(tracer.getTraceHeaderNames(), original, RequestHeaderAccessor.INSTANCE) && !HeaderUtils.containsAny(tracer.getTraceHeaderNames(), redirect, RequestHeaderAccessor.INSTANCE)) {
+                HeaderUtils.copy(tracer.getTraceHeaderNames(), original, RequestHeaderAccessor.INSTANCE, redirect, RequestHeaderAccessor.INSTANCE);
             }
         }
     }

@@ -22,19 +22,22 @@ import co.elastic.apm.agent.tracer.Tracer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import java.util.Iterator;
+import java.util.Set;
 
 class ConsumerRecordsIterableWrapper implements Iterable<ConsumerRecord<?, ?>> {
 
     private final Iterable<ConsumerRecord<?, ?>> delegate;
     private final Tracer tracer;
+    private final Set<String> binaryTraceHeaders;
 
-    public ConsumerRecordsIterableWrapper(Iterable<ConsumerRecord<?, ?>> delegate, Tracer tracer) {
+    public ConsumerRecordsIterableWrapper(Iterable<ConsumerRecord<?, ?>> delegate, Tracer tracer, Set<String> binaryTraceHeaders) {
         this.delegate = delegate;
         this.tracer = tracer;
+        this.binaryTraceHeaders = binaryTraceHeaders;
     }
 
     @Override
     public Iterator<ConsumerRecord<?, ?>> iterator() {
-        return new ConsumerRecordsIteratorWrapper(delegate.iterator(), tracer);
+        return new ConsumerRecordsIteratorWrapper(delegate.iterator(), tracer, binaryTraceHeaders);
     }
 }

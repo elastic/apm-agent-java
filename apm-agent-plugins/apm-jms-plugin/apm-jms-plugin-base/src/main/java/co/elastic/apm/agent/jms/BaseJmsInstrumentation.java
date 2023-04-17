@@ -54,7 +54,7 @@ public abstract class BaseJmsInstrumentation extends TracerAwareInstrumentation 
             // loading helper class will load JMS-related classes if loaded from Instrumentation static init
             // that fails when trying to load instrumentation classes without JMS dependencies, for example when generating
             // documentation that relies on instrumentation group names
-            helper = new JmsInstrumentationHelper(tracer);
+            helper = JmsInstrumentationHelper.get();
 
             messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
         }

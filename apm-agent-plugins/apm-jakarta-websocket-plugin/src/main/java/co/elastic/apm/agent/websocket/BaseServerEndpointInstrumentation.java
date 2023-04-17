@@ -36,7 +36,7 @@ import java.util.Collection;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -113,8 +113,8 @@ public abstract class BaseServerEndpointInstrumentation extends TracerAwareInstr
         }
 
         private static void setTransactionTypeAndName(Transaction<?> transaction, String signature, String frameworkName, @Nullable String frameworkVersion) {
-            transaction.withType(co.elastic.apm.agent.impl.transaction.Transaction.TYPE_REQUEST);
-            transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK, false);
+            transaction.withType(Transaction.TYPE_REQUEST);
+            transaction.withName(signature, PRIORITY_HIGH_LEVEL_FRAMEWORK, false);
             transaction.setFrameworkName(frameworkName);
             transaction.setFrameworkVersion(frameworkVersion);
         }

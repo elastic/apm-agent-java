@@ -36,8 +36,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_DEFAULT;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEWORK;
 import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.EventType.OFF;
 
 public abstract class AbstractHttpTransactionHelper {
@@ -101,10 +101,10 @@ public abstract class AbstractHttpTransactionHelper {
                 method,
                 pathFirstPart,
                 pathSecondPart,
-                transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1 + priorityOffset),
+                transaction.getAndOverrideName(PRIORITY_LOW_LEVEL_FRAMEWORK + 1 + priorityOffset),
                 webConfiguration.getUrlGroups());
         } else {
-            TransactionNameUtils.setNameUnknownRoute(method, transaction.getAndOverrideName(PRIO_DEFAULT));
+            TransactionNameUtils.setNameUnknownRoute(method, transaction.getAndOverrideName(PRIORITY_DEFAULT));
         }
     }
 

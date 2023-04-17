@@ -380,7 +380,8 @@ public class AgentAttacher {
                 if (!agentJar.canRead()) {
                     throw new IllegalArgumentException(String.format("Agent jar %s is not readable", agentJarString));
                 }
-            } else {
+            } else if (downloadAgentVersion == null) {
+                // this would fail if using the slim attacher CLI jar without providing either --agent-jar or --download-agent-version
                 this.agentJar = ElasticApmAttacher.getBundledAgentJarFile();
             }
             if (!config.isEmpty() && argsProvider != null) {

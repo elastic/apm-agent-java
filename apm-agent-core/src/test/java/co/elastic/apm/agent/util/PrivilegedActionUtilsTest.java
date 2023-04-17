@@ -60,7 +60,7 @@ class PrivilegedActionUtilsTest {
         String envKey = envMap.keySet().stream().findFirst().get();
         String envValue = envMap.get(envKey);
 
-        testWithAndWithoutSecurityManager(()->{
+        testWithAndWithoutSecurityManager(() -> {
             assertThat(PrivilegedActionUtils.getEnv(envKey)).isEqualTo(envValue);
             assertThat(PrivilegedActionUtils.getEnv()).containsAllEntriesOf(envMap);
         });
@@ -70,13 +70,13 @@ class PrivilegedActionUtilsTest {
     @Test
     void getClassLoader() {
         ClassLoader cl = PrivilegedActionUtilsTest.class.getClassLoader();
-        testWithAndWithoutSecurityManager(()-> assertThat(PrivilegedActionUtils.getClassLoader(PrivilegedActionUtilsTest.class)).isSameAs(cl));
+        testWithAndWithoutSecurityManager(() -> assertThat(PrivilegedActionUtils.getClassLoader(PrivilegedActionUtilsTest.class)).isSameAs(cl));
     }
 
     @Test
     void getProtectionDomain() {
         ProtectionDomain pd = PrivilegedActionUtilsTest.class.getProtectionDomain();
-        testWithAndWithoutSecurityManager(()-> assertThat(PrivilegedActionUtils.getProtectionDomain(PrivilegedActionUtilsTest.class)).isSameAs(pd));
+        testWithAndWithoutSecurityManager(() -> assertThat(PrivilegedActionUtils.getProtectionDomain(PrivilegedActionUtilsTest.class)).isSameAs(pd));
     }
 
     @Test
@@ -161,7 +161,12 @@ class PrivilegedActionUtilsTest {
         });
     }
 
-    private static void testPrivileged(Runnable task){
+    @Test
+    void getProxySelector() {
+        testWithAndWithoutSecurityManager(PrivilegedActionUtils::getDefaultProxySelector);
+    }
+
+    private static void testPrivileged(Runnable task) {
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
@@ -171,7 +176,7 @@ class PrivilegedActionUtilsTest {
         });
     }
 
-    void testWithAndWithoutSecurityManager(Runnable assertions){
+    void testWithAndWithoutSecurityManager(Runnable assertions) {
         assertions.run();
         try {
             enableSecurityManager();
@@ -209,7 +214,7 @@ class PrivilegedActionUtilsTest {
         private static void checkPrivileged() {
             StackTraceElement[] stackTrace = new RuntimeException().getStackTrace();
             for (StackTraceElement e : stackTrace) {
-                if(e.getClassName().equals("java.security.AccessController") && e.getMethodName().equals("doPrivileged")){
+                if (e.getClassName().equals("java.security.AccessController") && e.getMethodName().equals("doPrivileged")) {
                     return;
                 }
             }

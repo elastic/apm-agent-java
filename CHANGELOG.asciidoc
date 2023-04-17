@@ -20,14 +20,29 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.38.0]]
+==== 1.38.0 - YYYY/MM/DD
+
+[float]
+===== Features
+* Added tests for Quarkus / RestEasy, adjusted vert.x router transaction name priority - {pull}1765[#1765]
+* Added support for Spring WebMVC 6.x and Spring Boot 3.x - {pull}3094[#3094]
+
+[float]
+===== Bug fixes
+* Do not use proxy to retrieve cloud metadata - {pull}3108[#3108]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.37.0]]
-==== 1.37.0 - YYYY/MM/DD
+==== 1.37.0 - 2023/04/11
 
 [float]
 ===== Potentially breaking changes
 * The list of instrumentation groups for log-related features have been simplified to `logging`, `log-reformatting`, `log-correlation` and `log-error`,
 as a consequence any agent configuration with `enable_instrumentations` or `disable_instrumentations` might require adjustments as the following instrumentation
-groups no longer exist: `jul-ecs`, `jul-error`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`, 
+groups no longer exist: `jul-ecs`, `jul-error`, `log4j1-correlation`, `log4j1-ecs`, `log4j1-error`, `log4j2-correlation`, `log4j2-ecs`, `log4j2-error`,
 `logback-correlation`, `logback-ecs` and `slf4j-error`.
 
 [float]
@@ -40,6 +55,8 @@ communication - {pull}2996[#2996]
 * Allow creation of exit spans with `@CaptureSpan` and `@Traced` annotations - {pull}3046[#3046]
 * Add the <<config-long-field-max-length>> config to enable capturing larger values for specific fields - {pull}3027[#3027]
 * Provide fallback correlation when `ecs-logging-java` is used - {pull}3064[#3064]
+* Added separate Java 8 build with updated log4j2 - {pull}3076[#3076]
+* Add <<config-elasticsearch-capture-body-urls, elasticsearch_capture_body_urls>> option to customize which Elasticsearch request bodies are captured - {pull}3091[#3091]
 
 [float]
 ===== Bug fixes
@@ -50,9 +67,8 @@ communication - {pull}2996[#2996]
 * Fix exceptions filtering based on <<config-ignore-exceptions>> when those are <<config-unnest-exceptions, nested>> - {pull}3025[#3025]
 * Fix usage of `HttpUrlConnection.getResponseCode()` causing an error event due to exception capturing, even when it is internally handled - {pull}3024[#3024]
 * Fix source code jar to contain apm-agent sources - {pull}3063[#3063]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Fix security exception when security manager is used with `log_level=debug` - {pull}3077[#3077]
+* Fix slim attacher when downloading agent version - {pull}3096[#3096]
 
 [[release-notes-1.36.0]]
 ==== 1.36.0 - 2023/01/27

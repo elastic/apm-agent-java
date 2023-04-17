@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.36.1-SNAPSHOT</version>
+        <version>1.37.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>integration-tests</artifactId>
@@ -22,6 +22,7 @@
         <module>soap-test</module>
         <module>cdi-app</module>
         <module>cdi-jakartaee-app</module>
+        <module>quarkus</module>
         <module>external-plugin-test</module>
         <module>external-plugin-otel-test</module>
         <module>runtime-attach</module>

@@ -67,6 +67,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -81,6 +82,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
@@ -1067,7 +1069,7 @@ class DslJsonSerializerTest {
         String platform = "test-platform";
 
         MetaData metaData = createMetaData(new SystemInfo(arc, "configured", "detected", platform));
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), supportsConfiguredAndDetectedHostname);
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true);
         serializer.appendMetadataToStream();
 
         JsonNode system = readJsonString(serializer.toString()).get("system");
@@ -1092,7 +1094,7 @@ class DslJsonSerializerTest {
         String platform = "test-platform";
 
         MetaData metaData = createMetaData(new SystemInfo(arc, null, "detected", platform));
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), supportsConfiguredAndDetectedHostname);
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true);
         serializer.appendMetadataToStream();
 
         JsonNode system = readJsonString(serializer.toString()).get("system");
@@ -1117,7 +1119,7 @@ class DslJsonSerializerTest {
         String platform = "test-platform";
 
         MetaData metaData = createMetaData(new SystemInfo(arc, null, null, platform));
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), supportsConfiguredAndDetectedHostname);
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true);
         serializer.appendMetadataToStream();
 
         JsonNode system = readJsonString(serializer.toString()).get("system");
@@ -1144,7 +1146,7 @@ class DslJsonSerializerTest {
         cloudProviderInfo.setInstance(null);
         cloudProviderInfo.setService(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true);
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true, true);
         serializer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
@@ -1171,7 +1173,7 @@ class DslJsonSerializerTest {
         Objects.requireNonNull(cloudProviderInfo.getProject()).setName(null);
         Objects.requireNonNull(cloudProviderInfo.getInstance()).setName(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true);
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true, true);
         serializer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
@@ -1204,7 +1206,7 @@ class DslJsonSerializerTest {
         instance.setName(null);
         instance.setId(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true);
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true, true);
         serializer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
@@ -1228,7 +1230,7 @@ class DslJsonSerializerTest {
         Objects.requireNonNull(cloudProviderInfo.getInstance()).setId(null);
         Objects.requireNonNull(cloudProviderInfo.getAccount()).setId(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true);
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true, true);
         serializer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
@@ -1246,6 +1248,71 @@ class DslJsonSerializerTest {
         JsonNode jsonCloudProject = jsonCloud.get("project");
         assertThat(jsonCloudProject.get("id")).isNull();
         assertThat(jsonCloudProject.get("name").asText()).isEqualTo("projectName");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testActivationMethod(boolean supportsActivationMethod) throws Exception {
+
+        MetaData metaData = createMetaData();
+
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true, supportsActivationMethod);
+        serializer.appendMetadataToStream();
+
+        checkMetadataActivationMethod(serializer.toString(), supportsActivationMethod ? "unknown" : null);
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+        "true  | false", // likely when going from "version unknown" to "known unsupported version"
+        "false | true", // unlikey to happen in practice, but worth testing anyway
+    })
+    void testActivationMethodMetadataUpdate(boolean value1, boolean value2 ) throws Exception {
+        // because metadata is serialized only once, we need to ensure it's properly updated whenever needed
+        // in particular when going from 'apm server version unknown' to 'apm server version known'
+
+        StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
+        apmServerClient = mock(ApmServerClient.class);
+        doReturn(value1).when(apmServerClient).supportsActivationMethod();
+
+        Service service = mock(Service.class);
+        Agent agent = new Agent("java-test", "1.0.0");
+        doReturn(agent).when(service).getAgent();
+        MetaData mockMetada = MetaDataMock.createDefaultMock();
+        doReturn(service).when(mockMetada).getService();
+
+        serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, MetaDataMock.create(mockMetada));
+        serializer.blockUntilReady();
+        serializer.appendMetadataToStream();
+
+        checkMetadataActivationMethod(serializer.toString(), value1 ? "unknown": null);
+        serializer.jw.reset();
+
+        doReturn(value2).when(apmServerClient).supportsActivationMethod();
+
+        serializer.blockUntilReady();
+        serializer.appendMetadataToStream();
+
+        checkMetadataActivationMethod(serializer.toString(), value2 ? "unknown": null);
+    }
+
+    private void checkMetadataActivationMethod(String json, @Nullable String expectedValue) {
+        JsonNode root = readJsonString(json);
+
+        JsonNode service = root.get("service");
+        assertThat(service).isNotNull();
+
+        JsonNode agent = service.get("agent");
+        assertThat(agent).isNotNull();
+
+        JsonNode activationMethod = agent.get("activation_method");
+
+        if (expectedValue == null) {
+            assertThat(activationMethod).isNull();
+        } else {
+            assertThat(activationMethod.isTextual()).isTrue();
+            assertThat(activationMethod.asText()).isEqualTo(expectedValue);
+        }
     }
 
     private MetaData createMetaData() throws Exception {

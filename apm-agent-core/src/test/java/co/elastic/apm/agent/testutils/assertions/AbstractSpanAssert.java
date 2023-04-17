@@ -36,6 +36,15 @@ public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, A
         return thiz();
     }
 
+    public SELF hasNameContaining(String nameContains) {
+        isNotNull();
+        String actualName = normalizeToString(actual.getNameForSerialization());
+        if (!actualName.contains(nameContains)) {
+            failWithMessage("Expected name '%s' to contain '%s'", actualName, nameContains);
+        }
+        return thiz();
+    }
+
     public SELF hasType(String type) {
         isNotNull();
         checkString("Expected span with type '%s' but was '%s'", type, actual.getType());
@@ -91,5 +100,6 @@ public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, A
     private SELF thiz() {
         return (SELF) this;
     }
+
 
 }

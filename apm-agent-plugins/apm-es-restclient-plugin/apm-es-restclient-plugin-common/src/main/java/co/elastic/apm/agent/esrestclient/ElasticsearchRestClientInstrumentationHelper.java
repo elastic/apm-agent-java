@@ -58,6 +58,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
     public static final String SPAN_ACTION = "request";
     private static final int MAX_POOLED_ELEMENTS = 256;
     private final Tracer tracer;
+    private final ElasticsearchConfiguration config;
 
     private final ObjectPool<ResponseListenerWrapper> responseListenerObjectPool;
 
@@ -68,6 +69,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
     private ElasticsearchRestClientInstrumentationHelper(Tracer tracer) {
         this.tracer = tracer;
         this.responseListenerObjectPool = tracer.getObjectPoolFactory().createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new ResponseListenerAllocator());
+        this.config = tracer.getConfig(ElasticsearchConfiguration.class);
     }
 
     private class ResponseListenerAllocator implements Allocator<ResponseListenerWrapper> {

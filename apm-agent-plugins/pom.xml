@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.36.1-SNAPSHOT</version>
+        <version>1.37.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-plugins</artifactId>
@@ -23,7 +23,7 @@
         <module>apm-jsf-plugin</module>
         <module>apm-opentracing-plugin</module>
         <module>apm-servlet-plugin</module>
-        <module>apm-spring-webmvc-plugin</module>
+        <module>apm-spring-webmvc</module>
         <module>apm-spring-webflux</module>
         <module>apm-reactor-plugin</module>
         <module>apm-api-plugin</module>

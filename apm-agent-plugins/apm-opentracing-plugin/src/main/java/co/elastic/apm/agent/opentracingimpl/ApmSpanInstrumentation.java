@@ -33,7 +33,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.Map;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_USER_SUPPLIED;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
@@ -77,7 +77,7 @@ public abstract class ApmSpanInstrumentation extends OpenTracingBridgeInstrument
                     Transaction transaction = (Transaction) abstractSpan;
                     if (transaction.getType() == null) {
                         if (transaction.getContext().getRequest().hasContent()) {
-                            transaction.withType(Transaction.TYPE_REQUEST);
+                            transaction.withType(co.elastic.apm.agent.tracer.Transaction.TYPE_REQUEST);
                         }
                     }
                 }
@@ -100,7 +100,7 @@ public abstract class ApmSpanInstrumentation extends OpenTracingBridgeInstrument
             public static void setOperationName(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable Object context,
                                                 @Advice.Argument(0) @Nullable String operationName) {
                 if (context instanceof AbstractSpan<?>) {
-                    ((AbstractSpan<?>) context).withName(operationName, PRIO_USER_SUPPLIED);
+                    ((AbstractSpan<?>) context).withName(operationName, PRIORITY_USER_SUPPLIED);
                 } else {
                     logger.warn("Calling setOperationName on an already finished span");
                 }
@@ -202,15 +202,15 @@ public abstract class ApmSpanInstrumentation extends OpenTracingBridgeInstrument
                     transaction.getContext().getResponse().withStatusCode(status);
                     transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
                     transaction.withOutcome(ResultUtil.getOutcomeByHttpServerStatus(status));
-                    transaction.withType(Transaction.TYPE_REQUEST);
+                    transaction.withType(co.elastic.apm.agent.tracer.Transaction.TYPE_REQUEST);
                     return true;
                 } else if ("http.method".equals(key)) {
                     transaction.getContext().getRequest().withMethod(value.toString());
-                    transaction.withType(Transaction.TYPE_REQUEST);
+                    transaction.withType(co.elastic.apm.agent.tracer.Transaction.TYPE_REQUEST);
                     return true;
                 } else if ("http.url".equals(key)) {
                     transaction.getContext().getRequest().getUrl().withFull(value.toString());
-                    transaction.withType(Transaction.TYPE_REQUEST);
+                    transaction.withType(co.elastic.apm.agent.tracer.Transaction.TYPE_REQUEST);
                     return true;
                 } else if ("sampling.priority".equals(key)) {
                     // mid-trace sampling is not allowed

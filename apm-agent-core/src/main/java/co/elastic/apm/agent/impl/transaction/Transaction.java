@@ -52,8 +52,6 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         }
     };
 
-    public static final String TYPE_REQUEST = "request";
-
     /**
      * Context
      * <p>

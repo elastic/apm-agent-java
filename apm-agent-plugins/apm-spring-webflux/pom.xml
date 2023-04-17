@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-plugins</artifactId>
-        <version>1.36.1-SNAPSHOT</version>
+        <version>1.37.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-spring-webflux</artifactId>
@@ -31,5 +31,6 @@
         <module>apm-spring-webflux-plugin</module>
         <module>apm-spring-webclient-plugin</module>
         <module>apm-spring-webflux-testapp</module>
+        <module>apm-spring-webflux-spring5</module>
     </modules>
 </project>

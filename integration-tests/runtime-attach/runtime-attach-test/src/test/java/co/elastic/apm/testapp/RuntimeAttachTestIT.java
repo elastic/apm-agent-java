@@ -19,6 +19,7 @@
 package co.elastic.apm.testapp;
 
 import co.elastic.apm.agent.test.AgentFileAccessor;
+import co.elastic.apm.agent.test.JavaExecutable;
 import com.sun.tools.attach.VirtualMachine;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -317,7 +318,7 @@ class RuntimeAttachTestIT {
 
     private ProcessHandle startForkedJvm(Path executableJar, List<String> args) {
         ArrayList<String> cmd = new ArrayList<>();
-        cmd.add(getJavaBinaryPath());
+        cmd.add(JavaExecutable.getBinaryPath());
         cmd.add("-jar");
         cmd.add(executableJar.toString());
         cmd.addAll(args);
@@ -335,16 +336,6 @@ class RuntimeAttachTestIT {
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
-    }
-
-    private static String getJavaBinaryPath() {
-        boolean isWindows = System.getProperty("os.name").startsWith("Windows");
-        String executable = isWindows ? "java.exe" : "java";
-        Path path = Paths.get(System.getProperty("java.home"), "bin", executable);
-        if (!Files.isExecutable(path)) {
-            throw new IllegalStateException("unable to find java path");
-        }
-        return path.toAbsolutePath().toString();
     }
 
     private static void terminateJvm(ProcessHandle jvm) {

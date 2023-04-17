@@ -29,7 +29,7 @@ import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 
 public class ActionProxyAdvice {
 
@@ -44,10 +44,10 @@ public class ActionProxyAdvice {
         String methodName = actionProxy.getMethod();
         if (ActionContext.getContext().get("CHAIN_HISTORY") != null) {
             Span<?> span = transaction.createSpan().withType("app").withSubtype("internal");
-            TransactionNameUtils.setNameFromClassAndMethod(className, methodName, span.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
+            TransactionNameUtils.setNameFromClassAndMethod(className, methodName, span.getAndOverrideName(PRIORITY_HIGH_LEVEL_FRAMEWORK));
             return span.activate();
         } else {
-            TransactionNameUtils.setNameFromClassAndMethod(className, methodName, transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
+            TransactionNameUtils.setNameFromClassAndMethod(className, methodName, transaction.getAndOverrideName(PRIORITY_HIGH_LEVEL_FRAMEWORK));
             StrutsFrameworkUtils.setFrameworkNameAndVersion(transaction);
             return null;
         }

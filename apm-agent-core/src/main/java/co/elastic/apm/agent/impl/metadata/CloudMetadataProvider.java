@@ -416,7 +416,7 @@ public class CloudMetadataProvider {
     }
 
     private static String executeRequest(String url, String method, @Nullable Map<String, String> headers, int queryTimeoutMs) throws IOException {
-        HttpURLConnection urlConnection = (HttpURLConnection) UrlConnectionUtils.openUrlConnectionThreadSafely(new URL(url));
+        HttpURLConnection urlConnection = (HttpURLConnection) UrlConnectionUtils.openUrlConnectionThreadSafely(new URL(url), false);
         if (headers != null) {
             for (String header : headers.keySet()) {
                 urlConnection.setRequestProperty(header, headers.get(header));

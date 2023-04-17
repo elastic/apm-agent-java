@@ -77,6 +77,11 @@ jobs:
         with:
           name: elastic-apm-agent
           path: ./elastic-apm-agent/target/elastic-apm-agent-*.jar
+      - name: Upload agent java 8 binaries as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: elastic-apm-agent-java8
+          path: ./elastic-apm-agent-java8/target/elastic-apm-agent-java8-*.jar
 
   license:
     name: License
@@ -221,20 +226,27 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'ci:jdk-compatibility')
       || inputs.jdk_compatibility_ci == true
     runs-on: ubuntu-latest
-    env:
-      JAVA_DIST: 'temurin'
     strategy:
+      fail-fast: false #Even if the tests fail on one JDK we want to know if it also fails on others
       matrix:
-        version: [11, 17, 19]
+        include:
+          - version: 11
+            distribution: 'temurin'
+          - version: 17
+            distribution: 'temurin'
+          - version: 20
+            distribution: 'temurin'
+          - version: 21-ea
+            distribution: 'zulu'
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/maven-goal
         with:
-          java-version: ${{ matrix.version }}
-          distribution: ${{ env.JAVA_DIST }}
+          test-java-version: ${{ matrix.version }}
+          test-java-distribution: ${{ matrix.distribution }}
           command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
-      - name: Run tests for ${{ matrix.version }}:${{ env.JAVA_DIST }}
-        run: ./mvnw test
+      - name: Run tests for ${{ matrix.version }}:${{ matrix.distribution }}
+        run: ./mvnw test -Dtest_java_binary=${{ env.TEST_JAVA_BINARY }}
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v3

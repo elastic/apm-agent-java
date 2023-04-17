@@ -452,7 +452,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
     @Test
     public void overrideElasticTransactionName() {
         Transaction transaction = startTestRootTransaction()
-            .withName("Elastic Provided High-Prio Name", AbstractSpan.PRIO_USER_SUPPLIED);
+            .withName("Elastic Provided High-Prio Name", co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_USER_SUPPLIED);
 
         try {
             Span.current().updateName("Otel updated name");

@@ -23,6 +23,7 @@ import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 
 import javax.annotation.Nullable;
+import java.util.Set;
 
 public class GlobalTracer implements Tracer {
 
@@ -79,6 +80,11 @@ public class GlobalTracer implements Tracer {
     @Override
     public ObjectPoolFactory getObjectPoolFactory() {
         return tracer.getObjectPoolFactory();
+    }
+
+    @Override
+    public Set<String> getTraceHeaderNames() {
+        return tracer.getTraceHeaderNames();
     }
 
     @Nullable

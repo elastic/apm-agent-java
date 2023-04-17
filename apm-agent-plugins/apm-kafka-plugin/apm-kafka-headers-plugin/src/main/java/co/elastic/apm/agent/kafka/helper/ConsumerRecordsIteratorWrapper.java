@@ -19,6 +19,8 @@
 package co.elastic.apm.agent.kafka.helper;
 
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
@@ -33,6 +35,7 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import java.util.Iterator;
+import java.util.Set;
 
 class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
 
@@ -41,12 +44,14 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
 
     private final Iterator<ConsumerRecord<?, ?>> delegate;
     private final Tracer tracer;
+    private final Set<String> binaryTraceHeaders;
     private final CoreConfiguration coreConfiguration;
     private final MessagingConfiguration messagingConfiguration;
 
-    public ConsumerRecordsIteratorWrapper(Iterator<ConsumerRecord<?, ?>> delegate, Tracer tracer) {
+    public ConsumerRecordsIteratorWrapper(Iterator<ConsumerRecord<?, ?>> delegate, Tracer tracer, Set<String> binaryTraceHeaders) {
         this.delegate = delegate;
         this.tracer = tracer;
+        this.binaryTraceHeaders = binaryTraceHeaders;
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
     }
@@ -89,7 +94,7 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
                     if (transaction.isSampled() && coreConfiguration.isCaptureHeaders()) {
                         for (Header header : record.headers()) {
                             String key = header.key();
-                            if (!TraceContext.TRACE_PARENT_BINARY_HEADER_NAME.equals(key) &&
+                            if (!binaryTraceHeaders.contains(key) &&
                                 Matcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
                                 message.addHeader(key, header.value());
                             }
