@@ -76,7 +76,7 @@ public class LogManagerTestInstrumentation extends ElasticApmInstrumentation {
     }
 
     @GlobalState
-    private static class JulProperties {
+    public static class JulProperties {
 
         @Nullable
         public static Properties overridenProperties = null;

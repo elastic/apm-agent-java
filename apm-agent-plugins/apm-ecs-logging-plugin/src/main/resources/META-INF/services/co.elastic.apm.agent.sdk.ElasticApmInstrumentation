@@ -18,3 +18,4 @@ co.elastic.apm.agent.ecs_logging.logback.LogBackServiceInstrumentation$Version
 # JBoss
 co.elastic.apm.agent.ecs_logging.jbosslogging.JbossEcsServiceInstrumentation$Name
 co.elastic.apm.agent.ecs_logging.jbosslogging.JbossEcsServiceInstrumentation$Version
+co.elastic.apm.agent.ecs_logging.jbosslogging.JbossEcsServiceInstrumentation$Environment

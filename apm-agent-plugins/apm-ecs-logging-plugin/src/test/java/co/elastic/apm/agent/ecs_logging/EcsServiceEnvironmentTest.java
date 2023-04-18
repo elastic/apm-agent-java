@@ -35,7 +35,7 @@ public abstract class EcsServiceEnvironmentTest extends EcsLoggingTest {
     @Test
     public void testBuildWithNoServiceNameSet() {
         initFormatterWithoutServiceEnvironmentSet();
-        assertThat(getJson(createLogMsg(), "service.environment")).isEqualTo("test-env");
+        assertThat(getJson(createLogMsg(), "service.environment")).isEqualTo("test");
     }
 
     protected abstract void initFormatterWithoutServiceEnvironmentSet();

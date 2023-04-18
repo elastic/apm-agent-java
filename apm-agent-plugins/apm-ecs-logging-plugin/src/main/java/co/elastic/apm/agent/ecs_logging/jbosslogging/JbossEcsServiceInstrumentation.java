@@ -87,4 +87,28 @@ public abstract class JbossEcsServiceInstrumentation extends EcsLoggingInstrumen
 
     }
 
+    public static class Environment extends JbossEcsServiceInstrumentation {
+
+        @Override
+        public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
+            return super.getTypeMatcher()
+                // setServiceEnvironment introduced in 1.5.0
+                .and(declaresMethod(named("setServiceEnvironment")));
+        }
+
+        public static class AdviceClass {
+
+            @Nullable
+            @Advice.AssignReturned.ToFields(@ToField(value = "serviceEnvironment", typing = Assigner.Typing.DYNAMIC))
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static String onEnter(@Advice.This Object formatter,
+                                         @Advice.FieldValue("serviceEnvironment") @Nullable String serviceEnvironment) {
+
+                return EcsLoggingUtils.getOrWarnServiceEnvironment(formatter, serviceEnvironment);
+            }
+        }
+
+    }
+
+
 }
