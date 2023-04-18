@@ -25,7 +25,6 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
@@ -53,7 +52,7 @@ public abstract class JbossEcsServiceInstrumentation extends EcsLoggingInstrumen
         public static class AdviceClass {
 
             @Nullable
-            @Advice.AssignReturned.ToFields(@ToField(value = "serviceName", typing = Assigner.Typing.DYNAMIC))
+            @Advice.AssignReturned.ToFields(@ToField(value = "serviceName"))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static String onEnter(@Advice.This Object formatter,
                                          @Advice.FieldValue("serviceName") @Nullable String serviceName) {
@@ -76,7 +75,7 @@ public abstract class JbossEcsServiceInstrumentation extends EcsLoggingInstrumen
         public static class AdviceClass {
 
             @Nullable
-            @Advice.AssignReturned.ToFields(@ToField(value = "serviceVersion", typing = Assigner.Typing.DYNAMIC))
+            @Advice.AssignReturned.ToFields(@ToField(value = "serviceVersion"))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static String onEnter(@Advice.This Object formatter,
                                          @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
@@ -99,7 +98,7 @@ public abstract class JbossEcsServiceInstrumentation extends EcsLoggingInstrumen
         public static class AdviceClass {
 
             @Nullable
-            @Advice.AssignReturned.ToFields(@ToField(value = "serviceEnvironment", typing = Assigner.Typing.DYNAMIC))
+            @Advice.AssignReturned.ToFields(@ToField(value = "serviceEnvironment"))
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static String onEnter(@Advice.This Object formatter,
                                          @Advice.FieldValue("serviceEnvironment") @Nullable String serviceEnvironment) {
