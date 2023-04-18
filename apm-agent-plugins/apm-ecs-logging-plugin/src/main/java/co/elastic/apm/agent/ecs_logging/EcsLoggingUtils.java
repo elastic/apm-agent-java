@@ -36,6 +36,7 @@ public class EcsLoggingUtils {
 
     private static final WeakSet<Object> nameChecked = WeakConcurrent.buildSet();
     private static final WeakSet<Object> versionChecked = WeakConcurrent.buildSet();
+    private static final WeakSet<Object> environmentChecked = WeakConcurrent.buildSet();
 
     private static final ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
 
@@ -52,6 +53,12 @@ public class EcsLoggingUtils {
         String configuredServiceVersion = tracer.getConfig(CoreConfiguration.class).getServiceVersion();
         return serviceInfo != null ? serviceInfo.getServiceVersion() : configuredServiceVersion;
     }
+
+    @Nullable
+    public static String getServiceEnvironment() {
+        return tracer.getConfig(CoreConfiguration.class).getEnvironment();
+    }
+
 
     private static void warnIfMisConfigured(String key, @Nullable String configuredValue, @Nullable String agentValue) {
         if (!Objects.equals(agentValue, configuredValue)) {
@@ -81,6 +88,19 @@ public class EcsLoggingUtils {
             return getServiceName();
         } else {
             warnIfMisConfigured("service.name", value, getServiceName());
+            return value;
+        }
+    }
+
+    @Nullable
+    public static String getOrWarnServiceEnvironment(Object target, @Nullable String value) {
+        if (!environmentChecked.add(target)) {
+            return value;
+        }
+        if (value == null) {
+            return getServiceEnvironment();
+        } else {
+            warnIfMisConfigured("environment", value, getServiceEnvironment());
             return value;
         }
     }
