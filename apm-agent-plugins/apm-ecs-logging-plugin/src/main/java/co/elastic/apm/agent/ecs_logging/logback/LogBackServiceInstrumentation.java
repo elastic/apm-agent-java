@@ -85,16 +85,4 @@ public abstract class LogBackServiceInstrumentation extends EcsLoggingInstrument
 
     }
 
-    public static class VersionAdvice {
-
-        @Nullable
-        @Advice.AssignReturned.ToFields(@ToField("serviceVersion"))
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static String onExit(@Advice.This Object encoder,
-                                    @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
-
-            return EcsLoggingUtils.getOrWarnServiceVersion(encoder, serviceVersion);
-        }
-    }
-
 }
