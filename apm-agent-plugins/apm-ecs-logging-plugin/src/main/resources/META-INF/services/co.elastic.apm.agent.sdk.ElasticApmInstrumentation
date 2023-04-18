@@ -1,6 +1,7 @@
 # log4j 1.x
 co.elastic.apm.agent.ecs_logging.log4j1.Log4jEcsServiceInstrumentation$Name
 co.elastic.apm.agent.ecs_logging.log4j1.Log4jEcsServiceInstrumentation$Version
+co.elastic.apm.agent.ecs_logging.log4j1.Log4jEcsServiceInstrumentation$Environment
 
 # log4j 2.x
 co.elastic.apm.agent.ecs_logging.log4j2.Log4j2ServiceInstrumentation$Name
