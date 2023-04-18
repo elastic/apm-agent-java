@@ -18,7 +18,8 @@
  */
 package co.elastic.apm.agent.ecs_logging.jul;
 
-import co.elastic.apm.agent.ecs_logging.EcsServiceVersionTest;
+import co.elastic.apm.agent.ecs_logging.EcsServiceEnvironmentTest;
+import co.elastic.apm.agent.ecs_logging.EcsServiceNameTest;
 import co.elastic.apm.agent.testutils.TestClassWithDependencyRunner;
 import co.elastic.logging.jul.EcsFormatter;
 
@@ -29,7 +30,7 @@ import java.util.logging.LogRecord;
 
 // must be tested in isolation, either used in agent or has side effects
 @TestClassWithDependencyRunner.DisableOutsideOfRunner
-public class JulServiceVersionInstrumentationTest extends EcsServiceVersionTest {
+public class JulServiceEnvironmentInstrumentationTest extends EcsServiceEnvironmentTest {
 
     private EcsFormatter formatter;
 
@@ -39,12 +40,13 @@ public class JulServiceVersionInstrumentationTest extends EcsServiceVersionTest 
     }
 
     @Override
-    protected void initFormatterWithoutServiceVersionSet() {
+    protected void initFormatterWithoutServiceEnvironmentSet() {
         formatter = LogManagerTestInstrumentation.createFormatter(Collections.emptyMap());
     }
 
     @Override
-    protected void initFormatterWithServiceVersion(String version) {
-        formatter = LogManagerTestInstrumentation.createFormatter(Map.of("co.elastic.logging.jul.EcsFormatter.serviceVersion", version));
+    protected void initFormatterWithServiceEnvironment(String environment) {
+        formatter = LogManagerTestInstrumentation.createFormatter(Map.of("co.elastic.logging.jul.EcsFormatter.serviceEnvironment", environment));
     }
+
 }

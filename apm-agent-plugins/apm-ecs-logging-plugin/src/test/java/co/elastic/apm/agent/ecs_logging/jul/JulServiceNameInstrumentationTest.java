@@ -40,21 +40,13 @@ public class JulServiceNameInstrumentationTest extends EcsServiceNameTest {
 
     @Override
     protected void initFormatterWithoutServiceNameSet() {
-        formatter = createFormatter(Collections.emptyMap());
+        formatter = LogManagerTestInstrumentation.createFormatter(Collections.emptyMap());
     }
 
     @Override
     protected void initFormatterWithServiceName(String name) {
-        formatter = createFormatter(Map.of("co.elastic.logging.jul.EcsFormatter.serviceName", name));
+        formatter = LogManagerTestInstrumentation.createFormatter(Map.of("co.elastic.logging.jul.EcsFormatter.serviceName", name));
     }
 
-    private static EcsFormatter createFormatter(Map<String, String> map) {
-        try {
-            LogManagerTestInstrumentation.JulProperties.override(map);
-            return new EcsFormatter();
-        } finally {
-            LogManagerTestInstrumentation.JulProperties.restore();
-        }
-    }
 
 }
