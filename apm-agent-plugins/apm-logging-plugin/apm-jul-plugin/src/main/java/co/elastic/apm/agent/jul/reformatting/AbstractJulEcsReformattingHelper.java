@@ -82,6 +82,7 @@ public abstract class AbstractJulEcsReformattingHelper<T extends Handler> extend
         };
         ecsFormatter.setServiceName(serviceName);
         ecsFormatter.setServiceVersion(serviceVersion);
+        ecsFormatter.setServiceEnvironment(serviceEnvironment);
         ecsFormatter.setServiceNodeName(serviceNodeName);
         ecsFormatter.setEventDataset(eventDataset);
         if (additionalFields != null && !additionalFields.isEmpty()) {

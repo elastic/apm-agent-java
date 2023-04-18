@@ -76,6 +76,7 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
         EcsLayout.Builder builder = EcsLayout.newBuilder()
             .setServiceName(serviceName)
             .setServiceVersion(serviceVersion)
+            .setServiceEnvironment(serviceEnvironment)
             .setServiceNodeName(serviceNodeName)
             .setEventDataset(eventDataset)
             .setIncludeMarkers(true)

@@ -71,6 +71,7 @@ class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAp
         EcsLayout ecsLayout = new EcsLayout();
         ecsLayout.setServiceName(serviceName);
         ecsLayout.setServiceVersion(serviceVersion);
+        ecsLayout.setServiceEnvironment(serviceEnvironment);
         ecsLayout.setServiceNodeName(serviceNodeName);
         ecsLayout.setEventDataset(eventDataset);
         if (additionalFields != null) {
