@@ -165,6 +165,9 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
     private final String configuredServiceNodeName;
 
     @Nullable
+    private final String environment;
+
+    @Nullable
     private final Map<String, String> additionalFields;
     private final Reporter reporter;
 
@@ -184,6 +187,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
         } else {
             configuredServiceNodeName = null;
         }
+        environment = service.getEnvironment();
         reporter = tracer.require(ElasticApmTracer.class).getReporter();
     }
 
@@ -367,11 +371,17 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
         }
     }
 
+    @Nullable
     private F createEcsFormatter(A originalAppender) {
         String serviceName = getServiceName();
         return createEcsFormatter(
-            getEventDataset(originalAppender, serviceName), serviceName, getServiceVersion(),
-            configuredServiceNodeName, additionalFields, getFormatterFrom(originalAppender)
+            getEventDataset(originalAppender, serviceName),
+            serviceName,
+            getServiceVersion(),
+            environment,
+            configuredServiceNodeName,
+            additionalFields,
+            getFormatterFrom(originalAppender)
         );
     }
 
@@ -466,8 +476,12 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
     protected abstract A createAndStartEcsAppender(A originalAppender, String ecsAppenderName, F ecsFormatter);
 
     @Nullable
-    protected abstract F createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceVersion,
-                                            @Nullable String serviceNodeName, @Nullable Map<String, String> additionalFields,
+    protected abstract F createEcsFormatter(String eventDataset,
+                                            @Nullable String serviceName,
+                                            @Nullable String serviceVersion,
+                                            @Nullable String serviceEnvironment,
+                                            @Nullable String serviceNodeName,
+                                            @Nullable Map<String, String> additionalFields,
                                             @Nullable F originalFormatter);
 
     /**
