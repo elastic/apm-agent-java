@@ -23,7 +23,7 @@ import co.elastic.apm.agent.testutils.Java17OnlyTest;
 public class Spring6ServerAnnotatedInstrumentationTest extends Java17OnlyTest {
 
     public Spring6ServerAnnotatedInstrumentationTest() {
-        super(Spring6ServerFunctionalInstrumentationTest.Impl.class);
+        super(Impl.class);
     }
 
     public static class Impl extends ServerAnnotatedInstrumentationTest {
