@@ -91,13 +91,4 @@ public class LogManagerTestInstrumentation extends ElasticApmInstrumentation {
         }
     }
 
-    static EcsFormatter createFormatter(Map<String, String> map) {
-        try {
-            JulProperties.override(map);
-            return new EcsFormatter();
-        } finally {
-            JulProperties.restore();
-        }
-    }
-
 }

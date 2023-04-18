@@ -33,7 +33,7 @@ public abstract class EcsServiceEnvironmentTest extends EcsLoggingTest {
     }
 
     @Test
-    public void testBuildWithNoServiceNameSet() {
+    public void testBuildWithNoServiceEnvironmentSet() {
         initFormatterWithoutServiceEnvironmentSet();
         assertThat(getJson(createLogMsg(), "service.environment")).isEqualTo("test");
     }
@@ -41,7 +41,7 @@ public abstract class EcsServiceEnvironmentTest extends EcsLoggingTest {
     protected abstract void initFormatterWithoutServiceEnvironmentSet();
 
     @Test
-    public void testBuildWithServiceNameSet() {
+    public void testBuildWithServiceEnvironmentSet() {
         // this should also issue a warning as the value configured in ecs-logging differs from the agent
         initFormatterWithServiceEnvironment("prod");
         assertThat(getJson(createLogMsg(), "service.environment")).isEqualTo("prod");

@@ -40,11 +40,20 @@ public class JulServiceVersionInstrumentationTest extends EcsServiceVersionTest 
 
     @Override
     protected void initFormatterWithoutServiceVersionSet() {
-        formatter = LogManagerTestInstrumentation.createFormatter(Collections.emptyMap());
+        formatter = createFormatter(Collections.emptyMap());
     }
 
     @Override
     protected void initFormatterWithServiceVersion(String version) {
-        formatter = LogManagerTestInstrumentation.createFormatter(Map.of("co.elastic.logging.jul.EcsFormatter.serviceVersion", version));
+        formatter = createFormatter(Map.of("co.elastic.logging.jul.EcsFormatter.serviceVersion", version));
+    }
+
+    private static EcsFormatter createFormatter(Map<String, String> map) {
+        try {
+            LogManagerTestInstrumentation.JulProperties.override(map);
+            return new EcsFormatter();
+        } finally {
+            LogManagerTestInstrumentation.JulProperties.restore();
+        }
     }
 }

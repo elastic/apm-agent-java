@@ -10,6 +10,7 @@ co.elastic.apm.agent.ecs_logging.log4j2.Log4j2ServiceInstrumentation$Version
 co.elastic.apm.agent.ecs_logging.jul.JulEcsMdcInstrumentation
 co.elastic.apm.agent.ecs_logging.jul.JulEcsServiceInstrumentation$Name
 co.elastic.apm.agent.ecs_logging.jul.JulEcsServiceInstrumentation$Version
+co.elastic.apm.agent.ecs_logging.jul.JulEcsServiceInstrumentation$Environment
 
 # Logback
 co.elastic.apm.agent.ecs_logging.logback.LogBackServiceInstrumentation$Name

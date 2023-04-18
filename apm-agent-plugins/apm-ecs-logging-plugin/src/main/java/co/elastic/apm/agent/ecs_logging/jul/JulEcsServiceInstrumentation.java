@@ -20,7 +20,6 @@ package co.elastic.apm.agent.ecs_logging.jul;
 
 import co.elastic.apm.agent.ecs_logging.EcsLoggingInstrumentation;
 import co.elastic.apm.agent.ecs_logging.EcsLoggingUtils;
-import co.elastic.logging.jul.EcsFormatter;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
 import net.bytebuddy.description.method.MethodDescription;
@@ -83,6 +82,29 @@ public abstract class JulEcsServiceInstrumentation extends EcsLoggingInstrumenta
                                          @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
 
                 return EcsLoggingUtils.getOrWarnServiceVersion(formatter, serviceVersion);
+            }
+        }
+
+    }
+
+    public static class Environment extends JulEcsServiceInstrumentation {
+
+        @Override
+        public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
+            return super.getTypeMatcher()
+                // setServiceVersion introduced in 1.5.0
+                .and(declaresMethod(named("setServiceEnvironment")));
+        }
+
+        public static class AdviceClass {
+
+            @Nullable
+            @Advice.AssignReturned.ToFields(@ToField(value = "serviceEnvironment"))
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static String onEnter(@Advice.This Object formatter,
+                                         @Advice.FieldValue("serviceEnvironment") @Nullable String serviceEnvironment) {
+
+                return EcsLoggingUtils.getOrWarnServiceEnvironment(formatter, serviceEnvironment);
             }
         }
 

@@ -41,12 +41,21 @@ public class JulServiceEnvironmentInstrumentationTest extends EcsServiceEnvironm
 
     @Override
     protected void initFormatterWithoutServiceEnvironmentSet() {
-        formatter = LogManagerTestInstrumentation.createFormatter(Collections.emptyMap());
+        formatter = createFormatter(Collections.emptyMap());
     }
 
     @Override
     protected void initFormatterWithServiceEnvironment(String environment) {
-        formatter = LogManagerTestInstrumentation.createFormatter(Map.of("co.elastic.logging.jul.EcsFormatter.serviceEnvironment", environment));
+        formatter = createFormatter(Map.of("co.elastic.logging.jul.EcsFormatter.serviceEnvironment", environment));
+    }
+
+    private static EcsFormatter createFormatter(Map<String, String> map) {
+        try {
+            LogManagerTestInstrumentation.JulProperties.override(map);
+            return new EcsFormatter();
+        } finally {
+            LogManagerTestInstrumentation.JulProperties.restore();
+        }
     }
 
 }
