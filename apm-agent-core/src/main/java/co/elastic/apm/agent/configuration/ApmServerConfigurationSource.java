@@ -21,13 +21,13 @@ package co.elastic.apm.agent.configuration;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.report.ApmServerClient;
-import co.elastic.apm.agent.report.serialize.PayloadSerializer;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonReader;
 import com.dslplatform.json.MapConverter;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
@@ -36,9 +36,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -62,7 +60,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     private final Logger logger;
     private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
     private final byte[] buffer = new byte[4096];
-    private final PayloadSerializer payloadSerializer;
+    private final DslJsonSerializer payloadSerializer;
     private final ApmServerClient apmServerClient;
     @Nullable
     private String etag;
@@ -70,11 +68,11 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     @Nullable
     private volatile ThreadPoolExecutor threadPool;
 
-    public ApmServerConfigurationSource(PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
+    public ApmServerConfigurationSource(DslJsonSerializer payloadSerializer, ApmServerClient apmServerClient) {
         this(payloadSerializer, apmServerClient, LoggerFactory.getLogger(ApmServerConfigurationSource.class));
     }
 
-    ApmServerConfigurationSource(PayloadSerializer payloadSerializer, ApmServerClient apmServerClient, Logger logger) {
+    ApmServerConfigurationSource(DslJsonSerializer payloadSerializer, ApmServerClient apmServerClient, Logger logger) {
         this.payloadSerializer = payloadSerializer;
         this.apmServerClient = apmServerClient;
         this.logger = logger;
@@ -172,7 +170,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
                 public String withConnection(HttpURLConnection connection) throws IOException {
                     try {
                         return tryFetchConfig(configurationRegistry, connection);
-                    } catch (PayloadSerializer.UninitializedException e) {
+                    } catch (DslJsonSerializer.UninitializedException e) {
                         throw new IOException("Cannot fetch configuration from APM Server, serializer not initialized yet", e);
                     }
                 }
@@ -183,7 +181,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
         }
     }
 
-    private String tryFetchConfig(ConfigurationRegistry configurationRegistry, HttpURLConnection connection) throws IOException, PayloadSerializer.UninitializedException {
+    private String tryFetchConfig(ConfigurationRegistry configurationRegistry, HttpURLConnection connection) throws IOException, DslJsonSerializer.UninitializedException {
         if (logger.isDebugEnabled()) {
             logger.debug("Reloading configuration from APM Server {}", connection.getURL());
         }

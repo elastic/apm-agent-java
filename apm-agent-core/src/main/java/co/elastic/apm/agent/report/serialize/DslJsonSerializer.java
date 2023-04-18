@@ -86,7 +86,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import static com.dslplatform.json.JsonWriter.ARRAY_END;
 import static com.dslplatform.json.JsonWriter.ARRAY_START;
@@ -95,7 +94,7 @@ import static com.dslplatform.json.JsonWriter.OBJECT_END;
 import static com.dslplatform.json.JsonWriter.OBJECT_START;
 import static com.dslplatform.json.JsonWriter.QUOTE;
 
-public class DslJsonSerializer implements PayloadSerializer {
+public class DslJsonSerializer {
 
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
@@ -123,7 +122,11 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw = new DslJson<>(new DslJson.Settings<>()).newWriter(SerializationConstants.BUFFER_SIZE);
     }
 
-    @Override
+    /**
+     * Sets the output stream which the {@code *NdJson} methods should write to.
+     *
+     * @param os the {@link OutputStream} to which all contents are to be serialized
+     */
     public void setOutputStream(final OutputStream os) {
         if (logger.isTraceEnabled()) {
             this.os = new ByteArrayOutputStream() {
@@ -144,7 +147,6 @@ public class DslJsonSerializer implements PayloadSerializer {
      * Flushes the {@link OutputStream} which has been set via {@link #setOutputStream(OutputStream)}
      * and detaches that {@link OutputStream} from the serializer.
      */
-    @Override
     public void fullFlush() throws IOException {
         jw.flush();
         try {
@@ -161,7 +163,6 @@ public class DslJsonSerializer implements PayloadSerializer {
      * via {@link #setOutputStream(OutputStream)}, without flushing the {@link OutputStream} itself.
      * Subsequent serializations will be made to the same {@link OutputStream}.
      */
-    @Override
     public void flushToOutputStream() {
         jw.flush();
     }
@@ -169,13 +170,12 @@ public class DslJsonSerializer implements PayloadSerializer {
     /**
      * Appends the serialized metadata to ND-JSON as a {@code metadata} line.
      * <p>
-     * NOTE: Must be called after {@link PayloadSerializer#blockUntilReady()} was called and returned, otherwise the
+     * NOTE: Must be called after {@link DslJsonSerializer#blockUntilReady()} was called and returned, otherwise the
      * cached serialized metadata may not be ready yet.
      * </p>
      *
-     * @throws UninitializedException may be thrown if {@link PayloadSerializer#blockUntilReady()} was not invoked
+     * @throws UninitializedException may be thrown if {@link DslJsonSerializer#blockUntilReady()} was not invoked
      */
-    @Override
     public void appendMetaDataNdJsonToStream() throws UninitializedException {
         assertMetaDataReady();
         jw.writeByte(JsonWriter.OBJECT_START);
@@ -204,13 +204,12 @@ public class DslJsonSerializer implements PayloadSerializer {
     /**
      * Appends the serialized metadata to the underlying {@link OutputStream}.
      * <p>
-     * NOTE: Must be called after {@link PayloadSerializer#blockUntilReady()} was called and returned, otherwise the
+     * NOTE: Must be called after {@link DslJsonSerializer#blockUntilReady()} was called and returned, otherwise the
      * cached serialized metadata may not be ready yet.
      * </p>
      *
-     * @throws UninitializedException may be thrown if {@link PayloadSerializer#blockUntilReady()} was not invoked
+     * @throws UninitializedException may be thrown if {@link DslJsonSerializer#blockUntilReady()} was not invoked
      */
-    @Override
     public void appendMetadataToStream() throws UninitializedException {
         assertMetaDataReady();
         //noinspection ConstantConditions
@@ -224,15 +223,10 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     /**
-     * Blocking until this {@link PayloadSerializer} is ready for use.
-     * Blocking will be timed out with a {@link TimeoutException} if the serializer is not ready within 5 seconds.
-     * Since the requirement is to call this method is called on the same thread that calls subsequently calls
-     * {@link DslJsonSerializer#appendMetadataToStream()}, there is no risk of visibility issues with regard to
-     * {@link DslJsonSerializer#serializedMetaData}.
+     * Blocking until this {@link DslJsonSerializer} is ready for use.
      *
      * @throws Exception if blocking was interrupted, or timed out or an error occurred in the underlying implementation
      */
-    @Override
     public synchronized void blockUntilReady() throws Exception {
         boolean supportsActivationMethod = apmServerClient.supportsActivationMethod();
         if (null != serializedMetaData && serializedActivationMethod == supportsActivationMethod) {
@@ -268,7 +262,6 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    @Override
     public void serializeTransactionNdJson(Transaction transaction) {
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("transaction");
@@ -277,7 +270,6 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(NEW_LINE);
     }
 
-    @Override
     public void serializeSpanNdJson(Span span) {
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("span");
@@ -286,7 +278,6 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(NEW_LINE);
     }
 
-    @Override
     public void serializeErrorNdJson(ErrorCapture error) {
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("error");
@@ -296,17 +287,14 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     /**
-     * Returns the number of bytes already serialized and waiting in the underlying {@link JsonWriter}'s buffer.
-     * Note that the resulting JSON can be bigger if a Stream is set to the writer and some data was already flushed
+     * Gets the number of bytes which are currently buffered
      *
-     * @return number of bytes currently waiting in the underlying {@link JsonWriter} to be flushed to the underlying stream
+     * @return the number of bytes which are currently buffered
      */
-    @Override
     public int getBufferSize() {
         return jw.size();
     }
 
-    @Override
     public void serializeFileMetaData(File file) {
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("metadata");
@@ -324,17 +312,14 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(NEW_LINE);
     }
 
-    @Override
     public JsonWriter getJsonWriter() {
         return jw;
     }
 
-    @Override
     public void writeBytes(byte[] bytes, int len) {
         jw.writeAscii(bytes, len);
     }
 
-    @Override
     public void serializeLogNdJson(String stringLog) {
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("log");
@@ -351,7 +336,6 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(NEW_LINE);
     }
 
-    @Override
     public void serializeLogNdJson(byte[] bytesLog) {
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("log");
@@ -1842,6 +1826,12 @@ public class DslJsonSerializer implements PayloadSerializer {
             }
             jw.writeByte(ARRAY_END);
             jw.writeByte(COMMA);
+        }
+    }
+
+    public static class UninitializedException extends Exception {
+        public UninitializedException(String message) {
+            super(message);
         }
     }
 }
