@@ -41,7 +41,7 @@ public class AbstractIntakeApiHandler {
     private static final Object WAIT_LOCK = new Object();
 
     protected final ReporterConfiguration reporterConfiguration;
-    protected final DslJsonSerializer payloadSerializer;
+    protected final DslJsonSerializer.Writer payloadSerializer;
     protected final ApmServerClient apmServerClient;
     protected Deflater deflater;
     @Nullable
@@ -57,7 +57,7 @@ public class AbstractIntakeApiHandler {
 
     protected AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, DslJsonSerializer payloadSerializer, ApmServerClient apmServerClient) {
         this.reporterConfiguration = reporterConfiguration;
-        this.payloadSerializer = payloadSerializer;
+        this.payloadSerializer = payloadSerializer.newWriter();
         this.apmServerClient = apmServerClient;
         this.deflater = new Deflater(Deflater.BEST_SPEED);
     }

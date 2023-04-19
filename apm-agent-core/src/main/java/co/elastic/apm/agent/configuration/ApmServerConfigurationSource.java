@@ -60,7 +60,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     private final Logger logger;
     private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
     private final byte[] buffer = new byte[4096];
-    private final DslJsonSerializer payloadSerializer;
+    private final DslJsonSerializer.Writer payloadSerializer;
     private final ApmServerClient apmServerClient;
     @Nullable
     private String etag;
@@ -73,7 +73,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     }
 
     ApmServerConfigurationSource(DslJsonSerializer payloadSerializer, ApmServerClient apmServerClient, Logger logger) {
-        this.payloadSerializer = payloadSerializer;
+        this.payloadSerializer = payloadSerializer.newWriter();
         this.apmServerClient = apmServerClient;
         this.logger = logger;
     }
