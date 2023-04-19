@@ -26,7 +26,7 @@ NOTE: Starting in APM agent version 1.30.0, log correlation is enabled by defaul
 In previous versions, log correlation must be explicitly enabled by setting
 the `enable_log_correlation` configuration variable to `true`.
 
-In order to correlate logs from your application with transactions captured by the Elastic APM Java Agent,
+In order to correlate logs from your application with traces and errors captured by the Elastic APM Java Agent,
 the agent injects the following IDs into https://www.slf4j.org/api/org/slf4j/MDC.html[slf4j-MDC]-equivalents of
 <<supported-logging-frameworks, supported logging frameworks>>:
 
@@ -39,6 +39,13 @@ with <<log-reformatting, Log reformatting>>.
 
 For plain text logs, the pattern layout of your logging configuration needs to be modified to write the MDC values into
 log files. If you are using Logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.
+
+When using ECS-formatted logs, with `ecs-logging-java` library or <<log-reformatting, log reformatting>>, the agent
+also injects into ECS formatted logs the following identifiers for service-level correlation.
+
+* {ecs-ref}/ecs-service.html[`service.name`]
+* {ecs-ref}/ecs-service.html[`service.version`]
+* {ecs-ref}/ecs-service.html[`service.environment`]
 
 [float]
 [[log-reformatting]]
