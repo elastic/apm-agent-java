@@ -206,6 +206,7 @@ As of version 1.33.0, Java 7 support is deprecated and will be removed in a futu
 [[release-notes-1.32.0]]
 ==== 1.32.0 - 2022/06/13
 
+[float]
 ===== Potentially breaking changes
 * If using the public API of version < 1.32.0 and using the `@CaptureSpan` or `@Traced` annotations, upgrading the agent to 1.32.0
 without upgrading the API version may cause `VerifyError`. This was fixed in version 1.33.0, which can once again be used with any
@@ -550,6 +551,7 @@ discovery - {pull}2205[#2205]
 [[release-notes-1.26.0]]
 ==== 1.26.0 - 2021/09/14
 
+[float]
 ===== Potentially breaking changes
 * If you rely on Database span subtype and use Microsoft SQL Server, the span subtype has been changed from `sqlserver`
 to `mssql` to align with other agents.
@@ -1251,7 +1253,7 @@ If APM server version is <6.7 or 7.0+, this should have no effect. Otherwise, up
 See https://discuss.elastic.co/t/elastic-apm-agent-jdbchelper-seems-to-use-a-lot-of-memory/195295[this related discussion].
 
 [float]
-==== Breaking Changes
+===== Breaking Changes
 * The `apm-agent-attach.jar` is not executable anymore.
 Use `apm-agent-attach-standalone.jar` instead.
 
