@@ -120,20 +120,24 @@ public class DslJsonSerializer {
         return new Writer();
     }
 
-    private synchronized void blockUntilReady() throws Exception {
-        boolean supportsActivationMethod = apmServerClient.supportsActivationMethod();
-        if (null != serializedMetaData && serializedActivationMethod == supportsActivationMethod) {
-            return;
-        }
-
-        serializedActivationMethod = supportsActivationMethod;
-
-        JsonWriter metadataJW = new DslJson<>(new DslJson.Settings<>()).newWriter(4096);
+    private void waitForMetadata() throws Exception {
+        // we wait for the metaData outside of the synchronized block to prevent multiple
+        // threads from queuing up and exceeding the 5 second timeout
         MetaData meta = metaData.get(5, TimeUnit.SECONDS);
-        boolean supportsConfiguredAndDetectedHostname = apmServerClient.supportsConfiguredAndDetectedHostname();
+        synchronized (this) {
+            boolean supportsActivationMethod = apmServerClient.supportsActivationMethod();
+            if (null != serializedMetaData && serializedActivationMethod == supportsActivationMethod) {
+                return;
+            }
 
-        serializeMetadata(meta, metadataJW, supportsConfiguredAndDetectedHostname, supportsActivationMethod);
-        serializedMetaData = metadataJW.toByteArray();
+            serializedActivationMethod = supportsActivationMethod;
+
+            JsonWriter metadataJW = new DslJson<>(new DslJson.Settings<>()).newWriter(4096);
+            boolean supportsConfiguredAndDetectedHostname = apmServerClient.supportsConfiguredAndDetectedHostname();
+
+            serializeMetadata(meta, metadataJW, supportsConfiguredAndDetectedHostname, supportsActivationMethod);
+            serializedMetaData = metadataJW.toByteArray();
+        }
     }
 
     static void serializeMetadata(MetaData metaData, JsonWriter metadataJW, boolean supportsConfiguredAndDetectedHostname, boolean supportsAgentActivationMethod) {
@@ -742,11 +746,11 @@ public class DslJsonSerializer {
         /**
          * Appends the serialized metadata to ND-JSON as a {@code metadata} line.
          * <p>
-         * NOTE: Must be called after {@link DslJsonSerializer#blockUntilReady()} was called and returned, otherwise the
+         * NOTE: Must be called after {@link DslJsonSerializer#waitForMetadata()} was called and returned, otherwise the
          * cached serialized metadata may not be ready yet.
          * </p>
          *
-         * @throws UninitializedException may be thrown if {@link DslJsonSerializer#blockUntilReady()} was not invoked
+         * @throws UninitializedException may be thrown if {@link DslJsonSerializer#waitForMetadata()} was not invoked
          */
         public void appendMetaDataNdJsonToStream() throws UninitializedException {
             assertMetaDataReady();
@@ -784,7 +788,7 @@ public class DslJsonSerializer {
          * @throws Exception if blocking was interrupted, or timed out or an error occurred in the underlying implementation
          */
         public void blockUntilReady() throws Exception {
-            DslJsonSerializer.this.blockUntilReady();
+            DslJsonSerializer.this.waitForMetadata();
         }
 
         public void serializeTransactionNdJson(Transaction transaction) {
