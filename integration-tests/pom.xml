@@ -35,6 +35,8 @@
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
         <!-- integration tests do not require javadoc -->
         <maven.javadoc.skip>true</maven.javadoc.skip>
+        <!-- integration tests do not require to enforce signature checks -->
+        <animal.sniffer.skip>true</animal.sniffer.skip>
     </properties>
 
 </project>
