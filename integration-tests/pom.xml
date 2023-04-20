@@ -33,6 +33,8 @@
     <properties>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+        <!-- integration tests do not require javadoc -->
+        <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
 </project>
