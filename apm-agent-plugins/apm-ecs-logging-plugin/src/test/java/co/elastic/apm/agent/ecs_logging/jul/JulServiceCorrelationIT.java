@@ -36,4 +36,9 @@ public class JulServiceCorrelationIT extends EcsServiceCorrelationIT {
     protected String getServiceVersionTestClass() {
         return "co.elastic.apm.agent.ecs_logging.jul.JulServiceVersionInstrumentationTest";
     }
+
+    @Override
+    protected String getServiceEnvironmentTestClass() {
+        return "co.elastic.apm.agent.ecs_logging.jul.JulServiceEnvironmentInstrumentationTest";
+    }
 }

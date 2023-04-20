@@ -37,4 +37,9 @@ public class Log4jServiceCorrelationIT extends EcsServiceCorrelationIT {
         return "co.elastic.apm.agent.ecs_logging.log4j1.Log4jServiceVersionInstrumentationTest";
     }
 
+    @Override
+    protected String getServiceEnvironmentTestClass() {
+        return "co.elastic.apm.agent.ecs_logging.log4j1.Log4jServiceEnvironmentInstrumentationTest";
+    }
+
 }

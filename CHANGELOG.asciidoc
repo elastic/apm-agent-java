@@ -27,6 +27,7 @@ endif::[]
 ===== Features
 * Added tests for Quarkus / RestEasy, adjusted vert.x router transaction name priority - {pull}1765[#1765]
 * Added support for Spring WebMVC 6.x and Spring Boot 3.x - {pull}3094[#3094]
+* Added `service.environment` to logs for service correlation - {pull}3115[#3115]
 
 [float]
 ===== Bug fixes

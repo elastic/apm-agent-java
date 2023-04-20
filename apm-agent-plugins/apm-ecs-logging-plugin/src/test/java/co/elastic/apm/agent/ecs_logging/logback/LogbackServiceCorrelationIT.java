@@ -36,4 +36,9 @@ public class LogbackServiceCorrelationIT extends EcsServiceCorrelationIT {
     protected String getServiceVersionTestClass() {
         return "co.elastic.apm.agent.ecs_logging.logback.LogbackServiceVersionInstrumentationTest";
     }
+
+    @Override
+    protected String getServiceEnvironmentTestClass() {
+        return "co.elastic.apm.agent.ecs_logging.logback.LogbackServiceEnvironmentInstrumentationTest";
+    }
 }
