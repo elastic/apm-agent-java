@@ -78,7 +78,7 @@ public class TomcatLoggingIT {
         try (AgentTestContainer.Generic container = new AgentTestContainer.Generic("tomcat:" + version)
             .withRemoteDebug()
             .withJavaAgent()
-            .withPreStartHook((c) -> c.withEnv("CATALINA_OPTS", c.getJvmArguments()))
+            .withJvmArgumentsVariable("CATALINA_OPTS")
             .withEnv("ELASTIC_APM_LOG_ECS_REFORMATTING", "shade")
             .withEnv("ELASTIC_APM_LOG_ECS_REFORMATTING_DIR", "ecs-logs")
             .withEnv("ELASTIC_APM_DISABLE_SEND", "true")

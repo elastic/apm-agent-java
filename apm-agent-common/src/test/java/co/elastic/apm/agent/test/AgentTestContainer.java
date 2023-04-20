@@ -1,3 +1,21 @@
+/*
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package co.elastic.apm.agent.test;
 
 import org.slf4j.Logger;
@@ -7,13 +25,15 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 public abstract class AgentTestContainer<SELF extends GenericContainer<SELF>> extends GenericContainer<SELF> {
 
@@ -28,11 +48,19 @@ public abstract class AgentTestContainer<SELF extends GenericContainer<SELF>> ex
 
     // agent path within container
     private static final String AGENT_JAR_PATH = "/agent.jar";
+    // single-jar application path within container
+    private static final String APP_JAR_PATH = "/app.jar";
+    // security policy path within container
+    public static final String SECURITY_POLICY_PATH = "/security.policy";
 
     private boolean remoteDebug = false;
     private boolean agent = false;
-    private Function<SELF, SELF> preStartHook;
+    private boolean appJar = false;
 
+    private final List<String> systemProperties = new ArrayList<>();
+    private final List<String> arguments = new ArrayList<>();
+
+    private String jvmEnvironmentVariable;
 
     /**
      * Generic container subclass without any customization
@@ -50,7 +78,37 @@ public abstract class AgentTestContainer<SELF extends GenericContainer<SELF>> ex
 
     @Override
     public void start() {
-        preStartHook.apply(self());
+
+        ArrayList<String> args = new ArrayList<>();
+        if (hasRemoteDebug()) {
+            args.add(getRemoteDebugArgument());
+        }
+        if (hasJavaAgent()) {
+            args.add(getJavaAgentArgument());
+        }
+        for (String keyValue : systemProperties) {
+            args.add("-D" + keyValue);
+        }
+
+        if (jvmEnvironmentVariable != null) {
+            String value = String.join(" ", args);
+            withEnv(jvmEnvironmentVariable, value);
+            log.info("starting container with {} = {}", jvmEnvironmentVariable, value);
+        }
+
+        if (appJar) {
+            // java -jar invocation
+
+            args.add("-jar");
+            args.add(APP_JAR_PATH);
+
+            args.addAll(arguments);
+
+            String command = "java " + String.join(" ", args);
+            log.info("starting JVM with command line: {}", command);
+            withCommand(command);
+        }
+
         try {
             super.start();
         } catch (RuntimeException e) {
@@ -62,22 +120,65 @@ public abstract class AgentTestContainer<SELF extends GenericContainer<SELF>> ex
     }
 
     public SELF withJavaAgent() {
-        // maybe in the future, we could copy all the agent artifacts at once
-        Path agentJar = AgentFileAccessor.getPathToJavaagent();
+        return withJavaAgent(AgentFileAccessor.Variant.STANDARD);
+    }
+
+    public SELF withJavaAgent(AgentFileAccessor.Variant variant) {
+        Path agentJar = AgentFileAccessor.getPathToJavaagent(variant);
         this.withCopyFileToContainer(MountableFile.forHostPath(agentJar), AGENT_JAR_PATH);
         agent = true;
         return self();
     }
 
     /**
-     * Pre-start hook that allows to inject JVM configuration like '-javaagent' argument or debugger into the application
-     * either directly in the JVM command line, environment variables or application server specific configuration
+     * Sets the jar for 'java -jar app.jar' invocation
      *
-     * @param preStartHook pre-start hook
+     * @param appJar path to application jar
      * @return this
      */
-    public SELF withPreStartHook(Function<SELF, SELF> preStartHook) {
-        this.preStartHook = preStartHook;
+    public SELF withExecutableJar(Path appJar) {
+        this.withCopyFileToContainer(MountableFile.forHostPath(appJar), APP_JAR_PATH);
+        this.appJar = true;
+        return self();
+    }
+
+    /**
+     * Sets the environment variable that will be used to set the '-javaagent' or other JVM arguments
+     *
+     * @param name environment variable name
+     * @return this
+     */
+    public SELF withJvmArgumentsVariable(String name) {
+        jvmEnvironmentVariable = name;
+        return self();
+    }
+
+    /**
+     * Program arguments that are passed to {@code main(String[] args)} invocation, only relevant when used with {@link #withExecutableJar(Path)}
+     *
+     * @param arguments arguments
+     * @return this
+     */
+    public SELF withArguments(String... arguments) {
+        this.arguments.addAll(Arrays.asList(arguments));
+        return self();
+    }
+
+    /**
+     * Sets a system property
+     *
+     * @param key   key
+     * @param value value, {@literal null} indicates no value is provided.
+     * @return this
+     */
+    public SELF withSystemProperty(String key, @Nullable String value) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(key);
+        if (value != null) {
+            sb.append("=");
+            sb.append(value);
+        }
+        systemProperties.add(sb.toString());
         return self();
     }
 
@@ -89,15 +190,25 @@ public abstract class AgentTestContainer<SELF extends GenericContainer<SELF>> ex
         return "-javaagent:" + AGENT_JAR_PATH;
     }
 
-    public String getJvmArguments() {
-        ArrayList<String> opts = new ArrayList<>();
-        if (hasRemoteDebug()) {
-            opts.add(getRemoteDebugArgument());
+    /**
+     * Enables the JVM security manager with an optional policy
+     *
+     * @param policyFile path to policy file, set to {@literal null} to just enable the security manager
+     * @return this
+     */
+    public SELF withSecurityManager(@Nullable Path policyFile) {
+        withSystemProperty("java.security.manager", null);
+        if (policyFile != null) {
+            withCopyFileToContainer(MountableFile.forHostPath(policyFile), SECURITY_POLICY_PATH);
+            withSystemProperty("java.security.policy", SECURITY_POLICY_PATH);
+            log.info("using security policy defined in {}", policyFile.toAbsolutePath());
+            try {
+                Files.readAllLines(policyFile).forEach(log::info);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
         }
-        if (hasJavaAgent()) {
-            opts.add(getJavaAgentArgument());
-        }
-        return String.join(" ", opts);
+        return self();
     }
 
     /**
