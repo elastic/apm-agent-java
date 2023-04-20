@@ -56,12 +56,6 @@
             <artifactId>apm-agent-api</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-common</artifactId>
-            <version>${project.version}</version>
-            <type>test-jar</type>
-        </dependency>
     </dependencies>
 
 </project>
