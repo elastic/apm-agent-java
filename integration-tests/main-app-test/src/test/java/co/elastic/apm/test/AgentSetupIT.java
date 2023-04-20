@@ -98,7 +98,7 @@ class AgentSetupIT {
         return new TestAppContainer(image)
             .withAppJar(Path.of("target/main-app-test.jar"))
             .withArguments("wait") // make test app wait a bit so we can stop it
-            .withJavaAgent(AgentFileAccessor.getPathToJavaagent(agentVariant))
+            .withJavaAgent()
             // automatically enable remote debug
             .withRemoteDebug();
     }
