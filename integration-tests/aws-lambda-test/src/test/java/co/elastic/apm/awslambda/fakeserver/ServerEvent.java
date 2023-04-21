@@ -16,16 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.grpc;
+package co.elastic.apm.awslambda.fakeserver;
 
-import co.elastic.apm.agent.grpc.testapp.GrpcApp;
-import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
-import co.elastic.apm.agent.test.TestPort;
-
-public class GrpcTest {
-
-    public static GrpcApp getApp(GrpcAppProvider provider) {
-        return provider.getGrpcApp("localhost", TestPort.getAvailableRandomPort());
-    }
-
+public class ServerEvent {
 }
