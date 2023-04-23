@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
-import co.elastic.apm.agent.configuration.converter.ByteValue;
+import co.elastic.apm.agent.tracer.configuration.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
@@ -297,10 +297,9 @@ public class ReporterConfiguration extends ConfigurationOptionProvider implement
         return apiRequestSize.get().getBytes();
     }
 
-    //Only whole seconds are used, so drop the fractional part at 1 second resolution
     @Override
-    public long getMetricsIntervalMs() {
-        return (metricsInterval.get().getMillis()/1000L)*1000L;
+    public TimeDuration getMetricsInterval() {
+        return metricsInterval.get();
     }
 
     @Override

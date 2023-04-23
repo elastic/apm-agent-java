@@ -20,7 +20,7 @@ package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.converter.ListValueConverter;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.tracer.configuration.Matcher;
@@ -29,7 +29,6 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.min;
@@ -204,10 +203,12 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider implemen
         return asyncProfilerSafeMode.get();
     }
 
+    @Override
     public TimeDuration getSamplingInterval() {
         return samplingInterval.get();
     }
 
+    @Override
     public TimeDuration getInferredSpansMinDuration() {
         return inferredSpansMinDuration.get();
     }
@@ -222,37 +223,14 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider implemen
         return WildcardMatcherMatcher.wrap(excludedClasses.get());
     }
 
+    @Override
     public TimeDuration getProfilingInterval() {
         return profilerInterval.get();
     }
 
     @Override
-    public long getProfilingIntervalMs() {
-        return profilerInterval.get().getMillis();
-    }
-
-    @Override
-    public long getProfilingDurationMs() {
-        return profilingDuration.get().getMillis();
-    }
-
-    @Override
-    public long getInferredSpansMinDurationMs() {
-        return inferredSpansMinDuration.get().getMillis();
-    }
-
-    @Override
-    public long getSamplingIntervalMs() {
-        return samplingInterval.get().getMillis();
-    }
-
     public TimeDuration getProfilingDuration() {
         return profilingDuration.get();
-    }
-
-    @Override
-    public boolean isNonStopProfiling() {
-        return getProfilingDuration().getMillis() >= getProfilingInterval().getMillis();
     }
 
     @Override

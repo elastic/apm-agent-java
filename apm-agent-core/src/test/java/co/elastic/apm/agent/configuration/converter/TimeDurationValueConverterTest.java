@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.configuration.converter;
 
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

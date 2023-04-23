@@ -23,7 +23,6 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.ProfilingConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -151,7 +150,7 @@ class SamplingProfilerTest {
         assertThat(profiler.createStartCommand()).isEqualTo("start,jfr,event=wall,cstack=n,interval=5ms,filter,file=null,safemode=0");
         doReturn(false).when(profilingConfig).isProfilingLoggingEnabled();
         assertThat(profiler.createStartCommand()).isEqualTo("start,jfr,event=wall,cstack=n,interval=5ms,filter,file=null,safemode=0,log=none");
-        doReturn(10L).when(profilingConfig).getSamplingIntervalMs();
+        doReturn(10L).when(profilingConfig).getSamplingInterval();
         doReturn(14).when(profilingConfig).getAsyncProfilerSafeMode();
         assertThat(profiler.createStartCommand()).isEqualTo("start,jfr,event=wall,cstack=n,interval=10ms,filter,file=null,safemode=14,log=none");
     }
@@ -252,9 +251,9 @@ class SamplingProfilerTest {
             new WildcardMatcherMatcher(WildcardMatcher.valueOf(getClass().getName()))
         )).when(profilingConfig).getIncludedClasses();
         doReturn(enabled).when(profilingConfig).isProfilingEnabled();
-        doReturn(500L).when(profilingConfig).getProfilingDurationMs();
-        doReturn(500L).when(profilingConfig).getProfilingIntervalMs();
-        doReturn(5L).when(profilingConfig).getSamplingIntervalMs();
+        doReturn(500L).when(profilingConfig).getProfilingDuration();
+        doReturn(500L).when(profilingConfig).getProfilingInterval();
+        doReturn(5L).when(profilingConfig).getSamplingInterval();
         tracer = MockTracer.createRealTracer(reporter, config);
         profiler = tracer.getLifecycleListener(ProfilingFactory.class).getProfiler();
     }

@@ -18,11 +18,26 @@
  */
 package co.elastic.apm.agent.tracer.configuration;
 
-import java.util.List;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public interface ReporterConfiguration {
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface ConfigurationProperty {
 
-    TimeDuration getMetricsInterval();
+    String key();
 
-    List<Matcher> getDisableMetrics();
+    String[] aliasKeys() default {};
+
+    String configurationCategory();
+
+    String[] tags() default {};
+
+    String description() default "";
+
+    boolean dynamic() default true;
+
+    String[] withDefault() default {};
 }

@@ -18,19 +18,22 @@
  */
 package co.elastic.apm.agent.impl.stacktrace;
 
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
+import org.stagemonitor.configuration.converter.ListValueConverter;
+import org.stagemonitor.configuration.converter.StringValueConverter;
 
-import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 public class StacktraceConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.StacktraceConfiguration {
 
     private static final String STACKTRACE_CATEGORY = "Stacktrace";
     public static final String APPLICATION_PACKAGES = "application_packages";
-    private final ConfigurationOption<Collection<String>> applicationPackages = ConfigurationOption.stringsOption()
+    private final ConfigurationOption<List<String>> applicationPackages = ConfigurationOption
+        .builder(new ListValueConverter<>(StringValueConverter.INSTANCE), List.class)
         .key(APPLICATION_PACKAGES)
         .configurationCategory(STACKTRACE_CATEGORY)
         .description("Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.\n" +
@@ -96,7 +99,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider impleme
         .buildWithDefault(TimeDuration.of("5ms"));
 
     @Override
-    public Collection<String> getApplicationPackages() {
+    public List<String> getApplicationPackages() {
         return applicationPackages.get();
     }
 

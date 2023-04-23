@@ -25,6 +25,7 @@ import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -75,7 +76,7 @@ class MicrometerMetricsReporterTest {
         meterRegistry = new CompositeMeterRegistry(Clock.SYSTEM, List.of(nestedCompositeMeterRegistry));
         reporter = new MockReporter();
         tracer = MockTracer.createRealTracer(reporter);
-        doReturn(61_000L).when(tracer.getConfig(ReporterConfiguration.class)).getMetricsIntervalMs();
+        doReturn(TimeDuration.of("61s")).when(tracer.getConfig(ReporterConfiguration.class)).getMetricsInterval();
         metricsReporter = new MicrometerMetricsReporter(tracer, true); //all calls to run() are explicit from the tests
         //note the default mode is CUMULATIVE, so no need to addConfig(meterRegistry, meterRegistryConfig);
         metricsReporter.registerMeterRegistry(meterRegistry);
@@ -205,7 +206,7 @@ class MicrometerMetricsReporterTest {
 
     @Test
     void testCounterWithMetricsIntervalDisabled() {
-        doReturn(0L).when(tracer.getConfig(ReporterConfiguration.class)).getMetricsIntervalMs();
+        doReturn(TimeDuration.of("0ms")).when(tracer.getConfig(ReporterConfiguration.class)).getMetricsInterval();
         meterRegistry.counter("counter", List.of(Tag.of("foo", "bar"), Tag.of("baz", "qux"))).increment(42);
         List<JsonNode> metricSets = getMetricSets(null);
         assertThat(metricSets).isEmpty();

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.configuration.converter;
 
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.converter.AbstractValueConverter;
 

@@ -20,7 +20,7 @@ package co.elastic.apm.agent.logging;
 
 import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
-import co.elastic.apm.agent.configuration.converter.ByteValue;
+import co.elastic.apm.agent.tracer.configuration.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
@@ -78,7 +78,6 @@ public class LoggingConfiguration extends ConfigurationOptionProvider implements
     public static final String AGENT_HOME_PLACEHOLDER = "_AGENT_HOME_";
     static final String DEPRECATED_LOG_LEVEL_KEY = "logging.log_level";
     static final String DEPRECATED_LOG_FILE_KEY = "logging.log_file";
-    public static final String DEFAULT_MAX_SIZE = "50mb";
     static final String LOG_FORMAT_SOUT_KEY = "log_format_sout";
     public static final String LOG_FORMAT_FILE_KEY = "log_format_file";
     static final String INITIAL_LISTENERS_LEVEL = "log4j2.StatusLogger.level";
@@ -380,13 +379,8 @@ public class LoggingConfiguration extends ConfigurationOptionProvider implements
     }
 
     @Override
-    public long getLogFileSize() {
-        return logFileSize.get().getBytes();
-    }
-
-    @Override
-    public long getDefaultLogFileSize() {
-        return logFileSize.getValueConverter().convert(logFileSize.getDefaultValueAsString()).getBytes();
+    public ByteValue getLogFileSize() {
+        return logFileSize.get();
     }
 
     @Override

@@ -58,7 +58,7 @@ public class ElasticOtelMetricsExporter implements MetricExporter {
 
         PeriodicMetricReader metricReader = PeriodicMetricReader.builder(exporter)
             .setExecutor(ExecutorUtils.createSingleThreadSchedulingDaemonPool("otel-metrics-exporter"))
-            .setInterval(Duration.ofMillis(reporterConfig.getMetricsIntervalMs()))
+            .setInterval(Duration.ofMillis((reporterConfig.getMetricsInterval().getMillis() / 1000L) * 1000L))
             .build();
 
         builder.registerMetricReader(metricReader);

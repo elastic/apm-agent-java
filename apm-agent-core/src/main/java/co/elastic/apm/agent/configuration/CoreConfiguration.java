@@ -21,7 +21,7 @@ package co.elastic.apm.agent.configuration;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.converter.ListValueConverter;
 import co.elastic.apm.agent.configuration.converter.RoundedDoubleConverter;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.configuration.validation.RegexValidator;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -866,8 +866,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
         return nodeName;
     }
 
-    public long getDelayTracerStartMs() {
-        return delayTracerStart.get().getMillis();
+    public TimeDuration getDelayTracerStart() {
+        return delayTracerStart.get();
     }
 
     @Override
@@ -903,7 +903,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
         return WildcardMatcherMatcher.wrap(sanitizeFieldNames.get());
     }
 
-    @Override
     public boolean isInstrumentationEnabled(String instrumentationGroupName) {
         final Collection<String> enabledInstrumentationGroupNames = enabledInstrumentations.get();
         final Collection<String> disabledInstrumentationGroupNames = disabledInstrumentations.get();
@@ -912,7 +911,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
             (enableExperimentalInstrumentations.get() || !instrumentationGroupName.equals("experimental"));
     }
 
-    @Override
     public boolean isInstrumentationEnabled(Collection<String> instrumentationGroupNames) {
         return isGroupEnabled(instrumentationGroupNames) &&
             !isGroupDisabled(instrumentationGroupNames);
@@ -1029,10 +1027,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
     }
 
     @Override
-    public long getSpanMinDurationMs() {
-        return spanMinDuration.get().getMillis();
-    }
-
     public TimeDuration getSpanMinDuration() {
         return spanMinDuration.get();
     }

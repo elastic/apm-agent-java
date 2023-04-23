@@ -24,6 +24,7 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,7 +53,7 @@ public class MicrometerConfigInstrumentationTest {
     @Before
     public void setUp() {
         config = SpyConfiguration.createSpyConfig();
-        doReturn(50L).when(config.getConfig(ReporterConfiguration.class)).getMetricsIntervalMs();
+        doReturn(TimeDuration.of("50ms")).when(config.getConfig(ReporterConfiguration.class)).getMetricsInterval();
         reporter = new MockReporter();
     }
 

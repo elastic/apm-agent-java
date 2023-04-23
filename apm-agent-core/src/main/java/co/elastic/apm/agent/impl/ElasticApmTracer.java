@@ -71,6 +71,7 @@ import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,7 +80,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -670,7 +670,7 @@ public class ElasticApmTracer implements Tracer {
      *                jvm parameter); false otherwise
      */
     public synchronized void start(boolean premain) {
-        long delayInitMs = getConfig(CoreConfiguration.class).getDelayTracerStartMs();
+        long delayInitMs = getConfig(CoreConfiguration.class).getDelayTracerStart().getMillis();
         if (premain && shouldDelayOnPremain()) {
             delayInitMs = Math.max(delayInitMs, 5000L);
         }
@@ -791,6 +791,16 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public boolean isRunning() {
         return tracerState == TracerState.RUNNING;
+    }
+
+    @Override
+    public boolean isInstrumentationEnabled(String instrumentationGroupName) {
+        return coreConfiguration.isInstrumentationEnabled(instrumentationGroupName);
+    }
+
+    @Override
+    public boolean isInstrumentationEnabled(Collection<String> instrumentationGroupNames) {
+        return coreConfiguration.isInstrumentationEnabled(instrumentationGroupNames);
     }
 
     @Override

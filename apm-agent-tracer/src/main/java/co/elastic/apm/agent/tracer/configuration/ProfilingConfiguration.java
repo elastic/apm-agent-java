@@ -30,8 +30,6 @@ public interface ProfilingConfiguration {
 
     boolean isPostProcessingEnabled();
 
-    boolean isNonStopProfiling();
-
     int getAsyncProfilerSafeMode();
 
     String getProfilerLibDirectory();
@@ -40,11 +38,11 @@ public interface ProfilingConfiguration {
 
     List<Matcher> getIncludedClasses();
 
-    long getProfilingIntervalMs();
+    TimeDuration getProfilingInterval();
 
-    long getProfilingDurationMs();
+    TimeDuration getProfilingDuration();
 
-    long getInferredSpansMinDurationMs();
+    TimeDuration getInferredSpansMinDuration();
 
-    long getSamplingIntervalMs();
+    TimeDuration getSamplingInterval();
 }

@@ -48,7 +48,7 @@ public class MetricRegistryReporter extends AbstractLifecycleListener implements
 
     @Override
     public void start(ElasticApmTracer tracer) {
-        long intervalMs = tracer.getConfig(ReporterConfiguration.class).getMetricsIntervalMs();
+        long intervalMs = (tracer.getConfig(ReporterConfiguration.class).getMetricsInterval().getMillis() / 1000L) * 1000L;
         if (intervalMs > 0) {
             tracer.getSharedSingleThreadedPool().scheduleAtFixedRate(this, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
         }

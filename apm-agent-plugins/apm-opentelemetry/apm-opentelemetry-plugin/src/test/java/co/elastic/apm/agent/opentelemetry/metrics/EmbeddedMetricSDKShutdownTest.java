@@ -24,6 +24,7 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.opentelemetry.OtelTestUtils;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.Meter;
@@ -48,7 +49,7 @@ public class EmbeddedMetricSDKShutdownTest {
         MockReporter reporter = mockInstrumentationSetup.getReporter();
 
         ReporterConfiguration reporterConfig = mockInstrumentationSetup.getConfig().getConfig(ReporterConfiguration.class);
-        doReturn(1_000_000L).when(reporterConfig).getMetricsIntervalMs();
+        doReturn(TimeDuration.of("1000ms")).when(reporterConfig).getMetricsInterval();
         assertThat(tracer.isRunning()).isTrue();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
 

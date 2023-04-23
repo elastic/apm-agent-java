@@ -23,6 +23,7 @@ import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.WildcardMatcherMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.util.AtomicDouble;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.DoubleCounter;
@@ -79,7 +80,7 @@ public abstract class AbstractOtelMetricsTest extends AbstractInstrumentationTes
     public void setup() {
         reporterConfig = tracer.getConfig(ReporterConfiguration.class);
         // we use explicit flush in tests instead of periodic reporting to prevent flakyness
-        doReturn(1_000_000L).when(reporterConfig).getMetricsIntervalMs();
+        doReturn(TimeDuration.of("1000s")).when(reporterConfig).getMetricsInterval();
         meterProvider = null;
     }
 

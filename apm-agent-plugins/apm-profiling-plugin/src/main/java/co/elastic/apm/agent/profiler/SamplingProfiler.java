@@ -92,7 +92,7 @@ import static java.nio.file.StandardOpenOption.WRITE;
  * <p>
  * The same background thread that processes the {@link ActivationEvent}s starts the wall clock profiler of async-profiler via
  * {@link AsyncProfiler#execute(String)}.
- * After the {@link ProfilingConfiguration#getProfilingDurationMs()} is over it stops the profiling and starts processing the JFR file created
+ * After the {@link ProfilingConfiguration#getProfilingDuration()} is over it stops the profiling and starts processing the JFR file created
  * by async-profiler with {@link JfrParser}.
  * </p>
  * <p>
@@ -110,7 +110,7 @@ import static java.nio.file.StandardOpenOption.WRITE;
  * </p>
  * <p>
  * Overall, the allocation rate does not depend on the number of {@link ActivationEvent}s but only on
- * {@link ProfilingConfiguration#getProfilingIntervalMs()} and {@link ProfilingConfiguration#getSamplingIntervalMs()}.
+ * {@link ProfilingConfiguration#getProfilingInterval()} and {@link ProfilingConfiguration#getSamplingInterval()}.
  * Having said that, there are some optimizations so that the JFR file is not processed at all if there have not been any
  * {@link ActivationEvent} in a given profiling session.
  * Also, only if there's a {@link CallTree.Root} for a {@link StackTraceEvent},
@@ -338,7 +338,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
                 jfrParser = null;
             }
             if (!scheduler.isShutdown()) {
-                scheduler.schedule(this, config.getProfilingIntervalMs(), TimeUnit.MILLISECONDS);
+                scheduler.schedule(this, config.getProfilingInterval().getMillis(), TimeUnit.MILLISECONDS);
             }
 
             if (hasBeenDisabled) {
@@ -362,7 +362,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             return;
         }
 
-        long profilingDurationMs = config.getProfilingDurationMs();
+        long profilingDurationMs = config.getProfilingDuration().getMillis();
         boolean postProcessingEnabled = config.isPostProcessingEnabled();
 
         setProfilingSessionOngoing(postProcessingEnabled);
@@ -382,13 +382,17 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         logger.debug("End profiling session");
 
         boolean interrupted = Thread.currentThread().isInterrupted();
-        boolean continueProfilingSession = config.isNonStopProfiling() && !interrupted && config.isProfilingEnabled() && postProcessingEnabled;
+        boolean continueProfilingSession = isNonStopProfiling() && !interrupted && config.isProfilingEnabled() && postProcessingEnabled;
         setProfilingSessionOngoing(continueProfilingSession);
 
         if (!interrupted && !scheduler.isShutdown()) {
-            long delay = config.getProfilingIntervalMs() - profilingDurationMs;
+            long delay = config.getProfilingInterval().getMillis() - profilingDurationMs;
             scheduler.schedule(this, delay, TimeUnit.MILLISECONDS);
         }
+    }
+
+    private boolean isNonStopProfiling() {
+        return config.getProfilingDuration().getMillis() >= config.getProfilingInterval().getMillis();
     }
 
     private void profile(long profilingDurationMs) throws Exception {
@@ -426,7 +430,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
 
     String createStartCommand() {
         StringBuilder startCommand = new StringBuilder("start,jfr,event=wall,cstack=n,interval=")
-            .append(config.getSamplingIntervalMs()).append("ms,filter,file=")
+            .append(config.getSamplingInterval()).append("ms,filter,file=")
             .append(jfrFile)
             .append(",safemode=").append(config.getAsyncProfilerSafeMode());
         if (!config.isProfilingLoggingEnabled()) {
@@ -572,7 +576,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     }
 
     private long getInferredSpansMinDurationNs() {
-        return Math.max(config.getInferredSpansMinDurationMs(), coreConfig.getSpanMinDurationMs()) * 1_000_000;
+        return Math.max(config.getInferredSpansMinDuration().getMillis(), coreConfig.getSpanMinDuration().getMillis()) * 1_000_000;
     }
 
     /**

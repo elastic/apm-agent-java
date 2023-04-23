@@ -27,6 +27,7 @@ import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.logging.TestUtils;
 import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
+import co.elastic.apm.agent.tracer.configuration.ByteValue;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.After;
@@ -446,7 +447,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     public void testReformattedLogRolling() throws IOException {
         setEcsReformattingConfig(LoggingConfiguration.LogEcsReformatting.SHADE);
         initializeReformattingDir("rolling");
-        doReturn(100L).when(loggingConfig).getLogFileSize();
+        doReturn(ByteValue.of("100b")).when(loggingConfig).getLogFileSize();
         logger.trace("First line");
         waitForFileRolling();
         logger.debug("Second Line");

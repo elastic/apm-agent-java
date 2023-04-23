@@ -23,6 +23,7 @@ import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Set;
 
 public class GlobalTracer implements Tracer {
@@ -59,6 +60,16 @@ public class GlobalTracer implements Tracer {
     @Override
     public boolean isRunning() {
         return tracer.isRunning();
+    }
+
+    @Override
+    public boolean isInstrumentationEnabled(String instrumentationGroupName) {
+        return tracer.isInstrumentationEnabled(instrumentationGroupName);
+    }
+
+    @Override
+    public boolean isInstrumentationEnabled(Collection<String> instrumentationGroupNames) {
+        return tracer.isInstrumentationEnabled(instrumentationGroupNames);
     }
 
     @Nullable

@@ -23,6 +23,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -60,7 +61,7 @@ public class MicrometerInstrumentationStepTest {
     @Before
     public void setUp() {
         config = SpyConfiguration.createSpyConfig();
-        doReturn(30_000L).when(config.getConfig(ReporterConfiguration.class)).getMetricsIntervalMs();
+        doReturn(TimeDuration.of("30s")).when(config.getConfig(ReporterConfiguration.class)).getMetricsInterval();
         reporter = new MockReporter();
     }
 
@@ -83,7 +84,7 @@ public class MicrometerInstrumentationStepTest {
 
     @Test
     public void testStepVsCumulativeMultipleSameInterval() {
-        doReturn(1_000L).when(config.getConfig(ReporterConfiguration.class)).getMetricsIntervalMs();
+        doReturn(TimeDuration.of("1s")).when(config.getConfig(ReporterConfiguration.class)).getMetricsInterval();
         final FooBar result = new FooBar(21,21);
         testStepVsCumulative(result, true);
     }

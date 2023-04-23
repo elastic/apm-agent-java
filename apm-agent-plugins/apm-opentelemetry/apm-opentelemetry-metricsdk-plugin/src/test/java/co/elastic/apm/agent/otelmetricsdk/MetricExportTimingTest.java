@@ -20,6 +20,7 @@ package co.elastic.apm.agent.otelmetricsdk;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,7 @@ public class MetricExportTimingTest extends AbstractInstrumentationTest {
     @Test
     void testMetricExportIntervalRespected() throws Exception {
         ReporterConfiguration reporterConfig = tracer.getConfig(ReporterConfiguration.class);
-        doReturn(50L).when(reporterConfig).getMetricsIntervalMs();
+        doReturn(TimeDuration.of("50ms")).when(reporterConfig).getMetricsInterval();
 
         try (SdkMeterProvider meterProvider = SdkMeterProvider.builder().build()) {
             Meter meter = meterProvider.meterBuilder("test").build();

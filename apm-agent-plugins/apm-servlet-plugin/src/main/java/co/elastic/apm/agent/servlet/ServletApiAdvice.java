@@ -117,7 +117,7 @@ public abstract class ServletApiAdvice {
                 adapter.getRemoteAddr(httpServletRequest), adapter.getHeader(httpServletRequest, "Content-Type"));
 
             ret = transaction;
-        } else if (!adapter.isAsyncDispatcherType(httpServletRequest) && coreConfig.isInstrumentationEnabled(Constants.SERVLET_API_DISPATCH)) {
+        } else if (!adapter.isAsyncDispatcherType(httpServletRequest) && tracer.isInstrumentationEnabled(Constants.SERVLET_API_DISPATCH)) {
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {
                 Object servletPath = null;

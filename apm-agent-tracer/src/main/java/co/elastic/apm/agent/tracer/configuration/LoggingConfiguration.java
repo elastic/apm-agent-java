@@ -24,6 +24,8 @@ import java.util.Map;
 
 public interface LoggingConfiguration {
 
+    String DEFAULT_MAX_SIZE = "50mb";
+
     LogEcsReformatting getLogEcsReformatting();
 
     Map<String, String> getLogEcsReformattingAdditionalFields();
@@ -33,9 +35,7 @@ public interface LoggingConfiguration {
     @Nullable
     String getLogEcsFormattingDestinationDir();
 
-    long getLogFileSize();
-
-    long getDefaultLogFileSize();
+    ByteValue getLogFileSize();
 
     boolean getSendLogs();
 

@@ -23,6 +23,7 @@ import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
@@ -35,6 +36,16 @@ class NoopTracer implements Tracer {
 
     @Override
     public boolean isRunning() {
+        return false;
+    }
+
+    @Override
+    public boolean isInstrumentationEnabled(String instrumentationGroupName) {
+        return false;
+    }
+
+    @Override
+    public boolean isInstrumentationEnabled(Collection<String> instrumentationGroupNames) {
         return false;
     }
 

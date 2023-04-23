@@ -24,8 +24,8 @@ import co.elastic.apm.agent.tracer.configuration.Matcher;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
+import org.stagemonitor.configuration.converter.StringValueConverter;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -94,8 +94,8 @@ public class MessagingConfiguration extends ConfigurationOptionProvider implemen
         .dynamic(true)
         .buildWithDefault(Boolean.TRUE);
 
-    private final ConfigurationOption<Collection<String>> jmsListenerPackages = ConfigurationOption
-        .stringsOption()
+    private final ConfigurationOption<List<String>> jmsListenerPackages = ConfigurationOption
+        .builder(new ListValueConverter<>(StringValueConverter.INSTANCE), List.class)
         .key("jms_listener_packages")
         .tags("performance", "added[1.36.0]")
         .configurationCategory(MESSAGING_CATEGORY)
@@ -133,7 +133,7 @@ public class MessagingConfiguration extends ConfigurationOptionProvider implemen
     }
 
     @Override
-    public Collection<String> getJmsListenerPackages() {
+    public List<String> getJmsListenerPackages() {
         return jmsListenerPackages.get();
     }
 }

@@ -24,11 +24,16 @@ import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Set;
 
 public interface Tracer {
 
     boolean isRunning();
+
+    boolean isInstrumentationEnabled(String instrumentationGroupName);
+
+    boolean isInstrumentationEnabled(Collection<String> instrumentationGroupNames);
 
     @Nullable
     <T extends Tracer> T probe(Class<T> type);

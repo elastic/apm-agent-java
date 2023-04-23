@@ -23,7 +23,7 @@ import java.util.List;
 
 public interface MessagingConfiguration {
 
-    Collection<String> getJmsListenerPackages();
+    List<String> getJmsListenerPackages();
 
     JmsStrategy getMessagePollingTransactionStrategy();
 

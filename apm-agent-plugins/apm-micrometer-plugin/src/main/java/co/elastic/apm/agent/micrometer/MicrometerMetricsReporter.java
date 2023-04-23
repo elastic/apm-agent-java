@@ -150,7 +150,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         if (tracer.getState() != Tracer.TracerState.RUNNING) {
             return;
         }
-        long metricsIntervalMs = tracer.getConfig(ReporterConfiguration.class).getMetricsIntervalMs();
+        long metricsIntervalMs = (tracer.getConfig(ReporterConfiguration.class).getMetricsInterval().getMillis() / 1000L) * 1000L;
         if (metricsIntervalMs == 0) {
             //by checking here rather than at thread creation/non-creation,
             //the interval can be dynamically updated and any new value will apply

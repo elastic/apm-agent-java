@@ -33,6 +33,7 @@ import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.ByteValue;
 import co.elastic.apm.agent.tracer.configuration.LoggingConfiguration;
 import co.elastic.apm.agent.tracer.configuration.Matcher;
 
@@ -515,11 +516,11 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
     }
 
     protected long getMaxLogFileSize() {
-        return loggingConfiguration.getLogFileSize();
+        return loggingConfiguration.getLogFileSize().getBytes();
     }
 
     protected long getDefaultMaxLogFileSize() {
-        return loggingConfiguration.getDefaultLogFileSize();
+        return ByteValue.of(LoggingConfiguration.DEFAULT_MAX_SIZE).getBytes();
     }
 
     protected abstract void closeShadeAppender(A shadeAppender);

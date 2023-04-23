@@ -24,10 +24,6 @@ import java.util.List;
 
 public interface CoreConfiguration {
 
-    boolean isInstrumentationEnabled(String instrumentationGroupName);
-
-    boolean isInstrumentationEnabled(Collection<String> instrumentationGroupNames);
-
     boolean isCaptureHeaders();
 
     EventType getCaptureBody();
@@ -39,7 +35,7 @@ public interface CoreConfiguration {
 
     List<Matcher> getSanitizeFieldNames();
 
-    long getSpanMinDurationMs();
+    TimeDuration getSpanMinDuration();
 
     boolean isEnablePublicApiAnnotationInheritance();
 
