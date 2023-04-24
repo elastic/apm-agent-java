@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
-import co.elastic.apm.agent.report.serialize.PayloadSerializer;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.ExecutorUtils;
@@ -61,7 +61,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private long dropped;
 
     public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
-                                         PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
+                                         DslJsonSerializer payloadSerializer, ApmServerClient apmServerClient) {
         super(reporterConfiguration, payloadSerializer, apmServerClient);
         this.processorEventHandler = processorEventHandler;
         this.dslJson = new DslJson<>(new DslJson.Settings<>());

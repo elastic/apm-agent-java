@@ -49,7 +49,7 @@ class StacktraceSerializationTest {
 
     private List<JsonNode> stacktrace;
     private StacktraceConfiguration stacktraceConfiguration;
-    private DslJsonSerializer serializer;
+    private DslJsonSerializer.Writer serializer;
     private ObjectMapper objectMapper;
     private ElasticApmTracer tracer;
 
@@ -59,7 +59,8 @@ class StacktraceSerializationTest {
         stacktraceConfiguration = tracer.getConfig(StacktraceConfiguration.class);
         // always enable
         doReturn(0L).when(stacktraceConfiguration).getSpanStackTraceMinDurationMs();
-        serializer = new DslJsonSerializer(stacktraceConfiguration, mock(ApmServerClient.class), tracer.getMetaDataFuture());
+        serializer = new DslJsonSerializer(stacktraceConfiguration, mock(ApmServerClient.class), tracer.getMetaDataFuture())
+            .newWriter();
         objectMapper = new ObjectMapper();
         stacktrace = getStackTrace();
     }

@@ -161,13 +161,14 @@ public class ElasticApmTracerBuilder {
         SerializationConstants.init(configurationRegistry.getConfig(CoreConfiguration.class));
 
         MetaDataFuture metaDataFuture = MetaData.create(configurationRegistry, ephemeralId);
+        DslJsonSerializer payloadSerializer = new DslJsonSerializer(
+            configurationRegistry.getConfig(StacktraceConfiguration.class),
+            apmServerClient,
+            metaDataFuture
+        );
+
         if (addApmServerConfigSource) {
             // adding remote configuration source last will make it highest priority
-            DslJsonSerializer payloadSerializer = new DslJsonSerializer(
-                configurationRegistry.getConfig(StacktraceConfiguration.class),
-                apmServerClient,
-                metaDataFuture
-            );
             ApmServerConfigurationSource configurationSource = new ApmServerConfigurationSource(payloadSerializer, apmServerClient);
 
             // unlike the ordering of configuration sources above, this will make it highest priority
@@ -182,7 +183,7 @@ public class ElasticApmTracerBuilder {
 
         if (reporter == null) {
             AgentReporterMetrics healthMetrics = new AgentReporterMetrics(metricRegistry, metricsConfig);
-            reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaDataFuture, healthMetrics);
+            reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, payloadSerializer, healthMetrics);
         }
 
         ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, metricRegistry, reporter, objectPoolFactory, apmServerClient, ephemeralId, metaDataFuture);

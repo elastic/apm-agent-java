@@ -18,34 +18,29 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.impl.metadata.MetaData;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nonnull;
-import java.util.concurrent.Future;
 
 public class ReporterFactory {
 
     public Reporter createReporter(ConfigurationRegistry configurationRegistry,
                                    ApmServerClient apmServerClient,
-                                   Future<MetaData> metaData,
+                                   DslJsonSerializer payloadSerializer,
                                    ReporterMonitor monitor) {
 
         ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry, reporterConfiguration, metaData, apmServerClient);
+        ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry, reporterConfiguration, payloadSerializer, apmServerClient);
         return new ApmServerReporter(true, reporterConfiguration, reportingEventHandler, monitor);
     }
 
     @Nonnull
     private ReportingEventHandler getReportingEventHandler(ConfigurationRegistry configurationRegistry,
                                                            ReporterConfiguration reporterConfiguration,
-                                                           Future<MetaData> metaData,
+                                                           DslJsonSerializer payloadSerializer,
                                                            ApmServerClient apmServerClient) {
-
-        DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class), apmServerClient, metaData);
         ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
         return new IntakeV2ReportingEventHandler(reporterConfiguration, processorEventHandler, payloadSerializer, apmServerClient);
     }
