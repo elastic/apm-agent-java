@@ -16,25 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.matcher;
+package co.elastic.apm.agent.tracer.configuration;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
+import org.stagemonitor.configuration.converter.ValueConverter;
 
-import static org.assertj.core.api.Assertions.assertThat;
+/**
+ * This class is used to be able to use {@link WildcardMatcher} in a {@link org.stagemonitor.configuration.ConfigurationOption}.
+ */
+public class WildcardMatcherValueConverter implements ValueConverter<WildcardMatcher> {
 
-class WildcardMatcherValueConverterTest {
-
-    private WildcardMatcherValueConverter converter;
-
-    @BeforeEach
-    void setUp() {
-        converter = new WildcardMatcherValueConverter();
+    @Override
+    public WildcardMatcher convert(String s) {
+        return WildcardMatcher.valueOf(s);
     }
 
-    @Test
-    void convert() {
-        assertThat(converter.toString(converter.convert("foo*"))).isEqualTo("foo*");
-        assertThat(converter.toSafeString(converter.convert("foo*"))).isEqualTo("foo*");
+    @Override
+    public String toString(WildcardMatcher value) {
+        return value.toString();
+    }
+
+    @Override
+    public String toSafeString(WildcardMatcher value) {
+        return value.toString();
     }
 }

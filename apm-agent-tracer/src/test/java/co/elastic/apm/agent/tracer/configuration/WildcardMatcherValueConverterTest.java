@@ -16,29 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.configuration.converter;
+package co.elastic.apm.agent.tracer.configuration;
 
-import org.stagemonitor.configuration.ConfigurationOption;
-import org.stagemonitor.configuration.converter.AbstractValueConverter;
+import co.elastic.apm.agent.tracer.configuration.WildcardMatcherValueConverter;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-public class ByteValueConverter extends AbstractValueConverter<ByteValue> {
+import static org.assertj.core.api.Assertions.assertThat;
 
-    public static final ByteValueConverter INSTANCE = new ByteValueConverter();
+class WildcardMatcherValueConverterTest {
 
-    public static ConfigurationOption.ConfigurationOptionBuilder<ByteValue> byteOption() {
-        return ConfigurationOption.builder(INSTANCE, ByteValue.class);
+    private WildcardMatcherValueConverter converter;
+
+    @BeforeEach
+    void setUp() {
+        converter = new WildcardMatcherValueConverter();
     }
 
-    private ByteValueConverter() {
-    }
-
-    @Override
-    public ByteValue convert(String s) throws IllegalArgumentException {
-        return ByteValue.of(s);
-    }
-
-    @Override
-    public String toString(ByteValue value) {
-        return value.toString();
+    @Test
+    void convert() {
+        assertThat(converter.toString(converter.convert("foo*"))).isEqualTo("foo*");
+        assertThat(converter.toSafeString(converter.convert("foo*"))).isEqualTo("foo*");
     }
 }

@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.configuration.converter;
+package co.elastic.apm.agent.tracer.configuration;
 
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

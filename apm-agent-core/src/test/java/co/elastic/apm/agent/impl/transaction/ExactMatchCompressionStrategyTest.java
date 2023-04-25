@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.SpanConfiguration;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

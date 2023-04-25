@@ -16,28 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.matcher;
+package co.elastic.apm.agent.tracer.configuration;
 
-import co.elastic.apm.agent.common.util.WildcardMatcher;
-import org.stagemonitor.configuration.converter.ValueConverter;
+import org.stagemonitor.configuration.ConfigurationOption;
+import org.stagemonitor.configuration.converter.AbstractValueConverter;
 
-/**
- * This class is used to be able to use {@link WildcardMatcher} in a {@link org.stagemonitor.configuration.ConfigurationOption}.
- */
-public class WildcardMatcherValueConverter implements ValueConverter<WildcardMatcher> {
+public class ByteValueConverter extends AbstractValueConverter<ByteValue> {
 
-    @Override
-    public WildcardMatcher convert(String s) {
-        return WildcardMatcher.valueOf(s);
+    public static final ByteValueConverter INSTANCE = new ByteValueConverter();
+
+    public static ConfigurationOption.ConfigurationOptionBuilder<ByteValue> byteOption() {
+        return ConfigurationOption.builder(INSTANCE, ByteValue.class);
+    }
+
+    private ByteValueConverter() {
     }
 
     @Override
-    public String toString(WildcardMatcher value) {
-        return value.toString();
+    public ByteValue convert(String s) throws IllegalArgumentException {
+        return ByteValue.of(s);
     }
 
     @Override
-    public String toSafeString(WildcardMatcher value) {
+    public String toString(ByteValue value) {
         return value.toString();
     }
 }

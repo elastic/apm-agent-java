@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
-import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import org.junit.jupiter.api.BeforeEach;

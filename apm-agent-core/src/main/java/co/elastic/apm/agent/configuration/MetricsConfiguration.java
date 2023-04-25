@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.agent.configuration.converter.ListValueConverter;
+import co.elastic.apm.agent.tracer.configuration.ListValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.DoubleValueConverter;

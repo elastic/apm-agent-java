@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.configuration.converter.ByteValue;
-import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
-import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
+import co.elastic.apm.agent.tracer.configuration.ByteValue;
+import co.elastic.apm.agent.tracer.configuration.ByteValueConverter;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.tracer.configuration.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
