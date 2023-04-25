@@ -29,7 +29,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
-public class MetricsConfiguration extends ConfigurationOptionProvider {
+public class MetricsConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.MetricsConfiguration {
 
     private static final String METRICS_CATEGORY = "Metrics";
 
@@ -101,6 +101,7 @@ public class MetricsConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(false);
 
+    @Override
     public boolean isDedotCustomMetrics() {
         return dedotCustomMetrics.get();
     }
@@ -117,6 +118,7 @@ public class MetricsConfiguration extends ConfigurationOptionProvider {
         return overheadMetricsEnabled.get();
     }
 
+    @Override
     public List<Double> getCustomMetricsHistogramBoundaries() {
         return customMetricsHistogramBoundaries.get();
     }

@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.loginstr.reformatting;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.logging.LogEcsReformatting;
+import co.elastic.apm.agent.tracer.configuration.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import org.junit.jupiter.api.Test;
 
