@@ -81,7 +81,7 @@ public class AwsLambdaIT {
             .withEnv("ELASTIC_APM_SEND_STRATEGY", "syncflush")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
             .withExposedPorts(8080)
-            .waitingFor(new HttpWaitStrategy().forPath("/").forStatusCode(404))
+            .waitingFor(new HttpWaitStrategy().forPath("/2015-03-31/functions/function/invocations").forStatusCode(200))
             .withLogConsumer(fr -> System.out.print(fr.getUtf8String()));
     }
 
