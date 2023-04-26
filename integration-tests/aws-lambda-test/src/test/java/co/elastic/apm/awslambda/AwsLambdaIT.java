@@ -31,7 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.images.builder.dockerfile.statement.RawStatement;
@@ -81,7 +81,7 @@ public class AwsLambdaIT {
             .withEnv("ELASTIC_APM_SEND_STRATEGY", "syncflush")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
             .withExposedPorts(8080)
-            .waitingFor(Wait.forListeningPort())
+            .waitingFor(new HttpWaitStrategy().forPath("/").forStatusCode(404))
             .withLogConsumer(fr -> System.out.print(fr.getUtf8String()));
     }
 
