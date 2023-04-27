@@ -97,41 +97,6 @@ public class AwsLambdaIT {
         apmServer.reset();
         if (!lambdaContainer.isRunning()) {
             lambdaContainer.start();
-            awaitContainerReady();
-        }
-    }
-
-    private void awaitContainerReady() {
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create("http://localhost:" + lambdaContainer.getFirstMappedPort() + "/2015-03-31/functions/function/invocations"))
-            .POST(HttpRequest.BodyPublishers.ofString("\"waitready\""))
-            .build();
-
-        Exception lastException = null;
-        HttpResponse<String> lastResponse = null;
-        for (int i = 0; i < 20; i++) {
-            try {
-                lastException = null;
-                lastResponse = null;
-                lastResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (lastResponse.statusCode() == 200) {
-                    return;
-                }
-            } catch (IOException e) {
-                lastException = e;
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        if (lastException != null) {
-            throw new IllegalStateException("Container is still not ready, last error was", lastException);
-        } else {
-            throw new IllegalStateException("Container is still not ready, last response was " + lastResponse);
         }
     }
 
