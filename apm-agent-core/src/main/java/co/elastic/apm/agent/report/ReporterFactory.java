@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -29,11 +30,12 @@ public class ReporterFactory {
     public Reporter createReporter(ConfigurationRegistry configurationRegistry,
                                    ApmServerClient apmServerClient,
                                    DslJsonSerializer payloadSerializer,
-                                   ReporterMonitor monitor) {
+                                   ReporterMonitor monitor,
+                                   ObjectPoolFactory poolFactory) {
 
         ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
         ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry, reporterConfiguration, payloadSerializer, apmServerClient);
-        return new ApmServerReporter(true, reporterConfiguration, reportingEventHandler, monitor);
+        return new ApmServerReporter(true, reporterConfiguration, reportingEventHandler, monitor, apmServerClient, payloadSerializer, poolFactory);
     }
 
     @Nonnull

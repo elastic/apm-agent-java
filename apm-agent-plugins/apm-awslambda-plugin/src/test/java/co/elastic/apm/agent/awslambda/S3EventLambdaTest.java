@@ -22,8 +22,8 @@ import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.S3EventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.transaction.Faas;
-import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Outcome;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification;
 import org.junit.jupiter.api.BeforeAll;
@@ -84,6 +84,7 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getResult()).isEqualTo("success");
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
+        assertThat(reporter.getPartialTransactions()).containsExactly(transaction);
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isTrue();
         assertThat(transaction.getContext().getServiceOrigin().getName().toString()).isEqualTo(S3_BUCKET_NAME);

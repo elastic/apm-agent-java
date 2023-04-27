@@ -60,6 +60,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -95,12 +96,16 @@ public class MockReporter implements Reporter {
     private boolean gcWhenAssertingRecycling;
 
     private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
+
+    private final List<Transaction> partialTransactions = Collections.synchronizedList(new ArrayList<>());
     private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
     private final List<ErrorCapture> errors = Collections.synchronizedList(new ArrayList<>());
     private final List<byte[]> bytes = new CopyOnWriteArrayList<>();
     private final List<String> logs = Collections.synchronizedList(new ArrayList<>());
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
+
+    private Consumer<Transaction> partialTransactionHandler;
 
     private boolean closed;
 
@@ -188,6 +193,23 @@ public class MockReporter implements Reporter {
 
     @Override
     public void start() {
+    }
+
+    @Override
+    public synchronized void reportPartialTransaction(Transaction transaction) {
+        if (closed) {
+            return;
+        }
+        if (!enabledImmediateRecycling) {
+            partialTransactions.add(transaction);
+        }
+        if (partialTransactionHandler != null) {
+            partialTransactionHandler.accept(transaction);
+        }
+    }
+
+    public void setPartialTransactionHandler(Consumer<Transaction> transactionHandler) {
+        this.partialTransactionHandler = transactionHandler;
     }
 
     @Override
@@ -397,6 +419,10 @@ public class MockReporter implements Reporter {
         return Collections.unmodifiableList(transactions);
     }
 
+    public synchronized List<Transaction> getPartialTransactions() {
+        return Collections.unmodifiableList(partialTransactions);
+    }
+
     public synchronized int getNumReportedTransactions() {
         return transactions.size();
     }
@@ -596,6 +622,7 @@ public class MockReporter implements Reporter {
     }
 
     public synchronized void resetWithoutRecycling() {
+        partialTransactions.clear();
         transactions.clear();
         spans.clear();
         errors.clear();

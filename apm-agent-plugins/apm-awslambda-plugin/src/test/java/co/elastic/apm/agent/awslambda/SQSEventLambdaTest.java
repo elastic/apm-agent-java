@@ -22,9 +22,9 @@ import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.SQSEventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.transaction.Faas;
-import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Outcome;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -119,6 +119,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
         Transaction transaction = reporter.getFirstTransaction();
+        assertThat(reporter.getPartialTransactions()).containsExactly(transaction);
         printTransactionJson(transaction);
 
         assertThat(transaction.getContext().getMessage().hasContent()).isFalse();

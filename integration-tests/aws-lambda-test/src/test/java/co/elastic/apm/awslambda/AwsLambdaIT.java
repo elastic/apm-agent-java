@@ -24,12 +24,16 @@ import co.elastic.apm.awslambda.fakeserver.FakeApmServer;
 import co.elastic.apm.awslambda.fakeserver.IntakeEvent;
 import co.elastic.test.TestLambda;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.github.dockerjava.api.command.StopContainerCmd;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -58,6 +62,7 @@ import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class AwsLambdaIT {
 
     private static final String LAMBDA_FUNCTION_NAME = "my-test-lambda";
@@ -104,6 +109,7 @@ public class AwsLambdaIT {
     }
 
     @Test
+    @Order(1)
     public void checkSuccessfulInvocation() {
 
         invokeLambda("sleep 100");
@@ -122,6 +128,34 @@ public class AwsLambdaIT {
             assertThatJson(transaction).inPath("$.faas.name").isEqualTo(LAMBDA_FUNCTION_NAME);
             assertThatJson(transaction).inPath("$.context.custom.command").isEqualTo("sleep 100");
             assertThatJson(transaction).inPath("$.duration").isNumber().isGreaterThan(BigDecimal.valueOf(90.0));
+            assertThatJson(transaction).inPath("$.outcome").isEqualTo("success");
+        });
+    }
+
+
+    @Test
+    @Order(2) //use ordering so that the last test crashes the container (=better performance due to no restart required)
+    public void checkLambdaCrash() {
+
+        invokeLambda("die");
+        //graceful shutdown to trigger flush from the extension
+        try (StopContainerCmd stopContainerCmd = lambdaContainer.getDockerClient().stopContainerCmd(lambdaContainer.getContainerId())) {
+            stopContainerCmd.exec();
+        }
+        lambdaContainer.stop(); //required to mark the container as stopped for testcontainers
+
+        await().atMost(Duration.ofSeconds(10)).until(() -> apmServer.getIntakeEvents().stream()
+            .anyMatch(IntakeEvent::isTransaction));
+        assertThat(apmServer.getIntakeEvents()).anySatisfy(ev -> {
+            assertThat(ev.isTransaction()).isTrue();
+
+            ObjectNode metadata = ev.getMetadata();
+            assertThatJson(metadata).inPath("$.service.name").isEqualTo(LAMBDA_FUNCTION_NAME);
+            assertThatJson(metadata).inPath("$.service.framework.name").isEqualTo("AWS Lambda");
+
+            ObjectNode transaction = ev.getContent();
+            assertThatJson(transaction).inPath("$.faas.name").isEqualTo(LAMBDA_FUNCTION_NAME);
+            assertThatJson(transaction).inPath("$.outcome").isEqualTo("failure");
         });
     }
 
@@ -153,7 +187,7 @@ public class AwsLambdaIT {
         ImageFromDockerfile imageBuilder = new ImageFromDockerfile().withDockerfileFromBuilder(builder ->
                 {
                     builder
-                        .withStatement(raw("FROM docker.elastic.co/observability/apm-lambda-extension-x86_64:latest AS lambda-extension"))
+                        .withStatement(raw("FROM docker.elastic.co/observability/apm-lambda-extension-x86_64:1.4.0 AS lambda-extension"))
                         .withStatement(raw("FROM --platform=linux/amd64 public.ecr.aws/lambda/java:11"))
                         .withStatement(raw("COPY --from=lambda-extension /opt/elastic-apm-extension /opt/extensions/elastic-apm-extension"))
                         .copy("aws-lambda-test.jar", "${LAMBDA_TASK_ROOT}/lib/aws-lambda-test.jar")

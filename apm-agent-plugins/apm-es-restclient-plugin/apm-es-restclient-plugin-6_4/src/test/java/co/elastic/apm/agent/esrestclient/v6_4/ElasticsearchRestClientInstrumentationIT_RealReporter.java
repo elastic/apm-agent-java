@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.esrestclient.v6_4;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
@@ -30,6 +29,7 @@ import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.ApmServerReporter;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
@@ -133,18 +133,19 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         final Service service = new Service().withName("Eyal-ES-client-test").withAgent(new Agent("java", "Test"));
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
-        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, configurationRegistry.getConfig(CoreConfiguration.class));
+        ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry);
         apmServerClient.start();
+        DslJsonSerializer payloadSerializer = new DslJsonSerializer(
+            mock(StacktraceConfiguration.class),
+            apmServerClient,
+            MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
+        );
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             processorEventHandler,
-            new DslJsonSerializer(
-                mock(StacktraceConfiguration.class),
-                apmServerClient,
-                MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
-            ),
+            payloadSerializer,
             apmServerClient);
-        realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler, ReporterMonitor.NOOP);
+        realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler, ReporterMonitor.NOOP, apmServerClient, payloadSerializer, new ObjectPoolFactory());
         realReporter.start();
 
         tracer = new ElasticApmTracerBuilder()
