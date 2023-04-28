@@ -21,9 +21,9 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-framework-bom</artifactId>
-                <version>5.3.25</version> <!-- NO MAJOR UPGRADE HERE -->
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${version.spring-boot-2}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -31,6 +31,12 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-httpserver-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
@@ -50,11 +56,6 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-httpserver-core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
 
         <!-- required for context-propagation during tests, but only at runtime -->
         <dependency>
@@ -72,14 +73,6 @@
             <type>test-jar</type>
         </dependency>
 
-        <!-- required to test integration with servlet instrumentation -->
-        <dependency>
-            <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-servlet-plugin</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
@@ -89,10 +82,22 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-test</artifactId>
-            <version>${version.reactor}</version>
             <scope>test</scope>
         </dependency>
 
     </dependencies>
-
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -16,16 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.springwebmvc.exception;
+package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.testutils.Java17OnlyTest;
+import org.junit.jupiter.api.condition.EnabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 
-public class Spring6ExceptionHandlerInstrumentationWithResponseStatusExceptionTest extends Java17OnlyTest {
-
-    public Spring6ExceptionHandlerInstrumentationWithResponseStatusExceptionTest() {
-        super(Impl.class);
-    }
-
-    public static class Impl extends Spring5ExceptionHandlerInstrumentationWithResponseStatusExceptionTest {
-    }
+@EnabledForJreRange(min = JRE.JAVA_17)
+public class Spring6ServletContainerTest extends ServletContainerTest {
 }

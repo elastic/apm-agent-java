@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.springwebclient;
 
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -30,13 +31,16 @@ import reactor.netty.http.client.HttpClient;
 @RunWith(Parameterized.class)
 public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
-    private final WebClient webClient;
+    /**
+     * Can't directly reference WebClient because it is compiled with java 17.
+     */
+    private final Object webClient;
 
     private final RequestStrategy strategy;
 
     private final boolean isNetty;
 
-    public WebClientInstrumentationTest(String clientIgnored, WebClient webClient, RequestStrategy strategy, boolean isNetty) {
+    public WebClientInstrumentationTest(String clientIgnored, Object webClient, RequestStrategy strategy, boolean isNetty) {
         this.webClient = webClient;
         this.strategy = strategy;
         this.isNetty = isNetty;
@@ -44,20 +48,24 @@ public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentat
 
     @Parameterized.Parameters(name = "client = {0}, request strategy = {2}")
     public static Object[][] testParams() {
-        return new Object[][]{
-            {"jetty", jettyClient(), RequestStrategy.EXCHANGE, false},
-            {"jetty", jettyClient(), RequestStrategy.EXCHANGE_TO_FLUX, false},
-            {"jetty", jettyClient(), RequestStrategy.EXCHANGE_TO_MONO, false},
-            {"jetty", jettyClient(), RequestStrategy.RETRIEVE, false},
-            {"netty", nettyClient(), RequestStrategy.EXCHANGE, true},
-            {"netty", nettyClient(), RequestStrategy.EXCHANGE_TO_FLUX, true},
-            {"netty", nettyClient(), RequestStrategy.EXCHANGE_TO_MONO, true},
-            {"netty", nettyClient(), RequestStrategy.RETRIEVE, true},
-            {"hc5", reactiveHttpClient5(), RequestStrategy.EXCHANGE, false},
-            {"hc5", reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_FLUX, false},
-            {"hc5", reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_MONO, false},
-            {"hc5", reactiveHttpClient5(), RequestStrategy.RETRIEVE, false}
-        };
+        if (JvmRuntimeInfo.ofCurrentVM().getMajorVersion() >= 17) {
+            return new Object[][]{
+                {"jetty", Clients.jettyClient(), RequestStrategy.EXCHANGE, false},
+                {"jetty", Clients.jettyClient(), RequestStrategy.EXCHANGE_TO_FLUX, false},
+                {"jetty", Clients.jettyClient(), RequestStrategy.EXCHANGE_TO_MONO, false},
+                {"jetty", Clients.jettyClient(), RequestStrategy.RETRIEVE, false},
+                {"netty", Clients.nettyClient(), RequestStrategy.EXCHANGE, true},
+                {"netty", Clients.nettyClient(), RequestStrategy.EXCHANGE_TO_FLUX, true},
+                {"netty", Clients.nettyClient(), RequestStrategy.EXCHANGE_TO_MONO, true},
+                {"netty", Clients.nettyClient(), RequestStrategy.RETRIEVE, true},
+                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.EXCHANGE, false},
+                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_FLUX, false},
+                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_MONO, false},
+                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.RETRIEVE, false}
+            };
+        } else {
+            return new Object[0][0];
+        }
     }
 
     @Override
@@ -86,55 +94,58 @@ public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentat
         EXCHANGE {
             @Override
             @SuppressWarnings("deprecation")
-            void execute(WebClient client, String uri) {
-                client.get().uri(uri).exchange() // deprecated API
+            void execute(Object client, String uri) {
+                ((WebClient) client).get().uri(uri).exchange() // deprecated API
                     .block();
             }
         },
         EXCHANGE_TO_FLUX {
             @Override
-            void execute(WebClient client, String uri) {
-                client.get().uri(uri).exchangeToFlux(response -> response.bodyToFlux(String.class)).blockLast();
+            void execute(Object client, String uri) {
+                ((WebClient) client).get().uri(uri).exchangeToFlux(response -> response.bodyToFlux(String.class)).blockLast();
             }
         },
         EXCHANGE_TO_MONO {
             // TODO
             @Override
-            void execute(WebClient client, String uri) {
-                client.get().uri(uri).exchangeToMono(response -> response.bodyToMono(String.class)).block();
+            void execute(Object client, String uri) {
+                ((WebClient) client).get().uri(uri).exchangeToMono(response -> response.bodyToMono(String.class)).block();
             }
         },
         RETRIEVE {
             @Override
-            void execute(WebClient client, String uri) {
-                client.get().uri(uri).retrieve().bodyToMono(String.class).block();
+            void execute(Object client, String uri) {
+                ((WebClient) client).get().uri(uri).retrieve().bodyToMono(String.class).block();
             }
         };
 
-        abstract void execute(WebClient client, String uri);
+        abstract void execute(Object client, String uri);
     }
 
-    private static WebClient jettyClient() {
-        return WebClient.builder()
-            .clientConnector(new JettyClientHttpConnector())
-            .build();
-    }
+    public static class Clients {
 
-    private static WebClient nettyClient() {
-        HttpClient httpClient = HttpClient.create()
-            // followRedirect(boolean) only enables redirect for 30[1278], not 303
-            .followRedirect((req, res) -> res.status().code() == 303);
+        private static Object jettyClient() {
+            return WebClient.builder()
+                .clientConnector(new JettyClientHttpConnector())
+                .build();
+        }
 
-        // crete netty reactor client
-        return WebClient.builder()
-            .clientConnector(new ReactorClientHttpConnector(httpClient))
-            .build();
-    }
+        private static Object nettyClient() {
+            HttpClient httpClient = HttpClient.create()
+                // followRedirect(boolean) only enables redirect for 30[1278], not 303
+                .followRedirect((req, res) -> res.status().code() == 303);
 
-    public static WebClient reactiveHttpClient5() {
-        return WebClient.builder()
-            .clientConnector(new HttpComponentsClientHttpConnector())
-            .build();
+            // crete netty reactor client
+            return WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
+        }
+
+        public static Object reactiveHttpClient5() {
+            return WebClient.builder()
+                .clientConnector(new HttpComponentsClientHttpConnector())
+                .build();
+        }
     }
 
 }

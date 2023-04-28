@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.springwebmvc.template;
 
-import co.elastic.apm.agent.springwebmvc.Java17OnlyTest;
+import co.elastic.apm.agent.testutils.Java17OnlyTest;
 
 public class Spring6FreeMarkerViewTest extends Java17OnlyTest {
     public Spring6FreeMarkerViewTest() {
