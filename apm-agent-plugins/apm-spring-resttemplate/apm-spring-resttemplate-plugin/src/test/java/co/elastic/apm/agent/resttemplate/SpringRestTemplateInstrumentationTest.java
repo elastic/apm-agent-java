@@ -36,6 +36,7 @@ import java.util.stream.Stream;
 @RunWith(Parameterized.class)
 public class SpringRestTemplateInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
+    // Cannot directly reference RestTemplate here because it is compiled with Java 17
     private final Object restTemplate;
 
     public SpringRestTemplateInstrumentationTest(Supplier<RestTemplate> supplier) {
