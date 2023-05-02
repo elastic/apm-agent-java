@@ -143,7 +143,7 @@ public abstract class AgentTestContainer<SELF extends GenericContainer<SELF>> ex
     }
 
     /**
-     * Sets the environment variable that will be used to set the '-javaagent' or other JVM arguments
+     * Sets the environment variable that will be used to set the '-javaagent', JVM System properties and remote debug
      *
      * @param name environment variable name
      * @return this
