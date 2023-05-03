@@ -66,7 +66,7 @@ public class AwsLambdaIT {
 
     private static GenericContainer<?> lambdaContainer;
 
-    private static HttpClient client = HttpClient.newBuilder().build();
+    private static final HttpClient client = HttpClient.newBuilder().build();
 
     @BeforeAll
     public static void init() throws IOException {
@@ -89,6 +89,7 @@ public class AwsLambdaIT {
 
     @AfterAll
     public static void tearDown() {
+        apmServer.close();
         if (lambdaContainer != null && lambdaContainer.isRunning()) {
             lambdaContainer.stop();
         }
