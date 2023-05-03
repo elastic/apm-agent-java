@@ -19,6 +19,7 @@
 package co.elastic.apm.awslambda;
 
 import co.elastic.apm.agent.test.AgentFileAccessor;
+import co.elastic.apm.agent.test.AgentTestContainer;
 import co.elastic.apm.awslambda.fakeserver.FakeApmServer;
 import co.elastic.apm.awslambda.fakeserver.IntakeEvent;
 import co.elastic.test.TestLambda;
@@ -74,15 +75,16 @@ public class AwsLambdaIT {
 
         String image = createLambdaImage();
 
-        lambdaContainer = new GenericContainer<>(image)
+        lambdaContainer = new AgentTestContainer.Generic(image)
+            .withRemoteDebug()
+            .withJvmArgumentsVariable("JAVA_TOOL_OPTIONS")
             .withEnv("AWS_LAMBDA_FUNCTION_NAME", LAMBDA_FUNCTION_NAME)
             .withEnv("AWS_LAMBDA_EXEC_WRAPPER", "/opt/elastic-apm-handler")
             .withEnv("ELASTIC_APM_LAMBDA_APM_SERVER", "http://host.testcontainers.internal:" + apmServer.port())
             .withEnv("ELASTIC_APM_SEND_STRATEGY", "syncflush")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
             .withExposedPorts(8080)
-            .waitingFor(Wait.forListeningPort())
-            .withLogConsumer(fr -> System.out.print(fr.getUtf8String()));
+            .waitingFor(Wait.forListeningPort());
     }
 
     @AfterAll
@@ -101,14 +103,13 @@ public class AwsLambdaIT {
     }
 
     @Test
-    public void containerTest() throws InterruptedException, IOException {
+    public void checkSuccessfulInvocation() {
 
         invokeLambda("sleep 100");
         flushLambdaData();
 
         await().atMost(Duration.ofSeconds(10)).until(() -> apmServer.getIntakeEvents().stream()
             .anyMatch(IntakeEvent::isTransaction));
-        System.out.println(apmServer.getReceivedEvents());
         assertThat(apmServer.getIntakeEvents()).anySatisfy(ev -> {
             assertThat(ev.isTransaction()).isTrue();
 
