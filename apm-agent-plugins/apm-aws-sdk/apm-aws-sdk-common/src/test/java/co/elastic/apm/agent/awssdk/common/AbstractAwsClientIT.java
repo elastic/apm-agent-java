@@ -36,7 +36,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -89,28 +89,33 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 fail(e.getMessage());
             }
-
         }
         String spanName = awsService() + " " + operationName + (entityName != null ? " " + entityName : "");
 
         Span span = reporter.getSpanByName(spanName);
-        assertThat(span).isNotNull();
-        assertThat(span.getType()).isEqualTo(type());
-        assertThat(span.getSubtype()).isEqualTo(localstackService().getLocalStackName());
-        assertThat(span.getAction()).isEqualTo(action);
+
+        assertThat(span)
+            .hasType(type())
+            .hasSubType(localstackService().getLocalStackName())
+            .hasAction(action);
+
         ServiceTarget serviceTarget = span.getContext().getServiceTarget();
-        assertThat(serviceTarget.getType()).isEqualTo(subtype());
+
         String expectedTargetName = expectedTargetName(entityName);
         if (expectedTargetName == null) {
-            assertThat(serviceTarget.getName()).isNull();
-            assertThat(serviceTarget.getDestinationResource().toString()).isEqualTo(subtype());
+            assertThat(serviceTarget)
+                .hasType(subtype())
+                .hasNoName()
+                .hasDestinationResource(subtype());
         } else {
-            assertThat(serviceTarget.getName()).isNotNull();
-            assertThat(serviceTarget.getName().toString()).isEqualTo(expectedTargetName);
-            assertThat(serviceTarget.getDestinationResource().toString()).isEqualTo(subtype() + "/" + expectedTargetName);
+            assertThat(serviceTarget)
+                .hasType(subtype())
+                .hasName(expectedTargetName)
+                .hasDestinationResource(subtype() + "/" + expectedTargetName);
         }
-        assertThat(span.getContext().getDestination().getAddress().toString())
-            .isEqualTo(localstack.getEndpointOverride(LocalStackContainer.Service.S3).getHost());
+        assertThat(span.getContext().getDestination())
+            .hasAddress(localstack.getEndpointOverride(LocalStackContainer.Service.S3).getHost());
+
         if (assertions != null) {
             assertions.accept(span);
         }
