@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.tomcatlogging;
 
-import co.elastic.apm.agent.test.AgentFileAccessor;
+import co.elastic.apm.agent.test.AgentTestContainer;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -27,11 +27,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.Container;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.output.WaitingConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.utility.MountableFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -77,19 +75,19 @@ public class TomcatLoggingIT {
     })
     void testLogShading(String version) throws IOException, InterruptedException, TimeoutException {
 
-        GenericContainer<?> container = new GenericContainer<>("tomcat:" + version)
-            .withCopyFileToContainer(MountableFile.forHostPath(AgentFileAccessor.getPathToJavaagent()), "/agent.jar")
-            .withEnv("CATALINA_OPTS", "-javaagent:/agent.jar")
+        try (AgentTestContainer.Generic container = new AgentTestContainer.Generic("tomcat:" + version)
+            .withRemoteDebug()
+            .withJavaAgent()
+            .withJvmArgumentsVariable("CATALINA_OPTS")
             .withEnv("ELASTIC_APM_LOG_ECS_REFORMATTING", "shade")
             .withEnv("ELASTIC_APM_LOG_ECS_REFORMATTING_DIR", "ecs-logs")
             .withEnv("ELASTIC_APM_DISABLE_SEND", "true")
             .withEnv("ELASTIC_APM_CENTRAL_CONFIG", "false")
             .withEnv("ELASTIC_APM_CLOUD_PROVIDER", "none")
             .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(1024))
+            // wait for agent startup: waiting for a specific log message in standard output (not sure if we can listen to another log file)
             .waitingFor(Wait.forLogMessage(".*Server startup in.*", 1)
-                .withStartupTimeout(Duration.ofSeconds(15)));
-
-        try {
+                .withStartupTimeout(Duration.ofSeconds(15)))) {
             container.start();
 
             // wait for agent to start (which is partially async in tomcat)
@@ -149,8 +147,6 @@ public class TomcatLoggingIT {
             }).collect(Collectors.toList());
 
             assertThat(ecsJsonFiles).isNotEmpty();
-        } finally {
-            container.stop();
         }
 
     }

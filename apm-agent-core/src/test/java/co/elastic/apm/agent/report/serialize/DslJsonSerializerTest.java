@@ -82,7 +82,6 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
@@ -95,7 +94,7 @@ import static org.mockito.Mockito.mock;
 
 class DslJsonSerializerTest {
 
-    private DslJsonSerializer serializer;
+    private DslJsonSerializer.Writer writer;
     private ObjectMapper objectMapper;
     private ApmServerClient apmServerClient;
     private Future<MetaData> metaData;
@@ -111,8 +110,9 @@ class DslJsonSerializerTest {
         tracer = MockTracer.createRealTracer();
         SerializationConstants.init(tracer.getConfig(CoreConfiguration.class));
 
-        serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData);
-        serializer.blockUntilReady();
+        DslJsonSerializer serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData);
+        writer = serializer.newWriter();
+        writer.blockUntilReady();
     }
 
     @Test
@@ -154,7 +154,7 @@ class DslJsonSerializerTest {
             .withHostname("hostname")
             .withProtocol("http")
             .withPathname("/hello").withSearch("search");
-        serializer.serializeUrl(url);
+        writer.serializeUrl(url);
         JsonNode json = readJsonString(getAndResetSerializerJson());
         if (useNumericPort) {
             assertThat(json.get("port").asInt()).isEqualTo(42);
@@ -177,7 +177,7 @@ class DslJsonSerializerTest {
         error.setException(new Exception("test"));
         error.getContext().addLabel("foo", "bar");
 
-        JsonNode errorTree = readJsonString(serializer.toJsonString(error));
+        JsonNode errorTree = readJsonString(writer.toJsonString(error));
 
         assertThat(errorTree.get("id")).isNotNull();
         assertThat(errorTree.get("trace_id")).isNotNull();
@@ -203,13 +203,13 @@ class DslJsonSerializerTest {
     void testErrorSerializationAllFrames() {
         StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
         doReturn(-1).when(stacktraceConfiguration).getStackTraceLimit();
-        serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData);
+        writer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData).newWriter();
 
         ErrorCapture error = new ErrorCapture(tracer).withTimestamp(5000);
         Exception exception = new Exception("test");
         error.setException(exception);
 
-        JsonNode errorTree = readJsonString(serializer.toJsonString(error));
+        JsonNode errorTree = readJsonString(writer.toJsonString(error));
         JsonNode stacktrace = checkException(errorTree.get("exception"), Exception.class, "test").get("stacktrace");
         assertThat(stacktrace).hasSizeGreaterThan(15);
     }
@@ -221,7 +221,7 @@ class DslJsonSerializerTest {
         transaction.getTraceContext().getTraceId().resetState();
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
 
-        JsonNode errorTree = readJsonString(serializer.toJsonString(error));
+        JsonNode errorTree = readJsonString(writer.toJsonString(error));
 
         assertThat(errorTree.get("id")).isNotNull();
         assertThat(errorTree.get("timestamp").longValue()).isEqualTo(5000);
@@ -243,7 +243,7 @@ class DslJsonSerializerTest {
         Tracer tracer = MockTracer.createRealTracer(reporter);
         tracer.captureAndReportException(new Exception("test"), getClass().getClassLoader());
 
-        String errorJson = serializer.toJsonString(reporter.getFirstError());
+        String errorJson = writer.toJsonString(reporter.getFirstError());
         JsonNode errorTree = readJsonString(errorJson);
 
         assertThat(errorTree.get("id")).isNotNull();
@@ -269,7 +269,7 @@ class DslJsonSerializerTest {
 
         tracer.captureAndReportException(mainException, getClass().getClassLoader());
 
-        JsonNode errorTree = readJsonString(serializer.toJsonString(reporter.getFirstError()));
+        JsonNode errorTree = readJsonString(writer.toJsonString(reporter.getFirstError()));
 
         JsonNode exception = checkException(errorTree.get("exception"), Exception.class, "main exception");
 
@@ -321,13 +321,13 @@ class DslJsonSerializerTest {
         for (int i = 0; i < maxLongValueLength + 1; i++) {
             longStringValue.append('0');
         }
-        serializer.jw.writeByte(JsonWriter.OBJECT_START);
-        serializer.writeField("string", longValue.toString());
-        serializer.writeField("stringBuilder", longValue);
-        serializer.writeLongStringField("longString", longStringValue.toString());
-        serializer.writeLastField("lastString", longValue.toString());
-        serializer.jw.writeByte(JsonWriter.OBJECT_END);
-        final JsonNode jsonNode = objectMapper.readTree(serializer.jw.toString());
+        writer.jw.writeByte(JsonWriter.OBJECT_START);
+        writer.writeField("string", longValue.toString());
+        writer.writeField("stringBuilder", longValue);
+        writer.writeLongStringField("longString", longStringValue.toString());
+        writer.writeLastField("lastString", longValue.toString());
+        writer.jw.writeByte(JsonWriter.OBJECT_END);
+        final JsonNode jsonNode = objectMapper.readTree(writer.jw.toString());
         assertThat(jsonNode.get("stringBuilder").textValue()).hasSize(maxValueLength).endsWith("…");
         assertThat(jsonNode.get("string").textValue()).hasSize(maxValueLength).endsWith("…");
         assertThat(jsonNode.get("longString").textValue()).hasSize(maxLongValueLength).endsWith("…");
@@ -340,7 +340,7 @@ class DslJsonSerializerTest {
         transaction.getContext().getRequest().addHeader("foo", (String) null);
         transaction.getContext().getRequest().addHeader("baz", (Enumeration<String>) null);
         transaction.getContext().getRequest().getHeaders().add("bar", null);
-        JsonNode jsonNode = readJsonString(serializer.toJsonString(transaction));
+        JsonNode jsonNode = readJsonString(writer.toJsonString(transaction));
         // calling addHeader with a null value ignores the header
         assertThat(jsonNode.get("context").get("request").get("headers").get("foo")).isNull();
         assertThat(jsonNode.get("context").get("request").get("headers").get("baz")).isNull();
@@ -362,7 +362,7 @@ class DslJsonSerializerTest {
         headers.add("null-binary-value", (byte[]) null);
         headers.add("binary-value", "binary-value".getBytes(StandardCharsets.UTF_8));
 
-        JsonNode jsonNode = readJsonString(serializer.toJsonString(span));
+        JsonNode jsonNode = readJsonString(writer.toJsonString(span));
         JsonNode jsonHeaders = jsonNode.get("context").get("message").get("headers");
         assertThat(jsonHeaders.get("null-string-value"))
             .describedAs("null value string header should be serialized")
@@ -383,7 +383,7 @@ class DslJsonSerializerTest {
         Span span = new Span(tracer);
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("template.jsf.render.view");
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template_jsf_render_view");
         JsonNode context = spanJson.get("context");
         assertThat(context).isNotNull();
@@ -392,25 +392,25 @@ class DslJsonSerializerTest {
         assertThat(context.get("http")).isNull();
 
         span.withType("template").withSubtype("jsf.lifecycle").withAction("render.view");
-        spanJson = readJsonString(serializer.toJsonString(span));
+        spanJson = readJsonString(writer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template.jsf_lifecycle.render_view");
 
         span = new Span(tracer);
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("template").withAction("jsf.render");
-        spanJson = readJsonString(serializer.toJsonString(span));
+        spanJson = readJsonString(writer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template..jsf_render");
 
         span = new Span(tracer);
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("template").withSubtype("jsf.render");
-        spanJson = readJsonString(serializer.toJsonString(span));
+        spanJson = readJsonString(writer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template.jsf_render");
 
         span = new Span(tracer);
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withSubtype("jsf").withAction("render");
-        spanJson = readJsonString(serializer.toJsonString(span));
+        spanJson = readJsonString(writer.toJsonString(span));
         assertThat(spanJson.get("type").isNull()).isTrue();
     }
 
@@ -422,7 +422,7 @@ class DslJsonSerializerTest {
             .withStatusCode(523)
             .withUrl("http://whatever.com/path");
 
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode context = spanJson.get("context");
         JsonNode http = context.get("http");
         assertThat(http).isNotNull();
@@ -469,7 +469,7 @@ class DslJsonSerializerTest {
             dest.getCloud().withRegion("us-east-1");
         }
 
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode context = spanJson.get("context");
         JsonNode destination = context.get("destination");
 
@@ -512,7 +512,7 @@ class DslJsonSerializerTest {
         Transaction transaction = new Transaction(tracer);
         transaction.getTraceContext().setServiceInfo("service-name", null);
         transaction.setUserFrameworkName(null);
-        JsonNode transactionJson = readJsonString(serializer.toJsonString(transaction));
+        JsonNode transactionJson = readJsonString(writer.toJsonString(transaction));
         assertThat(transactionJson.get("context").get("service").get("framework")).isNull();
     }
 
@@ -521,7 +521,7 @@ class DslJsonSerializerTest {
         Transaction transaction = new Transaction(tracer);
         transaction.getTraceContext().setServiceInfo("service-name", null);
         transaction.setUserFrameworkName("");
-        JsonNode transactionJson = readJsonString(serializer.toJsonString(transaction));
+        JsonNode transactionJson = readJsonString(writer.toJsonString(transaction));
         assertThat(transactionJson.get("context").get("service").get("framework")).isNull();
     }
 
@@ -532,7 +532,7 @@ class DslJsonSerializerTest {
 
         span.getContext().getServiceTarget().withUserName("").withNameOnlyDestinationResource();
 
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode contextJson = spanJson.get("context");
         assertThat(contextJson.get("destination")).isNull();
         assertThat(contextJson.get("service")).isNull();
@@ -543,7 +543,7 @@ class DslJsonSerializerTest {
         Span span = new Span(tracer);
         span.getContext().getDestination().withAddress(null).withPort(8090);
 
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode destination = spanJson.get("context").get("destination");
         assertThat(destination).isNotNull();
         assertThat(destination.get("port").intValue()).isEqualTo(8090);
@@ -556,7 +556,7 @@ class DslJsonSerializerTest {
         Span span = new Span(tracer);
         span.getContext().getDestination().withAddress("test").withPort(8090);
 
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode destination = spanJson.get("context").get("destination");
         assertThat(destination).isNotNull();
         assertThat(destination.get("port").intValue()).isEqualTo(8090);
@@ -569,7 +569,7 @@ class DslJsonSerializerTest {
         Span span = new Span(tracer);
         span.getContext().getDestination().withAddress("test").withPort(0);
 
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode destination = spanJson.get("context").get("destination");
         assertThat(destination).isNotNull();
         assertThat(destination.get("port")).isNull();
@@ -583,7 +583,7 @@ class DslJsonSerializerTest {
         span.getContext().getDestination().withAddress("").withPort(0);
         span.getContext().getServiceTarget().withType("test").withName("resource");
 
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode destination = spanJson.get("context").get("destination");
         assertThat(destination).isNotNull();
         JsonNode service = destination.get("service");
@@ -603,7 +603,7 @@ class DslJsonSerializerTest {
 
         span.getContext().getServiceTarget().withType("test").withName("test-resource").withNameOnlyDestinationResource();
 
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode destination = spanJson.get("context").get("destination");
         assertThat(destination).isNotNull();
         assertThat(destination.get("port")).isNull();
@@ -627,7 +627,7 @@ class DslJsonSerializerTest {
             .addHeader("binary-header", "binary-value".getBytes(StandardCharsets.UTF_8))
             .withAge(20);
 
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode context = spanJson.get("context");
         JsonNode message = context.get("message");
         assertThat(message).isNotNull();
@@ -659,7 +659,7 @@ class DslJsonSerializerTest {
             .addHeader("binary-header", "binary-value".getBytes(StandardCharsets.UTF_8))
             .withAge(20);
 
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode routingKey = spanJson.get("context").get("message").get("routing_key");
         assertThat(routingKey).isNull();
     }
@@ -670,7 +670,7 @@ class DslJsonSerializerTest {
         span.getContext().getMessage()
             .withQueue("test-queue");
 
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode context = spanJson.get("context");
         JsonNode message = context.get("message");
         assertThat(message).isNotNull();
@@ -689,7 +689,7 @@ class DslJsonSerializerTest {
             .withInstance("test-instance")
             .withStatement("SELECT * FROM TABLE").withDbLink("db-link");
 
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode context = spanJson.get("context");
         JsonNode db = context.get("db");
         assertThat(db).isNotNull();
@@ -707,7 +707,7 @@ class DslJsonSerializerTest {
         Span span = new Span(tracer);
         span.withChildIds(LongList.of(id1.getLeastSignificantBits(), id2.getLeastSignificantBits()));
 
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode child_ids = spanJson.get("child_ids");
         assertThat(child_ids.get(0).textValue()).isEqualTo(id1.toString());
         assertThat(child_ids.get(1).textValue()).isEqualTo(id2.toString());
@@ -742,17 +742,17 @@ class DslJsonSerializerTest {
         processInfo.getArgv().add("test");
 
         CloudProviderInfo cloudProviderInfo = createCloudProviderInfo();
-        serializer = new DslJsonSerializer(
+        writer = new DslJsonSerializer(
             mock(StacktraceConfiguration.class),
             apmServerClient,
             MetaDataMock.create(
                 processInfo, service, systemInfo, cloudProviderInfo,
                 Map.of("foo", "bar", "עברית", "בדיקה"), createFaaSMetaDataExtension()
             )
-        );
-        serializer.blockUntilReady();
-        serializer.appendMetaDataNdJsonToStream();
-        JsonNode metaDataJson = readJsonString(serializer.toString()).get("metadata");
+        ).newWriter();
+        writer.blockUntilReady();
+        writer.appendMetaDataNdJsonToStream();
+        JsonNode metaDataJson = readJsonString(writer.toString()).get("metadata");
 
         JsonNode serviceJson = metaDataJson.get("service");
         assertThat(service).isNotNull();
@@ -825,10 +825,10 @@ class DslJsonSerializerTest {
     void testConfiguredServiceNodeName() throws Exception {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig();
         doReturn("Custom-Node-Name").when(configRegistry.getConfig(CoreConfiguration.class)).getServiceNodeName();
-        serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient, MetaData.create(configRegistry, null));
-        serializer.blockUntilReady();
-        serializer.appendMetaDataNdJsonToStream();
-        JsonNode metaDataJson = readJsonString(serializer.toString()).get("metadata");
+        writer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient, MetaData.create(configRegistry, null)).newWriter();
+        writer.blockUntilReady();
+        writer.appendMetaDataNdJsonToStream();
+        JsonNode metaDataJson = readJsonString(writer.toString()).get("metadata");
         JsonNode serviceJson = metaDataJson.get("service");
         assertThat(serviceJson).isNotNull();
         JsonNode nodeJson = serviceJson.get("node");
@@ -901,7 +901,7 @@ class DslJsonSerializerTest {
         transaction.setFrameworkName(frameworkName);
         transaction.setFrameworkVersion(frameworkVersion);
 
-        String jsonString = serializer.toJsonString(transaction);
+        String jsonString = writer.toJsonString(transaction);
         JsonNode json = readJsonString(jsonString);
 
         JsonNode jsonContext = json.get("context");
@@ -992,7 +992,7 @@ class DslJsonSerializerTest {
         IOUtils.decodeUtf8Bytes(new byte[]{0, 0, 'o', 'o', 0}, 2, 2, bodyBuffer);
         IOUtils.decodeUtf8Byte((byte) '}', bodyBuffer);
         request.endOfBufferInput();
-        final String content = serializer.toJsonString(transaction);
+        final String content = writer.toJsonString(transaction);
         System.out.println(content);
         final JsonNode transactionJson = objectMapper.readTree(content);
         assertThat(transactionJson.get("context").get("request").get("body").textValue()).isEqualTo("{foo}");
@@ -1011,7 +1011,7 @@ class DslJsonSerializerTest {
         final Transaction transaction = createRootTransaction();
         Request request = transaction.getContext().getRequest();
         request.withBodyBuffer().append("TEST");
-        final String content = serializer.toJsonString(transaction);
+        final String content = writer.toJsonString(transaction);
         System.out.println(content);
         final JsonNode transactionJson = objectMapper.readTree(content);
         assertThat(transactionJson.get("context").get("request").get("body")).isNull();
@@ -1028,8 +1028,8 @@ class DslJsonSerializerTest {
         Transaction copy = createRootTransaction();
         copy.getContext().copyFrom(transaction.getContext());
 
-        assertThat(objectMapper.readTree(serializer.toJsonString(copy)).get("context"))
-            .isEqualTo(objectMapper.readTree(serializer.toJsonString(transaction)).get("context"));
+        assertThat(objectMapper.readTree(writer.toJsonString(copy)).get("context"))
+            .isEqualTo(objectMapper.readTree(writer.toJsonString(transaction)).get("context"));
     }
 
     @Test
@@ -1041,7 +1041,7 @@ class DslJsonSerializerTest {
         transaction.addCustomContext("number", 42);
         transaction.addCustomContext("boolean", true);
 
-        final JsonNode customContext = objectMapper.readTree(serializer.toJsonString(transaction)).get("context").get("custom");
+        final JsonNode customContext = objectMapper.readTree(writer.toJsonString(transaction)).get("context").get("custom");
         assertThat(customContext.get("string").textValue()).isEqualTo("foo");
         assertThat(customContext.get("long_string").textValue()).isEqualTo(longString.substring(0, 9999) + "…");
         assertThat(customContext.get("number").intValue()).isEqualTo(42);
@@ -1051,7 +1051,7 @@ class DslJsonSerializerTest {
     @Test
     void testJsonSchemaDslJsonEmptyValues() throws IOException {
         Transaction transaction = new Transaction(tracer);
-        final String content = serializer.toJsonString(transaction);
+        final String content = writer.toJsonString(transaction);
         System.out.println(content);
         JsonNode transactionNode = objectMapper.readTree(content);
         assertThat(transactionNode.get("timestamp").asLong()).isEqualTo(0);
@@ -1069,10 +1069,10 @@ class DslJsonSerializerTest {
         String platform = "test-platform";
 
         MetaData metaData = createMetaData(new SystemInfo(arc, "configured", "detected", platform));
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true);
-        serializer.appendMetadataToStream();
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true);
+        writer.appendMetadataToStream();
 
-        JsonNode system = readJsonString(serializer.toString()).get("system");
+        JsonNode system = readJsonString(writer.toString()).get("system");
 
         assertThat(arc).isEqualTo(system.get("architecture").asText());
         assertThat(platform).isEqualTo(system.get("platform").asText());
@@ -1094,10 +1094,10 @@ class DslJsonSerializerTest {
         String platform = "test-platform";
 
         MetaData metaData = createMetaData(new SystemInfo(arc, null, "detected", platform));
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true);
-        serializer.appendMetadataToStream();
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true);
+        writer.appendMetadataToStream();
 
-        JsonNode system = readJsonString(serializer.toString()).get("system");
+        JsonNode system = readJsonString(writer.toString()).get("system");
 
         assertThat(arc).isEqualTo(system.get("architecture").asText());
         assertThat(platform).isEqualTo(system.get("platform").asText());
@@ -1119,10 +1119,10 @@ class DslJsonSerializerTest {
         String platform = "test-platform";
 
         MetaData metaData = createMetaData(new SystemInfo(arc, null, null, platform));
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true);
-        serializer.appendMetadataToStream();
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true);
+        writer.appendMetadataToStream();
 
-        JsonNode system = readJsonString(serializer.toString()).get("system");
+        JsonNode system = readJsonString(writer.toString()).get("system");
         assertThat(arc).isEqualTo(system.get("architecture").asText());
         assertThat(platform).isEqualTo(system.get("platform").asText());
         if (supportsConfiguredAndDetectedHostname) {
@@ -1146,10 +1146,10 @@ class DslJsonSerializerTest {
         cloudProviderInfo.setInstance(null);
         cloudProviderInfo.setService(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true, true);
-        serializer.appendMetadataToStream();
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), true, true);
+        writer.appendMetadataToStream();
 
-        JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
+        JsonNode jsonCloud = readJsonString(writer.toString()).get("cloud");
 
         assertThat(jsonCloud.get("availability_zone").asText()).isEqualTo("availabilityZone");
         assertThat(jsonCloud.get("provider").asText()).isEqualTo("aws");
@@ -1173,10 +1173,10 @@ class DslJsonSerializerTest {
         Objects.requireNonNull(cloudProviderInfo.getProject()).setName(null);
         Objects.requireNonNull(cloudProviderInfo.getInstance()).setName(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true, true);
-        serializer.appendMetadataToStream();
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), true, true);
+        writer.appendMetadataToStream();
 
-        JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
+        JsonNode jsonCloud = readJsonString(writer.toString()).get("cloud");
 
         assertThat(jsonCloud.get("availability_zone").asText()).isEqualTo("availabilityZone");
         assertThat(jsonCloud.get("provider").asText()).isEqualTo("aws");
@@ -1206,10 +1206,10 @@ class DslJsonSerializerTest {
         instance.setName(null);
         instance.setId(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true, true);
-        serializer.appendMetadataToStream();
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), true, true);
+        writer.appendMetadataToStream();
 
-        JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
+        JsonNode jsonCloud = readJsonString(writer.toString()).get("cloud");
 
         assertThat(jsonCloud.get("availability_zone").asText()).isEqualTo("availabilityZone");
         assertThat(jsonCloud.get("provider").asText()).isEqualTo("aws");
@@ -1230,10 +1230,10 @@ class DslJsonSerializerTest {
         Objects.requireNonNull(cloudProviderInfo.getInstance()).setId(null);
         Objects.requireNonNull(cloudProviderInfo.getAccount()).setId(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true, true);
-        serializer.appendMetadataToStream();
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), true, true);
+        writer.appendMetadataToStream();
 
-        JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
+        JsonNode jsonCloud = readJsonString(writer.toString()).get("cloud");
 
         assertThat(jsonCloud.get("availability_zone").asText()).isEqualTo("availabilityZone");
         assertThat(jsonCloud.get("provider").asText()).isEqualTo("aws");
@@ -1256,10 +1256,10 @@ class DslJsonSerializerTest {
 
         MetaData metaData = createMetaData();
 
-        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter(), true, supportsActivationMethod);
-        serializer.appendMetadataToStream();
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), true, supportsActivationMethod);
+        writer.appendMetadataToStream();
 
-        checkMetadataActivationMethod(serializer.toString(), supportsActivationMethod ? "unknown" : null);
+        checkMetadataActivationMethod(writer.toString(), supportsActivationMethod ? "unknown" : null);
     }
 
     @ParameterizedTest
@@ -1281,19 +1281,19 @@ class DslJsonSerializerTest {
         MetaData mockMetada = MetaDataMock.createDefaultMock();
         doReturn(service).when(mockMetada).getService();
 
-        serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, MetaDataMock.create(mockMetada));
-        serializer.blockUntilReady();
-        serializer.appendMetadataToStream();
+        writer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, MetaDataMock.create(mockMetada)).newWriter();
+        writer.blockUntilReady();
+        writer.appendMetadataToStream();
 
-        checkMetadataActivationMethod(serializer.toString(), value1 ? "unknown": null);
-        serializer.jw.reset();
+        checkMetadataActivationMethod(writer.toString(), value1 ? "unknown" : null);
+        writer.jw.reset();
 
         doReturn(value2).when(apmServerClient).supportsActivationMethod();
 
-        serializer.blockUntilReady();
-        serializer.appendMetadataToStream();
+        writer.blockUntilReady();
+        writer.appendMetadataToStream();
 
-        checkMetadataActivationMethod(serializer.toString(), value2 ? "unknown": null);
+        checkMetadataActivationMethod(writer.toString(), value2 ? "unknown" : null);
     }
 
     private void checkMetadataActivationMethod(String json, @Nullable String expectedValue) {
@@ -1364,7 +1364,7 @@ class DslJsonSerializerTest {
         Span span = new Span(tracer);
         span.setStackTrace(Arrays.asList(StackFrame.of("foo.Bar", "baz"), StackFrame.of("foo.Bar$Baz", "qux")));
 
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode jsonStackTrace = spanJson.get("stacktrace");
         assertThat(jsonStackTrace.getNodeType()).isEqualTo(JsonNodeType.ARRAY);
         assertThat(jsonStackTrace).isNotNull();
@@ -1399,7 +1399,7 @@ class DslJsonSerializerTest {
 
         Transaction transaction = createRootTransaction(sampler);
 
-        JsonNode jsonTransaction = readJsonString(serializer.toJsonString(transaction));
+        JsonNode jsonTransaction = readJsonString(writer.toJsonString(transaction));
 
         JsonNode jsonSampleRate = jsonTransaction.get("sample_rate");
         JsonNode jsonSampled = jsonTransaction.get("sampled");
@@ -1426,7 +1426,7 @@ class DslJsonSerializerTest {
         Span span = new Span(tracer);
         span.getTraceContext().asChildOf(transactionContext);
 
-        JsonNode jsonSpan = readJsonString(serializer.toJsonString(span));
+        JsonNode jsonSpan = readJsonString(writer.toJsonString(span));
 
         assertThat(jsonSpan.get("sample_rate").asDouble()).isEqualTo(0.42d);
     }
@@ -1440,7 +1440,7 @@ class DslJsonSerializerTest {
         TraceContext transactionContext = transaction.getTraceContext();
         assertThat(transactionContext.isSampled()).isFalse();
         assertThat(transactionContext.getSampleRate()).isEqualTo(0.0d);
-        JsonNode transactionSpan = readJsonString(serializer.toJsonString(transaction));
+        JsonNode transactionSpan = readJsonString(writer.toJsonString(transaction));
         assertThat(transactionSpan.get("sample_rate").asDouble()).isEqualTo(0.0d);
     }
 
@@ -1468,7 +1468,7 @@ class DslJsonSerializerTest {
             doReturn(supportsMulti).when(apmServerClient).supportsMultipleHeaderValues();
         }
 
-        JsonNode jsonTransaction = readJsonString(serializer.toJsonString(transaction));
+        JsonNode jsonTransaction = readJsonString(writer.toJsonString(transaction));
 
         JsonNode requestJson = jsonTransaction.get("context").get("request");
         JsonNode headersJson = requestJson.get("headers");
@@ -1492,10 +1492,10 @@ class DslJsonSerializerTest {
     @Test
     void testOTelSpanSerialization() {
         Span span = new Span(tracer).withName("otel span");
-        testOTelSpanSerialization(span, s -> readJsonString(serializer.toJsonString(s)));
+        testOTelSpanSerialization(span, s -> readJsonString(writer.toJsonString(s)));
 
         Transaction transaction = new Transaction(MockTracer.create()).withName("otel span");
-        testOTelSpanSerialization(transaction, t -> readJsonString(serializer.toJsonString(t)));
+        testOTelSpanSerialization(transaction, t -> readJsonString(writer.toJsonString(t)));
     }
 
     private <T extends AbstractSpan<T>> void testOTelSpanSerialization(T context, Function<T, JsonNode> toJson) {
@@ -1539,7 +1539,7 @@ class DslJsonSerializerTest {
     void testNonCompositeSpan() {
         Span span = new Span(tracer);
 
-        JsonNode jsonSpan = readJsonString(serializer.toJsonString(span));
+        JsonNode jsonSpan = readJsonString(writer.toJsonString(span));
         assertThat(jsonSpan.get("composite")).isNull();
     }
 
@@ -1548,7 +1548,7 @@ class DslJsonSerializerTest {
         Span span = new Span(tracer);
         span.getComposite().init(1234, "exact_match");
 
-        JsonNode jsonSpan = readJsonString(serializer.toJsonString(span));
+        JsonNode jsonSpan = readJsonString(writer.toJsonString(span));
         assertThat(jsonSpan.get("composite").get("count").asInt()).isEqualTo(1);
         assertThat(jsonSpan.get("composite").get("sum").asDouble()).isEqualTo(1.234);
         assertThat(jsonSpan.get("composite").get("compression_strategy").asText()).isEqualTo("exact_match");
@@ -1565,7 +1565,7 @@ class DslJsonSerializerTest {
         Map<String, byte[]> binaryTraceContextCarrier = new HashMap<>();
         parent2.propagateTraceContext(binaryTraceContextCarrier, BinaryHeaderMapAccessor.INSTANCE);
         transaction.addSpanLink(TraceContext.getFromTraceContextBinaryHeaders(), BinaryHeaderMapAccessor.INSTANCE, binaryTraceContextCarrier);
-        JsonNode transactionJson = readJsonString(serializer.toJsonString(transaction));
+        JsonNode transactionJson = readJsonString(writer.toJsonString(transaction));
         JsonNode spanLinks = transactionJson.get("links");
         assertThat(spanLinks).isNotNull();
         assertThat(spanLinks.isArray()).isTrue();
@@ -1585,9 +1585,9 @@ class DslJsonSerializerTest {
     void testSerializeLog(boolean asString) {
         String ecsJsonLog = "{\"@timestamp\":\"2022-10-27T12:38:00.593Z\",\"log.level\": \"INFO\",\"message\":\"msg\",\"ecs.version\": \"1.2.0\",\"service.name\":\"opbeans\",\"service.version\":\"0.0.1-SNAPSHOT\",\"event.dataset\":\"opbeans.console\",\"process.thread.name\":\"main\",\"log.logger\":\"logger\"}\n";
         if (asString) {
-            serializer.serializeLogNdJson(ecsJsonLog);
+            writer.serializeLogNdJson(ecsJsonLog);
         } else {
-            serializer.serializeLogNdJson(ecsJsonLog.getBytes(StandardCharsets.UTF_8));
+            writer.serializeLogNdJson(ecsJsonLog.getBytes(StandardCharsets.UTF_8));
         }
         String serializedJson = getAndResetSerializerJson();
 
@@ -1678,13 +1678,13 @@ class DslJsonSerializerTest {
                 context.addLabel(entry.getKey(), (Number) entry.getValue());
             }
         }
-        serializer.serializeLabels(context);
+        writer.serializeLabels(context);
         return getAndResetSerializerJson();
     }
 
     private String getAndResetSerializerJson() {
-        final String jsonString = serializer.jw.toString();
-        serializer.jw.reset();
+        final String jsonString = writer.jw.toString();
+        writer.jw.reset();
         return jsonString;
     }
 

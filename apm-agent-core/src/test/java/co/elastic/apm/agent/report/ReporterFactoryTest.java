@@ -22,7 +22,9 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -105,7 +107,8 @@ class ReporterFactoryTest {
         doReturn(false).when(reporterConfiguration).isVerifyServerCert();
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, configuration.getConfig(CoreConfiguration.class));
         apmServerClient.start();
-        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaDataMock.create(), ReporterMonitor.NOOP);
+        DslJsonSerializer serializer = new DslJsonSerializer(configuration.getConfig(StacktraceConfiguration.class), apmServerClient, MetaDataMock.create());
+        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, serializer, ReporterMonitor.NOOP);
         reporter.start();
 
         reporter.report(new Transaction(MockTracer.create()));
@@ -122,7 +125,8 @@ class ReporterFactoryTest {
         doReturn(true).when(reporterConfiguration).isVerifyServerCert();
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, configuration.getConfig(CoreConfiguration.class));
         apmServerClient.start();
-        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaDataMock.create(), ReporterMonitor.NOOP);
+        DslJsonSerializer serializer = new DslJsonSerializer(configuration.getConfig(StacktraceConfiguration.class), apmServerClient, MetaDataMock.create());
+        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, serializer, ReporterMonitor.NOOP);
         reporter.start();
 
         reporter.report(new Transaction(MockTracer.create()));

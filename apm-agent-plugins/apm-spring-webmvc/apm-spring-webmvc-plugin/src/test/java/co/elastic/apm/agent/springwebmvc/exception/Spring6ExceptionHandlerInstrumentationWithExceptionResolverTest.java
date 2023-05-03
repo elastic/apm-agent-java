@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.springwebmvc.exception;
 
-import co.elastic.apm.agent.springwebmvc.Java17OnlyTest;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_resolver.AbstractRestResponseStatusExceptionResolver;
+import co.elastic.apm.agent.testutils.Java17OnlyTest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.springwebmvc;
 
+import co.elastic.apm.agent.testutils.Java17OnlyTest;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;

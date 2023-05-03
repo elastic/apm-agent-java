@@ -21,9 +21,9 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-framework-bom</artifactId>
-                <version>6.0.1</version>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${version.spring-boot-3}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -36,6 +36,14 @@
             <artifactId>apm-spring-webflux-spring5</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <dependency>
+            <!-- through the spring-boot dependency management, the test app will be "updated" to spring boot 3 -->
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-spring-webflux-testapp</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
@@ -44,8 +52,30 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-test</artifactId>
-            <version>${version.reactor}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-spring-webflux-spring5</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+            <type>test-jar</type>
+        </dependency>
+
+        <!-- required for context-propagation during tests, but only at runtime -->
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-reactor-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-reactor-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+            <type>test-jar</type>
         </dependency>
     </dependencies>
 
