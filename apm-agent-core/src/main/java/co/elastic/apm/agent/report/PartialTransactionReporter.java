@@ -61,12 +61,10 @@ class PartialTransactionReporter {
             return;
         }
         try {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Reporting partial transaction {}", transaction);
-            }
+            logger.debug("Reporting partial transaction {}", transaction);
             HttpURLConnection connection = apmServer.startRequest("/register/transaction");
             if (connection == null) {
-                logger.error("Cannot report partial transaction because server url is not configured");
+                logger.debug("Cannot report partial transaction because server url is not configured");
                 return;
             }
             connection.setRequestMethod("POST");

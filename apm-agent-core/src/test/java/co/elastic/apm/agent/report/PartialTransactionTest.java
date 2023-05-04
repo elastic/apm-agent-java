@@ -99,12 +99,12 @@ public class PartialTransactionTest {
         ServerlessConfiguration serverlessConfig = spyConfig.getConfig(ServerlessConfiguration.class);
         doReturn(true).when(serverlessConfig).runsOnAwsLambda();
 
-        Transaction faasTransaction = tracer
+        Transaction tx1 = tracer
             .startRootTransaction(null)
             .withName("faas-transaction");
-        faasTransaction.getFaas().withExecution("foo-bar-id");
+        tx1.getFaas().withExecution("foo-bar-id");
 
-        faasTransaction.activate();
+        tx1.activate();
 
         assertThat(apmServer.findAll(postRequestedFor(urlEqualTo("/register/transaction"))))
             .hasSize(1)
@@ -122,18 +122,48 @@ public class PartialTransactionTest {
                 assertThatJson(metadata).inPath("$.metadata.system").isObject();
 
                 String transaction = body[1];
-                assertThatJson(transaction).inPath("$.transaction.timestamp").isEqualTo(faasTransaction.getTimestamp());
-                assertThatJson(transaction).inPath("$.transaction.id").isEqualTo(faasTransaction.getTraceContext().getId().toString());
-                assertThatJson(transaction).inPath("$.transaction.trace_id").isEqualTo(faasTransaction.getTraceContext().getTraceId().toString());
+                assertThatJson(transaction).inPath("$.transaction.timestamp").isEqualTo(tx1.getTimestamp());
+                assertThatJson(transaction).inPath("$.transaction.id").isEqualTo(tx1.getTraceContext().getId().toString());
+                assertThatJson(transaction).inPath("$.transaction.trace_id").isEqualTo(tx1.getTraceContext().getTraceId().toString());
                 assertThatJson(transaction).inPath("$.transaction.faas.execution").isEqualTo("foo-bar-id");
             });
 
-        faasTransaction.deactivate();
+        tx1.deactivate();
 
         //ensure reporting only happens after first activation
-        faasTransaction.activate();
-        faasTransaction.deactivate().end();
+        tx1.activate();
+        tx1.deactivate().end();
         apmServer.verify(1, postRequestedFor(urlEqualTo("/register/transaction")));
+
+        Transaction tx2 = tracer
+            .startRootTransaction(null)
+            .withName("second-faas-transaction");
+        tx2.getFaas().withExecution("baz-id");
+        tx2.activate();
+
+        assertThat(apmServer.findAll(postRequestedFor(urlEqualTo("/register/transaction"))))
+            .hasSize(2)
+            .element(1)
+            .satisfies(req -> {
+                assertThat(req.getHeader("Content-Type")).isEqualTo("application/vnd.elastic.apm.transaction+ndjson");
+                assertThat(req.getHeader("x-elastic-aws-request-id")).isEqualTo("baz-id");
+
+                String[] body = req.getBodyAsString().split("\n");
+                assertThat(body).hasSize(2);
+
+                String metadata = body[0];
+                assertThatJson(metadata).inPath("$.metadata.service").isObject();
+                assertThatJson(metadata).inPath("$.metadata.process").isObject();
+                assertThatJson(metadata).inPath("$.metadata.system").isObject();
+
+                String transaction = body[1];
+                assertThatJson(transaction).inPath("$.transaction.timestamp").isEqualTo(tx2.getTimestamp());
+                assertThatJson(transaction).inPath("$.transaction.id").isEqualTo(tx2.getTraceContext().getId().toString());
+                assertThatJson(transaction).inPath("$.transaction.trace_id").isEqualTo(tx2.getTraceContext().getTraceId().toString());
+                assertThatJson(transaction).inPath("$.transaction.faas.execution").isEqualTo("baz-id");
+            });
+
+        tx2.deactivate().end();
     }
 
 
