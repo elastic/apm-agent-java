@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.awssdk.v1;
 
 import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -89,11 +88,11 @@ public class S3ClientIT extends AbstractAwsClientIT {
             .otelAttribute("aws.s3.key", OBJECT_KEY)
             .execute();
 
-        newTest(() -> s3.copyObject(BUCKET_NAME, OBJECT_KEY, NEW_BUCKET_NAME, "new-key"))
+        newTest(() -> s3.copyObject(BUCKET_NAME, OBJECT_KEY, NEW_BUCKET_NAME, NEW_OBJECT_KEY))
             .operationName("CopyObject")
             .entityName(NEW_BUCKET_NAME)
             .otelAttribute("aws.s3.bucket", NEW_BUCKET_NAME)
-            .otelAttribute("aws.s3.key", "new-key")
+            .otelAttribute("aws.s3.key", NEW_OBJECT_KEY)
             .otelAttribute("aws.s3.copy_source", BUCKET_NAME + "/" + OBJECT_KEY)
             .execute();
 
@@ -124,9 +123,7 @@ public class S3ClientIT extends AbstractAwsClientIT {
             .otelAttribute("aws.s3.key", OBJECT_KEY)
             .executeWithException(AmazonS3Exception.class);
 
-        assertThat(reporter.getSpans())
-            .hasSize(10)
-            .allMatch(AbstractSpan::isSync);
+        assertThat(reporter.getSpans()).hasSize(10);
 
         transaction.deactivate().end();
 

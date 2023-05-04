@@ -47,6 +47,7 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
     protected static final String MESSAGE_BODY = "some-test-sqs-message-body";
     protected static final String NEW_BUCKET_NAME = "new-test-bucket";
     protected static final String OBJECT_KEY = "some-object-key";
+    protected static final String NEW_OBJECT_KEY = "new-key";
     protected static final String TABLE_NAME = "some-test-table";
     protected static final String KEY_CONDITION_EXPRESSION = "attributeOne = :one";
 
@@ -120,6 +121,7 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
 
         @Nullable
         private Consumer<Span> spanAssertions;
+        private boolean asyncSpans;
 
         private TestBuilder(Supplier<?> test) {
             this.test = test;
@@ -143,6 +145,11 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
 
         public TestBuilder otelAttribute(String key, Object value) {
             otelAttributes.put(key, value);
+            return this;
+        }
+
+        public TestBuilder async() {
+            this.asyncSpans = true;
             return this;
         }
 
@@ -226,6 +233,16 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
 
             for (Map.Entry<String, Object> entry : otelAttributes.entrySet()) {
                 assertThat(span).hasOtelAttribute(entry.getKey(), entry.getValue());
+            }
+
+            if (asyncSpans) {
+                assertThat(span.isSync())
+                    .describedAs("expected asynchronous span")
+                    .isFalse();
+            } else {
+                assertThat(span.isSync())
+                    .describedAs("expected synchronous span")
+                    .isTrue();
             }
 
             if (spanAssertions != null) {
