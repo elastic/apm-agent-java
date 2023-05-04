@@ -4,7 +4,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>external-plugin-otel-test</artifactId>
-        <version>1.37.1-SNAPSHOT</version>
+        <version>1.38.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>external-plugin-otel-test-app</artifactId>
@@ -30,7 +30,6 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>${version.testcontainers}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
