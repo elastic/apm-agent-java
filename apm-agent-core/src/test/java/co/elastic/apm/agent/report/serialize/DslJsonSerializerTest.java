@@ -1519,10 +1519,10 @@ class DslJsonSerializerTest {
         }
 
         // with custom otel attributes
-        context.getOtelAttributes().put("attribute.string", "hello");
-        context.getOtelAttributes().put("attribute.long", 123L);
-        context.getOtelAttributes().put("attribute.boolean", false);
-        context.getOtelAttributes().put("attribute.float", 0.42f);
+        context.withOtelAttribute("attribute.string", "hello");
+        context.withOtelAttribute("attribute.long", 123L);
+        context.withOtelAttribute("attribute.boolean", false);
+        context.withOtelAttribute("attribute.float", 0.42f);
         spanJson = toJson.apply(context);
         JsonNode otelJson = spanJson.get("otel");
         assertThat(otelJson).isNotNull();
