@@ -65,44 +65,6 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
 
     protected abstract LocalStackContainer.Service localstackService();
 
-    protected void executeTest(String operationName, @Nullable String entityName, Supplier<?> test) {
-        newTest(test)
-            .operationName(operationName)
-            .entityName(entityName)
-            .execute();
-    }
-
-    protected void executeTest(String operationName, @Nullable String entityName, Supplier<?> test, @Nullable Consumer<Span> assertions) {
-        executeTest(operationName, operationName, entityName, test, assertions);
-    }
-
-    protected void executeTest(String operationName, String action, @Nullable String entityName, Supplier<?> test) {
-        executeTest(operationName, action, entityName, test, null);
-    }
-
-    protected void executeTest(String operationName, String action, @Nullable String entityName, Supplier<?> test, @Nullable Consumer<Span> assertions) {
-
-        newTest(test)
-            .operationName(operationName)
-            .entityName(entityName)
-            .action(action)
-            .withSpanAssertions(assertions)
-            .execute();
-
-    }
-
-
-    protected void executeTestWithException(Class<? extends Exception> exceptionType, String operationName, String action, @Nullable String entityName, Supplier<?> test, @Nullable Consumer<Span> assertions) {
-
-        newTest(test)
-            .operationName(operationName)
-            .action(action)
-            .entityName(entityName)
-            .withSpanAssertions(assertions)
-            .executeWithException(exceptionType);
-
-    }
-
     public TestBuilder newTest(Supplier<?> test) {
         return new TestBuilder(test);
     }
