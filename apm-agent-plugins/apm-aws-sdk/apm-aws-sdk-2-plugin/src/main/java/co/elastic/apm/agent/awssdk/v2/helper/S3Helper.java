@@ -24,6 +24,8 @@ import co.elastic.apm.agent.tracer.Tracer;
 import software.amazon.awssdk.core.SdkRequest;
 import software.amazon.awssdk.core.http.ExecutionContext;
 
+import javax.annotation.Nullable;
+
 public class S3Helper extends AbstractS3InstrumentationHelper<SdkRequest, ExecutionContext> {
 
     private static final S3Helper INSTANCE = new S3Helper(GlobalTracer.get());
@@ -34,5 +36,17 @@ public class S3Helper extends AbstractS3InstrumentationHelper<SdkRequest, Execut
 
     public S3Helper(Tracer tracer) {
         super(tracer, SdkV2DataSource.getInstance());
+    }
+
+    @Nullable
+    @Override
+    protected String getObjectKey(SdkRequest request, String bucketName) {
+        throw new RuntimeException("TODO");
+    }
+
+    @Nullable
+    @Override
+    protected String getCopySource(SdkRequest request) {
+        throw new RuntimeException("TODO");
     }
 }
