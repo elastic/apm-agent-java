@@ -20,6 +20,13 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.39.0]]
+==== 1.39.0 - YYYY/MM/DD
+
+[float]
+===== Features
+* Added support for recording AWS lambda transactions even if the JVM crashes {pull}3134[#3134]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
