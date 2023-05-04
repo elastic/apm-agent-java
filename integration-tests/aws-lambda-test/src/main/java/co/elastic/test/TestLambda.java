@@ -29,11 +29,13 @@ public class TestLambda implements RequestHandler<String, String> {
         if (command.startsWith("sleep ")) {
             long millis = Long.parseLong(command.substring("sleep ".length()));
             doSleep(millis);
-        }
-        if ("die".equals(command)) {
+            return "slept " + millis;
+        } else if ("die".equals(command)) {
             System.exit(-42);
+        } else if ("flush".equals(command)) {
+            return "";
         }
-        return "Hello " + command;
+        throw new IllegalArgumentException("Unknown command: " + command);
     }
 
     private static void doSleep(long millis) {
