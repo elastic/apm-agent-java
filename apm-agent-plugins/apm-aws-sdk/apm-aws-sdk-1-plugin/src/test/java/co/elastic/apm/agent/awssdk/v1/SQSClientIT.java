@@ -159,7 +159,7 @@ public class SQSClientIT extends AbstractSQSClientIT {
         newTest(() -> sqsAsync.createQueueAsync(SQS_QUEUE_NAME))
             .operationName("CreateQueue")
             .entityName(SQS_QUEUE_NAME)
-            .action("CreateQueue") // TODO : check this suspicious action name
+            .action("CreateQueue")
             .withSpanAssertions(messagingAssert)
             .async()
             .execute();
@@ -180,7 +180,7 @@ public class SQSClientIT extends AbstractSQSClientIT {
         })
             .operationName("GetQueueUrl")
             .entityName(SQS_QUEUE_NAME)
-            .action("GetQueueUrl") // TODO : check this suspicious action name
+            .action("GetQueueUrl")
             .withSpanAssertions(messagingAssert)
             .async()
             .execute();
