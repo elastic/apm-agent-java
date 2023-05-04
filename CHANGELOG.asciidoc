@@ -20,6 +20,13 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.39.0]]
+==== 1.39.0 - YYYY/MM/DD
+
+[float]
+===== Features
+* Capture S3 operation details as OTel attributes - {pull}3136[#3136]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
