@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.37.1-SNAPSHOT</version>
+        <version>1.38.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>integration-tests</artifactId>
@@ -28,6 +28,7 @@
         <module>runtime-attach</module>
         <module>jakartaee-jsf-app</module>
         <module>main-app-test</module>
+        <module>aws-lambda-test</module>
     </modules>
 
     <properties>
