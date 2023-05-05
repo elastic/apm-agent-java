@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.awssdk.v2;
 
 import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,8 +62,8 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
     private final Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
 
     private static final Map<String, AttributeValue> ITEM = Stream.of(
-        new AbstractMap.SimpleEntry<>("attributeOne", AttributeValue.builder().s("valueOne").build()),
-        new AbstractMap.SimpleEntry<>("attributeTwo", AttributeValue.builder().n("10").build()))
+            new AbstractMap.SimpleEntry<>("attributeOne", AttributeValue.builder().s("valueOne").build()),
+            new AbstractMap.SimpleEntry<>("attributeTwo", AttributeValue.builder().n("10").build()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     private static final Map<String, AttributeValue> EXPRESSION_ATTRIBUTE_VALUES = Collections.singletonMap(":one", AttributeValue.builder().s("valueOne").build());
@@ -88,47 +87,69 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
     public void testDynamoDbClient() {
         Transaction transaction = startTestRootTransaction("s3-test");
 
-        executeTest("CreateTable", "query", TABLE_NAME, () -> dynamoDB.createTable(CreateTableRequest.builder()
-                .tableName(TABLE_NAME)
-                .attributeDefinitions(Arrays.asList(
-                    AttributeDefinition.builder().attributeName("attributeOne").attributeType(ScalarAttributeType.S).build(),
-                    AttributeDefinition.builder().attributeName("attributeTwo").attributeType(ScalarAttributeType.N).build()
-                ))
-                .keySchema(Arrays.asList(
-                    KeySchemaElement.builder().attributeName("attributeOne").keyType(KeyType.HASH).build(),
-                    KeySchemaElement.builder().attributeName("attributeTwo").keyType(KeyType.RANGE).build()
-                ))
-                .billingMode(BillingMode.PAY_PER_REQUEST)
-                .build()),
-            dbAssert);
+        newTest(() -> dynamoDB.createTable(CreateTableRequest.builder()
+            .tableName(TABLE_NAME)
+            .attributeDefinitions(Arrays.asList(
+                AttributeDefinition.builder().attributeName("attributeOne").attributeType(ScalarAttributeType.S).build(),
+                AttributeDefinition.builder().attributeName("attributeTwo").attributeType(ScalarAttributeType.N).build()
+            ))
+            .keySchema(Arrays.asList(
+                KeySchemaElement.builder().attributeName("attributeOne").keyType(KeyType.HASH).build(),
+                KeySchemaElement.builder().attributeName("attributeTwo").keyType(KeyType.RANGE).build()
+            ))
+            .billingMode(BillingMode.PAY_PER_REQUEST)
+            .build()))
+            .operationName("CreateTable")
+            .entityName(TABLE_NAME)
+            .action("query")
+            .withSpanAssertions(dbAssert)
+            .execute();
 
-        executeTest("ListTables", "query", null, () -> dynamoDB.listTables(), dbAssert);
+        newTest(() -> dynamoDB.listTables())
+            .operationName("ListTables")
+            .action("query")
+            .withSpanAssertions(dbAssert)
+            .execute();
 
-        executeTest("PutItem", "query", TABLE_NAME, () -> dynamoDB.putItem(PutItemRequest.builder()
-                .tableName(TABLE_NAME)
-                .item(ITEM)
-                .build()),
-            dbAssert);
+        newTest(() -> dynamoDB.putItem(PutItemRequest.builder()
+            .tableName(TABLE_NAME)
+            .item(ITEM)
+            .build()))
+            .operationName("PutItem")
+            .entityName(TABLE_NAME)
+            .action("query")
+            .withSpanAssertions(dbAssert)
+            .execute();
 
-        executeTest("Query", "query", TABLE_NAME, () -> dynamoDB.query(QueryRequest.builder()
-                .tableName(TABLE_NAME)
-                .keyConditionExpression(KEY_CONDITION_EXPRESSION)
-                .expressionAttributeValues(EXPRESSION_ATTRIBUTE_VALUES)
-                .build()),
-            dbAssert);
-        Span span = reporter.getSpanByName("DynamoDB Query " + TABLE_NAME);
-        assertThat(span.getContext().getDb()).hasStatement(KEY_CONDITION_EXPRESSION);
+        newTest(() -> dynamoDB.query(QueryRequest.builder()
+            .tableName(TABLE_NAME)
+            .keyConditionExpression(KEY_CONDITION_EXPRESSION)
+            .expressionAttributeValues(EXPRESSION_ATTRIBUTE_VALUES)
+            .build()))
+            .operationName("Query")
+            .entityName(TABLE_NAME)
+            .action("query")
+            .withSpanAssertions(dbAssert.andThen(span-> assertThat(span.getContext().getDb()).hasStatement(KEY_CONDITION_EXPRESSION)))
+            .execute();
 
-        executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDB.deleteTable(DeleteTableRequest.builder().tableName(TABLE_NAME).build()), dbAssert);
+        newTest(() -> dynamoDB.deleteTable(DeleteTableRequest.builder().tableName(TABLE_NAME).build()))
+            .operationName("DeleteTable")
+            .entityName(TABLE_NAME)
+            .action("query")
+            .withSpanAssertions(dbAssert)
+            .execute();
 
-        executeTestWithException(ResourceNotFoundException.class, "PutItem", "query", TABLE_NAME + "exception", () -> dynamoDB.putItem(PutItemRequest.builder()
-                .tableName(TABLE_NAME + "exception")
-                .item(ITEM)
-                .build()),
-            dbAssert);
+        newTest(() -> dynamoDB.putItem(PutItemRequest.builder()
+            .tableName(TABLE_NAME + "exception")
+            .item(ITEM)
+            .build()))
+            .operationName("PutItem")
+            .action("query")
+            .entityName(TABLE_NAME + "exception")
+            .withSpanAssertions(dbAssert)
+            .executeWithException(ResourceNotFoundException.class);
 
         assertThat(reporter.getSpans().size()).isEqualTo(6);
-        assertThat(reporter.getSpans()).allMatch(AbstractSpan::isSync);
 
         transaction.deactivate().end();
 
@@ -140,48 +161,77 @@ public class DynamoDbClientIT extends AbstractAwsClientIT {
     public void testDynamoDbClientAsync() {
         Transaction transaction = startTestRootTransaction("s3-test");
 
-        executeTest("CreateTable", "query", TABLE_NAME, () -> dynamoDBAsync.createTable(CreateTableRequest.builder()
-                .tableName(TABLE_NAME)
-                .attributeDefinitions(Arrays.asList(
-                    AttributeDefinition.builder().attributeName("attributeOne").attributeType(ScalarAttributeType.S).build(),
-                    AttributeDefinition.builder().attributeName("attributeTwo").attributeType(ScalarAttributeType.N).build()
-                ))
-                .keySchema(Arrays.asList(
-                    KeySchemaElement.builder().attributeName("attributeOne").keyType(KeyType.HASH).build(),
-                    KeySchemaElement.builder().attributeName("attributeTwo").keyType(KeyType.RANGE).build()
-                ))
-                .billingMode(BillingMode.PAY_PER_REQUEST)
-                .build()),
-            dbAssert);
+        newTest(() -> dynamoDBAsync.createTable(CreateTableRequest.builder()
+            .tableName(TABLE_NAME)
+            .attributeDefinitions(Arrays.asList(
+                AttributeDefinition.builder().attributeName("attributeOne").attributeType(ScalarAttributeType.S).build(),
+                AttributeDefinition.builder().attributeName("attributeTwo").attributeType(ScalarAttributeType.N).build()
+            ))
+            .keySchema(Arrays.asList(
+                KeySchemaElement.builder().attributeName("attributeOne").keyType(KeyType.HASH).build(),
+                KeySchemaElement.builder().attributeName("attributeTwo").keyType(KeyType.RANGE).build()
+            ))
+            .billingMode(BillingMode.PAY_PER_REQUEST)
+            .build()))
+            .operationName("CreateTable")
+            .entityName(TABLE_NAME)
+            .action("query")
+            .withSpanAssertions(dbAssert)
+            .async()
+            .execute();
 
-        executeTest("ListTables", "query", null, () -> dynamoDBAsync.listTables());
+        newTest(() -> dynamoDBAsync.listTables())
+            .operationName("ListTables")
+            .action("query")
+            .async()
+            .execute();
 
-        executeTest("PutItem", "query", TABLE_NAME, () -> dynamoDBAsync.putItem(PutItemRequest.builder()
-                .tableName(TABLE_NAME)
-                .item(ITEM)
-                .build()),
-            dbAssert);
+        newTest(() -> dynamoDBAsync.putItem(PutItemRequest.builder()
+            .tableName(TABLE_NAME)
+            .item(ITEM)
+            .build()))
+            .operationName("PutItem")
+            .entityName(TABLE_NAME)
+            .action("query")
+            .withSpanAssertions(dbAssert)
+            .async()
+            .execute();
 
-        executeTest("Query", "query", TABLE_NAME, () -> dynamoDBAsync.query(QueryRequest.builder()
-                .tableName(TABLE_NAME)
-                .keyConditionExpression(KEY_CONDITION_EXPRESSION)
-                .expressionAttributeValues(EXPRESSION_ATTRIBUTE_VALUES)
-                .build()),
-            dbAssert);
+        newTest(() -> dynamoDBAsync.query(QueryRequest.builder()
+            .tableName(TABLE_NAME)
+            .keyConditionExpression(KEY_CONDITION_EXPRESSION)
+            .expressionAttributeValues(EXPRESSION_ATTRIBUTE_VALUES)
+            .build()))
+            .operationName("Query")
+            .entityName(TABLE_NAME)
+            .action("query")
+            .withSpanAssertions(dbAssert)
+            .async()
+            .execute();
+
         Span span = reporter.getSpanByName("DynamoDB Query " + TABLE_NAME);
         assertThat(span.getContext().getDb()).hasStatement(KEY_CONDITION_EXPRESSION);
 
-        executeTest("DeleteTable", "query", TABLE_NAME, () -> dynamoDBAsync.deleteTable(DeleteTableRequest.builder().tableName(TABLE_NAME).build()),
-            dbAssert);
+        newTest(() -> dynamoDBAsync.deleteTable(DeleteTableRequest.builder().tableName(TABLE_NAME).build()))
+            .operationName("DeleteTable")
+            .entityName(TABLE_NAME)
+            .action("query")
+            .withSpanAssertions(dbAssert)
+            .async()
+            .execute();
 
-        executeTestWithException(CompletionException.class, "PutItem", "query", TABLE_NAME + "exception", () -> dynamoDBAsync.putItem(PutItemRequest.builder()
-                .tableName(TABLE_NAME + "exception")
-                .item(ITEM)
-                .build()),
-            dbAssert);
+        newTest(() -> dynamoDBAsync.putItem(PutItemRequest.builder()
+            .tableName(TABLE_NAME + "exception")
+            .item(ITEM)
+            .build()))
+            .operationName("PutItem")
+            .action("query")
+            .entityName(TABLE_NAME + "exception")
+            .withSpanAssertions(dbAssert)
+            .async()
+            .executeWithException(CompletionException.class);
 
         assertThat(reporter.getSpans().size()).isEqualTo(6);
-        assertThat(reporter.getSpans()).allMatch(s -> !s.isSync());
 
         transaction.deactivate().end();
 
