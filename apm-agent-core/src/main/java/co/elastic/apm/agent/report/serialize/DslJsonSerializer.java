@@ -64,6 +64,7 @@ import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import co.elastic.apm.agent.util.HexUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
@@ -685,7 +686,7 @@ public class DslJsonSerializer {
      * A writer is responsible for the serialization to a single output stream and is not thread safe.
      * It is thread safe to use different writers from the same {@link DslJsonSerializer} concurrently.
      */
-    public class Writer {
+    public class Writer implements Recyclable {
 
         // visible for testing
         final JsonWriter jw;
@@ -696,6 +697,12 @@ public class DslJsonSerializer {
         private Writer() {
             jw = new DslJson<>(new DslJson.Settings<>()).newWriter(SerializationConstants.BUFFER_SIZE);
             this.replaceBuilder = new StringBuilder(SerializationConstants.getMaxLongStringValueLength() + 1);
+        }
+
+        @Override
+        public void resetState() {
+            jw.reset();
+            os = null;
         }
 
         /**

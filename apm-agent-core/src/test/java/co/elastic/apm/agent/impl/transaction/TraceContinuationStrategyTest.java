@@ -28,7 +28,6 @@ import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
-import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -52,7 +51,7 @@ public class TraceContinuationStrategyTest {
         MockReporter reporter = new MockReporter();
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
 
-        ApmServerClient apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), config.getConfig(CoreConfiguration.class));
+        ApmServerClient apmServerClient = new ApmServerClient(config);
         apmServerClient = mock(ApmServerClient.class, delegatesTo(apmServerClient));
 
         tracerImpl = new ElasticApmTracerBuilder()

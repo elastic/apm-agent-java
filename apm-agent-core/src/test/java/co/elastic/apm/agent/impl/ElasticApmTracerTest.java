@@ -35,7 +35,6 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
-import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Scope;
 import org.junit.jupiter.api.AfterEach;
@@ -75,7 +74,7 @@ class ElasticApmTracerTest {
         reporter = new MockReporter();
         config = SpyConfiguration.createSpyConfig();
 
-        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), config.getConfig(CoreConfiguration.class));
+        apmServerClient = new ApmServerClient(config);
         apmServerClient = mock(ApmServerClient.class, delegatesTo(apmServerClient));
 
         tracerImpl = new ElasticApmTracerBuilder()

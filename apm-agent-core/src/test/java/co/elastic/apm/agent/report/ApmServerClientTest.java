@@ -19,17 +19,22 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.common.util.Version;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.source.ConfigSources;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.metadata.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.objectpool.impl.BookkeeperObjectPool;
-import co.elastic.apm.agent.common.util.Version;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.assertj.core.util.Lists;
@@ -37,6 +42,7 @@ import org.awaitility.core.ConditionFactory;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.converter.UrlValueConverter;
 
@@ -52,6 +58,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -66,6 +73,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 public class ApmServerClientTest {
 
@@ -102,7 +112,7 @@ public class ApmServerClientTest {
         config.save("server_urls", url1 + "," + url2, SpyConfiguration.CONFIG_SOURCE_NAME);
         urlList = List.of(UrlValueConverter.INSTANCE.convert(url1.toString()), UrlValueConverter.INSTANCE.convert(url2.toString()));
 
-        apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
+        apmServerClient = new ApmServerClient(config);
 
         tracer = new ElasticApmTracerBuilder()
             .withApmServerClient(apmServerClient)
@@ -116,6 +126,23 @@ public class ApmServerClientTest {
 
         //wait until the health request completes to prevent mockito race conditions
         apmServerClient.getApmServerVersion(10, TimeUnit.SECONDS);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void ensureSerializerDoesNotBlockOnAwsLambda() throws Exception {
+        doReturn(true).when(config.getConfig(ServerlessConfiguration.class)).runsOnAwsLambda();
+        ApmServerClient client = new ApmServerClient(config);
+        Future<Version> serverVersionFuture = Mockito.mock(Future.class);
+        doReturn(false).when(serverVersionFuture).isDone();
+        doThrow(new RuntimeException("Should not be called")).when(serverVersionFuture).get();
+        client.start(serverVersionFuture);
+        Future<MetaData> metadata = MetaDataMock.create();
+
+        DslJsonSerializer dslJsonSerializer = new DslJsonSerializer(config.getConfig(StacktraceConfiguration.class), client, metadata);
+        dslJsonSerializer.newWriter().blockUntilReady();
+
+        verify(serverVersionFuture, never()).get();
     }
 
     @Test
@@ -320,7 +347,7 @@ public class ApmServerClientTest {
 
     @Test
     public void testWithEmptyServerUrlList() {
-        ApmServerClient client = new ApmServerClient(reporterConfiguration, coreConfiguration);
+        ApmServerClient client = new ApmServerClient(config);
         client.start(Collections.emptyList());
         Exception exception = null;
         try {
@@ -390,7 +417,7 @@ public class ApmServerClientTest {
         }
 
         // we have to re-create client as version is cached
-        apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
+        apmServerClient = new ApmServerClient(config);
         apmServerClient.start(Collections.singletonList(UrlValueConverter.INSTANCE.convert(String.format("http://localhost:%d/", apmServer1.port()))));
 
         if (version != null) {

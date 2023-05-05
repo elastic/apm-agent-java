@@ -155,7 +155,7 @@ public class ElasticApmTracerBuilder {
         }
 
         if (apmServerClient == null) {
-            apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class), configurationRegistry.getConfig(CoreConfiguration.class));
+            apmServerClient = new ApmServerClient(configurationRegistry);
         }
 
         SerializationConstants.init(configurationRegistry.getConfig(CoreConfiguration.class));
@@ -183,7 +183,7 @@ public class ElasticApmTracerBuilder {
 
         if (reporter == null) {
             AgentReporterMetrics healthMetrics = new AgentReporterMetrics(metricRegistry, metricsConfig);
-            reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, payloadSerializer, healthMetrics);
+            reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, payloadSerializer, healthMetrics, objectPoolFactory);
         }
 
         ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, metricRegistry, reporter, objectPoolFactory, apmServerClient, ephemeralId, metaDataFuture);
