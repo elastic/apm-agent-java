@@ -184,6 +184,9 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
 
     @Override
     public Transaction activate() {
+        // why first the get() and then the getAndSet() here? get() is a cheap operation (volatile read)
+        // while getAndSet() is an atomic operation with the corresponding performance penalty
+        // therefore we only pay the price of the atomic operation on the first activation
         if (!wasActivated.get()) {
             if (!wasActivated.getAndSet(true)) {
                 onFirstActivation();
