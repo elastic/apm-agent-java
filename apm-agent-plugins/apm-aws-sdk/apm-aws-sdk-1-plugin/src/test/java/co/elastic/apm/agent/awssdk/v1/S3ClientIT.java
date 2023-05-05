@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.awssdk.v1;
 
 import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -53,25 +52,79 @@ public class S3ClientIT extends AbstractAwsClientIT {
     public void testS3Client() {
         Transaction transaction = startTestRootTransaction("s3-test");
 
-        executeTest("CreateBucket", BUCKET_NAME, () -> s3.createBucket(BUCKET_NAME));
-        executeTest("CreateBucket", NEW_BUCKET_NAME, () -> s3.createBucket(NEW_BUCKET_NAME));
-        executeTest("ListBuckets", null, () -> s3.listBuckets());
-        executeTest("PutObject", BUCKET_NAME, () -> s3.putObject(BUCKET_NAME, OBJECT_KEY, "This is some Object content"));
-        executeTest("ListObjects", BUCKET_NAME, () -> s3.listObjects(BUCKET_NAME));
-        executeTest("GetObject", BUCKET_NAME, () -> s3.getObject(BUCKET_NAME, OBJECT_KEY));
-        executeTest("CopyObject", NEW_BUCKET_NAME, () -> s3.copyObject(BUCKET_NAME, OBJECT_KEY, NEW_BUCKET_NAME, "new-key"));
-        executeTest("DeleteObject", BUCKET_NAME, () -> {
+        newTest(() -> s3.createBucket(BUCKET_NAME))
+            .operationName("CreateBucket")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .execute();
+
+        newTest(() -> s3.createBucket(NEW_BUCKET_NAME))
+            .operationName("CreateBucket")
+            .entityName(NEW_BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", NEW_BUCKET_NAME)
+            .execute();
+
+        newTest(() -> s3.listBuckets())
+            .operationName("ListBuckets")
+            .execute();
+
+        newTest(() -> s3.putObject(BUCKET_NAME, OBJECT_KEY, "This is some Object content"))
+            .operationName("PutObject")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .otelAttribute("aws.s3.key", OBJECT_KEY)
+            .execute();
+
+        newTest(() -> s3.listObjects(BUCKET_NAME))
+            .operationName("ListObjects")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .execute();
+
+        newTest(() -> s3.getObject(BUCKET_NAME, OBJECT_KEY))
+            .operationName("GetObject")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .otelAttribute("aws.s3.key", OBJECT_KEY)
+            .execute();
+
+        newTest(() -> s3.copyObject(BUCKET_NAME, OBJECT_KEY, NEW_BUCKET_NAME, NEW_OBJECT_KEY))
+            .operationName("CopyObject")
+            .entityName(NEW_BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", NEW_BUCKET_NAME)
+            .otelAttribute("aws.s3.key", NEW_OBJECT_KEY)
+            .otelAttribute("aws.s3.copy_source", BUCKET_NAME + "/" + OBJECT_KEY)
+            .execute();
+
+        newTest(() -> {
             s3.deleteObject(BUCKET_NAME, OBJECT_KEY);
             return null;
-        });
-        executeTest("DeleteBucket", BUCKET_NAME, () -> {
+        })
+            .operationName("DeleteObject")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .otelAttribute("aws.s3.key", OBJECT_KEY)
+            .execute();
+
+
+        newTest(() -> {
             s3.deleteBucket(BUCKET_NAME);
             return null;
-        });
-        executeTestWithException(AmazonS3Exception.class, "PutObject", BUCKET_NAME + "-exception", () -> s3.putObject(BUCKET_NAME + "-exception", OBJECT_KEY, "This is some Object content"));
+        })
+            .operationName("DeleteBucket")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .execute();
 
-        assertThat(reporter.getSpans().size()).isEqualTo(10);
-        assertThat(reporter.getSpans()).allMatch(AbstractSpan::isSync);
+        newTest(() -> s3.putObject(BUCKET_NAME + "-exception", OBJECT_KEY, "This is some Object content"))
+            .operationName("PutObject")
+            .entityName(BUCKET_NAME + "-exception")
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME + "-exception")
+            .otelAttribute("aws.s3.key", OBJECT_KEY)
+            .executeWithException(AmazonS3Exception.class);
+
+        assertThat(reporter.getSpans()).hasSize(10);
+
         transaction.deactivate().end();
 
         assertThat(reporter.getNumReportedErrors()).isEqualTo(1);

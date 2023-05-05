@@ -20,6 +20,7 @@ package co.elastic.apm.agent.testutils.assertions;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.tracer.Outcome;
 
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -86,6 +87,17 @@ public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, A
                 .collect(Collectors.joining(", ", "[", "]"));
             failWithMessage("Expected span-links to contain %s, but did not: %s", expectedLink, links);
         }
+        return thiz();
+    }
+
+    public SELF hasOutcome(Outcome expectedOutcome) {
+        checkObject("Expected span to have outcome %, but was %s", expectedOutcome, actual.getOutcome());
+        return thiz();
+    }
+
+    public SELF hasOtelAttribute(String key, Object expectedValue) {
+        isNotNull();
+        checkObject("Expected span to have value '%s' for attribute '" + key + "' but was '%s'  ",expectedValue, actual.getOtelAttributes().get(key));
         return thiz();
     }
 

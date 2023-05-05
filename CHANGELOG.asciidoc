@@ -25,7 +25,8 @@ endif::[]
 
 [float]
 ===== Features
-* Added support for recording AWS lambda transactions even if the JVM crashes {pull}3134[#3134]
+* Capture S3 operation details as OTel attributes - {pull}3136[#3136]
+* Added support for recording AWS lambda transactions even if the JVM crashes or runs into a timeout {pull}3134[#3134]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
