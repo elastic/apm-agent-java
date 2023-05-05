@@ -66,7 +66,7 @@ public class OTelSpan implements Span {
             behavioralAttribute = true;
         }
         if (!behavioralAttribute) {
-            span.withOTelAttribute(key.getKey(), value);
+            span.withOtelAttribute(key.getKey(), value);
         }
         return this;
     }
