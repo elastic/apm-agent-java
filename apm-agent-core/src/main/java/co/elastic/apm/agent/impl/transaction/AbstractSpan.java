@@ -336,10 +336,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return thiz();
     }
 
-    @Override
-    public T withOtelAttribute(String key, @Nullable Object value) {
-        return this.withOTelAttribute(key, value);
-    }
+
 
     @Nullable
     protected static String normalizeEmpty(@Nullable String value) {
@@ -792,7 +789,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return otelAttributes;
     }
 
-    public T withOTelAttribute(String key, @Nullable Object value) {
+    @Override
+    public T withOtelAttribute(String key, @Nullable Object value) {
         if (value != null) {
             otelAttributes.put(key, value);
         }
