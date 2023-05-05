@@ -20,7 +20,7 @@ package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.test.AgentFileAccessor;
 import co.elastic.apm.agent.test.JavaExecutable;
-import co.elastic.apm.agent.testutils.TestPort;
+import co.elastic.apm.agent.test.TestPort;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

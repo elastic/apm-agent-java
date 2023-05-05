@@ -172,6 +172,15 @@ public interface AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<
 
     T withSync(boolean sync);
 
+    /**
+     * Sets OTLP attribute value
+     *
+     * @param key   OTel attribute name (key)
+     * @param value OTel attribute value {@literal null} values will be ignored
+     * @return this
+     */
+    T withOtelAttribute(String key, @Nullable Object value);
+
     void incrementReferences();
 
     void decrementReferences();
