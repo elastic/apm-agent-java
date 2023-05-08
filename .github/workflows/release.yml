@@ -133,9 +133,15 @@ jobs:
         with:
           ref: main
           fetch-depth: 0 # Load entire history as it is required for the push-script
+      - uses: elastic/apm-pipeline-library/.github/actions/docker-login@current
+        with:
+          registry: docker.elastic.co
+          secret: secret/apm-team/ci/docker-registry/prod
+          url: ${{ secrets.VAULT_ADDR }}
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
       - name: "Build docker image"
         shell: bash
-        # TODO: add docker login
         run: |
           ./scripts/jenkins/build_docker.sh
           ./scripts/jenkins/push_docker.sh
