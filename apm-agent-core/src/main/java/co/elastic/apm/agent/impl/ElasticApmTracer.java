@@ -439,10 +439,10 @@ public class ElasticApmTracer implements Tracer {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public <T> T getConfig(Class<T> configProvider) {
         T configuration = null;
-        if (ConfigurationOptionProvider.class.isAssignableFrom(configProvider)) {
-             configuration = (T) configurationRegistry.getConfig((Class) configProvider);
-        } else if (configs.containsKey(configProvider)) {
+        if (configs.containsKey(configProvider)) {
             configuration = (T) configurationRegistry.getConfig(configs.get(configProvider));
+        } else if (ConfigurationOptionProvider.class.isAssignableFrom(configProvider)) {
+             configuration = (T) configurationRegistry.getConfig((Class) configProvider);
         }
         if (configuration == null) {
             throw new IllegalStateException("no configuration available for " + configProvider.getName());
