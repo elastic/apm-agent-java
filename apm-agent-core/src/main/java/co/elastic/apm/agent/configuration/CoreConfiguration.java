@@ -951,7 +951,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     }
 
     public boolean captureExceptionDetails(){
-        return !captureExceptionDetails.get();
+        return captureExceptionDetails.get();
     }
 
     public EventType getCaptureBody() {
