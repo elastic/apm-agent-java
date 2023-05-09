@@ -402,6 +402,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
+    private final ConfigurationOption<Boolean> captureExceptionDetails = ConfigurationOption.<Boolean>booleanOption()
+        .key("capture_exception_details")
+        .tags("internal")
+        .configurationCategory(CORE_CATEGORY)
+        .dynamic(true)
+        .buildWithDefault(true);
+
     private final ConfigurationOption<EventType> captureBody = ConfigurationOption.enumOption(EventType.class)
         .key("capture_body")
         .configurationCategory(CORE_CATEGORY)
@@ -941,6 +948,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public List<WildcardMatcher> getIgnoreExceptions() {
         return ignoreExceptions.get();
+    }
+
+    public boolean captureExceptionDetails(){
+        return !captureExceptionDetails.get();
     }
 
     public EventType getCaptureBody() {
