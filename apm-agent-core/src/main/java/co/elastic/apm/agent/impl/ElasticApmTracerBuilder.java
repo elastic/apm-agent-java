@@ -29,6 +29,7 @@ import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
+import co.elastic.apm.agent.impl.metadata.MetaDataRefreshListener;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.metrics.MetricRegistry;
@@ -42,6 +43,7 @@ import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -146,11 +148,12 @@ public class ElasticApmTracerBuilder {
     private ElasticApmTracer build(boolean startTracer) {
         boolean addApmServerConfigSource = false;
         List<LifecycleListener> lifecycleListeners = new ArrayList<>();
+        List<MetaDataRefreshListener> metaDataRefreshListeners = new ArrayList<>();
 
         if (configurationRegistry == null) {
             // setup default config registry, should be already set when testing
             addApmServerConfigSource = true;
-            configurationRegistry = getDefaultConfigurationRegistry(configSources);
+            configurationRegistry = getDefaultConfigurationRegistry(configSources, logger);
             lifecycleListeners.add(scheduleReloadAtRate(configurationRegistry, 30, TimeUnit.SECONDS));
         }
 
@@ -176,6 +179,7 @@ public class ElasticApmTracerBuilder {
             configurationRegistry.addConfigurationSource(configurationSource);
 
             lifecycleListeners.add(configurationSource);
+            metaDataRefreshListeners.add(payloadSerializer);
         }
 
         MetricsConfiguration metricsConfig = configurationRegistry.getConfig(MetricsConfiguration.class);
@@ -189,7 +193,7 @@ public class ElasticApmTracerBuilder {
         ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, metricRegistry, reporter, objectPoolFactory, apmServerClient, ephemeralId, metaDataFuture);
         lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class, tracer));
         lifecycleListeners.addAll(extraLifecycleListeners);
-        tracer.init(lifecycleListeners);
+        tracer.init(lifecycleListeners, metaDataRefreshListeners);
         if (startTracer) {
             tracer.start(false);
         }
@@ -214,7 +218,7 @@ public class ElasticApmTracerBuilder {
         });
     }
 
-    private ConfigurationRegistry getDefaultConfigurationRegistry(List<ConfigurationSource> configSources) {
+    private static ConfigurationRegistry getDefaultConfigurationRegistry(List<ConfigurationSource> configSources, Logger logger) {
         List<ConfigurationOptionProvider> providers = DependencyInjectingServiceLoader.load(ConfigurationOptionProvider.class);
         try {
             return ConfigurationRegistry.builder()
@@ -290,6 +294,27 @@ public class ElasticApmTracerBuilder {
         // lowest priority: implicit default configuration
 
         return result;
+    }
+
+    public static void awaitInitialization() {
+        ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
+        // AWS Lambda snapstart performs snapshot without invoking function handler
+        // let's complete faas feature before snapshot, and refetch it after restore
+        if (!tracer.getMetaDataFuture().getFaaSMetaDataExtensionFuture().isDone()) {
+            tracer.getMetaDataFuture().getFaaSMetaDataExtensionFuture().complete(null);
+        }
+    }
+
+    public static void reload(List<ConfigurationSource> configSources) {
+        ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
+
+        String ephemeralId = UUID.randomUUID().toString();
+        LoggingConfiguration.init(configSources, ephemeralId);
+        Logger logger = LoggerFactory.getLogger(ElasticApmTracerBuilder.class);
+
+        MetaDataFuture metaDataFuture = MetaData.create(getDefaultConfigurationRegistry(configSources, logger), ephemeralId);
+
+        tracer.refreshMetaData(ephemeralId, metaDataFuture);
     }
 
 }

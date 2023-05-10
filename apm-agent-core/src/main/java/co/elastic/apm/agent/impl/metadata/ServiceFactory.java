@@ -36,12 +36,12 @@ public class ServiceFactory {
             .withNode(new Node(coreConfiguration.getServiceNodeName()));
 
         if (serverlessConfiguration.runsOnAwsLambda()) {
-            augmentServiceForAWSLambda(service);
+            augmentServiceForAWSLambda(service, ephemeralId);
         }
         return service;
     }
 
-    private void augmentServiceForAWSLambda(Service service) {
+    private void augmentServiceForAWSLambda(Service service, String ephemeralId) {
         String runtimeName = PrivilegedActionUtils.getEnv("AWS_EXECUTION_ENV");
         runtimeName = null != runtimeName ? runtimeName : "AWS_Lambda_java";
         service.withRuntime(new RuntimeInfo(runtimeName, System.getProperty("java.version")));
@@ -52,6 +52,11 @@ public class ServiceFactory {
             String serviceNodeName = PrivilegedActionUtils.getEnv("AWS_LAMBDA_LOG_STREAM_NAME");
             if (null != serviceNodeName) {
                 service.withNode(new Node(serviceNodeName));
+            } else {
+                String functionVersion = PrivilegedActionUtils.getEnv("AWS_LAMBDA_FUNCTION_VERSION");
+                if (null != functionVersion) {
+                    service.withNode(new Node(String.format("[%s]%s", functionVersion, ephemeralId.replaceAll("-", ""))));
+                }
             }
         }
     }

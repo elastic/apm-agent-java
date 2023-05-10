@@ -65,4 +65,9 @@ public class FaaSMetaDataExtension {
     public String getRegion() {
         return region;
     }
+
+    @Nullable
+    public String getLogStreamName() {
+        return logStreamName;
+    }
 }

@@ -139,6 +139,9 @@ public class ElasticApmAgent {
     private static final ConcurrentMap<String, ClassLoader> adviceClassName2instrumentationClassLoader = new ConcurrentHashMap<>();
     private static final ConcurrentMap<String, PluginClassLoaderCustomizations> pluginPackages2pluginClassLoaderCustomizations = new ConcurrentHashMap<>();
 
+    @Nullable
+    private static List<ConfigurationSource> configSources;
+
     /**
      * Called reflectively by {@code co.elastic.apm.agent.premain.AgentMain} to initialize the agent
      *
@@ -150,12 +153,9 @@ public class ElasticApmAgent {
         ElasticApmAgent.agentJarFile = agentJarFile;
 
         // silently early abort when agent is disabled to minimize the number of loaded classes
-        List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources(agentArguments, premain);
-        for (ConfigurationSource configSource : configSources) {
-            String enabled = configSource.getValue(CoreConfiguration.ENABLED_KEY);
-            if (enabled != null && !Boolean.parseBoolean(enabled)) {
-                return;
-            }
+        ElasticApmAgent.configSources = ElasticApmTracerBuilder.getConfigSources(agentArguments, premain);
+        if (!isAgentEnabled(configSources)) {
+            return;
         }
 
         ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources)
@@ -177,6 +177,19 @@ public class ElasticApmAgent {
         GlobalTracer.init(tracer);
         // ensure classes can be instrumented before LifecycleListeners use them by starting the tracer after initializing instrumentation
         initInstrumentation(tracer, instrumentation, loadInstrumentations(tracer), premain);
+    }
+
+    private static boolean isAgentEnabled(List<ConfigurationSource> configurationSources) {
+        if (configurationSources == null) {
+            return false;
+        }
+        for (ConfigurationSource configSource : configurationSources) {
+            String enabled = configSource.getValue(CoreConfiguration.ENABLED_KEY);
+            if (enabled != null && !Boolean.parseBoolean(enabled)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Nonnull
@@ -962,6 +975,17 @@ public class ElasticApmAgent {
             return customizations.requiredOpens;
         }
         return Collections.emptyMap();
+    }
+
+    public static void awaitInitialization() {
+        ElasticApmTracerBuilder.awaitInitialization();
+    }
+
+    public static void reload() {
+        if (configSources == null) {
+            throw new IllegalStateException("ElasticApmAgent#init must be called before ElasticApmAgent#reload");
+        }
+        ElasticApmTracerBuilder.reload(configSources);
     }
 
     private static class PluginClassLoaderCustomizations {

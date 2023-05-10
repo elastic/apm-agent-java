@@ -27,6 +27,7 @@ import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
+import co.elastic.apm.agent.impl.metadata.MetaDataRefreshListener;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -88,6 +89,7 @@ public class ElasticApmTracer implements Tracer {
     private final StacktraceConfiguration stacktraceConfiguration;
     private final ApmServerClient apmServerClient;
     private final List<LifecycleListener> lifecycleListeners = new CopyOnWriteArrayList<>();
+    private final List<MetaDataRefreshListener> metaDataRefreshListeners = new CopyOnWriteArrayList<>();
     private final ObjectPool<Transaction> transactionPool;
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<ErrorCapture> errorPool;
@@ -121,8 +123,8 @@ public class ElasticApmTracer implements Tracer {
     private volatile TracerState tracerState = TracerState.UNINITIALIZED;
     private volatile boolean currentlyUnderStress = false;
     private volatile boolean recordingConfigOptionSet;
-    private final String ephemeralId;
-    private final MetaDataFuture metaDataFuture;
+    private volatile String ephemeralId;
+    private volatile MetaDataFuture metaDataFuture;
 
     static {
         checkClassloader();
@@ -626,7 +628,7 @@ public class ElasticApmTracer implements Tracer {
      *
      * @param lifecycleListeners Lifecycle listeners
      */
-    void init(List<LifecycleListener> lifecycleListeners) {
+    void init(List<LifecycleListener> lifecycleListeners, List<MetaDataRefreshListener> metaDataRefreshListeners) {
         this.lifecycleListeners.addAll(lifecycleListeners);
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             try {
@@ -635,6 +637,7 @@ public class ElasticApmTracer implements Tracer {
                 logger.error("Failed to init " + lifecycleListener.getClass().getName(), e);
             }
         }
+        this.metaDataRefreshListeners.addAll(metaDataRefreshListeners);
     }
 
     /**
@@ -927,4 +930,11 @@ public class ElasticApmTracer implements Tracer {
         return TraceContext.TRACE_TEXTUAL_HEADERS;
     }
 
+    public void refreshMetaData(String ephemeralId, MetaDataFuture metaDataFuture) {
+        this.ephemeralId = ephemeralId;
+        this.metaDataFuture = metaDataFuture;
+        for (MetaDataRefreshListener metaDataRefreshListener : metaDataRefreshListeners) {
+            metaDataRefreshListener.onMetaDataRefresh(metaDataFuture);
+        }
+    }
 }

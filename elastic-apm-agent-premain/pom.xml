@@ -13,6 +13,7 @@
     <properties>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+        <crac.version>0.1.3</crac.version>
     </properties>
 
     <dependencies>
@@ -20,6 +21,11 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-common</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.crac</groupId>
+            <artifactId>org-crac</artifactId>
+            <version>${crac.version}</version>
         </dependency>
     </dependencies>
 

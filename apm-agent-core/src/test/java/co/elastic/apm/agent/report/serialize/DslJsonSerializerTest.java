@@ -34,17 +34,7 @@ import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.metadata.Agent;
-import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
-import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
-import co.elastic.apm.agent.impl.metadata.Framework;
-import co.elastic.apm.agent.impl.metadata.Language;
-import co.elastic.apm.agent.impl.metadata.MetaData;
-import co.elastic.apm.agent.impl.metadata.MetaDataMock;
-import co.elastic.apm.agent.impl.metadata.NameAndIdField;
-import co.elastic.apm.agent.impl.metadata.ProcessInfo;
-import co.elastic.apm.agent.impl.metadata.Service;
-import co.elastic.apm.agent.impl.metadata.SystemInfo;
+import co.elastic.apm.agent.impl.metadata.*;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -1313,6 +1303,45 @@ class DslJsonSerializerTest {
             assertThat(activationMethod.isTextual()).isTrue();
             assertThat(activationMethod.asText()).isEqualTo(expectedValue);
         }
+    }
+
+    @Test
+    void testMetaDataRefresh() throws Exception {
+        DslJsonSerializer serializer = new DslJsonSerializer(
+            mock(StacktraceConfiguration.class),
+            apmServerClient,
+            MetaDataMock.create(
+                mock(ProcessInfo.class),
+                new Service(),
+                mock(SystemInfo.class),
+                createCloudProviderInfo(),
+                Collections.emptyMap(),
+                createFaaSMetaDataExtension())
+        );
+
+        writer = serializer.newWriter();
+
+        writer.blockUntilReady();
+        writer.appendMetaDataNdJsonToStream();
+        JsonNode metaDataJson = readJsonString(writer.toString()).get("metadata");
+
+        assertThat(metaDataJson.get("service").get("node")).isNull();
+
+        serializer.onMetaDataRefresh(MetaDataMock.create(
+            mock(ProcessInfo.class),
+            new Service().withNode(new Node("test-service-name")),
+            mock(SystemInfo.class),
+            createCloudProviderInfo(),
+            Collections.emptyMap(),
+            createFaaSMetaDataExtension()));
+
+        writer.jw.reset();
+        writer.blockUntilReady();
+        writer.appendMetaDataNdJsonToStream();
+        metaDataJson = readJsonString(writer.toString()).get("metadata");
+
+        assertThat(metaDataJson.get("service").get("node").get("configured_name").asText())
+            .isEqualTo("test-service-name");
     }
 
     private MetaData createMetaData() throws Exception {

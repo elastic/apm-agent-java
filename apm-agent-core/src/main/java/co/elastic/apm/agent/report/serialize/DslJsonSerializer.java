@@ -41,6 +41,7 @@ import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
 import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.Language;
 import co.elastic.apm.agent.impl.metadata.MetaData;
+import co.elastic.apm.agent.impl.metadata.MetaDataRefreshListener;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.metadata.Node;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
@@ -95,7 +96,7 @@ import static com.dslplatform.json.JsonWriter.OBJECT_END;
 import static com.dslplatform.json.JsonWriter.OBJECT_START;
 import static com.dslplatform.json.JsonWriter.QUOTE;
 
-public class DslJsonSerializer {
+public class DslJsonSerializer implements MetaDataRefreshListener {
 
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
@@ -106,9 +107,9 @@ public class DslJsonSerializer {
     private final StacktraceConfiguration stacktraceConfiguration;
     private final ApmServerClient apmServerClient;
 
-    private final Future<MetaData> metaData;
+    private transient Future<MetaData> metaData;
     @Nullable
-    private byte[] serializedMetaData;
+    private transient byte[] serializedMetaData;
     private boolean serializedActivationMethod;
 
     public DslJsonSerializer(StacktraceConfiguration stacktraceConfiguration, ApmServerClient apmServerClient, final Future<MetaData> metaData) {
@@ -155,6 +156,12 @@ public class DslJsonSerializer {
             serializeCloudProvider(metaData.getCloudProviderInfo(), metadataReplaceBuilder, metadataJW);
         }
         metadataJW.writeByte(JsonWriter.OBJECT_END);
+    }
+
+    @Override
+    public void onMetaDataRefresh(Future<MetaData> metaDataFuture) {
+        this.metaData = metaDataFuture;
+        this.serializedMetaData = null;
     }
 
     private static void serializeGlobalLabels(ArrayList<String> globalLabelKeys, ArrayList<String> globalLabelValues,

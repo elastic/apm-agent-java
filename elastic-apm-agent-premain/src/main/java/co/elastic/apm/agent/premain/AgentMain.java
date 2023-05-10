@@ -21,6 +21,9 @@ package co.elastic.apm.agent.premain;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.common.ThreadUtils;
 import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
+import org.crac.Context;
+import org.crac.Core;
+import org.crac.Resource;
 
 import java.io.File;
 import java.lang.instrument.Instrumentation;
@@ -34,8 +37,13 @@ import java.security.AllPermission;
  */
 public class AgentMain {
 
+    private static final AgentCracResource agentCracResource = new AgentCracResource();
     private static ClassLoader lookupKeyClassLoader;
     private static URLClassLoader agentClassLoader;
+
+    static {
+        Core.getGlobalContext().register(agentCracResource);
+    }
 
     /**
      * Allows the installation of this agent via the {@code javaagent} command line argument.
@@ -219,4 +227,54 @@ public class AgentMain {
         }
     }
 
+    private static void awaitAgentInitialization() {
+        if (!Boolean.getBoolean("ElasticApm.attached") || agentClassLoader == null) {
+            SystemStandardOutputLogger.stdOutInfo("Agent is not initialized, skipping agent initialization await");
+            return;
+        }
+        try {
+            Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, agentClassLoader)
+                .getMethod("awaitInitialization")
+                .invoke(null);
+        } catch (Exception e) {
+            SystemStandardOutputLogger.stdErrError("ERROR Failed to await agent initialization");
+            SystemStandardOutputLogger.printStackTrace(e);
+        }
+    }
+
+    private static void reloadAgent() {
+        if (!Boolean.getBoolean("ElasticApm.attached") || agentClassLoader == null) {
+            SystemStandardOutputLogger.stdOutInfo("Agent is not initialized, skipping agent reload");
+            return;
+        }
+        try {
+            Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, agentClassLoader)
+                .getMethod("reload")
+                .invoke(null);
+        } catch (Exception e) {
+            SystemStandardOutputLogger.stdErrError("ERROR Failed to reload agent");
+            SystemStandardOutputLogger.printStackTrace(e);
+        }
+    }
+
+    static class AgentCracResource implements Resource {
+
+        @Override
+        public void beforeCheckpoint(Context<? extends Resource> context) {
+            SystemStandardOutputLogger.stdOutInfo("Before checkpoint hook started");
+
+            AgentMain.awaitAgentInitialization();
+
+            SystemStandardOutputLogger.stdOutInfo("Before checkpoint hook finished");
+        }
+
+        @Override
+        public void afterRestore(Context<? extends Resource> context) {
+            SystemStandardOutputLogger.stdOutInfo("After snapshot hook started");
+
+            AgentMain.reloadAgent();
+
+            SystemStandardOutputLogger.stdOutInfo("After snapshot hook finished");
+        }
+    }
 }
