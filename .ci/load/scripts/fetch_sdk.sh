@@ -41,7 +41,7 @@
 
 #set -euo pipefail
 
-CATALOG_URL="https://jvm-catalog.elastic.co/jdks/tags/linux,x86_64"
+CATALOG_URL="https://jvm-catalog.elastic.co/jdk"
 JDK_ID="${1}"
 
 JDK_FOLDER="/tmp/${JDK_ID}"
@@ -49,7 +49,7 @@ JDK_FOLDER="/tmp/${JDK_ID}"
 JDK_JSON="${JDK_FOLDER}/jdk.json"
 mkdir -p "${JDK_FOLDER}"
 
-curl -s "${CATALOG_URL}" | jq ".[] | select(.id==\"${JDK_ID}\")" > "${JDK_JSON}"
+curl -s "${CATALOG_URL}/${JDK_ID}" > "${JDK_JSON}"
 if [ ! -s "${JDK_JSON}" ]
 then
   echo "unknown JDK ID = ${JDK_ID}"
