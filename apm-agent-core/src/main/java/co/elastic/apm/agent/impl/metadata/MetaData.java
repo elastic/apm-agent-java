@@ -71,9 +71,6 @@ public class MetaData {
             if (service.getFramework() == null && faasMetaDataExtension.getFramework() != null) {
                 service.withFramework(faasMetaDataExtension.getFramework());
             }
-            if ((service.getNode() == null || !service.getNode().hasContents()) && faasMetaDataExtension.getLogStreamName() != null) {
-                service.withNode(new Node(faasMetaDataExtension.getLogStreamName()));
-            }
             if (cloudProviderInfo != null) {
                 if (cloudProviderInfo.getAccount() == null) {
                     cloudProviderInfo.setAccount(faasMetaDataExtension.getAccount());
