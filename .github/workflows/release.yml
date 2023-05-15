@@ -199,13 +199,14 @@ jobs:
       - name: Compute major.x branch
         id: get_dotx_branch
         run: echo "dotx_branch=$(echo '${{ inputs.version }}' | sed -E 's/\..+/.x/')" >> $GITHUB_OUTPUT
-      - uses: ncipollo/release-action@v1
-        with:
-          tag: v${{ inputs.version }}
-          name: Release ${{ inputs.version }}
-          body: |
-            [Release Notes for ${{ inputs.version }}](https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${{ steps.get_dotx_branch.outputs.dotx_branch }}.html#release-notes-${{ inputs.version }})
-            ${{ needs.publish_aws_lambda.outputs.arn_content }}
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v${{ inputs.version }} \
+            --title="Release ${{ inputs.version }}" \
+            --notes="[Release Notes for ${{ inputs.version }}](https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${{ steps.get_dotx_branch.outputs.dotx_branch }}.html#release-notes-${{ inputs.version }})
+            ${{ needs.publish_aws_lambda.outputs.arn_content }}"
 
   bump_opbeans:
     name: "Bump Opbeans agent version"
