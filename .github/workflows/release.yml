@@ -112,12 +112,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: main
+          ref: ${{ inputs.branch }}
       - uses: elastic/apm-pipeline-library/.github/actions/setup-git@current
       - name: "Update Cloudfoundry index.yml file"
         shell: bash
         run: .ci/release/update_cloudfoundry.sh ${{ inputs.version }}
-      - run: git push origin main
+      - run: git push origin ${{ inputs.branch }}
 
 
   build_docker_images:
@@ -131,7 +131,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: main
+          ref: ${{ inputs.branch }}
           fetch-depth: 0 # Load entire history as it is required for the push-script
       - uses: elastic/apm-pipeline-library/.github/actions/docker-login@current
         with:
@@ -156,7 +156,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: main
+          ref: ${{ inputs.branch }}
       # TODO: actual lambda creation + upload
       - name: Setup dummy ARN file
         run: |
@@ -187,7 +187,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: main
+          ref: ${{ inputs.branch }}
       - name: Await release-notes published
         shell: bash
         run: |
@@ -216,10 +216,10 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: JonasKunz/opbeans-java
-          ref: main
+          ref: ${{ inputs.branch }}
       - uses: elastic/apm-pipeline-library/.github/actions/setup-git@current
       - name: Bump version
         run: |
           .ci/bump-version.sh ${{ inputs.version }}
           git tag v${{ inputs.version }}
-      - run: git push --atomic origin main v${{ inputs.version }}
+      - run: git push --atomic origin ${{ inputs.branch }} v${{ inputs.version }}
