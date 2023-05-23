@@ -21,7 +21,7 @@ package co.elastic.apm.agent.hibernatesearch.v5;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.hibernatesearch.HibernateSearchConstants;
 import co.elastic.apm.agent.hibernatesearch.HibernateSearchHelper;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -90,8 +90,8 @@ public class HibernateSearch5Instrumentation extends TracerAwareInstrumentation 
         public static void onAfterExecute(@Advice.Enter @Nullable Object span,
                                           @Advice.Thrown Throwable t) {
 
-            if (span instanceof Span) {
-                ((Span) span).captureException(t)
+            if (span instanceof Span<?>) {
+                ((Span<?>) span).captureException(t)
                     .deactivate()
                     .end();
             }

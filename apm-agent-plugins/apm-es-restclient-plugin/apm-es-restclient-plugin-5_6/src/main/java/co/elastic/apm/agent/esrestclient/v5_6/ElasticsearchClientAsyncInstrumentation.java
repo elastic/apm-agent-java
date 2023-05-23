@@ -20,7 +20,7 @@ package co.elastic.apm.agent.esrestclient.v5_6;
 
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
@@ -75,11 +75,11 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
                                                @Advice.Argument(3) @Nullable HttpEntity entity,
                                                @Advice.Argument(5) ResponseListener responseListener) {
 
-            Span span = helper.createClientSpan(method, endpoint, entity);
+            Span<?> span = helper.createClientSpan(method, endpoint, entity);
             if (span != null) {
                 Object[] ret = new Object[2];
                 ret[0] = span;
-                ret[1] = helper.wrapResponseListener(responseListener, span);
+                ret[1] = helper.wrapClientResponseListener(responseListener, span);
                 return ret;
             }
             return null;
@@ -89,7 +89,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
         public static void onAfterExecute(@Advice.Thrown @Nullable Throwable t,
                                           @Advice.Enter @Nullable Object[] entryArgs) {
             if (entryArgs != null) {
-                final Span span = (Span) entryArgs[0];
+                final Span<?> span = (Span<?>) entryArgs[0];
                 if (span != null) {
                     // Deactivate in this thread. Span will be ended and reported by the listener
                     span.deactivate();

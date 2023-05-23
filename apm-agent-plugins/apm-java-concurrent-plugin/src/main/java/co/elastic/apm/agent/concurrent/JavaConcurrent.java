@@ -19,12 +19,13 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.common.ThreadUtils;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -65,6 +66,7 @@ public class JavaConcurrent {
 
     private static boolean shouldAvoidContextPropagation(@Nullable Object executable) {
         return executable == null ||
+            Thread.currentThread().getName().startsWith(ThreadUtils.ELASTIC_APM_THREAD_PREFIX) ||
             EXCLUDED_EXECUTABLE_TYPES.contains(executable.getClass().getName()) ||
             needsContext.get() == Boolean.FALSE;
     }
@@ -251,4 +253,5 @@ public class JavaConcurrent {
             return delegate.call();
         }
     }
+
 }

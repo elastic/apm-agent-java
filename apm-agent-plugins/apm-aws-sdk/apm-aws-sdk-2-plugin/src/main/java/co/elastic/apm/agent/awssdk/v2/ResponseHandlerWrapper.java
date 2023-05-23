@@ -18,40 +18,63 @@
  */
 package co.elastic.apm.agent.awssdk.v2;
 
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
+import co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper.MessageListWrapper;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
 import org.reactivestreams.Publisher;
 import software.amazon.awssdk.core.Response;
+import software.amazon.awssdk.core.SdkRequest;
+import software.amazon.awssdk.core.SdkResponse;
 import software.amazon.awssdk.core.internal.http.TransformingAsyncResponseHandler;
 import software.amazon.awssdk.http.SdkHttpResponse;
 
+import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 
 public class ResponseHandlerWrapper<T> implements TransformingAsyncResponseHandler<Response<T>> {
 
     private final TransformingAsyncResponseHandler<Response<T>> delegate;
-    private final Span span;
+    @Nullable
+    private final Span<?> span;
+    private final SdkRequest sdkRequest;
+    private final String awsService;
 
-    public ResponseHandlerWrapper(TransformingAsyncResponseHandler<Response<T>> delegate, Span span) {
+    public ResponseHandlerWrapper(String awsService, TransformingAsyncResponseHandler<Response<T>> delegate, SdkRequest request, @Nullable Span<?> span) {
+        this.awsService = awsService;
         this.delegate = delegate;
         this.span = span;
+        this.sdkRequest = request;
     }
 
     @Override
     public CompletableFuture<Response<T>> prepare() {
         CompletableFuture<Response<T>> delegateFuture = delegate.prepare();
         delegateFuture.whenComplete((r, t) -> {
-            if (t != null) {
-                span.captureException(t);
-                span.withOutcome(Outcome.FAILURE);
-            } else if (r.exception() != null) {
-                span.captureException(r.exception());
-                span.withOutcome(Outcome.FAILURE);
-            } else {
-                span.withOutcome(Outcome.SUCCESS);
+            T response = r.response();
+            if (span != null) {
+                if (t != null) {
+                    span.captureException(t);
+                    span.withOutcome(Outcome.FAILURE);
+                } else if (r.exception() != null) {
+                    span.captureException(r.exception());
+                    span.withOutcome(Outcome.FAILURE);
+                } else {
+                    span.withOutcome(Outcome.SUCCESS);
+                }
+
+                if ("Sqs".equalsIgnoreCase(awsService) && response instanceof SdkResponse) {
+                    SQSHelper.getInstance().handleReceivedMessages(span, sdkRequest, (SdkResponse) response);
+                }
+
+                span.end();
             }
-            span.end();
+
+            if ("Sqs".equalsIgnoreCase(awsService) && response instanceof SdkResponse) {
+                MessageListWrapper.registerWrapperListForResponse(sdkRequest, (SdkResponse) response, SQSHelper.getInstance().getTracer());
+            }
+
         });
 
         return delegateFuture;
@@ -69,7 +92,7 @@ public class ResponseHandlerWrapper<T> implements TransformingAsyncResponseHandl
 
     @Override
     public void onError(Throwable throwable) {
-        if (!span.isFinished()) {
+        if (span != null && !span.isFinished()) {
             span.captureException(throwable);
             span.withOutcome(Outcome.FAILURE);
         }

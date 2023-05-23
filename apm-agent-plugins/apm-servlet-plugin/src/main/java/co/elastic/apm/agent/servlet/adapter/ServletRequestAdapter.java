@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.servlet.adapter;
 
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.sdk.state.GlobalState;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.metadata.Request;
 
 import javax.annotation.Nullable;
 import java.security.Principal;
@@ -75,6 +75,7 @@ public interface ServletRequestAdapter<HttpServletRequest, ServletContext> {
     @Nullable
     String getServletPath(HttpServletRequest servletRequest);
 
+    @Nullable
     String getPathInfo(HttpServletRequest servletRequest);
 
     Object getIncludeServletPathAttribute(HttpServletRequest servletRequest);
@@ -86,6 +87,8 @@ public interface ServletRequestAdapter<HttpServletRequest, ServletContext> {
 
     @Nullable
     Object getAttribute(HttpServletRequest request, String attributeName);
+
+    void setAttribute(HttpServletRequest request, String attributeName, Object value);
 
     @Nullable
     Object getHttpAttribute(HttpServletRequest request, String attributeName);

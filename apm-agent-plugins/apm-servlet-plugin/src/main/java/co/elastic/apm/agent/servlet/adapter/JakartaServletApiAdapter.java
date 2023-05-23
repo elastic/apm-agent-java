@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.servlet.adapter;
 
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.servlet.helper.JakartaServletRequestHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.metadata.Request;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.FilterConfig;
 import jakarta.servlet.RequestDispatcher;
@@ -196,6 +196,7 @@ public class JakartaServletApiAdapter implements ServletApiAdapter<HttpServletRe
     }
 
     @Override
+    @Nullable
     public String getPathInfo(HttpServletRequest servletRequest) {
         return servletRequest.getPathInfo();
     }
@@ -236,11 +237,17 @@ public class JakartaServletApiAdapter implements ServletApiAdapter<HttpServletRe
         return servletRequest.getAttribute(attributeName);
     }
 
+    @Override
+    public void setAttribute(HttpServletRequest servletRequest, String attributeName, Object value) {
+        servletRequest.setAttribute(attributeName, value);
+    }
+
     @Nullable
     @Override
     public Object getHttpAttribute(HttpServletRequest httpServletRequest, String attributeName) {
         return httpServletRequest.getAttribute(attributeName);
     }
+
     @Override
     public Collection<String> getHeaderNames(HttpServletResponse httpServletResponse) {
         return httpServletResponse.getHeaderNames();

@@ -18,17 +18,71 @@
  */
 package co.elastic.apm.agent.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.List;
 
 public class UrlConnectionUtils {
-    public static URLConnection openUrlConnectionThreadSafely(URL url) throws IOException {
+
+    private static final Logger logger = LoggerFactory.getLogger(UrlConnectionUtils.class);
+
+    public static URLConnection openUrlConnectionThreadSafely(URL url, boolean allowProxy) throws IOException {
         GlobalLocks.JUL_INIT_LOCK.lock();
         try {
-            return url.openConnection();
+            if (logger.isDebugEnabled()) {
+                debugPrintProxySettings(url, allowProxy);
+            }
+            if (allowProxy) {
+                return url.openConnection();
+            } else {
+                return url.openConnection(Proxy.NO_PROXY);
+            }
         } finally {
             GlobalLocks.JUL_INIT_LOCK.unlock();
+        }
+    }
+
+    private static void debugPrintProxySettings(URL url, boolean allowProxy) {
+        if (!allowProxy) {
+            logger.debug("Opening {} without proxy", url);
+            return;
+        }
+
+        ProxySelector proxySelector = PrivilegedActionUtils.getDefaultProxySelector();
+        if (proxySelector == null || proxySelector.getClass().getName().equals("sun.net.spi.DefaultProxySelector")) {
+            String proxyHostProperty = url.getProtocol() + ".proxyHost";
+            String proxyPortProperty = url.getProtocol() + ".proxyPort";
+            String proxyHost = PrivilegedActionUtils.getProperty(proxyHostProperty);
+            String proxyPort = PrivilegedActionUtils.getProperty(proxyPortProperty);
+            String nonProxyHosts = PrivilegedActionUtils.getProperty("http.nonProxyHosts"); // common to http & https
+            if (proxyHost == null || proxyHost.isEmpty()) {
+                logger.debug("Opening {} without proxy", url);
+            } else {
+                logger.debug("Opening {} with proxy settings: {}={}, {}={}, http.nonProxyHosts={}", url,
+                    proxyHostProperty, proxyHost,
+                    proxyPortProperty, proxyPort,
+                    nonProxyHosts
+                );
+            }
+        } else {
+            try {
+                List<Proxy> proxies = proxySelector.select(url.toURI());
+                String proxySelectorName = proxySelector.getClass().getName();
+                if (proxies != null && proxies.size() == 1 && proxies.get(0).equals(Proxy.NO_PROXY)) {
+                    logger.debug("Opening {} without proxy (ProxySelector {})", url, proxySelectorName);
+                } else {
+                    logger.debug("Opening {} with proxies {} (ProxySelector {})", url, proxies, proxySelectorName);
+                }
+            } catch (URISyntaxException e) {
+                logger.debug("Failed to read and debug-print proxy settings for {}", url, e);
+            }
         }
     }
 }

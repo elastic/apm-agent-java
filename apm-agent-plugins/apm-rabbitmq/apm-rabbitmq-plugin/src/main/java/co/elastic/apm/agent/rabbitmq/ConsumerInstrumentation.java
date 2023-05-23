@@ -18,9 +18,10 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.context.Message;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
+import co.elastic.apm.agent.tracer.metadata.Message;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.Envelope;
@@ -95,12 +96,12 @@ public class ConsumerInstrumentation extends RabbitmqBaseInstrumentation {
                 return null;
             }
 
-            Transaction transaction = tracer.currentTransaction();
+            Transaction<?> transaction = tracer.currentTransaction();
             if (transaction != null) {
                 return null;
             }
 
-            transaction = tracer.startChildTransaction(properties, RabbitMQTextHeaderGetter.INSTANCE, originClazz.getClassLoader());
+            transaction = tracer.startChildTransaction(properties, RabbitMQTextHeaderGetter.INSTANCE, PrivilegedActionUtils.getClassLoader(originClazz));
             if (transaction == null) {
                 return null;
             }
@@ -121,8 +122,8 @@ public class ConsumerInstrumentation extends RabbitmqBaseInstrumentation {
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
         public static void afterHandleDelivery(@Advice.Enter @Nullable final Object transactionObject,
                                                @Advice.Thrown @Nullable final Throwable throwable) {
-            if (transactionObject instanceof Transaction) {
-                Transaction transaction = (Transaction) transactionObject;
+            if (transactionObject instanceof Transaction<?>) {
+                Transaction<?> transaction = (Transaction<?>) transactionObject;
                 transaction.captureException(throwable)
                     .deactivate()
                     .end();

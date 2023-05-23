@@ -23,8 +23,7 @@ import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.db.signature.SignatureParser;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.context.ServiceTarget;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.jdbc.helper.JdbcGlobalState;
@@ -50,7 +49,7 @@ import static co.elastic.apm.agent.jdbc.helper.JdbcHelper.DB_SPAN_TYPE;
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 /**
  * Uses plain connections without a connection pool
@@ -82,7 +81,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         this.expectedDbName = expectedDbName;
         connection.createStatement().execute("CREATE TABLE ELASTIC_APM (FOO INT NOT NULL, BAR VARCHAR(255))");
         connection.createStatement().execute("ALTER TABLE ELASTIC_APM ADD PRIMARY KEY (FOO)");
-        when(config.getConfig(SpanConfiguration.class).isSpanCompressionEnabled()).thenReturn(false);
+        doReturn(false).when(config.getConfig(SpanConfiguration.class)).isSpanCompressionEnabled();
         transaction = startTestRootTransaction("jdbc-test");
         signatureParser = new SignatureParser();
         this.dbNameFromUrl = dbNameFromUrl;
@@ -411,8 +410,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         statement.execute(insert);
 
         assertThat(reporter.getSpans()).hasSize(1);
-        Db db = reporter.getFirstSpan().getContext().getDb();
-        assertThat(db.getStatement()).isEqualTo(insert);
+        assertThat(reporter.getFirstSpan().getContext().getDb()).hasInstance(expectedDbName);
     }
 
     private void assertQuerySucceededAndSpanRecorded(ResultSet resultSet, String rawSql, boolean preparedStatement) throws SQLException {
@@ -441,7 +439,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(span.getAction()).isEqualTo(DB_SPAN_ACTION);
 
         Db db = span.getContext().getDb();
-        assertThat(db.getStatement()).isEqualTo(rawSql);
+        assertThat(db).hasStatement(rawSql);
         DatabaseMetaData metaData = connection.getMetaData();
 
         assertThat(db.getUser()).isEqualToIgnoringCase(metaData.getUserName());
@@ -467,8 +465,8 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
                 .hasNoName()
                 .hasDestinationResource(expectedDbVendor);
         } else {
-            assertThat(db.getInstance())
-                .isEqualTo(expectedDbName);
+            assertThat(db)
+                .hasInstance(expectedDbInstance);
 
             assertThat(span.getContext().getServiceTarget())
                 .hasType(expectedDbVendor)
@@ -490,13 +488,13 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         Span jdbcSpan = reporter.getFirstSpan();
         StringBuilder processedSql = new StringBuilder();
         signatureParser.querySignature(rawSql, processedSql, preparedStatement);
-        assertThat(jdbcSpan.getNameAsString()).isEqualTo(processedSql.toString());
-        assertThat(jdbcSpan.getType()).isEqualTo(DB_SPAN_TYPE);
-        assertThat(jdbcSpan.getSubtype()).isEqualTo("unknown");
-        assertThat(jdbcSpan.getAction()).isEqualTo(DB_SPAN_ACTION);
+        assertThat(jdbcSpan).hasName(processedSql.toString())
+            .hasType(DB_SPAN_TYPE)
+            .hasSubType("unknown")
+            .hasAction(DB_SPAN_ACTION);
 
         Db db = jdbcSpan.getContext().getDb();
-        assertThat(db.getStatement()).isEqualTo(rawSql);
+        assertThat(db).hasStatement(rawSql);
         assertThat(db.getInstance()).isNull();
         assertThat(db.getUser()).isNull();
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
@@ -505,9 +503,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
             .describedAs("unexpected affected rows count for statement %s", rawSql)
             .isEqualTo(expectedAffectedRows);
 
-        Destination destination = jdbcSpan.getContext().getDestination();
-        assertThat(destination.getAddress()).isNullOrEmpty();
-        assertThat(destination.getPort()).isLessThanOrEqualTo(0);
+        assertThat(jdbcSpan.getContext().getDestination()).isEmpty();
 
         assertThat(jdbcSpan.getContext().getServiceTarget())
             .hasType("unknown")

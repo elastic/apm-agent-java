@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.net.MalformedURLException;
@@ -27,10 +27,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 
 
-/**
- * A complete URL, with scheme, host, port, path and query string.
- */
-public class Url implements Recyclable {
+public class Url implements Recyclable, co.elastic.apm.agent.tracer.metadata.Url {
 
     /**
      * The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
@@ -69,9 +66,7 @@ public class Url implements Recyclable {
         return protocol;
     }
 
-    /**
-     * The protocol of the request, e.g. 'https:'.
-     */
+    @Override
     public Url withProtocol(@Nullable String protocol) {
         this.protocol = protocol;
         return this;
@@ -154,9 +149,7 @@ public class Url implements Recyclable {
         return hostname;
     }
 
-    /**
-     * The hostname of the request, e.g. 'example.com'.
-     */
+    @Override
     public Url withHostname(@Nullable String hostname) {
         this.hostname = hostname;
         return this;
@@ -169,9 +162,7 @@ public class Url implements Recyclable {
         return port;
     }
 
-    /**
-     * The port of the request, e.g. 443
-     */
+    @Override
     public Url withPort(int port) {
         this.port = port;
         return this;
@@ -185,9 +176,7 @@ public class Url implements Recyclable {
         return pathname;
     }
 
-    /**
-     * The path of the request, e.g. '/search'
-     */
+    @Override
     public Url withPathname(@Nullable String pathname) {
         this.pathname = pathname;
         return this;
@@ -201,19 +190,13 @@ public class Url implements Recyclable {
         return search;
     }
 
-    /**
-     * The search describes the query string of the request. It is expected to have values delimited by ampersands.
-     */
+    @Override
     public Url withSearch(@Nullable String search) {
         this.search = search;
         return this;
     }
 
-    /**
-     * Fills all attributes of Url from {@link URI} instance, also updates full
-     *
-     * @param uri URI
-     */
+    @Override
     public void fillFrom(URI uri) {
         withProtocol(uri.getScheme())
             .withHostname(uri.getHost())
@@ -239,6 +222,20 @@ public class Url implements Recyclable {
             .withPort(port)
             .withPathname(url.getPath())
             .withSearch(url.getQuery())
+            .updateFull();
+    }
+
+    @Override
+    public void fillFrom(@Nullable String protocol,
+                         @Nullable String hostname,
+                         int port,
+                         @Nullable String pathname,
+                         @Nullable String search) {
+        withProtocol(protocol)
+            .withHostname(hostname)
+            .withPort(normalizePort(port, protocol))
+            .withPathname(pathname)
+            .withSearch(search)
             .updateFull();
     }
 

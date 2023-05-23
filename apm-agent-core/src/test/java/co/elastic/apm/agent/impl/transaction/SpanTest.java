@@ -24,6 +24,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import co.elastic.apm.agent.tracer.Outcome;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,7 +39,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SpanTest {
+public class SpanTest {
 
     private ElasticApmTracer tracer;
 
@@ -61,7 +62,7 @@ class SpanTest {
             .withUser("readonly_user");
         span.resetState();
         assertThat(span.getContext().hasContent()).isFalse();
-        assertThat(span.getNameAsString()).isNullOrEmpty();
+        assertThat(span.getNameAsString()).isEqualTo("unnamed");
         assertThat(span.getType()).isNull();
         assertThat(span.getSubtype()).isNull();
         assertThat(span.getAction()).isNull();
@@ -100,7 +101,7 @@ class SpanTest {
     void normalizeType(String type, String expectedType) {
 
         Transaction transaction = new Transaction(tracer);
-        transaction.start(TraceContext.asRoot(), null, 0, ConstantSampler.of(true));
+        transaction.startRoot(0, ConstantSampler.of(true));
         try {
             Span span = new Span(tracer);
             span.start(TraceContext.fromParent(), transaction, -1L);
@@ -195,5 +196,14 @@ class SpanTest {
             textTraceContextCarrier)
         ).isTrue();
         assertThat(testSpan.getSpanLinks()).hasSize(1);
+    }
+
+    /**
+     * A utility to enable arbitrary tests to set an existing {@link Span} state without making this functionality globally accessible
+     * @param recorded should the provided trace context be recorded
+     * @param span a span of which state is to be set
+     */
+    public static void setRecorded(boolean recorded, Span span) {
+        span.getTraceContext().setRecorded(recorded);
     }
 }

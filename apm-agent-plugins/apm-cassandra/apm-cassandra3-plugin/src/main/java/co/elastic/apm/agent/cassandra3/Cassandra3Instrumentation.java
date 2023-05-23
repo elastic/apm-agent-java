@@ -21,13 +21,14 @@ package co.elastic.apm.agent.cassandra3;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.cassandra.CassandraHelper;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.Statement;
 import com.google.common.util.concurrent.FutureCallback;
@@ -61,6 +62,7 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
     /**
      * {@link com.datastax.driver.core.SessionManager#executeAsync(Statement)}
      */
+    @SuppressWarnings("JavadocReference")
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("executeAsync")
@@ -84,8 +86,15 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.Argument(0) Statement statement) {
-            return cassandraHelper.startCassandraSpan(getQuery(statement), statement instanceof BoundStatement);
+        public static Object onEnter(@Advice.This Session thiz,
+                                     @Advice.Argument(0) Statement statement) {
+
+            // use statement keyspace (if any), then fallback to current session KS
+            String ks = statement.getKeyspace();
+            if (ks == null) {
+                ks = thiz.getLoggedKeyspace();
+            }
+            return cassandraHelper.startCassandraSpan(getQuery(statement), statement instanceof BoundStatement, ks);
         }
 
         @Nullable
@@ -102,10 +111,10 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
         public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
                                   @Advice.Return ResultSetFuture result,
                                   @Nullable @Advice.Enter Object spanObj) {
-            if (!(spanObj instanceof Span)) {
+            if (!(spanObj instanceof Span<?>)) {
                 return;
             }
-            final Span span = (Span) spanObj;
+            final Span<?> span = (Span<?>) spanObj;
             span.captureException(thrown).deactivate();
             Futures.addCallback(result, new FutureCallback<ResultSet>() {
                 @Override
@@ -121,14 +130,14 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
 
                 @Override
                 public void onFailure(Throwable t) {
-                    span.endExceptionally(t);
+                    span.captureException(t).end();
                 }
             });
         }
     }
 
     private interface DestinationAddressSetter {
-        void setDestination(Span span, Host host);
+        void setDestination(Span<?> span, Host host);
 
         class Resolver {
 
@@ -162,7 +171,7 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
             INSTANCE;
 
             @Override
-            public void setDestination(Span span, Host host) {
+            public void setDestination(Span<?> span, Host host) {
                 span.getContext().getDestination().withSocketAddress(host.getSocketAddress());
             }
         }
@@ -171,7 +180,7 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
             INSTANCE;
 
             @Override
-            public void setDestination(Span span, Host host) {
+            public void setDestination(Span<?> span, Host host) {
                 span.getContext().getDestination().withInetAddress(host.getAddress());
             }
         }

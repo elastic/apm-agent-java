@@ -18,15 +18,15 @@
  */
 package co.elastic.apm.agent.jsf;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Transaction;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -50,19 +50,19 @@ public abstract class AbstractJsfLifecycleExecuteInstrumentation extends Abstrac
             if (parent == null) {
                 return null;
             }
-            if (parent instanceof Span) {
-                Span parentSpan = (Span) parent;
+            if (parent instanceof Span<?>) {
+                Span<?> parentSpan = (Span<?>) parent;
                 if (SPAN_SUBTYPE.equals(parentSpan.getSubtype()) && SPAN_ACTION.equals(parentSpan.getAction())) {
                     return null;
                 }
             }
-            Transaction transaction = tracer.currentTransaction();
+            Transaction<?> transaction = tracer.currentTransaction();
             if (transaction != null) {
                 try {
                     if (withExternalContext) {
-                        transaction.withName(requestServletPath, PRIO_HIGH_LEVEL_FRAMEWORK);
+                        transaction.withName(requestServletPath, PRIORITY_HIGH_LEVEL_FRAMEWORK);
                         if (requestPathInfo != null) {
-                            transaction.appendToName(requestPathInfo, PRIO_HIGH_LEVEL_FRAMEWORK);
+                            transaction.appendToName(requestPathInfo, PRIORITY_HIGH_LEVEL_FRAMEWORK);
                         }
                     }
                     transaction.setFrameworkName(FRAMEWORK_NAME);
@@ -70,7 +70,7 @@ public abstract class AbstractJsfLifecycleExecuteInstrumentation extends Abstrac
                     // do nothing- rely on the default servlet name logic
                 }
             }
-            Span span = parent.createSpan()
+            Span<?> span = parent.createSpan()
                 .withType(SPAN_TYPE)
                 .withSubtype(SPAN_SUBTYPE)
                 .withAction(SPAN_ACTION)
@@ -80,8 +80,8 @@ public abstract class AbstractJsfLifecycleExecuteInstrumentation extends Abstrac
         }
 
         protected static void endAndDeactivateSpan(@Nullable Object span, @Nullable Throwable t) {
-            if (span instanceof Span) {
-                ((Span) span).captureException(t).deactivate().end();
+            if (span instanceof Span<?>) {
+                ((Span<?>) span).captureException(t).deactivate().end();
             }
         }
     }

@@ -22,9 +22,9 @@ import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.SQSEventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.transaction.Faas;
-import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Outcome;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
 
@@ -45,7 +45,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(SQSEventLambdaFunction.class.getName());
+        doReturn(SQSEventLambdaFunction.class.getName()).when(Objects.requireNonNull(serverlessConfiguration)).getAwsLambdaHandler();
         AbstractLambdaTest.initInstrumentation();
     }
 
@@ -119,6 +119,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
         Transaction transaction = reporter.getFirstTransaction();
+        assertThat(reporter.getPartialTransactions()).containsExactly(transaction);
         printTransactionJson(transaction);
 
         assertThat(transaction.getContext().getMessage().hasContent()).isFalse();

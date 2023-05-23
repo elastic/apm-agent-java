@@ -18,14 +18,11 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.objectpool.Allocator;
-import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
-import org.jctools.queues.atomic.AtomicQueueFactory;
+import co.elastic.apm.agent.tracer.pooling.Allocator;
+import co.elastic.apm.agent.tracer.pooling.ObjectPool;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletRequest;
@@ -34,7 +31,6 @@ import static co.elastic.apm.agent.servlet.ServletTransactionHelper.ASYNC_ATTRIB
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.helper.AsyncConstants.ASYNC_LISTENER_ADDED;
 import static co.elastic.apm.agent.servlet.helper.AsyncConstants.MAX_POOLED_ELEMENTS;
-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
 public class JavaxAsyncContextAdviceHelper implements AsyncContextAdviceHelper<AsyncContext> {
 
@@ -42,13 +38,10 @@ public class JavaxAsyncContextAdviceHelper implements AsyncContextAdviceHelper<A
     private final ServletTransactionHelper servletTransactionHelper;
     private final Tracer tracer;
 
-    public JavaxAsyncContextAdviceHelper(ElasticApmTracer tracer) {
+    public JavaxAsyncContextAdviceHelper(Tracer tracer) {
         this.tracer = tracer;
-        servletTransactionHelper = new ServletTransactionHelper(tracer);
-
-        asyncListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
-            AtomicQueueFactory.<JavaxApmAsyncListener>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
-            false,
+        this.servletTransactionHelper = new ServletTransactionHelper(tracer);
+        this.asyncListenerObjectPool = tracer.getObjectPoolFactory().createRecyclableObjectPool(MAX_POOLED_ELEMENTS,
             new JavaxAsyncContextAdviceHelper.ApmAsyncListenerAllocator());
     }
 
@@ -69,7 +62,7 @@ public class JavaxAsyncContextAdviceHelper implements AsyncContextAdviceHelper<A
         if (request.getAttribute(ASYNC_LISTENER_ADDED) != null) {
             return;
         }
-        final Transaction transaction = tracer.currentTransaction();
+        final Transaction<?> transaction = tracer.currentTransaction();
         if (transaction != null && transaction.isSampled() && request.getAttribute(ASYNC_LISTENER_ADDED) == null) {
             // makes sure that the listener is only added once, even if the request is wrapped
             // which leads to multiple invocations of startAsync for the same underlying request

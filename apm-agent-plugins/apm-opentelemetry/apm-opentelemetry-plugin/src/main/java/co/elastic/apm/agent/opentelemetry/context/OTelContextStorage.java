@@ -21,7 +21,7 @@ package co.elastic.apm.agent.opentelemetry.context;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.opentelemetry.sdk.OTelBridgeContext;
+import co.elastic.apm.agent.opentelemetry.tracing.OTelBridgeContext;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import io.opentelemetry.context.Context;
@@ -73,31 +73,24 @@ public class OTelContextStorage implements ContextStorage {
         }
 
         if (current instanceof OTelBridgeContext) {
-            // current context is already OTel compliant, no need to upgrade it
+            // current context has been created with this OTel, no need to wrap it
             return (Context) current;
         }
 
-        if (!(current instanceof AbstractSpan)) {
-            throw new IllegalStateException("unexpected context type to upgrade: " + current.getClass().getName());
+        AbstractSpan<?> currentSpan = current.getSpan();
+        if (currentSpan == null) {
+            // OTel context without an active span is not supported yet
+            return null;
         }
-
-        // At this stage, the currently active span is a "regular elastic span", we need to upgrade and replace it with
-        // a bridged implementation that allows to make "regular elastic span" visible in the OTel context.
-
-        logger.debug("upgrading active context {} to a bridged context", current);
-
-        tracer.deactivate(current);
 
         // Ensure that root context is being accessed at least once to capture the original root
         // OTel 1.0 directly calls ArrayBasedContext.root() which is not publicly accessible, later versions delegate
         // to ContextStorage.root() which we can't call from here either.
         Context.root();
 
-        OTelBridgeContext upgradedContext = OTelBridgeContext.wrapElasticActiveSpan(tracer, (AbstractSpan<?>) current);
-        tracer.activate(upgradedContext);
-
-        logger.debug("active context upgraded to {}", upgradedContext);
-
-        return upgradedContext;
+        // Current context hasn't been created with this OTel instance, but with another OTel plugin instance
+        // (one per external plugin) or is an Elastic context (span or transaction), thus needs wrapping to make it visible
+        // to this OTel context.
+        return tracer.wrapActiveContextIfRequired(OTelBridgeContext.class, () -> OTelBridgeContext.wrapElasticActiveSpan(tracer, currentSpan));
     }
 }

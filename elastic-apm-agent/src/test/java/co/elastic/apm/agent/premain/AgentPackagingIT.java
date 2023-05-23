@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package co.elastic.apm.agent.premain;
 
 import co.elastic.apm.agent.common.util.AgentInfo;
@@ -151,6 +152,7 @@ public class AgentPackagingIT {
             .filter(name -> name.endsWith(".esclazz"))
             .map(name -> name.substring(shadedClassesDir.length()))
             .filter(name -> name.lastIndexOf('/') > 0)
+            .filter(name -> !name.startsWith("io/opentelemetry/")) //opentelemetry is part of the agent but not visible to child classloaders
             .forEach(name -> assertThat(packagesAsPaths.stream().anyMatch(name::startsWith))
                 .describedAs(new Description() {
                     @Override

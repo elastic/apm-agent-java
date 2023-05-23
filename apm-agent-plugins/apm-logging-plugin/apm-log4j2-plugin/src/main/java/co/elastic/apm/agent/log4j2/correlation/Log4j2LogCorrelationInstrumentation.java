@@ -20,6 +20,7 @@ package co.elastic.apm.agent.log4j2.correlation;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
+import co.elastic.apm.agent.loginstr.AbstractLogIntegrationInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -41,11 +42,11 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 /**
  * Instruments {@link org.apache.logging.log4j.core.impl.LogEventFactory#createEvent}
  */
-public abstract class Log4j2LogCorrelationInstrumentation extends TracerAwareInstrumentation {
+public abstract class Log4j2LogCorrelationInstrumentation extends AbstractLogIntegrationInstrumentation {
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("log4j2-correlation");
+    protected String getLoggingInstrumentationGroupName() {
+        return LOG_CORRELATION;
     }
 
     @Override

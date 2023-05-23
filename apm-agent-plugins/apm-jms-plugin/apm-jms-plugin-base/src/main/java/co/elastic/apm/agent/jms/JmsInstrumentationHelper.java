@@ -20,14 +20,15 @@ package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 import javax.jms.Destination;
@@ -40,13 +41,12 @@ import javax.jms.TemporaryTopic;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class JmsInstrumentationHelper {
-
-    /**
-     * In some cases, dashes are not allowed in JMS Message property names
-     */
-    protected static String JMS_TRACE_PARENT_PROPERTY = TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME.replace('-', '_');
 
     /**
      * When the agent computes a destination name instead of using the default queue name- it should be passed as a
@@ -83,19 +83,41 @@ public class JmsInstrumentationHelper {
     static final String FRAMEWORK_NAME = "JMS";
 
     private static final Logger logger = LoggerFactory.getLogger(JmsInstrumentationHelper.class);
-    private final ElasticApmTracer tracer;
+
+    private static final JmsInstrumentationHelper INSTANCE = new JmsInstrumentationHelper(GlobalTracer.get());
+
+    private final Tracer tracer;
     private final CoreConfiguration coreConfiguration;
     private final MessagingConfiguration messagingConfiguration;
+    private final Set<String> jmsTraceHeaders = new HashSet<>();
+    private final Map<String, String> translatedTraceHeaders = new HashMap<>();
 
-    public JmsInstrumentationHelper(ElasticApmTracer tracer) {
+    public static JmsInstrumentationHelper get() {
+        return INSTANCE;
+    }
+
+    private JmsInstrumentationHelper(Tracer tracer) {
         this.tracer = tracer;
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
+        Set<String> traceHeaders = tracer.getTraceHeaderNames();
+        for (String traceHeader : traceHeaders) {
+            String jmsTraceHeader = traceHeader.replace('-', '_');
+            if (!jmsTraceHeaders.add(jmsTraceHeader)) {
+                throw new IllegalStateException("Ambiguous translation of trace headers into JMS-compatible format: " + traceHeaders);
+            }
+            translatedTraceHeaders.put(traceHeader, jmsTraceHeader);
+        }
+    }
+
+    public String resolvePossibleTraceHeader(String header) {
+        String translation = translatedTraceHeaders.get(header);
+        return translation == null ? header : translation;
     }
 
     @SuppressWarnings("Duplicates")
     @Nullable
-    public Span startJmsSendSpan(Destination destination, Message message) {
+    public Span<?> startJmsSendSpan(Destination destination, Message message) {
 
         final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan == null) {
@@ -112,7 +134,7 @@ public class JmsInstrumentationHelper {
             return null;
         }
 
-        Span span = activeSpan.createExitSpan();
+        Span<?> span = activeSpan.createExitSpan();
 
         if (span == null) {
             return null;
@@ -142,16 +164,12 @@ public class JmsInstrumentationHelper {
     }
 
     @Nullable
-    public Transaction startJmsTransaction(Message parentMessage, Class<?> instrumentedClass) {
-        Transaction transaction = tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), instrumentedClass.getClassLoader());
+    public Transaction<?> startJmsTransaction(Message parentMessage, Class<?> instrumentedClass) {
+        Transaction<?> transaction = tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), PrivilegedActionUtils.getClassLoader(instrumentedClass));
         if (transaction != null) {
             transaction.setFrameworkName(FRAMEWORK_NAME);
         }
         return transaction;
-    }
-
-    public void makeChildOf(Transaction childTransaction, Message parentMessage) {
-        TraceContext.<Message>getFromTraceContextTextHeaders().asChildOf(childTransaction.getTraceContext(), parentMessage, JmsMessagePropertyAccessor.instance());
     }
 
     @Nullable
@@ -243,7 +261,7 @@ public class JmsInstrumentationHelper {
             return;
         }
         try {
-            co.elastic.apm.agent.impl.context.Message messageContext = span.getContext().getMessage();
+            co.elastic.apm.agent.tracer.metadata.Message messageContext = span.getContext().getMessage();
 
             // Currently only capturing body of TextMessages. The javax.jms.Message#getBody() API is since 2.0, so,
             // if we are supporting JMS 1.1, it makes no sense to rely on isAssignableFrom.
@@ -257,12 +275,13 @@ public class JmsInstrumentationHelper {
                 messageContext.addHeader(JMS_EXPIRATION_HEADER, String.valueOf(message.getJMSExpiration()));
                 messageContext.addHeader(JMS_TIMESTAMP_HEADER, String.valueOf(message.getJMSTimestamp()));
 
-                Enumeration properties = message.getPropertyNames();
+                Enumeration<?> properties = message.getPropertyNames();
                 if (properties != null) {
                     while (properties.hasMoreElements()) {
                         String propertyName = String.valueOf(properties.nextElement());
-                        if (!propertyName.equals(JMS_DESTINATION_NAME_PROPERTY) && !propertyName.equals(JMS_TRACE_PARENT_PROPERTY)
-                            && WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), propertyName) == null) {
+                        if (!propertyName.equals(JMS_DESTINATION_NAME_PROPERTY) &&
+                            !jmsTraceHeaders.contains(propertyName) &&
+                            WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), propertyName) == null) {
                             messageContext.addHeader(propertyName, String.valueOf(message.getObjectProperty(propertyName)));
                         }
                     }

@@ -18,9 +18,8 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderSetter;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
@@ -134,7 +133,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                     return null;
                 }
 
-                Span exitSpan = RabbitMqHelper.createExitSpan(exchange);
+                Span<?> exitSpan = RabbitMqHelper.createExitSpan(exchange);
                 if (exitSpan == null) {
                     // tracer disabled or ignored exchange or this is nested within another exit span
                     return null;
@@ -154,7 +153,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                 return new Object[]{properties, exitSpan};
             }
 
-            private static AMQP.BasicProperties propagateTraceContext(Span exitSpan,
+            private static AMQP.BasicProperties propagateTraceContext(Span<?> exitSpan,
                                                                       @Nullable AMQP.BasicProperties originalBasicProperties) {
                 AMQP.BasicProperties properties = originalBasicProperties;
                 if (properties == null) {
@@ -177,7 +176,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
             public static void afterBasicPublish(@Advice.Enter @Nullable Object[] enterArray,
                                                  @Advice.Thrown @Nullable Throwable throwable) {
                 if (enterArray != null && enterArray.length >= 2 && enterArray[1] != null) {
-                    Span span = (Span) enterArray[1];
+                    Span<?> span = (Span<?>) enterArray[1];
                     span.captureException(throwable)
                         .deactivate()
                         .end();
@@ -219,10 +218,10 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                                       @Advice.Return @Nullable GetResponse rv,
                                       @Advice.Thrown @Nullable Throwable thrown) {
 
-                if (!(objSpan instanceof Span)) {
+                if (!(objSpan instanceof Span<?>)) {
                     return;
                 }
-                Span span = (Span) objSpan;
+                Span<?> span = (Span<?>) objSpan;
 
                 if (isIgnored(queue)) {
                     // allow to ignore on queue name when there is no answer
@@ -254,10 +253,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                 RabbitMqHelper.captureDestination(exchange, connection.getAddress(), connection.getPort(), span);
 
                 if (properties != null) {
-                    span.addSpanLink(
-                        TraceContext.<AMQP.BasicProperties>getFromTraceContextTextHeaders(),
-                        RabbitMQTextHeaderGetter.INSTANCE,
-                        properties);
+                    span.addLink(RabbitMQTextHeaderGetter.INSTANCE, properties);
                 }
 
                 span.captureException(thrown)
@@ -275,12 +271,12 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
          * @return exit span if applicable, {@literal null} otherwise
          */
         @Nullable
-        public static Span createExitSpan(@Nullable String exchangeOrQueue) {
+        public static Span<?> createExitSpan(@Nullable String exchangeOrQueue) {
             AbstractSpan<?> context = tracer.getActive();
             if (exchangeOrQueue == null || context == null || isIgnored(exchangeOrQueue)) {
                 return null;
             }
-            Span exitSpan = context.createExitSpan();
+            Span<?> exitSpan = context.createExitSpan();
             if (exitSpan == null) {
                 return null;
             }
@@ -298,7 +294,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
          * @param port          broker port
          * @param span          span
          */
-        public static void captureDestination(String exchange, InetAddress brokerAddress, int port, Span span) {
+        public static void captureDestination(String exchange, InetAddress brokerAddress, int port, Span<?> span) {
             span.getContext().getDestination()
                 .withInetAddress(brokerAddress)
                 .withPort(port);

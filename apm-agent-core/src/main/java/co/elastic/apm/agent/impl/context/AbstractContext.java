@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public abstract class AbstractContext implements Recyclable {
+public abstract class AbstractContext implements Recyclable, co.elastic.apm.agent.tracer.AbstractContext {
 
     public static final String REDACTED_CONTEXT_STRING = "[REDACTED]";
 
@@ -72,6 +72,7 @@ public abstract class AbstractContext implements Recyclable {
         return !labels.isEmpty();
     }
 
+    @Override
     public Message getMessage() {
         return message;
     }

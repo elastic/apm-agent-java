@@ -1,0 +1,257 @@
+name: main
+
+on:
+  workflow_dispatch:
+    inputs:
+      # enabled by default, required for merge through default GH check
+      test_ci:
+        description: 'Enable Unit tests'
+        default: true
+        required: false
+        type: boolean
+      # disabled by default, but required for merge, there are two GH checks:
+      # - Non-Application Server integration tests
+      # - Application Server integration tests
+      # opt-in with 'ci:agent-integration'
+      agent_integration_tests_ci:
+        description: 'Enable Agent Integration tests'
+        default: false
+        required: false
+        type: boolean
+      # disabled by default, not required for merge
+      # used by the daily job .github/workflows/daily.yml
+      # opt-in with 'ci:jdk-compatibility' tag on PR
+      jdk_compatibility_ci:
+        description: 'Enable JDK compatibility tests'
+        default: false
+        required: false
+        type: boolean
+      # disabled by default, not required for merge
+      # used by the daily job .github/workflows/daily.yml
+      # opt-in with 'ci:windows' tag on PR
+      windows_ci:
+        description: 'Enable Windows build & tests'
+        default: false
+        required: false
+        type: boolean
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - '**.asciidoc'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+      - ready_for_review
+    paths-ignore:
+      - '**.md'
+      - '**.asciidoc'
+
+# limit the access of the generated GITHUB_TOKEN
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/workflows/maven-goal
+        with:
+          command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
+      - uses: ./.github/workflows/stash
+        with:
+          name: build
+          path: ${{ github.workspace }}
+      - name: Upload agent binaries as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: elastic-apm-agent
+          path: ./elastic-apm-agent/target/elastic-apm-agent-*.jar
+      - name: Upload agent java 8 binaries as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: elastic-apm-agent-java8
+          path: ./elastic-apm-agent-java8/target/elastic-apm-agent-java8-*.jar
+
+  license:
+    name: License
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/workflows/unstash
+        with:
+          name: build
+          path: ${{ github.workspace }}
+      - name: install artifacts
+        uses: ./.github/workflows/maven-goal
+        with:
+          # Need to install packages in m2 local repository
+          command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
+      - name: mvn license
+        run: ./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
+
+  unit-tests:
+    name: Unit Tests
+    # Inputs aren't defined on some events
+    # When undefined, we need to emulate the default value
+    if: inputs.test_ci == true || inputs.test_ci == null
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/workflows/unstash
+        with:
+          name: build
+          path: ${{ github.workspace }}
+      - uses: ./.github/workflows/maven-goal
+        with:
+          command: ./mvnw test -DargLine="-Delastic.apm.overwrite.config.docs=false"
+      - name: Store test results
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            **/junit-*.xml
+            **/TEST-*.xml
+
+  non-app-server-integration-tests:
+    name: Non-Application Server integration tests
+    if: |
+      contains(github.event.pull_request.labels.*.name, 'ci:agent-integration')
+      || github.event.pull_request.draft == false
+      || inputs.agent_integration_tests_ci == true
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/workflows/unstash
+        with:
+          name: build
+          path: ${{ github.workspace }}
+      - uses: ./.github/workflows/maven-goal
+        with:
+          command: ./mvnw -q -P ci-non-application-server-integration-tests verify
+      - name: Store test results
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            **/junit-*.xml
+            **/TEST-*.xml
+
+  app-server-integration-tests:
+    name: Application Server integration tests
+    if: |
+      contains(github.event.pull_request.labels.*.name, 'ci:agent-integration')
+      || github.event.pull_request.draft == false
+      || inputs.agent_integration_tests_ci == true
+    # Pinned to ubuntu 20.04 until https://github.com/elastic/apm-agent-java/issues/3035 is solved.
+    runs-on: ubuntu-20.04
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/workflows/unstash
+        with:
+          name: build
+          path: ${{ github.workspace }}
+      - uses: ./.github/workflows/maven-goal
+        with:
+          command: ./mvnw -q -P ci-application-server-integration-tests verify
+      - name: Store test results
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            **/junit-*.xml
+            **/TEST-*.xml
+
+  javadoc:
+    name: Javadoc
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/workflows/unstash
+        with:
+          name: build
+          path: ${{ github.workspace }}
+      - uses: ./.github/workflows/maven-goal
+        with:
+          command: ./mvnw compile javadoc:javadoc
+
+  unit-tests-windows:
+    name: Build & Test Windows
+    # Inputs aren't defined on some events
+    # When undefined, we need to emulate the default value
+    if: |
+      (inputs.test_ci == true || inputs.test_ci == null)
+      && (contains(github.event.pull_request.labels.*.name, 'ci:windows')
+        || inputs.windows_ci == true)
+    runs-on: windows-latest
+    steps:
+      - name: Support longpaths
+        run: git config --system core.longpaths true
+      - uses: actions/checkout@v3
+      - uses: ./.github/workflows/maven-goal
+        with:
+          command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
+      - name: Run tests
+        run: ./mvnw test
+      - name: Store test results
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            **/junit-*.xml
+            **/TEST-*.xml
+
+  jdk-compatibility-tests:
+    name: JDK Compatibility Tests
+    if: |
+      contains(github.event.pull_request.labels.*.name, 'ci:jdk-compatibility')
+      || inputs.jdk_compatibility_ci == true
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false #Even if the tests fail on one JDK we want to know if it also fails on others
+      matrix:
+        include:
+          - version: 11
+            distribution: 'temurin'
+          - version: 17
+            distribution: 'temurin'
+          - version: 20
+            distribution: 'temurin'
+          - version: 21-ea
+            distribution: 'zulu'
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/workflows/maven-goal
+        with:
+          test-java-version: ${{ matrix.version }}
+          test-java-distribution: ${{ matrix.distribution }}
+          command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
+      - name: Run tests for ${{ matrix.version }}:${{ matrix.distribution }}
+        run: ./mvnw test -Dtest_java_binary=${{ env.TEST_JAVA_BINARY }}
+      - name: Store test results
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            **/junit-*.xml
+            **/TEST-*.xml

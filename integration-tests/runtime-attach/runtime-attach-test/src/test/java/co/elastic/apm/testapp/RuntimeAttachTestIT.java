@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.testapp;
 
+import co.elastic.apm.agent.test.AgentFileAccessor;
+import co.elastic.apm.agent.test.JavaExecutable;
 import com.sun.tools.attach.VirtualMachine;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -33,8 +35,6 @@ import javax.management.remote.JMXServiceURL;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -50,7 +50,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -307,45 +306,19 @@ class RuntimeAttachTestIT {
     }
 
     public ProcessHandle startAttacherForkedJvm(List<String> args) {
-        return startForkedJvm(getCliAttachJar(), args);
+        return startForkedJvm(AgentFileAccessor.getPathToAttacher(), args);
     }
 
     private Path getAppJar() {
-        return getClassJarLocation("runtime-attach-app", "co.elastic.apm.testapp.AppMain");
-    }
-
-    private Path getCliAttachJar() {
-        return getClassJarLocation("apm-agent-attach-cli", "co.elastic.apm.attach.AgentAttacher");
-    }
-
-    // might be later refactored and merged with AgentFileAccessor as it provides similar features
-    private Path getClassJarLocation(String jarPrefix, String className) {
-        Class<?> main;
-        try {
-            main = Class.forName(className);
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException(e);
-        }
-        URL location = main.getProtectionDomain().getCodeSource().getLocation();
-        Path path = null;
-        try {
-            // get path through URI is required on Windows because raw path starts with drive letter '/C:/'
-            path = Paths.get(location.toURI());
-        } catch (URISyntaxException e) {
-            throw new IllegalStateException(e);
-        }
-
-        if (path.endsWith(Paths.get("target", "classes"))) {
-            return findJar(path.getParent(), jarPrefix);
-        } else {
-            return path;
-        }
-
+        return AgentFileAccessor.getArtifactPath(
+            Path.of("integration-tests", "runtime-attach", "runtime-attach-app"),
+            "",
+            ".jar");
     }
 
     private ProcessHandle startForkedJvm(Path executableJar, List<String> args) {
         ArrayList<String> cmd = new ArrayList<>();
-        cmd.add(getJavaBinaryPath());
+        cmd.add(JavaExecutable.getBinaryPath());
         cmd.add("-jar");
         cmd.add(executableJar.toString());
         cmd.addAll(args);
@@ -363,37 +336,6 @@ class RuntimeAttachTestIT {
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
-    }
-
-    private static String getJavaBinaryPath() {
-        boolean isWindows = System.getProperty("os.name").startsWith("Windows");
-        String executable = isWindows ? "java.exe" : "java";
-        Path path = Paths.get(System.getProperty("java.home"), "bin", executable);
-        if (!Files.isExecutable(path)) {
-            throw new IllegalStateException("unable to find java path");
-        }
-        return path.toAbsolutePath().toString();
-    }
-
-    private static Path findJar(Path folder, String jarPrefix) {
-        Stream<Path> found;
-        try {
-            found = Files.find(folder, 1,
-                (path, basicFileAttributes) -> {
-                    String fileName = path.getFileName().toString();
-                    return fileName.startsWith(jarPrefix)
-                        && fileName.endsWith(".jar")
-                        && !fileName.endsWith("-javadoc.jar")
-                        && !fileName.endsWith("-sources.jar")
-                        && !fileName.endsWith("-slim.jar");
-                }
-            );
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
-        return found.findFirst().orElseThrow(() -> {
-            throw new IllegalStateException(String.format("Unable to find packaged test application in folder : %s, make sure to run 'mvn package' in folder '%s' first", folder.toAbsolutePath(), folder.toAbsolutePath().getParent()));
-        });
     }
 
     private static void terminateJvm(ProcessHandle jvm) {

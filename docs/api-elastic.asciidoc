@@ -29,7 +29,7 @@ compile "co.elastic.apm:apm-agent-api:$elasticApmVersion"
 ----
 
 Replace the version placeholders with the
-link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:apm-agent-api[
+link:https://mvnrepository.com/artifact/co.elastic.apm/apm-agent-api/latest[
 latest version from maven central]:
 image:https://img.shields.io/maven-central/v/co.elastic.apm/apm-agent-api.svg[Maven Central]
 
@@ -237,14 +237,15 @@ and <<api-transaction-end, `transaction.end()`>>
 Annotating a method with `@CaptureSpan` creates a span as the child of the currently active span or transaction
 (<<api-current-span>>).
 
-When there is no current span,
-no span will be created.
+When there is no current span or transaction, no span will be created.
 
 * `value`: The name of the span. Defaults to `ClassName#methodName`
 * `type`: The type of the span, e.g. `db` for DB span. Defaults to `app`
 * `subtype`: The subtype of the span, e.g. `mysql` for DB span. Defaults to empty string
 * `action`: The action related to the span, e.g. `query` for DB spans. Defaults to empty string
 * `discardable`: By default, spans may be discarded in certain scenarios. Set this attribute to `false` to make this span non-discardable.
+* `exit`: By default, spans are internal spans, making it an exit span prevents the creation of nested spans and is intended
+to represent calls to an external system like a database or third-party service.
 
 NOTE: Using this annotation implicitly creates a Span and activates it when entering the annotated
 method. It also implicitly ends it and deactivates it before exiting the annotated method.
@@ -256,8 +257,7 @@ See <<api-span-start-span, `startSpan()`>>, <<api-span-start-span-with-type, `st
 ==== `@Traced`  added[1.11.0]
 Annotating a method with `@Traced` creates a span as the child of the currently active span or transaction.
 
-When there is no current span,
-a transaction will be created instead.
+When there is no current span, a transaction will be created instead.
 
 Use this annotation over <<api-capture-span>> or <<api-capture-transaction>> if a method can both be an entry point (a transaction)
 or a unit of work within a transaction (a span).
@@ -266,7 +266,8 @@ or a unit of work within a transaction (a span).
 * `type`: The type of the span or transaction. Defaults to `request` for transactions and `app` for spans
 * `subtype`: The subtype of the span, e.g. `mysql` for DB span. Defaults to empty string. Has no effect when a transaction is created.
 * `action`: The action related to the span, e.g. `query` for DB spans. Defaults to empty string. Has no effect when a transaction is created.
-* `discardable`: By default, spans may be discarded in certain scenarios. Set this attribute to `false` to make a span non-discardable.
+* `discardable`: By default, spans may be discarded in certain scenarios. Set this attribute to `false` to make this span non-discardable.
+This attribute has no effect if the created event is a Transaction.
 
 NOTE: Using this annotation implicitly creates a span or transaction and activates it when entering the annotated
 method. It also implicitly ends it and deactivates it before exiting the annotated method.
@@ -503,7 +504,7 @@ preferably before other JS libraries:
 <script>
   elasticApm.init({
     serviceName: "service-name",
-    serverUrl: "http://localhost:8200",
+    serverUrl: "http://127.0.0.1:8200",
     pageLoadTraceId: "${transaction.traceId}",
     pageLoadSpanId: "${transaction.ensureParentId()}",
     pageLoadSampled: ${transaction.sampled}

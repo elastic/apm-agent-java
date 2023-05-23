@@ -1,2 +1,25 @@
-co.elastic.apm.agent.ecs_logging.Log4j2ServiceNameInstrumentation
-co.elastic.apm.agent.ecs_logging.Log4j2ServiceVersionInstrumentation
+# log4j 1.x
+co.elastic.apm.agent.ecs_logging.log4j1.Log4jEcsServiceInstrumentation$Name
+co.elastic.apm.agent.ecs_logging.log4j1.Log4jEcsServiceInstrumentation$Version
+co.elastic.apm.agent.ecs_logging.log4j1.Log4jEcsServiceInstrumentation$Environment
+
+# log4j 2.x
+co.elastic.apm.agent.ecs_logging.log4j2.Log4j2ServiceInstrumentation$Name
+co.elastic.apm.agent.ecs_logging.log4j2.Log4j2ServiceInstrumentation$Version
+co.elastic.apm.agent.ecs_logging.log4j2.Log4j2ServiceInstrumentation$Environment
+
+# JUL
+co.elastic.apm.agent.ecs_logging.jul.JulEcsMdcInstrumentation
+co.elastic.apm.agent.ecs_logging.jul.JulEcsServiceInstrumentation$Name
+co.elastic.apm.agent.ecs_logging.jul.JulEcsServiceInstrumentation$Version
+co.elastic.apm.agent.ecs_logging.jul.JulEcsServiceInstrumentation$Environment
+
+# Logback
+co.elastic.apm.agent.ecs_logging.logback.LogBackServiceInstrumentation$Name
+co.elastic.apm.agent.ecs_logging.logback.LogBackServiceInstrumentation$Version
+co.elastic.apm.agent.ecs_logging.logback.LogBackServiceInstrumentation$Environment
+
+# JBoss
+co.elastic.apm.agent.ecs_logging.jbosslogging.JbossEcsServiceInstrumentation$Name
+co.elastic.apm.agent.ecs_logging.jbosslogging.JbossEcsServiceInstrumentation$Version
+co.elastic.apm.agent.ecs_logging.jbosslogging.JbossEcsServiceInstrumentation$Environment

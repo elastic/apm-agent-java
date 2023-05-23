@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.dubbo.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.metadata.Destination;
 
 import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
@@ -34,19 +34,25 @@ public class DubboTraceHelper {
     public static final String SPAN_KEY = "_elastic_apm_span";
 
     @Nullable
-    public static Span createConsumerSpan(ElasticApmTracer tracer, Class<?> apiClass, String methodName, InetSocketAddress remoteAddress) {
+    public static Span<?> createConsumerSpan(Tracer tracer, Class<?> apiClass, String methodName, InetSocketAddress remoteAddress) {
         AbstractSpan<?> traceContext = tracer.getActive();
         if (traceContext == null) {
             return null;
         }
-        Span span = traceContext.createExitSpan();
+        Span<?> span = traceContext.createExitSpan();
         if (span == null) {
             return null;
         }
 
         span.withType(EXTERNAL_TYPE)
             .withSubtype(DUBBO_SUBTYPE);
-        span.updateName(apiClass, methodName);
+
+        StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIORITY_DEFAULT);
+        if (spanName != null) {
+            String className = apiClass.getName();
+            spanName.append(className, className.lastIndexOf('.') + 1, className.length());
+            spanName.append("#").append(methodName);
+        }
 
         Destination destination = span.getContext().getDestination();
         destination.withInetSocketAddress(remoteAddress);
@@ -59,8 +65,13 @@ public class DubboTraceHelper {
         return span.activate();
     }
 
-    public static void fillTransaction(Transaction transaction, Class<?> apiClass, String methodName) {
-        transaction.updateName(apiClass, methodName);
+    public static void fillTransaction(Transaction<?> transaction, Class<?> apiClass, String methodName) {
+        StringBuilder spanName = transaction.getAndOverrideName(AbstractSpan.PRIORITY_DEFAULT);
+        if (spanName != null) {
+            String className = apiClass.getName();
+            spanName.append(className, className.lastIndexOf('.') + 1, className.length());
+            spanName.append("#").append(methodName);
+        }
         transaction.withType(Transaction.TYPE_REQUEST);
     }
 }

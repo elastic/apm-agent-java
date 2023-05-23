@@ -19,11 +19,11 @@
 package co.elastic.apm.agent.javalin;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import io.javalin.http.Context;
@@ -45,7 +45,7 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -85,7 +85,7 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
 
     public static class HandlerAdapterAdvice {
 
-        private static final WebConfiguration webConfig = GlobalTracer.requireTracerImpl().getConfig(WebConfiguration.class);
+        private static final WebConfiguration webConfig = GlobalTracer.get().getConfig(WebConfiguration.class);
 
         // never invoked, only used to cache the fact that the io.javalin.http.Context#handlerType() method is unavailable in this Javalin version
         private static final MethodHandle NOOP = MethodHandles.constant(String.class, "Non-supported Javalin version");
@@ -137,7 +137,7 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
                 return null;
             }
 
-            final Transaction transaction = tracer.currentTransaction();
+            final Transaction<?> transaction = tracer.currentTransaction();
             if (transaction == null) {
                 return null;
             }
@@ -151,7 +151,7 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
 
             // transaction name gets only set if we are dealing with a HTTP method processing, not before/after handlers
             if (handlerType.isHttpMethod()) {
-                final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, false);
+                final StringBuilder name = transaction.getAndOverrideName(PRIORITY_HIGH_LEVEL_FRAMEWORK, false);
                 if (name != null) {
                     transaction.setFrameworkName(FRAMEWORK_NAME);
                     transaction.setFrameworkVersion(VersionUtils.getVersion(Handler.class, "io.javalin", "javalin"));
@@ -183,7 +183,7 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
                                           @Advice.Argument(0) Context ctx,
                                           @Advice.Thrown @Nullable Throwable t) {
             if (spanObj != null) {
-                final Span span = (Span) spanObj;
+                final Span<?> span = (Span<?>) spanObj;
                 span.deactivate();
 
                 final CompletableFuture<?> responseFuture = ctx.resultFuture();

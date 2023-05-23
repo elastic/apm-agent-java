@@ -25,7 +25,7 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
@@ -43,7 +43,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import javax.annotation.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public abstract class AbstractInstrumentationTest {
 
@@ -86,7 +86,7 @@ public abstract class AbstractInstrumentationTest {
     @Before
     @BeforeEach
     public void disableSpanCompression() {
-        when(config.getConfig(SpanConfiguration.class).isSpanCompressionEnabled()).thenReturn(false);
+        doReturn(false).when(config.getConfig(SpanConfiguration.class)).isSpanCompressionEnabled();
     }
 
     @AfterAll

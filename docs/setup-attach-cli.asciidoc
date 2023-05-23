@@ -9,7 +9,7 @@ The `apm-agent-attach-cli.jar` is an executable Java command line program which 
 - Requires to copy and execute the `apm-agent-attach-cli.jar` binary on the host.
 - Relies on the https://docs.oracle.com/javase/8/docs/jdk/api/attach/spec/com/sun/tools/attach/VirtualMachine.html#attach-java.lang.String-[runtime attachment capabilities] for java agents of the JVM but doesn't require a full JDK or the `tools.jar`.
 - Events that happen while the application starts up may not be captured.
-- It is not possible to attach to JVMs that are running in containers or in Kubernetes pods.
+- It is usually not possible to attach to JVMs that are running in containers or in Kubernetes pods using this mechanism. For Kubernetes we support auto-attachment using a https://www.elastic.co/guide/en/apm/attacher/current/index.html[mutating webhook]; for docker you could try the <<setup-attach-cli-docker,script below>>
 
 [float]
 [[setup-attach-cli-supported-environments]]
@@ -31,7 +31,7 @@ It's not possible to attach to a J9 VM from a HotSpot-based VM and vice-versa.
 ==== Download
 
 You can download the attach program from maven central:
-link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:apm-agent-attach-cli[maven central]
+link:https://mvnrepository.com/artifact/co.elastic.apm/apm-agent-attach-cli/latest[maven central]
 
 NOTE: In versions prior to 1.22.0, you will have to download the `standalone` jar of the `apm-agent-attach` artifact.
 
@@ -63,7 +63,7 @@ java -jar apm-agent-attach-cli.jar \
     --include-vmarg elastic.apm.attach=true \
     --continuous \
     --config service_name=my-cool-service \
-    --config server_url=http://localhost:8200
+    --config server_url=http://127.0.0.1:8200
 ----
 
 [float]
@@ -92,6 +92,14 @@ NOTE: The JVM arguments may contain sensitive information, such as passwords pro
 +
 --
 If provided, this program continuously runs and attaches to all running and starting JVMs which match the `--exclude` and `--include` filters.
+--
+
+*--no-fork* added[1.35.0]::
++
+--
+By default, when the attacher program is ran by user A and the target process is ran by user B, the attacher will attempt to start another
+process as user B.
+If this configuration option is provided, the attacher will not fork. Instead, it will attempt to attach directly as the current user.
 --
 
 *--include-all*::
@@ -145,7 +153,7 @@ NOTE: This option cannot be used in conjunction with `--args-provider`
 --
 This repeatable option sets one agent configuration option.
 
-Example: `--config server_url=http://localhost:8200`
+Example: `--config server_url=http://127.0.0.1:8200`
 --
 
 *-A, --args-provider <args_provider_script>*::

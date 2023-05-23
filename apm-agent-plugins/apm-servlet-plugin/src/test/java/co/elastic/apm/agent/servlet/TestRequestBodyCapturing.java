@@ -23,7 +23,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,7 +55,6 @@ import java.util.stream.Stream;
 import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
@@ -157,12 +156,12 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
     @Test
     void testReadLongText() throws Exception {
-        final byte[] longBody = RandomStringUtils.randomAlphanumeric(DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH * 2).getBytes(StandardCharsets.UTF_8);
+        final byte[] longBody = RandomStringUtils.randomAlphanumeric(SerializationConstants.getMaxLongStringValueLength() * 2).getBytes(StandardCharsets.UTF_8);
         executeRequest(filterChain, longBody, "text/plain");
 
         final Object body = reporter.getFirstTransaction().getContext().getRequest().getBody();
         assertThat(body).isNotNull();
-        assertThat(body.toString().length()).isEqualTo(DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH);
+        assertThat(body.toString().length()).isEqualTo(SerializationConstants.getMaxLongStringValueLength());
     }
 
     @Test
@@ -232,7 +231,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
     @Test
     void testTrackPostParamsDisabled() throws IOException, ServletException {
         doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
-        when(webConfiguration.getCaptureContentTypes()).thenReturn(Collections.emptyList());
+        doReturn(Collections.emptyList()).when(webConfiguration).getCaptureContentTypes();
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/foo/bar");
         request.addParameter("foo", "bar");
         request.addParameter("baz", "qux", "quux");

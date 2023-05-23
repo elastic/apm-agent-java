@@ -19,8 +19,6 @@
 package co.elastic.apm.agent.awssdk.v2;
 
 import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,15 +39,14 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
-import java.util.function.Consumer;
+import javax.annotation.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
 
 public class S3ClientIT extends AbstractAwsClientIT {
     private S3Client s3;
     private S3AsyncClient s3Async;
-
-    private Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
 
     @BeforeEach
     public void setupClient() {
@@ -69,44 +66,147 @@ public class S3ClientIT extends AbstractAwsClientIT {
     @Test
     public void testS3Client() {
         Transaction transaction = startTestRootTransaction("s3-test");
-        executeTest("CreateBucket", BUCKET_NAME, () -> s3.createBucket(CreateBucketRequest.builder().bucket(BUCKET_NAME).build()), dbAssert);
-        executeTest("CreateBucket", NEW_BUCKET_NAME, () -> s3.createBucket(CreateBucketRequest.builder().bucket(NEW_BUCKET_NAME).build()), dbAssert);
-        executeTest("ListBuckets", null, () -> s3.listBuckets(), dbAssert);
-        executeTest("PutObject", BUCKET_NAME, () -> s3.putObject(PutObjectRequest.builder().bucket(BUCKET_NAME).key(OBJECT_KEY).build(), RequestBody.fromString("This is some Object content")), dbAssert);
-        executeTest("ListObjects", BUCKET_NAME, () -> s3.listObjects(ListObjectsRequest.builder().bucket(BUCKET_NAME).build()), dbAssert);
-        executeTest("GetObject", BUCKET_NAME, () -> s3.getObject(GetObjectRequest.builder().bucket(BUCKET_NAME).key(OBJECT_KEY).build()), dbAssert);
-        executeTest("CopyObject", NEW_BUCKET_NAME, () -> s3.copyObject(CopyObjectRequest.builder()
+        newTest(() -> s3.createBucket(CreateBucketRequest.builder().bucket(BUCKET_NAME).build()))
+            .operationName("CreateBucket")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .execute();
+
+        newTest(() -> s3.createBucket(CreateBucketRequest.builder().bucket(NEW_BUCKET_NAME).build()))
+            .operationName("CreateBucket")
+            .entityName(NEW_BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", NEW_BUCKET_NAME)
+            .execute();
+
+        newTest(() -> s3.listBuckets())
+            .operationName("ListBuckets")
+            .execute();
+
+        newTest(() -> s3.putObject(PutObjectRequest.builder().bucket(BUCKET_NAME).key(OBJECT_KEY).build(), RequestBody.fromString("This is some Object content")))
+            .operationName("PutObject")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .otelAttribute("aws.s3.key", OBJECT_KEY)
+            .execute();
+
+        newTest(() -> s3.listObjects(ListObjectsRequest.builder().bucket(BUCKET_NAME).build()))
+            .operationName("ListObjects")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .execute();
+
+        newTest(() -> s3.getObject(GetObjectRequest.builder().bucket(BUCKET_NAME).key(OBJECT_KEY).build()))
+            .operationName("GetObject")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .otelAttribute("aws.s3.key", OBJECT_KEY)
+            .execute();
+
+        newTest(() -> s3.copyObject(CopyObjectRequest.builder()
             .copySource(BUCKET_NAME + "/" + OBJECT_KEY)
             .destinationBucket(NEW_BUCKET_NAME)
-            .destinationKey("new-key").build()), dbAssert);
-        executeTest("DeleteObject", BUCKET_NAME, () -> s3.deleteObject(DeleteObjectRequest.builder().bucket(BUCKET_NAME).key(OBJECT_KEY).build()), dbAssert);
-        executeTest("DeleteBucket", BUCKET_NAME, () -> s3.deleteBucket(DeleteBucketRequest.builder().bucket(BUCKET_NAME).build()), dbAssert);
-        assertThat(reporter.getSpans().size()).isEqualTo(9);
-        assertThat(reporter.getSpans()).allMatch(AbstractSpan::isSync);
+            .destinationKey(NEW_OBJECT_KEY).build()))
+            .operationName("CopyObject")
+            .entityName(NEW_BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", NEW_BUCKET_NAME)
+            .otelAttribute("aws.s3.key", NEW_OBJECT_KEY)
+            .otelAttribute("aws.s3.copy_source", BUCKET_NAME + "/" + OBJECT_KEY)
+            .execute();
+
+        newTest(() -> s3.deleteObject(DeleteObjectRequest.builder().bucket(BUCKET_NAME).key(OBJECT_KEY).build()))
+            .operationName("DeleteObject")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .otelAttribute("aws.s3.key", OBJECT_KEY)
+            .execute();
+
+        newTest(() -> s3.deleteBucket(DeleteBucketRequest.builder().bucket(BUCKET_NAME).build()))
+            .operationName("DeleteBucket")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .execute();
+
+        assertThat(reporter.getSpans()).hasSize(9);
+
         transaction.deactivate().end();
     }
 
     @Test
     public void testAsyncS3Client() {
         Transaction transaction = startTestRootTransaction("s3-test");
-        executeTest("CreateBucket", BUCKET_NAME, () -> s3Async.createBucket(CreateBucketRequest.builder().bucket(BUCKET_NAME).build()), dbAssert);
-        executeTest("CreateBucket", NEW_BUCKET_NAME, () -> s3Async.createBucket(CreateBucketRequest.builder().bucket(NEW_BUCKET_NAME).build()), dbAssert);
-        executeTest("ListBuckets", null, () -> s3Async.listBuckets(), dbAssert);
-        executeTest("PutObject", BUCKET_NAME, () -> s3Async.putObject(PutObjectRequest.builder().bucket(BUCKET_NAME)
-            .key(OBJECT_KEY).build(),
-            AsyncRequestBody.fromString("This is some Object content")),
-            dbAssert);
-        executeTest("ListObjects", BUCKET_NAME, () -> s3Async.listObjects(ListObjectsRequest.builder().bucket(BUCKET_NAME).build()), dbAssert);
-        executeTest("GetObject", BUCKET_NAME, () -> s3Async.getObject(GetObjectRequest.builder().bucket(BUCKET_NAME).key(OBJECT_KEY).build(), AsyncResponseTransformer.toBytes()), dbAssert);
-        executeTest("CopyObject", NEW_BUCKET_NAME, () -> s3Async.copyObject(CopyObjectRequest.builder()
+
+        newTest(() -> s3Async.createBucket(CreateBucketRequest.builder().bucket(BUCKET_NAME).build()))
+            .operationName("CreateBucket")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .async()
+            .execute();
+
+        newTest(() -> s3Async.createBucket(CreateBucketRequest.builder().bucket(NEW_BUCKET_NAME).build()))
+            .operationName("CreateBucket")
+            .entityName(NEW_BUCKET_NAME)
+            .async()
+            .execute();
+
+        newTest(() -> s3Async.listBuckets())
+            .operationName("ListBuckets")
+            .async()
+            .execute();
+
+        newTest(() -> s3Async.putObject(PutObjectRequest.builder()
+                .bucket(BUCKET_NAME)
+                .key(OBJECT_KEY).build(),
+            AsyncRequestBody.fromString("This is some Object content")))
+            .operationName("PutObject")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .otelAttribute("aws.s3.key", OBJECT_KEY)
+            .async()
+            .execute();
+
+        newTest(() -> s3Async.listObjects(ListObjectsRequest.builder().bucket(BUCKET_NAME).build()))
+            .operationName("ListObjects")
+            .entityName(BUCKET_NAME)
+            .async()
+            .execute();
+
+        newTest(() -> s3Async.getObject(GetObjectRequest.builder().bucket(BUCKET_NAME).key(OBJECT_KEY).build(), AsyncResponseTransformer.toBytes()))
+            .operationName("GetObject")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .otelAttribute("aws.s3.key", OBJECT_KEY)
+            .async()
+            .execute();
+
+        newTest(() -> s3Async.copyObject(CopyObjectRequest.builder()
             .copySource(BUCKET_NAME + "/" + OBJECT_KEY)
             .destinationBucket(NEW_BUCKET_NAME)
-            .destinationKey("new-key").build()),
-            dbAssert);
-        executeTest("DeleteObject", BUCKET_NAME, () -> s3Async.deleteObject(DeleteObjectRequest.builder().bucket(BUCKET_NAME).key(OBJECT_KEY).build()), dbAssert);
-        executeTest("DeleteBucket", BUCKET_NAME, () -> s3Async.deleteBucket(DeleteBucketRequest.builder().bucket(BUCKET_NAME).build()), dbAssert);
-        assertThat(reporter.getSpans().size()).isEqualTo(9);
-        assertThat(reporter.getSpans()).allMatch(span -> !span.isSync());
+            .destinationKey(NEW_OBJECT_KEY).build()))
+            .operationName("CopyObject")
+            .entityName(NEW_BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", NEW_BUCKET_NAME)
+            .otelAttribute("aws.s3.key", NEW_OBJECT_KEY)
+            .otelAttribute("aws.s3.copy_source", BUCKET_NAME + "/" + OBJECT_KEY)
+            .async()
+            .execute();
+
+        newTest(() -> s3Async.deleteObject(DeleteObjectRequest.builder().bucket(BUCKET_NAME).key(OBJECT_KEY).build()))
+            .operationName("DeleteObject")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .otelAttribute("aws.s3.key", OBJECT_KEY)
+            .async()
+            .execute();
+
+        newTest(() -> s3Async.deleteBucket(DeleteBucketRequest.builder().bucket(BUCKET_NAME).build()))
+            .operationName("DeleteBucket")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .async()
+            .execute();
+
+        assertThat(reporter.getSpans()).hasSize(9);
+
         transaction.deactivate().end();
     }
 
@@ -118,6 +218,17 @@ public class S3ClientIT extends AbstractAwsClientIT {
     @Override
     protected String type() {
         return "storage";
+    }
+
+    @Override
+    protected String subtype() {
+        return "s3";
+    }
+
+    @Nullable
+    @Override
+    protected String expectedTargetName(@Nullable String entityName) {
+        return entityName; //entityName is bucket name
     }
 
     @Override

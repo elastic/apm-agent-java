@@ -23,7 +23,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.context.ServiceTarget;
+import co.elastic.apm.agent.tracer.Outcome;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 class FastExitSpanTest {
 
@@ -45,9 +45,9 @@ class FastExitSpanTest {
         reporter = mockInstrumentationSetup.getReporter();
 
         SpanConfiguration spanConfiguration = mockInstrumentationSetup.getConfig().getConfig(SpanConfiguration.class);
-        when(spanConfiguration.isSpanCompressionEnabled()).thenReturn(true);
-        when(spanConfiguration.getSpanCompressionExactMatchMaxDuration()).thenReturn(TimeDuration.of("50ms"));
-        when(spanConfiguration.getExitSpanMinDuration()).thenReturn(TimeDuration.of("50ms"));
+        doReturn(true).when(spanConfiguration).isSpanCompressionEnabled();
+        doReturn(TimeDuration.of("50ms")).when(spanConfiguration).getSpanCompressionExactMatchMaxDuration();
+        doReturn(TimeDuration.of("50ms")).when(spanConfiguration).getExitSpanMinDuration();
 
         assertThat(tracer.isRunning()).isTrue();
     }

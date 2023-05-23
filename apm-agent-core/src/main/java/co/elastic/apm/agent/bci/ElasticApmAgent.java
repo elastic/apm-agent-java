@@ -30,11 +30,15 @@ import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
+import co.elastic.apm.agent.bci.modules.ModuleOpener;
 import co.elastic.apm.agent.common.ThreadUtils;
+import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.logging.ApmServerLogAppender;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -44,6 +48,7 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracemethods.TraceMethodInstrumentation;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.RedefinitionStrategy;
@@ -58,6 +63,8 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
+import net.bytebuddy.implementation.bytecode.StackManipulation;
+import net.bytebuddy.implementation.bytecode.member.MethodInvocation;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.pool.TypePool;
@@ -74,13 +81,16 @@ import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.nio.file.Paths;
-import java.security.AllPermission;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -89,9 +99,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
+import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithNamePrefix;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.anyMatch;
-import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
@@ -107,6 +117,8 @@ public class ElasticApmAgent {
     // Don't eagerly create logger. Logging needs to be initialized first based on configuration. See also issue #593
     @Nullable
     private static Logger logger;
+
+    private static boolean ancientBytecodeInstrumentationEnabled;
 
     private static final InstrumentationStats instrumentationStats = new InstrumentationStats();
 
@@ -125,7 +137,7 @@ public class ElasticApmAgent {
      * with the corresponding instrumentation class.
      */
     private static final ConcurrentMap<String, ClassLoader> adviceClassName2instrumentationClassLoader = new ConcurrentHashMap<>();
-    private static final ConcurrentMap<String, Collection<String>> pluginPackages2pluginClassLoaderRootPackages = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, PluginClassLoaderCustomizations> pluginPackages2pluginClassLoaderCustomizations = new ConcurrentHashMap<>();
 
     /**
      * Called reflectively by {@code co.elastic.apm.agent.premain.AgentMain} to initialize the agent
@@ -146,7 +158,10 @@ public class ElasticApmAgent {
             }
         }
 
-        ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources).build();
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources)
+            // server log appender requires buffering log events before the config and reporter are ready.
+            .withLifecycleListener(ApmServerLogAppender.getInstance().getInitListener())
+            .build();
         initInstrumentation(tracer, instrumentation, premain);
         tracer.start(premain);
     }
@@ -165,9 +180,9 @@ public class ElasticApmAgent {
     }
 
     @Nonnull
-    private static Iterable<ElasticApmInstrumentation> loadInstrumentations(ElasticApmTracer tracer) {
+    private static Iterable<ElasticApmInstrumentation> loadInstrumentations(Tracer tracer) {
         List<ClassLoader> pluginClassLoaders = new ArrayList<>();
-        pluginClassLoaders.add(ElasticApmAgent.class.getClassLoader());
+        pluginClassLoaders.add(PrivilegedActionUtils.getClassLoader(ElasticApmAgent.class));
         pluginClassLoaders.addAll(createExternalPluginClassLoaders(tracer.getConfig(CoreConfiguration.class).getPluginsDir()));
         final List<ElasticApmInstrumentation> instrumentations = DependencyInjectingServiceLoader.load(ElasticApmInstrumentation.class, pluginClassLoaders, tracer);
         for (MethodMatcher traceMethod : tracer.getConfig(CoreConfiguration.class).getTraceMethods()) {
@@ -201,14 +216,13 @@ public class ElasticApmAgent {
         for (File pluginJar : pluginJars) {
             logger.info("Loading plugin {}", pluginJar.getName());
             try {
-                result.add(new ExternalPluginClassLoader(pluginJar, ElasticApmAgent.class.getClassLoader()));
+                result.add(new ExternalPluginClassLoader(pluginJar, PrivilegedActionUtils.getClassLoader(ElasticApmAgent.class)));
             } catch (Exception e) {
                 logger.error("Error loading external plugin", e);
             }
         }
         return result;
     }
-
 
 
     public static synchronized void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
@@ -223,6 +237,7 @@ public class ElasticApmAgent {
         if (!coreConfig.isEnabled()) {
             return;
         }
+        ancientBytecodeInstrumentationEnabled = coreConfig.isInstrumentAncientBytecode();
         String bytecodeDumpPath = coreConfig.getBytecodeDumpPath();
         if (bytecodeDumpPath != null) {
             bytecodeDumpPath = bytecodeDumpPath.trim();
@@ -234,7 +249,7 @@ public class ElasticApmAgent {
                     }
                     System.setProperty("net.bytebuddy.dump", bytecodeDumpDir.getPath());
                 } catch (Exception e) {
-                    System.err.println("[elastic-apm-agent] WARN Failed to create directory to dump instrumented bytecode: " + e.getMessage());
+                    SystemStandardOutputLogger.stdErrWarn("Failed to create directory to dump instrumented bytecode: " + e.getMessage());
                 }
             }
         }
@@ -242,9 +257,14 @@ public class ElasticApmAgent {
             PluginClassLoaderRootPackageCustomizer.class,
             getAgentClassLoader());
         for (PluginClassLoaderRootPackageCustomizer rootPackageCustomizer : rootPackageCustomizers) {
-            Collection<String> previous = pluginPackages2pluginClassLoaderRootPackages.put(
+            PluginClassLoaderCustomizations customizations = new PluginClassLoaderCustomizations(
+                rootPackageCustomizer.pluginClassLoaderRootPackages(),
+                rootPackageCustomizer.requiredModuleOpens()
+            );
+            PluginClassLoaderCustomizations previous = pluginPackages2pluginClassLoaderCustomizations.put(
                 rootPackageCustomizer.getPluginPackage(),
-                Collections.unmodifiableList(new ArrayList<>(rootPackageCustomizer.pluginClassLoaderRootPackages())));
+                customizations
+            );
             if (previous != null) {
                 throw new IllegalStateException("Only one PluginClassLoaderRootPackageCustomizer is allowed per plugin package: "
                     + rootPackageCustomizer.getPluginPackage());
@@ -253,7 +273,7 @@ public class ElasticApmAgent {
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
             mapInstrumentationCL2adviceClassName(
                 apmInstrumentation.getAdviceClassName(),
-                apmInstrumentation.getClass().getClassLoader());
+                PrivilegedActionUtils.getClassLoader(apmInstrumentation.getClass()));
         }
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
             @Override
@@ -289,7 +309,7 @@ public class ElasticApmAgent {
     }
 
     public static synchronized Future<?> reInitInstrumentation() {
-        final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+        final Tracer tracer = TracerAwareInstrumentation.tracer.require(Tracer.class);
         if (instrumentation == null) {
             throw new IllegalStateException("Can't re-init agent before it has been initialized");
         }
@@ -306,10 +326,22 @@ public class ElasticApmAgent {
         }
     }
 
+    public static boolean areModulesSupported() {
+        return ModuleOpener.areModulesSupported();
+    }
+
+    public static boolean openModule(Class<?> classFromTargetModule, ClassLoader openTo, Collection<String> packagesToOpen) {
+        if (instrumentation == null) {
+            throw new IllegalStateException("Can't open modules before the agent has been initialized");
+        }
+        return ModuleOpener.getInstance().openModuleTo(instrumentation, classFromTargetModule, openTo, packagesToOpen);
+    }
+
+
     static synchronized void doReInitInstrumentation(Iterable<ElasticApmInstrumentation> instrumentations) {
         Logger logger = getLogger();
         logger.info("Re initializing instrumentation");
-        AgentBuilder agentBuilder = initAgentBuilder(GlobalTracer.requireTracerImpl(), instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false);
+        AgentBuilder agentBuilder = initAgentBuilder(GlobalTracer.get().require(ElasticApmTracer.class), instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false);
 
         resettableClassFileTransformer = agentBuilder.patchOn(instrumentation, resettableClassFileTransformer);
     }
@@ -413,10 +445,12 @@ public class ElasticApmAgent {
             .transform(new AgentBuilder.Transformer() {
                 @Override
                 public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription,
-                                                        ClassLoader classLoader, JavaModule module) {
-                    return builder.visit(MinimumClassFileVersionValidator.V1_4)
-                        // As long as we allow 1.4 bytecode, we need to add this constant pool adjustment as well
-                        .visit(TypeConstantAdjustment.INSTANCE);
+                                                        ClassLoader classLoader, JavaModule module, ProtectionDomain protectionDomain) {
+                    if (!ancientBytecodeInstrumentationEnabled) {
+                        builder = builder.visit(MinimumClassFileVersionValidator.V1_4);
+                    }
+                    // As long as we allow 1.4 bytecode, we need to add this constant pool adjustment as well
+                    return builder.visit(TypeConstantAdjustment.INSTANCE);
                 }
             });
     }
@@ -424,7 +458,7 @@ public class ElasticApmAgent {
     private static Logger getLogger() {
         if (logger == null) {
             // lazily init logger to allow the tracer builder to init the logging config first
-            GlobalTracer.requireTracerImpl();
+            GlobalTracer.get().require(ElasticApmTracer.class);
             logger = LoggerFactory.getLogger(ElasticApmAgent.class);
         }
         // re-using an existing logger avoids running into a JVM bug that leads to a segfault
@@ -479,10 +513,11 @@ public class ElasticApmAgent {
                 }
             }
         };
+        StackManipulation exceptionHandler = MethodInvocation.invoke(new MethodDescription.ForLoadedMethod(IndyBootstrap.getExceptionHandlerMethod(logger)));
         return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
             .advice(instrumentationStats.shouldMeasureMatching() ? statsCollectingMatcher : matcher, instrumentation.getAdviceClassName())
-            .include(ClassLoader.getSystemClassLoader(), instrumentation.getClass().getClassLoader())
-            .withExceptionHandler(PRINTING);
+            .include(ClassLoader.getSystemClassLoader(), PrivilegedActionUtils.getClassLoader(instrumentation.getClass()))
+            .withExceptionHandler(new Advice.ExceptionHandler.Simple(exceptionHandler));
     }
 
     /**
@@ -493,7 +528,7 @@ public class ElasticApmAgent {
         if (instrumentation.getClass().getName().equals(adviceClassName)) {
             throw new IllegalStateException("The advice must be declared in a separate class: " + adviceClassName);
         }
-        ClassLoader adviceClassLoader = instrumentation.getClass().getClassLoader();
+        ClassLoader adviceClassLoader = PrivilegedActionUtils.getClassLoader(instrumentation.getClass());
         if (adviceClassLoader == null) {
             // the bootstrap class loader can't do resource lookup
             // if classes are added via java.lang.instrument.Instrumentation.appendToBootstrapClassLoaderSearch
@@ -535,7 +570,7 @@ public class ElasticApmAgent {
         }
     }
 
-    private static void checkInline(MethodDescription.InDefinedShape advice, String adviceClassName, boolean isInline){
+    private static void checkInline(MethodDescription.InDefinedShape advice, String adviceClassName, boolean isInline) {
         if (isInline) {
             throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, advice.getName()));
         } else if (!Modifier.isPublic(advice.getModifiers())) {
@@ -586,7 +621,7 @@ public class ElasticApmAgent {
 
     // may help to debug classloading problems
     private static void logClassLoaderHierarchy(@Nullable ClassLoader classLoader, Logger logger, ElasticApmInstrumentation advice) {
-        logger.trace("Advice {} is loaded by {}", advice.getClass().getName(), advice.getClass().getClassLoader());
+        logger.trace("Advice {} is loaded by {}", advice.getClass().getName(), PrivilegedActionUtils.getClassLoader(advice.getClass()));
         if (classLoader != null) {
             boolean canLoadAgent = false;
             try {
@@ -612,7 +647,7 @@ public class ElasticApmAgent {
         if (instrumentation == null) {
             return;
         }
-        GlobalTracer.get().stop();
+        GlobalTracer.get().require(Tracer.class).stop();
         GlobalTracer.setNoop();
         Exception exception = null;
         if (resettableClassFileTransformer != null) {
@@ -639,7 +674,7 @@ public class ElasticApmAgent {
         instrumentation = null;
         IndyPluginClassLoaderFactory.clear();
         adviceClassName2instrumentationClassLoader.clear();
-        pluginPackages2pluginClassLoaderRootPackages.clear();
+        pluginPackages2pluginClassLoaderCustomizations.clear();
     }
 
     private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, final Logger logger,
@@ -690,11 +725,20 @@ public class ElasticApmAgent {
             .or(nameStartsWith("com.p6spy."))
             .or(nameStartsWith("net.bytebuddy."))
             .or(nameStartsWith("org.stagemonitor."))
+            .or(any(), classLoaderWithNamePrefix("com.newrelic."))
             .or(nameStartsWith("com.newrelic."))
+            .or(any(), classLoaderWithNamePrefix("com.nr.agent."))
+            .or(nameStartsWith("com.nr.agent."))
+            .or(any(), classLoaderWithNamePrefix("com.dynatrace."))
             .or(nameStartsWith("com.dynatrace."))
             // AppDynamics
+            .or(any(), classLoaderWithNamePrefix("com.singularity"))
             .or(nameStartsWith("com.singularity."))
+            .or(any(), classLoaderWithNamePrefix("com.appdynamics."))
+            .or(nameStartsWith("com.appdynamics."))
+            .or(any(), classLoaderWithNamePrefix("com.instana."))
             .or(nameStartsWith("com.instana."))
+            .or(any(), classLoaderWithNamePrefix("datadog."))
             .or(nameStartsWith("datadog."))
             .or(nameStartsWith("org.glowroot."))
             .or(nameStartsWith("com.compuware."))
@@ -736,49 +780,68 @@ public class ElasticApmAgent {
      * that is specific to the provided class to instrument.
      * </p>
      *
-     * @param classToInstrument the class which should be instrumented
+     * @param classToInstrument      the class which should be instrumented
      * @param instrumentationClasses the instrumentation which should be applied to the class to instrument.
      */
-    public static void ensureInstrumented(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses) {
+    public static void ensureInstrumented(final Class<?> classToInstrument,
+                                          final Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses) {
         Set<Collection<Class<? extends ElasticApmInstrumentation>>> appliedInstrumentations = getOrCreate(classToInstrument);
 
         if (!appliedInstrumentations.contains(instrumentationClasses)) {
             synchronized (ElasticApmAgent.class) {
-                ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+                final ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
                 if (instrumentation == null) {
                     throw new IllegalStateException("Agent is not initialized");
                 }
 
-                appliedInstrumentations = dynamicallyInstrumentedClasses.get(classToInstrument);
-                if (!appliedInstrumentations.contains(instrumentationClasses)) {
-                    appliedInstrumentations = new HashSet<>(appliedInstrumentations);
-                    appliedInstrumentations.add(instrumentationClasses);
-                    // immutability guards against race conditions (for example concurrent rehash due to add and lookup)
-                    appliedInstrumentations = Collections.unmodifiableSet(appliedInstrumentations);
-                    dynamicallyInstrumentedClasses.put(classToInstrument, appliedInstrumentations);
-
-                    CoreConfiguration config = tracer.getConfig(CoreConfiguration.class);
-                    final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
-                    final ByteBuddy byteBuddy = new ByteBuddy()
-                        .with(TypeValidation.of(logger.isDebugEnabled()))
-                        .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
-                    AgentBuilder agentBuilder = getAgentBuilder(
-                        byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false, false
-                    );
-                    for (Class<? extends ElasticApmInstrumentation> instrumentationClass : instrumentationClasses) {
-                        ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
-                        mapInstrumentationCL2adviceClassName(
-                            apmInstrumentation.getAdviceClassName(),
-                            instrumentationClass.getClassLoader());
-                        ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());
-                        if (typeMatcher != null && isIncluded(apmInstrumentation, config)) {
-                            agentBuilder = applyAdvice(tracer, agentBuilder, apmInstrumentation, typeMatcher.and(apmInstrumentation.getTypeMatcher()));
-                        }
+                final Set<Collection<Class<? extends ElasticApmInstrumentation>>> updatedAppliedInstrumentations =
+                    dynamicallyInstrumentedClasses.get(classToInstrument);
+                if (!updatedAppliedInstrumentations.contains(instrumentationClasses)) {
+                    // as this instrumentation route is expected to be invoked by application threads, we need to make sure everything we
+                    // do hereafter is only restricted by the permissions granted to the agent if the security manager is enabled.
+                    if (System.getSecurityManager() == null) {
+                        applyInstrumentation(classToInstrument, instrumentationClasses, updatedAppliedInstrumentations, tracer);
+                    } else {
+                        AccessController.doPrivileged(new PrivilegedAction<Object>() {
+                            @Override
+                            public Object run() {
+                                applyInstrumentation(classToInstrument, instrumentationClasses, updatedAppliedInstrumentations, tracer);
+                                return null;
+                            }
+                        });
                     }
-                    dynamicClassFileTransformers.add(agentBuilder.installOn(instrumentation));
                 }
             }
         }
+    }
+
+    private static void applyInstrumentation(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses,
+                                             Set<Collection<Class<? extends ElasticApmInstrumentation>>> appliedInstrumentations, ElasticApmTracer tracer) {
+        appliedInstrumentations = new HashSet<>(appliedInstrumentations);
+        appliedInstrumentations.add(instrumentationClasses);
+        // immutability guards against race conditions (for example concurrent rehash due to add and lookup)
+        appliedInstrumentations = Collections.unmodifiableSet(appliedInstrumentations);
+        dynamicallyInstrumentedClasses.put(classToInstrument, appliedInstrumentations);
+
+        CoreConfiguration config = tracer.getConfig(CoreConfiguration.class);
+        final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
+        final ByteBuddy byteBuddy = new ByteBuddy()
+            .with(TypeValidation.of(logger.isDebugEnabled()))
+            .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
+        AgentBuilder agentBuilder = getAgentBuilder(
+            byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false, false
+        );
+        for (Class<? extends ElasticApmInstrumentation> instrumentationClass : instrumentationClasses) {
+            ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
+            mapInstrumentationCL2adviceClassName(
+                apmInstrumentation.getAdviceClassName(),
+                PrivilegedActionUtils.getClassLoader(instrumentationClass));
+            ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());
+            if (typeMatcher != null && isIncluded(apmInstrumentation, config)) {
+                agentBuilder = applyAdvice(tracer, agentBuilder, apmInstrumentation, typeMatcher.and(apmInstrumentation.getTypeMatcher()));
+            }
+        }
+        dynamicClassFileTransformers.add(agentBuilder.installOn(instrumentation));
     }
 
     public static void mapInstrumentationCL2adviceClassName(String adviceClassName, ClassLoader instrumentationClassLoader) {
@@ -834,7 +897,11 @@ public class ElasticApmAgent {
         Constructor<? extends ElasticApmInstrumentation> constructor = null;
         try {
             if (withTracer) {
-                constructor = instrumentation.getConstructor(ElasticApmTracer.class);
+                try {
+                    constructor = instrumentation.getConstructor(ElasticApmTracer.class);
+                } catch (NoSuchMethodException ignored) {
+                    constructor = instrumentation.getConstructor(co.elastic.apm.agent.tracer.Tracer.class);
+                }
             } else {
                 constructor = instrumentation.getConstructor();
             }
@@ -846,7 +913,7 @@ public class ElasticApmAgent {
         if (constructor != null) {
             try {
                 if (withTracer) {
-                    instance = constructor.newInstance(GlobalTracer.requireTracerImpl());
+                    instance = constructor.newInstance(GlobalTracer.get().require(ElasticApmTracer.class));
                 } else {
                     instance = constructor.newInstance();
                 }
@@ -859,7 +926,7 @@ public class ElasticApmAgent {
     }
 
     public static ClassLoader getAgentClassLoader() {
-        ClassLoader agentClassLoader = ElasticApmAgent.class.getClassLoader();
+        ClassLoader agentClassLoader = PrivilegedActionUtils.getClassLoader(ElasticApmAgent.class);
         if (agentClassLoader == null) {
             throw new IllegalStateException("Agent is loaded from bootstrap class loader as opposed to the dedicated agent class loader");
         }
@@ -869,6 +936,7 @@ public class ElasticApmAgent {
     /**
      * Returns the class loader that loaded the instrumentation class corresponding the given advice class.
      * We expect to be able to find the advice class file through this class loader.
+     *
      * @param adviceClass name of the advice class
      * @return class loader that can be used for the advice class file lookup
      */
@@ -881,10 +949,39 @@ public class ElasticApmAgent {
     }
 
     public static Collection<String> getPluginClassLoaderRootPackages(String pluginPackage) {
-        Collection<String> pluginPackages = pluginPackages2pluginClassLoaderRootPackages.get(pluginPackage);
-        if (pluginPackages != null) {
-            return pluginPackages;
+        PluginClassLoaderCustomizations customizations = pluginPackages2pluginClassLoaderCustomizations.get(pluginPackage);
+        if (customizations != null) {
+            return customizations.packages;
         }
         return Collections.singleton(pluginPackage);
+    }
+
+    public static Map<String, List<String>> getRequiredPluginModuleOpens(String pluginPackage) {
+        PluginClassLoaderCustomizations customizations = pluginPackages2pluginClassLoaderCustomizations.get(pluginPackage);
+        if (customizations != null) {
+            return customizations.requiredOpens;
+        }
+        return Collections.emptyMap();
+    }
+
+    private static class PluginClassLoaderCustomizations {
+        final List<String> packages;
+
+        final Map<String, List<String>> requiredOpens;
+
+        private PluginClassLoaderCustomizations(Collection<String> packages, Map<String, ? extends Collection<String>> requiredOpens) {
+            this.packages = Collections.unmodifiableList(new ArrayList<>(packages));
+            if (!requiredOpens.isEmpty()) {
+                Map<String, List<String>> opens = new HashMap<>();
+                for (Map.Entry<String, ? extends Collection<String>> open : requiredOpens.entrySet()) {
+                    if (!open.getValue().isEmpty()) {
+                        opens.put(open.getKey(), Collections.unmodifiableList(new ArrayList<>(open.getValue())));
+                    }
+                }
+                this.requiredOpens = Collections.unmodifiableMap(opens);
+            } else {
+                this.requiredOpens = Collections.emptyMap();
+            }
+        }
     }
 }

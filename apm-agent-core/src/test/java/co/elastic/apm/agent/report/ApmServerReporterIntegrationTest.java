@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -30,6 +29,7 @@ import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import io.undertow.Undertow;
@@ -41,6 +41,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
@@ -57,9 +58,14 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.AdditionalMatchers.gt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 class ApmServerReporterIntegrationTest {
 
@@ -73,8 +79,11 @@ class ApmServerReporterIntegrationTest {
     private static HttpHandler handler;
     private final ElasticApmTracer tracer = MockTracer.create();
     private volatile int statusCode = HttpStatus.OK_200;
+    private volatile int acceptedEventCount = 0;
     private ReporterConfiguration reporterConfiguration;
     private ApmServerReporter reporter;
+
+    private ReporterMonitor mockMonitor;
 
     private IntakeV2ReportingEventHandler v2handler;
 
@@ -99,7 +108,9 @@ class ApmServerReporterIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         statusCode = HttpStatus.OK_200;
+        acceptedEventCount = 0;
         handler = new BlockingHandler(exchange -> {
+            exchange.setStatusCode(statusCode);
             if (statusCode < 300 && exchange.getRequestPath().equals("/intake/v2/events")) {
                 receivedIntakeApiCalls.incrementAndGet();
                 Deque<String> flushedParamValue = exchange.getQueryParameters().get("flushed");
@@ -117,7 +128,11 @@ class ApmServerReporterIntegrationTest {
                     }
                 }
             }
-            exchange.setStatusCode(statusCode).endExchange();
+            if (statusCode >= 400) {
+                String response = String.format("{ \"accepted\" : %d, \"foo\" : \"bar\" }", acceptedEventCount);
+                exchange.getOutputStream().write(response.getBytes());
+            }
+            exchange.endExchange();
         });
 
         ConfigurationRegistry config = tracer.getConfigurationRegistry();
@@ -128,24 +143,27 @@ class ApmServerReporterIntegrationTest {
         doAnswer(invocationOnMock -> token.get()).when(reporterConfiguration).getSecretToken();
         doAnswer(invocationOnMock -> Optional.ofNullable(timeout.get()).orElseGet(() -> TimeDuration.of("60m")))
             .when(reporterConfiguration).getApiRequestTime();
+        doReturn(64).when(reporterConfiguration).getMaxQueueSize();
 
         doReturn(Collections.singletonList(new URL("http://localhost:" + port))).when(reporterConfiguration).getServerUrls();
         SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
         final Service service = new Service();
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
-        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, config.getConfig(CoreConfiguration.class));
+        ApmServerClient apmServerClient = new ApmServerClient(config);
         apmServerClient.start();
+        DslJsonSerializer payloadSerializer = new DslJsonSerializer(
+            mock(StacktraceConfiguration.class),
+            apmServerClient,
+            MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
+        );
         v2handler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             processorEventHandler,
-            new DslJsonSerializer(
-                mock(StacktraceConfiguration.class),
-                apmServerClient,
-                MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
-            ),
+            payloadSerializer,
             apmServerClient);
-        reporter = new ApmServerReporter(false, reporterConfiguration, v2handler);
+        mockMonitor = Mockito.mock(ReporterMonitor.class);
+        reporter = new ApmServerReporter(false, reporterConfiguration, v2handler, mockMonitor, apmServerClient, payloadSerializer, new ObjectPoolFactory());
         reporter.start();
     }
 
@@ -168,16 +186,30 @@ class ApmServerReporterIntegrationTest {
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
         assertThat(receivedIntakeApiCallsWithFlushParam.get()).isEqualTo(0);
         assertThat(reporter.getReported()).isEqualTo(1);
+
+        verify(mockMonitor).eventCreated(eq(ReportingEvent.ReportingEventType.TRANSACTION), eq(64L), eq(0L));
+        verify(mockMonitor).eventDequeued(eq(ReportingEvent.ReportingEventType.TRANSACTION), eq(64L), anyLong());
+        ReportingEventCounter payload = new ReportingEventCounter();
+        payload.increment(ReportingEvent.ReportingEventType.TRANSACTION);
+        verify(mockMonitor).requestFinished(eq(payload), eq(1L), gt(0L), eq(true));
     }
 
     @Test
     void testReportTransaction_withFlushRequest() {
         reporter.report(new Transaction(tracer));
+        assertThat(receivedEvents.get()).isEqualTo(0);
         assertThat(reporter.flush(5, TimeUnit.SECONDS, true)).isTrue();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(2);
         assertThat(receivedIntakeApiCallsWithFlushParam.get()).isEqualTo(1);
         assertThat(reporter.getReported()).isEqualTo(1);
+
+        verify(mockMonitor).eventCreated(eq(ReportingEvent.ReportingEventType.TRANSACTION), eq(64L), eq(0L));
+        verify(mockMonitor).eventDequeued(eq(ReportingEvent.ReportingEventType.TRANSACTION), eq(64L), anyLong());
+        ReportingEventCounter payload = new ReportingEventCounter();
+        payload.increment(ReportingEvent.ReportingEventType.TRANSACTION);
+        verify(mockMonitor).requestFinished(eq(payload), eq(1L), gt(0L), eq(true));
+        verify(mockMonitor).requestFinished(eq(new ReportingEventCounter()), eq(0L), gt(0L), eq(true));
     }
 
     @Test
@@ -187,6 +219,12 @@ class ApmServerReporterIntegrationTest {
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
         assertThat(receivedIntakeApiCallsWithFlushParam.get()).isEqualTo(0);
+
+        verify(mockMonitor).eventCreated(eq(ReportingEvent.ReportingEventType.SPAN), eq(64L), eq(0L));
+        verify(mockMonitor).eventDequeued(eq(ReportingEvent.ReportingEventType.SPAN), eq(64L), anyLong());
+        ReportingEventCounter payload = new ReportingEventCounter();
+        payload.increment(ReportingEvent.ReportingEventType.SPAN);
+        verify(mockMonitor).requestFinished(eq(payload), eq(1L), gt(0L), eq(true));
     }
 
     @Test
@@ -196,6 +234,13 @@ class ApmServerReporterIntegrationTest {
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(2);
         assertThat(receivedIntakeApiCallsWithFlushParam.get()).isEqualTo(1);
+
+        verify(mockMonitor).eventCreated(eq(ReportingEvent.ReportingEventType.SPAN), eq(64L), eq(0L));
+        verify(mockMonitor).eventDequeued(eq(ReportingEvent.ReportingEventType.SPAN), eq(64L), anyLong());
+        ReportingEventCounter payload = new ReportingEventCounter();
+        payload.increment(ReportingEvent.ReportingEventType.SPAN);
+        verify(mockMonitor).requestFinished(eq(payload), eq(1L), gt(0L), eq(true));
+        verify(mockMonitor).requestFinished(eq(new ReportingEventCounter()), eq(0L), gt(0L), eq(true));
     }
 
     @Test
@@ -221,6 +266,12 @@ class ApmServerReporterIntegrationTest {
         reporter.flush();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
+
+        verify(mockMonitor).eventCreated(eq(ReportingEvent.ReportingEventType.ERROR), eq(64L), eq(0L));
+        verify(mockMonitor).eventDequeued(eq(ReportingEvent.ReportingEventType.ERROR), eq(64L), anyLong());
+        ReportingEventCounter payload = new ReportingEventCounter();
+        payload.increment(ReportingEvent.ReportingEventType.ERROR);
+        verify(mockMonitor).requestFinished(eq(payload), eq(1L), gt(0L), eq(true));
     }
 
     @Test
@@ -231,15 +282,12 @@ class ApmServerReporterIntegrationTest {
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
         assertThat(receivedEvents.get()).isEqualTo(2);
-    }
 
-    @Test
-    void testFlush() {
-        reporter.report(new Transaction(tracer));
-        assertThat(receivedEvents.get()).isEqualTo(0);
-        assertThat(reporter.flush(5, TimeUnit.SECONDS, false)).isTrue();
-        assertThat(reporter.getDropped()).isEqualTo(0);
-        assertThat(reporter.getReported()).isEqualTo(1);
+        verify(mockMonitor).eventCreated(eq(ReportingEvent.ReportingEventType.TRANSACTION), eq(64L), eq(0L));
+        verify(mockMonitor).eventDequeued(eq(ReportingEvent.ReportingEventType.TRANSACTION), eq(64L), anyLong());
+        ReportingEventCounter payload = new ReportingEventCounter();
+        payload.increment(ReportingEvent.ReportingEventType.TRANSACTION);
+        verify(mockMonitor).requestFinished(eq(payload), eq(1L), gt(0L), eq(true));
     }
 
     @Test
@@ -256,5 +304,27 @@ class ApmServerReporterIntegrationTest {
 
         assertThat(v2handler.isHealthy()).isFalse();
         assertThat(reporter.flush(1, TimeUnit.SECONDS, false)).isFalse();
+
+        ReportingEventCounter payload = new ReportingEventCounter();
+        payload.increment(ReportingEvent.ReportingEventType.TRANSACTION);
+        verify(mockMonitor, times(2)).requestFinished(eq(payload), eq(0L), gt(0L), eq(false));
     }
+
+    @Test
+    void testErrorResponseParsing() {
+        statusCode = HttpStatus.SERVICE_UNAVAILABLE_503;
+        acceptedEventCount = 2;
+        // try to report a few events to trigger backoff
+        for (int i = 0; i < 5; i++) {
+            reporter.report(new Transaction(tracer));
+
+        }
+        reporter.flush(1, TimeUnit.SECONDS, false);
+
+        ReportingEventCounter payload = new ReportingEventCounter();
+        payload.add(ReportingEvent.ReportingEventType.TRANSACTION, 5);
+        verify(mockMonitor).requestFinished(eq(payload), eq(2L), gt(0L), eq(false));
+        assertThat(reporter.getDropped()).isEqualTo(3);
+    }
+
 }

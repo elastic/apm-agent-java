@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.awssdk.v1.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractS3InstrumentationHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import com.amazonaws.Request;
 import com.amazonaws.http.ExecutionContext;
 
@@ -28,17 +28,45 @@ import javax.annotation.Nullable;
 
 public class S3Helper extends AbstractS3InstrumentationHelper<Request<?>, ExecutionContext> {
 
-    @Nullable
-    private static S3Helper INSTANCE;
+    private static final S3Helper INSTANCE = new S3Helper(GlobalTracer.get());
 
     public static S3Helper getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new S3Helper(GlobalTracer.requireTracerImpl());
-        }
         return INSTANCE;
     }
 
-    public S3Helper(ElasticApmTracer tracer) {
+    public S3Helper(Tracer tracer) {
         super(tracer, SdkV1DataSource.getInstance());
+    }
+
+    @Nullable
+    @Override
+    protected String getObjectKey(Request<?> request, @Nullable String bucketName) {
+        if (bucketName == null) {
+            return null;
+        }
+        String resourcePath = request.getResourcePath();
+        if (!resourcePath.startsWith(bucketName)) {
+            return null;
+        }
+        int start = bucketName.length();
+        if (start < resourcePath.length() && resourcePath.charAt(start) == '/') {
+            start++;
+        }
+        int end = resourcePath.length();
+        if (start < end) {
+            return resourcePath.substring(start, end);
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    protected String getCopySource(Request<?> request) {
+        String header = request.getHeaders().get("x-amz-copy-source");
+        if (header != null && header.startsWith("/")) {
+            header = header.substring(1);
+        }
+        return header;
+
     }
 }

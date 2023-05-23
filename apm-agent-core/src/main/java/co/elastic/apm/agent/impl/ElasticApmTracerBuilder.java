@@ -21,6 +21,7 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.configuration.AgentArgumentsConfigurationSource;
 import co.elastic.apm.agent.configuration.ApmServerConfigurationSource;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.PrefixingConfigurationSourceWrapper;
 import co.elastic.apm.agent.configuration.source.ConfigSources;
 import co.elastic.apm.agent.configuration.source.SystemPropertyConfigurationSource;
@@ -30,12 +31,15 @@ import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.metrics.builtin.AgentReporterMetrics;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.ReporterFactory;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
@@ -151,17 +155,20 @@ public class ElasticApmTracerBuilder {
         }
 
         if (apmServerClient == null) {
-            apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class), configurationRegistry.getConfig(CoreConfiguration.class));
+            apmServerClient = new ApmServerClient(configurationRegistry);
         }
 
+        SerializationConstants.init(configurationRegistry.getConfig(CoreConfiguration.class));
+
         MetaDataFuture metaDataFuture = MetaData.create(configurationRegistry, ephemeralId);
+        DslJsonSerializer payloadSerializer = new DslJsonSerializer(
+            configurationRegistry.getConfig(StacktraceConfiguration.class),
+            apmServerClient,
+            metaDataFuture
+        );
+
         if (addApmServerConfigSource) {
             // adding remote configuration source last will make it highest priority
-            DslJsonSerializer payloadSerializer = new DslJsonSerializer(
-                configurationRegistry.getConfig(StacktraceConfiguration.class),
-                apmServerClient,
-                metaDataFuture
-            );
             ApmServerConfigurationSource configurationSource = new ApmServerConfigurationSource(payloadSerializer, apmServerClient);
 
             // unlike the ordering of configuration sources above, this will make it highest priority
@@ -171,11 +178,15 @@ public class ElasticApmTracerBuilder {
             lifecycleListeners.add(configurationSource);
         }
 
+        MetricsConfiguration metricsConfig = configurationRegistry.getConfig(MetricsConfiguration.class);
+        MetricRegistry metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class), metricsConfig);
+
         if (reporter == null) {
-            reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaDataFuture);
+            AgentReporterMetrics healthMetrics = new AgentReporterMetrics(metricRegistry, metricsConfig);
+            reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, payloadSerializer, healthMetrics, objectPoolFactory);
         }
 
-        ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, reporter, objectPoolFactory, apmServerClient, ephemeralId, metaDataFuture);
+        ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, metricRegistry, reporter, objectPoolFactory, apmServerClient, ephemeralId, metaDataFuture);
         lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class, tracer));
         lifecycleListeners.addAll(extraLifecycleListeners);
         tracer.init(lifecycleListeners);

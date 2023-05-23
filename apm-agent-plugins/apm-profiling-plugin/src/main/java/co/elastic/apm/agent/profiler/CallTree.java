@@ -24,10 +24,10 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.profiler.collections.LongHashSet;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -400,12 +400,17 @@ public class CallTree implements Recyclable {
         transferMaybeChildIdsToChildIds();
         Span span = parentContext.createSpan(root.getEpochMicros(this.start))
             .withType("app")
-            .withSubtype("inferred")
-            .withChildIds(childIds);
+            .withSubtype("inferred");
 
-        frame.appendSimpleClassName(span.getNameForSerialization());
+        String classFqn = frame.getClassName();
+        if (classFqn != null) {
+            span.appendToName(classFqn, co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_DEFAULT, frame.getSimpleClassNameOffset(), classFqn.length());
+        } else {
+            span.appendToName("null");
+        }
         span.appendToName("#");
         span.appendToName(frame.getMethodName());
+        span.withChildIds(childIds);
 
         // we're not interested in the very bottom of the stack which contains things like accepting and handling connections
         if (!root.rootContext.idEquals(parentContext)) {
@@ -672,7 +677,12 @@ public class CallTree implements Recyclable {
             if (firstFrameAfterActivation && previousTopOfStack != topOfStack && previousTopOfStack != null && previousTopOfStack.hasChildIds()) {
                 if (!topOfStack.isSuccessor(previousTopOfStack)) {
                     CallTree commonAncestor = findCommonAncestor(previousTopOfStack, topOfStack);
-                    previousTopOfStack.giveMaybeChildIdsTo(commonAncestor != null ? commonAncestor : topOfStack);
+                    CallTree newParent = commonAncestor != null ? commonAncestor : topOfStack;
+                    if (newParent.count > 1) {
+                        previousTopOfStack.giveMaybeChildIdsTo(newParent);
+                    } else if (previousTopOfStack.maybeChildIds != null) {
+                        previousTopOfStack.maybeChildIds.clear();
+                    }
                 }
             }
         }

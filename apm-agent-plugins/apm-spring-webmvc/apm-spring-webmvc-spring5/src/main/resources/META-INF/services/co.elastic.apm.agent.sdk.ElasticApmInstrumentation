@@ -1,0 +1,5 @@
+co.elastic.apm.agent.springwebmvc.Spring5ServletWrappingControllerTransactionNameInstrumentation
+co.elastic.apm.agent.springwebmvc.ViewRenderInstrumentation
+co.elastic.apm.agent.springwebmvc.Spring5ServiceNameInstrumentation
+co.elastic.apm.agent.springwebmvc.Spring5ExceptionHandlerInstrumentation
+co.elastic.apm.agent.springwebmvc.Spring5TransactionNameInstrumentation

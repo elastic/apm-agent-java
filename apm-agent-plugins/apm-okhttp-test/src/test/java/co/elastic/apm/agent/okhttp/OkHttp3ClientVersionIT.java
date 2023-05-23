@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.TestClassWithDependencyRunner;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,12 +28,12 @@ import java.util.List;
 
 @RunWith(Parameterized.class)
 public class OkHttp3ClientVersionIT {
-    private final TestClassWithDependencyRunner runner;
-    private final TestClassWithDependencyRunner asyncTestRunner;
+    private final JUnit4TestClassWithDependencyRunner runner;
+    private final JUnit4TestClassWithDependencyRunner asyncTestRunner;
 
     public OkHttp3ClientVersionIT(List<String> dependencies) throws Exception {
-        this.runner = new TestClassWithDependencyRunner(dependencies, OkHttp3ClientInstrumentationTest.class);
-        this.asyncTestRunner = new TestClassWithDependencyRunner(dependencies, "co.elastic.apm.agent.okhttp.OkHttp3ClientAsyncInstrumentationTest", "co.elastic.apm.agent.okhttp.OkHttp3ClientAsyncInstrumentationTest$1");
+        this.runner = new JUnit4TestClassWithDependencyRunner(dependencies, OkHttp3ClientInstrumentationTest.class);
+        this.asyncTestRunner = new JUnit4TestClassWithDependencyRunner(dependencies, "co.elastic.apm.agent.okhttp.OkHttp3ClientAsyncInstrumentationTest", "co.elastic.apm.agent.okhttp.OkHttp3ClientAsyncInstrumentationTest$1");
     }
 
     @Parameterized.Parameters(name = "{0}")

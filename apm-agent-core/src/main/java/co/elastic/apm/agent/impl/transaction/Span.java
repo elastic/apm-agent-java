@@ -26,17 +26,18 @@ import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.util.CharSequenceUtils;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-public class Span extends AbstractSpan<Span> implements Recyclable {
+public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.apm.agent.tracer.Span<Span> {
 
     private static final Logger logger = LoggerFactory.getLogger(Span.class);
     public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
@@ -155,17 +156,13 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return composite;
     }
 
-    /**
-     * Sets the span's subtype, related to the  (eg: 'mysql', 'postgresql', 'jsf' etc)
-     */
+    @Override
     public Span withSubtype(@Nullable String subtype) {
         this.subtype = normalizeEmpty(subtype);
         return this;
     }
 
-    /**
-     * Action related to this span (eg: 'query', 'render' etc)
-     */
+    @Override
     public Span withAction(@Nullable String action) {
         this.action = normalizeEmpty(action);
         return this;
@@ -204,11 +201,13 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return stacktrace;
     }
 
+    @Override
     @Nullable
     public String getSubtype() {
         return subtype;
     }
 
+    @Override
     @Nullable
     public String getAction() {
         return action;
@@ -262,49 +261,72 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
     @Override
     protected void afterEnd() {
-        if (transaction != null && transaction.isSpanCompressionEnabled() && parent != null) {
-            Span buffered = parent.bufferedSpan.get();
-            if (parent.isFinished() || !isCompressionEligible()) {
-                if (buffered != null) {
-                    if (parent.bufferedSpan.compareAndSet(buffered, null)) {
-                        this.tracer.endSpan(buffered);
+        // Why do we increment references of this span here?
+        // The only thing preventing the "this"-span from being recycled is the initial reference increment in onAfterStart()
+        // There are multiple ways in afterEnd() on how this reference may be decremented and therefore potentially causing recycling:
+        //  - we call tracer.endSpan() for this span and the span is dropped / not reported for some reason
+        //  - we call tracer.endSpan() for this span and the span is reported and released afterwards (=> recycled on the reporter thread!)
+        //  - we successfully set parent.bufferedSpan to "this".
+        //     - a span on a different thread with the same parent can now call tracer.endSpan() for parent.bufferedSpan (=this span)
+        //     - the parent span is ended on a different thread and calls tracer.endSpan() for parent.bufferedSpan (=this span)
+        // By incrementing the reference count here, we guarantee that the "this" span is only recycled AFTER we decrement the reference count again
+        this.incrementReferences();
+        try {
+            if (transaction != null && transaction.isSpanCompressionEnabled() && parent != null) {
+                Span parentBuffered = parent.bufferedSpan.incrementReferencesAndGet();
+                try {
+                    //per the reference, if it is not compression-eligible or if its parent has already ended, it is reported immediately
+                    if (parent.isFinished() || !isCompressionEligible()) {
+                        if (parentBuffered != null) {
+                            if (parent.bufferedSpan.compareAndSet(parentBuffered, null)) {
+                                this.tracer.endSpan(parentBuffered);
+                            }
+                        }
+                        this.tracer.endSpan(this);
+                        return;
+                    }
+                    //since it wasn't reported, this span gets buffered
+                    if (parentBuffered == null) {
+                        if (!parent.bufferedSpan.compareAndSet(null, this)) {
+                            // the failed update would ideally lead to a compression attempt with the new buffer,
+                            // but we're dropping the compression attempt to keep things simple and avoid looping so this stays wait-free
+                            // this doesn't exactly diverge from the spec, but it can lead to non-optimal compression under high load
+                            this.tracer.endSpan(this);
+                        }
+                        return;
+                    }
+                    //still trying to buffer this span
+                    if (!parentBuffered.tryToCompress(this)) {
+                        // we couldn't compress so replace the buffer with this
+                        if (parent.bufferedSpan.compareAndSet(parentBuffered, this)) {
+                            this.tracer.endSpan(parentBuffered);
+                        } else {
+                            // the failed update would ideally lead to a compression attempt with the new buffer,
+                            // but we're dropping the compression attempt to keep things simple and avoid looping so this stays wait-free
+                            // this doesn't exactly diverge from the spec, but it can lead to non-optimal compression under high load
+                            this.tracer.endSpan(this);
+                        }
+                    } else {
+                        if (isSampled() && transaction != null) {
+                            transaction.getSpanCount().getDropped().incrementAndGet();
+                        }
+                        //drop the span by removing the reference allocated in onAfterStart() because it has been compressed
+                        decrementReferences();
+                    }
+                } finally {
+                    if (parentBuffered != null) {
+                        parentBuffered.decrementReferences();
                     }
                 }
-                parent.decrementReferences();
+            } else {
                 this.tracer.endSpan(this);
-                return;
             }
-            if (buffered == null) {
-                if (!parent.bufferedSpan.compareAndSet(null, this)) {
-                    // the failed update would ideally lead to a compression attempt with the new buffer,
-                    // but we're dropping the compression attempt to keep things simple
-                    this.tracer.endSpan(this);
-                }
-                parent.decrementReferences();
-                return;
-            }
-            if (!buffered.tryToCompress(this)) {
-                if (parent.bufferedSpan.compareAndSet(buffered, this)) {
-                    this.tracer.endSpan(buffered);
-                } else {
-                    // the failed update would ideally lead to a compression attempt with the new buffer,
-                    // but we're dropping the compression attempt to keep things simple
-                    this.tracer.endSpan(this);
-                }
-                parent.decrementReferences();
-            } else if (isSampled()) {
-                Transaction transaction = getTransaction();
-                if (transaction != null) {
-                    transaction.getSpanCount().getDropped().incrementAndGet();
-                }
-                parent.decrementReferences();
-                decrementReferences();
-            }
-        } else {
+        } finally {
             if (parent != null) {
+                //this needs to happen before this.decrementReferences(), because otherwise "this" might have been recycled already
                 parent.decrementReferences();
             }
-            this.tracer.endSpan(this);
+            this.decrementReferences();
         }
     }
 

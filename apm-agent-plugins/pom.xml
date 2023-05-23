@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.32.1-SNAPSHOT</version>
+        <version>1.38.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-plugins</artifactId>
@@ -23,16 +23,15 @@
         <module>apm-jsf-plugin</module>
         <module>apm-opentracing-plugin</module>
         <module>apm-servlet-plugin</module>
-        <module>apm-spring-webmvc-plugin</module>
+        <module>apm-spring-webmvc</module>
         <module>apm-spring-webflux</module>
         <module>apm-reactor-plugin</module>
         <module>apm-api-plugin</module>
-        <module>apm-apache-httpclient-plugin</module>
+        <module>apm-apache-httpclient</module>
         <module>apm-spring-resttemplate</module>
         <module>apm-httpclient-core</module>
         <module>apm-httpserver-core</module>
         <module>apm-logging-plugin</module>
-        <module>apm-log-shipper-plugin</module>
         <module>apm-es-restclient-plugin</module>
         <module>apm-okhttp-plugin</module>
         <module>apm-java-concurrent-plugin</module>
@@ -46,7 +45,7 @@
         <module>apm-redis-plugin</module>
         <module>apm-scala-concurrent-plugin</module>
         <module>apm-jmx-plugin</module>
-        <module>apm-mongoclient-plugin</module>
+        <module>apm-mongodb</module>
         <module>apm-process-plugin</module>
         <module>apm-kafka-plugin</module>
         <module>apm-profiling-plugin</module>
@@ -72,6 +71,8 @@
         <module>apm-jakarta-websocket-plugin</module>
         <module>apm-ecs-logging-plugin</module>
         <module>apm-aws-sdk</module>
+        <module>apm-finagle-httpclient-plugin</module>
+        <module>apm-java-ldap-plugin</module>
     </modules>
 
     <dependencies>
@@ -108,6 +109,13 @@
                     <artifactId>jetty-util</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-agent-common</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

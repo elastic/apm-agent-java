@@ -49,11 +49,11 @@ NOTE: As of version 1.33.0, Java 7 support is deprecated and will be removed in 
 |Vendor |Supported versions |Notes
 
 |Oracle JDK
-|7u60+*, 8u40+, 9, 10, 11, 17
+|7u60+*, 8u40+, 9, 10, 11, 17, 20
 |`--module-path` has not been tested yet
 
 |OpenJDK
-|7u60+*, 8u40+, 9, 10, 11, 17
+|7u60+*, 8u40+, 9, 10, 11, 17, 20
 |`--module-path` has not been tested yet
 
 |IBM J9 VM
@@ -81,11 +81,12 @@ Similarly, Java 7 versions before update 60 are not supported as they are buggy 
 Here is an example of the message displayed when this happens.
 ```
 Failed to start agent - JVM version not supported: 1.8.0_31 Java HotSpot(TM) 64-Bit Server VM 25.31-b07.
-To override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property to 'true'.
+To override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property,
+or the `ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS` environment variable, to 'true'.
 ```
 
-As this message states, you can disable this check if required by adding `-Delastic.apm.disable_bootstrap_checks` to
-the JVM arguments.
+As this message states, you can disable this check if required by adding `-Delastic.apm.disable_bootstrap_checks=true` to
+the JVM arguments, or setting `ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS=true` for the JVM environment variables.
 
 
 [float]
@@ -103,15 +104,15 @@ the JVM arguments.
 |1.0.0, 4.0+ (`jakarta.servlet`) since 1.28.0
 
 |Spring Web MVC
-|4.x, 5.x
+|4.x, 5.x, 6.x
 |If you are using Spring MVC (for example with Spring Boot),
   the transactions are named based on your controllers (`ControllerClass#controllerMethod`).
-|1.0.0
+|1.0.0, 6.x since 1.38.0
 
 |Spring Webflux
 |5.2.3+
 |Creates transactions for incoming HTTP requests, supports annotated and functional endpoints.
-|1.24.0 (experimental)
+|1.24.0 (experimental), 1.34.0 (GA)
 
 |JavaServer Faces
 |2.2.x, 2.3.x, 3.0.x
@@ -120,9 +121,9 @@ rendering
 |1.0.0, `jakarta.faces` since 1.28.0
 
 |Spring Boot
-|1.5+, 2.x
+|1.5+, 2.x, 3.x
 |Supports embedded Tomcat, Jetty and Undertow
-|1.0.0
+|1.0.0, 3.x since 1.38.0
 
 |JAX-RS
 |2.x, 3.x
@@ -277,10 +278,26 @@ Other Servlet 3+ compliant servers will most likely work as well.
  The actual query will not be recorded.
 |1.12.0
 
+|MongoDB Sync Driver
+|4.x
+|The agent creates spans for interactions with the MongoDB 4.x sync driver.
+This provides support for `org.mongodb:mongodb-driver-sync`
+|1.34.0
+
 |Cassandra
 |2.x+
 |
 |1.23.0
+
+|AWS DynamoDB
+|1.x, 2.x
+|The agent creates spans for interactions with the AWS DynamoDb service through the AWS Java SDK.
+|1.31.0
+
+|AWS S3
+|1.x, 2.x
+|The agent creates spans for interactions with the AWS S3 service through the AWS Java SDK.
+|1.31.0
 
 |===
 
@@ -298,7 +315,13 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |Apache HttpClient
 |4.3+
 |
-| 0.7.0
+| 0.7.0 (4.3+)
+  1.8.0 (4.0+)
+
+|Apache HttpClient (Legacy)
+|3.0+
+| Requires setting <<config-instrument-ancient-bytecode, `instrument_ancient_bytecode`>> to `true`
+| 1.35.0
 
 |Apache HttpAsyncClient
 |4.0+
@@ -350,8 +373,17 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |Spring Webclient
 |5.2.3+
 |
-|1.33.0 (experimental)
+|1.33.0 (experimental), 1.34.0 (GA)
 
+|Finagle Http Client
+| 22+
+|
+| 1.35.0
+
+|LdapClient
+|
+|
+| 1.36.0
 |===
 
 
@@ -391,7 +423,7 @@ NOTE: To enable Scala Future support, you need to enable experimental plugins.
 | Reactor
 | 3.2.x+
 |The agent propagates the context for `Flux` and `Mono`.
-|1.24.0 (experimental)
+|1.24.0 (experimental), 1.34.0 (GA)
 
 
 
@@ -421,6 +453,11 @@ same trace.
 |3.x - 5.x
 |The agent captures RabbitMQ Message sends, consumption and polling
 |1.20.0
+
+|AWS SQS
+|1.x, 2.x
+|The agent captures SQS Message sends and polling as well as SQS message sends and consumption through JMS.
+|1.34.0
 
 |===
 
@@ -511,82 +548,102 @@ NOTE: only classes from the quartz-jobs dependency will be instrumented automati
 [[supported-logging-frameworks]]
 === Logging frameworks
 
+There are multiple log-related features in the agent and their support depend on the logging framework:
+
+- *<<log-correlation-ids, Correlation>>*:
+    The agent automatically injects `trace.id`, `transaction.id` and `error.id` into the MDC implementation (see below for framework specific MDC implementations used. MDC = Mapped Diagnostic Context, a standard way to enrich log messages with additional information).
+    For service correlation, the agent sets values for `service.name`, `service.version` and `service.environment`, using ECS log format is required (`ecs-logging-java` or reformatting).
+
+- *<<log-error-capturing, Error capturing>>*:
+    Automatically captures exceptions for calls like `logger.error("message", exception)`.
+
+- *<<config-log-ecs-reformatting,Reformatting>>*:
+    When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
+    ECS-compatible format.
+
 |===
 |Framework |Supported versions | Description | Since
 
 |slf4j
 |1.4.1+
-|Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0).
-When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
-
-|1.10.0
+|
+|Error capturing - 1.10.0
 
 |log4j2
-|Trace correlation - 2.0+
+| Correlation - 2.0+
 
-ECS Reformatting - 2.6+
+Reformatting - 2.6+
 
-|The agent adds https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entries for active `trace.id`,
-`transaction.id` and `error.id`.
+|https://logging.apache.org/log4j/2.x/manual/thread-context.html[`org.apache.logging.log4j.ThreadContext`] is used for correlation.
 
-The agent sets the service name for the `EcsLayout` if not provided explicitly (since 1.29.0).
+|Correlation (traces) - 1.13.0
 
-When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
-ECS-compatible format (since 1.22.0, experimental)
-
-Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
-When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
-|Trace correlation - 1.13.0
+Correlation (service) - 1.29.0
 
 Error capturing - 1.10.0
 
-ECS Service Name - 1.29.0
-
-ECS Reformatting - 1.22.0
+Reformatting - 1.22.0
 
 
 |log4j1
-|Trace correlation and error capture - 1.x
+|Correlation & error capture - 1.x
 
-ECS Reformatting - 1.2.17
+Reformatting - 1.2.17
 
-|The agent adds https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[MDC] entries for active `trace.id`,
-`transaction.id` and `error.id`.
+|https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[`org.apache.log4j.MDC`] is used for correlation.
 
-When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
-ECS-compatible format (since 1.22.0, experimental)
+|Correlation (traces) - 1.13.0
 
-Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
-When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well.
-|Trace correlation - 1.13.0
+Correlation (service) - 1.38.0
 
-ECS Reformatting - 1.22.0
+Reformatting - 1.22.0
 
 Error capturing - 1.30.0
 
 |Logback
 |1.1.0+
-|The agent adds https://www.slf4j.org/api/org/slf4j/MDC.html[slf4j MDC] entries for active `trace.id`, `transaction.id` and `error.id`.
+|https://www.slf4j.org/api/org/slf4j/MDC.html[`org.slf4j.MDC`] is used for correlation.
 
-When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
-ECS-compatible format (since 1.22.0, experimental)
-|Trace correlation - 1.0.0
+|Correlation (traces) - 1.0.0
+
+Correlation (service) - 1.38.0
 
 ECS Reformatting - 1.22.0
 
 |JBoss Logging
 |3.0.0+
-|The agent adds http://javadox.com/org.jboss.logging/jboss-logging/3.3.0.Final/org/jboss/logging/MDC.html[MDC]
-entries for `trace.id`, `transaction.id` and `error.id`.
-|1.23.0
+| http://javadox.com/org.jboss.logging/jboss-logging/3.3.0.Final/org/jboss/logging/MDC.html[`org.jboss.logging.MDC`] is used for correlation.
+|Correlation (traces) - 1.23.0 (LogManager 1.30.0)
 
-JBoss LogManager - 1.30.0
+Correlation (service) - 1.38.0
+
+Reformatting - 1.31.0
 
 |JUL - `java.util.logging`
 |All supported Java versions
-|When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
-ECS-compatible format
-|1.31.0
+|Correlation is only supported with ECS logging (library or reformatting) as JUL does
+not provide any MDC implementation.
+|Correlation (traces) - 1.35.0 (requires ECS logging)
+
+Correlation (service) - 1.38.0 (requires ECS logging)
+
+Reformatting - 1.31.0
+
+Error capturing - 1.31.0
+
+| Tomcat JULI
+| 7.0.0+
+|Trace correlation is only supported with ECS logging (library or reformatting) as JUL does
+not provide any MDC implementation.
+
+Tomcat access logs are not supported.
+|Correlation (traces) - 1.35.0 (requires ECS logging)
+
+Correlation (service) - 1.38.0 (requires ECS logging)
+
+Reformatting - 1.35.0
+
+Error capturing - 1.35.0
 
 |===
 
@@ -679,7 +736,7 @@ If you are seeing gaps in the span timeline and want to include additional metho
 |Set the configuration option <<config-capture-jmx-metrics, `capture_jmx_metrics`>> in order to monitor any JMX metric.
 |1.11.0
 
-|Micrometer (<<metrics-micrometer-beta-caveats,beta>>)
+|Micrometer
 |Automatically detects and reports the metrics of each `MeterRegistry`.
  See <<metrics-micrometer>> for more details.
 |1.18.0
@@ -690,6 +747,3 @@ If you are seeing gaps in the span timeline and want to include additional metho
 [[supported-technologies-caveats]]
 === Caveats
 * Other JVM languages, like Scala, Kotlin and Groovy have not been tested yet.
-* The agent does currently not support running on JVMs with an enabled `SecurityManager`.
-  You may see exceptions like this: `java.security.AccessControlException: access denied ("java.lang.RuntimePermission" "getProtectionDomain")`.
-  Try to grant `java.security.AllPermission` to the agent.

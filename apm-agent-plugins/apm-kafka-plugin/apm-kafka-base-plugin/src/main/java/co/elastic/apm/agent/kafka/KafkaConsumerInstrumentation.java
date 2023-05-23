@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -57,7 +57,7 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
 
     public static class KafkaPollEntryAdvice {
 
-        private static final MessagingConfiguration messagingConfiguration = GlobalTracer.requireTracerImpl().getConfig(MessagingConfiguration.class);
+        private static final MessagingConfiguration messagingConfiguration = GlobalTracer.get().getConfig(MessagingConfiguration.class);
 
         @SuppressWarnings("unused")
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -69,14 +69,14 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
             }
 
             if (messagingConfiguration.shouldEndMessagingTransactionOnPoll() && activeSpan instanceof Transaction) {
-                Transaction transaction = (Transaction) activeSpan;
+                Transaction<?> transaction = (Transaction<?>) activeSpan;
                 if ("messaging".equals(transaction.getType())) {
                     transaction.deactivate().end();
                     return;
                 }
             }
 
-            Span span = activeSpan.createExitSpan();
+            Span<?> span = activeSpan.createExitSpan();
             if (span == null) {
                 return;
             }
@@ -84,7 +84,7 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
             span.withType("messaging")
                 .withSubtype("kafka")
                 .withAction("poll")
-                .withName("KafkaConsumer#poll", AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
+                .withName("KafkaConsumer#poll", AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK);
 
             span.getContext().getServiceTarget().withType("kafka");
 
@@ -111,11 +111,12 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
             @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
             public static void pollEnd(@Advice.Thrown final Throwable throwable) {
 
-                Span span = tracer.getActiveSpan();
-                if (span != null &&
-                    "kafka".equals(span.getSubtype()) &&
-                    "poll".equals(span.getAction())
-                ) {
+                AbstractSpan<?> active = tracer.getActive();
+                if (!(active instanceof Span<?>)) {
+                    return;
+                }
+                Span<?> span = (Span<?>) active;
+                if ("kafka".equals(span.getSubtype()) && "poll".equals(span.getAction())) {
                     span.captureException(throwable);
                     span.deactivate().end();
                 }

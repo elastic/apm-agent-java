@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
 import net.bytebuddy.asm.Advice;
@@ -70,7 +70,7 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
         public static Object[] beforeSend(@Advice.FieldValue("apiVersions") final ApiVersions apiVersions,
                                           @Advice.Argument(0) final ProducerRecord<?, ?> record,
                                           @Nullable @Advice.Argument(value = 1) Callback callback) {
-            Span span = helper.onSendStart(record);
+            Span<?> span = helper.onSendStart(record);
             if (span == null) {
                 return null;
             }
@@ -107,7 +107,7 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
                                           @Advice.This final KafkaProducer<?, ?> thiz,
                                           @Advice.Thrown @Nullable final Throwable throwable) {
 
-            Span span = enter != null ? (Span) enter[0] : null;
+            Span<?> span = enter != null ? (Span<?>) enter[0] : null;
             if (span == null) {
                 return null;
             }

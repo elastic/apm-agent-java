@@ -22,24 +22,18 @@ import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.HeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 
 import javax.annotation.Nullable;
 
-public interface Tracer {
+public interface Tracer extends co.elastic.apm.agent.tracer.Tracer {
 
-    /**
-     * Starts a trace-root transaction
-     *
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name.
-     * @return a transaction that will be the root of the current trace if the agent is currently RUNNING; null otherwise
-     */
     @Nullable
+    @Override
     Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader);
 
     @Nullable
@@ -58,17 +52,7 @@ public interface Tracer {
     @Nullable
     Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader);
 
-    /**
-     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
-     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
-     * available), then it will be started as the root transaction of the trace.
-     *
-     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
-     * @param textHeadersGetter     provides the trace context headers required in order to create a child transaction
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name.
-     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
-     */
+    @Override
     @Nullable
     <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader);
 
@@ -93,17 +77,7 @@ public interface Tracer {
     <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler,
                                           long epochMicros, @Nullable ClassLoader initiatingClassLoader);
 
-    /**
-     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
-     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
-     * available), then it will be started as the root transaction of the trace.
-     *
-     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
-     * @param binaryHeadersGetter   provides the trace context headers required in order to create a child transaction
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name.
-     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
-     */
+    @Override
     @Nullable
     <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader);
 
@@ -125,9 +99,11 @@ public interface Tracer {
     <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter,
                                           Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader);
 
+    @Override
     @Nullable
     Transaction currentTransaction();
 
+    @Override
     @Nullable
     AbstractSpan<?> getActive();
 
@@ -174,6 +150,7 @@ public interface Tracer {
      */
     void stop();
 
+    @Override
     boolean isRunning();
 
     @Nullable

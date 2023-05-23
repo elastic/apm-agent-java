@@ -18,14 +18,11 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 
-/**
- * Represents a target service
- */
-public class ServiceTarget implements Recyclable {
+public class ServiceTarget implements Recyclable, co.elastic.apm.agent.tracer.ServiceTarget {
 
     @Nullable
     private String type;

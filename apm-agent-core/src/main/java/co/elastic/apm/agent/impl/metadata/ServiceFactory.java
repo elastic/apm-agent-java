@@ -20,6 +20,7 @@ package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 
 public class ServiceFactory {
@@ -29,7 +30,7 @@ public class ServiceFactory {
             .withName(coreConfiguration.getServiceName())
             .withVersion(coreConfiguration.getServiceVersion())
             .withEnvironment(coreConfiguration.getEnvironment())
-            .withAgent(new Agent("java", VersionUtils.getAgentVersion(), ephemeralId))
+            .withAgent(new Agent("java", VersionUtils.getAgentVersion(), ephemeralId, coreConfiguration))
             .withRuntime(new RuntimeInfo("Java", System.getProperty("java.version")))
             .withLanguage(new Language("Java", System.getProperty("java.version")))
             .withNode(new Node(coreConfiguration.getServiceNodeName()));
@@ -41,14 +42,14 @@ public class ServiceFactory {
     }
 
     private void augmentServiceForAWSLambda(Service service) {
-        String runtimeName = System.getenv("AWS_EXECUTION_ENV");
+        String runtimeName = PrivilegedActionUtils.getEnv("AWS_EXECUTION_ENV");
         runtimeName = null != runtimeName ? runtimeName : "AWS_Lambda_java";
         service.withRuntime(new RuntimeInfo(runtimeName, System.getProperty("java.version")));
 
         Node node = service.getNode();
         String nodeName = (node != null) ? node.getName() : null;
         if (nodeName == null || nodeName.isEmpty()) {
-            String serviceNodeName = System.getenv("AWS_LAMBDA_LOG_STREAM_NAME");
+            String serviceNodeName = PrivilegedActionUtils.getEnv("AWS_LAMBDA_LOG_STREAM_NAME");
             if (null != serviceNodeName) {
                 service.withNode(new Node(serviceNodeName));
             }

@@ -18,8 +18,10 @@
  */
 package co.elastic.apm.agent.esrestclient;
 
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseListener;
 
@@ -28,24 +30,69 @@ import javax.annotation.Nullable;
 public class ResponseListenerWrapper implements ResponseListener, Recyclable {
 
     private final ElasticsearchRestClientInstrumentationHelper helper;
+    private final Tracer tracer;
+
     @Nullable
     private ResponseListener delegate;
-    @Nullable
-    private volatile Span span;
 
-    ResponseListenerWrapper(ElasticsearchRestClientInstrumentationHelper helper) {
+    /**
+     * When {@literal true}, the context object is a client span that needs to be ended on completion, when {@literal false}
+     * it means that only context-propagation (aka activation/deactivation) is required.
+     */
+    private boolean isClientSpan;
+
+    @Nullable
+    private volatile AbstractSpan<?> context;
+
+    ResponseListenerWrapper(ElasticsearchRestClientInstrumentationHelper helper, Tracer tracer) {
         this.helper = helper;
+        this.tracer = tracer;
     }
 
-    ResponseListenerWrapper with(ResponseListener delegate, Span span) {
+    ResponseListenerWrapper withClientSpan(ResponseListener delegate, Span<?> span) {
         // Order is important due to visibility - write to span last on this (initiating) thread
         this.delegate = delegate;
-        this.span = span;
+        this.isClientSpan = true;
+        this.context = span;
+        return this;
+    }
+
+    ResponseListenerWrapper withContextPropagation(ResponseListener delegate, AbstractSpan<?> context) {
+        // Order is important due to visibility - write to span last on this (initiating) thread
+        this.delegate = delegate;
+        this.isClientSpan = false;
+        this.context = context;
         return this;
     }
 
     @Override
     public void onSuccess(Response response) {
+        if (isClientSpan) {
+            onSuccessClient(response);
+        } else {
+            onSuccessContextPropagation(response);
+        }
+    }
+
+    private void onSuccessContextPropagation(Response response) {
+        AbstractSpan<?> localContext = context;
+        boolean activate = localContext != null && tracer.getActive() != localContext;
+        try {
+            if (activate) {
+                localContext.activate();
+            }
+            if (delegate != null) {
+                delegate.onSuccess(response);
+            }
+        } finally {
+            if (activate) {
+                localContext.deactivate();
+            }
+            helper.recycle(this);
+        }
+    }
+
+    private void onSuccessClient(Response response){
         try {
             finishClientSpan(response, null);
         } finally {
@@ -58,6 +105,14 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
 
     @Override
     public void onFailure(Exception exception) {
+        if (isClientSpan) {
+            onFailureClient(exception);
+        } else {
+            onFailureContextPropagation(exception);
+        }
+    }
+
+    private void onFailureClient(Exception exception) {
         try {
             finishClientSpan(null, exception);
         } finally {
@@ -68,17 +123,36 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
         }
     }
 
+    private void onFailureContextPropagation(Exception exception) {
+        AbstractSpan<?> localContext = context;
+        boolean activate = localContext != null && tracer.getActive() != localContext;
+        try {
+            if (activate) {
+                localContext.activate();
+            }
+            if (delegate != null) {
+                delegate.onFailure(exception);
+            }
+        } finally {
+            if (activate) {
+                localContext.deactivate();
+            }
+            helper.recycle(this);
+        }
+    }
+
     private void finishClientSpan(@Nullable Response response, @Nullable Throwable throwable) {
         // First read volatile span to ensure visibility on executing thread
-        Span localSpan = span;
-        if (localSpan != null) {
-            helper.finishClientSpan(response, localSpan, throwable);
+        AbstractSpan<?> localSpan = context;
+        if (localSpan instanceof Span<?>) {
+            helper.finishClientSpan(response, (Span<?>) localSpan, throwable);
         }
     }
 
     @Override
     public void resetState() {
         delegate = null;
-        span = null;
+        context = null;
+        isClientSpan = false;
     }
 }

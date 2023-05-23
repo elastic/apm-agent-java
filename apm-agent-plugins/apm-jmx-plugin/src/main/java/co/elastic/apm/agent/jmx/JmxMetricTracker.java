@@ -23,9 +23,11 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.GlobalLocks;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nullable;
@@ -143,7 +145,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
 
     private void deferInit() {
         logger.debug("Deferring initialization of JMX metric tracking until platform mbean server is initialized");
-        Thread thread = new Thread(new Runnable() {
+        Thread thread = PrivilegedActionUtils.newThread(new Runnable() {
 
             private final long timeout = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(5);
 

@@ -19,8 +19,6 @@
 package co.elastic.apm.agent.awssdk.v1;
 
 import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -32,7 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 
-import java.util.function.Consumer;
+import javax.annotation.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
@@ -41,8 +39,6 @@ import static org.testcontainers.containers.localstack.LocalStackContainer.Servi
 public class S3ClientIT extends AbstractAwsClientIT {
 
     private AmazonS3 s3;
-
-    private Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
 
     @BeforeEach
     public void setupClient() {
@@ -56,25 +52,79 @@ public class S3ClientIT extends AbstractAwsClientIT {
     public void testS3Client() {
         Transaction transaction = startTestRootTransaction("s3-test");
 
-        executeTest("CreateBucket", BUCKET_NAME, () -> s3.createBucket(BUCKET_NAME), dbAssert);
-        executeTest("CreateBucket", NEW_BUCKET_NAME, () -> s3.createBucket(NEW_BUCKET_NAME), dbAssert);
-        executeTest("ListBuckets", null, () -> s3.listBuckets(), dbAssert);
-        executeTest("PutObject", BUCKET_NAME, () -> s3.putObject(BUCKET_NAME, OBJECT_KEY, "This is some Object content"), dbAssert);
-        executeTest("ListObjects", BUCKET_NAME, () -> s3.listObjects(BUCKET_NAME), dbAssert);
-        executeTest("GetObject", BUCKET_NAME, () -> s3.getObject(BUCKET_NAME, OBJECT_KEY), dbAssert);
-        executeTest("CopyObject", NEW_BUCKET_NAME, () -> s3.copyObject(BUCKET_NAME, OBJECT_KEY, NEW_BUCKET_NAME, "new-key"), dbAssert);
-        executeTest("DeleteObject", BUCKET_NAME, () -> {
+        newTest(() -> s3.createBucket(BUCKET_NAME))
+            .operationName("CreateBucket")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .execute();
+
+        newTest(() -> s3.createBucket(NEW_BUCKET_NAME))
+            .operationName("CreateBucket")
+            .entityName(NEW_BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", NEW_BUCKET_NAME)
+            .execute();
+
+        newTest(() -> s3.listBuckets())
+            .operationName("ListBuckets")
+            .execute();
+
+        newTest(() -> s3.putObject(BUCKET_NAME, OBJECT_KEY, "This is some Object content"))
+            .operationName("PutObject")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .otelAttribute("aws.s3.key", OBJECT_KEY)
+            .execute();
+
+        newTest(() -> s3.listObjects(BUCKET_NAME))
+            .operationName("ListObjects")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .execute();
+
+        newTest(() -> s3.getObject(BUCKET_NAME, OBJECT_KEY))
+            .operationName("GetObject")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .otelAttribute("aws.s3.key", OBJECT_KEY)
+            .execute();
+
+        newTest(() -> s3.copyObject(BUCKET_NAME, OBJECT_KEY, NEW_BUCKET_NAME, NEW_OBJECT_KEY))
+            .operationName("CopyObject")
+            .entityName(NEW_BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", NEW_BUCKET_NAME)
+            .otelAttribute("aws.s3.key", NEW_OBJECT_KEY)
+            .otelAttribute("aws.s3.copy_source", BUCKET_NAME + "/" + OBJECT_KEY)
+            .execute();
+
+        newTest(() -> {
             s3.deleteObject(BUCKET_NAME, OBJECT_KEY);
             return null;
-        });
-        executeTest("DeleteBucket", BUCKET_NAME, () -> {
+        })
+            .operationName("DeleteObject")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .otelAttribute("aws.s3.key", OBJECT_KEY)
+            .execute();
+
+
+        newTest(() -> {
             s3.deleteBucket(BUCKET_NAME);
             return null;
-        }, dbAssert);
-        executeTestWithException(AmazonS3Exception.class, "PutObject", BUCKET_NAME + "-exception", () -> s3.putObject(BUCKET_NAME + "-exception", OBJECT_KEY, "This is some Object content"), dbAssert);
+        })
+            .operationName("DeleteBucket")
+            .entityName(BUCKET_NAME)
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME)
+            .execute();
 
-        assertThat(reporter.getSpans().size()).isEqualTo(10);
-        assertThat(reporter.getSpans()).allMatch(AbstractSpan::isSync);
+        newTest(() -> s3.putObject(BUCKET_NAME + "-exception", OBJECT_KEY, "This is some Object content"))
+            .operationName("PutObject")
+            .entityName(BUCKET_NAME + "-exception")
+            .otelAttribute("aws.s3.bucket", BUCKET_NAME + "-exception")
+            .otelAttribute("aws.s3.key", OBJECT_KEY)
+            .executeWithException(AmazonS3Exception.class);
+
+        assertThat(reporter.getSpans()).hasSize(10);
+
         transaction.deactivate().end();
 
         assertThat(reporter.getNumReportedErrors()).isEqualTo(1);
@@ -89,6 +139,17 @@ public class S3ClientIT extends AbstractAwsClientIT {
     @Override
     protected String type() {
         return "storage";
+    }
+
+    @Override
+    protected String subtype() {
+        return "s3";
+    }
+
+    @Nullable
+    @Override
+    protected String expectedTargetName(@Nullable String entityName) {
+        return entityName; //entityName is BUCKET_NAME
     }
 
     @Override

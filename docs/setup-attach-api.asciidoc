@@ -36,7 +36,7 @@ the application with a JDK. However, it will be required in the following cases:
 [[setup-attach-api-usage]]
 ==== Usage
 
-Declare a dependency to the link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:apm-agent-attach[`apm-agent-attach`] artifact.
+Declare a dependency to the link:https://mvnrepository.com/artifact/co.elastic.apm/apm-agent-attach/latest[`apm-agent-attach`] artifact.
 
 [source,xml]
 .pom.xml

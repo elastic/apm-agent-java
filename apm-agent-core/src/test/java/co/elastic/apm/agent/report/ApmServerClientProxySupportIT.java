@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -133,7 +132,10 @@ public class ApmServerClientProxySupportIT {
 
     @Test
     void noProxy() throws IOException {
-        simpleTestScenario(false);
+        ApmServerClient client = createAndStartClient(false);
+        URL requestUrl = requestUrl(false);
+        checkUsingProxy(client.startRequest(requestUrl.getPath()), false);
+        checkUsingProxy(requestUrl.openConnection(), false);
     }
 
     @Test
@@ -180,6 +182,18 @@ public class ApmServerClientProxySupportIT {
 
     }
 
+    @Test
+    void basicAuthProxy_ignoreByConfiguration() throws IOException {
+        // agent should ignore the proxy configuration as it is instructed to not use it
+        startProxy(true);
+
+        setSystemProxyProperties();
+        setSystemProxyIgnoreProperty();
+
+        // should behave exactly as if no proxy was configured
+        noProxy();
+    }
+
     private void expectProxyError() throws IOException {
         ApmServerClient client = createAndStartClient(true);
         URL requestUrl = requestUrl(true);
@@ -196,16 +210,13 @@ public class ApmServerClientProxySupportIT {
         checkUsingProxy(requestUrl.openConnection(), true);
     }
 
-    private void simpleTestScenario(boolean useProxy) throws IOException {
-        ApmServerClient client = createAndStartClient(useProxy);
-        URL requestUrl = requestUrl(useProxy);
-        checkUsingProxy(client.startRequest(requestUrl.getPath()), useProxy);
-        checkUsingProxy(requestUrl.openConnection(), useProxy);
-    }
-
     private void setSystemProxyProperties() {
         System.setProperty("http.proxyHost", proxy.getContainerIpAddress());
         System.setProperty("http.proxyPort", Integer.toString(proxy.getMappedPort(3128)));
+    }
+
+    private void setSystemProxyIgnoreProperty(){
+        System.setProperty("http.nonProxyHosts", proxy.getContainerIpAddress());
     }
 
     private void setSystemProxyCredentialProperties() {
@@ -218,7 +229,7 @@ public class ApmServerClientProxySupportIT {
         ReporterConfiguration config = spyConfig.getConfig(ReporterConfiguration.class);
 
         doReturn(Collections.singletonList(useProxy ? proxyUrl : directUrl)).when(config).getServerUrls();
-        ApmServerClient client = new ApmServerClient(config, spyConfig.getConfig(CoreConfiguration.class));
+        ApmServerClient client = new ApmServerClient(spyConfig);
         client.start();
         return client;
     }

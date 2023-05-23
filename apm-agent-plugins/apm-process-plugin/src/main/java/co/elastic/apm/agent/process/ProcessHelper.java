@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 
@@ -34,7 +34,7 @@ import java.util.List;
  */
 class ProcessHelper {
 
-    private static final ProcessHelper INSTANCE = new ProcessHelper(WeakConcurrentProviderImpl.<Process, Span>createWeakSpanMap());
+    private static final ProcessHelper INSTANCE = new ProcessHelper(WeakConcurrentProviderImpl.<Process, Span<?>>createWeakSpanMap());
 
     /**
      * A thread local used to indicate whether the currently invoked instrumented method is invoked by the plugin itself.
@@ -44,9 +44,9 @@ class ProcessHelper {
      */
     private static final ThreadLocal<Boolean> inTracingContext = GlobalVariables.get(ProcessHelper.class, "inTracingContext", new ThreadLocal<Boolean>());
 
-    private final WeakMap<Process, Span> inFlightSpans;
+    private final WeakMap<Process, Span<?>> inFlightSpans;
 
-    ProcessHelper(WeakMap<Process, Span> inFlightSpans) {
+    ProcessHelper(WeakMap<Process, Span<?>> inFlightSpans) {
         this.inFlightSpans = inFlightSpans;
     }
 
@@ -80,7 +80,7 @@ class ProcessHelper {
 
         String binaryName = getBinaryName(processName);
 
-        Span span = parentContext.createSpan()
+        Span<?> span = parentContext.createSpan()
             .withType("process")
             .withName(binaryName);
 
@@ -104,7 +104,7 @@ class ProcessHelper {
      */
     void doEndProcess(Process process, boolean checkTerminatedProcess) {
 
-        Span span = inFlightSpans.get(process);
+        Span<?> span = inFlightSpans.get(process);
         if (span == null) {
             return;
         }
@@ -145,7 +145,7 @@ class ProcessHelper {
     }
 
     private void removeAndEndSpan(Process process, Outcome outcome) {
-        Span span = inFlightSpans.remove(process);
+        Span<?> span = inFlightSpans.remove(process);
         if (span != null) {
             span.withOutcome(outcome).
                 end();

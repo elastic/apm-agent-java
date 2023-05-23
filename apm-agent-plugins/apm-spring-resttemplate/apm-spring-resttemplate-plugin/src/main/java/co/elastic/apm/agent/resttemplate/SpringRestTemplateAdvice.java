@@ -20,9 +20,9 @@ package co.elastic.apm.agent.resttemplate;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -48,7 +48,7 @@ public class SpringRestTemplateAdvice {
             return null;
         }
         URI uri = request.getURI();
-        Span span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), uri, uri.getHost());
+        Span<?> span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), uri, uri.getHost());
         if (span != null) {
             span.activate();
             span.propagateTraceContext(request, SpringRestRequestHeaderSetter.INSTANCE);
@@ -63,8 +63,8 @@ public class SpringRestTemplateAdvice {
                                     @Advice.Enter @Nullable Object spanObj,
                                     @Advice.Thrown @Nullable Throwable t) throws IOException {
         logger.trace("Exit advice for RestTemplate client execute() method, span object: {}", spanObj);
-        if (spanObj instanceof Span) {
-            Span span = (Span) spanObj;
+        if (spanObj instanceof Span<?>) {
+            Span<?> span = (Span<?>) spanObj;
             try {
                 if (clientHttpResponse != null) {
                     // getRawStatusCode has been introduced in 3.1.1

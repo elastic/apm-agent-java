@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.servlet.adapter;
 
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.servlet.helper.JavaxServletRequestHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.metadata.Request;
 
 import javax.annotation.Nullable;
 import javax.servlet.DispatcherType;
@@ -194,6 +194,7 @@ public class JavaxServletApiAdapter implements ServletApiAdapter<HttpServletRequ
     }
 
     @Override
+    @Nullable
     public String getPathInfo(HttpServletRequest servletRequest) {
         return servletRequest.getPathInfo();
     }
@@ -232,6 +233,11 @@ public class JavaxServletApiAdapter implements ServletApiAdapter<HttpServletRequ
     @Override
     public Object getAttribute(HttpServletRequest servletRequest, String attributeName) {
         return servletRequest.getAttribute(attributeName);
+    }
+
+    @Override
+    public void setAttribute(HttpServletRequest servletRequest, String attributeName, Object value) {
+        servletRequest.setAttribute(attributeName, value);
     }
 
     @Nullable

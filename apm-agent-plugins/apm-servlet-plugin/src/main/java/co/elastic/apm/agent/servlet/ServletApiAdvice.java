@@ -19,29 +19,28 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Scope;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.servlet.adapter.ServletApiAdapter;
+import co.elastic.apm.agent.tracer.metadata.Request;
+import co.elastic.apm.agent.tracer.metadata.Response;
 import co.elastic.apm.agent.util.TransactionNameUtils;
+import co.elastic.apm.agent.tracer.Scope;
 
 import javax.annotation.Nullable;
-import java.security.Principal;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEWORK;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 
 public abstract class ServletApiAdvice {
@@ -49,7 +48,7 @@ public abstract class ServletApiAdvice {
     private static final String FRAMEWORK_NAME = "Servlet API";
     static final String SPAN_TYPE = "servlet";
     static final String SPAN_SUBTYPE = "request-dispatcher";
-    private static final ServletTransactionHelper servletTransactionHelper = new ServletTransactionHelper(GlobalTracer.requireTracerImpl());
+    private static final ServletTransactionHelper servletTransactionHelper = new ServletTransactionHelper(GlobalTracer.get());
 
     private static final DetachedThreadLocal<Boolean> excluded = GlobalVariables.get(ServletApiAdvice.class, "excluded", WeakConcurrent.<Boolean>buildThreadLocal());
     private static final DetachedThreadLocal<Object> servletPathTL = GlobalVariables.get(ServletApiAdvice.class, "servletPath", WeakConcurrent.buildThreadLocal());
@@ -62,7 +61,7 @@ public abstract class ServletApiAdvice {
         ServletApiAdapter<HttpServletRequest, HttpServletResponse, ServletContext, ServletContextEvent, FilterConfig, ServletConfig> adapter,
         Object servletRequest) {
 
-        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
+        Tracer tracer = GlobalTracer.get().require(Tracer.class);
         if (tracer == null) {
             return null;
         }
@@ -73,7 +72,7 @@ public abstract class ServletApiAdvice {
         }
         AbstractSpan<?> ret = null;
         // re-activate transactions for async requests
-        final Transaction transactionAttr = (Transaction) adapter.getAttribute(httpServletRequest, TRANSACTION_ATTRIBUTE);
+        final Transaction<?> transactionAttr = (Transaction<?>) adapter.getAttribute(httpServletRequest, TRANSACTION_ATTRIBUTE);
         if (tracer.currentTransaction() == null && transactionAttr != null) {
             return transactionAttr.activateInScope();
         }
@@ -91,7 +90,7 @@ public abstract class ServletApiAdvice {
 
             ServletServiceNameHelper.determineServiceName(adapter, adapter.getServletContext(httpServletRequest), tracer);
 
-            Transaction transaction = servletTransactionHelper.createAndActivateTransaction(adapter, adapter, httpServletRequest);
+            Transaction<?> transaction = servletTransactionHelper.createAndActivateTransaction(adapter, adapter, httpServletRequest);
 
             if (transaction == null) {
                 // if the httpServletRequest is excluded, avoid matching all exclude patterns again on each filter invocation
@@ -167,19 +166,17 @@ public abstract class ServletApiAdvice {
         @Nullable Throwable t,
         Object thiz) {
 
-        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
-        if (tracer == null) {
-            return;
-        }
-        Transaction transaction = null;
+        Tracer tracer = GlobalTracer.get();
+
+        Transaction<?> transaction = null;
         Scope scope = null;
-        Span span = null;
-        if (transactionOrScopeOrSpan instanceof Transaction) {
-            transaction = (Transaction) transactionOrScopeOrSpan;
+        Span<?> span = null;
+        if (transactionOrScopeOrSpan instanceof Transaction<?>) {
+            transaction = (Transaction<?>) transactionOrScopeOrSpan;
         } else if (transactionOrScopeOrSpan instanceof Scope) {
             scope = (Scope) transactionOrScopeOrSpan;
-        } else if (transactionOrScopeOrSpan instanceof Span) {
-            span = (Span) transactionOrScopeOrSpan;
+        } else if (transactionOrScopeOrSpan instanceof Span<?>) {
+            span = (Span<?>) transactionOrScopeOrSpan;
         }
 
         excluded.remove();
@@ -189,11 +186,14 @@ public abstract class ServletApiAdvice {
         HttpServletRequest httpServletRequest = adapter.asHttpServletRequest(servletRequest);
         HttpServletResponse httpServletResponse = adapter.asHttpServletResponse(servletResponse);
         if (adapter.isInstanceOfHttpServlet(thiz) && httpServletRequest != null) {
-            Transaction currentTransaction = tracer.currentTransaction();
+            Transaction<?> currentTransaction = tracer.currentTransaction();
             if (currentTransaction != null) {
-                TransactionNameUtils.setTransactionNameByServletClass(adapter.getMethod(httpServletRequest), thiz.getClass(), currentTransaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK));
-                final Principal userPrincipal = adapter.getUserPrincipal(httpServletRequest);
-                ServletTransactionHelper.setUsernameIfUnset(userPrincipal != null ? userPrincipal.getName() : null, currentTransaction.getContext());
+                TransactionNameUtils.setTransactionNameByServletClass(adapter.getMethod(httpServletRequest), thiz.getClass(), currentTransaction.getAndOverrideName(PRIORITY_LOW_LEVEL_FRAMEWORK));
+
+                String userName = ServletTransactionHelper.getUserFromPrincipal(adapter.getUserPrincipal(httpServletRequest));
+                if (userName != null) {
+                    ServletTransactionHelper.setUsernameIfUnset(userName, currentTransaction.getContext());
+                }
             }
         }
         if (transaction != null &&
@@ -239,10 +239,26 @@ public abstract class ServletApiAdvice {
                     }
                 }
 
-                servletTransactionHelper.onAfter(transaction, t == null ? t2 : t, adapter.isCommitted(httpServletResponse), adapter.getStatus(httpServletResponse),
-                    overrideStatusCodeOnThrowable, adapter.getMethod(httpServletRequest), parameterMap, adapter.getServletPath(httpServletRequest),
-                    adapter.getPathInfo(httpServletRequest), contentTypeHeader, true
-                );
+                ServletContext servletContext = adapter.getServletContext(httpServletRequest);
+                String servletPath = adapter.getServletPath(httpServletRequest);
+                String pathInfo = adapter.getPathInfo(httpServletRequest);
+                if ((servletPath == null || servletPath.isEmpty()) && servletContext != null) {
+                    String contextPath = adapter.getContextPath(servletContext);
+                    String requestURI = adapter.getRequestURI(httpServletRequest);
+                    servletPath = servletTransactionHelper.normalizeServletPath(requestURI, contextPath, servletPath, pathInfo);
+                }
+
+                servletTransactionHelper.onAfter(
+                    transaction, t == null ? t2 : t,
+                    adapter.isCommitted(httpServletResponse),
+                    adapter.getStatus(httpServletResponse),
+                    overrideStatusCodeOnThrowable,
+                    adapter.getMethod(httpServletRequest),
+                    parameterMap,
+                    servletPath,
+                    pathInfo,
+                    contentTypeHeader,
+                    true);
             }
         }
         if (span != null) {
@@ -262,4 +278,5 @@ public abstract class ServletApiAdvice {
             return !first.equals(second);
         }
     }
+
 }

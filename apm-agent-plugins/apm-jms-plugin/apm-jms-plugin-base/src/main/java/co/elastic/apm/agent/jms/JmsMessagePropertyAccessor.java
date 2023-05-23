@@ -18,20 +18,16 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageNotWriteableException;
-
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
 
 public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Message> implements TextHeaderGetter<Message>, TextHeaderSetter<Message> {
 
@@ -43,13 +39,16 @@ public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Mes
         return INSTANCE;
     }
 
+    private final JmsInstrumentationHelper helper;
+
     private JmsMessagePropertyAccessor() {
+        helper = JmsInstrumentationHelper.get();
     }
 
     @Nullable
     @Override
     public String getFirstHeader(String headerName, Message message) {
-        headerName = jmsifyHeaderName(headerName);
+        headerName = helper.resolvePossibleTraceHeader(headerName);
         String value = null;
         try {
             value = message.getStringProperty(headerName);
@@ -59,18 +58,9 @@ public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Mes
         return value;
     }
 
-    @Nonnull
-    private String jmsifyHeaderName(String headerName) {
-        if (headerName.equals(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)) {
-            // replacing with the JMS equivalent
-            headerName = JMS_TRACE_PARENT_PROPERTY;
-        }
-        return headerName;
-    }
-
     @Override
     public void setHeader(String headerName, String headerValue, Message message) {
-        headerName = jmsifyHeaderName(headerName);
+        headerName = helper.resolvePossibleTraceHeader(headerName);
         if (getFirstHeader(headerName, message) != null) {
             return;
         }

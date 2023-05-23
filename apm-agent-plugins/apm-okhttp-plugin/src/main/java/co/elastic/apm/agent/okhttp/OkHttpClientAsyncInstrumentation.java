@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import com.squareup.okhttp.Call;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.Request;
@@ -76,14 +76,14 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
             Callback callback = originalCallback;
             URL url = request.url();
 
-            Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.getProtocol(),
+            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.getProtocol(),
                 OkHttpClientHelper.computeHostName(url.getHost()), url.getPort());
 
             if (span != null) {
                 span.activate();
             }
 
-            if (!TraceContext.containsTraceContextTextHeaders(request, OkHttpRequestHeaderGetter.INSTANCE)) {
+            if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), request, OkHttpRequestHeaderGetter.INSTANCE)) {
                 Request.Builder builder = originalRequest.newBuilder();
                 if (span != null) {
                     span.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
@@ -99,7 +99,7 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void onAfterEnqueue(@Advice.Enter @Nullable Object[] enter) {
-            Span span = enter != null ? (Span) enter[2] : null;
+            Span<?> span = enter != null ? (Span<?>) enter[2] : null;
             if (span != null) {
                 span.deactivate();
             }
@@ -111,15 +111,15 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
         public static final CallbackWrapperCreator INSTANCE = new CallbackWrapperCreator();
 
         @Override
-        public Callback wrap(final Callback delegate, Span span) {
+        public Callback wrap(final Callback delegate, Span<?> span) {
             return new CallbackWrapper(span, delegate);
         }
 
         private static class CallbackWrapper implements Callback {
-            private final Span span;
+            private final Span<?> span;
             private final Callback delegate;
 
-            CallbackWrapper(Span span, Callback delegate) {
+            CallbackWrapper(Span<?> span, Callback delegate) {
                 this.span = span;
                 this.delegate = delegate;
             }

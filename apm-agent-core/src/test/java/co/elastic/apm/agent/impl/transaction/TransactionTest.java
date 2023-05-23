@@ -25,6 +25,7 @@ import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.tracer.Outcome;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -37,9 +38,9 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-class TransactionTest {
+public class TransactionTest {
 
-    private DslJsonSerializer jsonSerializer;
+    private DslJsonSerializer.Writer jsonSerializer;
 
     @BeforeEach
     void setUp() {
@@ -47,7 +48,7 @@ class TransactionTest {
             mock(StacktraceConfiguration.class),
             mock(ApmServerClient.class),
             MetaDataMock.create()
-        );
+        ).newWriter();
     }
 
     @Test
@@ -98,7 +99,7 @@ class TransactionTest {
     void normalizeType(String type, String expectedType) {
         Transaction transaction = new Transaction(MockTracer.createRealTracer());
 
-        transaction.start(TraceContext.asRoot(), null, 0, ConstantSampler.of(true));
+        transaction.startRoot(0, ConstantSampler.of(true));
         assertThat(transaction.getType())
             .describedAs("transaction type should not be set by default")
             .isNull();
@@ -118,5 +119,12 @@ class TransactionTest {
         );
     }
 
-
+    /**
+     * A utility to enable arbitrary tests to set an existing {@link Transaction} state without making this functionality globally accessible
+     * @param recorded should the provided trace context be recorded
+     * @param transaction a span of which state is to be set
+     */
+    public static void setRecorded(boolean recorded, Transaction transaction) {
+        transaction.getTraceContext().setRecorded(recorded);
+    }
 }

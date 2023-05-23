@@ -18,9 +18,8 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
@@ -35,7 +34,7 @@ public class HttpClientHelper {
     public static final String HTTP_SUBTYPE = "http";
 
     @Nullable
-    public static Span startHttpClientSpan(AbstractSpan<?> parent, String method, @Nullable URI uri, @Nullable CharSequence hostName) {
+    public static Span<?> startHttpClientSpan(AbstractSpan<?> parent, String method, @Nullable URI uri, @Nullable CharSequence hostName) {
         String uriString = null;
         String scheme = null;
         int port = -1;
@@ -51,19 +50,11 @@ public class HttpClientHelper {
     }
 
     @Nullable
-    public static Span startHttpClientSpan(AbstractSpan<?> parent, String method, @Nullable String uri,
-                                           String scheme, CharSequence hostName, int port) {
-        Span span = parent.createExitSpan();
+    public static Span<?> startHttpClientSpan(AbstractSpan<?> parent, String method, @Nullable String uri,
+                                           @Nullable String scheme, @Nullable CharSequence hostName, int port) {
+        Span<?> span = parent.createExitSpan();
         if (span != null) {
-            span.withType(EXTERNAL_TYPE)
-                .withSubtype(HTTP_SUBTYPE)
-                .appendToName(method).appendToName(" ").appendToName(hostName);
-
-            span.getContext().getHttp()
-                .withUrl(uri)
-                .withMethod(method);
-
-            setDestinationServiceDetails(span, scheme, hostName, port);
+            updateHttpSpanNameAndContext(span, method, uri, scheme, hostName, port);
         }
         if (logger.isTraceEnabled()) {
             logger.trace("Created an HTTP exit span: {} for URI: {}. Parent span: {}", span, uri, parent);
@@ -71,7 +62,19 @@ public class HttpClientHelper {
         return span;
     }
 
-    public static void setDestinationServiceDetails(Span span, @Nullable String scheme, @Nullable CharSequence host, int port) {
+    public static void updateHttpSpanNameAndContext(Span<?> span, String method, @Nullable String uri, String scheme, CharSequence hostName, int port) {
+        span.withType(EXTERNAL_TYPE)
+            .withSubtype(HTTP_SUBTYPE)
+            .withName(method).appendToName(" ").appendToName(hostName != null ? hostName : "unknown host");
+
+        span.getContext().getHttp()
+            .withUrl(uri)
+            .withMethod(method);
+
+        setDestinationServiceDetails(span, scheme, hostName, port);
+    }
+
+    public static void setDestinationServiceDetails(Span<?> span, @Nullable String scheme, @Nullable CharSequence host, int port) {
         if (scheme == null || host == null || host.length() == 0) {
             return;
         }

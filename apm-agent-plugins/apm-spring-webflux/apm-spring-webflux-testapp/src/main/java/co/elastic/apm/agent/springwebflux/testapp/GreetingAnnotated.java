@@ -19,11 +19,13 @@
 package co.elastic.apm.agent.springwebflux.testapp;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -168,16 +170,21 @@ public class GreetingAnnotated {
     public Mono<String> customTransactionName() {
         log.debug("enter customTransactionName");
         try {
-            // Transaction should be active, even if we are outside of Mono/Flux execution
-            // In practice, it's called after onSubscribe and before onNext, thus the active context is not provided
-            // by reactor plugin, but only by the webflux plugin that keeps the transaction active.
-            ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
-            Transaction transaction = Objects.requireNonNull(tracer.currentTransaction(), "active transaction is required");
-            // This mimics setting the name through the public API. We cannot use the public API if we want to test span recycling
-            transaction.withName("user-provided-name", AbstractSpan.PRIO_USER_SUPPLIED);
+
+            Id transactionId = null;
+            if (!GlobalTracer.isNoop()) {
+                // Transaction should be active, even if we are outside of Mono/Flux execution
+                // In practice, it's called after onSubscribe and before onNext, thus the active context is not provided
+                // by reactor plugin, but only by the webflux plugin that keeps the transaction active.
+                ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
+                Transaction transaction = Objects.requireNonNull(tracer.currentTransaction(), "active transaction is required");
+                // This mimics setting the name through the public API. We cannot use the public API if we want to test span recycling
+                transaction.withName("user-provided-name", AbstractSpan.PRIORITY_USER_SUPPLIED);
+                transactionId = transaction.getTraceContext().getId();
+            }
 
 
-            return greetingHandler.helloMessage("transaction=" + Objects.requireNonNull(tracer.currentTransaction()).getTraceContext().getId());
+            return greetingHandler.helloMessage("transaction=" + transactionId);
         } finally {
             log.debug("exit customTransactionName");
         }

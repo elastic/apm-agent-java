@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.struts;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import com.opensymphony.xwork2.ActionContext;
 import com.opensymphony.xwork2.ActionProxy;
@@ -29,13 +29,13 @@ import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 
 public class ActionProxyAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnterExecute(@Advice.This ActionProxy actionProxy) {
-        Transaction transaction = GlobalTracer.get().currentTransaction();
+        Transaction<?> transaction = GlobalTracer.get().currentTransaction();
         if (transaction == null) {
             return null;
         }
@@ -43,11 +43,11 @@ public class ActionProxyAdvice {
         String className = actionProxy.getAction().getClass().getSimpleName();
         String methodName = actionProxy.getMethod();
         if (ActionContext.getContext().get("CHAIN_HISTORY") != null) {
-            Span span = transaction.createSpan().withType("app").withSubtype("internal");
-            TransactionNameUtils.setNameFromClassAndMethod(className, methodName, span.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
+            Span<?> span = transaction.createSpan().withType("app").withSubtype("internal");
+            TransactionNameUtils.setNameFromClassAndMethod(className, methodName, span.getAndOverrideName(PRIORITY_HIGH_LEVEL_FRAMEWORK));
             return span.activate();
         } else {
-            TransactionNameUtils.setNameFromClassAndMethod(className, methodName, transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK));
+            TransactionNameUtils.setNameFromClassAndMethod(className, methodName, transaction.getAndOverrideName(PRIORITY_HIGH_LEVEL_FRAMEWORK));
             StrutsFrameworkUtils.setFrameworkNameAndVersion(transaction);
             return null;
         }
@@ -60,7 +60,7 @@ public class ActionProxyAdvice {
             return;
         }
 
-        Span span = (Span) spanOrNull;
+        Span<?> span = (Span<?>) spanOrNull;
         try {
             if (t != null) {
                 span.captureException(t).withOutcome(Outcome.FAILURE);

@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
  */
-public class TransactionContext extends AbstractContext {
+public class TransactionContext extends AbstractContext implements co.elastic.apm.agent.tracer.TransactionContext {
 
     /**
      * A flat mapping of user-defined {@link String} keys and {@link String}, {@link Number} or {@link Boolean} values
@@ -78,6 +78,7 @@ public class TransactionContext extends AbstractContext {
         return custom.get(key);
     }
 
+    @Override
     public Response getResponse() {
         return response;
     }
@@ -102,24 +103,17 @@ public class TransactionContext extends AbstractContext {
         return custom.entrySet().iterator();
     }
 
-    /**
-     * Request
-     * <p>
-     * If a log record was generated as a result of a http request, the http interface can be used to collect this information.
-     */
+    @Override
     public Request getRequest() {
         return request;
     }
 
-    /**
-     * User
-     * <p>
-     * Describes the authenticated User for a request.
-     */
+    @Override
     public User getUser() {
         return user;
     }
 
+    @Override
     public CloudOrigin getCloudOrigin() {
         return cloudOrigin;
     }

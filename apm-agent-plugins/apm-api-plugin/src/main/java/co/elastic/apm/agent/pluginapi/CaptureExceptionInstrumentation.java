@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
+import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -31,7 +33,7 @@ public class CaptureExceptionInstrumentation extends ApiInstrumentation {
     public static class AdviceClass {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) Throwable t) {
-            tracer.captureAndReportException(t, clazz.getClassLoader());
+            tracer.require(Tracer.class).captureAndReportException(t, PrivilegedActionUtils.getClassLoader(clazz));
         }
     }
 

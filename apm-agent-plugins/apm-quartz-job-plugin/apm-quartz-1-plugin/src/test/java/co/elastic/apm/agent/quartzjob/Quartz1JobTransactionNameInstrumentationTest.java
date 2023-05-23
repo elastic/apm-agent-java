@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.quartzjob;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.quartz.Job;
 import org.quartz.JobDetail;
@@ -36,7 +36,7 @@ class Quartz1JobTransactionNameInstrumentationTest extends AbstractJobTransactio
 
     @Override
     public Transaction verifyTransactionFromJobDetails(JobDetail job, Outcome expectedOutcome) {
-        reporter.awaitTransactionCount(1);
+        reporter.awaitTransactionCount(1, 2000);
 
         Transaction transaction = reporter.getFirstTransaction();
         await().untilAsserted(() -> assertThat(reporter.getTransactions().size()).isEqualTo(1));

@@ -18,15 +18,18 @@
  */
 package co.elastic.apm.agent.metrics;
 
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
-import org.HdrHistogram.WriterReaderPhaser;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import org.HdrHistogram.WriterReaderPhaser;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -40,9 +43,12 @@ import java.util.concurrent.ConcurrentMap;
 public class MetricRegistry {
 
     private static final Logger logger = LoggerFactory.getLogger(MetricRegistry.class);
-    private static final int METRIC_SET_LIMIT = 1000;
     private final WriterReaderPhaser phaser = new WriterReaderPhaser();
-    private final ReporterConfiguration config;
+    private final ReporterConfiguration reporterConfiguration;
+
+    private final Set<MetricsProvider> metricsProviders = Collections.newSetFromMap(new ConcurrentHashMap<MetricsProvider, Boolean>());
+    private final int metricSetLimit;
+
     /**
      * Groups {@link MetricSet}s by their unique labels.
      */
@@ -54,8 +60,23 @@ public class MetricRegistry {
      */
     private final ConcurrentMap<Labels.Immutable, MetricSet> metricSets1 = activeMetricSets, metricSets2 = inactiveMetricSets;
 
-    public MetricRegistry(ReporterConfiguration config) {
-        this.config = config;
+    private final MetricCollector metricCollector = new MetricCollector() {
+        @Override
+        public void addMetricValue(String metric, Labels labels, double value) {
+            MetricSet metricset = getOrCreateMetricSet(labels);
+            if (metricset != null) {
+                metricset.addRawMetric(metric, value);
+            }
+        }
+    };
+
+    public MetricRegistry(ReporterConfiguration reporterConfiguration, MetricsConfiguration metricsConfiguration) {
+        this.reporterConfiguration = reporterConfiguration;
+        this.metricSetLimit = metricsConfiguration.getMetricSetLimit();
+    }
+
+    public void addMetricsProvider(MetricsProvider provider) {
+        metricsProviders.add(provider);
     }
 
     /**
@@ -126,8 +147,8 @@ public class MetricRegistry {
         }
     }
 
-    private boolean isDisabled(String name) {
-        return WildcardMatcher.anyMatch(config.getDisableMetrics(), name) != null;
+    public boolean isDisabled(String name) {
+        return WildcardMatcher.anyMatch(reporterConfiguration.getDisableMetrics(), name) != null;
     }
 
     public double getGaugeValue(String name, Labels labels) {
@@ -167,6 +188,11 @@ public class MetricRegistry {
     public void flipPhaseAndReport(@Nullable MetricsReporter metricsReporter) {
         try {
             phaser.readerLock();
+
+            for (MetricsProvider provider : metricsProviders) {
+                provider.collectAndReset(metricCollector);
+            }
+
             ConcurrentMap<Labels.Immutable, MetricSet> temp = inactiveMetricSets;
             inactiveMetricSets = activeMetricSets;
             activeMetricSets = temp;
@@ -208,7 +234,7 @@ public class MetricRegistry {
         if (metricSet != null) {
             return metricSet;
         }
-        if (activeMetricSets.size() < METRIC_SET_LIMIT) {
+        if (activeMetricSets.size() < metricSetLimit) {
             return createMetricSet(labels.immutableCopy());
         }
         return null;
@@ -227,23 +253,28 @@ public class MetricRegistry {
         }
         // even if the map already contains this metric set, the gauges reference will be the same
         metricSets2.putIfAbsent(labelsCopy, new MetricSet(labelsCopy, metricSet.getGauges()));
-        if (metricSets1.size() >= METRIC_SET_LIMIT) {
-            logger.warn("The limit of 1000 timers has been reached, no new timers will be created. " +
-                "Try to name your transactions so that there are less distinct transaction names.");
+        if (metricSets1.size() >= metricSetLimit) {
+            logger.warn("The limit of {} timers has been reached, no new timers will be created. " +
+                "Try to name your transactions so that there are fewer distinct transaction names. " +
+                "You may use the unsupported configuration 'metric_set_limit' to increase the limit.", metricSetLimit);
         }
         return activeMetricSets.get(labelsCopy);
     }
 
-    public void incrementCounter(String name, Labels labels) {
+    public void addToCounter(String name, Labels labels, long count) {
         long criticalValueAtEnter = phaser.writerCriticalSectionEnter();
         try {
             final MetricSet metricSet = getOrCreateMetricSet(labels);
             if (metricSet != null) {
-                metricSet.incrementCounter(name);
+                metricSet.addToCounter(name, count);
             }
         } finally {
             phaser.writerCriticalSectionExit(criticalValueAtEnter);
         }
+    }
+
+    public void incrementCounter(String name, Labels labels) {
+        addToCounter(name, labels, 1);
     }
 
     /**

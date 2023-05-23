@@ -18,8 +18,9 @@
  */
 package co.elastic.apm.agent.springwebflux.testapp;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Span;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -36,7 +37,7 @@ import java.util.Optional;
 @Component
 public class GreetingHandler {
 
-    public static final Scheduler CHILDREN_SCHEDULER = Schedulers.newElastic("children");
+    public static final Scheduler CHILDREN_SCHEDULER = Schedulers.newBoundedElastic(16, 128, "children");
 
     public Mono<String> helloMessage(@Nullable String name) {
         return Mono.just(String.format("Hello, %s!", Optional.ofNullable(name).orElse("Spring")));
@@ -73,12 +74,14 @@ public class GreetingHandler {
             .delayElements(Duration.ofMillis(delayMillis))
             .map(i -> String.format("child %d", i))
             .doOnNext(name -> {
-                Span span = Objects.requireNonNull(GlobalTracer.requireTracerImpl().currentTransaction()).createSpan();
-                span.withName(String.format("%s id=%s", name, span.getTraceContext().getId()));
-                try {
-                    fakeWork(durationMillis);
-                } finally {
-                    span.end();
+                if (!GlobalTracer.isNoop()) {
+                    Span<?> span = Objects.requireNonNull(GlobalTracer.get().require(ElasticApmTracer.class).currentTransaction()).createSpan();
+                    span.withName(String.format("%s id=%s", name, span.getTraceContext().getId()));
+                    try {
+                        fakeWork(durationMillis);
+                    } finally {
+                        span.end();
+                    }
                 }
             });
     }

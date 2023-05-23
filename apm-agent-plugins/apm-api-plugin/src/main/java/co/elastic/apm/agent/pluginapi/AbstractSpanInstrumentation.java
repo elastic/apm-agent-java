@@ -20,7 +20,7 @@ package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -32,7 +32,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_USER_SUPPLIED;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -72,7 +72,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             public static void setName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
                                        @Advice.Argument(0) String name) {
                 if (context instanceof AbstractSpan<?>) {
-                    ((AbstractSpan<?>) context).withName(name, PRIO_USER_SUPPLIED);
+                    ((AbstractSpan<?>) context).withName(name, PRIORITY_USER_SUPPLIED);
                 }
             }
         }

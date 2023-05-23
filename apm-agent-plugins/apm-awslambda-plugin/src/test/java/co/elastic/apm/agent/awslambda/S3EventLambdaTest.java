@@ -22,8 +22,8 @@ import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.S3EventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.transaction.Faas;
-import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Outcome;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
 
@@ -43,7 +43,7 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
     // because we need to mock serverlessConfiguration BEFORE instrumentation is initialized!
     public static synchronized void beforeAll() {
         AbstractLambdaTest.initAllButInstrumentation();
-        when(Objects.requireNonNull(serverlessConfiguration).getAwsLambdaHandler()).thenReturn(S3EventLambdaFunction.class.getName());
+        doReturn(S3EventLambdaFunction.class.getName()).when(Objects.requireNonNull(serverlessConfiguration)).getAwsLambdaHandler();
         AbstractLambdaTest.initInstrumentation();
     }
 
@@ -84,6 +84,7 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getResult()).isEqualTo("success");
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
+        assertThat(reporter.getPartialTransactions()).containsExactly(transaction);
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isTrue();
         assertThat(transaction.getContext().getServiceOrigin().getName().toString()).isEqualTo(S3_BUCKET_NAME);

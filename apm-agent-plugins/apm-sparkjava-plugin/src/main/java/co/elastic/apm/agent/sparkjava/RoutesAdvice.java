@@ -18,25 +18,25 @@
  */
 package co.elastic.apm.agent.sparkjava;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.asm.Advice;
 import spark.Route;
 import spark.routematch.RouteMatch;
 
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEWORK;
 
 public class RoutesAdvice {
 
-    private static final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+    private static final Tracer tracer = GlobalTracer.get();
 
     @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
     public static void onExitFind(@Advice.Return RouteMatch routeMatch) {
-        Transaction transaction = tracer.currentTransaction();
+        Transaction<?> transaction = tracer.currentTransaction();
         if (transaction == null || routeMatch == null) {
             return;
         }
@@ -44,7 +44,7 @@ public class RoutesAdvice {
         String method = routeMatch.getHttpMethod().name().toUpperCase();
         TransactionNameUtils.setNameFromHttpRequestPath(method,
             routeMatch.getMatchUri(),
-            transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1),
+            transaction.getAndOverrideName(PRIORITY_LOW_LEVEL_FRAMEWORK + 1),
             tracer.getConfig(WebConfiguration.class).getUrlGroups());
 
         transaction.setFrameworkName("Spark");

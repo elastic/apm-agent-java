@@ -27,7 +27,7 @@ import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -45,7 +45,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.doReturn;
 
 class HttpHandlerTest extends AbstractInstrumentationTest {
 
@@ -106,8 +107,8 @@ class HttpHandlerTest extends AbstractInstrumentationTest {
 
         Transaction transaction = reporter.getFirstTransaction(500);
         assertThat(transaction.getTraceContext().getParentId().toString()).isEqualTo("0000000000000000");
-        assertThat(transaction.getType()).isEqualTo(Transaction.TYPE_REQUEST);
-        assertThat(transaction.getNameAsString()).isEqualTo("GET /status_%d",expectedStatus);
+        assertThat(transaction.getType()).isEqualTo(co.elastic.apm.agent.tracer.Transaction.TYPE_REQUEST);
+        assertThat(transaction.getNameAsString()).isEqualTo("GET /status_%d", expectedStatus);
         assertThat(transaction.getResult()).isEqualTo(ResultUtil.getResultByHttpStatus(expectedStatus));
         assertThat(transaction.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpServerStatus(expectedStatus));
 
@@ -159,7 +160,7 @@ class HttpHandlerTest extends AbstractInstrumentationTest {
     @Test
     void testExcludedUrl() throws IOException {
         WebConfiguration webConfiguration = config.getConfig(WebConfiguration.class);
-        when(webConfiguration.getIgnoreUrls()).thenReturn(List.of(WildcardMatcher.valueOf("/status_*")));
+        doReturn(List.of(WildcardMatcher.valueOf("/status_*"))).when(webConfiguration).getIgnoreUrls();
         try {
             okhttp3.Request httpRequest = new okhttp3.Request.Builder()
                 .url("http://localhost:" + httpServer.getAddress().getPort() + "/status_200")
@@ -172,14 +173,14 @@ class HttpHandlerTest extends AbstractInstrumentationTest {
             assertThat(reporter.getSpans()).isEmpty();
             assertThat(reporter.getErrors()).isEmpty();
         } finally {
-            when(webConfiguration.getIgnoreUrls()).thenCallRealMethod();
+            doCallRealMethod().when(webConfiguration).getIgnoreUrls();
         }
     }
 
     @Test
     void testExcludedUserAgent() throws IOException {
         WebConfiguration webConfiguration = config.getConfig(WebConfiguration.class);
-        when(webConfiguration.getIgnoreUserAgents()).thenReturn(List.of(WildcardMatcher.valueOf("okhttp")));
+        doReturn(List.of(WildcardMatcher.valueOf("okhttp"))).when(webConfiguration).getIgnoreUserAgents();
 
         try {
             okhttp3.Request httpRequest = new okhttp3.Request.Builder()
@@ -194,7 +195,7 @@ class HttpHandlerTest extends AbstractInstrumentationTest {
             assertThat(reporter.getSpans()).isEmpty();
             assertThat(reporter.getErrors()).isEmpty();
         } finally {
-            when(webConfiguration.getIgnoreUserAgents()).thenCallRealMethod();
+            doCallRealMethod().when(webConfiguration).getIgnoreUserAgents();
         }
     }
 }

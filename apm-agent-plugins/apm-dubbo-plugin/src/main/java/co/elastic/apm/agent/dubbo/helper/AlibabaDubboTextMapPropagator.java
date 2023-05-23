@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.dubbo.helper;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import com.alibaba.dubbo.rpc.RpcContext;
 
 import javax.annotation.Nullable;

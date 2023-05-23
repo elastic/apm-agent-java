@@ -20,6 +20,7 @@ package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
@@ -84,7 +85,6 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
             .and(not(named("org.apache.felix.resolver.ResolverImpl$DumbExecutor")))
             .and(not(nameContains("jetty")))
             .and(not(nameContains("tomcat")))
-            .and(not(nameContains("jboss")))
             .and(not(nameContains("undertow")))
             .and(not(nameContains("netty")))
             .and(not(nameContains("vertx")))
@@ -99,7 +99,8 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
     }
 
     private static boolean isExcluded(@Advice.This Executor executor) {
-        return excludedClasses.contains(executor.getClass().getName());
+        return excludedClasses.contains(executor.getClass().getName()) ||
+            ExecutorUtils.isAgentExecutor(executor);
     }
 
     public static class ExecutorRunnableInstrumentation extends ExecutorInstrumentation {

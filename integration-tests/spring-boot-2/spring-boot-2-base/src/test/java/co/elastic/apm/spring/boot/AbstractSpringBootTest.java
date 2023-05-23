@@ -35,25 +35,25 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.time.Duration;
 import java.util.Collections;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
 @RunWith(SpringRunner.class)
@@ -76,11 +76,11 @@ public abstract class AbstractSpringBootTest {
 
     @Before
     public void setUp() {
-        when(config.getConfig(ReporterConfiguration.class).isReportSynchronously()).thenReturn(true);
+        doReturn(true).when(config.getConfig(ReporterConfiguration.class)).isReportSynchronously();
         restTemplate = new TestRestTemplate(new RestTemplateBuilder()
-            .setConnectTimeout(0)
-            .setReadTimeout(0)
-            .basicAuthorization("username", "password"));
+            .setConnectTimeout(Duration.ZERO)
+            .setReadTimeout(Duration.ZERO)
+            .basicAuthentication("username", "password"));
         reporter.reset();
     }
 
@@ -106,12 +106,16 @@ public abstract class AbstractSpringBootTest {
         // the service.name will not be overwritten for the webapp class loader based on spring.application.name
         assertThat(transaction.getTraceContext().getServiceName()).isNull();
         assertThat(transaction.getFrameworkName()).isEqualTo("Spring Web MVC");
-        assertThat(transaction.getFrameworkVersion()).isEqualTo("5.1.9.RELEASE");
+        assertThat(transaction.getFrameworkVersion()).matches(getExpectedSpringVersionRegex());
+    }
+
+    protected String getExpectedSpringVersionRegex() {
+        return "5\\.[0-9]+\\.[0-9]+";
     }
 
     @Test
-    public void testStaticFile() throws Exception {
-        when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(Collections.emptyList());
+    public void testStaticFile() {
+        doReturn(Collections.emptyList()).when(config.getConfig(WebConfiguration.class)).getIgnoreUrls();
         assertThat(restTemplate.getForObject("http://localhost:" + port + "/script.js", String.class))
             .contains("// empty test script");
 
@@ -122,6 +126,7 @@ public abstract class AbstractSpringBootTest {
 
     @RestController
     @SpringBootApplication
+    @EnableWebSecurity
     public static class TestApp {
 
         public static void main(String[] args) {
@@ -134,26 +139,22 @@ public abstract class AbstractSpringBootTest {
             return "Hello World";
         }
 
-        @Configuration
-        @EnableWebSecurity
-        public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
-            @Override
-            protected void configure(HttpSecurity http) throws Exception {
-                http.authorizeRequests()
-                    .anyRequest().authenticated()
-                    .and()
-                    .httpBasic();
-            }
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+            http.authorizeRequests()
+                .anyRequest().authenticated()
+                .and()
+                .httpBasic();
+            return http.build();
+        }
 
-            @Bean
-            @Override
-            public UserDetailsService userDetailsService() {
-                return new InMemoryUserDetailsManager(User.withDefaultPasswordEncoder()
-                    .username("username")
-                    .password("password")
-                    .roles("USER")
-                    .build());
-            }
+        @Bean
+        public UserDetailsService userDetailsService() {
+            return new InMemoryUserDetailsManager(User.withDefaultPasswordEncoder()
+                .username("username")
+                .password("password")
+                .roles("USER")
+                .build());
         }
 
     }

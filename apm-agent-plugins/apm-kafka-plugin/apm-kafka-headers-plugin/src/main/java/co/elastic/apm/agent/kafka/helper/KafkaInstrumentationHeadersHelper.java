@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -30,13 +30,18 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 public class KafkaInstrumentationHeadersHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaInstrumentationHeadersHelper.class);
-    private static final KafkaInstrumentationHeadersHelper INSTANCE = new KafkaInstrumentationHeadersHelper(GlobalTracer.requireTracerImpl());
+    private static final KafkaInstrumentationHeadersHelper INSTANCE = new KafkaInstrumentationHeadersHelper(GlobalTracer.get());
 
     private static final ThreadLocal<Boolean> wrappingDisabled = new ThreadLocal<Boolean>() {
         @Override
@@ -45,19 +50,35 @@ public class KafkaInstrumentationHeadersHelper {
         }
     };
 
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
+    private final Set<String> binaryTraceHeaders = new HashSet<>();
+    private final Map<String, String> translatedTraceHeaders = new HashMap<>();
 
     public static KafkaInstrumentationHeadersHelper get() {
         return INSTANCE;
     }
 
-    public KafkaInstrumentationHeadersHelper(ElasticApmTracer tracer) {
+    public KafkaInstrumentationHeadersHelper(Tracer tracer) {
         this.tracer = tracer;
+        Pattern pattern = Pattern.compile("[^a-zA-Z0-9]");
+        Set<String> traceHeaders = tracer.getTraceHeaderNames();
+        for (String traceHeader : traceHeaders) {
+            String binaryTraceHeader = pattern.matcher(traceHeader).replaceAll("");
+            if (!binaryTraceHeaders.add(binaryTraceHeader)) {
+                throw new IllegalStateException("Ambiguous translation of trace headers into binary format: " + traceHeaders);
+            }
+            translatedTraceHeaders.put(traceHeader, binaryTraceHeader);
+        }
+    }
+
+    public String resolvePossibleTraceHeader(String header) {
+        String translation = translatedTraceHeaders.get(header);
+        return translation == null ? header : translation;
     }
 
     public Iterator<ConsumerRecord<?, ?>> wrapConsumerRecordIterator(Iterator<ConsumerRecord<?, ?>> consumerRecordIterator) {
         try {
-            return new ConsumerRecordsIteratorWrapper(consumerRecordIterator, tracer);
+            return new ConsumerRecordsIteratorWrapper(consumerRecordIterator, tracer, binaryTraceHeaders);
         } catch (Throwable throwable) {
             logger.debug("Failed to wrap Kafka ConsumerRecords iterator", throwable);
             return consumerRecordIterator;
@@ -66,7 +87,7 @@ public class KafkaInstrumentationHeadersHelper {
 
     public Iterable<ConsumerRecord<?, ?>> wrapConsumerRecordIterable(Iterable<ConsumerRecord<?, ?>> consumerRecordIterable) {
         try {
-            return new ConsumerRecordsIterableWrapper(consumerRecordIterable, tracer);
+            return new ConsumerRecordsIterableWrapper(consumerRecordIterable, tracer, binaryTraceHeaders);
         } catch (Throwable throwable) {
             logger.debug("Failed to wrap Kafka ConsumerRecords", throwable);
             return consumerRecordIterable;
@@ -75,7 +96,7 @@ public class KafkaInstrumentationHeadersHelper {
 
     public List<ConsumerRecord<?, ?>> wrapConsumerRecordList(List<ConsumerRecord<?, ?>> consumerRecordList) {
         try {
-            return new ConsumerRecordsListWrapper(consumerRecordList, tracer);
+            return new ConsumerRecordsListWrapper(consumerRecordList, tracer, binaryTraceHeaders);
         } catch (Throwable throwable) {
             logger.debug("Failed to wrap Kafka ConsumerRecords list", throwable);
             return consumerRecordList;
@@ -108,11 +129,7 @@ public class KafkaInstrumentationHeadersHelper {
             wrappingDisabled.set(Boolean.TRUE);
             try {
                 for (ConsumerRecord<?, ?> record : records) {
-                    span.addSpanLink(
-                        TraceContext.<ConsumerRecord>getFromTraceContextBinaryHeaders(),
-                        KafkaRecordHeaderAccessor.instance(),
-                        record
-                    );
+                    span.addLink(KafkaRecordHeaderAccessor.instance(), record);
                 }
             } finally {
                 wrappingDisabled.set(false);
@@ -120,11 +137,11 @@ public class KafkaInstrumentationHeadersHelper {
         }
     }
 
-    public void setOutgoingTraceContextHeaders(Span span, ProducerRecord<?, ?> producerRecord) {
+    public void setOutgoingTraceContextHeaders(Span<?> span, ProducerRecord<?, ?> producerRecord) {
         span.propagateTraceContext(producerRecord, KafkaRecordHeaderAccessor.instance());
     }
 
     public void removeTraceContextHeader(ProducerRecord<?, ?> producerRecord) {
-        TraceContext.removeTraceContextHeaders(producerRecord, KafkaRecordHeaderAccessor.instance());
+        HeaderUtils.remove(binaryTraceHeaders, producerRecord, KafkaRecordHeaderAccessor.instance());
     }
 }

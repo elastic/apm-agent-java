@@ -18,18 +18,18 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.objectpool.Resetter;
+import co.elastic.apm.agent.tracer.pooling.Allocator;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
 import javax.annotation.Nullable;
 
 import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
 
-public class Message implements Recyclable {
+public class Message implements Recyclable, co.elastic.apm.agent.tracer.metadata.Message {
 
     private static final ObjectPool<StringBuilder> stringBuilderPool = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<StringBuilder>(128), false,
         new Allocator<StringBuilder>() {
@@ -70,11 +70,13 @@ public class Message implements Recyclable {
         return queueName;
     }
 
+    @Override
     public Message withQueue(@Nullable String queueName) {
         this.queueName = queueName;
         return this;
     }
 
+    @Override
     public Message withRoutingKey(String routingKey) {
         this.routingKey = routingKey;
         return this;
@@ -106,6 +108,7 @@ public class Message implements Recyclable {
         return body;
     }
 
+    @Override
     public Message withBody(@Nullable String body) {
         StringBuilder thisBody = getBodyForWrite();
         thisBody.setLength(0);
@@ -113,6 +116,7 @@ public class Message implements Recyclable {
         return this;
     }
 
+    @Override
     public Message appendToBody(CharSequence bodyContent) {
         getBodyForWrite().append(bodyContent);
         return this;
@@ -125,11 +129,13 @@ public class Message implements Recyclable {
         }
     }
 
+    @Override
     public Message addHeader(@Nullable String key, @Nullable String value) {
         headers.add(key, value);
         return this;
     }
 
+    @Override
     public Message addHeader(@Nullable String key, @Nullable byte[] value) {
         headers.add(key, value);
         return this;
@@ -140,6 +146,7 @@ public class Message implements Recyclable {
     }
 
     @SuppressWarnings("UnusedReturnValue")
+    @Override
     public Message withAge(long age) {
         this.age = age;
         return this;

@@ -27,12 +27,12 @@ import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceState;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.tracer.Outcome;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -45,8 +45,8 @@ import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumentationTest {
 
@@ -124,15 +124,16 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
     @Nullable
     private AbstractFunction<ReqE, ResE> function;
 
-    private DslJsonSerializer jsonSerializer;
+    private DslJsonSerializer.Writer jsonSerializer;
     private ObjectMapper objectMapper;
+
 
     public AbstractLambdaTest() {
         jsonSerializer = new DslJsonSerializer(
             mock(StacktraceConfiguration.class),
             mock(ApmServerClient.class),
             MetaDataMock.create()
-        );
+        ).newWriter();
         objectMapper = new ObjectMapper();
     }
 
@@ -152,7 +153,7 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
     static synchronized void initAllButInstrumentation() {
         config = SpyConfiguration.createSpyConfig();
         serverlessConfiguration = config.getConfig(ServerlessConfiguration.class);
-        when(serverlessConfiguration.runsOnAwsLambda()).thenReturn(true);
+        doReturn(true).when(serverlessConfiguration).runsOnAwsLambda();
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup(config);
         tracer = mockInstrumentationSetup.getTracer();
         objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
@@ -185,6 +186,7 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
         assertThat(transaction.getResult()).isEqualTo("failure");
+        assertThat(reporter.getPartialTransactions()).containsExactly(transaction);
     }
 
     @Test

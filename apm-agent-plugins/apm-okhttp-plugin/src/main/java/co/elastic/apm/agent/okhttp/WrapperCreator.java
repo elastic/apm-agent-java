@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 
 /**
  * Used to create a wrapper for a callback or listener
@@ -37,5 +37,5 @@ public interface WrapperCreator<T> {
      * @param span     the currently active span
      * @return the wrapped callback
      */
-    T wrap(T delegate, Span span);
+    T wrap(T delegate, Span<?> span);
 }

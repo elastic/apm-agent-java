@@ -56,7 +56,7 @@ import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 @DisabledOnOs(OS.WINDOWS)
 @DisabledOnAppleSilicon
@@ -72,7 +72,7 @@ class CallTreeTest {
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         // disable scheduled profiling to not interfere with this test
         profilerConfig = config.getConfig(ProfilingConfiguration.class);
-        when(profilerConfig.isProfilingEnabled()).thenReturn(false);
+        doReturn(true).when(profilerConfig).isProfilingEnabled();
         tracer = MockTracer.createRealTracer(reporter, config);
     }
 
@@ -371,9 +371,8 @@ class CallTreeTest {
     }
 
     /*
-     * [1       ]
-     *  [a     ]
-     *   [b][2]
+     * [a ]      [a  ]
+     * [b[1] - > [b[1]
      */
     @Test
     void testActivationAfterMethodEnds() throws Exception {
@@ -523,7 +522,10 @@ class CallTreeTest {
             {"    3",    4},
             {"      c",  2}
         });
-        assertThat(spans.get("b").getChildIds()).isNull();
+
+        if (spans.get("b").getChildIds() != null) {
+            assertThat(spans.get("b").getChildIds().isEmpty()).isTrue();
+        }
     }
 
     /*
@@ -610,6 +612,46 @@ class CallTreeTest {
             {"    c", 2, List.of("b")}
         });
     }
+
+    /*
+     * [1       ]
+     *  [a]
+     *     [2  ]
+     *      [b]
+     */
+    @Test
+    void testActivationAfterMethodEnds_RootChangesToB2() throws Exception {
+        assertCallTree(new String[]{
+            " aaa bbb  ",
+            "1   2   21"
+        }, new Object[][] {
+            {"a",     3},
+            {"b",     3},
+        }, new Object[][] {
+            {"1",     9},
+            {"  a",   2},
+            {"  2",   4},
+            {"    b", 2}
+        });
+    }
+
+
+    /*
+     * [1]
+     *  [a]
+    @Test
+    void testActivationBeforeCallTree() throws Exception {
+        assertCallTree(new String[]{
+            " aaa",
+            "1 1 "
+        }, new Object[][] {
+            {"a",   3},
+        }, new Object[][] {
+            {"a",   3},
+            {"  1", 2},
+        });
+    }     */
+
 
     /*
      * [1       ]
@@ -706,7 +748,7 @@ class CallTreeTest {
 
     @Test
     void testCallTreeActivationAsChildOfFastSpan() throws Exception {
-        when(profilerConfig.getInferredSpansMinDuration()).thenReturn(TimeDuration.of("50ms"));
+        doReturn(TimeDuration.of("50ms")).when(profilerConfig).getInferredSpansMinDuration();
         assertCallTree(new String[]{
             "   c  c   ",
             "   b  b   ",
@@ -753,7 +795,7 @@ class CallTreeTest {
 
     @Test
     void testCallTreeMultipleActivationsAsLeafWithExcludedParent() throws Exception {
-        when(profilerConfig.getInferredSpansMinDuration()).thenReturn(TimeDuration.of("50ms"));
+        doReturn(TimeDuration.of("50ms")).when(profilerConfig).getInferredSpansMinDuration();
         // min duration 4
         assertCallTree(new String[]{
             "  b  b c  c  ",
@@ -866,6 +908,17 @@ class CallTreeTest {
                             .orElse(null),
                         span.getTraceContext().getParentId())
                     .isTrue();
+                assertThat(spans.get(parentName).isChildOf(span))
+                    .withFailMessage("Expected %s (%s) to not be a child of %s (%s) but was %s (%s)",
+                        parentName, spans.get(parentName).getTraceContext().getId(),
+                        spanName, span.getTraceContext().getId(),
+                        reporter.getSpans()
+                            .stream()
+                            .filter(s -> s.getTraceContext().getId().equals(span.getTraceContext().getParentId())).findAny()
+                            .map(Span::getNameAsString)
+                            .orElse(null),
+                        span.getTraceContext().getParentId())
+                    .isFalse();
                 assertThat(span.getDuration())
                     .describedAs("Unexpected duration for span %s", span)
                     .isEqualTo(durationMs * 1000);

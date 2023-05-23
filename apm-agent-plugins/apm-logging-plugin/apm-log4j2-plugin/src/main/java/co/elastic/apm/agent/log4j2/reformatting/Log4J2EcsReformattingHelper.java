@@ -18,13 +18,17 @@
  */
 package co.elastic.apm.agent.log4j2.reformatting;
 
+import co.elastic.apm.agent.log4j2.sending.Log4j2LogSenderAppender;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
+import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.logging.log4j2.EcsLayout;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.StringLayout;
 import org.apache.logging.log4j.core.appender.AbstractOutputStreamAppender;
 import org.apache.logging.log4j.core.appender.RollingRandomAccessFileAppender;
 import org.apache.logging.log4j.core.appender.rolling.DefaultRolloverStrategy;
@@ -44,7 +48,7 @@ import java.util.List;
 import java.util.Map;
 
 
-class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender, Layout<? extends Serializable>> {
+class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender, Appender, Layout<? extends Serializable>, LogEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(Log4J2EcsReformattingHelper.class);
 
@@ -62,12 +66,17 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
     }
 
     @Override
-    protected Layout<? extends Serializable> createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceVersion,
-                                                                @Nullable String serviceNodeName, @Nullable Map<String, String> additionalFields,
-                                                                Layout<? extends Serializable> originalFormatter) {
+    protected Layout<? extends Serializable> createEcsFormatter(String eventDataset,
+                                                                @Nullable String serviceName,
+                                                                @Nullable String serviceVersion,
+                                                                @Nullable String serviceEnvironment,
+                                                                @Nullable String serviceNodeName,
+                                                                @Nullable Map<String, String> additionalFields,
+                                                                @Nullable Layout<? extends Serializable> originalFormatter) {
         EcsLayout.Builder builder = EcsLayout.newBuilder()
             .setServiceName(serviceName)
             .setServiceVersion(serviceVersion)
+            .setServiceEnvironment(serviceEnvironment)
             .setServiceNodeName(serviceNodeName)
             .setEventDataset(eventDataset)
             .setIncludeMarkers(true)
@@ -143,5 +152,17 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
     @Override
     protected void closeShadeAppender(Appender shadeAppender) {
         shadeAppender.stop();
+    }
+
+    @Override
+    protected Appender createAndStartLogSendingAppender(Reporter reporter, Layout<? extends Serializable> ecsLayout) {
+        Log4j2LogSenderAppender appender = new Log4j2LogSenderAppender(reporter, (StringLayout) ecsLayout);
+        appender.start();
+        return appender;
+    }
+
+    @Override
+    protected void append(LogEvent logEvent, Appender appender) {
+        appender.append(logEvent);
     }
 }

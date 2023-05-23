@@ -69,6 +69,7 @@ public @interface Traced {
      * </p>
      */
     String subtype() default "";
+
     /**
      * <p>
      * Sets the action of the captured span, used to group similar spans together, for example: `query`.
@@ -91,4 +92,14 @@ public @interface Traced {
      * </p>
      */
     boolean discardable() default true;
+
+    /**
+     * <p>
+     * Makes the captured span captured as an "exit span".
+     * </p>
+     * <p>
+     * NOTE: has no effect when a transaction is created
+     * </p>
+     */
+    boolean asExit() default false;
 }

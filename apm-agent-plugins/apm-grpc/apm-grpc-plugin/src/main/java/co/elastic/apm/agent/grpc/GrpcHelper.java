@@ -19,19 +19,18 @@
 package co.elastic.apm.agent.grpc;
 
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import io.grpc.CallOptions;
 import io.grpc.ClientCall;
 import io.grpc.Metadata;
@@ -59,27 +58,27 @@ public class GrpcHelper {
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall} instance as key.
      */
-    private final WeakMap<ClientCall<?, ?>, Span> clientCallSpans;
+    private final WeakMap<ClientCall<?, ?>, Span<?>> clientCallSpans;
 
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall} instance as key.
      */
-    private final WeakMap<ClientCall<?, ?>, Span> delayedClientCallSpans;
+    private final WeakMap<ClientCall<?, ?>, Span<?>> delayedClientCallSpans;
 
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall.Listener} instance as key.
      */
-    private final WeakMap<ClientCall.Listener<?>, Span> clientCallListenerSpans;
+    private final WeakMap<ClientCall.Listener<?>, Span<?>> clientCallListenerSpans;
 
     /**
      * Map of all in-flight {@link Transaction} with {@link ServerCall.Listener} instance as key.
      */
-    private final WeakMap<ServerCall.Listener<?>, Transaction> serverListenerTransactions;
+    private final WeakMap<ServerCall.Listener<?>, Transaction<?>> serverListenerTransactions;
 
     /**
      * Map of all in-flight {@link Transaction} with {@link ServerCall} instance as key.
      */
-    private final WeakMap<ServerCall<?, ?>, Transaction> serverCallTransactions;
+    private final WeakMap<ServerCall<?, ?>, Transaction<?>> serverCallTransactions;
 
     /**
      * gRPC header cache used to minimize allocations
@@ -88,6 +87,8 @@ public class GrpcHelper {
 
     private final TextHeaderSetter<Metadata> headerSetter;
     private final TextHeaderGetter<Metadata> headerGetter;
+
+    private final Tracer tracer;
 
     public GrpcHelper() {
         clientCallSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
@@ -101,6 +102,8 @@ public class GrpcHelper {
 
         headerSetter = new GrpcHeaderSetter();
         headerGetter = new GrpcHeaderGetter();
+
+        tracer = GlobalTracer.get();
     }
 
     // transaction management (server part)
@@ -115,7 +118,7 @@ public class GrpcHelper {
      * @return transaction, or {@literal null} if none has been created
      */
     @Nullable
-    public Transaction startTransaction(Tracer tracer, ClassLoader cl, ServerCall<?, ?> serverCall, Metadata headers) {
+    public Transaction<?> startTransaction(Tracer tracer, ClassLoader cl, ServerCall<?, ?> serverCall, Metadata headers) {
         MethodDescriptor<?, ?> methodDescriptor = serverCall.getMethodDescriptor();
 
         // ignore non-unary method calls for now
@@ -129,7 +132,7 @@ public class GrpcHelper {
             return null;
         }
 
-        Transaction transaction = tracer.startChildTransaction(headers, headerGetter, cl);
+        Transaction<?> transaction = tracer.startChildTransaction(headers, headerGetter, cl);
         if (transaction == null) {
             return null;
         }
@@ -149,7 +152,7 @@ public class GrpcHelper {
      * @param listener    server call listener
      * @param transaction transaction
      */
-    public void registerTransaction(ServerCall<?, ?> serverCall, ServerCall.Listener<?> listener, Transaction transaction) {
+    public void registerTransaction(ServerCall<?, ?> serverCall, ServerCall.Listener<?> listener, Transaction<?> transaction) {
         serverCallTransactions.put(serverCall, transaction);
         serverListenerTransactions.put(listener, transaction);
         transaction.deactivate();
@@ -164,7 +167,7 @@ public class GrpcHelper {
      * @param serverCall server call
      */
     public void exitServerCall(Status status, @Nullable Throwable thrown, ServerCall<?, ?> serverCall) {
-        Transaction transaction = serverCallTransactions.remove(serverCall);
+        Transaction<?> transaction = serverCallTransactions.remove(serverCall);
 
         if (transaction != null) {
             // there are multiple ways to terminate transaction, which aren't mutually exclusive
@@ -218,8 +221,8 @@ public class GrpcHelper {
      * @return transaction, or {@literal null} if there is none
      */
     @Nullable
-    public Transaction enterServerListenerMethod(ServerCall.Listener<?> listener) {
-        Transaction transaction = serverListenerTransactions.get(listener);
+    public Transaction<?> enterServerListenerMethod(ServerCall.Listener<?> listener) {
+        Transaction<?> transaction = serverListenerTransactions.get(listener);
         if (transaction != null) {
             transaction.activate();
         }
@@ -236,7 +239,7 @@ public class GrpcHelper {
      */
     public void exitServerListenerMethod(@Nullable Throwable thrown,
                                          ServerCall.Listener<?> listener,
-                                         @Nullable Transaction transaction,
+                                         @Nullable Transaction<?> transaction,
                                          @Nullable Status terminateStatus) {
 
         if (transaction == null) {
@@ -285,7 +288,7 @@ public class GrpcHelper {
      * @return client call span (activated) or {@literal null} if not within an exit span.
      */
     @Nullable
-    public Span onClientCallCreationEntry(@Nullable AbstractSpan<?> parent,
+    public Span<?> onClientCallCreationEntry(@Nullable AbstractSpan<?> parent,
                                           @Nullable MethodDescriptor<?, ?> method,
                                           @Nullable String authority) {
 
@@ -298,7 +301,7 @@ public class GrpcHelper {
             return null;
         }
 
-        Span span = parent.createExitSpan();
+        Span<?> span = parent.createExitSpan();
         if (span == null) {
             // as it's an external call, we only need a single span for nested calls
             return null;
@@ -328,14 +331,17 @@ public class GrpcHelper {
      * @param clientCall    client call
      * @param spanFromEntry span created at {@link #onClientCallCreationEntry(AbstractSpan, MethodDescriptor, String)}
      */
-    public void onClientCallCreationExit(@Nullable ClientCall<?, ?> clientCall, @Nullable Span spanFromEntry) {
+    public void onClientCallCreationExit(@Nullable ClientCall<?, ?> clientCall, @Nullable Span<?> spanFromEntry) {
         if (clientCall != null) {
-            Span spanToMap = spanFromEntry;
+            Span<?> spanToMap = spanFromEntry;
             if (spanToMap == null) {
                 // handling nested newCall() invocations - we still want to map the client call to the same span
-                Span tmp = GlobalTracer.get().getActiveSpan();
-                if (tmp != null && tmp.getSubtype() != null && tmp.getSubtype().equals(GRPC) && tmp.isExit()) {
-                    spanToMap = tmp;
+                AbstractSpan<?> active = GlobalTracer.get().getActive();
+                if (active instanceof Span<?>) {
+                    Span<?> tmp = (Span<?>) active;
+                    if (tmp.getSubtype() != null && tmp.getSubtype().equals(GRPC) && tmp.isExit()) {
+                        spanToMap = tmp;
+                    }
                 }
             }
 
@@ -385,7 +391,7 @@ public class GrpcHelper {
     public void replaceClientCallRegistration(ClientCall<?, ?> placeholderClientCall, ClientCall<?, ?> realClientCall) {
         // we cannot remove yet, because the span could have been ended already through ClientCall#start(), in which case
         // it will be recycled ahead of time due to reference decrement when removed from the map
-        Span spanOfPlaceholder = delayedClientCallSpans.get(placeholderClientCall);
+        Span<?> spanOfPlaceholder = delayedClientCallSpans.get(placeholderClientCall);
         if (spanOfPlaceholder == null) {
             return;
         }
@@ -393,7 +399,7 @@ public class GrpcHelper {
         try {
             // we cannot remove yet, because the span could have been ended already, in which case
             // it will be recycled ahead of time due to reference decrement when removed from the map
-            Span spanOfRealClientCall = clientCallSpans.get(realClientCall);
+            Span<?> spanOfRealClientCall = clientCallSpans.get(realClientCall);
             boolean mapPlaceholderSpanToRealClientCall = false;
             if (spanOfRealClientCall == null) {
                 mapPlaceholderSpanToRealClientCall = true;
@@ -432,20 +438,20 @@ public class GrpcHelper {
      * @return span, or {@literal null is there is none}
      */
     @Nullable
-    public Span clientCallStartEnter(ClientCall<?, ?> clientCall,
-                                     ClientCall.Listener<?> listener,
-                                     Metadata headers) {
+    public Span<?> clientCallStartEnter(ClientCall<?, ?> clientCall,
+                                        ClientCall.Listener<?> listener,
+                                        Metadata headers) {
 
         // span should already have been registered
         // no other lookup by client call is required, thus removing entry
-        Span span = clientCallSpans.remove(clientCall);
+        Span<?> span = clientCallSpans.remove(clientCall);
         if (span == null) {
             return null;
         }
 
         clientCallListenerSpans.put(listener, span);
 
-        if (!TraceContext.containsTraceContextTextHeaders(headers, headerGetter)) {
+        if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), headers, headerGetter)) {
             span.propagateTraceContext(headers, headerSetter);
         }
 
@@ -459,7 +465,7 @@ public class GrpcHelper {
      * @param listener      client call listener
      * @param thrown        thrown exception
      */
-    public void clientCallStartExit(@Nullable Span spanFromEntry, ClientCall.Listener<?> listener, @Nullable Throwable thrown) {
+    public void clientCallStartExit(@Nullable Span<?> spanFromEntry, ClientCall.Listener<?> listener, @Nullable Throwable thrown) {
         if (spanFromEntry != null) {
             spanFromEntry.deactivate();
         }
@@ -474,9 +480,9 @@ public class GrpcHelper {
     }
 
     public void cancelCall(ClientCall<?, ?> clientCall, @Nullable Throwable cause) {
-        WeakMap<ClientCall<?, ?>, Span> clientCallMap = (isDelayedClientCall(clientCall)) ? delayedClientCallSpans : clientCallSpans;
+        WeakMap<ClientCall<?, ?>, Span<?>> clientCallMap = (isDelayedClientCall(clientCall)) ? delayedClientCallSpans : clientCallSpans;
         // we can't remove yet, in order to avoid reference decrement prematurely
-        Span span = clientCallMap.get(clientCall);
+        Span<?> span = clientCallMap.get(clientCall);
         if (span != null) {
             if (!span.isFinished()) {
                 span
@@ -495,14 +501,14 @@ public class GrpcHelper {
      * @return active span or {@literal null} if there is none
      */
     @Nullable
-    public Span enterClientListenerMethod(ClientCall.Listener<?> listener) {
-        Span span = clientCallListenerSpans.get(listener);
+    public Span<?> enterClientListenerMethod(ClientCall.Listener<?> listener) {
+        Span<?> span = clientCallListenerSpans.get(listener);
         if (span != null) {
             if (span.isFinished()) {
                 // the span may have already been ended by another listener on a different thread/stack
                 clientCallListenerSpans.remove(listener);
                 span = null;
-            } else if (span == GlobalTracer.get().getActiveSpan()) {
+            } else if (span == GlobalTracer.get().getActive()) {
                 // avoid duplicated activation and invocation on nested listener method calls
                 span = null;
             } else {
@@ -522,7 +528,7 @@ public class GrpcHelper {
      */
     public void exitClientListenerMethod(@Nullable Throwable thrown,
                                          ClientCall.Listener<?> listener,
-                                         @Nullable Span span,
+                                         @Nullable Span<?> span,
                                          @Nullable Status onCloseStatus) {
 
         boolean lastCall = onCloseStatus != null || thrown != null;

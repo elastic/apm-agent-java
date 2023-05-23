@@ -24,6 +24,8 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.impl.BookkeeperObjectPool;
+import co.elastic.apm.agent.tracer.pooling.Allocator;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,7 +45,7 @@ public class TestObjectPoolFactory extends ObjectPoolFactory {
     private BookkeeperObjectPool<TraceContext> spanLinksPool;
 
     @Override
-    protected <T extends Recyclable> ObjectPool<T> createRecyclableObjectPool(int maxCapacity, Allocator<T> allocator) {
+    public <T extends Recyclable> ObjectPool<T> createRecyclableObjectPool(int maxCapacity, Allocator<T> allocator) {
         ObjectPool<T> pool = super.createRecyclableObjectPool(maxCapacity, allocator);
         BookkeeperObjectPool<T> wrappedPool = new BookkeeperObjectPool<>(pool);
         createdPools.add(wrappedPool);

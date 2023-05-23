@@ -21,7 +21,7 @@ package co.elastic.apm.agent.quartzjob;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
@@ -51,13 +51,13 @@ abstract class AbstractJobTransactionNameInstrumentationTest extends AbstractIns
     private Scheduler scheduler;
 
     @BeforeEach
-    private void prepare() throws SchedulerException {
+    void prepare() throws SchedulerException {
         scheduler = new StdSchedulerFactory().getScheduler();
         scheduler.start();
     }
 
     @AfterEach
-    private void cleanup() throws SchedulerException {
+    void cleanup() throws SchedulerException {
         scheduler.shutdown();
     }
 

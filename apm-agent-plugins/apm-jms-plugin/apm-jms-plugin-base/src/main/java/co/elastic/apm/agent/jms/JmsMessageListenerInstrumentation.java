@@ -18,25 +18,32 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import net.bytebuddy.matcher.ElementMatchers;
 
 import javax.annotation.Nullable;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
+import java.util.Collection;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.RECEIVE_NAME_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -45,6 +52,30 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
 
     @SuppressWarnings("WeakerAccess")
     public static final Logger logger = LoggerFactory.getLogger(JmsMessageListenerInstrumentation.class);
+
+    private MessagingConfiguration configuration;
+
+    public JmsMessageListenerInstrumentation(Tracer tracer) {
+        this.configuration = tracer.getConfig(MessagingConfiguration.class);
+    }
+
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+
+        ElementMatcher.Junction<NamedElement> nameHeuristic =
+            nameContains("$") // inner classes
+            .or(nameContains("Message"))
+            .or(nameContains("Listener"));
+
+        Collection<String> listenerPackages = configuration.getJmsListenerPackages();
+        if (listenerPackages.isEmpty()) {
+            // default heuristic
+            return nameHeuristic;
+        } else {
+            // expand the default heuristic with the provided listener package list
+            return nameHeuristic.or(isInAnyPackage(listenerPackages, ElementMatchers.<NamedElement>none()));
+        }
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -92,7 +123,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
             }
 
             // Create a transaction - even if running on same JVM as the sender
-            Transaction transaction = helper.startJmsTransaction(message, clazz);
+            Transaction<?> transaction = helper.startJmsTransaction(message, clazz);
             if (transaction != null) {
                 transaction.withType(MESSAGING_TYPE)
                     .withName(RECEIVE_NAME_PREFIX);
@@ -112,8 +143,8 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
         public static void afterOnMessage(@Advice.Enter @Nullable final Object transactionObj,
                                           @Advice.Thrown final Throwable throwable) {
-            if (transactionObj instanceof Transaction) {
-                Transaction transaction = (Transaction) transactionObj;
+            if (transactionObj instanceof Transaction<?>) {
+                Transaction<?> transaction = (Transaction<?>) transactionObj;
                 transaction.captureException(throwable);
                 transaction.deactivate().end();
             }

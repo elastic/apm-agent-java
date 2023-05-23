@@ -19,9 +19,10 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.converter.RoundedDoubleConverter;
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -304,4 +305,21 @@ public class TraceState implements Recyclable {
             return buffer;
         }
     }
+
+    public static <C> boolean includesElasticVendor(HeaderGetter<?, C> headers, C parent){
+        boolean[] tracestateIncludesElasticVendor = new boolean[1];
+        HeaderGetter.HeaderConsumer rawHeaderConsumer = TraceState.ELASTIC_TRACESTATE_HEADER_CHECKER;
+        headers.forEach(TraceContext.TRACESTATE_HEADER_NAME, parent, tracestateIncludesElasticVendor, rawHeaderConsumer);
+        return tracestateIncludesElasticVendor[0];
+    }
+
+    private static final HeaderGetter.HeaderConsumer<?, boolean[]> ELASTIC_TRACESTATE_HEADER_CHECKER = new HeaderGetter.HeaderConsumer<Object, boolean[]>() {
+        @Override
+        public void accept(@Nullable Object tracestateHeaderValue, boolean[] state) {
+            if (tracestateHeaderValue instanceof String && ((String) tracestateHeaderValue).startsWith(VENDOR_PREFIX)) {
+                state[0] = true;
+            }
+        }
+    };
+
 }

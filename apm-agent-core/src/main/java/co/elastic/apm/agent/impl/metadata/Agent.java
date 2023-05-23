@@ -19,6 +19,14 @@
 package co.elastic.apm.agent.impl.metadata;
 
 
+import co.elastic.apm.agent.configuration.ActivationMethod;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
+
+import javax.annotation.Nullable;
+import java.lang.management.ManagementFactory;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -43,14 +51,22 @@ public class Agent {
      */
     private final String ephemeralId;
 
+    /**
+     * The way the agent was activated, e.g."javaagent-flag"
+     * per <a href="https://github.com/elastic/apm/blob/main/specs/agents/metadata.md#activation-method">the activation method spec</a>
+     * (Required)
+     */
+    private final String activationMethod;
+
     public Agent(String name, String version) {
-        this(name, version, UUID.randomUUID().toString());
+        this(name, version, UUID.randomUUID().toString(), null);
     }
 
-    public Agent(String name, String version, String ephemeralId) {
+    public Agent(String name, String version, String ephemeralId, @Nullable CoreConfiguration coreConfiguration) {
         this.name = name;
         this.version = version;
         this.ephemeralId = ephemeralId;
+        this.activationMethod = getActivationMethod(coreConfiguration);
     }
 
     /**
@@ -74,5 +90,63 @@ public class Agent {
      */
     public String getEphemeralId() {
         return ephemeralId;
+    }
+
+    /**
+     * Activation method of the Elastic APM agent, e.g."javaagent-flag"
+     * (Required)
+     */
+    public String getActivationMethod() {
+        return activationMethod;
+    }
+
+    private static String getActivationMethod(@Nullable CoreConfiguration coreConfiguration) {
+        ActivationMethod activation = ActivationMethod.UNKNOWN;
+        if (coreConfiguration != null) {
+            activation = coreConfiguration.getActivationMethod();
+            if (activation.equals(ActivationMethod.UNKNOWN)) {
+                //Need to infer it
+                String elasticJavaagentOnTheCommandline = getElasticJavaagentOnTheCommandline();
+                String javaToolOptions = PrivilegedActionUtils.getEnv("JAVA_TOOL_OPTIONS");
+                if (javaToolOptions != null && elasticJavaagentOnTheCommandline != null && javaToolOptions.contains(elasticJavaagentOnTheCommandline)) {
+                        activation = ActivationMethod.ENV_ATTACH;
+                } else if(elasticJavaagentOnTheCommandline != null) {
+                    activation = ActivationMethod.JAVAAGENT_FLAG;
+                }
+            }
+        }
+        return activation.toReferenceString();
+    }
+
+    @Nullable
+    private static String getAgentJarFilename() {
+        String agentLocation = PrivilegedActionUtils.getProtectionDomain(GlobalTracer.class).getCodeSource().getLocation().getFile();
+        if (agentLocation != null) {
+            String agentJarFile = agentLocation.replace('\\', '/');
+            if (agentJarFile.contains("/")) {
+                return agentJarFile.substring(agentLocation.lastIndexOf('/') + 1, agentLocation.length());
+            } else {
+                return agentJarFile;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    @Nullable
+    private static String getElasticJavaagentOnTheCommandline() {
+        String agentJarFile = getAgentJarFilename();
+        if (agentJarFile != null) {
+            List<String> javaArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
+            if (javaArgs != null) {
+                //if there is more than one, this will return the first, which is the correct algorithm
+                for (String javaArg : javaArgs) {
+                    if (javaArg.startsWith("-javaagent:") && javaArg.contains(agentJarFile)) {
+                        return javaArg;
+                    }
+                }
+            }
+        }
+        return null;
     }
 }

@@ -18,8 +18,9 @@
  */
 package co.elastic.apm.agent.opentelemetry;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.opentelemetry.sdk.OTelBridgeContext;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.opentelemetry.tracing.OTelBridgeContext;
 import io.opentelemetry.context.Context;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -69,7 +70,7 @@ public class ArrayBasedContextInstrumentation extends AbstractOpenTelemetryInstr
                 return null;
             }
 
-            return OTelBridgeContext.bridgeRootContext(GlobalTracer.requireTracerImpl(), returnValue);
+            return OTelBridgeContext.bridgeRootContext(GlobalTracer.get().require(ElasticApmTracer.class), returnValue);
         }
     }
 }

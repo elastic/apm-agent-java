@@ -19,48 +19,43 @@
 package co.elastic.apm.agent.awssdk.v1.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractDynamoDBInstrumentationHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
+import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.Request;
 import com.amazonaws.http.ExecutionContext;
 
 import javax.annotation.Nullable;
+import java.net.URI;
 
 public class DynamoDbHelper extends AbstractDynamoDBInstrumentationHelper<Request<?>, ExecutionContext> {
 
-    static final WeakMap<Object, String> dynamoDbRequestToTableNameMap = WeakConcurrent.buildMap();
-
-    @Nullable
-    private static DynamoDbHelper INSTANCE;
+    private static final DynamoDbHelper INSTANCE = new DynamoDbHelper(GlobalTracer.get());
 
     public static DynamoDbHelper getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new DynamoDbHelper(GlobalTracer.requireTracerImpl());
-        }
         return INSTANCE;
     }
 
-
-    public DynamoDbHelper(ElasticApmTracer tracer) {
+    public DynamoDbHelper(Tracer tracer) {
         super(tracer, SdkV1DataSource.getInstance());
     }
 
-    public void putTableName(Object key, String tableName) {
-        dynamoDbRequestToTableNameMap.put(key, tableName);
-    }
-
     @Nullable
-    public String getTableName(Object key) {
-        return dynamoDbRequestToTableNameMap.get(key);
+    @Override
+    public Span<?> startSpan(Request<?> request, URI httpURI, ExecutionContext context) {
+        AmazonWebServiceRequest amazonRequest = request.getOriginalRequest();
+
+        Span<?> span = super.startSpan(request, httpURI, context);
+        if (span != null) {
+            span.withSync(!isRequestAsync(amazonRequest));
+        }
+
+        return span;
     }
 
-    public void removeTableNameForKey(Object key) {
-        dynamoDbRequestToTableNameMap.remove(key);
-    }
-
-    public boolean hasTableNameForKey(Object key) {
-        return dynamoDbRequestToTableNameMap.containsKey(key);
+    private boolean isRequestAsync(AmazonWebServiceRequest amazonRequest) {
+        Boolean isAsync = amazonRequest.getHandlerContext(Constants.ASYNC_HANDLER_CONTEXT);
+        return isAsync != null && isAsync;
     }
 }

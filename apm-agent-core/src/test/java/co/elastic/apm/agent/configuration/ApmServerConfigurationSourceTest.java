@@ -21,8 +21,8 @@ package co.elastic.apm.agent.configuration;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
-import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.sdk.logging.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -33,7 +33,6 @@ import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import co.elastic.apm.agent.sdk.logging.Logger;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.net.URL;
@@ -74,7 +73,7 @@ public class ApmServerConfigurationSourceTest {
         mockApmServer.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("version", "7.0.0"))));
         mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(okForJson(Map.of("foo", "bar")).withHeader("ETag", "foo")));
         mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).withHeader("If-None-Match", equalTo("foo")).willReturn(status(304)));
-        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), config.getConfig(CoreConfiguration.class));
+        apmServerClient = new ApmServerClient(config);
         apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
         mockLogger = mock(Logger.class);
         configurationSource = new ApmServerConfigurationSource(
@@ -154,6 +153,9 @@ public class ApmServerConfigurationSourceTest {
         assertThat(ApmServerConfigurationSource.parseMaxAge("max-age= 42 , public")).isEqualTo(42);
         assertThat(ApmServerConfigurationSource.parseMaxAge("public")).isNull();
         assertThat(ApmServerConfigurationSource.parseMaxAge(null)).isNull();
+
+        assertThat(ApmServerConfigurationSource.pollDelaySec("max-age=13")).isEqualTo(13);
+        assertThat(ApmServerConfigurationSource.pollDelaySec("max-age=3")).isEqualTo(5);
     }
 
 }

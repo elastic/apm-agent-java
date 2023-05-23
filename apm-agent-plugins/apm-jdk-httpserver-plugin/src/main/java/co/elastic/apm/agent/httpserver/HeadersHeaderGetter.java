@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.httpserver;
 
-import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import com.sun.net.httpserver.Headers;
 
 import javax.annotation.Nullable;

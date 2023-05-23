@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
 import net.bytebuddy.description.method.MethodDescription;
@@ -63,14 +63,14 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
             okhttp3.Request request = (okhttp3.Request) originalRequest;
             HttpUrl url = request.url();
 
-            Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(),
+            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(),
                 OkHttpClientHelper.computeHostName(url.host()), url.port());
 
             if (span != null) {
                 span.activate();
             }
 
-            if (!TraceContext.containsTraceContextTextHeaders(request, OkHttp3RequestHeaderGetter.INSTANCE)) {
+            if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), request, OkHttp3RequestHeaderGetter.INSTANCE)) {
                 Request.Builder builder = ((Request) originalRequest).newBuilder();
                 if (span != null) {
                     span.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
@@ -86,9 +86,9 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
         public static void onAfterExecute(@Advice.Return @Nullable okhttp3.Response response,
                                           @Advice.Thrown @Nullable Throwable t,
                                           @Advice.Enter @Nonnull Object[] enter) {
-            Span span = null;
-            if (enter[1] instanceof Span) {
-                span = (Span) enter[1];
+            Span<?> span = null;
+            if (enter[1] instanceof Span<?>) {
+                span = (Span<?>) enter[1];
             }
             if (span != null) {
                 try {

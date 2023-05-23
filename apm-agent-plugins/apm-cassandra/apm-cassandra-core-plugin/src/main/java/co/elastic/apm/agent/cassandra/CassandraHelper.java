@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.cassandra;
 
 import co.elastic.apm.agent.db.signature.SignatureParser;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import javax.annotation.Nullable;
 
@@ -35,22 +35,32 @@ public class CassandraHelper {
     }
 
     @Nullable
-    public Span startCassandraSpan(@Nullable String query, boolean preparedStatement) {
-        Span span = tracer.createExitChildSpan();
+    public Span<?> startCassandraSpan(@Nullable String query, boolean preparedStatement, @Nullable String keyspace) {
+        AbstractSpan<?> active = tracer.getActive();
+        if (active == null) {
+            return null;
+        }
+        Span<?> span = active.createExitSpan();
         if (span == null) {
             return null;
         }
         span.activate()
             .withType("db")
             .withSubtype(CASSANDRA);
-        span.getContext().getDb().withStatement(query);
-        StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
+
+        span.getContext().getDb()
+            .withStatement(query)
+            .withInstance(keyspace);
+
+        StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIORITY_DEFAULT);
         if (query != null && name != null) {
             signatureParser.querySignature(query, name, preparedStatement);
         }
-        span.withName(CASSANDRA, AbstractSpan.PRIO_DEFAULT - 1);
+        span.withName(CASSANDRA, AbstractSpan.PRIORITY_DEFAULT - 1);
 
-        span.getContext().getServiceTarget().withType(CASSANDRA);
+        span.getContext().getServiceTarget()
+            .withType(CASSANDRA)
+            .withName(keyspace);
 
         return span;
     }

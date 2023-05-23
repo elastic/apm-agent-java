@@ -20,16 +20,33 @@ package co.elastic.apm.agent.awssdk.common;
 
 import javax.annotation.Nullable;
 
-public interface IAwsSdkDataSource<R, C> {
-    String BUCKET_NAME_FIELD = "Bucket";
-    String TABLE_NAME_FIELD = "TableName";
-    String KEY_CONDITION_EXPRESSION_FIELD = "KeyConditionExpression";
-
-    String getOperationName(R sdkRequest, C context);
+public abstract class IAwsSdkDataSource<R, C> {
+    public static final String BUCKET_NAME_FIELD = "Bucket";
+    public static final String OBJECT_KEY_FIELD = "Key";
+    public static final String OBJECT_DESTINATION_KEY_FIELD = "DestinationKey";
+    public static final String COPY_SOURCE_FIELD = "CopySource";
+    public static final String TABLE_NAME_FIELD = "TableName";
+    public static final String KEY_CONDITION_EXPRESSION_FIELD = "KeyConditionExpression";
+    public static final String QUEUE_NAME_FIELD = "QueueName";
+    public static final String QUEUE_NAME_URL_FIELD = "QueueUrl";
 
     @Nullable
-    String getRegion(R sdkRequest, C context);
+    public abstract String getOperationName(R sdkRequest, C context);
 
     @Nullable
-    String getFieldValue(String fieldName, R sdkRequest, C context);
+    public abstract String getRegion(R sdkRequest, C context);
+
+    @Nullable
+    public abstract String getFieldValue(String fieldName, R sdkRequest);
+
+    @Nullable
+    public String getQueueNameFromQueueUrl(@Nullable String queueUrl) {
+        if (queueUrl != null) {
+            int lastSlashIdx = queueUrl.lastIndexOf('/');
+            if (lastSlashIdx < queueUrl.length()) {
+                return queueUrl.substring(lastSlashIdx + 1);
+            }
+        }
+        return null;
+    }
 }

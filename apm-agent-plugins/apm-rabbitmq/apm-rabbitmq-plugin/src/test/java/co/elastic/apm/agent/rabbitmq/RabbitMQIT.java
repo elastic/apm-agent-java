@@ -50,11 +50,11 @@ import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Id;
-import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -86,7 +86,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 /**
  * Tests the whole RabbitMQ instrumentation as a whole, both for transactions and spans
@@ -156,7 +156,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         // body capture is not supported because at the RabbitMQ driver level
         // the message is provided as a byte array.
         CoreConfiguration config = AbstractInstrumentationTest.config.getConfig(CoreConfiguration.class);
-        when(config.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(config).getCaptureBody();
 
         performTest(
             emptyProperties(),
@@ -184,7 +184,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
     @Test
     void headersCaptureDisabled() throws IOException, InterruptedException {
         CoreConfiguration coreConfiguration = config.getConfig(CoreConfiguration.class);
-        when(coreConfiguration.isCaptureHeaders()).thenReturn(false);
+        doReturn(false).when(coreConfiguration).isCaptureHeaders();
 
         testHeadersCapture(Map.of("message-header", "header value"), Map.of(), false);
     }
@@ -192,7 +192,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
     @Test
     void headersCaptureSanitize() throws IOException, InterruptedException {
         CoreConfiguration coreConfiguration = config.getConfig(CoreConfiguration.class);
-        when(coreConfiguration.getSanitizeFieldNames()).thenReturn(List.of(WildcardMatcher.valueOf("secret*")));
+        doReturn(List.of(WildcardMatcher.valueOf("secret*"))).when(coreConfiguration).getSanitizeFieldNames();
 
         testHeadersCapture(
             Map.of(
@@ -222,7 +222,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
     @Test
     void ignoreExchangeName() throws IOException, InterruptedException {
         MessagingConfiguration messagingConfiguration = config.getConfig(MessagingConfiguration.class);
-        when(messagingConfiguration.getIgnoreMessageQueues()).thenReturn(List.of(WildcardMatcher.valueOf("ignored-*")));
+        doReturn(List.of(WildcardMatcher.valueOf("ignored-*"))).when(messagingConfiguration).getIgnoreMessageQueues();
 
         performTest(emptyProperties(), true, randString("ignored"), (mt, ms) -> {
         });
@@ -370,7 +370,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         String exchange = createExchange(channel, "exchange");
 
         MessagingConfiguration messagingConfiguration = config.getConfig(MessagingConfiguration.class);
-        when(messagingConfiguration.getIgnoreMessageQueues()).thenReturn(List.of(WildcardMatcher.valueOf("ignored-qu*")));
+        doReturn(List.of(WildcardMatcher.valueOf("ignored-qu*"))).when(messagingConfiguration).getIgnoreMessageQueues();
 
         pollingTest(true, false, () -> declareAndBindQueue("ignored-queue", exchange, channel), exchange);
 
@@ -384,7 +384,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         String exchange = createExchange(channel, "ignored-exchange");
 
         MessagingConfiguration messagingConfiguration = config.getConfig(MessagingConfiguration.class);
-        when(messagingConfiguration.getIgnoreMessageQueues()).thenReturn(List.of(WildcardMatcher.valueOf("ignored-ex*")));
+        doReturn(List.of(WildcardMatcher.valueOf("ignored-ex*"))).when(messagingConfiguration).getIgnoreMessageQueues();
 
         pollingTest(true, true, () -> declareAndBindQueue("queue", exchange, channel), exchange);
 

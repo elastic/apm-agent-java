@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.annotation.AnnotationDescription;
 import net.bytebuddy.description.method.MethodDescription;
@@ -34,6 +36,8 @@ import java.lang.annotation.Target;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping.Factory<AnnotationValueOffsetMappingFactory.AnnotationValueExtractor> {
+
+    private static final Logger logger = LoggerFactory.getLogger(AnnotationValueOffsetMappingFactory.class);
 
     @Override
     public Class<AnnotationValueExtractor> getAnnotationType() {
@@ -68,7 +72,20 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
 
             methodDescription = findInstrumentedMethodInSuperClass(methodDescription.getDeclaringType().getSuperClass(), instrumentedMethod);
         } while (methodDescription != null);
-        return null;
+        Class<? extends DefaultValueProvider> defaultValueProvider = annotationValueExtractor.defaultValueProvider();
+        try {
+            return defaultValueProvider.getDeclaredConstructor().newInstance().getDefaultValue();
+        } catch (Exception e) {
+            logger.error(
+                String.format(
+                    "Failed to obtain default value from %s, used by %s#%s on method %s",
+                    defaultValueProvider.getName(),
+                    annotationValueExtractor.annotationClassName(),
+                    annotationValueExtractor.method(),
+                    instrumentedMethod
+                ), e);
+            return null;
+        }
     }
 
     @Nullable
@@ -92,6 +109,34 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
         String annotationClassName();
 
         String method();
+
+        Class<? extends DefaultValueProvider> defaultValueProvider() default NullDefaultValueProvider.class;
     }
 
+    public interface DefaultValueProvider {
+        @Nullable Object getDefaultValue();
+    }
+
+    public static class NullDefaultValueProvider implements DefaultValueProvider {
+        @Override
+        public Object getDefaultValue() {
+            return null;
+        }
+    }
+
+    public static class TrueDefaultValueProvider implements DefaultValueProvider {
+        @Nullable
+        @Override
+        public Object getDefaultValue() {
+            return Boolean.TRUE;
+        }
+    }
+
+    public static class FalseDefaultValueProvider implements DefaultValueProvider {
+        @Nullable
+        @Override
+        public Object getDefaultValue() {
+            return Boolean.FALSE;
+        }
+    }
 }

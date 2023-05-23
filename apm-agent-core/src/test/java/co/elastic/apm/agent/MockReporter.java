@@ -18,20 +18,23 @@
  */
 package co.elastic.apm.agent;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.report.ReporterMonitor;
 import co.elastic.apm.agent.report.ReportingEvent;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
+import co.elastic.apm.agent.tracer.Outcome;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,6 +47,7 @@ import specs.TestJsonSpec;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,13 +60,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 
 public class MockReporter implements Reporter {
@@ -81,6 +86,8 @@ public class MockReporter implements Reporter {
     private boolean checkUnknownOutcomes = true;
     // Allows optional opt-out from strict span type/sub-type checking
     private boolean checkStrictSpanType = true;
+    //Instead of recording data, they are recycled immediately. Mainly used in repeated tests to uncover issues with premature recycling.
+    private boolean enabledImmediateRecycling = false;
 
     /**
      * If set to {@code true}, the reporter will attempt to execute gc when asserting that all objects were properly
@@ -89,13 +96,21 @@ public class MockReporter implements Reporter {
     private boolean gcWhenAssertingRecycling;
 
     private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
+
+    private final List<Transaction> partialTransactions = Collections.synchronizedList(new ArrayList<>());
     private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
     private final List<ErrorCapture> errors = Collections.synchronizedList(new ArrayList<>());
     private final List<byte[]> bytes = new CopyOnWriteArrayList<>();
+    private final List<String> logs = Collections.synchronizedList(new ArrayList<>());
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
 
+    private Consumer<Transaction> partialTransactionHandler;
+
     private boolean closed;
+
+    // we have to use a longer timeout on Windows to help reduce flakyness
+    private static final long DEFAULT_ASSERTION_TIMEOUT = System.getProperty("os.name").startsWith("Windows") ? 3000 : 1000;
 
     private static final JsonNode SPAN_TYPES_SPEC = TestJsonSpec.getJson("span_types.json");
 
@@ -167,8 +182,34 @@ public class MockReporter implements Reporter {
         gcWhenAssertingRecycling = true;
     }
 
+    /**
+     * If set to true, spans & transactions will not be recorded but instead immediately recycled.
+     *
+     * @param enable true to enable immediate recycling
+     */
+    public void setImmediateRecycling(boolean enable) {
+        this.enabledImmediateRecycling = enable;
+    }
+
     @Override
     public void start() {
+    }
+
+    @Override
+    public synchronized void reportPartialTransaction(Transaction transaction) {
+        if (closed) {
+            return;
+        }
+        if (!enabledImmediateRecycling) {
+            partialTransactions.add(transaction);
+        }
+        if (partialTransactionHandler != null) {
+            partialTransactionHandler.accept(transaction);
+        }
+    }
+
+    public void setPartialTransactionHandler(Consumer<Transaction> transactionHandler) {
+        this.partialTransactionHandler = transactionHandler;
     }
 
     @Override
@@ -187,7 +228,11 @@ public class MockReporter implements Reporter {
         }
 
         verifyTransactionSchema(transaction);
-        transactions.add(transaction);
+        if (enabledImmediateRecycling) {
+            transaction.decrementReferences();
+        } else {
+            transactions.add(transaction);
+        }
     }
 
     @Override
@@ -212,8 +257,11 @@ public class MockReporter implements Reporter {
             e.printStackTrace(System.err);
             throw e;
         }
-
-        spans.add(span);
+        if (enabledImmediateRecycling) {
+            span.decrementReferences();
+        } else {
+            spans.add(span);
+        }
     }
 
 
@@ -335,7 +383,7 @@ public class MockReporter implements Reporter {
         verifyJsonSchema(jsonNode, SchemaInstance.CURRENT.errorSchema, SchemaInstance.CURRENT.errorSchemaPath);
     }
 
-    private void verifyJsonSchemas(Function<DslJsonSerializer, String> serializerFunction,
+    private void verifyJsonSchemas(Function<DslJsonSerializer.Writer, String> serializerFunction,
                                    Function<SchemaInstance, JsonSchema> schemaFunction,
                                    Function<SchemaInstance, String> schemaPathFunction) {
         if (!verifyJsonSchema) {
@@ -369,6 +417,10 @@ public class MockReporter implements Reporter {
 
     public synchronized List<Transaction> getTransactions() {
         return Collections.unmodifiableList(transactions);
+    }
+
+    public synchronized List<Transaction> getPartialTransactions() {
+        return Collections.unmodifiableList(partialTransactions);
     }
 
     public synchronized int getNumReportedTransactions() {
@@ -423,6 +475,12 @@ public class MockReporter implements Reporter {
             .isEqualTo(count));
     }
 
+    public void awaitTransactionCount(int count, long timeoutMs) {
+        awaitUntilAsserted(timeoutMs, () -> assertThat(getNumReportedTransactions())
+            .describedAs("expecting %d transactions, transactions = %s", count, transactions)
+            .isEqualTo(count));
+    }
+
     public void awaitSpanCount(int count) {
         awaitUntilAsserted(() -> assertThat(getNumReportedSpans())
             .describedAs("expecting %d spans", count)
@@ -432,6 +490,12 @@ public class MockReporter implements Reporter {
     public void awaitErrorCount(int count) {
         awaitUntilAsserted(() -> assertThat(getNumReportedErrors())
             .describedAs("expecting %d errors", count)
+            .isEqualTo(count));
+    }
+
+    public void awaitLogsCount(int count) {
+        awaitUntilAsserted(() -> assertThat(getNumReportedLogs())
+            .describedAs("expecting %d logs", count)
             .isEqualTo(count));
     }
 
@@ -445,11 +509,26 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public synchronized void report(JsonWriter jsonWriter) {
+    public synchronized void reportMetrics(JsonWriter jsonWriter) {
         if (closed) {
             return;
         }
         this.bytes.add(jsonWriter.toByteArray());
+    }
+
+    @Override
+    public void reportLog(String log) {
+        this.logs.add(log);
+    }
+
+    @Override
+    public void reportLog(byte[] log) {
+        this.logs.add(new String(log, StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public void reportAgentLog(byte[] log) {
+        this.logs.add(new String(log, StandardCharsets.UTF_8));
     }
 
     @Override
@@ -466,6 +545,19 @@ public class MockReporter implements Reporter {
 
     public synchronized List<Span> getSpans() {
         return Collections.unmodifiableList(spans);
+    }
+
+    public synchronized JsonNode getFirstLog() {
+        assertThat(logs)
+            .describedAs("at least one log expected, none have been reported")
+            .isNotEmpty();
+        return asJson(logs.get(0));
+    }
+
+    public synchronized List<JsonNode> getLogs() {
+        return logs.stream()
+            .map(log -> asJson(log))
+            .collect(Collectors.toList());
     }
 
     public Span getSpanByName(String name) {
@@ -487,6 +579,10 @@ public class MockReporter implements Reporter {
 
     public synchronized int getNumReportedErrors() {
         return errors.size();
+    }
+
+    public synchronized int getNumReportedLogs() {
+        return logs.size();
     }
 
     public synchronized ErrorCapture getFirstError() {
@@ -526,6 +622,7 @@ public class MockReporter implements Reporter {
     }
 
     public synchronized void resetWithoutRecycling() {
+        partialTransactions.clear();
         transactions.clear();
         spans.clear();
         errors.clear();
@@ -564,36 +661,45 @@ public class MockReporter implements Reporter {
         if (gcWhenAssertingRecycling) {
             System.gc();
         }
-        awaitUntilAsserted(() -> {
-            spans.forEach(s -> {
-                assertThat(s.isReferenced())
-                    .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
-                    .isFalse();
-                assertThat(hasEmptyTraceContext(s))
-                    .describedAs("should have empty trace context : %s", s)
-                    .isTrue();
+
+        try {
+            awaitUntilAsserted(() -> {
+                spans.forEach(s -> {
+                    assertThat(s.isReferenced())
+                        .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
+                        .isFalse();
+                    assertThat(hasEmptyTraceContext(s))
+                        .describedAs("should have empty trace context : %s", s)
+                        .isTrue();
+                });
+                transactions.forEach(t -> {
+                    assertThat(t.isReferenced())
+                        .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
+                        .isFalse();
+                    assertThat(hasEmptyTraceContext(t))
+                        .describedAs("should have empty trace context : %s", t)
+                        .isTrue();
+                });
             });
-            transactions.forEach(t -> {
-                assertThat(t.isReferenced())
-                    .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
-                    .isFalse();
-                assertThat(hasEmptyTraceContext(t))
-                    .describedAs("should have empty trace context : %s", t)
-                    .isTrue();
-            });
-        });
+        } catch (AssertionError e) {
+            // clear collections when assertion fails to prevent a test failure to affect following tests
+            this.transactions.clear();
+            this.spans.clear();
+            throw e;
+        }
+
 
         // errors are recycled directly because they have no reference counter
         errors.forEach(ErrorCapture::recycle);
     }
 
     /**
-     * Uses a timeout of 1s
+     * Uses the default timeout (see {@link  #DEFAULT_ASSERTION_TIMEOUT})
      *
      * @see #awaitUntilAsserted(long, ThrowingRunnable)
      */
     public void awaitUntilAsserted(ThrowingRunnable runnable) {
-        awaitUntilAsserted(1000, runnable);
+        awaitUntilAsserted(DEFAULT_ASSERTION_TIMEOUT, runnable);
     }
 
     /**
@@ -670,7 +776,7 @@ public class MockReporter implements Reporter {
             "/apm-server-schema/v6_5/errors/error.json",
             false);
 
-        private final DslJsonSerializer serializer;
+        private final DslJsonSerializer.Writer serializer;
         private final JsonSchema transactionSchema;
         private final String transactionSchemaPath;
         private final JsonSchema spanSchema;
@@ -691,20 +797,25 @@ public class MockReporter implements Reporter {
 
             Future<MetaData> metaData = MetaData.create(spyConfig, null);
             ApmServerClient client = mock(ApmServerClient.class);
-            when(client.isAtLeast(any())).thenReturn(isLatest);
+            doReturn(isLatest).when(client).isAtLeast(any());
 
             // The oldest server does not support any of those features, the current server supports all of them
-            when(client.supportsNumericUrlPort()).thenReturn(isLatest);
-            when(client.supportsNonStringLabels()).thenReturn(isLatest);
-            when(client.supportsLogsEndpoint()).thenReturn(isLatest);
+            doReturn(isLatest).when(client).supportsNumericUrlPort();
+            doReturn(isLatest).when(client).supportsNonStringLabels();
+            doReturn(isLatest).when(client).supportsLogsEndpoint();
 
-            this.serializer = new DslJsonSerializer(stacktraceConfiguration, client, metaData);
+            SerializationConstants.init(spyConfig.getConfig(CoreConfiguration.class));
+            this.serializer = new DslJsonSerializer(stacktraceConfiguration, client, metaData).newWriter();
         }
 
         private static JsonSchema getSchema(String resource) {
             InputStream input = Objects.requireNonNull(MockReporter.class.getResourceAsStream(resource), "missing resource " + resource);
             return JsonSchemaFactory.getInstance().getSchema(input);
         }
+    }
+
+    public void setReporterMonitor(ReporterMonitor monitor) {
+        throw new UnsupportedOperationException();
     }
 
 }

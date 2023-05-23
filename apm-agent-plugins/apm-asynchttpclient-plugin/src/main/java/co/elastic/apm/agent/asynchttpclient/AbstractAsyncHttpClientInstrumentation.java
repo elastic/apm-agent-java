@@ -21,10 +21,9 @@ package co.elastic.apm.agent.asynchttpclient;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
@@ -65,8 +64,8 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
 
         @Nullable
-        static Span removeAndActivateSpan(AsyncHandler<?> asyncHandler) {
-            Span span = handlerSpanMap.remove(asyncHandler);
+        static Span<?> removeAndActivateSpan(AsyncHandler<?> asyncHandler) {
+            Span<?> span = handlerSpanMap.remove(asyncHandler);
             if (span != null) {
                 span.activate();
             }
@@ -74,8 +73,8 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
         }
 
         @Nullable
-        static Span getAndActivateSpan(AsyncHandler<?> asyncHandler) {
-            Span span = handlerSpanMap.get(asyncHandler);
+        static Span<?> getAndActivateSpan(AsyncHandler<?> asyncHandler) {
+            Span<?> span = handlerSpanMap.get(asyncHandler);
             if (span != null) {
                 span.activate();
             }
@@ -108,7 +107,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
                 DynamicTransformer.ensureInstrumented(asyncHandler.getClass(), Helper.ASYNC_HANDLER_INSTRUMENTATIONS);
 
                 Uri uri = request.getUri();
-                Span span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
+                Span<?> span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
 
                 if (span != null) {
                     span.activate();
@@ -127,7 +126,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
                 if (spanObj == null) {
                     return;
                 }
-                Span span = (Span) spanObj;
+                Span<?> span = (Span<?>) spanObj;
                 span.deactivate();
                 if (t != null) {
                     Helper.handlerSpanMap.remove(asyncHandler);
@@ -174,7 +173,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
     public static class AsyncHandlerOnCompletedInstrumentation extends AbstractAsyncHandlerInstrumentation {
 
-        public AsyncHandlerOnCompletedInstrumentation(ElasticApmTracer tracer) {
+        public AsyncHandlerOnCompletedInstrumentation() {
             super(named("onCompleted").and(takesArguments(0)));
         }
 
@@ -187,7 +186,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void onMethodExit(@Nullable @Advice.Enter Object spanObj) {
-                Span span = (Span) spanObj;
+                Span<?> span = (Span<?>) spanObj;
                 if (span != null) {
                     span.end();
                     span.deactivate();
@@ -198,7 +197,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
     public static class AsyncHandlerOnThrowableInstrumentation extends AbstractAsyncHandlerInstrumentation {
 
-        public AsyncHandlerOnThrowableInstrumentation(ElasticApmTracer tracer) {
+        public AsyncHandlerOnThrowableInstrumentation() {
             super(named("onThrowable").and(takesArguments(Throwable.class)));
         }
 
@@ -211,7 +210,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void onMethodExit(@Nullable @Advice.Enter Object spanObj, @Advice.Argument(0) Throwable t) {
-                Span span = (Span) spanObj;
+                Span<?> span = (Span<?>) spanObj;
                 if (span != null) {
                     if (t instanceof MaxRedirectException) {
                         span.withOutcome(Outcome.FAILURE);
@@ -225,7 +224,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
     public static class AsyncHandlerOnStatusReceivedInstrumentation extends AbstractAsyncHandlerInstrumentation {
 
-        public AsyncHandlerOnStatusReceivedInstrumentation(ElasticApmTracer tracer) {
+        public AsyncHandlerOnStatusReceivedInstrumentation() {
             super(named("onStatusReceived").and(takesArgument(0, named("org.asynchttpclient.HttpResponseStatus"))));
         }
 
@@ -238,7 +237,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void onMethodExit(@Nullable @Advice.Enter Object spanObj, @Advice.Argument(0) HttpResponseStatus status) {
-                Span span = (Span) spanObj;
+                Span<?> span = (Span<?>) spanObj;
                 if (span != null) {
                     span.getContext().getHttp().withStatusCode(status.getStatusCode());
                     span.deactivate();
@@ -249,7 +248,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
     public static class StreamedAsyncHandlerOnStreamInstrumentation extends AbstractAsyncHandlerInstrumentation {
 
-        public StreamedAsyncHandlerOnStreamInstrumentation(ElasticApmTracer tracer) {
+        public StreamedAsyncHandlerOnStreamInstrumentation() {
             super(named("onStream").and(takesArgument(0, named("org.reactivestreams.Publisher"))));
         }
 
@@ -262,7 +261,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void onMethodExit(@Nullable @Advice.Enter Object spanObj) {
-                Span span = (Span) spanObj;
+                Span<?> span = (Span<?>) spanObj;
                 if (span != null) {
                     span.deactivate();
                 }

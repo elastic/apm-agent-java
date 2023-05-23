@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.vertx.v4.web;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerRequest;
@@ -30,19 +30,19 @@ import javax.annotation.Nullable;
 
 public class WebHelper extends AbstractVertxWebHelper {
 
-    private static final WebHelper INSTANCE = new WebHelper(GlobalTracer.requireTracerImpl());
+    private static final WebHelper INSTANCE = new WebHelper(GlobalTracer.get());
 
     public static WebHelper getInstance() {
         return INSTANCE;
     }
 
-    private WebHelper(ElasticApmTracer tracer) {
+    private WebHelper(Tracer tracer) {
         super(tracer);
     }
 
     @Nullable
-    public Transaction startOrGetTransaction(Context context, HttpServerRequest httpServerRequest) {
-        Transaction transaction = super.startOrGetTransaction(httpServerRequest);
+    public Transaction<?> startOrGetTransaction(Context context, HttpServerRequest httpServerRequest) {
+        Transaction<?> transaction = super.startOrGetTransaction(httpServerRequest);
 
         if (transaction != null) {
             enrichRequest(httpServerRequest, transaction);
@@ -54,9 +54,9 @@ public class WebHelper extends AbstractVertxWebHelper {
 
     @Nullable
     @Override
-    public Transaction setRouteBasedNameForCurrentTransaction(RoutingContext routingContext) {
+    public Transaction<?> setRouteBasedNameForCurrentTransaction(RoutingContext routingContext) {
         Context context = routingContext.vertx().getOrCreateContext();
-        Transaction transaction = context.getLocal(CONTEXT_TRANSACTION_KEY);
+        Transaction<?> transaction = context.getLocal(CONTEXT_TRANSACTION_KEY);
         if (transaction != null) {
             setRouteBasedTransactionName(transaction, routingContext);
         }

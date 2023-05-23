@@ -21,13 +21,13 @@ package co.elastic.apm.agent.configuration;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.report.ApmServerClient;
-import co.elastic.apm.agent.report.serialize.PayloadSerializer;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonReader;
 import com.dslplatform.json.MapConverter;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
@@ -38,12 +38,17 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ApmServerConfigurationSource extends AbstractConfigurationSource implements LifecycleListener {
+
+    // log correlation is enabled by default in Java agent, thus removing it from warnings
+    private static final Set<String> IGNORED_REMOTE_KEYS = Collections.singleton("enable_log_correlation");
+
     private static final int SC_OK = 200;
     private static final int SC_NOT_MODIFIED = 304;
     private static final int SC_FORBIDDEN = 403;
@@ -55,7 +60,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     private final Logger logger;
     private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
     private final byte[] buffer = new byte[4096];
-    private final PayloadSerializer payloadSerializer;
+    private final DslJsonSerializer.Writer payloadSerializer;
     private final ApmServerClient apmServerClient;
     @Nullable
     private String etag;
@@ -63,12 +68,12 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     @Nullable
     private volatile ThreadPoolExecutor threadPool;
 
-    public ApmServerConfigurationSource(PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
+    public ApmServerConfigurationSource(DslJsonSerializer payloadSerializer, ApmServerClient apmServerClient) {
         this(payloadSerializer, apmServerClient, LoggerFactory.getLogger(ApmServerConfigurationSource.class));
     }
 
-    ApmServerConfigurationSource(PayloadSerializer payloadSerializer, ApmServerClient apmServerClient, Logger logger) {
-        this.payloadSerializer = payloadSerializer;
+    ApmServerConfigurationSource(DslJsonSerializer payloadSerializer, ApmServerClient apmServerClient, Logger logger) {
+        this.payloadSerializer = payloadSerializer.newWriter();
         this.apmServerClient = apmServerClient;
         this.logger = logger;
     }
@@ -84,6 +89,17 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
             return null;
         }
         return Integer.parseInt(matcher.group(1));
+    }
+
+    static int pollDelaySec(@Nullable String cacheControlHeader) {
+        Integer pollDelaySec = parseMaxAge(cacheControlHeader);
+        if (pollDelaySec == null) {
+            return DEFAULT_POLL_DELAY_SEC;
+        } else if (pollDelaySec < 5) { //spec defined minimum
+            return  5;
+        } else {
+            return pollDelaySec;
+        }
     }
 
     /**
@@ -121,10 +137,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
         while (!Thread.currentThread().isInterrupted()) {
             String cacheControlHeader = fetchConfig(configurationRegistry);
             // it doesn't make sense to poll more frequently than the max-age
-            Integer pollDelaySec = parseMaxAge(cacheControlHeader);
-            if (pollDelaySec == null) {
-                pollDelaySec = DEFAULT_POLL_DELAY_SEC;
-            }
+            int pollDelaySec = pollDelaySec(cacheControlHeader);
             try {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Scheduling next remote configuration reload in {}s", pollDelaySec);
@@ -157,7 +170,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
                 public String withConnection(HttpURLConnection connection) throws IOException {
                     try {
                         return tryFetchConfig(configurationRegistry, connection);
-                    } catch (PayloadSerializer.UninitializedException e) {
+                    } catch (DslJsonSerializer.UninitializedException e) {
                         throw new IOException("Cannot fetch configuration from APM Server, serializer not initialized yet", e);
                     }
                 }
@@ -168,7 +181,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
         }
     }
 
-    private String tryFetchConfig(ConfigurationRegistry configurationRegistry, HttpURLConnection connection) throws IOException, PayloadSerializer.UninitializedException {
+    private String tryFetchConfig(ConfigurationRegistry configurationRegistry, HttpURLConnection connection) throws IOException, DslJsonSerializer.UninitializedException {
         if (logger.isDebugEnabled()) {
             logger.debug("Reloading configuration from APM Server {}", connection.getURL());
         }
@@ -194,7 +207,9 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
                 logger.info("Received new configuration from APM Server: {}", config);
                 for (Map.Entry<String, String> entry : config.entrySet()) {
                     ConfigurationOption<?> conf = configurationRegistry.getConfigurationOptionByKey(entry.getKey());
-                    if (conf == null) {
+                    if (IGNORED_REMOTE_KEYS.contains(entry.getKey())) {
+                        logger.debug("Received ignored remote configuration key {}", entry.getKey());
+                    } else if (conf == null) {
                         logger.warn("Received unknown remote configuration key {}", entry.getKey());
                     } else if (!conf.isDynamic()) {
                         logger.warn("Can't apply remote configuration {} as this option is not dynamic (aka. reloadable)", entry.getKey());

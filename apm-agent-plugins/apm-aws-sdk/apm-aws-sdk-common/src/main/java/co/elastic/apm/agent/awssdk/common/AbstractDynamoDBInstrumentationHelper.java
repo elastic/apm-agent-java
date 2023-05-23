@@ -18,28 +18,24 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import javax.annotation.Nullable;
 import java.net.URI;
 
-public abstract class AbstractDynamoDBInstrumentationHelper<R, C> {
-    private static final String DYNAMO_DB_TYPE = "dynamodb";
-    private final IAwsSdkDataSource<R, C> awsSdkDataSource;
+public abstract class AbstractDynamoDBInstrumentationHelper<R, C> extends AbstractAwsSdkInstrumentationHelper<R, C> {
+    public static final String DYNAMO_DB_TYPE = "dynamodb";
 
-    protected AbstractDynamoDBInstrumentationHelper(ElasticApmTracer tracer, IAwsSdkDataSource<R, C> awsSdkDataSource) {
-        this.tracer = tracer;
-        this.awsSdkDataSource = awsSdkDataSource;
+    protected AbstractDynamoDBInstrumentationHelper(Tracer tracer, IAwsSdkDataSource<R, C> awsSdkDataSource) {
+        super(tracer, awsSdkDataSource);
     }
 
-    private final ElasticApmTracer tracer;
-
-    public void enrichSpan(Span span, R sdkRequest, URI httpURI, C context) {
+    public void enrichSpan(Span<?> span, R sdkRequest, URI httpURI, C context) {
         String operationName = awsSdkDataSource.getOperationName(sdkRequest, context);
         String region = awsSdkDataSource.getRegion(sdkRequest, context);
-        String tableName = awsSdkDataSource.getFieldValue(IAwsSdkDataSource.TABLE_NAME_FIELD, sdkRequest, context);
+        String tableName = awsSdkDataSource.getFieldValue(IAwsSdkDataSource.TABLE_NAME_FIELD, sdkRequest);
 
         span.withType("db")
             .withSubtype(DYNAMO_DB_TYPE)
@@ -48,12 +44,12 @@ public abstract class AbstractDynamoDBInstrumentationHelper<R, C> {
         span.getContext().getDb().withInstance(region).withType(DYNAMO_DB_TYPE);
 
 
-        if (operationName.equals("Query")) {
-            span.getContext().getDb().withStatement(awsSdkDataSource.getFieldValue(IAwsSdkDataSource.KEY_CONDITION_EXPRESSION_FIELD, sdkRequest, context));
+        if ("Query".equals(operationName)) {
+            span.getContext().getDb().withStatement(awsSdkDataSource.getFieldValue(IAwsSdkDataSource.KEY_CONDITION_EXPRESSION_FIELD, sdkRequest));
         }
 
 
-        StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
+        StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIORITY_DEFAULT);
         if (name != null) {
             name.append("DynamoDB ").append(operationName);
 
@@ -62,22 +58,21 @@ public abstract class AbstractDynamoDBInstrumentationHelper<R, C> {
             }
         }
 
-        span.getContext().getServiceTarget().withType(DYNAMO_DB_TYPE);
-
-        span.getContext().getDestination()
-            .withAddress(httpURI.getHost())
-            .withPort(httpURI.getPort());
+        setDestinationContext(span, httpURI, sdkRequest, context, DYNAMO_DB_TYPE, region);
     }
 
     @Nullable
-    public Span startSpan(R sdkRequest, URI httpURI, C context) {
-        Span span = tracer.createExitChildSpan();
+    public Span<?> startSpan(R sdkRequest, URI httpURI, C context) {
+        AbstractSpan<?> active = tracer.getActive();
+        if (active == null) {
+            return null;
+        }
+        Span<?> span = active.createExitSpan();
         if (span == null) {
             return null;
         }
 
         enrichSpan(span, sdkRequest, httpURI, context);
-
 
         return span;
     }

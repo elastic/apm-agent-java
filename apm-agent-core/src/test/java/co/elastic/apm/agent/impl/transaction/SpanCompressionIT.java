@@ -20,9 +20,12 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.common.ThreadUtils;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.logging.TestUtils;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,13 +39,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiFunction;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 public class SpanCompressionIT {
 
     private static final int numberOfSpans = 2 * Runtime.getRuntime().availableProcessors();
 
-    private static final ExecutorService executor = Executors.newFixedThreadPool(numberOfSpans);
+    private static ExecutorService executor;
 
     private static ElasticApmTracer tracer;
     private static MockReporter reporter;
@@ -54,27 +57,30 @@ public class SpanCompressionIT {
         reporter = mockInstrumentationSetup.getReporter();
 
         SpanConfiguration spanConfiguration = mockInstrumentationSetup.getConfig().getConfig(SpanConfiguration.class);
-        when(spanConfiguration.isSpanCompressionEnabled()).thenReturn(true);
-        when(spanConfiguration.getSpanCompressionExactMatchMaxDuration()).thenReturn(TimeDuration.of("10ms"));
-        when(spanConfiguration.getSpanCompressionSameKindMaxDuration()).thenReturn(TimeDuration.of("10ms"));
+        doReturn(true).when(spanConfiguration).isSpanCompressionEnabled();
+        doReturn(TimeDuration.of("10ms")).when(spanConfiguration).getSpanCompressionExactMatchMaxDuration();
+        doReturn(TimeDuration.of("10ms")).when(spanConfiguration).getSpanCompressionSameKindMaxDuration();
 
         assertThat(tracer.isRunning()).isTrue();
+
+        executor = Executors.newFixedThreadPool(numberOfSpans);
     }
 
     @BeforeEach
     void resetReporter() {
         reporter.reset();
+        reporter.setImmediateRecycling(false);
     }
 
     @AfterAll
     static void shutdownExecutor() {
-        executor.shutdown();
+        ExecutorUtils.shutdownAndWaitTermination(executor);
     }
 
     @RepeatedTest(100)
     void testParallelExitSpanCreation() {
         runInTransactionScope((transaction, i) -> {
-            return () -> createExitSpan(transaction, i, 1000L + i);
+            return () -> createExitSpan(transaction, i, 1000L + i, "postgresql");
         });
 
         assertReportedSpans(reporter.getSpans());
@@ -86,12 +92,26 @@ public class SpanCompressionIT {
             if (ThreadLocalRandom.current().nextInt(100) < 10) {
                 return () -> createSpan(transaction, i, 1000L + i);
             } else {
-                return () -> createExitSpan(transaction, i, 1000L + i);
+                return () -> createExitSpan(transaction, i, 1000L + i, "postgresql");
             }
         });
 
         assertReportedSpans(reporter.getSpans());
     }
+
+    @RepeatedTest(100)
+    void testParallelNonCompressibleExitSpanCreationWithRecycling() {
+        reporter.setImmediateRecycling(true);
+
+        runInTransactionScope((transaction, i) -> {
+            if (ThreadLocalRandom.current().nextInt(100) < 10) {
+                return () -> createExitSpan(transaction, i, 1000L + i, "mysql");
+            } else {
+                return () -> createExitSpan(transaction, i, 1000L + i, "postgresql");
+            }
+        });
+    }
+
 
     private static void runInTransactionScope(BiFunction<AbstractSpan<?>, Integer, Runnable> r) {
         Transaction transaction = tracer.startRootTransaction(null).withName("Some Transaction");
@@ -113,8 +133,8 @@ public class SpanCompressionIT {
         span.end(endTimestamp);
     }
 
-    private static void createExitSpan(AbstractSpan<?> parent, long startTimestamp, long endTimestamp) {
-        Span span = parent.createSpan().asExit().withName("Some Other Name").withType("db").withSubtype("postgresql");
+    private static void createExitSpan(AbstractSpan<?> parent, long startTimestamp, long endTimestamp, String subtype) {
+        Span span = parent.createSpan().asExit().withName("Some Other Name").withType("db").withSubtype(subtype);
         span.getContext().getDestination().withAddress("127.0.0.1").withPort(5432);
         span.setStartTimestamp(startTimestamp);
         span.end(endTimestamp);

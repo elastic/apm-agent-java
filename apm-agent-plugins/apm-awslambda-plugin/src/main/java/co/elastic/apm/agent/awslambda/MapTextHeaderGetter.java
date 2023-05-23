@@ -18,14 +18,15 @@
  */
 package co.elastic.apm.agent.awslambda;
 
-import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+
+import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 
 import javax.annotation.Nullable;
 import java.util.Map;
 
 public class MapTextHeaderGetter extends AbstractHeaderGetter<String, Map<String, String>> implements
-        TextHeaderGetter<Map<String, String>> {
+    TextHeaderGetter<Map<String, String>> {
 
     public static final MapTextHeaderGetter INSTANCE = new MapTextHeaderGetter();
 

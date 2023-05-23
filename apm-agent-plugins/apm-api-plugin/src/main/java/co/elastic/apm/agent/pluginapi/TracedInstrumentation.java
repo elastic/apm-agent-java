@@ -18,16 +18,19 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -43,8 +46,8 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_METHOD_SIGNATURE;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_METHOD_SIGNATURE;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_USER_SUPPLIED;
 import static co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static co.elastic.apm.agent.pluginapi.Utils.FRAMEWORK_NAME;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
@@ -52,7 +55,9 @@ import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class TracedInstrumentation extends TracerAwareInstrumentation {
+public class TracedInstrumentation extends ElasticApmInstrumentation {
+
+    public static final Tracer tracer = GlobalTracer.get();
 
     private final CoreConfiguration coreConfig;
     private final StacktraceConfiguration stacktraceConfig;
@@ -72,12 +77,25 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "type") String type,
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "subtype") @Nullable String subtype,
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "action") @Nullable String action,
-            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "discardable") boolean discardable) {
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(
+                annotationClassName = "co.elastic.apm.api.Traced",
+                method = "asExit",
+                defaultValueProvider = AnnotationValueOffsetMappingFactory.FalseDefaultValueProvider.class
+            ) boolean asExit,
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(
+                annotationClassName = "co.elastic.apm.api.Traced",
+                method = "discardable",
+                defaultValueProvider = AnnotationValueOffsetMappingFactory.TrueDefaultValueProvider.class
+            ) boolean discardable) {
 
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {
-                Span span = parent.createSpan()
-                    .withType(type.isEmpty() ? "app" : type)
+                Span<?> span = asExit ? parent.createExitSpan() : parent.createSpan();
+                if (span == null) {
+                    return null;
+                }
+
+                span.withType(type.isEmpty() ? "app" : type)
                     .withSubtype(subtype)
                     .withAction(action)
                     .withName(spanName.isEmpty() ? signature : spanName);
@@ -87,7 +105,7 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
                 return span.activate();
             }
 
-            Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+            Transaction<?> transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
             if (transaction == null) {
                 return null;
             }
@@ -97,10 +115,10 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
             int namePriority;
             if (spanName.isEmpty()) {
                 name = signature;
-                namePriority = PRIO_METHOD_SIGNATURE;
+                namePriority = PRIORITY_METHOD_SIGNATURE;
             } else {
                 name = spanName;
-                namePriority = PRIO_USER_SUPPLIED;
+                namePriority = PRIORITY_USER_SUPPLIED;
             }
             return transaction.withName(name, namePriority)
                 .withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)

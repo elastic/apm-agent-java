@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.metrics;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -46,6 +46,7 @@ public class MetricSet implements Recyclable {
     // low load factor as hash collisions are quite costly when tracking breakdown metrics
     private final ConcurrentMap<String, Timer> timers = new ConcurrentHashMap<>(32, 0.5f, Runtime.getRuntime().availableProcessors());
     private final ConcurrentMap<String, AtomicLong> counters = new ConcurrentHashMap<>(32, 0.5f, Runtime.getRuntime().availableProcessors());
+    private final ConcurrentMap<String, Double> rawValues = new ConcurrentHashMap<>();
     private volatile boolean hasNonEmptyTimer;
     private volatile boolean hasNonEmptyCounter;
 
@@ -75,6 +76,10 @@ public class MetricSet implements Recyclable {
         return gauges;
     }
 
+    public void addRawMetric(String metric, double value) {
+        rawValues.put(metric, value);
+    }
+
     public Timer timer(String timerName) {
         hasNonEmptyTimer = true;
         Timer timer = timers.get(timerName);
@@ -85,14 +90,14 @@ public class MetricSet implements Recyclable {
         return timer;
     }
 
-    public void incrementCounter(String name) {
+    public void addToCounter(String name, long count) {
         hasNonEmptyCounter = true;
         AtomicLong counter = counters.get(name);
         if (counter == null) {
             counters.putIfAbsent(name, new AtomicLong());
             counter = counters.get(name);
         }
-        counter.incrementAndGet();
+        counter.addAndGet(count);
     }
 
     public Map<String, Timer> getTimers() {
@@ -100,7 +105,7 @@ public class MetricSet implements Recyclable {
     }
 
     public boolean hasContent() {
-        return !gauges.isEmpty() || hasNonEmptyTimer || hasNonEmptyCounter;
+        return !gauges.isEmpty() || hasNonEmptyTimer || hasNonEmptyCounter || !rawValues.isEmpty();
     }
 
     /**
@@ -113,6 +118,7 @@ public class MetricSet implements Recyclable {
         for (AtomicLong counter : counters.values()) {
             counter.set(0);
         }
+        rawValues.clear();
         hasNonEmptyTimer = false;
         hasNonEmptyCounter = false;
     }
@@ -120,4 +126,9 @@ public class MetricSet implements Recyclable {
     public Map<String, AtomicLong> getCounters() {
         return counters;
     }
+
+    public Map<String, Double> getRawMetrics() {
+        return rawValues;
+    }
+
 }

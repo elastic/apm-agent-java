@@ -20,6 +20,7 @@ package co.elastic.apm.agent.logback.reformatting;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.FileAppender;
 import ch.qos.logback.core.OutputStreamAppender;
 import ch.qos.logback.core.encoder.Encoder;
@@ -27,9 +28,11 @@ import ch.qos.logback.core.encoder.LayoutWrappingEncoder;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
+import co.elastic.apm.agent.logback.sending.LogbackLogSenderAppender;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.logging.AdditionalField;
@@ -39,7 +42,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
-class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputStreamAppender<ILoggingEvent>, Encoder<ILoggingEvent>> {
+class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputStreamAppender<ILoggingEvent>, Appender<ILoggingEvent>, Encoder<ILoggingEvent>, ILoggingEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(LogbackEcsReformattingHelper.class);
 
@@ -76,13 +79,17 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
     }
 
     @Override
-    protected Encoder<ILoggingEvent> createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceVersion,
+    protected Encoder<ILoggingEvent> createEcsFormatter(String eventDataset,
+                                                        @Nullable String serviceName,
+                                                        @Nullable String serviceVersion,
+                                                        @Nullable String serviceEnvironment,
                                                         @Nullable String serviceNodeName,
                                                         @Nullable Map<String, String> additionalFields,
-                                                        Encoder<ILoggingEvent> originalFormatter) {
+                                                        @Nullable Encoder<ILoggingEvent> originalFormatter) {
         EcsEncoder ecsEncoder = new EcsEncoder();
         ecsEncoder.setServiceName(serviceName);
         ecsEncoder.setServiceVersion(serviceVersion);
+        ecsEncoder.setServiceEnvironment(serviceEnvironment);
         ecsEncoder.setServiceNodeName(serviceNodeName);
         ecsEncoder.setEventDataset(eventDataset);
         ecsEncoder.setIncludeMarkers(true);
@@ -149,4 +156,18 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
     protected void closeShadeAppender(OutputStreamAppender<ILoggingEvent> shadeAppender) {
         shadeAppender.stop();
     }
+
+    @Override
+    protected Appender<ILoggingEvent> createAndStartLogSendingAppender(Reporter reporter, Encoder<ILoggingEvent> formatter) {
+        LogbackLogSenderAppender appender = new LogbackLogSenderAppender(reporter, formatter);
+        appender.start();
+        return appender;
+    }
+
+    @Override
+    protected void append(ILoggingEvent logEvent, Appender<ILoggingEvent> appender) {
+        // We do not invoke the exact same method we instrument, but a public API that calls it
+        appender.doAppend(logEvent);
+    }
+
 }

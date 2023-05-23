@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.util;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.nio.Buffer;
@@ -41,7 +41,7 @@ import java.util.Iterator;
  * (or the other way around) is under the responsibility of the map's user.
  */
 public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Entry> {
-    public static final int MAXIMUM_HEADER_BUFFER_SIZE = DslJsonSerializer.MAX_VALUE_LENGTH * 10;
+    public static final int MAXIMUM_HEADER_BUFFER_SIZE = SerializationConstants.MAX_VALUE_LENGTH * 10;
 
     private static final Logger logger = LoggerFactory.getLogger(BinaryHeaderMap.class);
 
@@ -192,11 +192,11 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
                 ((Buffer) value).clear();
                 int remaining = valueBuffer.remaining();
                 if (remaining > value.capacity()) {
-                    if (value.capacity() < DslJsonSerializer.MAX_VALUE_LENGTH) {
+                    if (value.capacity() < SerializationConstants.MAX_VALUE_LENGTH) {
                         enlargeBuffer();
                     }
-                    if (remaining > DslJsonSerializer.MAX_VALUE_LENGTH) {
-                        ((Buffer) valueBuffer).limit(valueBuffer.position() + DslJsonSerializer.MAX_VALUE_LENGTH);
+                    if (remaining > SerializationConstants.MAX_VALUE_LENGTH) {
+                        ((Buffer) valueBuffer).limit(valueBuffer.position() + SerializationConstants.MAX_VALUE_LENGTH);
                     }
                 }
                 value.put(valueBuffer);
@@ -211,7 +211,7 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
         }
 
         private void enlargeBuffer() {
-            CharBuffer newBuffer = CharBuffer.allocate(DslJsonSerializer.MAX_VALUE_LENGTH);
+            CharBuffer newBuffer = CharBuffer.allocate(SerializationConstants.MAX_VALUE_LENGTH);
             ((Buffer) value).flip();
             newBuffer.put(value);
             value = newBuffer;

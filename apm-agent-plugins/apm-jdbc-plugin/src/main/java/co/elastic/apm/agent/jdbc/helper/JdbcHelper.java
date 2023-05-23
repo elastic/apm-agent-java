@@ -20,8 +20,8 @@ package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.db.signature.Scanner;
 import co.elastic.apm.agent.db.signature.SignatureParser;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.jdbc.JdbcFilter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -81,12 +81,12 @@ public class JdbcHelper {
 
 
     @Nullable
-    public Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable AbstractSpan<?> parent, boolean preparedStatement) {
+    public Span<?> createJdbcSpan(@Nullable String sql, Object statement, @Nullable AbstractSpan<?> parent, boolean preparedStatement) {
         if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(parent) || parent == null) {
             return null;
         }
 
-        Span span = parent.createExitSpan();
+        Span<?> span = parent.createExitSpan();
         if (span == null) {
             return null;
         } else {
@@ -96,7 +96,7 @@ public class JdbcHelper {
         if (sql.isEmpty()) {
             span.withName("empty query");
         } else if (span.isSampled()) {
-            StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
+            StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIORITY_DEFAULT);
             if (spanName != null) {
                 signatureParser.querySignature(sql, spanName, preparedStatement);
             }
@@ -141,10 +141,10 @@ public class JdbcHelper {
      * we only record each JDBC call once.
      */
     private boolean isAlreadyMonitored(@Nullable AbstractSpan<?> parent) {
-        if (!(parent instanceof Span)) {
+        if (!(parent instanceof Span<?>)) {
             return false;
         }
-        Span parentSpan = (Span) parent;
+        Span<?> parentSpan = (Span<?>) parent;
         // a db span can't be the child of another db span
         // this means the span has already been created for this db call
         return parentSpan.getType() != null && parentSpan.getType().equals(DB_SPAN_TYPE);

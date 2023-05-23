@@ -20,11 +20,11 @@ package co.elastic.apm.agent.kafka.helper;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.context.Message;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.tracer.metadata.Message;
+import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.record.TimestampType;
@@ -32,6 +32,7 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import java.util.Iterator;
+import java.util.Set;
 
 class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
 
@@ -39,13 +40,15 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
     public static final String FRAMEWORK_NAME = "Kafka";
 
     private final Iterator<ConsumerRecord<?, ?>> delegate;
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
+    private final Set<String> binaryTraceHeaders;
     private final CoreConfiguration coreConfiguration;
     private final MessagingConfiguration messagingConfiguration;
 
-    public ConsumerRecordsIteratorWrapper(Iterator<ConsumerRecord<?, ?>> delegate, ElasticApmTracer tracer) {
+    public ConsumerRecordsIteratorWrapper(Iterator<ConsumerRecord<?, ?>> delegate, Tracer tracer, Set<String> binaryTraceHeaders) {
         this.delegate = delegate;
         this.tracer = tracer;
+        this.binaryTraceHeaders = binaryTraceHeaders;
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
     }
@@ -58,7 +61,7 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
 
     public void endCurrentTransaction() {
         try {
-            Transaction transaction = tracer.currentTransaction();
+            Transaction<?> transaction = tracer.currentTransaction();
             if (transaction != null && "messaging".equals(transaction.getType())) {
                 transaction.deactivate().end();
             }
@@ -74,7 +77,7 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
         try {
             String topic = record.topic();
             if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic)) {
-                Transaction transaction = tracer.startChildTransaction(record, KafkaRecordHeaderAccessor.instance(), ConsumerRecordsIteratorWrapper.class.getClassLoader());
+                Transaction<?> transaction = tracer.startChildTransaction(record, KafkaRecordHeaderAccessor.instance(), PrivilegedActionUtils.getClassLoader(ConsumerRecordsIteratorWrapper.class));
                 if (transaction != null) {
                     transaction.withType("messaging").withName("Kafka record from " + topic).activate();
                     transaction.setFrameworkName(FRAMEWORK_NAME);
@@ -88,7 +91,7 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord<?, ?>> {
                     if (transaction.isSampled() && coreConfiguration.isCaptureHeaders()) {
                         for (Header header : record.headers()) {
                             String key = header.key();
-                            if (!TraceContext.TRACE_PARENT_BINARY_HEADER_NAME.equals(key) &&
+                            if (!binaryTraceHeaders.contains(key) &&
                                 WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
                                 message.addHeader(key, header.value());
                             }

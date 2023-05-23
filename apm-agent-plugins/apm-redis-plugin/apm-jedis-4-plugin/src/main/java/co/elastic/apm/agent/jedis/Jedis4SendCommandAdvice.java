@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.jedis;
 
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
 import net.bytebuddy.asm.Advice;
 import redis.clients.jedis.CommandArguments;
@@ -40,7 +40,7 @@ public class Jedis4SendCommandAdvice {
     public static void sendCommandExit(@Advice.FieldValue("socketFactory") JedisSocketFactory socketFactory,
                                        @Nullable @Advice.Enter Object spanObj,
                                        @Nullable @Advice.Thrown Throwable thrown) {
-        Span span = (Span) spanObj;
+        Span<?> span = (Span<?>) spanObj;
         if (span != null) {
             if (socketFactory instanceof DefaultJedisSocketFactory) {
                 HostAndPort hostAndPort = ((DefaultJedisSocketFactory) socketFactory).getHostAndPort();
