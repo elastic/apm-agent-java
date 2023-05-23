@@ -22,7 +22,7 @@ jobs:
             labels: ["agent-java"]
           })
     - name: Check team membership for user
-      uses: elastic/get-user-teams-membership@v1.1.0
+      uses: elastic/get-user-teams-membership@1.1.0
       id: checkUserMember
       with:
         username: ${{ github.actor }}
