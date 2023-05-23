@@ -170,7 +170,7 @@ type: long
 
 format: bytes
 
-The amount of used memory in bytes of the memory pool specified by the `name` label
+The amount of used memory in bytes of the heap memory pool specified by the `name` label
 
 labels
 
@@ -186,7 +186,7 @@ type: long
 
 format: bytes
 
-The amount of memory in bytes that is committed for the memory pool specified by the `name` label.
+The amount of memory in bytes that is committed for the heap memory pool specified by the `name` label.
 This amount of memory is guaranteed for this specific pool.
 
 labels
@@ -203,7 +203,7 @@ type: long
 
 format: bytes
 
-The maximum amount of memory in bytes that can be used for the memory pool specified by the `name` label.
+The maximum amount of memory in bytes that can be used for the heap memory pool specified by the `name` label.
 
 labels
 
@@ -246,6 +246,53 @@ The maximum amount of non-heap memory in bytes that can be used for memory manag
 If the maximum memory size is undefined, the value is `-1`.
 --
 
+*`jvm.memory.non_heap.pool.used`*::
++
+--
+type: long
+
+format: bytes
+
+The amount of used memory in bytes of the non-heap memory pool specified by the `name` label
+
+labels
+
+* name: The name representing this memory pool
+
+--
+
+
+*`jvm.memory.non_heap.pool.committed`*::
++
+--
+type: long
+
+format: bytes
+
+The amount of memory in bytes that is committed for the non-heap memory pool specified by the `name` label.
+This amount of memory is guaranteed for this specific pool.
+
+labels
+
+* name: The name representing this memory pool
+
+--
+
+
+*`jvm.memory.non_heap.pool.max`*::
++
+--
+type: long
+
+format: bytes
+
+The maximum amount of memory in bytes that can be used for the non-heap memory pool specified by the `name` label.
+
+labels
+
+* name: The name representing this memory pool
+
+--
 
 *`jvm.thread.count`*::
 +
@@ -293,6 +340,22 @@ format: bytes
 
 An approximation of the total amount of memory,
 in bytes, allocated in heap memory.
+--
+
+*`jvm.fd.used`*::
++
+--
+type: long
+
+The current number of opened file descriptors.
+--
+
+*`jvm.fd.max`*::
++
+--
+type: long
+
+The maximum number of opened file descriptors.
 --
 
 [float]
