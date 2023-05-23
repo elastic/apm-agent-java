@@ -23,12 +23,20 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
-import com.sun.management.UnixOperatingSystemMXBean;
 
+import javax.annotation.Nullable;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 
 public class JvmFdMetrics extends AbstractLifecycleListener {
+
+    private static final MethodHandle NOOP = MethodHandles.constant(String.class, "no-op");
+
+    private static final MethodHandle getOpenFileDescriptorCount = getMethodHandle("getOpenFileDescriptorCount");
+    private static final MethodHandle getMaxFileDescriptorCount = getMethodHandle("getMaxFileDescriptorCount");
 
     @Override
     public void start(ElasticApmTracer tracer) {
@@ -37,22 +45,50 @@ public class JvmFdMetrics extends AbstractLifecycleListener {
 
     void bindTo(final MetricRegistry registry) {
         final OperatingSystemMXBean mxBean = ManagementFactory.getOperatingSystemMXBean();
-        if (mxBean instanceof UnixOperatingSystemMXBean) {
-            final UnixOperatingSystemMXBean unixMxBean = (UnixOperatingSystemMXBean) mxBean;
-            registry.add("jvm.fd.used", Labels.EMPTY, new DoubleSupplier() {
-                @Override
-                public double get() {
-                    return unixMxBean.getOpenFileDescriptorCount();
-                }
-            });
-            registry.addUnlessNegative("jvm.fd.max", Labels.EMPTY, new DoubleSupplier() {
-                @Override
-                public double get() {
-                    return unixMxBean.getMaxFileDescriptorCount();
-                }
-            });
+
+        Class<?> targetClass = getTargetClass();
+        if (targetClass == null || !targetClass.isAssignableFrom(mxBean.getClass())) {
+            return;
         }
 
+        register(registry, "jvm.fd.used", mxBean, getOpenFileDescriptorCount);
+        register(registry, "jvm.fd.max", mxBean, getMaxFileDescriptorCount);
+    }
 
+    private static void register(MetricRegistry registry, String name, OperatingSystemMXBean mxBean, MethodHandle methodHandle) {
+        if (methodHandle == NOOP) {
+            return;
+        }
+        registry.add(name, Labels.EMPTY, new DoubleSupplier() {
+            @Override
+            public double get() {
+                try {
+                    return (long) methodHandle.invoke((Object) mxBean);
+                } catch (Throwable e) {
+                    return -1L;
+                }
+            }
+        });
+    }
+
+    @Nullable
+    private static Class<?> getTargetClass() {
+        try {
+            return Class.forName("com.sun.management.UnixOperatingSystemMXBean");
+        } catch (ClassNotFoundException e) {
+            return null;
+        }
+    }
+
+    private static MethodHandle getMethodHandle(String name) {
+        Class<?> targetClass = getTargetClass();
+        if (targetClass == null) {
+            return NOOP;
+        }
+        try {
+            return MethodHandles.lookup().findVirtual(targetClass, name, MethodType.methodType(long.class));
+        } catch (Exception e) {
+            return NOOP;
+        }
     }
 }
