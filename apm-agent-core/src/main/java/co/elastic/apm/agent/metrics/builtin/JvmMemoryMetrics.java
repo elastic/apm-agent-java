@@ -41,7 +41,7 @@ public class JvmMemoryMetrics extends AbstractLifecycleListener {
     }
 
     void bindTo(final MetricRegistry registry) {
-        final MemoryMXBean platformMXBean = ManagementFactory.getPlatformMXBean(MemoryMXBean.class);
+        MemoryMXBean platformMXBean = ManagementFactory.getPlatformMXBean(MemoryMXBean.class);
         registerMemoryUsage(registry, "jvm.memory.heap", Labels.EMPTY, platformMXBean.getHeapMemoryUsage());
         registerMemoryUsage(registry, "jvm.memory.non_heap", Labels.EMPTY, platformMXBean.getNonHeapMemoryUsage());
 
@@ -59,7 +59,7 @@ public class JvmMemoryMetrics extends AbstractLifecycleListener {
         }
     }
 
-    private static void registerMemoryUsage(MetricRegistry registry, String prefix, Labels labels, MemoryUsage memoryUsage) {
+    private static void registerMemoryUsage(MetricRegistry registry, String prefix, Labels labels, final MemoryUsage memoryUsage) {
         registry.add(prefix + ".used", labels, new DoubleSupplier() {
             @Override
             public double get() {
