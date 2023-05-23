@@ -59,7 +59,7 @@ public class JvmFdMetrics extends AbstractLifecycleListener {
         if (methodHandle == NOOP) {
             return;
         }
-        registry.add(name, Labels.EMPTY, new DoubleSupplier() {
+        registry.addUnlessNegative(name, Labels.EMPTY, new DoubleSupplier() {
             @Override
             public double get() {
                 try {
