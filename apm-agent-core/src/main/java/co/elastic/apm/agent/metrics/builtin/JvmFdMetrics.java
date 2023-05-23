@@ -55,7 +55,7 @@ public class JvmFdMetrics extends AbstractLifecycleListener {
         register(registry, "jvm.fd.max", mxBean, getMaxFileDescriptorCount);
     }
 
-    private static void register(MetricRegistry registry, String name, OperatingSystemMXBean mxBean, MethodHandle methodHandle) {
+    private static void register(MetricRegistry registry, String name, final OperatingSystemMXBean mxBean, final MethodHandle methodHandle) {
         if (methodHandle == NOOP) {
             return;
         }
@@ -63,7 +63,7 @@ public class JvmFdMetrics extends AbstractLifecycleListener {
             @Override
             public double get() {
                 try {
-                    return (long) methodHandle.invoke((Object) mxBean);
+                    return (long) methodHandle.invoke(mxBean);
                 } catch (Throwable e) {
                     return -1L;
                 }
