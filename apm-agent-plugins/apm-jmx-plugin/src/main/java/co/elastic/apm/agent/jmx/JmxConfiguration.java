@@ -133,17 +133,7 @@ public class JmxConfiguration extends ConfigurationOptionProvider {
         .configurationCategory("JMX")
         .buildWithDefault(Collections.<JmxMetric>emptyList());
 
-    private final ConfigurationOption<Boolean> captureAutoJmxMetrics = ConfigurationOption.booleanOption()
-        .key("capture_auto_jmx_metrics")
-        .dynamic(true)
-        .configurationCategory("JMX")
-        .buildWithDefault(false);
-
     ConfigurationOption<List<JmxMetric>> getCaptureJmxMetrics() {
         return captureJmxMetrics;
     }
-    ConfigurationOption<Boolean> getCaptureAutoJmxMetrics() {
-        return captureAutoJmxMetrics;
-    }
-
 }

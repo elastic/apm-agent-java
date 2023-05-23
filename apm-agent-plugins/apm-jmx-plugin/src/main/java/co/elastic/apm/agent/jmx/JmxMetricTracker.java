@@ -65,8 +65,6 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
     private final MetricRegistry metricRegistry;
     @Nullable
     private volatile NotificationListener listener;
-    @Nullable
-    private JmxAutoMetrics autoMetrics;
 
     public JmxMetricTracker(ElasticApmTracer tracer) {
         jmxConfiguration = tracer.getConfig(JmxConfiguration.class);
@@ -83,28 +81,15 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                 }
             }
         };
-        ConfigurationOption.ChangeListener<Boolean> autoJmxListener = new ConfigurationOption.ChangeListener<Boolean>() {
-            @Override
-            public void onChange(ConfigurationOption<?> configurationOption, Boolean oldValue, Boolean newValue) {
-                if (!oldValue && newValue) {
-                    tryInit();
-                }
-            }
-        };
-
 
         // adding change listener before checking if options are not empty to avoid missing an update due to a race condition
         jmxConfiguration.getCaptureJmxMetrics().addChangeListener(captureJmxListener);
-        jmxConfiguration.getCaptureAutoJmxMetrics().addChangeListener(autoJmxListener);
 
-        if (!jmxConfiguration.getCaptureJmxMetrics().get().isEmpty() || jmxConfiguration.getCaptureAutoJmxMetrics().get()) {
+        if (!jmxConfiguration.getCaptureJmxMetrics().get().isEmpty()) {
             tryInit();
             jmxConfiguration.getCaptureJmxMetrics().removeChangeListener(captureJmxListener);
-            jmxConfiguration.getCaptureAutoJmxMetrics().removeChangeListener(autoJmxListener);
         } else {
-            logger.debug("Deferring initialization of JMX metric tracking until {} or {} options are set.",
-                jmxConfiguration.getCaptureJmxMetrics().getKey(),
-                jmxConfiguration.getCaptureAutoJmxMetrics().getKey());
+            logger.debug("Deferring initialization of JMX metric tracking until {} option is set", jmxConfiguration.getCaptureJmxMetrics().getKey());
         }
     }
 
@@ -184,22 +169,6 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         logger.debug("Init JMX metric tracking with server {}", platformMBeanServer);
         this.server = platformMBeanServer;
         registerMBeanNotificationListener(platformMBeanServer);
-
-        final JmxAutoMetrics autoMetrics = new JmxAutoMetrics(metricRegistry, platformMBeanServer);
-        if(jmxConfiguration.getCaptureAutoJmxMetrics().get()){
-            autoMetrics.registerAll();
-        }
-
-        jmxConfiguration.getCaptureAutoJmxMetrics().addChangeListener(new ConfigurationOption.ChangeListener<Boolean>() {
-            @Override
-            public void onChange(ConfigurationOption<?> configurationOption, Boolean oldValue, Boolean newValue) {
-                if(newValue){
-                    autoMetrics.registerAll();
-                } else {
-//                    autoMetrics.unregisterAll(); // TODO
-                }
-            }
-        });
 
         jmxConfiguration.getCaptureJmxMetrics().addChangeListener(new ConfigurationOption.ChangeListener<List<JmxMetric>>() {
             @Override

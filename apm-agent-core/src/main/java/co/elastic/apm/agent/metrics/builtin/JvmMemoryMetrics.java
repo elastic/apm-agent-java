@@ -29,7 +29,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryPoolMXBean;
-import java.lang.management.MemoryType;
+import java.lang.management.MemoryUsage;
 import java.util.List;
 
 public class JvmMemoryMetrics extends AbstractLifecycleListener {
@@ -42,71 +42,41 @@ public class JvmMemoryMetrics extends AbstractLifecycleListener {
 
     void bindTo(final MetricRegistry registry) {
         final MemoryMXBean platformMXBean = ManagementFactory.getPlatformMXBean(MemoryMXBean.class);
-        registry.add("jvm.memory.heap.used", Labels.EMPTY, new DoubleSupplier() {
-            @Override
-            public double get() {
-                return platformMXBean.getHeapMemoryUsage().getUsed();
-            }
-        });
-        registry.add("jvm.memory.heap.committed", Labels.EMPTY, new DoubleSupplier() {
-            @Override
-            public double get() {
-                return platformMXBean.getHeapMemoryUsage().getCommitted();
-            }
-        });
-        registry.addUnlessNegative("jvm.memory.heap.max", Labels.EMPTY, new DoubleSupplier() {
-            @Override
-            public double get() {
-                return platformMXBean.getHeapMemoryUsage().getMax();
-            }
-        });
-        registry.add("jvm.memory.non_heap.used", Labels.EMPTY, new DoubleSupplier() {
-            @Override
-            public double get() {
-                return platformMXBean.getNonHeapMemoryUsage().getUsed();
-            }
-        });
-        registry.add("jvm.memory.non_heap.committed", Labels.EMPTY, new DoubleSupplier() {
-            @Override
-            public double get() {
-                return platformMXBean.getNonHeapMemoryUsage().getCommitted();
-            }
-        });
-        registry.addUnlessNegative("jvm.memory.non_heap.max", Labels.EMPTY, new DoubleSupplier() {
-            @Override
-            public double get() {
-                return platformMXBean.getNonHeapMemoryUsage().getMax();
-            }
-        });
+        registerMemoryUsage(registry, "jvm.memory.heap", Labels.EMPTY, platformMXBean.getHeapMemoryUsage());
+        registerMemoryUsage(registry, "jvm.memory.non_heap", Labels.EMPTY, platformMXBean.getNonHeapMemoryUsage());
 
         List<MemoryPoolMXBean> memoryPoolMXBeans = ManagementFactory.getMemoryPoolMXBeans();
 
         for (final MemoryPoolMXBean memoryPoolMXBean : memoryPoolMXBeans) {
-            String type = memoryPoolMXBean.getType().toString().toLowerCase();
+            String type = memoryPoolMXBean.getType().name().toLowerCase();
 
-            final Labels memoryPoolTags = Labels.Mutable.of("name", memoryPoolMXBean.getName()).add("type", type);
+            final Labels labels = Labels.Mutable.of("name", memoryPoolMXBean.getName());
             try {
-                registry.add(String.format("jvm.memory.%s.pool.used", type), memoryPoolTags, new DoubleSupplier() {
-                    @Override
-                    public double get() {
-                        return memoryPoolMXBean.getUsage().getUsed();
-                    }
-                });
-                registry.add(String.format("jvm.memory.%s.pool.committed", type), memoryPoolTags, new DoubleSupplier() {
-                    @Override
-                    public double get() {
-                        return memoryPoolMXBean.getUsage().getCommitted();
-                    }
-                });
-                registry.addUnlessNegative(String.format("jvm.memory.%s.pool.max", type), memoryPoolTags, new DoubleSupplier() {
-                    @Override
-                    public double get() {
-                        return memoryPoolMXBean.getUsage().getMax();
-                    }
-                });
+                registerMemoryUsage(registry, String.format("jvm.memory.%s.pool", type), labels, memoryPoolMXBean.getUsage());
             } catch (Exception e) {
                 logger.error("Cannot fetch memory metrics of memory pool " + memoryPoolMXBean.getName(), e);
             }
         }
+    }
+
+    private static void registerMemoryUsage(MetricRegistry registry, String prefix, Labels labels, MemoryUsage memoryUsage) {
+        registry.add(prefix + ".used", labels, new DoubleSupplier() {
+            @Override
+            public double get() {
+                return memoryUsage.getUsed();
+            }
+        });
+        registry.add(prefix + ".committed", labels, new DoubleSupplier() {
+            @Override
+            public double get() {
+                return memoryUsage.getCommitted();
+            }
+        });
+        registry.addUnlessNegative(prefix + ".max", labels, new DoubleSupplier() {
+            @Override
+            public double get() {
+                return memoryUsage.getMax();
+            }
+        });
     }
 }
