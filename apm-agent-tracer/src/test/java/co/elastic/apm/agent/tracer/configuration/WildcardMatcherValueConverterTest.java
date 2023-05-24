@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.tracer.configuration;
 
-import co.elastic.apm.agent.tracer.configuration.WildcardMatcherValueConverter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.tracer.configuration;
 
-import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

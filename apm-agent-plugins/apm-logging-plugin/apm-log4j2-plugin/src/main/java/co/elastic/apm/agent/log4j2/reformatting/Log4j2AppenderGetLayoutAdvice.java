@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.log4j2.reformatting;
 
-import co.elastic.apm.agent.tracer.configuration.LogEcsReformatting;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import org.apache.logging.log4j.core.Appender;
@@ -31,7 +30,7 @@ import java.io.Serializable;
  * The Log4j2 {@link Appender} does not expose a {@code setLayout()} API that allows us to override logging events.
  * However, it exposes an {@link Appender#getLayout()} API <b>that is always used when events are logged</b>.
  * Therefore, by instrumenting this method and replacing the returned {@link Layout}, we can implement the
- * {@link LogEcsReformatting#OVERRIDE OVERRIDE} use case.
+ * {@link co.elastic.apm.agent.tracer.configuration.LogEcsReformatting#OVERRIDE OVERRIDE} use case.
  */
 public class Log4j2AppenderGetLayoutAdvice {
 
