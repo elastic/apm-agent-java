@@ -22,6 +22,9 @@ import javax.annotation.Nullable;
 
 public abstract class IAwsSdkDataSource<R, C> {
     public static final String BUCKET_NAME_FIELD = "Bucket";
+    public static final String OBJECT_KEY_FIELD = "Key";
+    public static final String OBJECT_DESTINATION_KEY_FIELD = "DestinationKey";
+    public static final String COPY_SOURCE_FIELD = "CopySource";
     public static final String TABLE_NAME_FIELD = "TableName";
     public static final String KEY_CONDITION_EXPRESSION_FIELD = "KeyConditionExpression";
     public static final String QUEUE_NAME_FIELD = "QueueName";

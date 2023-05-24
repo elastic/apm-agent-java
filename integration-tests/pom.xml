@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.37.1-SNAPSHOT</version>
+        <version>1.38.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>integration-tests</artifactId>
@@ -28,11 +28,15 @@
         <module>runtime-attach</module>
         <module>jakartaee-jsf-app</module>
         <module>main-app-test</module>
+        <module>spring-boot-3</module>
+        <module>aws-lambda-test</module>
     </modules>
 
     <properties>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+        <!-- integration tests do not require javadoc -->
+        <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
 </project>

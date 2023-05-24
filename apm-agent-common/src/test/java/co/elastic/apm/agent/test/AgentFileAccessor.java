@@ -50,6 +50,11 @@ public class AgentFileAccessor {
             ".jar");
     }
 
+    public static Path getPathToAwsLambdaLayer() {
+        return getArtifactPath(Path.of("elastic-apm-agent"), "elastic-apm-java-aws-lambda-layer", "", ".zip");
+    }
+
+
     public static Path getPathToAttacher() {
         return getArtifactPath(
             Path.of("apm-agent-attach-cli"),
@@ -86,18 +91,22 @@ public class AgentFileAccessor {
     }
 
     public static Path getArtifactPath(Path modulePath, String artifactSuffix, String extension) {
-        Path moduleRoot = getProjectRoot().resolve(modulePath);
         String artifactName = modulePath.getFileName().toString(); // by convention artifact name the last part of the path
+        return getArtifactPath(modulePath, artifactName, artifactSuffix, extension);
+    }
+
+    private static Path getArtifactPath(Path modulePath, String artifactNamePrefix, String artifactSuffix, String extension) {
+        Path moduleRoot = getProjectRoot().resolve(modulePath);
         try {
             Path targetFolder = moduleRoot.resolve("target");
 
-            String errorMsg = String.format("unable to find artifact '%s%s-{version}%s' in folder '%s', make sure to run 'mvn package' in folder '%s' first", artifactName, artifactSuffix, extension, targetFolder.toAbsolutePath(), moduleRoot);
+            String errorMsg = String.format("unable to find artifact '%s%s-{version}%s' in folder '%s', make sure to run 'mvn package' in folder '%s' first", artifactNamePrefix, artifactSuffix, extension, targetFolder.toAbsolutePath(), moduleRoot);
             if (!Files.isDirectory(targetFolder)) {
                 throw new IllegalStateException(errorMsg);
             }
 
             return Files.find(targetFolder, 1, (path, attr) -> path.getFileName().toString()
-                    .matches(artifactName + "-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?" + artifactSuffix + extension))
+                    .matches(artifactNamePrefix + "-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?" + artifactSuffix + extension))
                 .findFirst()
                 .map(Path::toAbsolutePath)
                 .orElseThrow(() -> new IllegalStateException(errorMsg));

@@ -20,7 +20,7 @@ package co.elastic.apm.agent.grpc;
 
 import co.elastic.apm.agent.grpc.testapp.GrpcApp;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
-import co.elastic.apm.agent.testutils.TestPort;
+import co.elastic.apm.agent.test.TestPort;
 
 public class GrpcTest {
 

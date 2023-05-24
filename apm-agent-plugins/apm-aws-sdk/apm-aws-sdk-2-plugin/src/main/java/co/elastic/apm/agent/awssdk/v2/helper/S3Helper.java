@@ -19,10 +19,13 @@
 package co.elastic.apm.agent.awssdk.v2.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractS3InstrumentationHelper;
+import co.elastic.apm.agent.awssdk.common.IAwsSdkDataSource;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
 import software.amazon.awssdk.core.SdkRequest;
 import software.amazon.awssdk.core.http.ExecutionContext;
+
+import javax.annotation.Nullable;
 
 public class S3Helper extends AbstractS3InstrumentationHelper<SdkRequest, ExecutionContext> {
 
@@ -34,5 +37,23 @@ public class S3Helper extends AbstractS3InstrumentationHelper<SdkRequest, Execut
 
     public S3Helper(Tracer tracer) {
         super(tracer, SdkV2DataSource.getInstance());
+    }
+
+    @Nullable
+    @Override
+    protected String getObjectKey(SdkRequest request, @Nullable String bucketName) {
+        String value = awsSdkDataSource.getFieldValue(IAwsSdkDataSource.OBJECT_KEY_FIELD, request);
+
+        if (value == null) {
+            value = awsSdkDataSource.getFieldValue(IAwsSdkDataSource.OBJECT_DESTINATION_KEY_FIELD, request);
+        }
+
+        return value;
+    }
+
+    @Nullable
+    @Override
+    protected String getCopySource(SdkRequest request) {
+        return awsSdkDataSource.getFieldValue(IAwsSdkDataSource.COPY_SOURCE_FIELD, request);
     }
 }

@@ -45,10 +45,15 @@ public abstract class AbstractS3InstrumentationHelper<R, C> extends AbstractAwsS
         }
         String operationName = awsSdkDataSource.getOperationName(request, context);
         String bucketName = awsSdkDataSource.getFieldValue(IAwsSdkDataSource.BUCKET_NAME_FIELD, request);
+        String key = getObjectKey(request, bucketName);
+        String copySource = getCopySource(request);
 
         span.withType("storage")
             .withSubtype(S3_TYPE)
-            .withAction(operationName);
+            .withAction(operationName)
+            .withOtelAttribute("aws.s3.bucket", bucketName)
+            .withOtelAttribute("aws.s3.key", key)
+            .withOtelAttribute("aws.s3.copy_source", copySource);
         StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIORITY_DEFAULT);
         if (name != null) {
             name.append("S3 ").append(operationName);
@@ -61,4 +66,10 @@ public abstract class AbstractS3InstrumentationHelper<R, C> extends AbstractAwsS
 
         return span;
     }
+
+    @Nullable
+    protected abstract String getCopySource(R request);
+
+    @Nullable
+    protected abstract String getObjectKey(R request, @Nullable String bucketName);
 }

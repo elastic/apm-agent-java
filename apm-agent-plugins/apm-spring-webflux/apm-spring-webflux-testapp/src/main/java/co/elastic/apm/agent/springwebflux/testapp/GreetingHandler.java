@@ -37,7 +37,7 @@ import java.util.Optional;
 @Component
 public class GreetingHandler {
 
-    public static final Scheduler CHILDREN_SCHEDULER = Schedulers.newElastic("children");
+    public static final Scheduler CHILDREN_SCHEDULER = Schedulers.newBoundedElastic(16, 128, "children");
 
     public Mono<String> helloMessage(@Nullable String name) {
         return Mono.just(String.format("Hello, %s!", Optional.ofNullable(name).orElse("Spring")));

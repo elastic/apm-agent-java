@@ -127,6 +127,7 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
     private DslJsonSerializer.Writer jsonSerializer;
     private ObjectMapper objectMapper;
 
+
     public AbstractLambdaTest() {
         jsonSerializer = new DslJsonSerializer(
             mock(StacktraceConfiguration.class),
@@ -185,6 +186,7 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
         assertThat(transaction.getResult()).isEqualTo("failure");
+        assertThat(reporter.getPartialTransactions()).containsExactly(transaction);
     }
 
     @Test

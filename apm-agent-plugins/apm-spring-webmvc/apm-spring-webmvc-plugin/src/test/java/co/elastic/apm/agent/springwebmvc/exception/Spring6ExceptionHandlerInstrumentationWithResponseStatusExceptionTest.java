@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.springwebmvc.exception;
 
-import co.elastic.apm.agent.springwebmvc.Java17OnlyTest;
+import co.elastic.apm.agent.testutils.Java17OnlyTest;
 
 public class Spring6ExceptionHandlerInstrumentationWithResponseStatusExceptionTest extends Java17OnlyTest {
 

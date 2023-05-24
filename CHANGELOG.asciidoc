@@ -20,8 +20,19 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.39.0]]
+==== 1.39.0 - YYYY/MM/DD
+
+[float]
+===== Features
+* Capture S3 operation details as OTel attributes - {pull}3136[#3136]
+* Added support for recording AWS lambda transactions even if the JVM crashes or runs into a timeout {pull}3134[#3134]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.38.0]]
-==== 1.38.0 - YYYY/MM/DD
+==== 1.38.0 - 2023/05/04
 
 [float]
 ===== Features
@@ -32,9 +43,6 @@ endif::[]
 [float]
 ===== Bug fixes
 * Do not use proxy to retrieve cloud metadata - {pull}3108[#3108]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.37.0]]
 ==== 1.37.0 - 2023/04/11
