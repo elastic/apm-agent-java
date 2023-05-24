@@ -284,12 +284,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-quartz-1-plugin</artifactId>
+            <artifactId>apm-quartz-plugin-1</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-quartz-2-plugin</artifactId>
+            <artifactId>apm-quartz-plugin-2</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
