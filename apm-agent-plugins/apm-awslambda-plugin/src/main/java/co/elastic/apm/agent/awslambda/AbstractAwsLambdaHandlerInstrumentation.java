@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.awslambda;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -63,7 +63,7 @@ public abstract class AbstractAwsLambdaHandlerInstrumentation extends TracerAwar
      * Matches either custom types or implementations of {@link com.amazonaws.services.lambda.runtime.RequestHandler} or
      * {@link com.amazonaws.services.lambda.runtime.RequestStreamHandler}.
      * The actual instrumentation will be made based on method matching.
-     * @return handler type matching based on the configured {@link ServerlessConfiguration#awsLambdaHandler}
+     * @return handler type matching based on the configured {@link ServerlessConfiguration#getAwsLambdaHandler()}
      */
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.micrometer;
 
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
+import co.elastic.apm.agent.tracer.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;

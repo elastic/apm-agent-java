@@ -19,11 +19,10 @@
 package co.elastic.apm.agent.otelmetricsdk;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.report.Reporter;
-import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.ReporterConfiguration;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.data.Data;
@@ -43,7 +42,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class OtelMetricSerializer {
 
     private static final Logger logger = LoggerFactory.getLogger(OtelMetricSerializer.class);
-    private final MetricsConfiguration metricsConfig;
     private final ReporterConfiguration reporterConfig;
     private final StringBuilder serializationTempBuilder;
 
@@ -54,8 +52,7 @@ public class OtelMetricSerializer {
     @Nullable
     private InstrumentationScopeAndTimestamp lastCreatedInstrScopeAndTimestamp;
 
-    public OtelMetricSerializer(MetricsConfiguration metricsConfig, ReporterConfiguration reporterConfig) {
-        this.metricsConfig = metricsConfig;
+    public OtelMetricSerializer(ReporterConfiguration reporterConfig) {
         this.reporterConfig = reporterConfig;
         metricSets = new HashMap<>();
         serializationTempBuilder = new StringBuilder();

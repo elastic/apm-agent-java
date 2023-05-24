@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@NonnullApi
-package co.elastic.apm.agent.configuration.converter;
+package co.elastic.apm.agent.tracer.configuration;
 
-import co.elastic.apm.agent.sdk.NonnullApi;
+public enum LogEcsReformatting {
+    OFF,
+    SHADE,
+    REPLACE,
+    OVERRIDE
+}

@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.profiler;
 
-import co.elastic.apm.agent.configuration.converter.ListValueConverter;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
-import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
+import co.elastic.apm.agent.tracer.configuration.ListValueConverter;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.tracer.configuration.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 

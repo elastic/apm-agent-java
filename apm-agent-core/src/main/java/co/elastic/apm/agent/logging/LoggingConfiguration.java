@@ -19,10 +19,11 @@
 package co.elastic.apm.agent.logging;
 
 import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
-import co.elastic.apm.agent.configuration.converter.ByteValue;
-import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
+import co.elastic.apm.agent.tracer.configuration.ByteValue;
+import co.elastic.apm.agent.tracer.configuration.ByteValueConverter;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.tracer.configuration.LogEcsReformatting;
+import co.elastic.apm.agent.tracer.configuration.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -64,7 +65,7 @@ import java.util.Map;
  * so that the documentation gets generated for the options in this class.
  * </p>
  */
-public class LoggingConfiguration extends ConfigurationOptionProvider {
+public class LoggingConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.LoggingConfiguration {
 
     public static final String SYSTEM_OUT = "System.out";
     static final String LOG_LEVEL_KEY = "log_level";
@@ -355,32 +356,39 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         Configurator.setLevel("com.networknt.schema", org.apache.logging.log4j.Level.WARN);
     }
 
+    @Override
     public LogEcsReformatting getLogEcsReformatting() {
         return logEcsReformatting.get();
     }
 
+    @Override
     public Map<String, String> getLogEcsReformattingAdditionalFields() {
         return logEcsReformattingAdditionalFields.get();
     }
 
+    @Override
     public List<WildcardMatcher> getLogEcsFormatterAllowList() {
         return logEcsFormatterAllowList.get();
     }
 
+    @Override
     @Nullable
     public String getLogEcsFormattingDestinationDir() {
         String logReformattingDestDir = logEcsFormattingDestinationDir.get().trim();
         return (logReformattingDestDir.isEmpty()) ? null : logReformattingDestDir;
     }
 
+    @Override
     public long getLogFileSize() {
         return logFileSize.get().getBytes();
     }
 
+    @Override
     public long getDefaultLogFileSize() {
         return logFileSize.getValueConverter().convert(logFileSize.getDefaultValueAsString()).getBytes();
     }
 
+    @Override
     public boolean getSendLogs() {
         return sendLogs.get();
     }

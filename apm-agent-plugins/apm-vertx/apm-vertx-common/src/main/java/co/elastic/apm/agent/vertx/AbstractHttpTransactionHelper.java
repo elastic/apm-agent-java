@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.vertx;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
@@ -36,9 +36,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
 import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_DEFAULT;
 import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.EventType.OFF;
 
 public abstract class AbstractHttpTransactionHelper {
     private static final Logger logger = LoggerFactory.getLogger(AbstractHttpTransactionHelper.class);

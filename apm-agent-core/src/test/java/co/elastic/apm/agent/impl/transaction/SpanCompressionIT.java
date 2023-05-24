@@ -20,11 +20,9 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.common.ThreadUtils;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.logging.TestUtils;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
