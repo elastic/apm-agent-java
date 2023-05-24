@@ -46,7 +46,7 @@ public class JmxMetric {
     private final ObjectName objectName;
     private final List<Attribute> attributes;
 
-    protected JmxMetric(ObjectName objectName, List<Attribute> attributes) {
+    private JmxMetric(ObjectName objectName, List<Attribute> attributes) {
         this.objectName = objectName;
         this.attributes = attributes;
     }
@@ -151,7 +151,7 @@ public class JmxMetric {
         private final String stringRepresentation;
         private final String jmxAttributeName;
         @Nullable
-        protected final String metricName;
+        private final String metricName;
 
         public static Attribute valueOf(final String s) {
             try {
@@ -174,7 +174,7 @@ public class JmxMetric {
             }
         }
 
-        protected Attribute(String stringRepresentation, String jmxAttributeName, @Nullable String metricName) {
+        private Attribute(String stringRepresentation, String jmxAttributeName, @Nullable String metricName) {
             this.stringRepresentation = stringRepresentation;
             this.jmxAttributeName = jmxAttributeName;
             this.metricName = metricName;
@@ -207,20 +207,13 @@ public class JmxMetric {
             return Objects.hash(jmxAttributeName, metricName);
         }
 
-        protected Labels getLabels(MBeanServer server, ObjectName objectName) {
+        public Labels getLabels(ObjectName objectName) {
             return Labels.Mutable.of(objectName.getKeyPropertyList());
         }
 
-        protected String getCompositeMetricName(String key) {
+        public String getCompositeMetricName(String key) {
             return getMetricName() + "." + key;
         }
     }
 
-    protected static ObjectName getObjectName(String s){
-        try {
-            return new ObjectName(s);
-        } catch (MalformedObjectNameException e) {
-            throw new IllegalArgumentException("Invalid syntax for ObjectName [" + s + "] (" + e.getMessage() + ")", e);
-        }
-    }
 }

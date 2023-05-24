@@ -185,6 +185,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
 
             }
         });
+        register(jmxConfiguration.getCaptureJmxMetrics().get(), platformMBeanServer);
     }
 
     private void registerMBeanNotificationListener(final MBeanServer server) {
@@ -298,7 +299,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         return registrations;
     }
 
-    private void addJmxMetricRegistration(final JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, MBeanServer server) throws JMException {
+    private static void addJmxMetricRegistration(final JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, MBeanServer server) throws JMException {
         Set<ObjectInstance> mbeans = server.queryMBeans(jmxMetric.getObjectName(), null);
         if (!mbeans.isEmpty()) {
             logger.debug("Found mbeans for object name {}", jmxMetric.getObjectName());
@@ -314,7 +315,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                     if (value instanceof Number) {
                         logger.debug("Found number attribute {}={}", attribute.getJmxAttributeName(), value);
                         registrations.add(new JmxMetricRegistration(attribute.getMetricName(),
-                            attribute.getLabels(server, objectName),
+                            attribute.getLabels(objectName),
                             attribute.getJmxAttributeName(),
                             null,
                             objectName));
@@ -324,7 +325,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                             if (compositeValue.get(key) instanceof Number) {
                                 logger.debug("Found composite number attribute {}.{}={}", attribute.getJmxAttributeName(), key, value);
                                 registrations.add(new JmxMetricRegistration(attribute.getCompositeMetricName(key),
-                                    attribute.getLabels(server, objectName),
+                                    attribute.getLabels(objectName),
                                     attribute.getJmxAttributeName(),
                                     key,
                                     objectName));
