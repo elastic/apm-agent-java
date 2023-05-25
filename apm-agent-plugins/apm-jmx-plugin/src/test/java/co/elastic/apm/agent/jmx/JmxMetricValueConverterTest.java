@@ -28,6 +28,24 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class JmxMetricValueConverterTest {
 
     @Test
+    void testMetricName() {
+        testMetricName("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount]",
+            "jvm.jmx.CollectionCount", "CollectionCount");
+
+        testMetricName("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionTime:metric_name=collection_time]",
+            "jvm.jmx.collection_time", "CollectionTime");
+    }
+
+    private static void testMetricName(String s, String expectedMetricName, String expectedJmxAttributeName) {
+        JmxMetric metric = JmxMetric.valueOf(s);
+        assertThat(metric.getAttributes()).hasSize(1);
+        metric.getAttributes().forEach(a -> {
+            assertThat(a.getMetricName()).isEqualTo(expectedMetricName);
+            assertThat(a.getJmxAttributeName()).isEqualTo(expectedJmxAttributeName);
+        });
+    }
+
+    @Test
     void testFromString() {
         JmxMetric expected = JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count]");
         assertThat(JmxMetric.valueOf(expected.toString())).isEqualTo(expected);
