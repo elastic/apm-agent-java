@@ -15,7 +15,7 @@ Elastic Java APM Agent provides the following log features:
 
 Those features are part of {observability-guide}/application-logs.html[Application log ingestion strategies].
 
-The {ecs-logging-java-ref}/intro.html[`ecs-logging-java`] library can also be used to use the ECS logging format without an APM agent.
+The {ecs-logging-java-ref}/intro.html[`ecs-logging-java`] library can also be used to use the {ecs-logging-ref}/intro.html[ECS logging] format without an APM agent.
 When deployed with the Java APM agent, the agent will provide <<log-correlation-ids,log correlation>> IDs.
 
 [float]
