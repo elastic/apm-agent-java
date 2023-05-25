@@ -33,8 +33,9 @@ import java.lang.management.OperatingSystemMXBean;
 
 public class JvmFdMetrics extends AbstractLifecycleListener {
 
+    // using method handles to avoid direct reference to `com.sun.*` classes which we can't reference directly
+    // as it is not available on all JDKs this is further enforced by the animal sniffer plugin
     private static final MethodHandle NOOP = MethodHandles.constant(String.class, "no-op");
-
     private static final MethodHandle getOpenFileDescriptorCount = getMethodHandle("getOpenFileDescriptorCount");
     private static final MethodHandle getMaxFileDescriptorCount = getMethodHandle("getMaxFileDescriptorCount");
 
