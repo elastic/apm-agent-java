@@ -126,6 +126,50 @@ public class TransactionTest {
         );
     }
 
+    @Test
+    void skipChildSpanCreationWhenLimitReached() {
+        int limit = 3;
+
+        ElasticApmTracer tracer = MockTracer.createRealTracer();
+        doReturn(limit).when(tracer.getConfig(CoreConfiguration.class)).getTransactionMaxSpans();
+
+        Transaction transaction = tracer.startRootTransaction(TransactionTest.class.getClassLoader());
+        assertThat(transaction).isNotNull();
+        transaction.activate();
+
+        int dropped = 7;
+        int total = limit + dropped;
+        for (int i = 1; i <= total; i++) {
+            // emulates an instrumentation that will bypass span creation
+            // each call to createSpan is expected to be guarded by a single call to shouldSkipChildSpanCreation
+            // for proper dropped span accounting.
+
+            boolean shouldSkip = transaction.shouldSkipChildSpanCreation();
+            assertThat(shouldSkip)
+                .describedAs("span %d should be skipped, limit is %d", i, limit)
+                .isEqualTo(i > limit);
+
+            if (shouldSkip) {
+                assertThat(transaction.getSpanCount().getReported().get()).isEqualTo(limit);
+                assertThat(transaction.getSpanCount().getDropped().get()).isEqualTo(i - limit);
+            } else {
+                transaction.createSpan()
+                    .withName("child span " + i)
+                    .activate()
+                    .deactivate()
+                    .end();
+
+                assertThat(transaction.getSpanCount().getReported().get()).isEqualTo(i);
+            }
+        }
+        assertThat(transaction.getSpanCount().getReported().get()).isEqualTo(limit);
+        assertThat(transaction.getSpanCount().getDropped().get()).isEqualTo(dropped);
+        assertThat(transaction.getSpanCount().getTotal().get()).isEqualTo(total);
+
+        transaction.deactivate().end();
+
+    }
+
     /**
      * A utility to enable arbitrary tests to set an existing {@link Transaction} state without making this functionality globally accessible
      * @param recorded should the provided trace context be recorded
