@@ -184,4 +184,11 @@ public interface AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<
     void incrementReferences();
 
     void decrementReferences();
+
+    /**
+     * @return {@literal true} when span limit is reached and the caller can optimize and not create a span. The caller
+     * is expected to call this method before every span creation operation for proper dropped spans accounting. If not
+     * called before attempting span creation, a span will be created and dropped before reporting.
+     */
+    boolean shouldSkipChildSpanCreation();
 }
