@@ -90,6 +90,10 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
 
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {
+                if (parent.shouldSkipChildSpanCreation()) {
+                    // span limit reached means span will not be reported, thus we can optimize and skip creating one
+                    return null;
+                }
                 Span<?> span = asExit ? parent.createExitSpan() : parent.createSpan();
                 if (span == null) {
                     return null;
