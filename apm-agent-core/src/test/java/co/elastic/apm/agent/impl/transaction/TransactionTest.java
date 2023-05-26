@@ -40,7 +40,7 @@ import static org.mockito.Mockito.mock;
 
 public class TransactionTest {
 
-    private DslJsonSerializer jsonSerializer;
+    private DslJsonSerializer.Writer jsonSerializer;
 
     @BeforeEach
     void setUp() {
@@ -48,7 +48,7 @@ public class TransactionTest {
             mock(StacktraceConfiguration.class),
             mock(ApmServerClient.class),
             MetaDataMock.create()
-        );
+        ).newWriter();
     }
 
     @Test

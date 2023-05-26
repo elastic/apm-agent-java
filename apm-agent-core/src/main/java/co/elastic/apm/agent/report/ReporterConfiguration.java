@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.configuration.converter.ByteValue;
-import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
-import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
+import co.elastic.apm.agent.tracer.configuration.ByteValue;
+import co.elastic.apm.agent.tracer.configuration.ByteValueConverter;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.tracer.configuration.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -37,7 +37,7 @@ import java.util.List;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isNotInRange;
 
-public class ReporterConfiguration extends ConfigurationOptionProvider {
+public class ReporterConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.ReporterConfiguration {
 
     public static final String REPORTER_CATEGORY = "Reporter";
     public static final URL LOCAL_APM_SERVER_URL = UrlValueConverter.INSTANCE.convert("http://127.0.0.1:8200");
@@ -296,10 +296,12 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     }
 
     //Only whole seconds are used, so drop the fractional part at 1 second resolution
+    @Override
     public long getMetricsIntervalMs() {
         return (metricsInterval.get().getMillis()/1000L)*1000L;
     }
 
+    @Override
     public List<WildcardMatcher> getDisableMetrics() {
         return disableMetrics.get();
     }

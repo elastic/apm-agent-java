@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.otelmetricsdk;
 
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.report.Reporter;
-import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.tracer.configuration.ReporterConfiguration;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import io.opentelemetry.sdk.common.CompletableResultCode;
 import io.opentelemetry.sdk.metrics.Aggregation;
@@ -65,7 +65,7 @@ public class ElasticOtelMetricsExporter implements MetricExporter {
     }
 
     private ElasticOtelMetricsExporter(Reporter reporter, MetricsConfiguration metricsConfig, ReporterConfiguration reporterConfig) {
-        serializer = new OtelMetricSerializer(metricsConfig, reporterConfig);
+        serializer = new OtelMetricSerializer(reporterConfig);
         this.reporter = reporter;
         this.defaultHistogramAggregation = Aggregation.explicitBucketHistogram(metricsConfig.getCustomMetricsHistogramBoundaries());
     }

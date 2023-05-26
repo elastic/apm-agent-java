@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.springwebmvc.template;
 
 
-import co.elastic.apm.agent.springwebmvc.Java17OnlyTest;
+import co.elastic.apm.agent.testutils.Java17OnlyTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;

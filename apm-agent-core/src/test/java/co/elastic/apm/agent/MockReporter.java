@@ -25,8 +25,6 @@ import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.report.serialize.SerializationConstants;
-import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
@@ -35,6 +33,8 @@ import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterMonitor;
 import co.elastic.apm.agent.report.ReportingEvent;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
+import co.elastic.apm.agent.tracer.Outcome;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -60,6 +60,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -95,12 +96,16 @@ public class MockReporter implements Reporter {
     private boolean gcWhenAssertingRecycling;
 
     private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
+
+    private final List<Transaction> partialTransactions = Collections.synchronizedList(new ArrayList<>());
     private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
     private final List<ErrorCapture> errors = Collections.synchronizedList(new ArrayList<>());
     private final List<byte[]> bytes = new CopyOnWriteArrayList<>();
     private final List<String> logs = Collections.synchronizedList(new ArrayList<>());
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
+
+    private Consumer<Transaction> partialTransactionHandler;
 
     private boolean closed;
 
@@ -188,6 +193,23 @@ public class MockReporter implements Reporter {
 
     @Override
     public void start() {
+    }
+
+    @Override
+    public synchronized void reportPartialTransaction(Transaction transaction) {
+        if (closed) {
+            return;
+        }
+        if (!enabledImmediateRecycling) {
+            partialTransactions.add(transaction);
+        }
+        if (partialTransactionHandler != null) {
+            partialTransactionHandler.accept(transaction);
+        }
+    }
+
+    public void setPartialTransactionHandler(Consumer<Transaction> transactionHandler) {
+        this.partialTransactionHandler = transactionHandler;
     }
 
     @Override
@@ -361,7 +383,7 @@ public class MockReporter implements Reporter {
         verifyJsonSchema(jsonNode, SchemaInstance.CURRENT.errorSchema, SchemaInstance.CURRENT.errorSchemaPath);
     }
 
-    private void verifyJsonSchemas(Function<DslJsonSerializer, String> serializerFunction,
+    private void verifyJsonSchemas(Function<DslJsonSerializer.Writer, String> serializerFunction,
                                    Function<SchemaInstance, JsonSchema> schemaFunction,
                                    Function<SchemaInstance, String> schemaPathFunction) {
         if (!verifyJsonSchema) {
@@ -395,6 +417,10 @@ public class MockReporter implements Reporter {
 
     public synchronized List<Transaction> getTransactions() {
         return Collections.unmodifiableList(transactions);
+    }
+
+    public synchronized List<Transaction> getPartialTransactions() {
+        return Collections.unmodifiableList(partialTransactions);
     }
 
     public synchronized int getNumReportedTransactions() {
@@ -596,6 +622,7 @@ public class MockReporter implements Reporter {
     }
 
     public synchronized void resetWithoutRecycling() {
+        partialTransactions.clear();
         transactions.clear();
         spans.clear();
         errors.clear();
@@ -749,7 +776,7 @@ public class MockReporter implements Reporter {
             "/apm-server-schema/v6_5/errors/error.json",
             false);
 
-        private final DslJsonSerializer serializer;
+        private final DslJsonSerializer.Writer serializer;
         private final JsonSchema transactionSchema;
         private final String transactionSchemaPath;
         private final JsonSchema spanSchema;
@@ -778,7 +805,7 @@ public class MockReporter implements Reporter {
             doReturn(isLatest).when(client).supportsLogsEndpoint();
 
             SerializationConstants.init(spyConfig.getConfig(CoreConfiguration.class));
-            this.serializer = new DslJsonSerializer(stacktraceConfiguration, client, metaData);
+            this.serializer = new DslJsonSerializer(stacktraceConfiguration, client, metaData).newWriter();
         }
 
         private static JsonSchema getSchema(String resource) {

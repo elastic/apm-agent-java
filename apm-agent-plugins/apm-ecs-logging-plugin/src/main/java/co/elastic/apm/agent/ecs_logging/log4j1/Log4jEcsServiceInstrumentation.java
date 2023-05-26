@@ -86,4 +86,27 @@ public abstract class Log4jEcsServiceInstrumentation extends EcsLoggingInstrumen
         }
 
     }
+
+    public static class Environment extends Log4jEcsServiceInstrumentation {
+
+        @Override
+        public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
+            return super.getTypeMatcher()
+                // setServiceEnvironment introduced in 1.5.0
+                .and(declaresMethod(named("setServiceEnvironment")));
+        }
+
+        public static class AdviceClass {
+
+            @Nullable
+            @Advice.AssignReturned.ToFields(@ToField("serviceEnvironment"))
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static String onEnter(@Advice.This Object layout,
+                                         @Advice.FieldValue("serviceEnvironment") @Nullable String serviceEnvironment) {
+
+                return EcsLoggingUtils.getOrWarnServiceEnvironment(layout, serviceEnvironment);
+            }
+        }
+
+    }
 }

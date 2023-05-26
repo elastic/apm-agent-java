@@ -9,7 +9,7 @@ The `apm-agent-attach-cli.jar` is an executable Java command line program which 
 - Requires to copy and execute the `apm-agent-attach-cli.jar` binary on the host.
 - Relies on the https://docs.oracle.com/javase/8/docs/jdk/api/attach/spec/com/sun/tools/attach/VirtualMachine.html#attach-java.lang.String-[runtime attachment capabilities] for java agents of the JVM but doesn't require a full JDK or the `tools.jar`.
 - Events that happen while the application starts up may not be captured.
-- It is not possible to attach to JVMs that are running in containers or in Kubernetes pods.
+- It is usually not possible to attach to JVMs that are running in containers or in Kubernetes pods using this mechanism. For Kubernetes we support auto-attachment using a https://www.elastic.co/guide/en/apm/attacher/current/index.html[mutating webhook]; for docker you could try the <<setup-attach-cli-docker,script below>>
 
 [float]
 [[setup-attach-cli-supported-environments]]

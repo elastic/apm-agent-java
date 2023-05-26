@@ -22,8 +22,8 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.transaction.Faas;
-import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.util.VersionUtils;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
@@ -75,6 +75,7 @@ public abstract class AbstractStreamHandlerLambdaTest extends AbstractInstrument
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
         assertThat(transaction.getResult()).isEqualTo("success");
+        assertThat(reporter.getPartialTransactions()).containsExactly(transaction);
 
         assertThat(transaction.getContext().getCloudOrigin()).isNotNull();
         assertThat(transaction.getContext().getCloudOrigin().getProvider()).isEqualTo("aws");

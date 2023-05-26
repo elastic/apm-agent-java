@@ -20,20 +20,30 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.39.0]]
+==== 1.39.0 - YYYY/MM/DD
+
+[float]
+===== Features
+* Capture S3 operation details as OTel attributes - {pull}3136[#3136]
+* Added support for recording AWS lambda transactions even if the JVM crashes or runs into a timeout - {pull}3134[#3134]
+* Add extra built-in metrics: `jvm.fd.*` and `jvm.memory.pool.non_heap.*` - {pull}[#3147]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.38.0]]
-==== 1.38.0 - YYYY/MM/DD
+==== 1.38.0 - 2023/05/04
 
 [float]
 ===== Features
 * Added tests for Quarkus / RestEasy, adjusted vert.x router transaction name priority - {pull}1765[#1765]
 * Added support for Spring WebMVC 6.x and Spring Boot 3.x - {pull}3094[#3094]
+* Added `service.environment` to logs for service correlation - {pull}3115[#3115]
 
 [float]
 ===== Bug fixes
 * Do not use proxy to retrieve cloud metadata - {pull}3108[#3108]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.37.0]]
 ==== 1.37.0 - 2023/04/11
@@ -207,6 +217,7 @@ As of version 1.33.0, Java 7 support is deprecated and will be removed in a futu
 [[release-notes-1.32.0]]
 ==== 1.32.0 - 2022/06/13
 
+[float]
 ===== Potentially breaking changes
 * If using the public API of version < 1.32.0 and using the `@CaptureSpan` or `@Traced` annotations, upgrading the agent to 1.32.0
 without upgrading the API version may cause `VerifyError`. This was fixed in version 1.33.0, which can once again be used with any
@@ -551,6 +562,7 @@ discovery - {pull}2205[#2205]
 [[release-notes-1.26.0]]
 ==== 1.26.0 - 2021/09/14
 
+[float]
 ===== Potentially breaking changes
 * If you rely on Database span subtype and use Microsoft SQL Server, the span subtype has been changed from `sqlserver`
 to `mssql` to align with other agents.
@@ -1252,7 +1264,7 @@ If APM server version is <6.7 or 7.0+, this should have no effect. Otherwise, up
 See https://discuss.elastic.co/t/elastic-apm-agent-jdbchelper-seems-to-use-a-lot-of-memory/195295[this related discussion].
 
 [float]
-==== Breaking Changes
+===== Breaking Changes
 * The `apm-agent-attach.jar` is not executable anymore.
 Use `apm-agent-attach-standalone.jar` instead.
 

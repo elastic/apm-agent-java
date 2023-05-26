@@ -77,7 +77,7 @@ public class GreetingWebClient {
         this.useFunctionalEndpoint = useFunctionalEndpoint;
         this.headers = new HttpHeaders();
         this.cookies = new HttpHeaders();
-        this.clientScheduler = Schedulers.newElastic("webflux-client");
+        this.clientScheduler = Schedulers.newBoundedElastic(16, 128, "webflux-client");
         this.wsClient = new ReactorNettyWebSocketClient();
         this.logEnabled = logEnabled;
     }

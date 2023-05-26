@@ -26,7 +26,7 @@ NOTE: Starting in APM agent version 1.30.0, log correlation is enabled by defaul
 In previous versions, log correlation must be explicitly enabled by setting
 the `enable_log_correlation` configuration variable to `true`.
 
-In order to correlate logs from your application with transactions captured by the Elastic APM Java Agent,
+In order to correlate logs from your application with traces and errors captured by the Elastic APM Java Agent,
 the agent injects the following IDs into https://www.slf4j.org/api/org/slf4j/MDC.html[slf4j-MDC]-equivalents of
 <<supported-logging-frameworks, supported logging frameworks>>:
 
@@ -40,6 +40,14 @@ with <<log-reformatting, Log reformatting>>.
 For plain text logs, the pattern layout of your logging configuration needs to be modified to write the MDC values into
 log files. If you are using Logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.
 
+When the application is logging in ECS format (by using `ecs-logging-java` or <<log-reformatting, log reformatting>>)
+ but does not provide the service fields, then the agent will automatically provide fallback values from its own configuration
+to provide service-level correlation:
+
+- {ecs-ref}/ecs-service.html[`service.name`] value provided <<config-service-name, `service_name`>> in agent config.
+- {ecs-ref}/ecs-service.html[`service.version`] value provided by <<config-service-version, `service_version`>> in agent config.
+- {ecs-ref}/ecs-service.html[`service.environment`] value provided by <<config-environment, `environment`>> in agent config.
+
 [float]
 [[log-reformatting]]
 === Log reformatting (experimental)
@@ -49,6 +57,8 @@ logging configuration and making the application always use ECS log format. In s
 change to the application.
 
 Log reformatting is controlled by the <<config-log-ecs-reformatting, `log_ecs_reformatting`>> configuration option, and is disabled by default.
+
+The reformatted logs will include both the <<log-correlation-ids, trace and service correlation>> IDs.
 
 [float]
 [[log-error-capturing]]
@@ -70,13 +80,3 @@ As a result, when an exception is reported to the logger:
 
 The agent can automatically capture and send logs directly to APM Server, which allows to ingest log events without relying on filebeat.
 Log sending is controlled by the <<config-log-sending, `log_sending`>> configuration option and is disabled by default.
-
-[float]
-[[ecs-logging-service-fields]]
-=== ECS Logging Service fields
-
-When the application is using `ecs-logging-java` but does not provide the service fields, then the agent will
-automatically provide fallback values from its own configuration:
-
-- `service.name` value will be populated by <<config-service-name, `service_name`>> in agent config.
-- `service.version` value will be populated by <<config-service-version, `service_version`>> in agent config.

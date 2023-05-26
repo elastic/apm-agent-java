@@ -18,9 +18,7 @@
  */
 package specs;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
-import co.elastic.apm.agent.report.ReporterConfiguration;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.FileSource;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -96,10 +94,7 @@ public class MockServerStepDefinitions {
         }
         scenarioState.setConfigOption("server_urls", getUrl().toString());
         ConfigurationRegistry config = scenarioState.getTracer().getConfigurationRegistry();
-        ApmServerClient apmServerClient = new ApmServerClient(
-            config.getConfig(ReporterConfiguration.class),
-            config.getConfig(CoreConfiguration.class)
-        );
+        ApmServerClient apmServerClient = new ApmServerClient(config);
         apmServerClient.start();
         try {
             apmServerClient.execute("/", new ApmServerClient.ConnectionHandler<>() {

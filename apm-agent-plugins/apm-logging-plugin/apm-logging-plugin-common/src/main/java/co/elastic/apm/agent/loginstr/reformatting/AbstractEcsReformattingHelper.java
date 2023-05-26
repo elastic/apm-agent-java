@@ -19,14 +19,11 @@
 package co.elastic.apm.agent.loginstr.reformatting;
 
 import co.elastic.apm.agent.collections.DetachedThreadLocalImpl;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.ServiceFactory;
-import co.elastic.apm.agent.logging.LogEcsReformatting;
-import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.tracer.configuration.LogEcsReformatting;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -36,6 +33,9 @@ import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.LoggingConfiguration;
+import co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -165,6 +165,9 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
     private final String configuredServiceNodeName;
 
     @Nullable
+    private final String environment;
+
+    @Nullable
     private final Map<String, String> additionalFields;
     private final Reporter reporter;
 
@@ -175,7 +178,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
         Service service = new ServiceFactory().createService(
             tracer.getConfig(CoreConfiguration.class),
             "",
-            tracer.getConfig(ServerlessConfiguration.class)
+            tracer.getConfig(ServerlessConfiguration.class).runsOnAwsLambda()
         );
         globalServiceName = service.getName();
         globalServiceVersion = service.getVersion();
@@ -184,6 +187,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
         } else {
             configuredServiceNodeName = null;
         }
+        environment = service.getEnvironment();
         reporter = tracer.require(ElasticApmTracer.class).getReporter();
     }
 
@@ -367,11 +371,17 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
         }
     }
 
+    @Nullable
     private F createEcsFormatter(A originalAppender) {
         String serviceName = getServiceName();
         return createEcsFormatter(
-            getEventDataset(originalAppender, serviceName), serviceName, getServiceVersion(),
-            configuredServiceNodeName, additionalFields, getFormatterFrom(originalAppender)
+            getEventDataset(originalAppender, serviceName),
+            serviceName,
+            getServiceVersion(),
+            environment,
+            configuredServiceNodeName,
+            additionalFields,
+            getFormatterFrom(originalAppender)
         );
     }
 
@@ -466,8 +476,12 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
     protected abstract A createAndStartEcsAppender(A originalAppender, String ecsAppenderName, F ecsFormatter);
 
     @Nullable
-    protected abstract F createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceVersion,
-                                            @Nullable String serviceNodeName, @Nullable Map<String, String> additionalFields,
+    protected abstract F createEcsFormatter(String eventDataset,
+                                            @Nullable String serviceName,
+                                            @Nullable String serviceVersion,
+                                            @Nullable String serviceEnvironment,
+                                            @Nullable String serviceNodeName,
+                                            @Nullable Map<String, String> additionalFields,
                                             @Nullable F originalFormatter);
 
     /**

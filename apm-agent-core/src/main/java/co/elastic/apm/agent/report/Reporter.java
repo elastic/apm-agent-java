@@ -30,6 +30,8 @@ public interface Reporter extends Closeable {
 
     void start();
 
+    void reportPartialTransaction(Transaction transaction);
+
     void report(Transaction transaction);
 
     void report(Span span);

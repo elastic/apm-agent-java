@@ -20,7 +20,7 @@ package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractApiTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

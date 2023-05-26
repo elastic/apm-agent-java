@@ -19,10 +19,11 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.common.util.Version;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
 import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
@@ -31,7 +32,6 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
-import co.elastic.apm.agent.common.util.Version;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -108,7 +108,7 @@ class IntakeV2ReportingEventHandlerTest {
         SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
         final ProcessInfo title = new ProcessInfo("title");
         final Service service = new Service();
-        apmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
+        apmServerClient = new ApmServerClient(configurationRegistry);
         apmServerClient.start(List.of(
             new URL(HTTP_LOCALHOST + mockApmServer1.port()),
             // testing ability to configure a server url with additional path (ending with "/" in this case)
@@ -126,7 +126,7 @@ class IntakeV2ReportingEventHandlerTest {
 
         final ProcessInfo title1 = new ProcessInfo("title");
         final Service service1 = new Service();
-        ApmServerClient nonConnectedApmServerClient = new ApmServerClient(reporterConfiguration, coreConfiguration);
+        ApmServerClient nonConnectedApmServerClient = new ApmServerClient(configurationRegistry);
         nonConnectedApmServerClient.start(List.of(new URL("http://non.existing:8080")));
         nonConnectedReportingEventHandler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,

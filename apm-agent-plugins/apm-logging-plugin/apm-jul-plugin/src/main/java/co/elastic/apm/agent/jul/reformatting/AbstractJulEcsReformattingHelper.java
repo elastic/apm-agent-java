@@ -65,9 +65,14 @@ public abstract class AbstractJulEcsReformattingHelper<T extends Handler> extend
 
     @Nullable
     @Override
-    public Formatter createEcsFormatter(String eventDataset, @Nullable String serviceName, @Nullable String serviceVersion,
-                                        @Nullable String serviceNodeName, @Nullable Map<String, String> additionalFields,
-                                        Formatter originalFormatter) {
+    public Formatter createEcsFormatter(String eventDataset,
+                                        @Nullable String serviceName,
+                                        @Nullable String serviceVersion,
+                                        @Nullable String serviceEnvironment,
+                                        @Nullable String serviceNodeName,
+                                        @Nullable Map<String, String> additionalFields,
+                                        @Nullable Formatter originalFormatter) {
+
         EcsFormatter ecsFormatter = new EcsFormatter() {
             @Override
             protected Map<String, String> getMdcEntries() {
@@ -77,6 +82,7 @@ public abstract class AbstractJulEcsReformattingHelper<T extends Handler> extend
         };
         ecsFormatter.setServiceName(serviceName);
         ecsFormatter.setServiceVersion(serviceVersion);
+        ecsFormatter.setServiceEnvironment(serviceEnvironment);
         ecsFormatter.setServiceNodeName(serviceNodeName);
         ecsFormatter.setEventDataset(eventDataset);
         if (additionalFields != null && !additionalFields.isEmpty()) {

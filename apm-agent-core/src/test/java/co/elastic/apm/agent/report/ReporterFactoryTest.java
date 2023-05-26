@@ -19,10 +19,12 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -103,9 +105,11 @@ class ReporterFactoryTest {
     @Test
     void testNotValidatingSslCertificate() throws Exception {
         doReturn(false).when(reporterConfiguration).isVerifyServerCert();
-        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, configuration.getConfig(CoreConfiguration.class));
+        ApmServerClient apmServerClient = new ApmServerClient(configuration);
         apmServerClient.start();
-        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaDataMock.create(), ReporterMonitor.NOOP);
+        DslJsonSerializer serializer = new DslJsonSerializer(configuration.getConfig(StacktraceConfiguration.class), apmServerClient, MetaDataMock.create());
+        ObjectPoolFactory poolFactory = new ObjectPoolFactory();
+        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, serializer, ReporterMonitor.NOOP, poolFactory);
         reporter.start();
 
         reporter.report(new Transaction(MockTracer.create()));
@@ -120,9 +124,11 @@ class ReporterFactoryTest {
     @Test
     void testValidatingSslCertificate() throws Exception {
         doReturn(true).when(reporterConfiguration).isVerifyServerCert();
-        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, configuration.getConfig(CoreConfiguration.class));
+        ApmServerClient apmServerClient = new ApmServerClient(configuration);
         apmServerClient.start();
-        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, MetaDataMock.create(), ReporterMonitor.NOOP);
+        DslJsonSerializer serializer = new DslJsonSerializer(configuration.getConfig(StacktraceConfiguration.class), apmServerClient, MetaDataMock.create());
+        ObjectPoolFactory poolFactory = new ObjectPoolFactory();
+        final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, serializer, ReporterMonitor.NOOP, poolFactory);
         reporter.start();
 
         reporter.report(new Transaction(MockTracer.create()));
