@@ -146,6 +146,10 @@ public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
                     span.withName(signature).activate();
                 }
             } else if (parent.isSampled()) {
+                if (parent.shouldSkipChildSpanCreation()) {
+                    // span limit reached means span will not be reported, thus we can optimize and skip creating one
+                    return null;
+                }
                 span = parent.createSpan()
                     .withName(signature)
                     .activate();
