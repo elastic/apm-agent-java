@@ -189,6 +189,12 @@ public interface AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<
      * @return {@literal true} when span limit is reached and the caller can optimize and not create a span. The caller
      * is expected to call this method before every span creation operation for proper dropped spans accounting. If not
      * called before attempting span creation, a span will be created and dropped before reporting.
+     * <br/>
+     * Expected caller behavior depends on the returned value:
+     * <ul>
+     *     <li>{@literal true} returned means the caller is expected to NOT call {@link #createSpan()} or {@link #createExitSpan()}</li>
+     *     <li>{@literal false} returned means the caller MAY call {@link #createSpan()} or {@link #createExitSpan()}</li>
+     * </ul>
      */
     boolean shouldSkipChildSpanCreation();
 }
