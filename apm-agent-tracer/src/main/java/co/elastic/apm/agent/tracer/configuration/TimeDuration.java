@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.configuration.converter;
+package co.elastic.apm.agent.tracer.configuration;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

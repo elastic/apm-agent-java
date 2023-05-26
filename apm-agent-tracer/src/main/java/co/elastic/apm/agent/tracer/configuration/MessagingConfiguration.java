@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.configuration;
+package co.elastic.apm.agent.tracer.configuration;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.tracer.configuration.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;

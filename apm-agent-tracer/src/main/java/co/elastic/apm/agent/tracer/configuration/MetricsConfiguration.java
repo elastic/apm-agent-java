@@ -16,28 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.matcher;
+package co.elastic.apm.agent.tracer.configuration;
 
-import co.elastic.apm.agent.common.util.WildcardMatcher;
-import org.stagemonitor.configuration.converter.ValueConverter;
+import java.util.List;
 
-/**
- * This class is used to be able to use {@link WildcardMatcher} in a {@link org.stagemonitor.configuration.ConfigurationOption}.
- */
-public class WildcardMatcherValueConverter implements ValueConverter<WildcardMatcher> {
+public interface MetricsConfiguration {
 
-    @Override
-    public WildcardMatcher convert(String s) {
-        return WildcardMatcher.valueOf(s);
-    }
+    boolean isDedotCustomMetrics();
 
-    @Override
-    public String toString(WildcardMatcher value) {
-        return value.toString();
-    }
-
-    @Override
-    public String toSafeString(WildcardMatcher value) {
-        return value.toString();
-    }
+    List<Double> getCustomMetricsHistogramBoundaries();
 }

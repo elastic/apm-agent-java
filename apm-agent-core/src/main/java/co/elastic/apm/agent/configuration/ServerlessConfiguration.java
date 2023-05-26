@@ -22,7 +22,7 @@ import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
-public class ServerlessConfiguration extends ConfigurationOptionProvider {
+public class ServerlessConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration {
     public static final String SERVERLESS_CATEGORY = "Serverless";
 
     private final boolean runsOnAwsLambda;
@@ -50,14 +50,17 @@ public class ServerlessConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(1000L);
 
 
+    @Override
     public String getAwsLambdaHandler() {
         return awsLambdaHandler.get();
     }
 
+    @Override
     public long getDataFlushTimeout() {
         return dataFlushTimeout.get();
     }
 
+    @Override
     public boolean runsOnAwsLambda() {
         return runsOnAwsLambda;
     }

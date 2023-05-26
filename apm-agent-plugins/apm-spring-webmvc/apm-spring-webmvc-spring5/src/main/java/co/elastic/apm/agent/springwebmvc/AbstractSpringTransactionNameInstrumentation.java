@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.servlet.Constants;
 import co.elastic.apm.agent.servlet.adapter.ServletRequestAdapter;
 import co.elastic.apm.agent.tracer.GlobalTracer;

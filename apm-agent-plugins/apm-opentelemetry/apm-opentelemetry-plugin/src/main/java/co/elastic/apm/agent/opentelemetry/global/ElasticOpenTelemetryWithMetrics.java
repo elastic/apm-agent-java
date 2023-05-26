@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.opentelemetry.global;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.embeddedotel.EmbeddedSdkManager;
 import co.elastic.apm.agent.embeddedotel.proxy.ProxyMeterProvider;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.OtelMetricsBridge;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.metrics.MeterProvider;
 

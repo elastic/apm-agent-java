@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.impl.circuitbreaker;
 
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
-import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 

@@ -14,6 +14,18 @@
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.stagemonitor</groupId>
+            <artifactId>stagemonitor-configuration</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
     <build>
         <plugins>
             <plugin>

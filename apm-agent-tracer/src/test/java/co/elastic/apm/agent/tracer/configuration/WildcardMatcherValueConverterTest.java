@@ -16,11 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.logging;
+package co.elastic.apm.agent.tracer.configuration;
 
-public enum LogEcsReformatting {
-    OFF,
-    SHADE,
-    REPLACE,
-    OVERRIDE
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class WildcardMatcherValueConverterTest {
+
+    private WildcardMatcherValueConverter converter;
+
+    @BeforeEach
+    void setUp() {
+        converter = new WildcardMatcherValueConverter();
+    }
+
+    @Test
+    void convert() {
+        assertThat(converter.toString(converter.convert("foo*"))).isEqualTo("foo*");
+        assertThat(converter.toSafeString(converter.convert("foo*"))).isEqualTo("foo*");
+    }
 }

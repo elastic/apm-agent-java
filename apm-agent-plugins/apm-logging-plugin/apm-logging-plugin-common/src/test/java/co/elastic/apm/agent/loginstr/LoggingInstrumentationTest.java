@@ -23,7 +23,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.logging.LogEcsReformatting;
+import co.elastic.apm.agent.tracer.configuration.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.logging.TestUtils;
 import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;

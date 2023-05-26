@@ -21,7 +21,7 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import org.junit.jupiter.api.AfterEach;

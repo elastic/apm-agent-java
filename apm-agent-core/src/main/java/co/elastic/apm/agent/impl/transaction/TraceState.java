@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.agent.configuration.converter.RoundedDoubleConverter;
+import co.elastic.apm.agent.tracer.configuration.RoundedDoubleConverter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
