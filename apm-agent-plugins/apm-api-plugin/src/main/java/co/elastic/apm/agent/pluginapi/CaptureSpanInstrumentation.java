@@ -102,10 +102,10 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
             }
 
             span.withName(spanName.isEmpty() ? signature : spanName)
-                .withType(type)
-                .withSubtype(subtype)
-                .withAction(action)
                 .activate();
+
+            // using deprecated API to keep compatibility with existing behavior
+            ((co.elastic.apm.agent.impl.transaction.Span) span).setType(type, subtype, action);
 
             if (!discardable) {
                 span.setNonDiscardable();
