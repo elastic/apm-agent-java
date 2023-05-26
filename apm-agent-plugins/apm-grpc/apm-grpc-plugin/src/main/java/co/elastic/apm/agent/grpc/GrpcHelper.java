@@ -91,7 +91,7 @@ public class GrpcHelper {
     private final Tracer tracer;
 
     public GrpcHelper() {
-        Tracer tracer = GlobalTracer.get();
+        tracer = GlobalTracer.get();
         clientCallSpans = tracer.createReferenceCounter();
         delayedClientCallSpans = tracer.createReferenceCounter();
         clientCallListenerSpans = tracer.createReferenceCounter();
@@ -103,8 +103,6 @@ public class GrpcHelper {
 
         headerSetter = new GrpcHeaderSetter();
         headerGetter = new GrpcHeaderGetter();
-
-        tracer = GlobalTracer.get();
     }
 
     // transaction management (server part)
