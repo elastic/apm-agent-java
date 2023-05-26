@@ -86,24 +86,31 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
             ) boolean discardable
         ) {
             final AbstractSpan<?> parent = tracer.getActive();
-            if (parent != null) {
-                Span<?> span = asExit ? parent.createExitSpan() : parent.createSpan();
-                if (span == null) {
-                    return null;
-                }
-
-                span.withName(spanName.isEmpty() ? signature : spanName)
-                    .activate();
-                ((co.elastic.apm.agent.impl.transaction.Span) span).setType(type, subtype, action);
-
-                if (!discardable) {
-                    span.setNonDiscardable();
-                }
-                return span;
-            } else {
+            if (parent == null) {
                 logger.debug("Not creating span for {} because there is no currently active span.", signature);
+                return null;
             }
-            return null;
+            if (parent.shouldSkipChildSpanCreation()) {
+                // span limit reached means span will not be reported, thus we can optimize and skip creating one
+                logger.debug("Not creating span for {} because span limit is reached.", signature);
+                return null;
+            }
+
+            Span<?> span = asExit ? parent.createExitSpan() : parent.createSpan();
+            if (span == null) {
+                return null;
+            }
+
+            span.withName(spanName.isEmpty() ? signature : spanName)
+                .withType(type)
+                .withSubtype(subtype)
+                .withAction(action)
+                .activate();
+
+            if (!discardable) {
+                span.setNonDiscardable();
+            }
+            return span;
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
