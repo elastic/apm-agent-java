@@ -71,7 +71,7 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
     @Nullable
     public Transaction startTransaction(I input, Context lambdaContext) {
         boolean isColdStart = coldStart;
-        if (isColdStart) {
+        if (!isMetadataComplete()) {
             completeMetaData(lambdaContext);
             coldStart = false;
         }
@@ -137,6 +137,10 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
         }
     }
 
+    private boolean isMetadataComplete() {
+        return tracer.getMetaDataFuture().getFaaSMetaDataExtensionFuture().isDone();
+    }
+
     private void completeMetaData(Context lambdaContext) {
         try {
             String[] arnSegments = lambdaContext.getInvokedFunctionArn().split(":");
@@ -154,6 +158,9 @@ public abstract class AbstractLambdaTransactionHelper<I, O> {
                 new NameAndIdField(null, accountId),
                 region
             ));
+            if (logger.isDebugEnabled()) {
+                logger.debug("Completed metadata for first lambda execution");
+            }
         } catch (Exception e) {
             logger.error("Failed updating metadata for first lambda execution!", e);
         }

@@ -296,25 +296,28 @@ public class ElasticApmTracerBuilder {
         return result;
     }
 
-    public static void awaitInitialization() {
+    public static void awaitInitialization(Logger logger) {
         ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
         // AWS Lambda snapstart performs snapshot without invoking function handler
         // let's complete faas feature before snapshot, and refetch it after restore
         if (!tracer.getMetaDataFuture().getFaaSMetaDataExtensionFuture().isDone()) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Force complete FaaS feature");
+            }
             tracer.getMetaDataFuture().getFaaSMetaDataExtensionFuture().complete(null);
         }
     }
 
-    public static void reload(List<ConfigurationSource> configSources) {
+    public static void reload(List<ConfigurationSource> configSources, Logger logger) {
         ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
 
         String ephemeralId = UUID.randomUUID().toString();
-        LoggingConfiguration.init(configSources, ephemeralId);
-        Logger logger = LoggerFactory.getLogger(ElasticApmTracerBuilder.class);
-
         MetaDataFuture metaDataFuture = MetaData.create(getDefaultConfigurationRegistry(configSources, logger), ephemeralId);
 
         tracer.refreshMetaData(ephemeralId, metaDataFuture);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Reloaded configuration");
+        }
     }
 
 }

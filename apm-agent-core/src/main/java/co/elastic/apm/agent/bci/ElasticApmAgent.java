@@ -978,14 +978,14 @@ public class ElasticApmAgent {
     }
 
     public static void awaitInitialization() {
-        ElasticApmTracerBuilder.awaitInitialization();
+        ElasticApmTracerBuilder.awaitInitialization(getLogger());
     }
 
     public static void reload() {
         if (configSources == null) {
             throw new IllegalStateException("ElasticApmAgent#init must be called before ElasticApmAgent#reload");
         }
-        ElasticApmTracerBuilder.reload(configSources);
+        ElasticApmTracerBuilder.reload(configSources, getLogger());
     }
 
     private static class PluginClassLoaderCustomizations {
