@@ -59,15 +59,20 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - prepare_release
-
-    # TODO: Run the deployment on Buildkite
-    # Buildkite needs to
-    # - checkout the tag "v${{ inputs.version }}" (which is created by the prepare_release job)
-    # - run ./mvnw -s .ci/settings.xml -Pgpg clean deploy -DskipTests --batch-mode
-    # Note that the previous ./mvnw release:prepare release:perform from jenkins are not required anymore:
-    # prepare_release does all the fiddling with the git history
     steps:
-      - run: echo "Not implemented yet!"
+      - id: buildkite
+        name: Run Deploy
+        uses: elastic/apm-pipeline-library/.github/actions/buildkite@current
+        with:
+          vaultUrl: ${{ secrets.VAULT_ADDR }}
+          vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
+          vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
+          pipeline: apm-agent-java-release
+          pipelineVersion: ${{ inputs.version }}
+          waitFor: false
+          printBuildLogs: false
+          buildEnvVars: |
+            dry_run=${{ inputs.dry_run || 'false' }}
 
   await_artifact_on_maven_central:
     name: "Wait for artifacts to be available on maven central"

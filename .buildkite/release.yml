@@ -1,0 +1,15 @@
+agents:
+  provider: "gcp"
+
+steps:
+  - label: "Run the snapshot"
+    key: "release"
+    commands:
+      - echo "hello"
+#    artifact_paths:
+#      - "release.txt"
+#      - "**/target/*"
+
+notify:
+  - slack: "#apm-agent-java"
+    if: 'build.state != "passed"'
