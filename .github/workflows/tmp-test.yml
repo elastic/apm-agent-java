@@ -1,0 +1,20 @@
+name: tmp-test
+
+on: pull_request
+
+jobs:
+  tmp-test:
+    runs-on: ubuntu-latest
+    steps:
+      - id: buildkite
+        name: Run Deploy
+        uses: elastic/apm-pipeline-library/.github/actions/buildkite@current
+        with:
+          vaultUrl: ${{ secrets.VAULT_ADDR }}
+          vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
+          vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
+          pipeline: apm-agent-java-release
+          waitFor: false
+          printBuildLogs: false
+          buildEnvVars: |
+            dry_run=${{ inputs.dry_run || 'false' }}
