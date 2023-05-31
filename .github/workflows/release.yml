@@ -216,7 +216,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          repository: JonasKunz/opbeans-java
+          repository: elastic/opbeans-java
           ref: ${{ inputs.branch }}
       - uses: elastic/apm-pipeline-library/.github/actions/setup-git@current
       - name: Bump version
