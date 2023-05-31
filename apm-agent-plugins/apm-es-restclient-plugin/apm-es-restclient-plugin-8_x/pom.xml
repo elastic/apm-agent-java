@@ -7,11 +7,11 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>apm-es-api-client-test</artifactId>
+    <artifactId>apm-es-restclient-plugin-8_x</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <version.elasticsearch-java>8.7.1</version.elasticsearch-java>
+        <version.elasticsearch-java>8.8.0</version.elasticsearch-java>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
     </properties>
 
@@ -25,6 +25,7 @@
             <groupId>co.elastic.clients</groupId>
             <artifactId>elasticsearch-java</artifactId>
             <version>${version.elasticsearch-java}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

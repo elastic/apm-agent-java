@@ -76,13 +76,13 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         // Create an Index
         doCreateIndex(new CreateIndexRequest(SECOND_INDEX));
 
-        validateSpanContentAfterIndexCreateRequest();
+        validateSpanContentAfterIndexCreateRequest(false);
         // Delete the index
         reporter.reset();
 
         doDeleteIndex(new DeleteIndexRequest(SECOND_INDEX));
 
-        validateSpanContentAfterIndexDeleteRequest();
+        validateSpanContentAfterIndexDeleteRequest(false);
     }
 
     @Test

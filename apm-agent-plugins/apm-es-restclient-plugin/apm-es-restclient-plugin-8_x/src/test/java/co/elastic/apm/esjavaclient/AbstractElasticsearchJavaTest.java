@@ -19,11 +19,12 @@
 package co.elastic.apm.esjavaclient;
 
 import co.elastic.apm.agent.esrestclient.AbstractEsClientInstrumentationTest;
-import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import co.elastic.clients.elasticsearch._types.SearchType;
 import co.elastic.clients.elasticsearch._types.StoredScript;
@@ -134,7 +135,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
 
         Span span = reporter.getFirstSpan();
         assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
-        validateSpanContent(span, String.format("Elasticsearch: DELETE /%s", SECOND_INDEX), 404, "DELETE");
+        validateSpanContent(span, "Elasticsearch: DELETE /{index}", 404, "DELETE", SECOND_INDEX);
     }
 
     @Test
@@ -144,7 +145,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         List<Span> spans = reporter.getSpans();
         try {
             assertThat(spans).hasSize(1);
-            validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 201, "PUT");
+            validateSpanContent(spans.get(0), "Elasticsearch: PUT /{index}/_doc/{id}", 201, "PUT", INDEX, DOC_ID);
 
             // *** RESET ***
             reporter.reset();
@@ -158,7 +159,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
             spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
             Span searchSpan = spans.get(0);
-            validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), 200, "POST");
+            validateSpanContent(searchSpan, "Elasticsearch: POST /{index}/_search", 200, "POST", INDEX);
             validateDbContextContent(searchSpan, "{\"from\":0,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\"}}},\"size\":5}");
 
             // *** RESET ***
@@ -178,9 +179,9 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
             spans = reporter.getSpans();
             assertThat(spans).hasSize(2);
             Span updateSpan = spans.get(0);
-            validateSpanContent(updateSpan, String.format("Elasticsearch: POST /%s/_update/%s", INDEX, DOC_ID), 200, "POST");
+            validateSpanContent(updateSpan, "Elasticsearch: POST /{index}/_update/{id}", 200, "POST", INDEX, DOC_ID);
             searchSpan = spans.get(1);
-            validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), 200, "POST");
+            validateSpanContent(searchSpan, "Elasticsearch: POST /{index}/_search", 200, "POST", INDEX);
             validateDbContextContent(searchSpan, "{}");
 
             // *** RESET ***
@@ -190,7 +191,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
             // 4. Delete document and validate span content.
             co.elastic.clients.elasticsearch.core.DeleteResponse dr = deleteDocument();
             assertThat(dr.result().jsonValue()).isEqualTo("deleted");
-            validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
+            validateSpanContent(spans.get(0), "Elasticsearch: DELETE /{index}/_doc/{id}", 200, "DELETE", INDEX, DOC_ID);
         }
     }
 
@@ -200,7 +201,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         reporter.reset();
 
         CountRequest countRequest = new CountRequest.Builder().index(INDEX).query(new Query.Builder()
-            .term(new TermQuery.Builder().field(FOO).value(BAR).build())
+            .term(new TermQuery.Builder().field(FOO).value(FieldValue.of(BAR)).build())
             .build()).build();
 
         try {
@@ -209,7 +210,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
             List<Span> spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
             Span span = spans.get(0);
-            validateSpanContent(span, String.format("Elasticsearch: POST /%s/_count", INDEX), 200, "POST");
+            validateSpanContent(span, "Elasticsearch: POST /{index}/_count", 200, "POST", INDEX);
             validateDbContextContent(span, "{\"query\":{\"term\":{\"foo\":{\"value\":\"bar\"}}}}");
         } finally {
             deleteDocument();
@@ -227,7 +228,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         try {
             doMultiSearchAndSpanValidate(multiSearchRequest, "Elasticsearch: POST /_msearch");
             reporter.reset();
-            doMultiSearchAndSpanValidate(multiSearchRequestWithIndex, String.format("Elasticsearch: POST /%s/_msearch", INDEX));
+            doMultiSearchAndSpanValidate(multiSearchRequestWithIndex, "Elasticsearch: POST /{index}/_msearch");
         } finally {
             deleteDocument();
         }
@@ -244,7 +245,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
                     .query(new Query.Builder()
                         .match(new MatchQuery.Builder()
                             .field(FOO)
-                            .query(BAR)
+                            .query(FieldValue.of(BAR))
                             .build())
                         .build())
                     .build())
@@ -269,7 +270,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         RollupSearchRequest searchRequest = new RollupSearchRequest.Builder()
             .index(INDEX)
             .query(new Query.Builder()
-                .term(new TermQuery.Builder().field(FOO).value(BAR).build())
+                .term(new TermQuery.Builder().field(FOO).value(FieldValue.of(BAR)).build())
                 .build())
             .size(5)
             .build();
@@ -280,7 +281,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
             List<Span> spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
             Span span = spans.get(0);
-            validateSpanContent(span, String.format("Elasticsearch: POST /%s/_rollup_search", INDEX), 200, "POST");
+            validateSpanContent(span, "Elasticsearch: POST /{index}/_rollup_search", 200, "POST", INDEX);
             validateDbContextContent(span, "{\"query\":{\"term\":{\"foo\":{\"value\":\"bar\"}}},\"size\":5}");
         } finally {
             deleteDocument();
@@ -301,7 +302,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
             List<Span> spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
             Span span = spans.get(0);
-            validateSpanContent(span, String.format("Elasticsearch: POST /%s/_search/template", INDEX), 200, "POST");
+            validateSpanContent(span, "Elasticsearch: POST /{index}/_search/template", 200, "POST", INDEX);
             validateDbContextContent(span, "{\"id\":\"elastic-search-template\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"}}");
         } finally {
             deleteMustacheScript();
@@ -340,7 +341,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
             List<Span> spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
             Span span = spans.get(0);
-            validateSpanContent(span, String.format("Elasticsearch: POST /_msearch/template", INDEX), 200, "POST");
+            validateSpanContent(span, "Elasticsearch: POST /_msearch/template", 200, "POST");
             verifyMultiSearchTemplateSpanContent(span);
         } finally {
             deleteMustacheScript();
@@ -484,7 +485,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
     private SearchRequest prepareSearchRequestWithTermQuery() {
         return new SearchRequest.Builder().index(INDEX)
             .query(new Query.Builder()
-                .term(new TermQuery.Builder().field(FOO).value(BAR).build())
+                .term(new TermQuery.Builder().field(FOO).value(FieldValue.of(BAR)).build())
                 .build())
             .from(0)
             .size(5)

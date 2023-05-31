@@ -138,6 +138,18 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(db.getStatementBuffer().toString()).isIn(possibleContents);
     }
 
+    protected void validateSpanContent(Span span, String expectedName, int statusCode, String method, String index, String doc_id) {
+        validateSpanContent(span, expectedName, statusCode, method, index);
+        assertThat(span.getOtelAttributes()).containsKey("db.elasticsearch.doc_id");
+        assertThat(span.getOtelAttributes().get("db.elasticsearch.doc_id")).isEqualTo(doc_id);
+    }
+
+    protected void validateSpanContent(Span span, String expectedName, int statusCode, String method, String index) {
+        validateSpanContent(span, expectedName, statusCode, method);
+        assertThat(span.getOtelAttributes()).containsKey("db.elasticsearch.target");
+        assertThat(span.getOtelAttributes().get("db.elasticsearch.target")).isEqualTo(index);
+    }
+
     protected void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
         validateSpanContentWithoutContext(span, expectedName);
         validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
@@ -167,15 +179,32 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     protected void validateSpanContentAfterIndexCreateRequest() {
+        validateSpanContentAfterIndexCreateRequest(true);
+    }
+
+    protected void validateSpanContentAfterIndexCreateRequest(boolean usePathPattern) {
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
-        validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s", SECOND_INDEX), 200, "PUT");
+        if(usePathPattern){
+            validateSpanContent(spans.get(0), "Elasticsearch: PUT /{index}", 200, "PUT", SECOND_INDEX);
+        } else {
+            validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s", SECOND_INDEX), 200, "PUT" );
+        }
     }
 
     protected void validateSpanContentAfterIndexDeleteRequest() {
+        validateSpanContentAfterIndexDeleteRequest(true);
+    }
+
+    protected void validateSpanContentAfterIndexDeleteRequest(boolean usePathPattern) {
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
-        validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s", SECOND_INDEX), 200, "DELETE");
+        if(usePathPattern){
+            validateSpanContent(spans.get(0), "Elasticsearch: DELETE /{index}", 200, "DELETE", SECOND_INDEX);
+        } else {
+            validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s", SECOND_INDEX), 200, "DELETE");
+        }
+
     }
 
     protected void validateSpanContentAfterBulkRequest() {

@@ -19,17 +19,17 @@
 package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.pooling.Allocator;
 import co.elastic.apm.agent.tracer.pooling.ObjectPool;
 import co.elastic.apm.agent.util.IOUtils;
 import co.elastic.apm.agent.util.LoggerUtils;
-import co.elastic.apm.agent.tracer.pooling.Allocator;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;
@@ -37,8 +37,6 @@ import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.ResponseListener;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.CancellationException;
 
 public class ElasticsearchRestClientInstrumentationHelper {
@@ -75,8 +73,23 @@ public class ElasticsearchRestClientInstrumentationHelper {
         }
     }
 
+    public void registerEndpointId(Object requestObj, String endpointId) {
+        RequestEndpointMap.requestEndpointIdMap.put(requestObj, endpointId);
+    }
+
+    @Nullable
+    public Span<?> createClientSpan(Object requestObj, String method, String endpoint, @Nullable HttpEntity httpEntity) {
+        String endpointId = RequestEndpointMap.requestEndpointIdMap.remove(requestObj);
+        return createClientSpan(method, endpoint, httpEntity, endpointId);
+    }
+
     @Nullable
     public Span<?> createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity) {
+        return createClientSpan(method, endpoint, httpEntity, null);
+    }
+
+    @Nullable
+    private Span<?> createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity, @Nullable String endpointId) {
         final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan == null) {
             return null;
@@ -91,8 +104,14 @@ public class ElasticsearchRestClientInstrumentationHelper {
 
         span.withType(SPAN_TYPE)
             .withSubtype(ELASTICSEARCH)
-            .withAction(SPAN_ACTION)
-            .appendToName("Elasticsearch: ").appendToName(method).appendToName(" ").appendToName(endpoint);
+            .withAction(SPAN_ACTION);
+
+        if (endpointId != null) {
+            EndpointResolutionHelper.get().enrichSpanWithRouteInformation(span, method, endpointId, endpoint);
+        } else {
+            span.appendToName("Elasticsearch: ").appendToName(method).appendToName(" ").appendToName(endpoint);
+        }
+
         span.getContext().getDb().withType(ELASTICSEARCH);
         span.getContext().getServiceTarget().withType(ELASTICSEARCH);
         span.activate();
