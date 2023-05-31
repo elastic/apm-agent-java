@@ -6,6 +6,7 @@ steps:
     key: "release"
     commands:
       - echo "hello"
+      - glcoud --version
 #    artifact_paths:
 #      - "release.txt"
 #      - "**/target/*"
