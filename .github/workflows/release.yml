@@ -19,6 +19,10 @@ on:
         type: boolean
         required: true
         default: true
+      dry_run:
+        description: If set, run a dry-run release
+        default: false
+        type: boolean
 
 env:
   JAVA_VERSION: 17
@@ -59,15 +63,23 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - prepare_release
-
-    # TODO: Run the deployment on Buildkite
-    # Buildkite needs to
-    # - checkout the tag "v${{ inputs.version }}" (which is created by the prepare_release job)
-    # - run ./mvnw -s .ci/settings.xml -Pgpg clean deploy -DskipTests --batch-mode
-    # Note that the previous ./mvnw release:prepare release:perform from jenkins are not required anymore:
-    # prepare_release does all the fiddling with the git history
     steps:
-      - run: echo "Not implemented yet!"
+      - id: buildkite
+        name: Run Deploy
+        uses: reakaleek/apm-pipeline-library/.github/actions/buildkite@feature/buildkite-download-artifacts
+        with:
+          vaultUrl: ${{ secrets.VAULT_ADDR }}
+          vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
+          vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
+          pipeline: apm-agent-java-release
+          pipelineVersion: ${{ inputs.version }}
+          waitFor: true
+          printBuildLogs: false
+          artifactName: lambda-zip
+          artifactPath: "elastic-apm-agent/target/elastic-apm-java-aws-lambda-layer-*.zip"
+          buildEnvVars: |
+            dry_run=${{ inputs.dry_run || 'false' }}
+
 
   await_artifact_on_maven_central:
     name: "Wait for artifacts to be available on maven central"
@@ -83,7 +95,6 @@ jobs:
             echo "Artifacts not found on maven central. Sleeping 30 seconds, retrying afterwards"
             sleep 30s
           done
-  
 
   update_major_branch:
     name: "Update Major Branch"
@@ -151,15 +162,23 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: ${{ inputs.branch }}
-      # TODO: actual lambda creation + upload
-      - name: Setup dummy ARN file
-        run: |
-          {
-              echo "### ARNs of the APM Java Agent's AWS Lambda Layer"
-              echo ''
-              echo '|Region|ARN|'
-              echo '|------|---|'
-          } > ".ci/arn-file.md"
+      - uses: actions/download-artifact@v3
+        with:
+          name: lambda-zip
+          path: elastic-apm-agent/target
+      - uses: hashicorp/vault-action@v2.4.2
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/observability-team/ci/service-account/apm-aws-lambda access_key_id | AWS_ACCESS_KEY_ID ;
+            secret/observability-team/ci/service-account/apm-aws-lambda secret_access_key | AWS_SECRET_ACCESS_KEY
+      - name: Publish
+        run: make -C .ci publish-in-all-aws-regions
+      - name: Create ARN file
+        run: make -C .ci create-arn-file
       - uses: actions/upload-artifact@v3
         with:
           name: arn-file
@@ -170,7 +189,7 @@ jobs:
           echo 'arn_content<<ARN_CONTENT_EOF' >> $GITHUB_OUTPUT
           cat .ci/arn-file.md >> $GITHUB_OUTPUT
           echo 'ARN_CONTENT_EOF' >> $GITHUB_OUTPUT
-  
+
 
   create_github_release:
     name: "Create GitHub Release"
