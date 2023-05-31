@@ -20,6 +20,7 @@ package co.elastic.apm.sample.plugin1;
 
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.metrics.ObservableLongGauge;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
@@ -62,11 +63,13 @@ public class CreateTransactionInstrumentation extends ElasticApmInstrumentation 
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter() {
+            OpenTelemetry otel = GlobalOpenTelemetry.get();
 
             System.out.println(">> transaction enter");
             System.out.println(">> gauge class " + gauge.getClass().getName());
+            System.out.println(">> otel class " + otel.getClass().getName());
 
-            Tracer tracer = GlobalOpenTelemetry.get().getTracer("plugin1");
+            Tracer tracer = otel.getTracer("plugin1");
             Span span = tracer.spanBuilder("transaction").setSpanKind(SpanKind.SERVER).startSpan();
             return span.makeCurrent();
         }

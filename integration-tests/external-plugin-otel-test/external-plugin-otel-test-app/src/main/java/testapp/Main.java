@@ -23,6 +23,8 @@ import io.opentelemetry.api.trace.SpanContext;
 
 public class Main {
 
+    private static final boolean OTEL_ON_CLASSPATH = isOtelOnClassPath();
+
     public static void main(String[] args) {
         System.out.println("app start");
         try {
@@ -48,11 +50,27 @@ public class Main {
     }
 
     private static void checkCurrentSpanVisibleThroughOTel() {
-        SpanContext spanContext = Span.current().getSpanContext();
-        if (!spanContext.isValid()) {
-            System.out.println("no active OTel Span");
-        } else {
-            System.out.printf("active span ID = %s, trace ID = %s%n", spanContext.getSpanId(), spanContext.getTraceId());
+        if (OTEL_ON_CLASSPATH) {
+            new Runnable() {
+                @Override
+                public void run() {
+                    SpanContext spanContext = Span.current().getSpanContext();
+                    if (!spanContext.isValid()) {
+                        System.out.println("no active OTel Span");
+                    } else {
+                        System.out.printf("active span ID = %s, trace ID = %s%n", spanContext.getSpanId(), spanContext.getTraceId());
+                    }
+                }
+            }.run();
+        }
+    }
+
+    private static boolean isOtelOnClassPath() {
+        try {
+            Class<?> spanContext = Class.forName("io.opentelemetry.api.trace.SpanContext");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
         }
     }
 
