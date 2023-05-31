@@ -41,9 +41,9 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
 
     private static final ClassLoader SYSTEM_CLASS_LOADER = ClassLoader.getSystemClassLoader();
 
-    public IndyPluginClassLoader(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
+    public IndyPluginClassLoader(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions, boolean allowOtelClassesFromAgentCl) {
         // See getResource on why we're using PersistenceHandler.LATENT over PersistenceHandler.MANIFEST
-        super(getParent(targetClassLoader, agentClassLoader),
+        super(getParent(targetClassLoader, agentClassLoader, allowOtelClassesFromAgentCl),
             true,
             typeDefinitions,
             PrivilegedActionUtils.getProtectionDomain(agentClassLoader.getClass()), // inherit protection domain from agent CL
@@ -52,7 +52,7 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
     }
 
 
-    private static ClassLoader getParent(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader) {
+    private static ClassLoader getParent(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader, boolean allowOtelClassesFromAgentCl) {
         if (targetClassLoader == null) {
             // the MultipleParentClassLoader doesn't support null values
             // the agent class loader already has the bootstrap class loader as the parent
@@ -76,12 +76,15 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
             // The list of packages not to load should correspond with matching dependency exclusions from the apm-agent-core in apm-agent-plugins/pom.xml
             // As we're using a custom logging facade, plugins don't need to refer to the agent-bundled log4j2 or slf4j.
             // io.opentelemetry is blocked to hide the embedded OpenTelemetry metrics SDK from instrumentation plugins
+            ElementMatcher.Junction<String> agentClassesFilter = not(startsWith("org.apache.logging.log4j"))
+                .and(not(startsWith("org.slf4j")))
+                .and(not(startsWith("co.elastic.logging.log4j2")));
+            if (!allowOtelClassesFromAgentCl) {
+                agentClassesFilter = agentClassesFilter.and(not(startsWith("io.opentelemetry.")));
+            }
             return new DiscriminatingMultiParentClassLoader(
                 agentClassLoader,
-                not(startsWith("org.apache.logging.log4j"))
-                    .and(not(startsWith("org.slf4j")))
-                    .and(not(startsWith("co.elastic.logging.log4j2")))
-                    .and(not(startsWith("io.opentelemetry."))),
+                agentClassesFilter,
                 targetClassLoader, ElementMatchers.<String>any());
         }
     }

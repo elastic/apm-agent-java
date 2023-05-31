@@ -19,12 +19,12 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.pool.TypePool;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -51,7 +51,8 @@ public class IndyPluginClassLoaderFactory {
                                                                         List<String> classesToInject,
                                                                         ClassLoader agentClassLoader,
                                                                         ClassFileLocator classFileLocator,
-                                                                        ElementMatcher<? super TypeDescription> exclusionMatcher) throws Exception {
+                                                                        ElementMatcher<? super TypeDescription> exclusionMatcher,
+                                                                        boolean allowOtelClassesFromAgentCl) throws Exception {
         classesToInject = new ArrayList<>(classesToInject);
 
         Map<Collection<String>, WeakReference<ClassLoader>> injectedClasses = getOrCreateInjectedClasses(targetClassLoader);
@@ -83,7 +84,7 @@ public class IndyPluginClassLoaderFactory {
 
         Map<String, byte[]> typeDefinitions = getTypeDefinitions(classesToInjectCopy, classFileLocator);
         // child first semantics are important here as the plugin CL contains classes that are also present in the agent CL
-        ClassLoader pluginClassLoader = new IndyPluginClassLoader(targetClassLoader, agentClassLoader, typeDefinitions);
+        ClassLoader pluginClassLoader = new IndyPluginClassLoader(targetClassLoader, agentClassLoader, typeDefinitions, allowOtelClassesFromAgentCl);
         injectedClasses.put(classesToInject, new WeakReference<>(pluginClassLoader));
 
         return pluginClassLoader;
