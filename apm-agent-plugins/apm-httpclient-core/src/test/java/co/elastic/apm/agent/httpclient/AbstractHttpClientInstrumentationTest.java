@@ -24,10 +24,10 @@ import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
-import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -243,74 +243,155 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         }
     }
 
-    @SuppressWarnings("NullableProblems")
     protected abstract void performGet(String path) throws Exception;
 
+    @Deprecated
     protected Span verifyHttpSpan(String path) {
-        return verifyHttpSpan("localhost", path);
+        return expectSpan(path)
+            .verify();
     }
 
-    protected Span verifyHttpSpan(String host, String path, int status) {
-        return verifyHttpSpan(host, path, status, true);
-    }
-
-    protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted) {
-        return verifyHttpSpan(host, path, status, requestExecuted, false, requestExecuted);
-    }
-
-    protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted, boolean isHttps, boolean expectTraceContextHeaders) {
-        assertThat(reporter.getFirstSpan(500)).isNotNull();
-        assertThat(reporter.getSpans()).hasSize(1);
-        Span span = reporter.getSpans().get(0);
-
-        int port = isHttps ? wireMockRule.httpsPort() : wireMockRule.port();
-
-        String schema = isHttps ? "https" : "http";
-        String baseUrl = String.format("%s://%s:%d", schema, host, port);
-
-        Http httpContext = span.getContext().getHttp();
-
-        assertThat(span.getNameAsString()).isEqualTo(String.format("%s %s", httpContext.getMethod(), host));
-        assertThat(httpContext.getUrl().toString()).isEqualTo(baseUrl + path);
-        assertThat(httpContext.getStatusCode()).isEqualTo(status);
-
-        if (requestExecuted) {
-            assertThat(span.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpClientStatus(status));
-        } else {
-            assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
-        }
-
-        assertThat(span.getType()).isEqualTo("external");
-        assertThat(span.getSubtype()).isEqualTo("http");
-        assertThat(span.getAction()).isNull();
-
-        Destination destination = span.getContext().getDestination();
-        int addressStartIndex = (host.startsWith("[")) ? 1 : 0;
-        int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
-        assertThat(destination.getAddress().toString()).isEqualTo(host.substring(addressStartIndex, addressEndIndex));
-        assertThat(destination.getPort()).isEqualTo(port);
-
-        assertThat(span.getContext().getServiceTarget())
-            .hasName(String.format("%s:%d", host, port))
-            .hasType("http")
-            .hasNameOnlyDestinationResource();
-
-        if (requestExecuted) {
-            if (expectTraceContextHeaders) {
-                verifyTraceContextHeaders(span, path);
-            } else {
-                findLoggedRequests(path).forEach(request ->
-                    assertThat(TraceContext.containsTraceContextTextHeaders(request, HeaderAccessor.INSTANCE)).isFalse()
-                );
-            }
-        }
-
-        return span;
-    }
-
+    @Deprecated
     protected Span verifyHttpSpan(String host, String path) {
-        return verifyHttpSpan(host, path, 200);
+        return expectSpan(path)
+            .withHost(host)
+            .verify();
     }
+
+    @Deprecated
+    protected Span verifyHttpSpan(String host, String path, int status) {
+        return expectSpan(path)
+            .withHost(host)
+            .withStatus(status).verify();
+
+    }
+
+    @Deprecated
+    protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted) {
+        VerifyBuilder verifyBuilder = expectSpan(path)
+            .withHost(host)
+            .withStatus(status);
+
+        if (!requestExecuted) {
+            verifyBuilder.withoutRequestExecuted();
+        }
+
+        return verifyBuilder.verify();
+    }
+
+    protected VerifyBuilder expectSpan(String path) {
+        return new VerifyBuilder(path);
+    }
+
+    protected class VerifyBuilder {
+        private final String path;
+        private String host = "localhost";
+        private int status = 200;
+        private boolean https = false;
+        private boolean traceContextHeaders = false;
+        private boolean requestExecuted = true;
+
+        private VerifyBuilder(String path) {
+            this.path = path;
+        }
+
+        public VerifyBuilder withHost(String host) {
+            this.host = host;
+            return this;
+        }
+
+        public VerifyBuilder withStatus(int status) {
+            this.status = status;
+            return this;
+        }
+
+        public VerifyBuilder withHttps() {
+            this.https = true;
+            return this;
+        }
+
+        public VerifyBuilder withoutTraceContextHeaders() {
+            this.traceContextHeaders = false;
+            return this;
+        }
+
+        public VerifyBuilder withoutRequestExecuted() {
+            this.requestExecuted = false;
+            // when request is not executed, we don't expect tracing headers
+            this.traceContextHeaders = false;
+            return this;
+        }
+
+        public Span verify() {
+            assertThat(reporter.getFirstSpan(500)).isNotNull();
+            assertThat(reporter.getSpans()).hasSize(1);
+            Span span = reporter.getSpans().get(0);
+
+            int port = https ? wireMockRule.httpsPort() : wireMockRule.port();
+
+            String schema = https ? "https" : "http";
+            String baseUrl = String.format("%s://%s:%d", schema, host, port);
+
+            Http httpContext = span.getContext().getHttp();
+
+            assertThat(span)
+                .hasName(String.format("%s %s", httpContext.getMethod(), host))
+                .hasType("external")
+                .hasSubType("http");
+
+            assertThat(span.getAction()).isNull();
+
+            assertThat(httpContext.getUrl().toString()).isEqualTo(baseUrl + path);
+            assertThat(httpContext.getStatusCode()).isEqualTo(status);
+
+            if (requestExecuted) {
+                assertThat(span).hasOutcome(ResultUtil.getOutcomeByHttpClientStatus(status));
+            } else {
+                assertThat(span).hasOutcome(Outcome.FAILURE);
+            }
+
+
+            Destination destination = span.getContext().getDestination();
+            int addressStartIndex = (host.startsWith("[")) ? 1 : 0;
+            int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
+            assertThat(destination.getAddress().toString()).isEqualTo(host.substring(addressStartIndex, addressEndIndex));
+            assertThat(destination.getPort()).isEqualTo(port);
+
+            assertThat(span.getContext().getServiceTarget())
+                .hasName(String.format("%s:%d", host, port))
+                .hasType("http")
+                .hasNameOnlyDestinationResource();
+
+            if (requestExecuted) {
+                if (traceContextHeaders) {
+                    verifyTraceContextHeaders(span, path);
+                } else {
+                    findLoggedRequests(path).forEach(request ->
+                        assertThat(TraceContext.containsTraceContextTextHeaders(request, HeaderAccessor.INSTANCE)).isFalse()
+                    );
+                }
+            }
+
+            return span;
+        }
+    }
+
+    @Deprecated
+    protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted, boolean isHttps, boolean expectTraceContextHeaders) {
+
+        VerifyBuilder verifyBuilder = expectSpan(path).withHost(host).withStatus(status);
+        if (isHttps) {
+            verifyBuilder.withHttps();
+        }
+        if (!requestExecuted) {
+            verifyBuilder.withoutRequestExecuted();
+        }
+        if (!expectTraceContextHeaders) {
+            verifyBuilder.withoutTraceContextHeaders();
+        }
+        return verifyBuilder.verify();
+    }
+
 
     private void verifyTraceContextHeaders(Span span, String path) {
         Map<String, String> headerMap = new HashMap<>();
