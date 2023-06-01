@@ -100,6 +100,7 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
             if (span != null) {
                 span.withType(HttpClientHelper.EXTERNAL_TYPE)
                     .withSubtype(HttpClientHelper.HTTP_SUBTYPE)
+                    .withSync(false)
                     .activate();
 
                 wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, span, null);

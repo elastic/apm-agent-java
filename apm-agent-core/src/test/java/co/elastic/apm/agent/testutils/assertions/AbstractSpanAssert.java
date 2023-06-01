@@ -117,7 +117,9 @@ public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, A
     }
 
     public SELF isSync(boolean expectedSync) {
-        checkTrue(String.format("Expected sync = %s", expectedSync), expectedSync == actual.isSync());
+        String expectedString = expectedSync ? "sync" : "async";
+        String actualString = actual.isSync() ? "sync" : "async";
+        checkTrue(String.format("Expected %s span, got %s span", expectedString, actualString), expectedSync == actual.isSync());
         return thiz();
     }
 
