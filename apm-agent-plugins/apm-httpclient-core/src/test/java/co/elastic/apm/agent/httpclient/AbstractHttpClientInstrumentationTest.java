@@ -253,6 +253,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         }
     }
 
+    public boolean isAsync() {
+        return false;
+    }
+
     protected abstract void performGet(String path) throws Exception;
 
     protected VerifyBuilder expectSpan(String path) {
@@ -326,6 +330,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
                 assertThat(span).hasOutcome(Outcome.FAILURE);
             }
 
+            if (isAsync()) {
+                assertThat(span).isAsync();
+            }
 
             Destination destination = span.getContext().getDestination();
             int addressStartIndex = (host.startsWith("[")) ? 1 : 0;
