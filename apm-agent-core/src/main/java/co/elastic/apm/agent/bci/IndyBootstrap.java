@@ -328,7 +328,7 @@ public class IndyBootstrap {
             .invoke(targetClass);
     }
 
-    public static void logExceptionThrownByAdvice(Throwable exception) {
+    public static void logExceptionThrownByAdvice(final Throwable exception) {
         try {
             try {
                 logger().error("Advice threw an exception, this should never happen!", exception);
