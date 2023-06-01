@@ -106,7 +106,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     public void testHttpCall() {
         String path = "/";
         performGetWithinTransaction(path);
-        verifyHttpSpan(path);
+        expectSpan(path).verify();
     }
 
     @Test
@@ -114,7 +114,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         doReturn(true).when(config.getConfig(CoreConfiguration.class)).isOutgoingTraceContextHeadersInjectionDisabled();
         String path = "/";
         performGetWithinTransaction(path);
-        verifyHttpSpan("localhost", path, 200, true, false, false);
+        expectSpan(path).withoutTraceContextHeaders().verify();
     }
 
     @Test
@@ -139,13 +139,15 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         Assume.assumeTrue(isTestHttpCallWithUserInfoEnabled());
 
         performGet("http://user:passwd@localhost:" + wireMockRule.port() + "/");
-        verifyHttpSpan("/");
+        expectSpan("/").verify();
     }
 
     @Test
     public void testHttpCallWithIpv4() throws Exception {
         performGet("http://127.0.0.1:" + wireMockRule.port() + "/");
-        verifyHttpSpan("127.0.0.1", "/");
+        expectSpan("/")
+            .withHost("127.0.0.1")
+            .verify();
     }
 
     @Test
@@ -153,7 +155,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         Assume.assumeTrue(isIpv6Supported());
 
         performGet(String.format("http://[::1]:%d/", wireMockRule.port()));
-        verifyHttpSpan("[::1]", "/");
+        expectSpan("/")
+            .withHost("[::1]")
+            .verify();
     }
 
     @Test
@@ -161,7 +165,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/non-existing";
         performGetWithinTransaction(path);
 
-        verifyHttpSpan("localhost", path, 404);
+        expectSpan(path)
+            .withStatus(404)
+            .verify();
+
     }
 
     @Test
@@ -169,7 +176,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/error";
         performGetWithinTransaction(path);
 
-        verifyHttpSpan("localhost", path, 515);
+        expectSpan(path)
+            .withStatus(515)
+            .verify();
+
     }
 
     @Test
@@ -179,7 +189,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/redirect";
         performGetWithinTransaction(path);
 
-        Span span = verifyHttpSpan(path);
+        Span span = expectSpan(path).verify();
 
         verifyTraceContextHeaders(span, "/redirect");
         verifyTraceContextHeaders(span, "/");
@@ -245,40 +255,6 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     protected abstract void performGet(String path) throws Exception;
 
-    @Deprecated
-    protected Span verifyHttpSpan(String path) {
-        return expectSpan(path)
-            .verify();
-    }
-
-    @Deprecated
-    protected Span verifyHttpSpan(String host, String path) {
-        return expectSpan(path)
-            .withHost(host)
-            .verify();
-    }
-
-    @Deprecated
-    protected Span verifyHttpSpan(String host, String path, int status) {
-        return expectSpan(path)
-            .withHost(host)
-            .withStatus(status).verify();
-
-    }
-
-    @Deprecated
-    protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted) {
-        VerifyBuilder verifyBuilder = expectSpan(path)
-            .withHost(host)
-            .withStatus(status);
-
-        if (!requestExecuted) {
-            verifyBuilder.withoutRequestExecuted();
-        }
-
-        return verifyBuilder.verify();
-    }
-
     protected VerifyBuilder expectSpan(String path) {
         return new VerifyBuilder(path);
     }
@@ -288,7 +264,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         private String host = "localhost";
         private int status = 200;
         private boolean https = false;
-        private boolean traceContextHeaders = false;
+        private boolean traceContextHeaders = true;
         private boolean requestExecuted = true;
 
         private VerifyBuilder(String path) {
@@ -375,23 +351,6 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             return span;
         }
     }
-
-    @Deprecated
-    protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted, boolean isHttps, boolean expectTraceContextHeaders) {
-
-        VerifyBuilder verifyBuilder = expectSpan(path).withHost(host).withStatus(status);
-        if (isHttps) {
-            verifyBuilder.withHttps();
-        }
-        if (!requestExecuted) {
-            verifyBuilder.withoutRequestExecuted();
-        }
-        if (!expectTraceContextHeaders) {
-            verifyBuilder.withoutTraceContextHeaders();
-        }
-        return verifyBuilder.verify();
-    }
-
 
     private void verifyTraceContextHeaders(Span span, String path) {
         Map<String, String> headerMap = new HashMap<>();
