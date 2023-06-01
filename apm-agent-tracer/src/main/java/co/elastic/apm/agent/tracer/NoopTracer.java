@@ -22,7 +22,7 @@ import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
-import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
+import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -62,7 +62,7 @@ class NoopTracer implements Tracer {
     }
 
     @Override
-    public <K, V extends ReferenceCounted> ReferenceCounter<K, V> createReferenceCounter() {
+    public <K, V extends ReferenceCounted> ReferenceCountedMap<K, V> createReferenceCounter() {
         throw new IllegalStateException();
     }
 

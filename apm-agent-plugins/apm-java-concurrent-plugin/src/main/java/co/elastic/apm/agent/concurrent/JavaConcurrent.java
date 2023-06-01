@@ -25,7 +25,7 @@ import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
+import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -42,7 +42,7 @@ import java.util.concurrent.ForkJoinTask;
 @GlobalState
 public class JavaConcurrent {
 
-    private static final ReferenceCounter<Object, AbstractSpan<?>> contextMap = GlobalTracer.get().createReferenceCounter();
+    private static final ReferenceCountedMap<Object, AbstractSpan<?>> contextMap = GlobalTracer.get().createReferenceCounter();
 
     private static final List<Class<? extends ElasticApmInstrumentation>> RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION = Collections.
         <Class<? extends ElasticApmInstrumentation>>singletonList(RunnableCallableForkJoinTaskInstrumentation.class);

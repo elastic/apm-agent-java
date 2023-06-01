@@ -20,7 +20,7 @@ package co.elastic.apm.agent.lettuce;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
+import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import com.lambdaworks.redis.protocol.RedisCommand;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -31,7 +31,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 
 public abstract class Lettuce34Instrumentation extends TracerAwareInstrumentation {
 
-    static final ReferenceCounter<RedisCommand<?, ?, ?>, Span<?>> commandToSpan = tracer.createReferenceCounter();
+    static final ReferenceCountedMap<RedisCommand<?, ?, ?>, Span<?>> commandToSpan = tracer.createReferenceCounter();
 
     /**
      * We don't support Lettuce up to version 3.3, as the {@link RedisCommand#getType()} method is missing

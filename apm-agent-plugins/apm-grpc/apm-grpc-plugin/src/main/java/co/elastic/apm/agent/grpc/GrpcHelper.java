@@ -30,7 +30,7 @@ import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
-import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
+import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import io.grpc.CallOptions;
 import io.grpc.ClientCall;
 import io.grpc.Metadata;
@@ -58,27 +58,27 @@ public class GrpcHelper {
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall} instance as key.
      */
-    private final ReferenceCounter<ClientCall<?, ?>, Span<?>> clientCallSpans;
+    private final ReferenceCountedMap<ClientCall<?, ?>, Span<?>> clientCallSpans;
 
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall} instance as key.
      */
-    private final ReferenceCounter<ClientCall<?, ?>, Span<?>> delayedClientCallSpans;
+    private final ReferenceCountedMap<ClientCall<?, ?>, Span<?>> delayedClientCallSpans;
 
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall.Listener} instance as key.
      */
-    private final ReferenceCounter<ClientCall.Listener<?>, Span<?>> clientCallListenerSpans;
+    private final ReferenceCountedMap<ClientCall.Listener<?>, Span<?>> clientCallListenerSpans;
 
     /**
      * Map of all in-flight {@link Transaction} with {@link ServerCall.Listener} instance as key.
      */
-    private final ReferenceCounter<ServerCall.Listener<?>, Transaction<?>> serverListenerTransactions;
+    private final ReferenceCountedMap<ServerCall.Listener<?>, Transaction<?>> serverListenerTransactions;
 
     /**
      * Map of all in-flight {@link Transaction} with {@link ServerCall} instance as key.
      */
-    private final ReferenceCounter<ServerCall<?, ?>, Transaction<?>> serverCallTransactions;
+    private final ReferenceCountedMap<ServerCall<?, ?>, Transaction<?>> serverCallTransactions;
 
     /**
      * gRPC header cache used to minimize allocations
@@ -479,7 +479,7 @@ public class GrpcHelper {
     }
 
     public void cancelCall(ClientCall<?, ?> clientCall, @Nullable Throwable cause) {
-        ReferenceCounter<ClientCall<?, ?>, Span<?>> clientCallMap = (isDelayedClientCall(clientCall)) ? delayedClientCallSpans : clientCallSpans;
+        ReferenceCountedMap<ClientCall<?, ?>, Span<?>> clientCallMap = (isDelayedClientCall(clientCall)) ? delayedClientCallSpans : clientCallSpans;
         // we can't remove yet, in order to avoid reference decrement prematurely
         Span<?> span = clientCallMap.get(clientCall);
         if (span != null) {

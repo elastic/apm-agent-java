@@ -23,7 +23,7 @@ import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
-import co.elastic.apm.agent.tracer.reference.ReferenceCounter;
+import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -44,9 +44,9 @@ class ProcessHelper {
      */
     private static final ThreadLocal<Boolean> inTracingContext = GlobalVariables.get(ProcessHelper.class, "inTracingContext", new ThreadLocal<Boolean>());
 
-    private final ReferenceCounter<Process, Span<?>> inFlightSpans;
+    private final ReferenceCountedMap<Process, Span<?>> inFlightSpans;
 
-    ProcessHelper(ReferenceCounter<Process, Span<?>> inFlightSpans) {
+    ProcessHelper(ReferenceCountedMap<Process, Span<?>> inFlightSpans) {
         this.inFlightSpans = inFlightSpans;
     }
 

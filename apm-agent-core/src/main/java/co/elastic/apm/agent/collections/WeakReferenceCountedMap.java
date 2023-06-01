@@ -16,19 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.tracer.reference;
+package co.elastic.apm.agent.collections;
+
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
+import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 
 import javax.annotation.Nullable;
 
-public interface ReferenceCounter<K, V extends ReferenceCounted> {
+public class WeakReferenceCountedMap<K, V extends ReferenceCounted> implements ReferenceCountedMap<K, V> {
 
+    private final WeakMap<K, V> map = WeakConcurrentProviderImpl.createWeakReferenceCountedMap();
+
+    @Override
     @Nullable
-    V get(K key);
+    public V get(K key) {
+        return map.get(key);
+    }
 
-    boolean contains(K key);
+    @Override
+    public boolean contains(K key) {
+        return map.containsKey(key);
+    }
 
-    void put(K key, V value);
+    @Override
+    public void put(K key, V value) {
+        map.put(key, value);
+    }
 
+    @Override
     @Nullable
-    V remove(K key);
+    public V remove(K key) {
+        return map.remove(key);
+    }
 }
