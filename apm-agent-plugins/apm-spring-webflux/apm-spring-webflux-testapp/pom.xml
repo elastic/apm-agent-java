@@ -96,7 +96,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <!-- explicit version required as bom will not cover plugins, only dependencies -->
-                <version>${version.spring-boot}</version>
+                <version>2.2.2.RELEASE</version>
                 <configuration>
                     <mainClass>co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication</mainClass>
                     <!-- by default original jar is replaced, which makes impossible to reuse as dependency -->
