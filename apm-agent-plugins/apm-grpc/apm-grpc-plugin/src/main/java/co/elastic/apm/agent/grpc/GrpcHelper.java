@@ -92,12 +92,12 @@ public class GrpcHelper {
 
     public GrpcHelper() {
         tracer = GlobalTracer.get();
-        clientCallSpans = tracer.createReferenceCounter();
-        delayedClientCallSpans = tracer.createReferenceCounter();
-        clientCallListenerSpans = tracer.createReferenceCounter();
+        clientCallSpans = tracer.newReferenceCountedMap();
+        delayedClientCallSpans = tracer.newReferenceCountedMap();
+        clientCallListenerSpans = tracer.newReferenceCountedMap();
 
-        serverListenerTransactions = tracer.createReferenceCounter();
-        serverCallTransactions = tracer.createReferenceCounter();
+        serverListenerTransactions = tracer.newReferenceCountedMap();
+        serverCallTransactions = tracer.newReferenceCountedMap();
 
         headerCache = WeakConcurrent.buildMap();
 

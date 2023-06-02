@@ -47,7 +47,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
 
     private static final AtomicBoolean isRegistered = GlobalVariables.get(ReactorInstrumentation.class, "reactor-hook-enabled", new AtomicBoolean(false));
 
-    private static final ReferenceCountedMap<TracedSubscriber<?>, AbstractSpan<?>> contextMap = GlobalTracer.get().createReferenceCounter();
+    private static final ReferenceCountedMap<TracedSubscriber<?>, AbstractSpan<?>> contextMap = GlobalTracer.get().newReferenceCountedMap();
 
     private static final String HOOK_KEY = "elastic-apm";
 

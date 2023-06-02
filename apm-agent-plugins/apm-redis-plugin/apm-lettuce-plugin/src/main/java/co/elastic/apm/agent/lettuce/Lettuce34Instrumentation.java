@@ -31,7 +31,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 
 public abstract class Lettuce34Instrumentation extends TracerAwareInstrumentation {
 
-    static final ReferenceCountedMap<RedisCommand<?, ?, ?>, Span<?>> commandToSpan = tracer.createReferenceCounter();
+    static final ReferenceCountedMap<RedisCommand<?, ?, ?>, Span<?>> commandToSpan = tracer.newReferenceCountedMap();
 
     /**
      * We don't support Lettuce up to version 3.3, as the {@link RedisCommand#getType()} method is missing

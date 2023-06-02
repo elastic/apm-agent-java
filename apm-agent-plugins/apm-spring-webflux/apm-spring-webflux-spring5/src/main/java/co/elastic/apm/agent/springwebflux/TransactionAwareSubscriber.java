@@ -41,7 +41,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
 
     private static final Logger log = LoggerFactory.getLogger(TransactionAwareSubscriber.class);
 
-    private static final ReferenceCountedMap<TransactionAwareSubscriber<?>, Transaction<?>> transactionMap = GlobalTracer.get().createReferenceCounter();
+    private static final ReferenceCountedMap<TransactionAwareSubscriber<?>, Transaction<?>> transactionMap = GlobalTracer.get().newReferenceCountedMap();
 
     private final CoreSubscriber<? super T> subscriber;
 

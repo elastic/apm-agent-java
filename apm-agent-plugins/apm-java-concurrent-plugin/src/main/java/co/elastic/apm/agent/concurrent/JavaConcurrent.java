@@ -42,7 +42,7 @@ import java.util.concurrent.ForkJoinTask;
 @GlobalState
 public class JavaConcurrent {
 
-    private static final ReferenceCountedMap<Object, AbstractSpan<?>> contextMap = GlobalTracer.get().createReferenceCounter();
+    private static final ReferenceCountedMap<Object, AbstractSpan<?>> contextMap = GlobalTracer.get().newReferenceCountedMap();
 
     private static final List<Class<? extends ElasticApmInstrumentation>> RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION = Collections.
         <Class<? extends ElasticApmInstrumentation>>singletonList(RunnableCallableForkJoinTaskInstrumentation.class);

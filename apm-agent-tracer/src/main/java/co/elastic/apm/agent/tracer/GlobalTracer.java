@@ -85,8 +85,8 @@ public class GlobalTracer implements Tracer {
     }
 
     @Override
-    public <K, V extends ReferenceCounted> ReferenceCountedMap<K, V> createReferenceCounter() {
-        return tracer.createReferenceCounter();
+    public <K, V extends ReferenceCounted> ReferenceCountedMap<K, V> newReferenceCountedMap() {
+        return tracer.newReferenceCountedMap();
     }
 
     @Override

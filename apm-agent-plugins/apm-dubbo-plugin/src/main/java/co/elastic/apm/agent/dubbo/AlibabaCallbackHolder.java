@@ -24,5 +24,5 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
 
 public class AlibabaCallbackHolder {
-    public static final ReferenceCountedMap<ResponseCallback, AbstractSpan<?>> callbackSpanMap = GlobalTracer.get().createReferenceCounter();
+    public static final ReferenceCountedMap<ResponseCallback, AbstractSpan<?>> callbackSpanMap = GlobalTracer.get().newReferenceCountedMap();
 }

@@ -35,7 +35,7 @@ public class WebClientSubscriber<T> implements CoreSubscriber<T>, Subscription {
 
     private static final Logger logger = LoggerFactory.getLogger(WebClientSubscriber.class);
 
-    private static final ReferenceCountedMap<WebClientSubscriber<?>, Span<?>> spanMap = GlobalTracer.get().createReferenceCounter();
+    private static final ReferenceCountedMap<WebClientSubscriber<?>, Span<?>> spanMap = GlobalTracer.get().newReferenceCountedMap();
 
     private final Tracer tracer;
     private final CoreSubscriber<? super T> subscriber;

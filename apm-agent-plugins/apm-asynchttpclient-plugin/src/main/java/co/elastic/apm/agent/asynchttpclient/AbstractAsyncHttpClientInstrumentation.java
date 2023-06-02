@@ -53,7 +53,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
     public static class Helper {
 
-        static final ReferenceCountedMap<AsyncHandler<?>, Span> handlerSpanMap = tracer.createReferenceCounter();
+        static final ReferenceCountedMap<AsyncHandler<?>, Span> handlerSpanMap = tracer.newReferenceCountedMap();
 
         public static final List<Class<? extends ElasticApmInstrumentation>> ASYNC_HANDLER_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
             AsyncHandlerOnCompletedInstrumentation.class,

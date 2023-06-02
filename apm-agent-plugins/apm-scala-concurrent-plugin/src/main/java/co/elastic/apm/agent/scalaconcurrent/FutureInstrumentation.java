@@ -38,7 +38,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
 
     @SuppressWarnings("WeakerAccess")
-    public static final ReferenceCountedMap<Object, AbstractSpan<?>> promisesToContext = tracer.createReferenceCounter();
+    public static final ReferenceCountedMap<Object, AbstractSpan<?>> promisesToContext = tracer.newReferenceCountedMap();
 
     @Nonnull
     @Override

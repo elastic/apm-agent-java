@@ -41,7 +41,7 @@ public interface Tracer {
 
     ObjectPoolFactory getObjectPoolFactory();
 
-    <K, V extends ReferenceCounted> ReferenceCountedMap<K, V> createReferenceCounter();
+    <K, V extends ReferenceCounted> ReferenceCountedMap<K, V> newReferenceCountedMap();
 
     Set<String> getTraceHeaderNames();
 

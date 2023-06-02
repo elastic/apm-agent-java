@@ -37,7 +37,7 @@ public class WebHelper extends AbstractVertxWebHelper {
 
     private static final WebHelper INSTANCE = new WebHelper(GlobalTracer.get());
 
-    static final ReferenceCountedMap<Object, Transaction<?>> transactionMap = GlobalTracer.get().createReferenceCounter();
+    static final ReferenceCountedMap<Object, Transaction<?>> transactionMap = GlobalTracer.get().newReferenceCountedMap();
 
     public static WebHelper getInstance() {
         return INSTANCE;

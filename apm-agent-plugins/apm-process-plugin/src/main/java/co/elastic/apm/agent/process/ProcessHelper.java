@@ -34,7 +34,7 @@ import java.util.List;
  */
 class ProcessHelper {
 
-    private static final ProcessHelper INSTANCE = new ProcessHelper(GlobalTracer.get().<Process, Span<?>>createReferenceCounter());
+    private static final ProcessHelper INSTANCE = new ProcessHelper(GlobalTracer.get().<Process, Span<?>>newReferenceCountedMap());
 
     /**
      * A thread local used to indicate whether the currently invoked instrumented method is invoked by the plugin itself.

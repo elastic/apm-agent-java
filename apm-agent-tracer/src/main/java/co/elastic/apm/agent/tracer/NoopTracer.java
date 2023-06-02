@@ -62,7 +62,7 @@ class NoopTracer implements Tracer {
     }
 
     @Override
-    public <K, V extends ReferenceCounted> ReferenceCountedMap<K, V> createReferenceCounter() {
+    public <K, V extends ReferenceCounted> ReferenceCountedMap<K, V> newReferenceCountedMap() {
         throw new IllegalStateException();
     }
 

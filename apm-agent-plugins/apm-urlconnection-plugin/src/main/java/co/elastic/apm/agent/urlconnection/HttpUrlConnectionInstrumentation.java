@@ -49,7 +49,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 @GlobalState
 public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstrumentation {
 
-    public static final ReferenceCountedMap<HttpURLConnection, Span<?>> inFlightSpans = tracer.createReferenceCounter();
+    public static final ReferenceCountedMap<HttpURLConnection, Span<?>> inFlightSpans = tracer.newReferenceCountedMap();
     public static final CallDepth callDepth = CallDepth.get(HttpUrlConnectionInstrumentation.class);
 
     @Override

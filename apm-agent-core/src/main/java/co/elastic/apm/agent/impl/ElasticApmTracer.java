@@ -601,7 +601,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @Override
-    public <K, V extends ReferenceCounted> ReferenceCountedMap<K, V> createReferenceCounter() {
+    public <K, V extends ReferenceCounted> ReferenceCountedMap<K, V> newReferenceCountedMap() {
         return new WeakReferenceCountedMap<>();
     }
 
