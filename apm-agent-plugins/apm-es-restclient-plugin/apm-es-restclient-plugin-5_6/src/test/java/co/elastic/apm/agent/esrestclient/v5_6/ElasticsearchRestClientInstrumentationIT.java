@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.esrestclient.v5_6;
 
 import co.elastic.apm.agent.esrestclient.AbstractEsClientInstrumentationTest;
-import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Outcome;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -65,14 +65,13 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 @RunWith(Parameterized.class)
 public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientInstrumentationTest {
 
-    private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:5.6.0";
     protected static final String USER_NAME = "elastic";
     protected static final String PASSWORD = "changeme";
-
     protected static final String DOC_TYPE = "doc";
-    private static RestHighLevelClient client;
+    private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:5.6.0";
     @SuppressWarnings("NullableProblems")
     protected static RestClient lowLevelClient;
+    private static RestHighLevelClient client;
 
     public ElasticsearchRestClientInstrumentationIT(boolean async) {
         this.async = async;
@@ -86,7 +85,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(USER_NAME, PASSWORD));
 
-        RestClientBuilder builder =  RestClient.builder(HttpHost.create(container.getHttpHostAddress()))
+        RestClientBuilder builder = RestClient.builder(HttpHost.create(container.getHttpHostAddress()))
             .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
         lowLevelClient = builder.build();
         client = new RestHighLevelClient(lowLevelClient);
@@ -124,14 +123,14 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         // Create an Index
         doPerformRequest("PUT", "/" + SECOND_INDEX);
 
-        validateSpanContentAfterIndexCreateRequest();
+        validateSpanContentAfterIndexCreateRequest(false);
 
         // Delete the index
         reporter.reset();
 
         doPerformRequest("DELETE", "/" + SECOND_INDEX);
 
-        validateSpanContentAfterIndexDeleteRequest();
+        validateSpanContentAfterIndexDeleteRequest(false);
 
         assertThat(reporter.getFirstSpan().getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
@@ -187,8 +186,8 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         spans = reporter.getSpans();
         assertThat(spans).hasSize(2);
         boolean updateSpanFound = false;
-        for(Span span: spans) {
-            if(span.getNameAsString().contains("_update")) {
+        for (Span span : spans) {
+            if (span.getNameAsString().contains("_update")) {
                 updateSpanFound = true;
                 break;
             }
@@ -213,10 +212,6 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
             .add(new DeleteRequest(INDEX, DOC_TYPE, "2")));
 
         validateSpanContentAfterBulkRequest();
-    }
-
-    private interface ClientMethod<Req, Res> {
-        void invoke(Req request, ActionListener<Res> listener);
     }
 
     private <Req, Res> Res invokeAsync(Req request, ClientMethod<Req, Res> method) throws InterruptedException, ExecutionException {
@@ -280,7 +275,6 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         return client.bulk(bulkRequest);
     }
 
-
     private Response doPerformRequest(String method, String path) throws IOException, ExecutionException {
         if (async) {
             final CompletableFuture<Response> resultFuture = new CompletableFuture<>();
@@ -302,6 +296,11 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
             }
         }
         return lowLevelClient.performRequest(method, path);
+    }
+
+
+    private interface ClientMethod<Req, Res> {
+        void invoke(Req request, ActionListener<Res> listener);
     }
 
 }

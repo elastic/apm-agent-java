@@ -32,17 +32,8 @@ public class EndpointResolutionHelper {
 
     @Nullable
     private static EndpointResolutionHelper INSTANCE;
-
-    protected static EndpointResolutionHelper get() {
-        if (INSTANCE == null) {
-            INSTANCE = new EndpointResolutionHelper();
-        }
-        return INSTANCE;
-    }
-
     private final Map<String, String[]> routesMap = new HashMap<>();
     private final Map<String, Pattern> regexPatternMap = new ConcurrentHashMap<>();
-
     private EndpointResolutionHelper() {
         // This map is generated from the Java client code.
         // It's a one-time generation that shouldn't require maintenance effort,
@@ -464,12 +455,20 @@ public class EndpointResolutionHelper {
         routesMap.put("es/search_mvt", new String[]{"/{index}/_mvt/{field}/{zoom}/{x}/{y}"});
     }
 
+    protected static EndpointResolutionHelper get() {
+        if (INSTANCE == null) {
+            INSTANCE = new EndpointResolutionHelper();
+        }
+        return INSTANCE;
+    }
+
     protected void enrichSpanWithRouteInformation(Span<?> span, String method, String endpointId, String urlPath) {
         String[] availableRoutes = routesMap.get(endpointId);
         if (availableRoutes == null || availableRoutes.length == 0) {
             return;
         }
 
+        span.withOtelAttribute("db.operation", (endpointId.startsWith("es/") && endpointId.length() > 3) ? endpointId.substring(3) : endpointId);
         if (availableRoutes.length == 1) {
             enrichSpan(span, method, availableRoutes[0], urlPath);
         } else {
