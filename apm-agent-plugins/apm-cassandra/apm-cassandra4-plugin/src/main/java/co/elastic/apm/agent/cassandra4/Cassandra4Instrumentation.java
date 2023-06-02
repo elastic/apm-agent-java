@@ -127,6 +127,7 @@ public class Cassandra4Instrumentation extends TracerAwareInstrumentation {
                 span.end();
             } else if (result instanceof CompletionStage) {
                 ((CompletionStage<?>) result).whenComplete((r, t) -> {
+                    span.withSync(false); // returned type indirectly indicates it's an async execution
                     if (r instanceof AsyncResultSet) {
                         setDestination(span, ((AsyncResultSet) r).getExecutionInfo());
                     }
