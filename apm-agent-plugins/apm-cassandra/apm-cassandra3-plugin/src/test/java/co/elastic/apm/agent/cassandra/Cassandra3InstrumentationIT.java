@@ -49,7 +49,10 @@ class Cassandra3InstrumentationIT extends AbstractInstrumentationTest {
         .withStartupTimeout(Duration.ofSeconds(120))
         .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048))
         .withEnv("HEAP_NEWSIZE", "700m")
-        .withEnv("MAX_HEAP_SIZE", "1024m");
+        .withEnv("MAX_HEAP_SIZE", "1024m")
+        // makes cassandra node startup faster
+        .withEnv("CASSANDRA_NUM_TOKENS", "1")
+        .withEnv("JAVA_TOOL_OPTIONS", "-Dcassandra.skip_wait_for_gossip_to_settle=0");
     private static Session session;
     private static Cluster cluster;
     private Transaction transaction;

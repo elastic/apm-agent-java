@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.cassandra;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -52,14 +53,17 @@ class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
         .withStartupTimeout(Duration.ofSeconds(120))
         .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048))
         .withEnv("HEAP_NEWSIZE", "700m")
-        .withEnv("MAX_HEAP_SIZE", "1024m");
+        .withEnv("MAX_HEAP_SIZE", "1024m")
+        // makes cassandra node startup faster
+        .withEnv("CASSANDRA_NUM_TOKENS", "1")
+        .withEnv("JAVA_TOOL_OPTIONS", "-Dcassandra.skip_wait_for_gossip_to_settle=0");
     private static CqlSession session;
     private static int cassandraPort;
     private Transaction transaction;
 
 
     @BeforeAll
-    public static void beforeClass() throws Exception {
+    public static void beforeClass() {
         cassandraPort = cassandra.getMappedPort(9042);
     }
 
@@ -76,7 +80,7 @@ class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
     }
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         try (CqlSession s = getSession(null)) {
             s.execute("CREATE KEYSPACE IF NOT EXISTS test WITH replication = {'class':'SimpleStrategy','replication_factor':'1'};");
         }
