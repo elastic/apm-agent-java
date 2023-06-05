@@ -51,6 +51,12 @@ public class Main {
 
     private static void checkCurrentSpanVisibleThroughOTel() {
         if (OTEL_ON_CLASSPATH) {
+            //Why is this wrapping in a Runnable required?
+            //Main is written to be executed with and without Otel on the classpath
+            //If Main would contain direct references to Otel, it would fail to load when running without
+            // Otel on the classpath.
+            //This problem is prevented by doing the actual OTel accesses in an anonymous class, which is
+            // never loaded when Otel is not on the classpath.
             new Runnable() {
                 @Override
                 public void run() {
@@ -67,7 +73,7 @@ public class Main {
 
     private static boolean isOtelOnClassPath() {
         try {
-            Class<?> spanContext = Class.forName("io.opentelemetry.api.trace.SpanContext");
+            Class.forName("io.opentelemetry.api.trace.SpanContext");
             return true;
         } catch (ClassNotFoundException e) {
             return false;
