@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-##  This script runs the snapshot given the different environment variables
+##  This script runs the release given the different environment variables
 ##    dry_run
 ##
 ##  It relies on the .buildkite/hooks/pre-command so the Vault and other tooling
@@ -26,7 +26,7 @@ java -version
 set +x
 echo "--- Deploy the release :package:"
 if [[ "$dry_run" == "true" ]] ; then
-  echo './mvnw -V -s .ci/settings.xml -Pgpg clean deploy -DskipTests --batch-mode | tee release.txt'
+  ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true | release.txt
 else
   ./mvnw -V -s .ci/settings.xml -Pgpg clean deploy -DskipTests --batch-mode | tee release.txt
 fi
