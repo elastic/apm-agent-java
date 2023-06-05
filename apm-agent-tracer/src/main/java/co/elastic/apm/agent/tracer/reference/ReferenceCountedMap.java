@@ -16,13 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.dubbo;
+package co.elastic.apm.agent.tracer.reference;
 
-import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
-import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
+import javax.annotation.Nullable;
 
-public class AlibabaCallbackHolder {
-    public static final ReferenceCountedMap<ResponseCallback, AbstractSpan<?>> callbackSpanMap = GlobalTracer.get().newReferenceCountedMap();
+public interface ReferenceCountedMap<K, V extends ReferenceCounted> {
+
+    @Nullable
+    V get(K key);
+
+    boolean contains(K key);
+
+    void put(K key, V value);
+
+    @Nullable
+    V remove(K key);
 }

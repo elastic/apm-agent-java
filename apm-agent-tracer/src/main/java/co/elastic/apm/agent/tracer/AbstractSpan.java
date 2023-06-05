@@ -22,10 +22,11 @@ import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 
 import javax.annotation.Nullable;
 
-public interface AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<T> {
+public interface AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<T>, ReferenceCounted {
 
     int PRIORITY_DEFAULT = 0;
     int PRIORITY_LOW_LEVEL_FRAMEWORK = 10;

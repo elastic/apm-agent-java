@@ -16,32 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.grpc;
+package co.elastic.apm.agent.collections;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.tracer.Outcome;
-import io.grpc.Status;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
+import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import javax.annotation.Nullable;
 
-class GrpcHelperTest extends AbstractInstrumentationTest {
+public class WeakReferenceCountedMap<K, V extends ReferenceCounted> implements ReferenceCountedMap<K, V> {
 
-    @ParameterizedTest
-    @EnumSource(Status.Code.class)
-    void statusMapping(Status.Code grpcCode) {
+    private final WeakMap<K, V> map = WeakConcurrentProviderImpl.createWeakReferenceCountedMap();
 
-        Status status = grpcCode.toStatus();
-
-        assertThat(GrpcHelper.toClientOutcome(status)).isEqualTo(status.isOk() ? Outcome.SUCCESS : Outcome.FAILURE);
+    @Override
+    @Nullable
+    public V get(K key) {
+        return map.get(key);
     }
 
-    @Test
-    void noStatusMapping(){
-        assertThat(GrpcHelper.toClientOutcome(null))
-            .isEqualTo(Outcome.FAILURE);
+    @Override
+    public boolean contains(K key) {
+        return map.containsKey(key);
     }
 
+    @Override
+    public void put(K key, V value) {
+        map.put(key, value);
+    }
+
+    @Override
+    @Nullable
+    public V remove(K key) {
+        return map.remove(key);
+    }
 }

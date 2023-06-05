@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.agent.collections;
 
-import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Hash map dedicated to storage of in-flight spans and transactions, reference count is being incremented/decremented
+ * Hash map dedicated to storage of reference counted objects where counts are being incremented/decremented
  * when entry is added/removed. Usage of this map is intended for providing GC-based storage of context associated
  * to a framework-level object key, when the latter is collected by GC it allows to decrement and then recycle the
  * span/transaction.
@@ -33,9 +33,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * @param <K> key type
  * @param <V> context type
  */
-public class SpanConcurrentHashMap<K, V extends AbstractSpan<?>> extends ConcurrentHashMap<K, V> {
+public class ReferencedCountedConcurrentHashMap<K, V extends ReferenceCounted> extends ConcurrentHashMap<K, V> {
 
-    SpanConcurrentHashMap() {
+    ReferencedCountedConcurrentHashMap() {
     }
 
     @Nullable
@@ -71,7 +71,7 @@ public class SpanConcurrentHashMap<K, V extends AbstractSpan<?>> extends Concurr
         super.clear();
     }
 
-    private void onPut(@Nullable AbstractSpan<?> previous, AbstractSpan<?> value) {
+    private void onPut(@Nullable ReferenceCounted previous, ReferenceCounted value) {
         if (previous == null) {
             // new entry
             value.incrementReferences();
@@ -82,7 +82,7 @@ public class SpanConcurrentHashMap<K, V extends AbstractSpan<?>> extends Concurr
         }
     }
 
-    private void onRemove(@Nullable AbstractSpan<?> removed) {
+    private void onRemove(@Nullable ReferenceCounted removed) {
         if (removed == null) {
             return;
         }
