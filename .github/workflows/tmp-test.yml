@@ -18,6 +18,6 @@ jobs:
           waitFor: true
           printBuildLogs: true
           artifactName: lambda-zip
-          artifactPath: "elastic-apm-agent/target/**/elastic-apm-java-aws-lambda-layer-*.zip"
+          artifactPath: "elastic-apm-agent/target/elastic-apm-java-aws-lambda-layer-*.zip"
           buildEnvVars: |
             dry_run=true
