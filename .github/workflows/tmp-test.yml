@@ -16,7 +16,7 @@ jobs:
           pipeline: apm-agent-java-release
           pipelineVersion: ${{ github.head_ref }}
           waitFor: true
-          printBuildLogs: true
+          printBuildLogs: false
           artifactName: lambda-zip
           artifactPath: "elastic-apm-agent/target/elastic-apm-java-aws-lambda-layer-*.zip"
           buildEnvVars: |
