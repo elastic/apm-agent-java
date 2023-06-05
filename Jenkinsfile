@@ -131,7 +131,7 @@ pipeline {
               unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET_STASH}", credentialsId: "${JOB_GCS_CREDENTIALS}")
               dir("${BASE_DIR}"){
                 withOtelEnv() {
-                  sh './scripts/jenkins/run-benchmarks.sh'
+                  sh './scripts/docker-release/run-benchmarks.sh'
                 }
               }
             }

@@ -148,8 +148,8 @@ jobs:
       - name: "Build docker image"
         shell: bash
         run: |
-          ./scripts/jenkins/build_docker.sh
-          ./scripts/jenkins/push_docker.sh
+          ./scripts/docker-release/build_docker.sh
+          ./scripts/docker-release/push_docker.sh
 
   publish_aws_lambda:
     name: "Publish AWS Lambda"
