@@ -107,9 +107,9 @@ public class DslJsonSerializer implements MetaDataRefreshListener {
     private final StacktraceConfiguration stacktraceConfiguration;
     private final ApmServerClient apmServerClient;
 
-    private transient Future<MetaData> metaData;
+    private volatile Future<MetaData> metaData;
     @Nullable
-    private transient byte[] serializedMetaData;
+    private byte[] serializedMetaData;
     private boolean serializedActivationMethod;
 
     public DslJsonSerializer(StacktraceConfiguration stacktraceConfiguration, ApmServerClient apmServerClient, final Future<MetaData> metaData) {
