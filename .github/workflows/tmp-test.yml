@@ -8,14 +8,16 @@ jobs:
     steps:
       - id: buildkite
         name: Run Deploy
-        uses: elastic/apm-pipeline-library/.github/actions/buildkite@current
+        uses: reakaleek/apm-pipeline-library/.github/actions/buildkite@feature/buildkite-download-artifacts
         with:
           vaultUrl: ${{ secrets.VAULT_ADDR }}
           vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
           vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
           pipeline: apm-agent-java-release
-          pipelineVersion: ${{ github.head_ref }}
-          waitFor: false
-          printBuildLogs: false
+          pipelineVersion: ${{ inputs.version }}
+          waitFor: true
+          printBuildLogs: true
+          artifactName: lambda-zip
+          artifactPath: "elastic-apm-agent/target/**/elastic-apm-java-aws-lambda-layer-*.zip"
           buildEnvVars: |
-            dry_run=${{ inputs.dry_run || 'false' }}
+            dry_run=true

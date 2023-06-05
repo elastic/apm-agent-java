@@ -4,12 +4,10 @@ agents:
 steps:
   - label: "Run the snapshot"
     key: "release"
-    commands:
-      - echo "hello"
-      - glcoud --version
-#    artifact_paths:
-#      - "release.txt"
-#      - "**/target/*"
+    commands: .ci/release.sh
+    artifact_paths:
+      - "release.txt"
+      - "**/target/*"
 
 notify:
   - slack: "#apm-agent-java"
