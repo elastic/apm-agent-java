@@ -40,7 +40,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentationTest {
@@ -144,11 +144,13 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
         assertThat(ret).isEqualTo(arg);
 
         Transaction transaction = reporter.getFirstTransaction(1000);
-        validateDubboTransaction(transaction, DubboTestApi.class, "async");
+        validateDubboTransaction(transaction, "async");
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         List<Span> spans = reporter.getSpans();
-        assertThat(spans.size()).isEqualTo(1);
+        assertThat(spans).hasSize(1);
+
+        validateDubboSpan(spans.get(0), "async");
     }
 
     @Test

@@ -145,7 +145,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
         assertThat(ret).isEqualTo(arg);
 
         Transaction transaction = reporter.getFirstTransaction(1000);
-        validateDubboTransaction(transaction, DubboTestApi.class, "async");
+        validateDubboTransaction(transaction, "async");
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         List<Span> spans = reporter.getSpans();
@@ -163,7 +163,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
             future.get();
         } catch (Exception e) {
             // exception from Future will be wrapped as RpcException by dubbo implementation
-            assertThat(e.getCause() instanceof BizException).isTrue();
+            assertThat(e.getCause()).isInstanceOf(BizException.class);
             Transaction transaction = reporter.getFirstTransaction(1000);
             assertThat(reporter.getFirstSpan(500)).isNotNull();
             List<Span> spans = reporter.getSpans();
@@ -172,8 +172,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
             List<ErrorCapture> errors = reporter.getErrors();
             assertThat(errors.size()).isEqualTo(2);
             for (ErrorCapture error : errors) {
-                Throwable t = error.getException();
-                assertThat(t instanceof BizException).isTrue();
+                assertThat(error.getException()).isInstanceOf(BizException.class);
             }
             return;
         }
@@ -189,7 +188,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
         assertThat(future.get()).isEqualTo(arg);
 
         Transaction transaction = reporter.getFirstTransaction(1000);
-        validateDubboTransaction(transaction, DubboTestApi.class, "asyncByFuture");
+        validateDubboTransaction(transaction, "asyncByFuture");
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         reporter.awaitSpanCount(2);
@@ -204,7 +203,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
             future.get();
         } catch (Exception e) {
             Transaction transaction = reporter.getFirstTransaction(1000);
-            validateDubboTransaction(transaction, DubboTestApi.class, "asyncByFuture");
+            validateDubboTransaction(transaction, "asyncByFuture");
 
             assertThat(reporter.getFirstSpan(500)).isNotNull();
             reporter.awaitSpanCount(2);
@@ -212,7 +211,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
             List<ErrorCapture> errors = reporter.getErrors();
             assertThat(errors).hasSize(2);
             for (ErrorCapture error : errors) {
-                assertThat(error.getException() instanceof BizException).isTrue();
+                assertThat(error.getException()).isInstanceOf(BizException.class));
             }
             return;
         }
@@ -228,7 +227,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
         assertThat(ret).isEqualTo(arg);
 
         Transaction transaction = reporter.getFirstTransaction(1000);
-        validateDubboTransaction(transaction, DubboTestApi.class, "asyncByAsyncContext");
+        validateDubboTransaction(transaction, "asyncByAsyncContext");
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         List<Span> spans = reporter.getSpans();
@@ -242,7 +241,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
             dubboTestApi.asyncByAsyncContext("error");
         } catch (BizException e) {
             Transaction transaction = reporter.getFirstTransaction(1000);
-            validateDubboTransaction(transaction, DubboTestApi.class, "asyncByAsyncContext");
+            validateDubboTransaction(transaction, "asyncByAsyncContext");
 
             assertThat(reporter.getFirstSpan(5000)).isNotNull();
             List<Span> spans = reporter.getSpans();
@@ -251,7 +250,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
             List<ErrorCapture> errors = reporter.getErrors();
             assertThat(errors).hasSize(2);
             for (ErrorCapture error : errors) {
-                assertThat(error.getException() instanceof BizException).isTrue();
+                assertThat(error.getException()).isInstanceOf(BizException.class);
             }
             return;
         }
