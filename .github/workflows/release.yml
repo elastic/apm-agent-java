@@ -232,6 +232,7 @@ jobs:
       - update_cloudfoundry
       - build_and_push_docker_images
       - publish_aws_lambda
+      - create_github_release
     runs-on: ubuntu-latest
     steps:
       - id: check
