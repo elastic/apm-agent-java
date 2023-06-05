@@ -89,7 +89,9 @@ jobs:
       - maven_central_deploy
     steps:
       - uses: actions/checkout@v3
-      - shell: bash
+      - name: Await artifacts published in maven central
+        shell: bash
+        timeout-minutes: 120
         run: |
           until .ci/release/wait_maven_artifact_published.sh ${{ inputs.version }}
           do
@@ -203,6 +205,7 @@ jobs:
           ref: ${{ env.TAG_NAME }}
       - name: Await release-notes published
         shell: bash
+        timeout-minutes: 120
         run: |
           until .ci/release/wait_release_notes_published.sh ${{ inputs.version }}
           do
