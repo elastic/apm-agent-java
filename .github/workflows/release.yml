@@ -27,6 +27,7 @@ on:
 env:
   JAVA_VERSION: 17
   JAVA_DIST: adopt
+  TAG_NAME: v${{ inputs.version }}
 
 permissions:
   contents: write
@@ -55,7 +56,7 @@ jobs:
           git commit -m "Prepare changelog for release ${{ inputs.version }}" CHANGELOG.asciidoc
       - name: Bump version and add git tag
         run: ./mvnw release:prepare -B -DpushChanges=false "-Darguments=-DskipTests -Dmaven.javadoc.skip=true" -DreleaseVersion=${{ inputs.version }}
-      - run: git push --atomic origin ${{ inputs.branch }} v${{ inputs.version }}
+      - run: git push --atomic origin ${{ inputs.branch }} ${{ env.TAG_NAME }}
 
 
   maven_central_deploy:
@@ -72,7 +73,7 @@ jobs:
           vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
           vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
           pipeline: apm-agent-java-release
-          pipelineVersion: ${{ inputs.version }}
+          pipelineVersion: ${{ env.TAG_NAME }}
           waitFor: true
           printBuildLogs: false
           artifactName: lambda-zip
@@ -104,7 +105,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ env.TAG_NAME }}
       - uses: elastic/apm-pipeline-library/.github/actions/setup-git@current
       - run: .ci/release/update_major_branch.sh ${{ inputs.version }}
       - run: git push -f origin "$(echo '${{ inputs.version }}' | sed -E 's/\..+/.x/')"
@@ -131,7 +132,6 @@ jobs:
     needs:
       - await_artifact_on_maven_central
     env:
-      TAG_NAME: v${{ inputs.version }}
       SONATYPE_FALLBACK: 1
     steps:
       - uses: actions/checkout@v3
@@ -200,7 +200,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ env.TAG_NAME }}
       - name: Await release-notes published
         shell: bash
         run: |
@@ -216,7 +216,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v${{ inputs.version }} \
+          gh release create ${{ env.TAG_NAME }} \
             --title="Release ${{ inputs.version }}" \
             --notes="[Release Notes for ${{ inputs.version }}](https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${{ steps.get_dotx_branch.outputs.dotx_branch }}.html#release-notes-${{ inputs.version }})
             ${{ needs.publish_aws_lambda.outputs.arn_content }}"
