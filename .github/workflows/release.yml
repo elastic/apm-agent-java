@@ -136,7 +136,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ env.TAG_NAME }}
           fetch-depth: 0 # Load entire history as it is required for the push-script
       - uses: elastic/apm-pipeline-library/.github/actions/docker-login@current
         with:
@@ -161,7 +161,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ env.TAG_NAME }}
       - uses: actions/download-artifact@v3
         with:
           name: lambda-zip
