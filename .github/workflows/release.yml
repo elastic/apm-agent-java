@@ -19,10 +19,6 @@ on:
         type: boolean
         required: true
         default: true
-      dry_run:
-        description: If set, run a dry-run release
-        default: false
-        type: boolean
 
 env:
   JAVA_VERSION: 17
@@ -78,8 +74,6 @@ jobs:
           printBuildLogs: false
           artifactName: lambda-zip
           artifactPath: "elastic-apm-agent/target/elastic-apm-java-aws-lambda-layer-*.zip"
-          buildEnvVars: |
-            dry_run=${{ inputs.dry_run || 'false' }}
 
 
   await_artifact_on_maven_central:

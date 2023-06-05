@@ -25,9 +25,4 @@ java -version
 
 set +x
 echo "--- Deploy the release :package:"
-if [[ "$dry_run" == "true" ]] ; then
-  # Build artifacts only
-  ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true | tee release.txt
-else
-  ./mvnw -V -s .ci/settings.xml -Pgpg clean deploy -DskipTests --batch-mode | tee release.txt
-fi
+./mvnw -V -s .ci/settings.xml -Pgpg clean deploy -DskipTests --batch-mode | tee release.txt
