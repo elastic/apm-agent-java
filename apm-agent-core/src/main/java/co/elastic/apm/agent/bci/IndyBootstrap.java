@@ -418,7 +418,9 @@ public class IndyBootstrap {
             ClassFileLocator classFileLocator;
             List<String> pluginClasses = new ArrayList<>();
             Map<String, List<String>> requiredModuleOpens = Collections.emptyMap();
+            boolean allowOtelLookupFromParent;
             if (instrumentationClassLoader instanceof ExternalPluginClassLoader) {
+                allowOtelLookupFromParent = true;
                 List<String> externalPluginClasses = ((ExternalPluginClassLoader) instrumentationClassLoader).getClassNames();
                 for (String externalPluginClass : externalPluginClasses) {
                     if (// API classes have no dependencies and don't need to be loaded by an IndyPluginCL
@@ -437,6 +439,7 @@ public class IndyBootstrap {
                     ClassFileLocator.ForJarFile.of(agentJarFile)
                 );
             } else {
+                allowOtelLookupFromParent = false;
                 String pluginPackage = PluginClassLoaderRootPackageCustomizer.getPluginPackageFromClassName(adviceClassName);
                 pluginClasses.addAll(getClassNamesFromBundledPlugin(pluginPackage, instrumentationClassLoader));
                 requiredModuleOpens = ElasticApmAgent.getRequiredPluginModuleOpens(pluginPackage);
@@ -453,7 +456,8 @@ public class IndyBootstrap {
                 isAnnotatedWith(named(GlobalState.class.getName()))
                     // if config classes would be loaded from the plugin CL,
                     // tracer.getConfig(Config.class) would return null when called from an advice as the classes are not the same
-                    .or(nameContains("Config").and(hasSuperType(is(ConfigurationOptionProvider.class)))));
+                    .or(nameContains("Config").and(hasSuperType(is(ConfigurationOptionProvider.class)))),
+                allowOtelLookupFromParent);
             if (ElasticApmAgent.areModulesSupported() && !requiredModuleOpens.isEmpty()) {
                 boolean success = addRequiredModuleOpens(requiredModuleOpens, targetClassLoader, pluginClassLoader);
                 if (!success) {
