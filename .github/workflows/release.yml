@@ -28,6 +28,9 @@ env:
 permissions:
   contents: write
 
+concurrency:
+  group: ${{ github.workflow }}
+
 jobs:
   prepare_release:
     permissions:
