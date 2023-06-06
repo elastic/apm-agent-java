@@ -106,12 +106,6 @@
             <version>19.3.0.0</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-core</artifactId>
-            <version>${project.version}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
 
         <!--Connection Pools-->
         <dependency>
