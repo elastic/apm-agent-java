@@ -29,7 +29,7 @@ import java.util.Collections;
 
 public abstract class AbstractServletInstrumentation extends ElasticApmInstrumentation {
 
-    public static final Tracer tracer = GlobalTracer.get();
+    protected static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

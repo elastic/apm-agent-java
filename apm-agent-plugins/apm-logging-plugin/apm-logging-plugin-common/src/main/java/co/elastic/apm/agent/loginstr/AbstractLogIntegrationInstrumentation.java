@@ -32,7 +32,7 @@ public abstract class AbstractLogIntegrationInstrumentation extends ElasticApmIn
     protected static String LOG_REFORMATTING = "log-reformatting";
     protected static String LOG_ERROR = "log-error";
 
-    public static final Tracer tracer = GlobalTracer.get();
+    protected static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

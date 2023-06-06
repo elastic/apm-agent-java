@@ -59,7 +59,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class TracedInstrumentation extends ElasticApmInstrumentation {
 
-    public static final Tracer tracer = GlobalTracer.get();
+    protected static final Tracer tracer = GlobalTracer.get();
 
     public static final Logger logger = LoggerFactory.getLogger(TracedInstrumentation.class);
 

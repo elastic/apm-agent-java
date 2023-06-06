@@ -55,7 +55,7 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
 
     public static final Logger logger = LoggerFactory.getLogger(CaptureSpanInstrumentation.class);
 
-    public static final Tracer tracer = GlobalTracer.get();
+    protected static final Tracer tracer = GlobalTracer.get();
 
     private final CoreConfiguration coreConfig;
     private final StacktraceConfiguration stacktraceConfig;
