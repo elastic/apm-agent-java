@@ -20,6 +20,7 @@ package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
 import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
