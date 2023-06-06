@@ -18,87 +18,39 @@
  */
 package co.elastic.apm.agent.sdk.util;
 
-import javax.annotation.Nullable;
+import co.elastic.apm.agent.sdk.internal.InternalUtil;
+
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 
-public abstract class ExecutorUtils {
+public final class ExecutorUtils {
 
-    @Nullable
-    private static ExecutorUtils instance;
+    private static final ExecutorUtilsProvider supplier;
 
-    public static void init(ExecutorUtils instance) {
-        ExecutorUtils.instance = instance;
+
+    static {
+        supplier = InternalUtil.getServiceProvider(ExecutorUtilsProvider.class);
     }
 
     public static ScheduledExecutorService createSingleThreadSchedulingDaemonPool(final String threadPurpose) {
-        ExecutorUtils instance = ExecutorUtils.instance;
-        if (instance == null) {
-            return new NamedScheduledThreadPoolExecutor(threadPurpose);
-        } else {
-            return instance.doCreateSingleThreadSchedulingDaemonPool(threadPurpose);
-        }
+        return supplier.createSingleThreadSchedulingDaemonPool(threadPurpose);
     }
-
-
-    protected abstract ScheduledExecutorService doCreateSingleThreadSchedulingDaemonPool(final String threadPurpose);
 
     public static boolean isAgentExecutor(Executor executor) {
-        ExecutorUtils instance = ExecutorUtils.instance;
-        if (instance == null) {
-            return executor instanceof NamedScheduledThreadPoolExecutor;
-        } else {
-            return instance.doIsAgentExecutor(executor);
-        }
+        return supplier.isAgentExecutor(executor);
     }
-
-    protected abstract boolean doIsAgentExecutor(Executor executor);
 
     public static void shutdownAndWaitTermination(ExecutorService executor) {
-        ExecutorUtils instance = ExecutorUtils.instance;
-        if (instance == null) {
-            executor.shutdown();
-            try {
-                if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
-                    executor.shutdownNow();
-                    if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
-                        throw new IllegalStateException();
-                    }
-                }
-            } catch (InterruptedException e) {
-                throw new IllegalStateException(e);
-            }
-        } else {
-            instance.doShutdownAndWaitTermination(executor);
-        }
+        supplier.shutdownAndWaitTermination(executor);
     }
 
-    protected abstract void doShutdownAndWaitTermination(ExecutorService executor);
+    public interface ExecutorUtilsProvider {
 
-    private static class NamedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecutor {
+        boolean isAgentExecutor(Executor executor);
 
-        private final String threadPurpose;
+        ScheduledExecutorService createSingleThreadSchedulingDaemonPool(String threadPurpose);
 
-        public NamedScheduledThreadPoolExecutor(final String threadPurpose) {
-            super(1, new ThreadFactory() {
-                @Override
-                public Thread newThread(Runnable r) {
-                    Thread thread = new Thread(r);
-                    thread.setName("executor-util-" + threadPurpose);
-                    thread.setDaemon(true);
-                    return thread;
-                }
-            });
-            this.threadPurpose = threadPurpose;
-        }
-
-        @Override
-        public String toString() {
-            return super.toString() + "(thread name = " + threadPurpose + ")";
-        }
+        void shutdownAndWaitTermination(ExecutorService executor);
     }
 }

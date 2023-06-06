@@ -176,7 +176,6 @@ public class ElasticApmAgent {
             return;
         }
         GlobalTracer.init(tracer);
-        ExecutorUtils.init();
         // ensure classes can be instrumented before LifecycleListeners use them by starting the tracer after initializing instrumentation
         initInstrumentation(tracer, instrumentation, loadInstrumentations(tracer), premain);
     }
@@ -230,7 +229,6 @@ public class ElasticApmAgent {
     public static synchronized void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
                                                         Iterable<ElasticApmInstrumentation> instrumentations) {
         GlobalTracer.init(tracer);
-        ExecutorUtils.init();
         initInstrumentation(tracer, instrumentation, instrumentations, false);
     }
 
