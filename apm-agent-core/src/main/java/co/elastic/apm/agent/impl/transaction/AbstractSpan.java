@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.agent.collections.LongList;
+import co.elastic.apm.agent.sdk.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;

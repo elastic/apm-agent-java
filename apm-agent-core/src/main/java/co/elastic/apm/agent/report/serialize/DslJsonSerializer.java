@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
-import co.elastic.apm.agent.collections.LongList;
+import co.elastic.apm.agent.sdk.collections.LongList;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.CloudOrigin;
 import co.elastic.apm.agent.impl.context.Db;

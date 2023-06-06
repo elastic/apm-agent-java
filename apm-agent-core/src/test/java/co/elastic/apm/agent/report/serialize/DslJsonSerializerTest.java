@@ -20,7 +20,7 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.collections.LongList;
+import co.elastic.apm.agent.sdk.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.collections;
+package co.elastic.apm.agent.sdk.collections;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
