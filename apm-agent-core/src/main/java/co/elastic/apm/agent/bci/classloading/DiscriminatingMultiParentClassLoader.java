@@ -143,9 +143,15 @@ class DiscriminatingMultiParentClassLoader extends ClassLoader {
 
     @Override
     public String toString() {
+        ClassLoader targetClassLoader = null;
+        ElementMatcher<String> targetDiscriminator = null;
+        if (parents.size() > 1) {
+            targetClassLoader = parents.get(1);
+            targetDiscriminator = discriminators.get(1);
+        }
         return "DiscriminatingMultiParentClassLoader{" +
-            "agentClassLoader = " + parents.get(0) + " discriminator = "+ discriminators.get(0) +
-            ", targetClassLoader =" + parents.get(1) + " discriminator = " + discriminators.get(1) +
+            "agentClassLoader = " + parents.get(0) + " discriminator = " + discriminators.get(0) +
+            ", targetClassLoader =" + targetClassLoader + " discriminator = " + targetDiscriminator +
             '}';
     }
 }

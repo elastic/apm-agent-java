@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
@@ -31,6 +30,7 @@ import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import io.grpc.CallOptions;
 import io.grpc.ClientCall;
 import io.grpc.Metadata;
@@ -58,27 +58,27 @@ public class GrpcHelper {
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall} instance as key.
      */
-    private final WeakMap<ClientCall<?, ?>, Span<?>> clientCallSpans;
+    private final ReferenceCountedMap<ClientCall<?, ?>, Span<?>> clientCallSpans;
 
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall} instance as key.
      */
-    private final WeakMap<ClientCall<?, ?>, Span<?>> delayedClientCallSpans;
+    private final ReferenceCountedMap<ClientCall<?, ?>, Span<?>> delayedClientCallSpans;
 
     /**
      * Map of all in-flight {@link Span} with {@link ClientCall.Listener} instance as key.
      */
-    private final WeakMap<ClientCall.Listener<?>, Span<?>> clientCallListenerSpans;
+    private final ReferenceCountedMap<ClientCall.Listener<?>, Span<?>> clientCallListenerSpans;
 
     /**
      * Map of all in-flight {@link Transaction} with {@link ServerCall.Listener} instance as key.
      */
-    private final WeakMap<ServerCall.Listener<?>, Transaction<?>> serverListenerTransactions;
+    private final ReferenceCountedMap<ServerCall.Listener<?>, Transaction<?>> serverListenerTransactions;
 
     /**
      * Map of all in-flight {@link Transaction} with {@link ServerCall} instance as key.
      */
-    private final WeakMap<ServerCall<?, ?>, Transaction<?>> serverCallTransactions;
+    private final ReferenceCountedMap<ServerCall<?, ?>, Transaction<?>> serverCallTransactions;
 
     /**
      * gRPC header cache used to minimize allocations
@@ -91,19 +91,18 @@ public class GrpcHelper {
     private final Tracer tracer;
 
     public GrpcHelper() {
-        clientCallSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
-        delayedClientCallSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
-        clientCallListenerSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
+        tracer = GlobalTracer.get();
+        clientCallSpans = tracer.newReferenceCountedMap();
+        delayedClientCallSpans = tracer.newReferenceCountedMap();
+        clientCallListenerSpans = tracer.newReferenceCountedMap();
 
-        serverListenerTransactions = WeakConcurrentProviderImpl.createWeakSpanMap();
-        serverCallTransactions = WeakConcurrentProviderImpl.createWeakSpanMap();
+        serverListenerTransactions = tracer.newReferenceCountedMap();
+        serverCallTransactions = tracer.newReferenceCountedMap();
 
         headerCache = WeakConcurrent.buildMap();
 
         headerSetter = new GrpcHeaderSetter();
         headerGetter = new GrpcHeaderGetter();
-
-        tracer = GlobalTracer.get();
     }
 
     // transaction management (server part)
@@ -480,7 +479,7 @@ public class GrpcHelper {
     }
 
     public void cancelCall(ClientCall<?, ?> clientCall, @Nullable Throwable cause) {
-        WeakMap<ClientCall<?, ?>, Span<?>> clientCallMap = (isDelayedClientCall(clientCall)) ? delayedClientCallSpans : clientCallSpans;
+        ReferenceCountedMap<ClientCall<?, ?>, Span<?>> clientCallMap = (isDelayedClientCall(clientCall)) ? delayedClientCallSpans : clientCallSpans;
         // we can't remove yet, in order to avoid reference decrement prematurely
         Span<?> span = clientCallMap.get(clientCall);
         if (span != null) {

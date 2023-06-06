@@ -29,6 +29,11 @@ endif::[]
 * Added support for recording AWS lambda transactions even if the JVM crashes or runs into a timeout - {pull}3134[#3134]
 * Add extra built-in metrics: `jvm.fd.*` and `jvm.memory.pool.non_heap.*` - {pull}[#3147]
 
+[float]
+===== Bug fixes
+* Fixed classloading for OpenTelemetry dependencies in external plugins - {pull}3154[#3154]
+
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
