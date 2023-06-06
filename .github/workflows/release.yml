@@ -77,6 +77,7 @@ jobs:
           printBuildLogs: false
           artifactName: lambda-zip
           artifactPath: "elastic-apm-agent/target/elastic-apm-java-aws-lambda-layer-*.zip"
+          artifactIfNoFilesFound: error
 
 
   await_artifact_on_maven_central:
