@@ -47,7 +47,7 @@ public class ChildFirstURLClassLoader extends URLClassLoader implements Internal
 
     @Override
     public String getMarker() {
-        return INTERNAL_PLUGIN_CLASS_LOADER;
+        return CLASS_LOADER;
     }
 
     @Override

@@ -41,6 +41,7 @@ import java.util.Collection;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.regex.Matcher;
 
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -55,9 +56,12 @@ public class CustomElementMatchers {
     private static final ElementMatcher.Junction.AbstractBase<ClassLoader> AGENT_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
         @Override
         public boolean matches(@Nullable ClassLoader classLoader) {
-            if (classLoader instanceof InternalAgentClass) {
+            if (classLoader != null && classLoader.getClass().getName().startsWith("co.elastic.apm.")) {
+                return true;
+                // TODO: why does this not work?
+            /*if (classLoader instanceof InternalAgentClass) {
                 String marker = ((InternalAgentClass) classLoader).getMarker();
-                return InternalAgentClass.CLASS_LOADER.equals(marker) || InternalAgentClass.INTERNAL_PLUGIN_CLASS_LOADER.equals(marker);
+                return InternalAgentClass.CLASS_LOADER.equals(marker) || InternalAgentClass.INTERNAL_PLUGIN_CLASS_LOADER.equals(marker);*/
             } else if (classLoader == SELF_CLASS_LOADER) {
                 // This one also covers unit tests, where the app class loader loads the agent
                 return true;
@@ -69,9 +73,13 @@ public class CustomElementMatchers {
     private static final ElementMatcher.Junction.AbstractBase<ClassLoader> INTERNAL_PLUGIN_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
         @Override
         public boolean matches(@Nullable ClassLoader classLoader) {
-            if (classLoader instanceof InternalAgentClass) {
-                return InternalAgentClass.INTERNAL_PLUGIN_CLASS_LOADER.equals(((InternalAgentClass) classLoader).getMarker());
+            if (classLoader != null && classLoader.getClass().getName().equals("co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader")) {
+                return true;
             }
+            // TODO: why does this not work?
+            /*if (classLoader instanceof InternalAgentClass) {
+                return InternalAgentClass.INTERNAL_PLUGIN_CLASS_LOADER.equals(((InternalAgentClass) classLoader).getMarker());
+            }*/
             return false;
         }
     };
