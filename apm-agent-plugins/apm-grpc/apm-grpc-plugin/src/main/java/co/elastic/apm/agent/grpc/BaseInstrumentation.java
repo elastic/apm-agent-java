@@ -19,11 +19,15 @@
 package co.elastic.apm.agent.grpc;
 
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import java.util.Collection;
 import java.util.Collections;
 
 public abstract class BaseInstrumentation extends ElasticApmInstrumentation {
+
+    static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {

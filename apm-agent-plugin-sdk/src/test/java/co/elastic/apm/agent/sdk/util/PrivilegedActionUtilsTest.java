@@ -36,7 +36,6 @@ import java.security.ProtectionDomain;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @EnabledForJreRange(max = JRE.JAVA_17, disabledReason = "SecurityManager is not supported anymore")
