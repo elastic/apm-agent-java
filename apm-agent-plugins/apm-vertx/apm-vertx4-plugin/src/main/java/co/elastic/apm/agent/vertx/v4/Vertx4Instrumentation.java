@@ -19,6 +19,8 @@
 package co.elastic.apm.agent.vertx.v4;
 
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Arrays;
@@ -27,6 +29,8 @@ import java.util.Collection;
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 
 public abstract class Vertx4Instrumentation extends ElasticApmInstrumentation {
+
+    protected static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
