@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.cache;
+package co.elastic.apm.agent.sdk.weakconcurrent;
 
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakKeySoftValueLoadingCache;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
