@@ -16,7 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@NonnullApi
-package co.elastic.apm.agent.db.signature;
+package co.elastic.apm.agent.sdk.db.signature;
 
-import co.elastic.apm.agent.sdk.NonnullApi;
+public interface ScannerFilter {
+    boolean skip(Scanner s, char c);
+
+    void reset();
+
+    enum NoOp implements ScannerFilter {
+
+        INSTANCE;
+
+        @Override
+        public boolean skip(Scanner s, char c) {
+            return false;
+        }
+
+        @Override
+        public void reset() {
+        }
+    }
+}

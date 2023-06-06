@@ -16,24 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.db.signature;
+package specs;
 
-public interface ScannerFilter {
-    boolean skip(Scanner s, char c);
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-    void reset();
+import java.io.IOException;
+import java.net.URL;
 
-    enum NoOp implements ScannerFilter {
+public class TestJsonSpec {
 
-        INSTANCE;
+    public static JsonNode getJson(String jsonFile) {
+        return getJson(TestJsonSpec.class, "json-specs/" + jsonFile);
+    }
 
-        @Override
-        public boolean skip(Scanner s, char c) {
-            return false;
-        }
-
-        @Override
-        public void reset() {
+    public static JsonNode getJson(Class<?> type, String path) {
+        URL jsonSpec = type.getClassLoader().getResource(path);
+        try {
+            return new ObjectMapper()
+                .enable(JsonParser.Feature.ALLOW_COMMENTS)
+                .readTree(jsonSpec);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
         }
     }
 }

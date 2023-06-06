@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.db.signature;
+package co.elastic.apm.agent.sdk.db.signature;
 
 import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
@@ -27,12 +27,12 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import static co.elastic.apm.agent.db.signature.Scanner.Token.EOF;
-import static co.elastic.apm.agent.db.signature.Scanner.Token.FROM;
-import static co.elastic.apm.agent.db.signature.Scanner.Token.IDENT;
-import static co.elastic.apm.agent.db.signature.Scanner.Token.INTO;
-import static co.elastic.apm.agent.db.signature.Scanner.Token.LPAREN;
-import static co.elastic.apm.agent.db.signature.Scanner.Token.RPAREN;
+import static co.elastic.apm.agent.sdk.db.signature.Scanner.Token.EOF;
+import static co.elastic.apm.agent.sdk.db.signature.Scanner.Token.FROM;
+import static co.elastic.apm.agent.sdk.db.signature.Scanner.Token.IDENT;
+import static co.elastic.apm.agent.sdk.db.signature.Scanner.Token.INTO;
+import static co.elastic.apm.agent.sdk.db.signature.Scanner.Token.LPAREN;
+import static co.elastic.apm.agent.sdk.db.signature.Scanner.Token.RPAREN;
 
 public class SignatureParser {
 
