@@ -18,18 +18,19 @@
  */
 package co.elastic.apm.agent.opentelemetry;
 
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Arrays;
 import java.util.Collection;
 
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+
 public abstract class AbstractOpenTelemetryInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public final ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return CustomElementMatchers.classLoaderCanLoadClass("io.opentelemetry.context.propagation.TextMapSetter");
+        return classLoaderCanLoadClass("io.opentelemetry.context.propagation.TextMapSetter");
     }
 
     @Override
