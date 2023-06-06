@@ -22,7 +22,6 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -131,7 +130,8 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
 
         // span on the emitting side (outgoing from this method)
         reporter.awaitSpanCount(1);
-        validateDubboSpan(reporter.getFirstSpan(), "normalReturn");
+        Span span = validateDubboSpan(reporter.getFirstSpan(), "normalReturn");
+        assertThat(span).isSync();
 
         List<ErrorCapture> errors = reporter.getErrors();
         assertThat(errors.size()).isEqualTo(0);
@@ -166,6 +166,8 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         assertThat(reporter.getFirstSpan(5000)).isNotNull();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(2);
+
+        assertThat(reporter.getSpanByName("DubboTestApi#asyncNoReturn")).isAsync();
     }
 
     @Test
@@ -180,6 +182,8 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         List<ErrorCapture> errors = reporter.getErrors();
         assertThat(errors).hasSize(1);
         assertThat(errors.get(0).getException()).isInstanceOf(BizException.class);
+
+        assertThat(reporter.getSpanByName("DubboTestApi#asyncNoReturn")).isAsync();
     }
 
     public void validateDubboTransaction(Transaction transaction, String methodName) {
@@ -188,7 +192,7 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
             .hasName("DubboTestApi#" + methodName);
     }
 
-    public static void validateDubboSpan(Span span, String methodName) {
+    public static Span validateDubboSpan(Span span, String methodName) {
         assertThat(span)
             .hasName("DubboTestApi#" + methodName)
             .hasType("external")
@@ -206,6 +210,8 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         assertThat(span.getOutcome())
             .describedAs("span outcome should be known")
             .isNotEqualTo(Outcome.UNKNOWN);
+
+        return span;
     }
 
     @Test

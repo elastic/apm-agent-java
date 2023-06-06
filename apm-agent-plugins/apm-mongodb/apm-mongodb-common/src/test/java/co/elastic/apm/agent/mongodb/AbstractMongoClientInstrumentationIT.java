@@ -244,15 +244,14 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
 
     private void verifySpan(Span span, String expectedName, Outcome expectedOutcome) {
 
-        assertThat(span.getNameAsString()).isEqualTo(expectedName);
-        assertThat(span.getOutcome()).isEqualTo(expectedOutcome);
+        assertThat(span)
+            .hasName(expectedName)
+            .hasOutcome(expectedOutcome);
 
         // verify destination
-        Destination destination = span.getContext().getDestination();
-        String address = destination.getAddress().toString();
-        assertThat(address).isIn("localhost", "127.0.0.1");
-
-        assertThat(destination).hasPort(container.getMappedPort(PORT));
+        assertThat(span.getContext().getDestination())
+            .hasLocalAddress()
+            .hasPort(container.getMappedPort(PORT));
 
         DbAssert dbAssert = assertThat(span.getContext().getDb())
             .hasInstance("testdb");

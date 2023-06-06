@@ -20,35 +20,35 @@ package co.elastic.apm.agent.dubbo.advice;
 
 import co.elastic.apm.agent.dubbo.helper.ApacheDubboTextMapPropagator;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
-import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.*;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
-import org.apache.dubbo.rpc.AsyncRpcResult;
-import org.apache.dubbo.rpc.Invocation;
-import org.apache.dubbo.rpc.Result;
-import org.apache.dubbo.rpc.RpcContext;
+import org.apache.dubbo.rpc.*;
+import org.apache.dubbo.rpc.protocol.AsyncToSyncInvoker;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 
 public class ApacheMonitorFilterAdvice {
 
     private static final Tracer tracer = GlobalTracer.get();
 
+    private static final WeakMap<String, String> asyncParamCache = WeakConcurrent.buildMap();
+
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onEnterFilterInvoke(@Advice.Argument(1) Invocation invocation) {
+    public static Object onEnterFilterInvoke(@Advice.Argument(0) Invoker<?> invoker,
+                                             @Advice.Argument(1) Invocation invocation) {
+
         RpcContext context = RpcContext.getContext();
         AbstractSpan<?> active = tracer.getActive();
         // for consumer side, just create span, more information will be collected in provider side
         if (context.isConsumerSide() && active != null) {
-            Span<?> span = DubboTraceHelper.createConsumerSpan(tracer, invocation.getInvoker().getInterface(),
-                invocation.getMethodName(), context.getRemoteAddress());
+            Span<?> span = DubboTraceHelper.createConsumerSpan(tracer, invocation.getInvoker().getInterface(), invocation.getMethodName(), context.getRemoteAddress());
+
             if (span != null) {
                 span.propagateTraceContext(context, ApacheDubboTextMapPropagator.INSTANCE);
                 return span;
@@ -66,24 +66,31 @@ public class ApacheMonitorFilterAdvice {
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onExitFilterInvoke(@Advice.Argument(1) Invocation invocation,
+    public static void onExitFilterInvoke(@Advice.Argument(0) Invoker<?> invoker,
+                                          @Advice.Argument(1) Invocation invocation,
                                           @Advice.Return @Nullable Result result,
                                           @Advice.Enter @Nullable final Object spanObj,
-                                          @Advice.Thrown @Nullable Throwable t) {
+                                          @Advice.Thrown @Nullable Throwable thrown) {
 
         AbstractSpan<?> span = (AbstractSpan<?>) spanObj;
-        RpcContext context = RpcContext.getContext();
         if (span == null) {
             return;
         }
 
-        span.deactivate();
+        span.captureException(thrown)
+            .deactivate();
+
         if (result instanceof AsyncRpcResult) {
-            context.set(DubboTraceHelper.SPAN_KEY, span);
+            RpcContext.getContext().set(DubboTraceHelper.SPAN_KEY, span);
+            if(invocation instanceof RpcInvocation){
+                RpcContext.getContext().set(DubboTraceHelper.INVOKE_MODE, ((RpcInvocation) invocation).getInvokeMode());
+            }
             result.whenCompleteWithContext(AsyncCallback.INSTANCE);
         } else {
-            span.end();
+            span.withSync(true)
+                .end();
         }
+
     }
 
     public static class AsyncCallback implements BiConsumer<Result, Throwable> {
@@ -93,22 +100,33 @@ public class ApacheMonitorFilterAdvice {
         @Override
         public void accept(@Nullable Result result, @Nullable Throwable t) {
             AbstractSpan<?> span = (AbstractSpan<?>) RpcContext.getContext().get(DubboTraceHelper.SPAN_KEY);
-            if (span != null) {
-                try {
-                    RpcContext.getContext().remove(DubboTraceHelper.SPAN_KEY);
-
-                    Throwable resultException = null;
-                    if (result != null) {
-                        resultException = result.getException();
-                    }
-
-                    span.captureException(t)
-                        .captureException(resultException)
-                        .withOutcome(t != null || resultException != null ? Outcome.FAILURE : Outcome.SUCCESS);
-                } finally {
-                    span.end();
-                }
+            if(span == null){
+                return;
             }
+            try {
+                RpcContext.getContext().remove(DubboTraceHelper.SPAN_KEY);
+
+                Throwable resultException = null;
+                if (result != null) {
+                    resultException = result.getException();
+                }
+
+                if(span instanceof Span){
+                    InvokeMode invokeMode = (InvokeMode) RpcContext.getContext().get(DubboTraceHelper.INVOKE_MODE);
+                    if (invokeMode != null && invokeMode != InvokeMode.SYNC) {
+                        span.withSync(false);
+                    } else {
+                        span.withSync(result instanceof AppResponse);
+                    }
+                }
+
+                span.captureException(t)
+                    .captureException(resultException)
+                    .withOutcome(t != null || resultException != null ? Outcome.FAILURE : Outcome.SUCCESS);
+            } finally {
+                span.end();
+            }
+
         }
     }
 }

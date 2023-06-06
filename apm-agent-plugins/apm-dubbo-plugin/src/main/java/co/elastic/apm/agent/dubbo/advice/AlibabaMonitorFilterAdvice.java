@@ -28,9 +28,11 @@ import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import com.alibaba.dubbo.rpc.Invocation;
+import com.alibaba.dubbo.rpc.Invoker;
 import com.alibaba.dubbo.rpc.Result;
 import com.alibaba.dubbo.rpc.RpcContext;
 import com.alibaba.dubbo.rpc.protocol.dubbo.FutureAdapter;
+import com.alibaba.dubbo.rpc.support.RpcUtils;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
@@ -41,7 +43,9 @@ public class AlibabaMonitorFilterAdvice {
 
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onEnterFilterInvoke(@Advice.Argument(1) Invocation invocation) {
+    public static Object onEnterFilterInvoke(@Advice.Argument(0) Invoker<?> invoker,
+                                             @Advice.Argument(1) Invocation invocation) {
+
         RpcContext context = RpcContext.getContext();
         // for consumer side, just create span, more information will be collected in provider side
         AbstractSpan<?> active = tracer.getActive();
@@ -49,6 +53,7 @@ public class AlibabaMonitorFilterAdvice {
             Span<?> span = DubboTraceHelper.createConsumerSpan(tracer, invocation.getInvoker().getInterface(),
                 invocation.getMethodName(), context.getRemoteAddress());
             if (span != null) {
+                span.withSync(!RpcUtils.isAsync(invoker.getUrl(), invocation));
                 span.propagateTraceContext(context, AlibabaDubboTextMapPropagator.INSTANCE);
                 return span;
             }
@@ -65,10 +70,10 @@ public class AlibabaMonitorFilterAdvice {
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onExitFilterInvoke(@Advice.Argument(1) Invocation invocation,
-                                          @Advice.Return @Nullable Result result,
+    public static void onExitFilterInvoke(@Advice.Return @Nullable Result result,
                                           @Advice.Enter @Nullable Object spanObj,
                                           @Advice.Thrown @Nullable Throwable t) {
+
         AbstractSpan<?> span = (AbstractSpan<?>) spanObj;
         if (span == null) {
             return;
@@ -78,8 +83,7 @@ public class AlibabaMonitorFilterAdvice {
         if (result != null) { // will be null in case of thrown exception
             resultException = result.getException();
         }
-        span
-            .captureException(t)
+        span.captureException(t)
             .captureException(resultException)
             .withOutcome(t != null || resultException != null ? Outcome.FAILURE : Outcome.SUCCESS)
             .deactivate();

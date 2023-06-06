@@ -40,7 +40,9 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+
 
 public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentationTest {
 
@@ -147,9 +149,10 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
         Transaction transaction = reporter.getFirstTransaction(1000);
         validateDubboTransaction(transaction, "async");
 
-        assertThat(reporter.getFirstSpan(500)).isNotNull();
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans.size()).isEqualTo(1);
+        assertThat(reporter.getFirstSpan(500))
+            .hasName("DubboTestApi#async")
+            .isAsync();
+        assertThat(reporter.getSpans()).hasSize(1);
     }
 
     @Test
@@ -161,22 +164,21 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
             Future<Object> future = RpcContext.getContext().getFuture();
             assertThat(future).isNotNull();
             future.get();
+            fail("not ok");
         } catch (Exception e) {
             // exception from Future will be wrapped as RpcException by dubbo implementation
             assertThat(e.getCause()).isInstanceOf(BizException.class);
             Transaction transaction = reporter.getFirstTransaction(1000);
             assertThat(reporter.getFirstSpan(500)).isNotNull();
-            List<Span> spans = reporter.getSpans();
-            assertThat(spans.size()).isEqualTo(1);
+            assertThat(reporter.getSpans()).hasSize(1);
+            assertThat(reporter.getSpanByName("DubboTestApi#async")).isAsync();
 
             List<ErrorCapture> errors = reporter.getErrors();
             assertThat(errors.size()).isEqualTo(2);
             for (ErrorCapture error : errors) {
                 assertThat(error.getException()).isInstanceOf(BizException.class);
             }
-            return;
         }
-        throw new RuntimeException("not ok");
     }
 
     @Test
@@ -192,15 +194,19 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         reporter.awaitSpanCount(2);
+
+        assertThat(reporter.getSpanByName("DubboTestApi#asyncByFuture"))
+            .isAsync();
     }
 
     @Test
-    public void testAsyncByFutureException() throws Exception {
+    public void testAsyncByFutureException() {
         DubboTestApi dubboTestApi = getDubboTestApi();
         String arg = "error";
         CompletableFuture<String> future = dubboTestApi.asyncByFuture(arg);
         try {
             future.get();
+            fail("not ok");
         } catch (Exception e) {
             Transaction transaction = reporter.getFirstTransaction(1000);
             validateDubboTransaction(transaction, "asyncByFuture");
@@ -208,16 +214,16 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
             assertThat(reporter.getFirstSpan(500)).isNotNull();
             reporter.awaitSpanCount(2);
 
+            assertThat(reporter.getSpanByName("DubboTestApi#asyncByFuture"))
+                .isAsync();
+
             List<ErrorCapture> errors = reporter.getErrors();
             assertThat(errors).hasSize(2);
             for (ErrorCapture error : errors) {
-                assertThat(error.getException()).isInstanceOf(BizException.class));
+                assertThat(error.getException()).isInstanceOf(BizException.class);
             }
-            return;
         }
-        throw new RuntimeException("not ok");
     }
-
 
     @Test
     public void testAsyncByAsyncContext() throws Exception {
@@ -232,6 +238,8 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         List<Span> spans = reporter.getSpans();
         assertThat(spans.size()).isEqualTo(2);
+
+        assertThat(reporter.getSpanByName("DubboTestApi#asyncByAsyncContext")).isNotNull();
     }
 
     @Test
@@ -239,21 +247,22 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
         DubboTestApi dubboTestApi = getDubboTestApi();
         try {
             dubboTestApi.asyncByAsyncContext("error");
+            fail("not ok");
         } catch (BizException e) {
             Transaction transaction = reporter.getFirstTransaction(1000);
             validateDubboTransaction(transaction, "asyncByAsyncContext");
 
             assertThat(reporter.getFirstSpan(5000)).isNotNull();
             List<Span> spans = reporter.getSpans();
+
             assertThat(spans.size()).isEqualTo(2);
+            assertThat(reporter.getSpanByName("DubboTestApi#asyncByAsyncContext")).isNotNull();
 
             List<ErrorCapture> errors = reporter.getErrors();
             assertThat(errors).hasSize(2);
             for (ErrorCapture error : errors) {
                 assertThat(error.getException()).isInstanceOf(BizException.class);
             }
-            return;
         }
-        throw new RuntimeException("not ok");
     }
 }

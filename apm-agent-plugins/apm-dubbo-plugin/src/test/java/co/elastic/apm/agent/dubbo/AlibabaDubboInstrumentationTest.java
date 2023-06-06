@@ -150,7 +150,8 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
 
-        validateDubboSpan(spans.get(0), "async");
+        Span span = validateDubboSpan(spans.get(0), "async");
+        assertThat(span).isAsync();
     }
 
     @Test
@@ -169,8 +170,9 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
             Transaction transaction = reporter.getFirstTransaction(1000);
             assertThat(transaction).isNotNull();
             assertThat(reporter.getFirstSpan(500)).isNotNull();
-            List<Span> spans = reporter.getSpans();
-            assertThat(spans.size()).isEqualTo(1);
+            assertThat(reporter.getSpans()).hasSize(1);
+
+            assertThat(reporter.getFirstSpan()).isAsync();
 
             List<ErrorCapture> errors = reporter.getErrors();
             assertThat(errors.size()).isEqualTo(2);
