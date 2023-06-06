@@ -27,14 +27,13 @@ import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.security.CodeSigner;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.List;
 
-import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.implementationVersionLte;
-import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.*;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -93,5 +92,19 @@ class CustomElementMatchersTest {
         assertThat(classLoaderCanLoadClass(Object.class.getName()).matches(ClassLoader.getSystemClassLoader())).isTrue();
         assertThat(classLoaderCanLoadClass(Object.class.getName()).matches(null)).isTrue();
         assertThat(classLoaderCanLoadClass("not.Here").matches(ClassLoader.getSystemClassLoader())).isFalse();
+    }
+
+    @Test
+    void testIsAgentClassLoader() {
+        assertThat(isAgentClassLoader().matches(CustomElementMatchers.class.getClassLoader())).isTrue();
+        assertThat(isAgentClassLoader().matches(new CustomElementMatchersTestProvider.SampleAgentClassLoader())).isTrue();
+        assertThat(isAgentClassLoader().matches(new URLClassLoader(new URL[0]))).isFalse();
+    }
+
+    @Test
+    void testIsInternalPluginClassLoader() {
+        assertThat(isInternalPluginClassLoader().matches(CustomElementMatchers.class.getClassLoader())).isFalse();
+        assertThat(isInternalPluginClassLoader().matches(new CustomElementMatchersTestProvider.SampleInternalPluginClassLoader())).isTrue();
+        assertThat(isInternalPluginClassLoader().matches(new URLClassLoader(new URL[0]))).isFalse();
     }
 }

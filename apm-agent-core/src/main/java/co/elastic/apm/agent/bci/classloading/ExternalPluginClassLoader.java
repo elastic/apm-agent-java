@@ -21,7 +21,6 @@ package co.elastic.apm.agent.bci.classloading;
 import co.elastic.apm.agent.common.util.AgentInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.sdk.internal.InternalAgentClass;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import java.io.File;
@@ -43,7 +42,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
  *
  * @see co.elastic.apm.agent.bci.IndyBootstrap
  */
-public class ExternalPluginClassLoader extends URLClassLoader implements InternalAgentClass {
+public class ExternalPluginClassLoader extends URLClassLoader {
     private final List<String> classNames;
     private final File pluginJar;
 
@@ -99,11 +98,6 @@ public class ExternalPluginClassLoader extends URLClassLoader implements Interna
 
     public List<String> getClassNames() {
         return classNames;
-    }
-
-    @Override
-    public String getMarker() {
-        return CLASS_LOADER;
     }
 
     @Override

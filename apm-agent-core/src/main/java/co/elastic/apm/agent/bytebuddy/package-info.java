@@ -17,6 +17,6 @@
  * under the License.
  */
 @NonnullApi
-package co.elastic.apm.agent.annotation;
+package co.elastic.apm.agent.bytebuddy;
 
 import co.elastic.apm.agent.sdk.NonnullApi;

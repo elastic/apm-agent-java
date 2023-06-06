@@ -18,7 +18,6 @@
  */
 package co.elastic.test;
 
-import co.elastic.apm.agent.sdk.internal.InternalAgentClass;
 import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 
 import java.io.IOException;
@@ -36,18 +35,13 @@ import java.util.List;
  * In order for classes that are loaded by this class loader to be instrumented, it must be outside of the {@code co.elastic.apm}
  * package, otherwise it may be excluded if tested through {@link co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers#isAgentClassLoader()}.
  */
-public class ChildFirstURLClassLoader extends URLClassLoader implements InternalAgentClass {
+public class ChildFirstURLClassLoader extends URLClassLoader {
 
     private final List<URL> urls;
 
     public ChildFirstURLClassLoader(List<URL> urls) {
         super(urls.toArray(new URL[]{}));
         this.urls = urls;
-    }
-
-    @Override
-    public String getMarker() {
-        return CLASS_LOADER;
     }
 
     @Override
