@@ -45,6 +45,11 @@ public class OkHttp3ClientAsyncInstrumentationTest extends AbstractHttpClientIns
     }
 
     @Override
+    public boolean isAsync() {
+        return true;
+    }
+
+    @Override
     protected boolean isErrorOnCircularRedirectSupported() {
         return okhttpVersion.compareTo(Version.of("3.6.0")) > -1;
     }
