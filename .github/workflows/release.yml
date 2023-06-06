@@ -66,7 +66,7 @@ jobs:
     steps:
       - id: buildkite
         name: Run Deploy
-        uses: reakaleek/apm-pipeline-library/.github/actions/buildkite@feature/buildkite-download-artifacts
+        uses: elastic/apm-pipeline-library/.github/actions/buildkite@current
         with:
           vaultUrl: ${{ secrets.VAULT_ADDR }}
           vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
