@@ -32,13 +32,14 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public final class ExecutorUtils {
+public final class ExecutorUtils extends co.elastic.apm.agent.sdk.util.ExecutorUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(ExecutorUtils.class);
 
@@ -48,7 +49,25 @@ public final class ExecutorUtils {
     private static volatile ElasticThreadStateListener threadStateListener = null;
 
     private ExecutorUtils() {
-        // don't instantiate
+    }
+
+    public static void init() {
+        co.elastic.apm.agent.sdk.util.ExecutorUtils.init(new ExecutorUtils());
+    }
+
+    @Override
+    protected ScheduledExecutorService doCreateSingleThreadSchedulingDaemonPool(String threadPurpose) {
+        return createSingleThreadSchedulingDaemonPool(threadPurpose);
+    }
+
+    @Override
+    protected boolean doIsAgentExecutor(Executor executor) {
+        return isAgentExecutor(executor);
+    }
+
+    @Override
+    protected void doShutdownAndWaitTermination(ExecutorService executor) {
+        shutdownAndWaitTermination(executor);
     }
 
     public static ScheduledThreadPoolExecutor createSingleThreadSchedulingDaemonPool(final String threadPurpose) {

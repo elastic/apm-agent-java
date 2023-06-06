@@ -20,7 +20,7 @@ package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
-import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.sdk.util.ExecutorUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;

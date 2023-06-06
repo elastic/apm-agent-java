@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.profiler;
 
+import co.elastic.apm.agent.sdk.util.ExecutorUtils;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
@@ -31,7 +32,6 @@ import co.elastic.apm.agent.objectpool.impl.ListBasedObjectPool;
 import co.elastic.apm.agent.profiler.asyncprofiler.AsyncProfiler;
 import co.elastic.apm.agent.profiler.asyncprofiler.JfrParser;
 import co.elastic.apm.agent.profiler.collections.Long2ObjectHashMap;
-import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventPoller;
