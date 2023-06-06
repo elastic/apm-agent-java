@@ -311,7 +311,7 @@ public class ElasticApmAgent {
     }
 
     public static synchronized Future<?> reInitInstrumentation() {
-        final Tracer tracer = TracerAwareInstrumentation.tracer.require(Tracer.class);
+        final Tracer tracer = GlobalTracer.get().require(Tracer.class);
         if (instrumentation == null) {
             throw new IllegalStateException("Can't re-init agent before it has been initialized");
         }

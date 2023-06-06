@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 
 import java.util.Collection;
 import java.util.Collections;
 
-public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
+public abstract class BaseInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {

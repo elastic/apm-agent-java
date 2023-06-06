@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.vertx.v3;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Arrays;
@@ -27,7 +27,7 @@ import java.util.Collection;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public abstract class Vertx3Instrumentation extends TracerAwareInstrumentation {
+public abstract class Vertx3Instrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

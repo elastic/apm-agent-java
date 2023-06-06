@@ -18,10 +18,12 @@
  */
 package co.elastic.apm.agent.bbwarmup;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -37,7 +39,10 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
 
-public class WarmupInstrumentation extends TracerAwareInstrumentation {
+public class WarmupInstrumentation extends ElasticApmInstrumentation {
+
+    @SuppressWarnings("unused")
+    private static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {

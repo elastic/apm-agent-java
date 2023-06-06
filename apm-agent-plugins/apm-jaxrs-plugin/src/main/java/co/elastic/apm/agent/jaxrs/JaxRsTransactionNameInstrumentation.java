@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.jaxrs;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -47,14 +47,14 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public abstract class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentation {
+public abstract class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     private final Collection<String> applicationPackages;
     private final JaxRsConfiguration configuration;
-    private final Tracer tracer;
 
     public JaxRsTransactionNameInstrumentation(Tracer tracer) {
-        this.tracer = tracer;
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
         configuration = tracer.getConfig(JaxRsConfiguration.class);
     }
@@ -125,7 +125,7 @@ public abstract class JaxRsTransactionNameInstrumentation extends TracerAwareIns
             .isUseJaxRsPathForTransactionName();
 
         protected static void setTransactionName(String signature, @Nullable String pathAnnotationValue, @Nullable String frameworkVersion) {
-            final Transaction<?> transaction = TracerAwareInstrumentation.tracer.currentTransaction();
+            final Transaction<?> transaction = tracer.currentTransaction();
             if (transaction != null) {
                 String transactionName = signature;
                 if (useAnnotationValueForTransactionName) {

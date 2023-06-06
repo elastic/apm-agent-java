@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.cassandra4;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.cassandra.CassandraHelper;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
@@ -50,7 +50,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class Cassandra4Instrumentation extends TracerAwareInstrumentation {
+public class Cassandra4Instrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {

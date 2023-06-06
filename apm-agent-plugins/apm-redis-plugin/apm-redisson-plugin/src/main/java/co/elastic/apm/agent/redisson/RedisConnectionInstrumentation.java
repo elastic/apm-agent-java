@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.redisson;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.Span;
 import io.netty.channel.Channel;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -40,7 +40,7 @@ import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 
-public class RedisConnectionInstrumentation extends TracerAwareInstrumentation {
+public class RedisConnectionInstrumentation extends ElasticApmInstrumentation {
 
     public static class AdviceClass {
         @Nullable

@@ -16,13 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.util;
+package co.elastic.apm.agent.tracer.util;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
-import org.jetbrains.annotations.Nullable;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,14 +30,15 @@ import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
-class TransactionNameUtilsTest extends AbstractInstrumentationTest {
+class TransactionNameUtilsTest {
 
     private WebConfiguration webConfig;
 
     @BeforeEach
     void beforeEach() {
-        webConfig = config.getConfig(WebConfiguration.class);
+        webConfig = mock(WebConfiguration.class);
         doReturn(true).when(webConfig).isUsePathAsName();
     }
 
@@ -117,7 +115,7 @@ class TransactionNameUtilsTest extends AbstractInstrumentationTest {
 
     }
 
-    private void testHttpRequestPath(String httpMethod, String firstPart, @Nullable String secondPart, List<WildcardMatcher> urlGroups, String expected) {
+    private void testHttpRequestPath(String httpMethod, String firstPart, String secondPart, List<WildcardMatcher> urlGroups, String expected) {
         StringBuilder sb = new StringBuilder();
         TransactionNameUtils.setNameFromHttpRequestPath(httpMethod, firstPart, secondPart, sb, urlGroups);
         assertThat(sb.toString()).isEqualTo(expected);

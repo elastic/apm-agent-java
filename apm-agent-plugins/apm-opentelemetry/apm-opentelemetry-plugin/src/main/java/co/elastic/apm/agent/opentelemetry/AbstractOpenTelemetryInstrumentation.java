@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.agent.opentelemetry;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Arrays;
 import java.util.Collection;
 
-public abstract class AbstractOpenTelemetryInstrumentation extends TracerAwareInstrumentation {
+public abstract class AbstractOpenTelemetryInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public final ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {

@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.esrestclient;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 
 import java.util.Collection;
 import java.util.Collections;
 
 
-public abstract class ElasticsearchRestClientInstrumentation extends TracerAwareInstrumentation {
+public abstract class ElasticsearchRestClientInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

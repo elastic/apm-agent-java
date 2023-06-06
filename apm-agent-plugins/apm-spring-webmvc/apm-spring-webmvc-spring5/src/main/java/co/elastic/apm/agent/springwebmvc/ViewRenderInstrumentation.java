@@ -18,10 +18,12 @@
  */
 package co.elastic.apm.agent.springwebmvc;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.servlet.Constants;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -40,12 +42,14 @@ import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class ViewRenderInstrumentation extends TracerAwareInstrumentation {
+public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
 
     private static final String SPAN_TYPE = "template";
     private static final String SPAN_ACTION = "render";
     private static final String DISPATCHER_SERVLET_RENDER_METHOD = "View#render";
     private static final Map<String, String> subTypeCache = new ConcurrentHashMap<>();
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public String getAdviceClassName() {

@@ -19,15 +19,17 @@
 package co.elastic.apm.agent.finaglehttpclient;
 
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.finaglehttpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import com.twitter.finagle.http.Request;
 import com.twitter.finagle.http.Response;
@@ -59,7 +61,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * In this case we try to enrich the span via the {@link FinagleExceptionSourceFilterInstrumentation}.
  */
 @SuppressWarnings("JavadocReference")
-public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrumentation {
+public class FinaglePayloadSizeFilterInstrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

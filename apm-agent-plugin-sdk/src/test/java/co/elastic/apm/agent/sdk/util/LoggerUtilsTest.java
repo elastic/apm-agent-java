@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.util;
+package co.elastic.apm.agent.sdk.util;
 
 import co.elastic.apm.agent.sdk.util.LoggerUtils;
 import org.junit.jupiter.api.Test;

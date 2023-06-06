@@ -18,8 +18,9 @@
  */
 package co.elastic.apm.agent.javalin;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
@@ -52,9 +53,11 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class JavalinInstrumentation extends TracerAwareInstrumentation {
+public class JavalinInstrumentation extends ElasticApmInstrumentation {
 
     private static final Logger logger = LoggerFactory.getLogger(JavalinInstrumentation.class);
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     private static final String FRAMEWORK_NAME = "Javalin";
 

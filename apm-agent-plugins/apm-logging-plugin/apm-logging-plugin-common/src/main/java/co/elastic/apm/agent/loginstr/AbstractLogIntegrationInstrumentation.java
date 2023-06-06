@@ -19,16 +19,20 @@
 package co.elastic.apm.agent.loginstr;
 
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import java.util.Arrays;
 import java.util.Collection;
 
-public abstract class AbstractLogIntegrationInstrumentation extends TracerAwareInstrumentation {
+public abstract class AbstractLogIntegrationInstrumentation extends ElasticApmInstrumentation {
 
     protected static String LOG_CORRELATION = "log-correlation";
     protected static String LOG_REFORMATTING = "log-reformatting";
     protected static String LOG_ERROR = "log-error";
+
+    public static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

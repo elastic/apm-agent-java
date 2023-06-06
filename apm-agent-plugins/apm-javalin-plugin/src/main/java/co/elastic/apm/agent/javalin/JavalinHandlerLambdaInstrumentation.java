@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.javalin;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
 import net.bytebuddy.asm.Advice;
@@ -37,7 +37,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class JavalinHandlerLambdaInstrumentation extends TracerAwareInstrumentation {
+public class JavalinHandlerLambdaInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

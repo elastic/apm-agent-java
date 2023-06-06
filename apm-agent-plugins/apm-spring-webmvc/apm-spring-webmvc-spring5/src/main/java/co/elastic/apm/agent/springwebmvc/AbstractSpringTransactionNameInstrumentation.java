@@ -18,14 +18,15 @@
  */
 package co.elastic.apm.agent.springwebmvc;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.util.VersionUtils;
 import co.elastic.apm.agent.servlet.Constants;
 import co.elastic.apm.agent.servlet.adapter.ServletRequestAdapter;
 import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
-import co.elastic.apm.agent.sdk.util.VersionUtils;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -58,9 +59,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Supports Spring MVC 3.x-6.x through the javax.servlet / jakarta.servlet dependent implementations of this class.
  * </p>
  */
-public abstract class AbstractSpringTransactionNameInstrumentation extends TracerAwareInstrumentation {
+public abstract class AbstractSpringTransactionNameInstrumentation extends ElasticApmInstrumentation {
 
     private static final String FRAMEWORK_NAME = "Spring Web MVC";
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     public abstract Constants.ServletImpl servletImpl();
 

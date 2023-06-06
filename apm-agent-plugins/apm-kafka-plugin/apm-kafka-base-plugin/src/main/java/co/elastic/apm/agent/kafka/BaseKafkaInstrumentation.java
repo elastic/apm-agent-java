@@ -18,7 +18,9 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
@@ -28,7 +30,9 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public abstract class BaseKafkaInstrumentation extends TracerAwareInstrumentation {
+public abstract class BaseKafkaInstrumentation extends ElasticApmInstrumentation {
+
+    static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

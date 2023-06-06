@@ -18,18 +18,17 @@
  */
 package co.elastic.apm.agent.mongodb.v4;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.security.ProtectionDomain;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionGte;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public abstract class Mongo4Instrumentation extends TracerAwareInstrumentation {
+public abstract class Mongo4Instrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher.Junction<ProtectionDomain> getProtectionDomainPostFilter() {
