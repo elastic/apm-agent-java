@@ -20,6 +20,7 @@ package co.elastic.apm.agent.jdbc;
 
 import co.elastic.apm.agent.sdk.db.signature.Scanner;
 import co.elastic.apm.agent.sdk.db.signature.SignatureParser;
+import co.elastic.apm.agent.sdk.db.signature.SignatureParserTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
