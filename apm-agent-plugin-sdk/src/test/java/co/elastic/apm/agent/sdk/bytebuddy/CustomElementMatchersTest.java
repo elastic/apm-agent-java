@@ -18,9 +18,18 @@
  */
 package co.elastic.apm.agent.sdk.bytebuddy;
 
+import org.apache.http.client.HttpClient;
+
 import net.bytebuddy.description.type.TypeDescription;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.security.CodeSigner;
+import java.security.CodeSource;
+import java.security.ProtectionDomain;
 import java.util.List;
 
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
@@ -29,6 +38,46 @@ import static net.bytebuddy.matcher.ElementMatchers.none;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CustomElementMatchersTest {
+
+    @Test
+    void testSemVerLteWithFileUrl() {
+        // Relying on Apache httpclient-4.5.6.jar
+        testSemVerLteMatcher(HttpClient.class.getProtectionDomain());
+    }
+
+    @Test
+    void testSemVerLteWithJarFileUrl() throws MalformedURLException {
+        URL originalUrl = HttpClient.class.getProtectionDomain().getCodeSource().getLocation();
+        URL jarFileUrl = new URL("jar:" + originalUrl.toString() + "!/");
+        testSemVerLteMatcher(new ProtectionDomain(new CodeSource(jarFileUrl, new CodeSigner[0]), null));
+    }
+
+    @Test
+    void testSemVerLteWithEncodedFileUrl() throws MalformedURLException, URISyntaxException {
+        String jarFileUrl = new File("src/test/resources/lib/version##2/test-module.jar").toURI().toASCIIString();
+        System.out.println("Encoded Jar file URL = " + jarFileUrl);
+        ProtectionDomain protectionDomain = new ProtectionDomain(new CodeSource(new URL(jarFileUrl), new CodeSigner[0]), null);
+        assertThat(implementationVersionLte("2").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("3").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("2.1.8").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("2.1.9").matches(protectionDomain)).isTrue();
+    }
+
+    private void testSemVerLteMatcher(ProtectionDomain protectionDomain) {
+        assertThat(implementationVersionLte("3").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("3.2").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("3.15.10").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("4.2.19").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("4.5.5").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("4.5.6").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("4.5.5-SNAPSHOT").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("4.5.6-SNAPSHOT").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("4.5.7").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("4.7.3").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("5.7.3").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("5.0").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("5").matches(protectionDomain)).isTrue();
+    }
 
     @Test
     void testIncludedPackages() {

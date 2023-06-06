@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.sdk.bytebuddy;
 
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import net.bytebuddy.description.NamedElement;
@@ -25,14 +27,27 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
+import java.net.JarURLConnection;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLConnection;
+import java.security.CodeSource;
+import java.security.ProtectionDomain;
 import java.util.Collection;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
+import java.util.regex.Matcher;
 
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 
 public class CustomElementMatchers {
+
+    private static final Logger logger = LoggerFactory.getLogger(CustomElementMatchers.class);
 
     public static ElementMatcher.Junction<NamedElement> isInAnyPackage(Collection<String> includedPackages,
                                                                        ElementMatcher.Junction<NamedElement> defaultIfEmpty) {
@@ -127,5 +142,114 @@ public class CustomElementMatchers {
             .or(nameContains("$JaxbAccessor"))
             .or(nameContains("CGLIB"))
             .or(nameContains("EnhancerBy"));
+    }
+
+    /**
+     * A matcher that checks whether the implementation version read from the MANIFEST.MF related for a given {@link ProtectionDomain} is
+     * lower than or equals to the limit version. Assumes a SemVer version format.
+     *
+     * @param version the version to check against
+     * @return an LTE SemVer matcher
+     */
+    public static ElementMatcher.Junction<ProtectionDomain> implementationVersionLte(final String version) {
+        return implementationVersion(version, Matcher.LTE);
+    }
+
+    public static ElementMatcher.Junction<ProtectionDomain> implementationVersionGte(final String version) {
+        return implementationVersion(version, Matcher.GTE);
+    }
+
+    private static ElementMatcher.Junction<ProtectionDomain> implementationVersion(final String version, final Matcher matcher) {
+        return new ElementMatcher.Junction.AbstractBase<ProtectionDomain>() {
+            /**
+             * Returns true if the implementation version read from the manifest file referenced by the given
+             * {@link ProtectionDomain} is lower than or equal to the version set to this matcher
+             *
+             * @param protectionDomain a {@link ProtectionDomain} from which to look for the manifest file
+             * @return true if version parsed from the manifest file is lower than or equals to the matcher's version
+             *
+             * NOTE: MAY RETURN FALSE POSITIVES - returns true if matching fails, logging a warning message
+             */
+            @Override
+            public boolean matches(@Nullable ProtectionDomain protectionDomain) {
+                try {
+                    Version pdVersion = readImplementationVersionFromManifest(protectionDomain);
+                    if (pdVersion != null) {
+                        Version limitVersion = Version.of(version);
+                        return matcher.match(pdVersion, limitVersion);
+                    }
+                } catch (Exception e) {
+                    logger.info("Cannot read implementation version based on ProtectionDomain. This should not affect " +
+                        "your agent's functionality. Failed with message: " + e.getMessage());
+                    logger.debug("Implementation version parsing error: " + protectionDomain, e);
+                }
+                return true;
+            }
+        };
+    }
+
+    @Nullable
+    private static Version readImplementationVersionFromManifest(@Nullable ProtectionDomain protectionDomain) throws IOException, URISyntaxException {
+        Version version = null;
+        JarFile jarFile = null;
+        try {
+            if (protectionDomain != null) {
+                CodeSource codeSource = protectionDomain.getCodeSource();
+                if (codeSource != null) {
+                    URL jarUrl = codeSource.getLocation();
+                    if (jarUrl != null) {
+                        // does not yet establish an actual connection
+                        URLConnection urlConnection = jarUrl.openConnection();
+                        if (urlConnection instanceof JarURLConnection) {
+                            jarFile = ((JarURLConnection) urlConnection).getJarFile();
+                        } else {
+                            jarFile = new JarFile(new File(jarUrl.toURI()));
+                        }
+                        Manifest manifest = jarFile.getManifest();
+                        if (manifest != null) {
+                            Attributes attributes = manifest.getMainAttributes();
+                            String manifestVersion = attributes.getValue("Implementation-Version");
+                            if (manifestVersion == null) {
+                                // fallback on OSGI bundle version when impl. version not available
+                                manifestVersion = attributes.getValue("Bundle-Version");
+                            }
+                            if (manifestVersion != null) {
+                                version = Version.of(manifestVersion);
+                            }
+
+                        }
+                    }
+                }
+            } else {
+                logger.info("Cannot read implementation version - got null ProtectionDomain");
+            }
+        } finally {
+            if (jarFile != null) {
+                try {
+                    jarFile.close();
+                } catch (IOException e) {
+                    logger.error("Error closing JarFile", e);
+                }
+            }
+        }
+        return version;
+    }
+
+    private enum Matcher {
+        LTE {
+            @Override
+            <T extends Comparable<T>> boolean match(T c1, T c2) {
+                return c1.compareTo(c2) <= 0;
+            }
+        },
+        GTE {
+            @Override
+            <T extends Comparable<T>> boolean match(T c1, T c2) {
+                return c1.compareTo(c2) >= 0;
+
+            }
+        };
+
+        abstract <T extends Comparable<T>> boolean match(T c1, T c2);
     }
 }
