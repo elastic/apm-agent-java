@@ -27,12 +27,11 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.impl.ListBasedObjectPool;
 import co.elastic.apm.agent.profiler.asyncprofiler.AsyncProfiler;
 import co.elastic.apm.agent.profiler.asyncprofiler.JfrParser;
 import co.elastic.apm.agent.profiler.collections.Long2ObjectHashMap;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
+import co.elastic.apm.agent.tracer.pooling.ObjectPool;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventPoller;
 import com.lmax.disruptor.EventTranslatorTwoArg;
@@ -209,14 +208,14 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         this.eventBuffer.addGatingSequences(sequence);
         this.poller = eventBuffer.newPoller();
         contextForLogging = TraceContext.with64BitId(tracer);
-        this.callTreePool = ListBasedObjectPool.<CallTree>ofRecyclable(2 * 1024, new Allocator<CallTree>() {
+        this.callTreePool = tracer.getObjectPoolFactory().createRecyclableObjectPool(2 * 1024, new Allocator<CallTree>() {
             @Override
             public CallTree createInstance() {
                 return new CallTree();
             }
         });
         // call tree roots are pooled so that fast activations/deactivations with no associated stack traces don't cause allocations
-        this.rootPool = ListBasedObjectPool.<CallTree.Root>ofRecyclable(512, new Allocator<CallTree.Root>() {
+        this.rootPool = tracer.getObjectPoolFactory().createRecyclableObjectPool(512, new Allocator<CallTree.Root>() {
             @Override
             public CallTree.Root createInstance() {
                 return new CallTree.Root(tracer);

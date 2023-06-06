@@ -26,7 +26,6 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.sdk.util.VersionUtils;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import io.vertx.core.Handler;

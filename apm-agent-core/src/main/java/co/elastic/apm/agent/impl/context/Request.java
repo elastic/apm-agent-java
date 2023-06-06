@@ -22,7 +22,7 @@ import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.Resetter;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.report.serialize.SerializationConstants;
-import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
