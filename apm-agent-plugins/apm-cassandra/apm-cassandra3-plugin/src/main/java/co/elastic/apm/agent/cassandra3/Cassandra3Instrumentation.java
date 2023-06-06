@@ -58,9 +58,8 @@ public abstract class Cassandra3Instrumentation extends TracerAwareInstrumentati
     }
 
     /**
-     * Instruments {@link com.datastax.driver.core.SessionManager#executeAsync(Statement)}
+     * Instruments {@code com.datastax.driver.core.SessionManager#executeAsync(Statement)}
      */
-    @SuppressWarnings("JavadocReference")
     public static class Async extends Cassandra3Instrumentation {
 
         @Override
@@ -83,9 +82,8 @@ public abstract class Cassandra3Instrumentation extends TracerAwareInstrumentati
     }
 
     /**
-     * Instrument {@link AbstractSession#execute(Statement)}
+     * Instrument {@code AbstractSession#execute(Statement)}
      */
-    @SuppressWarnings("JavadocReference")
     public static class Sync extends Cassandra3Instrumentation {
 
         @Override
