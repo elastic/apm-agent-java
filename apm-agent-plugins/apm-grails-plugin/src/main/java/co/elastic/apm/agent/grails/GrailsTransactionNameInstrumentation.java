@@ -33,7 +33,7 @@ import org.grails.web.mapping.mvc.GrailsControllerUrlMappingInfo;
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 import static grails.core.GrailsControllerClass.INDEX_ACTION;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;

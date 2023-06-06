@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.bci;
+package co.elastic.apm.agent.sdk;
 
 import java.lang.instrument.Instrumentation;
 import java.util.Collection;
@@ -54,7 +54,7 @@ public abstract class PluginClassLoaderRootPackageCustomizer {
 
     /**
      * All classes in the provided packages except for the ones annotated with {@link co.elastic.apm.agent.sdk.state.GlobalState}
-     * and classes extending {@link org.stagemonitor.configuration.ConfigurationOptionProvider}
+     * and classes extending {@code org.stagemonitor.configuration.ConfigurationOptionProvider}
      * will be loaded from a dedicated plugin class loader that has access to both the instrumented classes and the agent classes.
      * If the {@linkplain #getPluginPackage() plugin package} should be part of the root packages, implementations need to explicitly add it.
      */
@@ -67,7 +67,7 @@ public abstract class PluginClassLoaderRootPackageCustomizer {
      * <p>
      * Instrumentation plugins are loaded in an isolated classloader and therefore in an unnamed module.
      * This module by default cannot access anything "private" within other modules, including
-     * the module containing the instrumented class. If such an access is required for the plugin,
+     * the module containing the instrumented class. If such access is required for the plugin,
      * access can be granted using this method. Before anything from the plugin is invoked,
      * {@link Instrumentation#redefineModule(Module, Set, Map, Map, Set, Map) will be used to give the classloader
      * full access ("open") to the target module.}

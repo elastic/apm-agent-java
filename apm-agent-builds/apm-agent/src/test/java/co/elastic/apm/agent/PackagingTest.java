@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent;
 
-import co.elastic.apm.agent.bci.PluginClassLoaderRootPackageCustomizer;
+import co.elastic.apm.agent.sdk.PluginClassLoaderRootPackageCustomizer;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;

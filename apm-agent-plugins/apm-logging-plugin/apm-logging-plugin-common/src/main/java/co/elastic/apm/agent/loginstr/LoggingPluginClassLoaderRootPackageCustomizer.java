@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.loginstr;
 
-import co.elastic.apm.agent.bci.PluginClassLoaderRootPackageCustomizer;
+import co.elastic.apm.agent.sdk.PluginClassLoaderRootPackageCustomizer;
 
 import java.util.Arrays;
 import java.util.Collection;

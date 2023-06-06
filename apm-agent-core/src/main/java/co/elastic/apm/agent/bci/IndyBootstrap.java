@@ -22,6 +22,7 @@ import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.LookupExposer;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
+import co.elastic.apm.agent.sdk.PluginClassLoaderRootPackageCustomizer;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.state.CallDepth;

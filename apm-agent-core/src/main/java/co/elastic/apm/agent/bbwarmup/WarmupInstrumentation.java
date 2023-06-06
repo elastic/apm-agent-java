@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.bbwarmup;
 
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
-import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.tracer.GlobalTracer;
