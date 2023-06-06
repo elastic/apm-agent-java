@@ -51,7 +51,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 @GlobalState
 public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrumentation {
 
-    private static final Tracer tracer = GlobalTracer.get();
+    public static final Tracer tracer = GlobalTracer.get();
 
     public static final ReferenceCountedMap<HttpURLConnection, Span<?>> inFlightSpans = tracer.newReferenceCountedMap();
     public static final CallDepth callDepth = CallDepth.get(HttpUrlConnectionInstrumentation.class);
