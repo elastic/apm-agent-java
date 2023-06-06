@@ -28,7 +28,7 @@ import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.metadata.Message;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 
 import javax.annotation.Nullable;

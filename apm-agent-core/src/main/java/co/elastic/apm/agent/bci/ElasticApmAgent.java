@@ -48,7 +48,7 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracemethods.TraceMethodInstrumentation;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.RedefinitionStrategy;

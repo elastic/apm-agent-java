@@ -20,6 +20,7 @@ package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;

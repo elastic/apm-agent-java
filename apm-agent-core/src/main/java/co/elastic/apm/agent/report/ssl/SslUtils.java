@@ -20,7 +20,7 @@ package co.elastic.apm.agent.report.ssl;
 
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.HostnameVerifier;

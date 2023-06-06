@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.util;
+package co.elastic.apm.agent.sdk.util;
 
-import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
@@ -34,30 +33,8 @@ public final class VersionUtils {
 
     private static final WeakMap<Class<?>, String> versionsCache = WeakConcurrent.buildMap();
     private static final String UNKNOWN_VERSION = "UNKNOWN_VERSION";
-    @Nullable
-    private static final String AGENT_VERSION;
-
-    static {
-        File agentJar = ElasticApmAgent.getAgentJarFile();
-        String version = getManifestEntry(agentJar, "Implementation-Version");
-        if (version != null && version.endsWith("SNAPSHOT")) {
-            String gitRev = getManifestEntry(agentJar, "SCM-Revision");
-            if (gitRev != null) {
-                version = version + "." + gitRev;
-            }
-        }
-        String variant = getManifestEntry(agentJar, "Elastic-Apm-Build-Variant");
-        if (variant != null) {
-            version += "-" + variant;
-        }
-        AGENT_VERSION = version;
-    }
 
     private VersionUtils() {
-    }
-
-    public static String getAgentVersion() {
-        return AGENT_VERSION != null ? AGENT_VERSION : "unknown";
     }
 
     @Nullable

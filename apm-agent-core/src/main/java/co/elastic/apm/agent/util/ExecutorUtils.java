@@ -23,6 +23,7 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.CancellationException;

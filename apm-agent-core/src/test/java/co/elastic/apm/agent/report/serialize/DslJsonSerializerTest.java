@@ -56,7 +56,7 @@ import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
-import co.elastic.apm.agent.util.IOUtils;
+import co.elastic.apm.agent.sdk.util.IOUtils;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;

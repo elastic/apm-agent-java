@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.util;
 
+import co.elastic.apm.agent.sdk.util.LoggerUtils;
 import org.junit.jupiter.api.Test;
 import co.elastic.apm.agent.sdk.logging.Logger;
 

@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
+import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 

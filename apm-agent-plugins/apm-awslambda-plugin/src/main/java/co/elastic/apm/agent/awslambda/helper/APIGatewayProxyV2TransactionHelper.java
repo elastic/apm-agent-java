@@ -22,7 +22,7 @@ import co.elastic.apm.agent.awslambda.MapTextHeaderGetter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;

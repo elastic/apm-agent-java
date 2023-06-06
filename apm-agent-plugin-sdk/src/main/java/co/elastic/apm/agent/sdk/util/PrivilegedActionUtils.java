@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.util;
+package co.elastic.apm.agent.sdk.util;
 
 import javax.annotation.Nullable;
 import java.io.File;

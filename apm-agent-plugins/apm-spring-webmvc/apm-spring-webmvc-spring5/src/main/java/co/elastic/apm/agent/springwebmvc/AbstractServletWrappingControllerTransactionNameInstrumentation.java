@@ -22,7 +22,7 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.servlet.Constants;
 import co.elastic.apm.agent.servlet.adapter.ServletRequestAdapter;
 import co.elastic.apm.agent.tracer.Transaction;
-import co.elastic.apm.agent.util.TransactionNameUtils;
+import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;

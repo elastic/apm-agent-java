@@ -21,7 +21,7 @@ package co.elastic.apm.agent.bbwarmup;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

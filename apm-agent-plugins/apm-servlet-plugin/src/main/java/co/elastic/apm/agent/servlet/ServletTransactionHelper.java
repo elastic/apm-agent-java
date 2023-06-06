@@ -32,7 +32,7 @@ import co.elastic.apm.agent.servlet.adapter.ServletRequestAdapter;
 import co.elastic.apm.agent.tracer.TransactionContext;
 import co.elastic.apm.agent.tracer.metadata.Request;
 import co.elastic.apm.agent.tracer.metadata.Response;
-import co.elastic.apm.agent.util.TransactionNameUtils;
+import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
 
 import javax.annotation.Nullable;
 import java.security.Principal;

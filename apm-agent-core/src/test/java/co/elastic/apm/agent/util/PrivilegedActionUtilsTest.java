@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.util;
 
+import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;

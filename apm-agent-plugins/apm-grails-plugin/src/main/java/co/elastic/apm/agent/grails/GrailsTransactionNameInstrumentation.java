@@ -20,7 +20,7 @@ package co.elastic.apm.agent.grails;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.tracer.Transaction;
-import co.elastic.apm.agent.util.TransactionNameUtils;
+import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
 import grails.core.GrailsControllerClass;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;

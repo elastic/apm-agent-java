@@ -26,7 +26,7 @@ import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
-import co.elastic.apm.agent.util.LoggerUtils;
+import co.elastic.apm.agent.sdk.util.LoggerUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

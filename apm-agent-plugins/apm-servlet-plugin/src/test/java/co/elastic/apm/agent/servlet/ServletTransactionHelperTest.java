@@ -23,7 +23,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.util.TransactionNameUtils;
+import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

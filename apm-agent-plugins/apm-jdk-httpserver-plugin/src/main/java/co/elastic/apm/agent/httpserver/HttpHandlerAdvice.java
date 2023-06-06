@@ -27,7 +27,7 @@ import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.tracer.metadata.Request;
 import co.elastic.apm.agent.tracer.metadata.Response;
-import co.elastic.apm.agent.util.TransactionNameUtils;
+import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpsExchange;

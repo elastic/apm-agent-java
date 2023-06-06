@@ -21,6 +21,7 @@ package co.elastic.apm.agent.util;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

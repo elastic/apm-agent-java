@@ -22,7 +22,7 @@ import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Transaction;
-import co.elastic.apm.agent.util.TransactionNameUtils;
+import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
 import com.opensymphony.xwork2.ActionContext;
 import com.opensymphony.xwork2.ActionProxy;
 import net.bytebuddy.asm.Advice;

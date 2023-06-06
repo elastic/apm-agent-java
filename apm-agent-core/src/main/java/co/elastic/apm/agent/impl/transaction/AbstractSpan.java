@@ -32,7 +32,7 @@ import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
-import co.elastic.apm.agent.util.LoggerUtils;
+import co.elastic.apm.agent.sdk.util.LoggerUtils;
 import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 

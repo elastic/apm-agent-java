@@ -21,7 +21,7 @@ package co.elastic.apm.agent.impl.metadata;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.UrlConnectionUtils;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonReader;

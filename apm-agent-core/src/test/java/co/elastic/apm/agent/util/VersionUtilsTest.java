@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.util;
 
+import co.elastic.apm.agent.sdk.util.VersionUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 

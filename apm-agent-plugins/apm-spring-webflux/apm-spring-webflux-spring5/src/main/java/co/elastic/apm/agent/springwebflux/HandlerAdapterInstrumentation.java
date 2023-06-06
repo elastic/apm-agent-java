@@ -20,7 +20,7 @@ package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Transaction;
-import co.elastic.apm.agent.util.TransactionNameUtils;
+import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

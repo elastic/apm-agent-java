@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.sdk.util.IOUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 

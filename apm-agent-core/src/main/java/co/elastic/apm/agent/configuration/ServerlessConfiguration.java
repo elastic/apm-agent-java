@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
@@ -31,7 +31,7 @@ public class ServerlessConfiguration extends ConfigurationOptionProvider impleme
         String lambdaName = PrivilegedActionUtils.getEnv("AWS_LAMBDA_FUNCTION_NAME");
         this.runsOnAwsLambda = null != lambdaName && !lambdaName.isEmpty();
     }
-    
+
     private final ConfigurationOption<String> awsLambdaHandler = ConfigurationOption.stringOption()
         .key("aws_lambda_handler")
         .tags("added[1.28.0]")

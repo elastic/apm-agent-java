@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.util;
 
+import co.elastic.apm.agent.tracer.GlobalLocks;
+import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
