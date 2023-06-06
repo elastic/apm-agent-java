@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.bbwarmup;
 
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
@@ -33,6 +32,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isSameClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isStatic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -51,7 +51,7 @@ public class WarmupInstrumentation extends ElasticApmInstrumentation {
         // (caused by java.lang.ClassFormatError) on OpenJDK 7.
         // By allowing instrumentation only when the test class is loaded by the same class loader that loads this
         // instrumentation class, we avoid this problem and still allow it to work both on production and unit tests
-        return CustomElementMatchers.isSameClassLoader(PrivilegedActionUtils.getClassLoader(getClass()));
+        return isSameClassLoader(PrivilegedActionUtils.getClassLoader(getClass()));
     }
 
     @Override

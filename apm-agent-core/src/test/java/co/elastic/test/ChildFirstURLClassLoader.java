@@ -18,7 +18,7 @@
  */
 package co.elastic.test;
 
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
+import co.elastic.apm.agent.sdk.internal.InternalAgentClass;
 import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 
 import java.io.IOException;
@@ -34,15 +34,20 @@ import java.util.List;
  * Specifically, used within {@link JUnit4TestClassWithDependencyRunner} for tests that require encapsulated
  * test classpath, for example - for testing specific library versions.
  * In order for classes that are loaded by this class loader to be instrumented, it must be outside of the {@code co.elastic.apm}
- * package, otherwise it may be excluded if tested through {@link CustomElementMatchers#isAgentClassLoader()}.
+ * package, otherwise it may be excluded if tested through {@link co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers#isAgentClassLoader()}.
  */
-public class ChildFirstURLClassLoader extends URLClassLoader {
+public class ChildFirstURLClassLoader extends URLClassLoader implements InternalAgentClass {
 
     private final List<URL> urls;
 
     public ChildFirstURLClassLoader(List<URL> urls) {
         super(urls.toArray(new URL[]{}));
         this.urls = urls;
+    }
+
+    @Override
+    public String getMarker() {
+        return INTERNAL_PLUGIN_CLASS_LOADER;
     }
 
     @Override

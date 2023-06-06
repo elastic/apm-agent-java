@@ -18,8 +18,10 @@
  */
 package co.elastic.apm.agent.sdk.bytebuddy;
 
+import co.elastic.apm.agent.sdk.internal.InternalAgentClass;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import net.bytebuddy.description.NamedElement;
@@ -39,7 +41,6 @@ import java.util.Collection;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import java.util.regex.Matcher;
 
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -49,17 +50,31 @@ public class CustomElementMatchers {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomElementMatchers.class);
 
-    public static ElementMatcher.Junction<NamedElement> isInAnyPackage(Collection<String> includedPackages,
-                                                                       ElementMatcher.Junction<NamedElement> defaultIfEmpty) {
-        if (includedPackages.isEmpty()) {
-            return defaultIfEmpty;
+    private static final ClassLoader SELF_CLASS_LOADER = PrivilegedActionUtils.getClassLoader(CustomElementMatchers.class);
+
+    private static final ElementMatcher.Junction.AbstractBase<ClassLoader> AGENT_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
+        @Override
+        public boolean matches(@Nullable ClassLoader classLoader) {
+            if (classLoader instanceof InternalAgentClass) {
+                String marker = ((InternalAgentClass) classLoader).getMarker();
+                return InternalAgentClass.CLASS_LOADER.equals(marker) || InternalAgentClass.INTERNAL_PLUGIN_CLASS_LOADER.equals(marker);
+            } else if (classLoader == SELF_CLASS_LOADER) {
+                // This one also covers unit tests, where the app class loader loads the agent
+                return true;
+            }
+            return false;
         }
-        ElementMatcher.Junction<NamedElement> matcher = none();
-        for (String applicationPackage : includedPackages) {
-            matcher = matcher.or(nameStartsWith(applicationPackage));
+    };
+
+    private static final ElementMatcher.Junction.AbstractBase<ClassLoader> INTERNAL_PLUGIN_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
+        @Override
+        public boolean matches(@Nullable ClassLoader classLoader) {
+            if (classLoader instanceof InternalAgentClass) {
+                return InternalAgentClass.INTERNAL_PLUGIN_CLASS_LOADER.equals(((InternalAgentClass) classLoader).getMarker());
+            }
+            return false;
         }
-        return matcher;
-    }
+    };
 
     /**
      * Matches the target class loader to a given class loader by instance comparison
@@ -74,6 +89,26 @@ public class CustomElementMatchers {
                 return target == other;
             }
         };
+    }
+
+    public static ElementMatcher.Junction<ClassLoader> isAgentClassLoader() {
+        return AGENT_CLASS_LOADER_MATCHER;
+    }
+
+    public static ElementMatcher.Junction<ClassLoader> isInternalPluginClassLoader() {
+        return INTERNAL_PLUGIN_CLASS_LOADER_MATCHER;
+    }
+
+    public static ElementMatcher.Junction<NamedElement> isInAnyPackage(Collection<String> includedPackages,
+                                                                       ElementMatcher.Junction<NamedElement> defaultIfEmpty) {
+        if (includedPackages.isEmpty()) {
+            return defaultIfEmpty;
+        }
+        ElementMatcher.Junction<NamedElement> matcher = none();
+        for (String applicationPackage : includedPackages) {
+            matcher = matcher.or(nameStartsWith(applicationPackage));
+        }
+        return matcher;
     }
 
     /**

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.bci.classloading;
 
+import co.elastic.apm.agent.sdk.internal.InternalAgentClass;
 import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
 import net.bytebuddy.dynamic.loading.PackageDefinitionStrategy;
@@ -37,7 +38,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
  *
  * @see co.elastic.apm.agent.bci.IndyBootstrap
  */
-public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
+public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst implements InternalAgentClass {
 
     private static final ClassLoader SYSTEM_CLASS_LOADER = ClassLoader.getSystemClassLoader();
 
@@ -87,6 +88,11 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
                 agentClassesFilter,
                 targetClassLoader, ElementMatchers.<String>any());
         }
+    }
+
+    @Override
+    public String getMarker() {
+        return INTERNAL_PLUGIN_CLASS_LOADER;
     }
 
     /**

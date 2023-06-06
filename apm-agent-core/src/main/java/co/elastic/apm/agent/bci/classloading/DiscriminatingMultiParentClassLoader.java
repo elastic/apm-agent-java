@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.bci.classloading;
 
+import co.elastic.apm.agent.sdk.internal.InternalAgentClass;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.io.IOException;
@@ -32,7 +33,7 @@ import java.util.List;
  * The difference is that an {@link ElementMatcher} can be supplied that determines (based on the class name) which class lookups are delegated to each parent.
  * This is used, for example, to avoid looking up log4j2 classes from the agent class loader in the context of an advice.
  */
-class DiscriminatingMultiParentClassLoader extends ClassLoader {
+class DiscriminatingMultiParentClassLoader extends ClassLoader implements InternalAgentClass {
 
     private static final String CLASS_EXTENSION = ".class";
     private final List<ClassLoader> parents;
@@ -65,6 +66,11 @@ class DiscriminatingMultiParentClassLoader extends ClassLoader {
         }
         this.parents = Arrays.asList(agentClassLoader, targetClassLoader);
         this.discriminators = Arrays.asList(classesToLoadFromAgentClassLoader, classesToLoadFromTargetClassLoader);
+    }
+
+    @Override
+    public String getMarker() {
+        return CLASS_LOADER;
     }
 
     /**

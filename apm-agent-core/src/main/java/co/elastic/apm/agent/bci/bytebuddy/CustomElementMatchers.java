@@ -20,54 +20,13 @@ package co.elastic.apm.agent.bci.bytebuddy;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.matcher.AnnotationMatcher;
-import co.elastic.apm.agent.util.ClassLoaderUtils;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.annotation.AnnotationSource;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public class CustomElementMatchers {
-
-    private static final ElementMatcher.Junction.AbstractBase<ClassLoader> AGENT_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
-        @Override
-        public boolean matches(@Nullable ClassLoader classLoader) {
-            return ClassLoaderUtils.isAgentClassLoader(classLoader);
-        }
-    };
-
-    private static final ElementMatcher.Junction.AbstractBase<ClassLoader> INTERNAL_PLUGIN_CLASS_LOADER_MATCHER = new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
-        @Override
-        public boolean matches(@Nullable ClassLoader classLoader) {
-
-            boolean result = ClassLoaderUtils.isInternalPluginClassLoader(classLoader);
-            return result;
-        }
-    };
-
-    /**
-     * Matches the target class loader to a given class loader by instance comparison
-     *
-     * @param other the class loader to match to
-     * @return {@code true} if {@code other} is the same class loader instance as the target class loader
-     */
-    public static ElementMatcher.Junction<ClassLoader> isSameClassLoader(final ClassLoader other) {
-        return new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
-            @Override
-            public boolean matches(@Nullable ClassLoader target) {
-                return target == other;
-            }
-        };
-    }
-
-    public static ElementMatcher.Junction<ClassLoader> isAgentClassLoader() {
-        return AGENT_CLASS_LOADER_MATCHER;
-    }
-
-    public static ElementMatcher.Junction<ClassLoader> isInternalPluginClassLoader() {
-        return INTERNAL_PLUGIN_CLASS_LOADER_MATCHER;
-    }
 
     public static ElementMatcher.Junction<NamedElement> matches(final WildcardMatcher matcher) {
         return new ElementMatcher.Junction.AbstractBase<NamedElement>() {

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.bci.modules;
 
+import co.elastic.apm.agent.sdk.internal.InternalAgentClass;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.apache.commons.compress.utils.IOUtils;
 import org.junit.jupiter.api.Test;
@@ -64,13 +65,18 @@ public class ModuleOpenerTest {
 
     }
 
-    private static class ChildFirstCopyClassloader extends ClassLoader {
+    private static class ChildFirstCopyClassloader extends ClassLoader implements InternalAgentClass {
 
         String childFirstClassName;
 
         public ChildFirstCopyClassloader(ClassLoader parent, String childFirstClassName) {
             super(parent);
             this.childFirstClassName = childFirstClassName;
+        }
+
+        @Override
+        public String getMarker() {
+            return CLASS_LOADER;
         }
 
         @Override
