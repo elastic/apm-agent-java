@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.context.web;
+package co.elastic.apm.agent.tracer.util;
 
 import co.elastic.apm.agent.tracer.Outcome;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import static co.elastic.apm.agent.impl.context.web.ResultUtil.getOutcomeByHttpClientStatus;
-import static co.elastic.apm.agent.impl.context.web.ResultUtil.getOutcomeByHttpServerStatus;
-import static co.elastic.apm.agent.impl.context.web.ResultUtil.getResultByHttpStatus;
+import static co.elastic.apm.agent.tracer.util.ResultUtil.getOutcomeByHttpClientStatus;
+import static co.elastic.apm.agent.tracer.util.ResultUtil.getOutcomeByHttpServerStatus;
+import static co.elastic.apm.agent.tracer.util.ResultUtil.getResultByHttpStatus;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ResultUtilTest {

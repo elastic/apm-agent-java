@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.context.web;
+package co.elastic.apm.agent.tracer.util;
 
 import co.elastic.apm.agent.tracer.Outcome;
 
