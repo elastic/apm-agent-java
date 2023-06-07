@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.collections.WeakReferenceCountedMap;
+import co.elastic.apm.agent.bci.IndyBootstrap;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
@@ -222,6 +223,7 @@ public class ElasticApmTracer implements Tracer {
         });
         this.activationListeners = DependencyInjectingServiceLoader.load(ActivationListener.class, this);
         sharedPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool("shared");
+        IndyBootstrap.setFallbackLogExecutor(sharedPool);
 
         // The estimated number of wrappers is linear to the number of the number of external/OTel plugins
         // - for an internal agent context, there will be at most one wrapper per external/OTel plugin.
