@@ -197,7 +197,7 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
                 assertThat(span).hasOtelAttribute(entry.getKey(), entry.getValue());
             }
 
-            assertThat(span).isSync(asyncSpans);
+            assertThat(span).isSync(!asyncSpans);
 
             if (spanAssertions != null) {
                 spanAssertions.accept(span);
