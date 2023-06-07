@@ -93,7 +93,7 @@ public class IndyBootstrapDispatcher {
         } catch (Throwable t) {
             try {
                 printStackTrace(t);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 //nothing we can do here, it seems like we can't event print exceptions (e.g. due to OOM or StackOverflow).
             }
         }
