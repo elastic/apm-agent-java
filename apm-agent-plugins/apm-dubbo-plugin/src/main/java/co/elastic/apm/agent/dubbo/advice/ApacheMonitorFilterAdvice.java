@@ -36,8 +36,6 @@ public class ApacheMonitorFilterAdvice {
 
     private static final Tracer tracer = GlobalTracer.get();
 
-    private static final WeakMap<String, String> asyncParamCache = WeakConcurrent.buildMap();
-
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnterFilterInvoke(@Advice.Argument(0) Invoker<?> invoker,

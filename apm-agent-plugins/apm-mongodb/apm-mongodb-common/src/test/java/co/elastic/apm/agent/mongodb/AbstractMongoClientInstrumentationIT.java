@@ -242,11 +242,16 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
         }
     }
 
+    protected boolean isAsync(){
+        return false;
+    }
+
     private void verifySpan(Span span, String expectedName, Outcome expectedOutcome) {
 
         assertThat(span)
             .hasName(expectedName)
-            .hasOutcome(expectedOutcome);
+            .hasOutcome(expectedOutcome)
+            .isSync(!isAsync());
 
         // verify destination
         assertThat(span.getContext().getDestination())
