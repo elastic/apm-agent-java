@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-##  This script runs the release given the different environment variables
-##    dry_run
 ##
 ##  It relies on the .buildkite/hooks/pre-command so the Vault and other tooling
 ##  are prepared automatically by buildkite.
