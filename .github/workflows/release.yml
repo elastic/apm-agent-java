@@ -22,7 +22,7 @@ on:
 
 env:
   JAVA_VERSION: 17
-  JAVA_DIST: adopt
+  JAVA_DIST: temurin
   TAG_NAME: v${{ inputs.version }}
 
 permissions:
