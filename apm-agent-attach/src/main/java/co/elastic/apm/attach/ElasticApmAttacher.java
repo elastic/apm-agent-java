@@ -150,7 +150,7 @@ public class ElasticApmAttacher {
      */
     public static void attach(String pid, Map<String, String> configuration, File agentJarFile) {
         // making a copy of provided configuration as user might have used an immutable map impl.
-        private Map<String,String> config = new HashMap<>(configuration);
+        Map<String, String> config = new HashMap<>(configuration);
         if (!config.containsKey("activation_method")) {
             config.put("activation_method", "PROGRAMMATIC_SELF_ATTACH");
         }
