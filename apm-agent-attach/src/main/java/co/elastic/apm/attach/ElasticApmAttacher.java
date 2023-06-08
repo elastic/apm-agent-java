@@ -149,10 +149,12 @@ public class ElasticApmAttacher {
      * @param agentJarFile  the agent jar file
      */
     public static void attach(String pid, Map<String, String> configuration, File agentJarFile) {
-        if (!configuration.containsKey("activation_method")) {
-            configuration.put("activation_method", "PROGRAMMATIC_SELF_ATTACH");
+        // making a copy of provided configuration as user might have used an immutable map impl.
+        private Map<String,String> config = new HashMap<>(configuration);
+        if (!config.containsKey("activation_method")) {
+            config.put("activation_method", "PROGRAMMATIC_SELF_ATTACH");
         }
-        File tempFile = createTempProperties(configuration, null);
+        File tempFile = createTempProperties(config, null);
         String agentArgs = tempFile == null ? null : TEMP_PROPERTIES_FILE_KEY + "=" + tempFile.getAbsolutePath();
 
         attachWithFallback(agentJarFile, pid, agentArgs);
