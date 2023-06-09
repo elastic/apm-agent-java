@@ -43,7 +43,17 @@ public class JavaxServletApiAdapter implements ServletApiAdapter<HttpServletRequ
 
     private static final JavaxServletApiAdapter INSTANCE = new JavaxServletApiAdapter();
 
+    private final boolean ServletContext_getClassLoader_available;
+
     private JavaxServletApiAdapter() {
+        boolean probeResult;
+        try {
+            ServletContext.class.getMethod("getClassLoader");
+            probeResult = true;
+        } catch (NoSuchMethodException e) {
+            probeResult = false;
+        }
+        ServletContext_getClassLoader_available = probeResult;
     }
 
     public static JavaxServletApiAdapter get() {
@@ -98,7 +108,11 @@ public class JavaxServletApiAdapter implements ServletApiAdapter<HttpServletRequ
         if (servletContext == null) {
             return null;
         }
-
+        if (!ServletContext_getClassLoader_available) {
+            // we are on a pre Servlet 3.0 version where ServletContext.getClassLoader does not exist.
+            // While we don't support such Servlet-API versions, we don't want our advices to throw NoSuchMethodErrors.
+            return null;
+        }
         // getClassloader might throw UnsupportedOperationException
         // see Section 4.4 of the Servlet 3.0 specification
         try {
