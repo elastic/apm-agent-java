@@ -28,6 +28,7 @@ endif::[]
 * Capture S3 operation details as OTel attributes - {pull}3136[#3136]
 * Added support for recording AWS lambda transactions even if the JVM crashes or runs into a timeout - {pull}3134[#3134]
 * Add extra built-in metrics: `jvm.fd.*` and `jvm.memory.pool.non_heap.*` - {pull}[#3147]
+* Capture `span.sync` = `false` for some async spans plugins - {pull}[#3164]
 
 [float]
 ===== Bug fixes
