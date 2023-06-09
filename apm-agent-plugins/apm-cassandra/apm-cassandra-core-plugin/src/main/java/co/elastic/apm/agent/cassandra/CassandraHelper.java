@@ -19,9 +19,6 @@
 package co.elastic.apm.agent.cassandra;
 
 import co.elastic.apm.agent.db.signature.SignatureParser;
-import co.elastic.apm.agent.sdk.state.GlobalVariables;
-import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -37,7 +34,7 @@ public class CassandraHelper {
         this.tracer = tracer;
     }
 
-    private static final DetachedThreadLocal<Boolean> isSync = GlobalVariables.get(CassandraHelper.class, "sync", WeakConcurrent.<Boolean>buildThreadLocal());
+    private static final ThreadLocal<Boolean> isSync = new ThreadLocal<Boolean>();
 
     public static void inSyncExecute(boolean sync) {
         isSync.set(sync);
