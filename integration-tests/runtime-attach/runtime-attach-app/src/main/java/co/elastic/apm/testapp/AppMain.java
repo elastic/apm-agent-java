@@ -27,6 +27,7 @@ import javax.management.ObjectName;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -78,7 +79,7 @@ public class AppMain implements AppJmx {
                 Map<String, String> config = new HashMap<>();
                 config.put("service_name", "self-attach-external-config");
                 config.put("config_file", agentConfig.getAbsolutePath());
-                ElasticApmAttacher.attach(config);
+                ElasticApmAttacher.attach(Collections.unmodifiableMap(config));
             }
         }
 
