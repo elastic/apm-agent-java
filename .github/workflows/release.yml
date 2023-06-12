@@ -162,6 +162,10 @@ jobs:
       - await_artifact_on_maven_central
     outputs:
       arn_content: ${{ steps.arn_output.outputs.arn_content }}
+    env:
+      # Random region. This needs to be set in GH Actions or the usage of aws-cli will fail.
+      # The default region does not matter, since we are publishing in all regions.
+      AWS_DEFAULT_REGION: eu-west-1
     steps:
       - uses: actions/checkout@v3
         with:
