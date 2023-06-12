@@ -521,9 +521,9 @@ public abstract class AbstractServletContainerIntegrationTest {
         JsonNode agent = service.get("agent");
         assertThat(agent).isNotNull();
         assertThat(agent.get("ephemeral_id")).isNotNull();
-        JsonNode container = metadata.get("system").get("container");
-        assertThat(container).isNotNull();
-        assertThat(container.get("id").textValue()).isEqualTo(servletContainer.getContainerId());
+        JsonNode jsonContainer = metadata.get("system").get("container");
+        assertThat(jsonContainer).isNotNull();
+        assertThat(jsonContainer.get("id").textValue()).isEqualTo(container.getContainerId());
     }
 
     private void addSpans(List<JsonNode> spans, JsonNode payload) {
