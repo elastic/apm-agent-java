@@ -43,6 +43,11 @@ public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstru
         this.requestExecutor = requestExecutor;
     }
 
+    @Override
+    public boolean isAsync() {
+        return true;
+    }
+
     public static AsyncHandler<Response> customAsyncHandler = new AsyncCompletionHandler<Response>() {
         @Override
         public State onStatusReceived(HttpResponseStatus responseStatus) {

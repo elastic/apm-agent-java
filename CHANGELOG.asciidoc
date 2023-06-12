@@ -28,11 +28,13 @@ endif::[]
 * Capture S3 operation details as OTel attributes - {pull}3136[#3136]
 * Added support for recording AWS lambda transactions even if the JVM crashes or runs into a timeout - {pull}3134[#3134]
 * Add extra built-in metrics: `jvm.fd.*` and `jvm.memory.pool.non_heap.*` - {pull}[#3147]
+* Capture `span.sync` = `false` for some async spans plugins - {pull}[#3164]
 
 [float]
 ===== Bug fixes
 * Fixed classloading for OpenTelemetry dependencies in external plugins - {pull}3154[#3154]
 * Handled an edge case where exceptions thrown by instrumentation code could escape into the application - {pull}3159[#3159]
+* Added guard to gracefully handle the presence of pre 3.0 Servlet API versions in the spring service name discovery mechanism - {pull}3172[#3172]
 
 
 [[release-notes-1.x]]
