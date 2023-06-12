@@ -2,7 +2,7 @@ agents:
   provider: "gcp"
 
 steps:
-  - label: "Run the snapshot"
+  - label: "Run the release"
     key: "release"
     commands: .ci/release.sh
     artifact_paths:
