@@ -46,14 +46,16 @@ public class JavaxServletApiAdapter implements ServletApiAdapter<HttpServletRequ
     private final boolean ServletContext_getClassLoader_available;
 
     private JavaxServletApiAdapter() {
-        boolean probeResult;
+        ServletContext_getClassLoader_available = canCallServletContextGetClassLoader();
+    }
+
+    private static boolean canCallServletContextGetClassLoader() {
         try {
             ServletContext.class.getMethod("getClassLoader");
-            probeResult = true;
+            return true;
         } catch (NoSuchMethodException e) {
-            probeResult = false;
+            return false;
         }
-        ServletContext_getClassLoader_available = probeResult;
     }
 
     public static JavaxServletApiAdapter get() {
