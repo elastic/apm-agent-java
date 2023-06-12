@@ -55,7 +55,7 @@ public class TomcatIT extends AbstractTomcatIT {
         testClasses.add(ServletApiTestApp.class);
         testClasses.add(CdiServletContainerTestApp.class);
         testClasses.add(JavaxExternalPluginTestApp.class);
-        if (!getImageName().contains("jre7")) {
+        if (getImageName().contains("jre7")) {
             // The JSF test app depends on myfaces 2.3.2 which requires Java 8 or higher
             testClasses.add(JsfServletContainerTestApp.class);
         }

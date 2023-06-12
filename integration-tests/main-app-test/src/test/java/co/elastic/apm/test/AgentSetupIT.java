@@ -24,9 +24,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.utility.MountableFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -49,7 +49,7 @@ class AgentSetupIT {
         "openjdk:17,JAVA8_BUILD"
     })
     void testServiceNameAndVersionFromManifest(String image, AgentFileAccessor.Variant agentVariant) {
-        try (AgentTestContainer.Generic app = testAppWithJavaAgent(image, agentVariant)) {
+        try (AgentTestContainer.JarApp app = testAppWithJavaAgent(image, agentVariant)) {
 
             app.waitingFor(Wait.forLogMessage(".* Starting Elastic APM .*", 1))
                 .start();
@@ -62,7 +62,7 @@ class AgentSetupIT {
     void testSecurityManagerWarning() {
         String expectedMsg = "Security manager without agent grant-all permission";
 
-        try (AgentTestContainer.Generic app = testAppWithJavaAgent("openjdk:17", AgentFileAccessor.Variant.STANDARD)) {
+        try (AgentTestContainer.JarApp app = testAppWithJavaAgent("openjdk:17", AgentFileAccessor.Variant.STANDARD)) {
 
             app.withSecurityManager(null)
                 .waitingFor(Wait.forLogMessage(expectedMsg, 1))
@@ -87,19 +87,20 @@ class AgentSetupIT {
             "};"), StandardOpenOption.CREATE
         );
 
-        try (AgentTestContainer.Generic app = testAppWithJavaAgent("openjdk:17", AgentFileAccessor.Variant.STANDARD)) {
-            app.withSecurityManager(tempPolicy)
+        try (AgentTestContainer.JarApp app = testAppWithJavaAgent("openjdk:17", AgentFileAccessor.Variant.STANDARD)) {
+            app.withSecurityManager(MountableFile.forHostPath(tempPolicy))
                 .withStartupTimeout(Duration.ofSeconds(10))
                 .waitingFor(Wait.forLogMessage(".*Hello World!.*", 1))
                 .start();
         }
     }
 
-    private AgentTestContainer.Generic testAppWithJavaAgent(String image, AgentFileAccessor.Variant agentVariant) {
-        return new AgentTestContainer.Generic (image)
+    private AgentTestContainer.JarApp testAppWithJavaAgent(String image, AgentFileAccessor.Variant agentVariant) {
+        return AgentTestContainer.jarApp(image)
             .withExecutableJar(Path.of("target/main-app-test.jar"))
             .withArguments("wait") // make test app wait a bit so we can stop it
-            .withJavaAgent(agentVariant)
+            .withJavaAgentBinaries()
+            .withJavaAgentArgument(agentVariant)
             .withRemoteDebug();
     }
 

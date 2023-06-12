@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.agent.test.AgentTestContainer;
 import co.elastic.apm.servlet.tests.JakartaExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JakartaeeServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
@@ -54,4 +55,5 @@ public class JakartaeeTomcatWithSecurityManagerIT extends AbstractTomcatIT {
     protected boolean isSecurityManagerEnabled() {
         return true;
     }
+
 }
