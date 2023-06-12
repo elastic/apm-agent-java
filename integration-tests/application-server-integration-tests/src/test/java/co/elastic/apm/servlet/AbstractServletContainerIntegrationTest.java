@@ -75,15 +75,27 @@ public abstract class AbstractServletContainerIntegrationTest {
     @Nullable
     private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
 
-    private static MockServerContainer mockServerContainer = new MockServerContainer()
-        .withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockServerContainer.class))
-        .withNetworkAliases("apm-server")
-        .waitingFor(Wait.forHttp(MockServerContainer.HEALTH_ENDPOINT).forStatusCode(200))
-        .withNetwork(Network.SHARED);
+    private static final MockServerContainer mockServerContainer;
 
-    private final OkHttpClient httpClient;
+    private static final OkHttpClient httpClient;
 
     static {
+        mockServerContainer = new MockServerContainer()
+            .withNetworkAliases("apm-server")
+            .waitingFor(Wait.forHttp(MockServerContainer.HEALTH_ENDPOINT).forStatusCode(200))
+            .withNetwork(Network.SHARED);
+
+        if (JavaExecutable.isDebugging()) {
+            mockServerContainer.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockServerContainer.class));
+        }
+
+        final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger::info);
+        loggingInterceptor.setLevel(JavaExecutable.isDebugging() ? HttpLoggingInterceptor.Level.BODY : HttpLoggingInterceptor.Level.BASIC);
+        httpClient = new OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .readTimeout(JavaExecutable.isDebugging() ? 0 : 10, TimeUnit.SECONDS)
+            .build();
+
         mockServerContainer.start();
         mockServerContainer.getClient().when(request(INTAKE_V2_URL)).respond(HttpResponse.response().withStatusCode(200));
         mockServerContainer.getClient().when(request("/")).respond(HttpResponse.response().withStatusCode(200));
@@ -156,8 +168,6 @@ public abstract class AbstractServletContainerIntegrationTest {
         container.withMemoryLimit(4096);
 
         beforeContainerStart(container);
-
-        httpClient = setupHttpClient(JavaExecutable.isDebugging());
 
         container.start();
 
