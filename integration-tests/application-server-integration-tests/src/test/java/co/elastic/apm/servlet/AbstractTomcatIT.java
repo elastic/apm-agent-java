@@ -21,11 +21,6 @@ package co.elastic.apm.servlet;
 import co.elastic.apm.agent.test.AgentTestContainer;
 import org.testcontainers.utility.MountableFile;
 
-import javax.annotation.Nullable;
-import java.net.URL;
-import java.nio.file.Paths;
-import java.util.Objects;
-
 public abstract class AbstractTomcatIT extends AbstractServletContainerIntegrationTest {
 
     public static final String CATALINA_POLICY_FILE_PATH = "/catalina.policy";
@@ -58,6 +53,5 @@ public abstract class AbstractTomcatIT extends AbstractServletContainerIntegrati
         }
 
     }
-
 
 }

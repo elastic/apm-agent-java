@@ -30,7 +30,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
 import okhttp3.logging.HttpLoggingInterceptor;
-import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
 import org.mockserver.model.ClearType;
@@ -180,7 +179,6 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
     }
 
-    @NotNull
     private static OkHttpClient setupHttpClient(boolean isDebug) {
         final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger::info);
         loggingInterceptor.setLevel(isDebug ? HttpLoggingInterceptor.Level.BODY : HttpLoggingInterceptor.Level.BASIC);
@@ -398,7 +396,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         String serverLogsPath = container.getLogsPath();
         if (serverLogsPath != null) {
             return "\nlogs:\n" +
-                container.execInContainer("bash", "-c", "cat " + serverLogsPath+ "*").getStdout();
+                container.execInContainer("bash", "-c", "cat " + serverLogsPath + "*").getStdout();
         } else {
             return "";
         }
