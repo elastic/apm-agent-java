@@ -18,14 +18,13 @@
  */
 package co.elastic.apm.agent.impl.metadata;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 
 public class ServiceFactory {
 
-    public Service createService(CoreConfiguration coreConfiguration, String ephemeralId, ServerlessConfiguration serverlessConfiguration) {
+    public Service createService(CoreConfiguration coreConfiguration, String ephemeralId, boolean runsOnAwsLambda) {
         Service service = new Service()
             .withName(coreConfiguration.getServiceName())
             .withVersion(coreConfiguration.getServiceVersion())
@@ -35,7 +34,7 @@ public class ServiceFactory {
             .withLanguage(new Language("Java", System.getProperty("java.version")))
             .withNode(new Node(coreConfiguration.getServiceNodeName()));
 
-        if (serverlessConfiguration.runsOnAwsLambda()) {
+        if (runsOnAwsLambda) {
             augmentServiceForAWSLambda(service);
         }
         return service;

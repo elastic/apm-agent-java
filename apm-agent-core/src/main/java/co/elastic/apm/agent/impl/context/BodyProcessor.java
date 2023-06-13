@@ -24,9 +24,9 @@ import co.elastic.apm.agent.report.processor.Processor;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
-import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.ALL;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.ERRORS;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.TRANSACTIONS;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.EventType.ALL;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.EventType.ERRORS;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.EventType.TRANSACTIONS;
 
 /**
  * This processor redacts the body according to the {@link co.elastic.apm.agent.configuration.CoreConfiguration#captureBody}

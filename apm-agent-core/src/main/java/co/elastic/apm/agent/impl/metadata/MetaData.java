@@ -103,7 +103,7 @@ public class MetaData {
 
         final ServerlessConfiguration serverlessConfiguration = configurationRegistry.getConfig(ServerlessConfiguration.class);
         final ServiceFactory serviceFactory = new ServiceFactory();
-        final Service service = serviceFactory.createService(coreConfiguration, ephemeralId, serverlessConfiguration);
+        final Service service = serviceFactory.createService(coreConfiguration, ephemeralId, serverlessConfiguration.runsOnAwsLambda());
         final ProcessInfo processInformation = ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation();
         if (!configurationRegistry.getConfig(ReporterConfiguration.class).isIncludeProcessArguments()) {
             processInformation.getArgv().clear();

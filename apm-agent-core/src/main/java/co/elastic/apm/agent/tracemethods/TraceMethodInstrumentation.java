@@ -22,6 +22,8 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -126,6 +128,8 @@ public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
 
     public static class TraceMethodAdvice {
 
+        public static final Logger logger = LoggerFactory.getLogger(TraceMethodAdvice.class);
+
         private static final ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
         private static final long traceMethodThresholdMicros;
 
@@ -146,6 +150,11 @@ public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
                     span.withName(signature).activate();
                 }
             } else if (parent.isSampled()) {
+                if (parent.shouldSkipChildSpanCreation()) {
+                    // span limit reached means span will not be reported, thus we can optimize and skip creating one
+                    logger.debug("Not creating span for {} because span limit is reached.", signature);
+                    return null;
+                }
                 span = parent.createSpan()
                     .withName(signature)
                     .activate();

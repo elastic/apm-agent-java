@@ -170,7 +170,7 @@ type: long
 
 format: bytes
 
-The amount of used memory in bytes of the memory pool specified by the `name` label
+The amount of used memory in bytes of the heap memory pool specified by the `name` label
 
 labels
 
@@ -186,7 +186,7 @@ type: long
 
 format: bytes
 
-The amount of memory in bytes that is committed for the memory pool specified by the `name` label.
+The amount of memory in bytes that is committed for the heap memory pool specified by the `name` label.
 This amount of memory is guaranteed for this specific pool.
 
 labels
@@ -203,7 +203,7 @@ type: long
 
 format: bytes
 
-The maximum amount of memory in bytes that can be used for the memory pool specified by the `name` label.
+The maximum amount of memory in bytes that can be used for the heap memory pool specified by the `name` label.
 
 labels
 
@@ -246,6 +246,53 @@ The maximum amount of non-heap memory in bytes that can be used for memory manag
 If the maximum memory size is undefined, the value is `-1`.
 --
 
+*`jvm.memory.non_heap.pool.used`*::
++
+--
+type: long
+
+format: bytes
+
+The amount of used memory in bytes of the non-heap memory pool specified by the `name` label
+
+labels
+
+* name: The name representing this memory pool
+
+--
+
+
+*`jvm.memory.non_heap.pool.committed`*::
++
+--
+type: long
+
+format: bytes
+
+The amount of memory in bytes that is committed for the non-heap memory pool specified by the `name` label.
+This amount of memory is guaranteed for this specific pool.
+
+labels
+
+* name: The name representing this memory pool
+
+--
+
+
+*`jvm.memory.non_heap.pool.max`*::
++
+--
+type: long
+
+format: bytes
+
+The maximum amount of memory in bytes that can be used for the non-heap memory pool specified by the `name` label.
+
+labels
+
+* name: The name representing this memory pool
+
+--
 
 *`jvm.thread.count`*::
 +
@@ -294,6 +341,35 @@ format: bytes
 An approximation of the total amount of memory,
 in bytes, allocated in heap memory.
 --
+
+*`jvm.fd.used`*::
++
+--
+type: long
+
+The current number of opened file descriptors.
+--
+
+*`jvm.fd.max`*::
++
+--
+type: long
+
+The maximum number of opened file descriptors.
+--
+
+[float]
+[[metrics-jmx]]
+=== JMX metrics
+
+Java Management Extensions (JMX) provides a common management interface on the JVM and is often used to expose internal
+metrics through this interface.
+
+The Elastic APM agent is able to connect to the JMX interface directly without needing additional credentials or
+changing JVM parameters unlike other external tools like VisualVM or Jconsole. Also, it only captures metrics and does
+not expose the whole JMX management interface to the end-user.
+
+JMX metrics to capture need to be configured through the <<config-capture-jmx-metrics, `capture_jmx_metrics`>> option.
 
 [float]
 [[metrics-application]]

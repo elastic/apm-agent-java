@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executor;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.is;
@@ -208,6 +209,9 @@ public class IndyBootstrap {
     private static final ConcurrentMap<String, List<String>> classesByPackage = new ConcurrentHashMap<>();
 
     @Nullable
+    private static volatile Executor fallbackLogExecutor = null;
+
+    @Nullable
     static Method indyBootstrapMethod;
 
     @Nullable
@@ -233,6 +237,10 @@ public class IndyBootstrap {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static void setFallbackLogExecutor(Executor executor) {
+        fallbackLogExecutor = executor;
     }
 
 
@@ -320,8 +328,25 @@ public class IndyBootstrap {
             .invoke(targetClass);
     }
 
-    public static void logExceptionThrownByAdvice(Throwable exception) {
-        logger().error("Advice threw an exception, this should never happen!", exception);
+    public static void logExceptionThrownByAdvice(final Throwable exception) {
+        try {
+            try {
+                logger().error("Advice threw an exception, this should never happen!", exception);
+            } catch (StackOverflowError e) {
+                //try to print on a different thread. We have to pray that the stack size is still enough to submit the task
+                Executor exec = fallbackLogExecutor;
+                if (exec != null) {
+                    exec.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            logger().error("Advice threw an exception, this should never happen! Exception is logged on different thread due to stackoverflow. ", exception);
+                        }
+                    });
+                }
+            }
+        } catch (Throwable t) {
+            //we were unable to print the exception (e.g. due to OOM / StackOverflow). Not much we can do here.
+        }
     }
 
     /**
@@ -418,7 +443,9 @@ public class IndyBootstrap {
             ClassFileLocator classFileLocator;
             List<String> pluginClasses = new ArrayList<>();
             Map<String, List<String>> requiredModuleOpens = Collections.emptyMap();
+            boolean allowOtelLookupFromParent;
             if (instrumentationClassLoader instanceof ExternalPluginClassLoader) {
+                allowOtelLookupFromParent = true;
                 List<String> externalPluginClasses = ((ExternalPluginClassLoader) instrumentationClassLoader).getClassNames();
                 for (String externalPluginClass : externalPluginClasses) {
                     if (// API classes have no dependencies and don't need to be loaded by an IndyPluginCL
@@ -437,6 +464,7 @@ public class IndyBootstrap {
                     ClassFileLocator.ForJarFile.of(agentJarFile)
                 );
             } else {
+                allowOtelLookupFromParent = false;
                 String pluginPackage = PluginClassLoaderRootPackageCustomizer.getPluginPackageFromClassName(adviceClassName);
                 pluginClasses.addAll(getClassNamesFromBundledPlugin(pluginPackage, instrumentationClassLoader));
                 requiredModuleOpens = ElasticApmAgent.getRequiredPluginModuleOpens(pluginPackage);
@@ -453,7 +481,8 @@ public class IndyBootstrap {
                 isAnnotatedWith(named(GlobalState.class.getName()))
                     // if config classes would be loaded from the plugin CL,
                     // tracer.getConfig(Config.class) would return null when called from an advice as the classes are not the same
-                    .or(nameContains("Config").and(hasSuperType(is(ConfigurationOptionProvider.class)))));
+                    .or(nameContains("Config").and(hasSuperType(is(ConfigurationOptionProvider.class)))),
+                allowOtelLookupFromParent);
             if (ElasticApmAgent.areModulesSupported() && !requiredModuleOpens.isEmpty()) {
                 boolean success = addRequiredModuleOpens(requiredModuleOpens, targetClassLoader, pluginClassLoader);
                 if (!success) {

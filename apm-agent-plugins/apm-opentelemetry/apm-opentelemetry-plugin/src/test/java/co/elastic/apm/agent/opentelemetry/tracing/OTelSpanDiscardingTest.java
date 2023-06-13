@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.opentelemetry.tracing;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;

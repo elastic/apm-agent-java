@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.resttemplate;
 
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -27,29 +28,52 @@ import org.springframework.http.client.OkHttp3ClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Arrays;
+import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RunWith(Parameterized.class)
 public class SpringRestTemplateInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
-    private final RestTemplate restTemplate;
+    // Cannot directly reference RestTemplate here because it is compiled with Java 17
+    private final Object restTemplate;
 
-    public SpringRestTemplateInstrumentationTest(Supplier<ClientHttpRequestFactory> supplier) {
-        restTemplate = new RestTemplate(supplier.get());
+    public SpringRestTemplateInstrumentationTest(Supplier<RestTemplate> supplier) {
+        restTemplate = supplier.get();
     }
 
     @Parameterized.Parameters()
-    public static Iterable<Supplier<ClientHttpRequestFactory>> data() {
-        return Arrays.asList(
-            SimpleClientHttpRequestFactory::new,
-            OkHttp3ClientHttpRequestFactory::new,
-            HttpComponentsClientHttpRequestFactory::new);
+    public static Iterable<Supplier<RestTemplate>> data() {
+        if (JvmRuntimeInfo.ofCurrentVM().getMajorVersion() >= 17) {
+            return Java17Code.getRestTemplateFactories();
+        } else {
+            return List.of();
+        }
     }
 
     @Override
     protected void performGet(String path) {
-        // note: getForEntity is only available as of Spring-web 3.0.2
-        restTemplate.getForEntity(path, String.class);
+        Java17Code.performGet(restTemplate, path);
+    }
+
+    /**
+     * The code is compiled with java 17 but potentially run with java 11.
+     * JUnit will inspect the test class, therefore it must not contain any references to java 17 code.
+     */
+    private static class Java17Code {
+        public static void performGet(Object restTemplate, String path) {
+            // note: getForEntity is only available as of Spring-web 3.0.2
+            ((RestTemplate) restTemplate).getForEntity(path, String.class);
+        }
+
+        public static Iterable<Supplier<RestTemplate>> getRestTemplateFactories() {
+            return Stream.<Supplier<ClientHttpRequestFactory>>of(
+                    SimpleClientHttpRequestFactory::new,
+                    OkHttp3ClientHttpRequestFactory::new,
+                    HttpComponentsClientHttpRequestFactory::new)
+                .map(fac -> (Supplier<RestTemplate>) (() -> new RestTemplate(fac.get())))
+                .collect(Collectors.toList());
+        }
     }
 }

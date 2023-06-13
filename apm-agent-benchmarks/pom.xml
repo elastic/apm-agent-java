@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.38.1-SNAPSHOT</version>
+        <version>1.39.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-benchmarks</artifactId>
@@ -30,7 +30,7 @@
         </dependency>
         <!--
         we can't add elastic-apm-agent as it causes shading problems:
-        java.util.ServiceConfigurationError: org.stagemonitor.configuration.ConfigurationOptionProvider: co.elastic.apm.agent.impl.context.web.WebConfiguration not a subtype
+        java.util.ServiceConfigurationError: org.stagemonitor.configuration.ConfigurationOptionProvider: co.elastic.apm.agent.tracer.configuration.WebConfiguration not a subtype
         -->
         <dependency>
             <groupId>${project.groupId}</groupId>

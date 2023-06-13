@@ -84,7 +84,8 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
                 OkHttpClientHelper.computeHostName(url.host()), url.port());
 
             if (span != null) {
-                span.activate();
+                span.activate()
+                    .withSync(false);
             }
 
             if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), request, OkHttp3RequestHeaderGetter.INSTANCE)) {

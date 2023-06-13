@@ -115,7 +115,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     @Nullable
     protected volatile String type;
 
-    protected volatile boolean sync = true;
+    private volatile boolean sync = true;
 
     protected final SpanAtomicReference<Span> bufferedSpan = new SpanAtomicReference<>();
 
