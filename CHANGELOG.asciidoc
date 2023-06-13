@@ -38,8 +38,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ===== Bug fixes
 * Fixed agent programmatic attach with immutable config - {pull}3170[#3170]
 
-=======
-
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
