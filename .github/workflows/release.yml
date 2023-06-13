@@ -88,6 +88,11 @@ jobs:
           artifactName: lambda-zip
           artifactPath: "elastic-apm-agent/target/elastic-apm-java-aws-lambda-layer-*.zip"
           artifactIfNoFilesFound: error
+          # The action fails with .github/actions/buildkite/run.sh: line 24: 3: parameter missing.
+          # Which is an unexpected bug.
+          # Adding a random buildEnvVar to circumvent the behaviour.
+          buildEnvVars: |
+            something_something: true
 
 
   await_artifact_on_maven_central:
