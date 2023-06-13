@@ -38,10 +38,20 @@ jobs:
     name: "Changelog and Version Bump"
     runs-on: ubuntu-latest
     steps:
+      - uses: elastic/apm-pipeline-library/.github/actions/github-token@main
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+      - uses: elastic/apm-pipeline-library/.github/actions/setup-git@current
+        with:
+          username: ${{ env.GIT_USER }}
+          email: ${{ env.GIT_EMAIL }}
+          token: ${{ env.GITHUB_TOKEN }}
       - uses: actions/checkout@v3
         with:
           ref: ${{ inputs.branch }}
-      - uses: elastic/apm-pipeline-library/.github/actions/setup-git@current
+          token: ${{ env.GITHUB_TOKEN }}
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v3
         with:
@@ -105,10 +115,20 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: elastic/apm-pipeline-library/.github/actions/github-token@main
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+      - uses: elastic/apm-pipeline-library/.github/actions/setup-git@current
+        with:
+          username: ${{ env.GIT_USER }}
+          email: ${{ env.GIT_EMAIL }}
+          token: ${{ env.GITHUB_TOKEN }}
       - uses: actions/checkout@v3
         with:
           ref: ${{ env.TAG_NAME }}
-      - uses: elastic/apm-pipeline-library/.github/actions/setup-git@current
+          token: ${{ env.GITHUB_TOKEN }}
       - run: .ci/release/update_major_branch.sh ${{ inputs.version }}
       - run: git push -f origin "$(echo '${{ inputs.version }}' | sed -E 's/\..+/.x/')"
 
@@ -120,10 +140,20 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: elastic/apm-pipeline-library/.github/actions/github-token@main
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+      - uses: elastic/apm-pipeline-library/.github/actions/setup-git@current
+        with:
+          username: ${{ env.GIT_USER }}
+          email: ${{ env.GIT_EMAIL }}
+          token: ${{ env.GITHUB_TOKEN }}
       - uses: actions/checkout@v3
         with:
           ref: ${{ inputs.branch }}
-      - uses: elastic/apm-pipeline-library/.github/actions/setup-git@current
+          token: ${{ env.GITHUB_TOKEN }}
       - name: "Update Cloudfoundry index.yml file"
         shell: bash
         run: .ci/release/update_cloudfoundry.sh ${{ inputs.version }}
