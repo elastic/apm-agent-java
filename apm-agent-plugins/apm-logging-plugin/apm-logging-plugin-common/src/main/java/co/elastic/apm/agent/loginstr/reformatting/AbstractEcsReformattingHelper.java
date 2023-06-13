@@ -19,14 +19,11 @@
 package co.elastic.apm.agent.loginstr.reformatting;
 
 import co.elastic.apm.agent.collections.DetachedThreadLocalImpl;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.ServiceFactory;
-import co.elastic.apm.agent.logging.LogEcsReformatting;
-import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.tracer.configuration.LogEcsReformatting;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -36,6 +33,9 @@ import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.LoggingConfiguration;
+import co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -178,7 +178,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
         Service service = new ServiceFactory().createService(
             tracer.getConfig(CoreConfiguration.class),
             "",
-            tracer.getConfig(ServerlessConfiguration.class)
+            tracer.getConfig(ServerlessConfiguration.class).runsOnAwsLambda()
         );
         globalServiceName = service.getName();
         globalServiceVersion = service.getVersion();

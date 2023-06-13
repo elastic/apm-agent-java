@@ -38,6 +38,11 @@ public class OkHttpClientAsyncInstrumentationTest extends AbstractHttpClientInst
     }
 
     @Override
+    public boolean isAsync() {
+        return true;
+    }
+
+    @Override
     protected void performGet(String path) throws Exception {
         Request request = new Request.Builder()
             .url(path)

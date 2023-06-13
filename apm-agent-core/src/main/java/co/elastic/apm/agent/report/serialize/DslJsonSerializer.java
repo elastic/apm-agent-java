@@ -1040,7 +1040,8 @@ public class DslJsonSerializer implements MetaDataRefreshListener {
             writeField("name", span.getNameForSerialization());
             writeTimestamp(span.getTimestamp());
             if (!span.isSync()) {
-                writeField("sync", span.isSync());
+                // in java default is blocking, thus we only report when it's async (false)
+                writeField("sync", false);
             }
             writeField("outcome", span.getOutcome().toString());
             serializeTraceContext(traceContext, true);

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.grpc;
 
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.tracer.Outcome;
 import io.grpc.Status;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class GrpcHelperTest {
+class GrpcHelperTest extends AbstractInstrumentationTest {
 
     @ParameterizedTest
     @EnumSource(Status.Code.class)

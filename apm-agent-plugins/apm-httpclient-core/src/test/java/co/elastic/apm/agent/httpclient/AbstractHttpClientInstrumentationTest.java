@@ -24,10 +24,10 @@ import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
-import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -106,7 +106,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     public void testHttpCall() {
         String path = "/";
         performGetWithinTransaction(path);
-        verifyHttpSpan(path);
+        expectSpan(path).verify();
     }
 
     @Test
@@ -114,7 +114,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         doReturn(true).when(config.getConfig(CoreConfiguration.class)).isOutgoingTraceContextHeadersInjectionDisabled();
         String path = "/";
         performGetWithinTransaction(path);
-        verifyHttpSpan("localhost", path, 200, true, false, false);
+        expectSpan(path).withoutTraceContextHeaders().verify();
     }
 
     @Test
@@ -139,13 +139,15 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         Assume.assumeTrue(isTestHttpCallWithUserInfoEnabled());
 
         performGet("http://user:passwd@localhost:" + wireMockRule.port() + "/");
-        verifyHttpSpan("/");
+        expectSpan("/").verify();
     }
 
     @Test
     public void testHttpCallWithIpv4() throws Exception {
         performGet("http://127.0.0.1:" + wireMockRule.port() + "/");
-        verifyHttpSpan("127.0.0.1", "/");
+        expectSpan("/")
+            .withHost("127.0.0.1")
+            .verify();
     }
 
     @Test
@@ -153,7 +155,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         Assume.assumeTrue(isIpv6Supported());
 
         performGet(String.format("http://[::1]:%d/", wireMockRule.port()));
-        verifyHttpSpan("[::1]", "/");
+        expectSpan("/")
+            .withHost("[::1]")
+            .verify();
     }
 
     @Test
@@ -161,7 +165,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/non-existing";
         performGetWithinTransaction(path);
 
-        verifyHttpSpan("localhost", path, 404);
+        expectSpan(path)
+            .withStatus(404)
+            .verify();
+
     }
 
     @Test
@@ -169,7 +176,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/error";
         performGetWithinTransaction(path);
 
-        verifyHttpSpan("localhost", path, 515);
+        expectSpan(path)
+            .withStatus(515)
+            .verify();
+
     }
 
     @Test
@@ -179,7 +189,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/redirect";
         performGetWithinTransaction(path);
 
-        Span span = verifyHttpSpan(path);
+        Span span = expectSpan(path).verify();
 
         verifyTraceContextHeaders(span, "/redirect");
         verifyTraceContextHeaders(span, "/");
@@ -243,73 +253,110 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         }
     }
 
-    @SuppressWarnings("NullableProblems")
+    public boolean isAsync() {
+        return false;
+    }
+
     protected abstract void performGet(String path) throws Exception;
 
-    protected Span verifyHttpSpan(String path) {
-        return verifyHttpSpan("localhost", path);
+    protected VerifyBuilder expectSpan(String path) {
+        return new VerifyBuilder(path);
     }
 
-    protected Span verifyHttpSpan(String host, String path, int status) {
-        return verifyHttpSpan(host, path, status, true);
-    }
+    protected class VerifyBuilder {
+        private final String path;
+        private String host = "localhost";
+        private int status = 200;
+        private boolean https = false;
+        private boolean traceContextHeaders = true;
+        private boolean requestExecuted = true;
 
-    protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted) {
-        return verifyHttpSpan(host, path, status, requestExecuted, false, requestExecuted);
-    }
-
-    protected Span verifyHttpSpan(String host, String path, int status, boolean requestExecuted, boolean isHttps, boolean expectTraceContextHeaders) {
-        assertThat(reporter.getFirstSpan(500)).isNotNull();
-        assertThat(reporter.getSpans()).hasSize(1);
-        Span span = reporter.getSpans().get(0);
-
-        int port = isHttps ? wireMockRule.httpsPort() : wireMockRule.port();
-
-        String schema = isHttps ? "https" : "http";
-        String baseUrl = String.format("%s://%s:%d", schema, host, port);
-
-        Http httpContext = span.getContext().getHttp();
-
-        assertThat(span.getNameAsString()).isEqualTo(String.format("%s %s", httpContext.getMethod(), host));
-        assertThat(httpContext.getUrl().toString()).isEqualTo(baseUrl + path);
-        assertThat(httpContext.getStatusCode()).isEqualTo(status);
-
-        if (requestExecuted) {
-            assertThat(span.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpClientStatus(status));
-        } else {
-            assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
+        private VerifyBuilder(String path) {
+            this.path = path;
         }
 
-        assertThat(span.getType()).isEqualTo("external");
-        assertThat(span.getSubtype()).isEqualTo("http");
-        assertThat(span.getAction()).isNull();
+        public VerifyBuilder withHost(String host) {
+            this.host = host;
+            return this;
+        }
 
-        Destination destination = span.getContext().getDestination();
-        int addressStartIndex = (host.startsWith("[")) ? 1 : 0;
-        int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
-        assertThat(destination.getAddress().toString()).isEqualTo(host.substring(addressStartIndex, addressEndIndex));
-        assertThat(destination.getPort()).isEqualTo(port);
+        public VerifyBuilder withStatus(int status) {
+            this.status = status;
+            return this;
+        }
 
-        assertThat(span.getContext().getServiceTarget())
-            .hasName(String.format("%s:%d", host, port))
-            .hasType("http")
-            .hasNameOnlyDestinationResource();
+        public VerifyBuilder withHttps() {
+            this.https = true;
+            return this;
+        }
 
-        if (requestExecuted) {
-            if (expectTraceContextHeaders) {
-                verifyTraceContextHeaders(span, path);
+        public VerifyBuilder withoutTraceContextHeaders() {
+            this.traceContextHeaders = false;
+            return this;
+        }
+
+        public VerifyBuilder withoutRequestExecuted() {
+            this.requestExecuted = false;
+            // when request is not executed, we don't expect tracing headers
+            this.traceContextHeaders = false;
+            return this;
+        }
+
+        public Span verify() {
+            assertThat(reporter.getFirstSpan(500)).isNotNull();
+            assertThat(reporter.getSpans()).hasSize(1);
+            Span span = reporter.getSpans().get(0);
+
+            int port = https ? wireMockRule.httpsPort() : wireMockRule.port();
+
+            String schema = https ? "https" : "http";
+            String baseUrl = String.format("%s://%s:%d", schema, host, port);
+
+            Http httpContext = span.getContext().getHttp();
+
+            assertThat(span)
+                .hasName(String.format("%s %s", httpContext.getMethod(), host))
+                .hasType("external")
+                .hasSubType("http");
+
+            assertThat(span.getAction()).isNull();
+
+            assertThat(httpContext.getUrl().toString()).isEqualTo(baseUrl + path);
+            assertThat(httpContext.getStatusCode()).isEqualTo(status);
+
+            if (requestExecuted) {
+                assertThat(span).hasOutcome(ResultUtil.getOutcomeByHttpClientStatus(status));
             } else {
-                findLoggedRequests(path).forEach(request ->
-                    assertThat(TraceContext.containsTraceContextTextHeaders(request, HeaderAccessor.INSTANCE)).isFalse()
-                );
+                assertThat(span).hasOutcome(Outcome.FAILURE);
             }
+
+            if (isAsync()) {
+                assertThat(span).isAsync();
+            }
+
+            Destination destination = span.getContext().getDestination();
+            int addressStartIndex = (host.startsWith("[")) ? 1 : 0;
+            int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
+            assertThat(destination.getAddress().toString()).isEqualTo(host.substring(addressStartIndex, addressEndIndex));
+            assertThat(destination.getPort()).isEqualTo(port);
+
+            assertThat(span.getContext().getServiceTarget())
+                .hasName(String.format("%s:%d", host, port))
+                .hasType("http")
+                .hasNameOnlyDestinationResource();
+
+            if (requestExecuted) {
+                if (traceContextHeaders) {
+                    verifyTraceContextHeaders(span, path);
+                } else {
+                    findLoggedRequests(path).forEach(request ->
+                        assertThat(TraceContext.containsTraceContextTextHeaders(request, HeaderAccessor.INSTANCE)).isFalse()
+                    );
+                }
+            }
+
+            return span;
         }
-
-        return span;
-    }
-
-    protected Span verifyHttpSpan(String host, String path) {
-        return verifyHttpSpan(host, path, 200);
     }
 
     private void verifyTraceContextHeaders(Span span, String path) {

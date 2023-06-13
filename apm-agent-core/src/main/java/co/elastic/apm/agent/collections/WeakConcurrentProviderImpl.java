@@ -22,7 +22,7 @@ import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
-import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import com.blogspot.mydailyjava.weaklockfree.AbstractWeakConcurrentMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
 
@@ -37,8 +37,8 @@ public class WeakConcurrentProviderImpl implements WeakConcurrent.WeakConcurrent
 
     private static final WeakConcurrentSet<AbstractWeakConcurrentMap<?, ?, ?>> registeredMaps = new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.INLINE);
 
-    public static <K, V extends AbstractSpan<?>> WeakMap<K, V> createWeakSpanMap() {
-        SpanConcurrentHashMap<AbstractWeakConcurrentMap.WeakKey<K>, V> map = new SpanConcurrentHashMap<>();
+    public static <K, V extends ReferenceCounted> WeakMap<K, V> createWeakReferenceCountedMap() {
+        ReferencedCountedConcurrentHashMap<AbstractWeakConcurrentMap.WeakKey<K>, V> map = new ReferencedCountedConcurrentHashMap<>();
         NullSafeWeakConcurrentMap<K, V> result = new NullSafeWeakConcurrentMap<>(map);
         registeredMaps.add(result);
         return result;

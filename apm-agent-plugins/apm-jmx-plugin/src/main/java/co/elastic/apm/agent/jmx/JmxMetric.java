@@ -18,10 +18,12 @@
  */
 package co.elastic.apm.agent.jmx;
 
+import co.elastic.apm.agent.metrics.Labels;
 import org.stagemonitor.configuration.converter.AbstractValueConverter;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import java.util.ArrayList;
@@ -40,6 +42,7 @@ public class JmxMetric {
     private static final String OBJECT_NAME = "object_name";
     private static final String ATTRIBUTE = "attribute";
     private static final String METRIC_NAME = "metric_name";
+    private static final String JMX_PREFIX = "jvm.jmx.";
     private final ObjectName objectName;
     private final List<Attribute> attributes;
 
@@ -182,7 +185,7 @@ public class JmxMetric {
         }
 
         public String getMetricName() {
-            return metricName != null ? metricName : jmxAttributeName;
+            return JMX_PREFIX + (metricName != null ? metricName : jmxAttributeName);
         }
 
         @Override
@@ -203,5 +206,14 @@ public class JmxMetric {
         public int hashCode() {
             return Objects.hash(jmxAttributeName, metricName);
         }
+
+        public Labels getLabels(ObjectName objectName) {
+            return Labels.Mutable.of(objectName.getKeyPropertyList());
+        }
+
+        public String getCompositeMetricName(String key) {
+            return getMetricName() + "." + key;
+        }
     }
+
 }

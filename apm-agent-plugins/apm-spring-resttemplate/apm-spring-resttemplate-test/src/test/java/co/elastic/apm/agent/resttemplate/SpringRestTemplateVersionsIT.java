@@ -83,7 +83,7 @@ public class SpringRestTemplateVersionsIT {
 
     @ParameterizedTest
     @ValueSource(strings = {
-        "[6.0.0,7.0.0)" // using ivy range specifier to make test against later versions
+        "6.0.5"
     })
     @EnabledForJreRange(min = JRE.JAVA_17, disabledReason = "Spring 6 requires JDK 17")
     void testVersion6(String version) throws Exception {
