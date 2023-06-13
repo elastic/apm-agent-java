@@ -36,6 +36,7 @@ public class WildFlyIT extends AbstractServletContainerIntegrationTest {
     public WildFlyIT(final String wildFlyVersion) {
         super(AgentTestContainer.appServer("jboss/wildfly:" + wildFlyVersion)
                 .withContainerName("wildfly")
+                .withHttpPort(8080)
                 .withJvmArgumentsVariable("JAVA_OPTS") // using JAVA_OPTS to provide JVM arguments
                 // this overrides the defaults, so we have to manually re-add preferIPv4Stack
                 // the other defaults don't seem to be important
