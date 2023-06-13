@@ -32,6 +32,7 @@ public class DubboTraceHelper {
     private static final String EXTERNAL_TYPE = "external";
     private static final String DUBBO_SUBTYPE = "dubbo";
     public static final String SPAN_KEY = "_elastic_apm_span";
+    public static final String INVOKE_MODE = "_elastic_apm_invokemode";
 
     @Nullable
     public static Span<?> createConsumerSpan(Tracer tracer, Class<?> apiClass, String methodName, InetSocketAddress remoteAddress) {

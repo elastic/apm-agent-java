@@ -97,7 +97,7 @@ pipeline {
             // If this fails, an exception should be thrown and execution will halt
             dir("${BASE_DIR}"){
               script {
-                def r = sh(label: "Check Maven status", script: "./scripts/jenkins/check_maven.sh -u https://status.maven.org/api/v2/summary.json --component OSSRH", returnStatus: true)
+                def r = sh(label: "Check Maven status", script: "./scripts/docker-release/check_maven.sh -u https://status.maven.org/api/v2/summary.json --component OSSRH", returnStatus: true)
                 if (r == 1) {
                   error("Failing release build because Maven is the OSSRH component is not fully operational. See https://status.maven.org/ for more details.")
                 }
@@ -264,10 +264,10 @@ pipeline {
             dir("${BASE_DIR}"){
               // fetch agent artifact from remote repository
               withEnv(["SONATYPE_FALLBACK=1"]) {
-                sh(label: "Build Docker image", script: "./scripts/jenkins/build_docker.sh")
+                sh(label: "Build Docker image", script: "./scripts/docker-release/build_docker.sh")
                   // Get Docker registry credentials
                   dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co', role_id: 'apm-vault-role-id', secret_id: 'apm-vault-secret-id')
-                  sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
+                  sh(label: "Push Docker image", script: "./scripts/docker-release/push_docker.sh")
               }
             }
           }

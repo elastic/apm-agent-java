@@ -48,6 +48,11 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
     }
 
     @Override
+    public boolean isAsync() {
+        return true;
+    }
+
+    @Override
     protected void performGet(String path) throws Exception {
         final CompletableFuture<HttpResponse> responseFuture = new CompletableFuture<>();
 
