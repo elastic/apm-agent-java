@@ -39,7 +39,7 @@ public class JettyIT extends AbstractJettyIT {
         return Arrays.asList(new Object[][]{
             {"9.2"},
             {"9.3"},
-            {"9.4.51-jdk8"},
+            {"9.4.51-jdk8"}, // with 9.4 the async servlet instrumentation does not match on 'startAsync' method
             {"10.0.6"},
             {"10.0.6-jdk11"},
             {"10.0.6-jdk16"}
