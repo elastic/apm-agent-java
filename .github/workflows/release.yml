@@ -115,8 +115,6 @@ jobs:
   await_artifact_on_maven_central:
     name: "Wait for artifacts to be available on maven central"
     runs-on: ubuntu-latest
-    needs:
-      - maven_central_deploy
     steps:
       - uses: actions/checkout@v3
       - name: Await artifacts published in maven central
