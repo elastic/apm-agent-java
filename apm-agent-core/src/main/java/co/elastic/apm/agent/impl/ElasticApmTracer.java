@@ -403,6 +403,10 @@ public class ElasticApmTracer implements Tracer {
             return null;
         }
 
+        if (!coreConfiguration.captureExceptionDetails()) {
+            return null;
+        }
+
         while (e != null && WildcardMatcher.anyMatch(coreConfiguration.getUnnestExceptions(), e.getClass().getName()) != null) {
             e = e.getCause();
         }
