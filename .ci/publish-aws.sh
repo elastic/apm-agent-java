@@ -21,20 +21,6 @@ ALL_AWS_REGIONS=$(aws ec2 describe-regions --output json --no-cli-pager | jq -r 
 rm -rf "${AWS_FOLDER}"
 mkdir -p "${AWS_FOLDER}"
 
-# Delete previous layers
-for region in $ALL_AWS_REGIONS; do
-  layer_versions=$(aws lambda list-layer-versions --region="${region}" --layer-name="${ELASTIC_LAYER_NAME}" | jq '.LayerVersions[].Version')
-  echo "Found layer versions for ${FULL_LAYER_NAME} in ${region}: ${layer_versions:-none}"
-  for version_number in $layer_versions; do
-    echo "- Deleting ${FULL_LAYER_NAME}:${version_number} in ${region}"
-    aws lambda delete-layer-version \
-        --region="${region}" \
-        --layer-name="${FULL_LAYER_NAME}" \
-        --version-number="${version_number}"
-  done
-done
-
-
 zip_file="./elastic-apm-agent/target/elastic-apm-java-ver-1-39-0.zip"
 
 for region in $ALL_AWS_REGIONS; do
