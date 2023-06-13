@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.cassandra;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import com.datastax.driver.core.Cluster;
@@ -49,14 +50,17 @@ class Cassandra3InstrumentationIT extends AbstractInstrumentationTest {
         .withStartupTimeout(Duration.ofSeconds(120))
         .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048))
         .withEnv("HEAP_NEWSIZE", "700m")
-        .withEnv("MAX_HEAP_SIZE", "1024m");
+        .withEnv("MAX_HEAP_SIZE", "1024m")
+        // makes cassandra node startup faster
+        .withEnv("CASSANDRA_NUM_TOKENS", "1")
+        .withEnv("JAVA_TOOL_OPTIONS", "-Dcassandra.skip_wait_for_gossip_to_settle=0");
     private static Session session;
     private static Cluster cluster;
     private Transaction transaction;
 
 
     @BeforeAll
-    public static void beforeClass() throws Exception {
+    public static void beforeClass() {
         int cassandraPort = cassandra.getMappedPort(9042);
         cluster = Cluster.builder()
             .addContactPoint("localhost")
@@ -89,15 +93,21 @@ class Cassandra3InstrumentationIT extends AbstractInstrumentationTest {
 
         reporter.awaitSpanCount(3);
 
-        assertThat(reporter.getSpanByName("CREATE").getContext().getDb())
+        Span createSpan = reporter.getSpanByName("CREATE");
+        assertThat(createSpan).isSync();
+        assertThat(createSpan.getContext().getDb())
             .hasStatement("CREATE TABLE users (id UUID, name text, PRIMARY KEY(name, id))")
             .hasInstance(KEYSPACE);
 
-        assertThat(reporter.getSpanByName("INSERT INTO users").getContext().getDb())
+        Span insertSpan = reporter.getSpanByName("INSERT INTO users");
+        assertThat(insertSpan).isSync();
+        assertThat(insertSpan.getContext().getDb())
             .hasStatement("INSERT INTO users (id, name) values (?, ?)")
             .hasInstance(KEYSPACE);
 
-        assertThat(reporter.getSpanByName("SELECT FROM users").getContext().getDb())
+        Span selectSpan = reporter.getSpanByName("SELECT FROM users");
+        assertThat(selectSpan).isAsync();
+        assertThat(selectSpan.getContext().getDb())
             .hasStatement("SELECT * FROM users where name = 'alice' ALLOW FILTERING")
             .hasInstance(KEYSPACE);
     }

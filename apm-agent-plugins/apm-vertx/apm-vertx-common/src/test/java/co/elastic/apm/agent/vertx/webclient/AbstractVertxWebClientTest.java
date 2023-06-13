@@ -98,7 +98,12 @@ public abstract class AbstractVertxWebClientTest extends AbstractHttpClientInstr
     }
 
     protected void doVerifyFailedRequestHttpSpan(String host, String path) {
-        verifyHttpSpan(host, path, 0, false);
+        expectSpan(path)
+            .withHost(host)
+            .withStatus(0)
+            .withoutRequestExecuted()
+            .verify();
+
     }
 
     abstract protected void get(HttpRequest<Buffer> httpRequest, VertxTestContext testContext);

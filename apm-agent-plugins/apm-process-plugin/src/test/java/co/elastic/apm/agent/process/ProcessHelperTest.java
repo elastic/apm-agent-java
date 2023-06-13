@@ -25,9 +25,11 @@ import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.annotation.Nullable;
 import java.nio.file.Paths;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,7 +59,29 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         TransactionUtils.fillTransaction(transaction);
 
         storageMap = WeakConcurrent.buildMap();
-        helper = new ProcessHelper(storageMap);
+        helper = new ProcessHelper(new ReferenceCountedMap<>() {
+            @Nullable
+            @Override
+            public co.elastic.apm.agent.tracer.Span<?> get(Process key) {
+                return storageMap.get(key);
+            }
+
+            @Override
+            public boolean contains(Process key) {
+                return storageMap.containsKey(key);
+            }
+
+            @Override
+            public void put(Process key, co.elastic.apm.agent.tracer.Span<?> value) {
+                storageMap.put(key, value);
+            }
+
+            @Nullable
+            @Override
+            public co.elastic.apm.agent.tracer.Span<?> remove(Process key) {
+                return storageMap.remove(key);
+            }
+        });
     }
 
     @Test

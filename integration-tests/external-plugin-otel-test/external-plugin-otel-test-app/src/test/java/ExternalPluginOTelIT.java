@@ -18,7 +18,8 @@
  */
 
 import co.elastic.apm.agent.test.AgentFileAccessor;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -29,9 +30,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,8 +42,9 @@ public class ExternalPluginOTelIT {
 
     private static final String DOCKER_IMAGE = "openjdk:11";
 
-    @Test
-    void runAppWithTwoExternalPlugins() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void runAppWithTwoExternalPlugins(boolean withOtelInApp) {
 
         // remote debug port for container, IDE should be listening to this port
         int debugPort = 5005;
@@ -62,9 +66,10 @@ public class ExternalPluginOTelIT {
             .append("--wait")
             .toString();
 
+        String appJarPath = "target/external-plugin-otel-test-app" + (withOtelInApp ? "-jar-with-dependencies.jar" : ".jar");
         GenericContainer<?> app = new GenericContainer<>(DockerImageName.parse(DOCKER_IMAGE))
             .withCopyFileToContainer(MountableFile.forHostPath(AgentFileAccessor.getPathToJavaagent()), agentJar)
-            .withCopyFileToContainer(MountableFile.forHostPath("target/external-plugin-otel-test-app.jar"), appJar)
+            .withCopyFileToContainer(MountableFile.forHostPath(appJarPath), appJar)
             .withCopyFileToContainer(MountableFile.forHostPath("../external-plugin-otel-test-plugin1/target/external-plugin-otel-test-plugin1.jar"), "/tmp/plugins/plugin1.jar")
             .withCopyFileToContainer(MountableFile.forHostPath("../external-plugin-otel-test-plugin2/target/external-plugin-otel-test-plugin2.jar"), "/tmp/plugins/plugin2.jar")
             .withCommand(cmd)
@@ -87,37 +92,44 @@ public class ExternalPluginOTelIT {
             String transactionId = null;
             String spanId = null;
             String traceId = null;
-            List<String> otelApiLines = logLines.stream().filter(l -> l.startsWith("active span ID =")).collect(Collectors.toList());
-            assertThat(otelApiLines).hasSize(3);
-            // first and last should be within transaction thus equal
-            assertThat(otelApiLines.get(0)).isEqualTo(otelApiLines.get(2));
 
-            Pattern idPattern = Pattern.compile("active span ID = ([a-z0-9]+), trace ID = ([a-z0-9]+)");
-            Matcher matcher = idPattern.matcher(otelApiLines.get(0));
-            assertThat(matcher.matches()).isTrue();
-            assertThat(matcher.groupCount()).isEqualTo(2);
-            transactionId = matcher.group(1);
-            traceId = matcher.group(2);
-            matcher = idPattern.matcher(otelApiLines.get(1));
-            assertThat(matcher.matches()).isTrue();
-            assertThat(matcher.groupCount()).isEqualTo(2);
-            spanId = matcher.group(1);
+            if (withOtelInApp) {
+                List<String> otelApiLines = logLines.stream().filter(l -> l.startsWith("active span ID =")).collect(Collectors.toList());
+                assertThat(otelApiLines).hasSize(3);
+                // first and last should be within transaction thus equal
+                assertThat(otelApiLines.get(0)).isEqualTo(otelApiLines.get(2));
 
-            assertThat(logLines).containsExactly(
+                Pattern idPattern = Pattern.compile("active span ID = ([a-z0-9]+), trace ID = ([a-z0-9]+)");
+                Matcher matcher = idPattern.matcher(otelApiLines.get(0));
+                assertThat(matcher.matches()).isTrue();
+                assertThat(matcher.groupCount()).isEqualTo(2);
+                transactionId = matcher.group(1);
+                traceId = matcher.group(2);
+                matcher = idPattern.matcher(otelApiLines.get(1));
+                assertThat(matcher.matches()).isTrue();
+                assertThat(matcher.groupCount()).isEqualTo(2);
+                spanId = matcher.group(1);
+            }
+
+            List<String> expectedLogs = Stream.of(
                 "app start",
                 ">> transaction enter", // added by plugin1
                 ">> gauge class co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14.BridgeObservableLongGauge",
+                ">> otel class co.elastic.apm.agent.opentelemetry.global.ElasticOpenTelemetryWithMetrics",
                 "start transaction",
-                String.format("active span ID = %s, trace ID = %s", transactionId, traceId), // app OTel API
+                withOtelInApp ? String.format("active span ID = %s, trace ID = %s", transactionId, traceId) : null, // app OTel API
                 ">> span enter", // added by plugin2
                 "start span",
-                String.format("active span ID = %s, trace ID = %s", spanId, traceId), // app OTel API
+                withOtelInApp ? String.format("active span ID = %s, trace ID = %s", spanId, traceId) : null, // app OTel API
                 "end span",
                 "<< span exit", // added by plugin2
-                String.format("active span ID = %s, trace ID = %s", transactionId, traceId), // app OTel API
+                withOtelInApp ? String.format("active span ID = %s, trace ID = %s", transactionId, traceId) : null, // app OTel API
                 "end transaction",
                 "<< transaction exit", // added by plugin1
-                "app end");
+                "app end"
+            ).filter(Objects::nonNull).collect(Collectors.toList());
+
+            assertThat(logLines).containsExactlyElementsOf(expectedLogs);
 
         } finally {
 
