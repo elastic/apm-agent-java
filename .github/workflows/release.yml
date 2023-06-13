@@ -38,9 +38,6 @@ jobs:
     name: "Changelog and Version Bump"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.branch }}
       - uses: elastic/apm-pipeline-library/.github/actions/github-token@main
         with:
           url: ${{ secrets.VAULT_ADDR }}
@@ -50,6 +47,10 @@ jobs:
         with:
           username: ${{ env.GIT_USER }}
           email: ${{ env.GIT_EMAIL }}
+          token: ${{ env.GITHUB_TOKEN }}
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.branch }}
           token: ${{ env.GITHUB_TOKEN }}
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v3
@@ -114,9 +115,6 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ env.TAG_NAME }}
       - uses: elastic/apm-pipeline-library/.github/actions/github-token@main
         with:
           url: ${{ secrets.VAULT_ADDR }}
@@ -126,6 +124,10 @@ jobs:
         with:
           username: ${{ env.GIT_USER }}
           email: ${{ env.GIT_EMAIL }}
+          token: ${{ env.GITHUB_TOKEN }}
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ env.TAG_NAME }}
           token: ${{ env.GITHUB_TOKEN }}
       - run: .ci/release/update_major_branch.sh ${{ inputs.version }}
       - run: git push -f origin "$(echo '${{ inputs.version }}' | sed -E 's/\..+/.x/')"
@@ -138,9 +140,6 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.branch }}
       - uses: elastic/apm-pipeline-library/.github/actions/github-token@main
         with:
           url: ${{ secrets.VAULT_ADDR }}
@@ -150,6 +149,10 @@ jobs:
         with:
           username: ${{ env.GIT_USER }}
           email: ${{ env.GIT_EMAIL }}
+          token: ${{ env.GITHUB_TOKEN }}
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.branch }}
           token: ${{ env.GITHUB_TOKEN }}
       - name: "Update Cloudfoundry index.yml file"
         shell: bash
