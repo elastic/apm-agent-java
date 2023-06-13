@@ -2,11 +2,11 @@
 set -euo pipefail
 
 #
-# Publishes the created artifacts from ./dev-utils/make-distribution.sh to AWS as AWS Lambda Layers in every region.
+# Publishes the created lambda layer zip to AWS as AWS Lambda Layers in every region.
 # Finalized by generating an ARN table which will be used in the release notes.
 #
 # AWS_FOLDER is used for temporary output of publishing layers used to create the arn table. (Optional)
-# ELASTIC_LAYER_NAME is the name of the lambda layer e.g. elastic-apm-python-ver-3-44-1 for the git tag v3.44.1 (Required)
+# ELASTIC_LAYER_NAME is the name of the lambda layer e.g. elastic-apm-java-ver-3-44-1 for the git tag v3.44.1 (Required)
 
 
 # This needs to be set in GH actions
