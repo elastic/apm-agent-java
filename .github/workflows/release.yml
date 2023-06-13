@@ -92,7 +92,7 @@ jobs:
           # Which is an unexpected bug.
           # Adding a random buildEnvVar to circumvent the behaviour.
           buildEnvVars: |
-            something_something: true
+            something_something=true
 
 
   await_artifact_on_maven_central:
