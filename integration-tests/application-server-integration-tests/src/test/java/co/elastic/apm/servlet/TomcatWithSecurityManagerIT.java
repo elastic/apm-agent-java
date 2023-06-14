@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.agent.test.AgentTestContainer;
 import co.elastic.apm.servlet.tests.JavaxExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
@@ -30,7 +31,7 @@ import java.util.List;
 @RunWith(Parameterized.class)
 public class TomcatWithSecurityManagerIT extends AbstractTomcatIT {
 
-    public TomcatWithSecurityManagerIT(final String tomcatVersion) {
+    public TomcatWithSecurityManagerIT(String tomcatVersion) {
         super(tomcatVersion);
     }
 
@@ -56,4 +57,5 @@ public class TomcatWithSecurityManagerIT extends AbstractTomcatIT {
     protected boolean isSecurityManagerEnabled() {
         return true;
     }
+
 }

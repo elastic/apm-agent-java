@@ -18,28 +18,21 @@
  */
 package co.elastic.apm.servlet;
 
-import org.testcontainers.containers.GenericContainer;
+import co.elastic.apm.agent.test.AgentTestContainer;
 
 import java.util.Arrays;
 import java.util.List;
 
 public abstract class AbstractJettyIT extends AbstractServletContainerIntegrationTest {
 
-    private String version;
-
     public AbstractJettyIT(final String version) {
-        super(new GenericContainerWithTcpProxy<>("jetty:" + version)
-                .withExposedPorts(8080),
-            "jetty-application",
-            "/var/lib/jetty/webapps",
-            "jetty");
+        super(AgentTestContainer.appServer("jetty:" + version)
+                .withContainerName("jetty")
+                .withHttpPort(8080)
+                .withDeploymentPath("/var/lib/jetty/webapps")
+                .withJvmArgumentsVariable("JAVA_OPTIONS"),
+            "jetty-application");
 
-        this.version = version;
-    }
-
-    @Override
-    protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("JAVA_OPTIONS", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005");
     }
 
     public List<String> getPathsToTestErrors() {

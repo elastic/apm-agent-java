@@ -75,16 +75,16 @@ public class TomcatLoggingIT {
     })
     void testLogShading(String version) throws IOException, InterruptedException, TimeoutException {
 
-        try (AgentTestContainer.Generic container = new AgentTestContainer.Generic("tomcat:" + version)
+        try (AgentTestContainer.Generic container = AgentTestContainer.generic("tomcat:" + version)
             .withRemoteDebug()
-            .withJavaAgent()
+            .withJavaAgentBinaries()
             .withJvmArgumentsVariable("CATALINA_OPTS")
             .withEnv("ELASTIC_APM_LOG_ECS_REFORMATTING", "shade")
             .withEnv("ELASTIC_APM_LOG_ECS_REFORMATTING_DIR", "ecs-logs")
             .withEnv("ELASTIC_APM_DISABLE_SEND", "true")
             .withEnv("ELASTIC_APM_CENTRAL_CONFIG", "false")
             .withEnv("ELASTIC_APM_CLOUD_PROVIDER", "none")
-            .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(1024))
+            .withMemoryLimit(1024)
             // wait for agent startup: waiting for a specific log message in standard output (not sure if we can listen to another log file)
             .waitingFor(Wait.forLogMessage(".*Server startup in.*", 1)
                 .withStartupTimeout(Duration.ofSeconds(15)))) {
