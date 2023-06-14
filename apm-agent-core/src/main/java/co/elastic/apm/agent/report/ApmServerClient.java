@@ -356,7 +356,8 @@ public class ApmServerClient {
     }
 
     public boolean supportsDetectedHostnameFqdn() {
-        return isAtLeast(VERSION_8_9_0);
+        // for aws lambda we assume it's recent to make this non-blocking
+        return serverlessConfiguration.runsOnAwsLambda() || isAtLeast(VERSION_8_9_0);
     }
 
     public boolean supportsLogsEndpoint() {
