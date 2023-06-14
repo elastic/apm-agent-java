@@ -1069,7 +1069,7 @@ class DslJsonSerializerTest {
         String platform = "test-platform";
 
         MetaData metaData = createMetaData(new SystemInfo(arc, "configured", "detected", platform));
-        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true);
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true, true);
         writer.appendMetadataToStream();
 
         JsonNode system = readJsonString(writer.toString()).get("system");
@@ -1088,13 +1088,17 @@ class DslJsonSerializerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void testSystemInfo_detectedHostname(boolean supportsConfiguredAndDetectedHostname) throws Exception {
+    @CsvSource(delimiter = '|', value = {
+        "false|false",
+        "true|false",
+        "true|true",
+    })
+    void testSystemInfo_detectedHostname(boolean supportsConfiguredAndDetectedHostname, boolean supportsDetectedHostnameFqdn) throws Exception {
         String arc = "test-arc";
         String platform = "test-platform";
 
-        MetaData metaData = createMetaData(new SystemInfo(arc, null, "detected", platform));
-        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true);
+        MetaData metaData = createMetaData(new SystemInfo(arc, null, "detected.fqdn", platform));
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true, supportsDetectedHostnameFqdn);
         writer.appendMetadataToStream();
 
         JsonNode system = readJsonString(writer.toString()).get("system");
@@ -1103,9 +1107,12 @@ class DslJsonSerializerTest {
         assertThat(platform).isEqualTo(system.get("platform").asText());
         if (supportsConfiguredAndDetectedHostname) {
             assertThat(system.get("configured_hostname")).isNull();
-            assertThat(system.get("detected_hostname").asText()).isEqualTo("detected");
+            assertThat(system.get("detected_hostname").asText()).isEqualTo(supportsDetectedHostnameFqdn ? "detected.fqdn" : "detected");
             assertThat(system.get("hostname")).isNull();
         } else {
+            assertThat(supportsDetectedHostnameFqdn)
+                .describedAs("inconsistent test, FQDN is only supported with detected hostname")
+                .isFalse();
             assertThat(system.get("configured_hostname")).isNull();
             assertThat(system.get("detected_hostname")).isNull();
             assertThat(system.get("hostname").asText()).isEqualTo("detected");
@@ -1119,7 +1126,7 @@ class DslJsonSerializerTest {
         String platform = "test-platform";
 
         MetaData metaData = createMetaData(new SystemInfo(arc, null, null, platform));
-        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true);
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true, true);
         writer.appendMetadataToStream();
 
         JsonNode system = readJsonString(writer.toString()).get("system");
@@ -1146,7 +1153,7 @@ class DslJsonSerializerTest {
         cloudProviderInfo.setInstance(null);
         cloudProviderInfo.setService(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), true, true);
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), true, true, true);
         writer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(writer.toString()).get("cloud");
@@ -1173,7 +1180,7 @@ class DslJsonSerializerTest {
         Objects.requireNonNull(cloudProviderInfo.getProject()).setName(null);
         Objects.requireNonNull(cloudProviderInfo.getInstance()).setName(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), true, true);
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), true, true, true);
         writer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(writer.toString()).get("cloud");
@@ -1206,7 +1213,7 @@ class DslJsonSerializerTest {
         instance.setName(null);
         instance.setId(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), true, true);
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), true, true, true);
         writer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(writer.toString()).get("cloud");
@@ -1230,7 +1237,7 @@ class DslJsonSerializerTest {
         Objects.requireNonNull(cloudProviderInfo.getInstance()).setId(null);
         Objects.requireNonNull(cloudProviderInfo.getAccount()).setId(null);
 
-        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), true, true);
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), true, true, true);
         writer.appendMetadataToStream();
 
         JsonNode jsonCloud = readJsonString(writer.toString()).get("cloud");
@@ -1256,7 +1263,7 @@ class DslJsonSerializerTest {
 
         MetaData metaData = createMetaData();
 
-        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), true, supportsActivationMethod);
+        DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), true, supportsActivationMethod, true);
         writer.appendMetadataToStream();
 
         checkMetadataActivationMethod(writer.toString(), supportsActivationMethod ? "unknown" : null);

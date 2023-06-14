@@ -75,6 +75,7 @@ public class ApmServerClient {
     private static final Version VERSION_8_0 = Version.of("8.0.0");
     private static final Version VERSION_8_6 = Version.of("8.6.0");
     private static final Version VERSION_8_7_1 = Version.of("8.7.1");
+    private static final Version VERSION_8_9_0 = Version.of("8.9.0");
 
     private final ReporterConfiguration reporterConfiguration;
 
@@ -352,6 +353,10 @@ public class ApmServerClient {
     public boolean supportsConfiguredAndDetectedHostname() {
         //running on aws lambda implies that server is >= 8.2 according to support matrix
         return serverlessConfiguration.runsOnAwsLambda() || isAtLeast(VERSION_7_4);
+    }
+
+    public boolean supportsDetectedHostnameFqdn() {
+        return isAtLeast(VERSION_8_9_0);
     }
 
     public boolean supportsLogsEndpoint() {

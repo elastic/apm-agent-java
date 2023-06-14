@@ -134,14 +134,22 @@ public class DslJsonSerializer {
             serializedActivationMethod = supportsActivationMethod;
 
             JsonWriter metadataJW = new DslJson<>(new DslJson.Settings<>()).newWriter(4096);
-            boolean supportsConfiguredAndDetectedHostname = apmServerClient.supportsConfiguredAndDetectedHostname();
 
-            serializeMetadata(meta, metadataJW, supportsConfiguredAndDetectedHostname, supportsActivationMethod);
+            serializeMetadata(meta, metadataJW,
+                apmServerClient.supportsConfiguredAndDetectedHostname(),
+                supportsActivationMethod,
+                apmServerClient.supportsDetectedHostnameFqdn());
+
             serializedMetaData = metadataJW.toByteArray();
         }
     }
 
-    static void serializeMetadata(MetaData metaData, JsonWriter metadataJW, boolean supportsConfiguredAndDetectedHostname, boolean supportsAgentActivationMethod) {
+    static void serializeMetadata(MetaData metaData,
+                                  JsonWriter metadataJW,
+                                  boolean supportsConfiguredAndDetectedHostname,
+                                  boolean supportsAgentActivationMethod,
+                                  boolean supportsDetectedHostnameFqdn) {
+
         StringBuilder metadataReplaceBuilder = new StringBuilder();
         metadataJW.writeByte(JsonWriter.OBJECT_START);
         serializeService(metaData.getService(), metadataReplaceBuilder, metadataJW, supportsAgentActivationMethod);
@@ -149,7 +157,7 @@ public class DslJsonSerializer {
         serializeProcess(metaData.getProcess(), metadataReplaceBuilder, metadataJW);
         metadataJW.writeByte(COMMA);
         serializeGlobalLabels(metaData.getGlobalLabelKeys(), metaData.getGlobalLabelValues(), metadataReplaceBuilder, metadataJW);
-        serializeSystem(metaData.getSystem(), metadataReplaceBuilder, metadataJW, supportsConfiguredAndDetectedHostname);
+        serializeSystem(metaData.getSystem(), metadataReplaceBuilder, metadataJW, supportsConfiguredAndDetectedHostname, supportsDetectedHostnameFqdn);
         if (metaData.getCloudProviderInfo() != null) {
             metadataJW.writeByte(COMMA);
             serializeCloudProvider(metaData.getCloudProviderInfo(), metadataReplaceBuilder, metadataJW);
@@ -327,8 +335,12 @@ public class DslJsonSerializer {
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    private static void serializeSystem(final SystemInfo system, final StringBuilder replaceBuilder, final JsonWriter jw,
-                                        boolean supportsConfiguredAndDetectedHostname) {
+    private static void serializeSystem(SystemInfo system,
+                                        StringBuilder replaceBuilder,
+                                        JsonWriter jw,
+                                        boolean supportsConfiguredAndDetectedHostname,
+                                        boolean supportsDetectedHostnameFqdn) {
+
         writeFieldName("system", jw);
         jw.writeByte(JsonWriter.OBJECT_START);
         serializeContainerInfo(system.getContainerInfo(), replaceBuilder, jw);
@@ -341,14 +353,24 @@ public class DslJsonSerializer {
             } else {
                 String detectedHostname = system.getDetectedHostname();
                 if (detectedHostname != null && !detectedHostname.isEmpty()) {
+
+                    if (!supportsDetectedHostnameFqdn) {
+                        detectedHostname = trimDomainName(detectedHostname);
+                    }
+
                     writeField("detected_hostname", detectedHostname, replaceBuilder, jw);
                 }
             }
         } else {
-            writeField("hostname", system.getHostname(), replaceBuilder, jw);
+            writeField("hostname", trimDomainName(system.getHostname()), replaceBuilder, jw);
         }
         writeLastField("platform", system.getPlatform(), replaceBuilder, jw);
         jw.writeByte(JsonWriter.OBJECT_END);
+    }
+
+    private static String trimDomainName(String hostname) {
+        int dotIndex = hostname.indexOf('.');
+        return (dotIndex < 0) ? hostname : hostname.substring(0, dotIndex);
     }
 
     private static void serializeCloudProvider(final CloudProviderInfo cloudProviderInfo, final StringBuilder replaceBuilder, final JsonWriter jw) {
