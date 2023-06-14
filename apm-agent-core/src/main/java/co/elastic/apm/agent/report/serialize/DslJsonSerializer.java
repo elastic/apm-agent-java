@@ -368,7 +368,11 @@ public class DslJsonSerializer {
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    private static String trimDomainName(String hostname) {
+    @Nullable
+    private static String trimDomainName(@Nullable String hostname) {
+        if (hostname == null) {
+            return null;
+        }
         int dotIndex = hostname.indexOf('.');
         return (dotIndex < 0) ? hostname : hostname.substring(0, dotIndex);
     }

@@ -70,7 +70,7 @@ public class SystemInfoTest extends CustomEnvVariables {
 
     @Test
     void testHostnameDiscoveryFallbackThroughInetAddress() throws UnknownHostException {
-        String expectedHostname = SystemInfo.removeDomain(InetAddress.getLocalHost().getHostName());
+        String expectedHostname = InetAddress.getLocalHost().getHostName();
 
         Map<String, String> customEnvVariables = new HashMap<>();
         // none of those env variables should be available to trigger the fallback on all platforms
@@ -81,25 +81,19 @@ public class SystemInfoTest extends CustomEnvVariables {
         runWithCustomEnvVariables(customEnvVariables, () -> {
 
             // sanity check for test instrumentation to ensure those are not set
-            checkSystemPropertiesNotSet("HOST","HOSTNAME","COMPUTERNAME");
+            checkSystemPropertiesNotSet("HOST", "HOSTNAME", "COMPUTERNAME");
 
             assertThat(SystemInfo.fallbackHostnameDiscovery(isWindows))
                 .isEqualTo(expectedHostname);
         });
     }
 
-    private static void checkSystemPropertiesNotSet(String... keys){
+    private static void checkSystemPropertiesNotSet(String... keys) {
         Map<String, String> map = System.getenv();
         for (String key : keys) {
             assertThat(System.getenv(key)).isNull();
             assertThat(map.get(key)).isNull();
         }
-    }
-
-    @Test
-    void testDomainRemoval() {
-        assertThat(SystemInfo.removeDomain("hostname")).isEqualTo("hostname");
-        assertThat(SystemInfo.removeDomain("hostname.and.domain")).isEqualTo("hostname");
     }
 
     @Test

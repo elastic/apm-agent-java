@@ -157,7 +157,7 @@ public class SystemInfo {
             try {
                 hostname = InetAddress.getLocalHost().getHostName();
                 if (hostname != null) {
-                    hostname = removeDomain(hostname);
+                    hostname = hostname;
                 }
             } catch (Exception e) {
                 logger.warn("Last fallback for hostname discovery of localhost failed", e);
@@ -235,14 +235,6 @@ public class SystemInfo {
             if (hostname == null || hostname.isEmpty()) {
                 hostname = System.getenv("HOST");
             }
-        }
-        return hostname;
-    }
-
-    static String removeDomain(String hostname) {
-        int indexOfDot = hostname.indexOf('.');
-        if (indexOfDot > 0) {
-            hostname = hostname.substring(0, indexOfDot);
         }
         return hostname;
     }
