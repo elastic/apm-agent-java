@@ -108,6 +108,17 @@ Option 2: edit `start.ini`
 
 Option 3: If you are using embedded Jetty, see <<setup-generic>>.
 
+Option 4: If you are running Jetty using Maven (mvn), set the JAVA_TOOL_OPTIONS environment variable, then run the `mvn` command.
+
+[source,bash]
+.mvn jetty:run
+----
+export JAVA_TOOL_OPTIONS="$JAVA_TOOL_OPTIONS -javaagent:/path/to/elastic-apm-agent-<version>.jar"
+export JAVA_TOOL_OPTIONS="$JAVA_TOOL_OPTIONS -Delastic.apm.service_name=my-cool-service"
+export JAVA_TOOL_OPTIONS="$JAVA_TOOL_OPTIONS -Delastic.apm.application_packages=org.example,org.another.example"
+export JAVA_TOOL_OPTIONS="$JAVA_TOOL_OPTIONS -Delastic.apm.server_url=http://127.0.0.1:8200"
+----
+
 [float]
 [[setup-jboss-wildfly]]
 ==== JBoss EAP/WildFly
