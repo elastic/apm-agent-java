@@ -59,12 +59,12 @@ public class SystemInfoTest extends CustomEnvVariables {
             // when running on Windows the actual computer name will be the netbios name, thus won't match exactly
             // the entry in the map. It's fine here for testing as it just proves we get the expected value set in map
             customEnvVariables.put("COMPUTERNAME", "Windows_hostname");
-            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(true)).isEqualTo("Windows_hostname"));
+            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(true)).isEqualTo("windows_hostname"));
         } else {
             customEnvVariables.put("HOST", "macOS_hostname");
-            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(false)).isEqualTo("macOS_hostname"));
+            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(false)).isEqualTo("macos_hostname"));
             customEnvVariables.put("HOSTNAME", "Linux_hostname");
-            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(false)).isEqualTo("Linux_hostname"));
+            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(false)).isEqualTo("linux_hostname"));
         }
     }
 

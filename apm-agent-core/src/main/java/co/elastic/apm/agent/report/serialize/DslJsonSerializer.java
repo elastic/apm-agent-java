@@ -137,8 +137,7 @@ public class DslJsonSerializer {
 
             serializeMetadata(meta, metadataJW,
                 apmServerClient.supportsConfiguredAndDetectedHostname(),
-                supportsActivationMethod,
-                apmServerClient.supportsDetectedHostnameFqdn());
+                supportsActivationMethod);
 
             serializedMetaData = metadataJW.toByteArray();
         }
@@ -147,8 +146,7 @@ public class DslJsonSerializer {
     static void serializeMetadata(MetaData metaData,
                                   JsonWriter metadataJW,
                                   boolean supportsConfiguredAndDetectedHostname,
-                                  boolean supportsAgentActivationMethod,
-                                  boolean supportsDetectedHostnameFqdn) {
+                                  boolean supportsAgentActivationMethod) {
 
         StringBuilder metadataReplaceBuilder = new StringBuilder();
         metadataJW.writeByte(JsonWriter.OBJECT_START);
@@ -157,7 +155,7 @@ public class DslJsonSerializer {
         serializeProcess(metaData.getProcess(), metadataReplaceBuilder, metadataJW);
         metadataJW.writeByte(COMMA);
         serializeGlobalLabels(metaData.getGlobalLabelKeys(), metaData.getGlobalLabelValues(), metadataReplaceBuilder, metadataJW);
-        serializeSystem(metaData.getSystem(), metadataReplaceBuilder, metadataJW, supportsConfiguredAndDetectedHostname, supportsDetectedHostnameFqdn);
+        serializeSystem(metaData.getSystem(), metadataReplaceBuilder, metadataJW, supportsConfiguredAndDetectedHostname);
         if (metaData.getCloudProviderInfo() != null) {
             metadataJW.writeByte(COMMA);
             serializeCloudProvider(metaData.getCloudProviderInfo(), metadataReplaceBuilder, metadataJW);
@@ -338,8 +336,7 @@ public class DslJsonSerializer {
     private static void serializeSystem(SystemInfo system,
                                         StringBuilder replaceBuilder,
                                         JsonWriter jw,
-                                        boolean supportsConfiguredAndDetectedHostname,
-                                        boolean supportsDetectedHostnameFqdn) {
+                                        boolean supportsConfiguredAndDetectedHostname) {
 
         writeFieldName("system", jw);
         jw.writeByte(JsonWriter.OBJECT_START);
@@ -353,28 +350,14 @@ public class DslJsonSerializer {
             } else {
                 String detectedHostname = system.getDetectedHostname();
                 if (detectedHostname != null && !detectedHostname.isEmpty()) {
-
-                    if (!supportsDetectedHostnameFqdn) {
-                        detectedHostname = trimDomainName(detectedHostname);
-                    }
-
                     writeField("detected_hostname", detectedHostname, replaceBuilder, jw);
                 }
             }
         } else {
-            writeField("hostname", trimDomainName(system.getHostname()), replaceBuilder, jw);
+            writeField("hostname", system.getHostname(), replaceBuilder, jw);
         }
         writeLastField("platform", system.getPlatform(), replaceBuilder, jw);
         jw.writeByte(JsonWriter.OBJECT_END);
-    }
-
-    @Nullable
-    private static String trimDomainName(@Nullable String hostname) {
-        if (hostname == null) {
-            return null;
-        }
-        int dotIndex = hostname.indexOf('.');
-        return (dotIndex < 0) ? hostname : hostname.substring(0, dotIndex);
     }
 
     private static void serializeCloudProvider(final CloudProviderInfo cloudProviderInfo, final StringBuilder replaceBuilder, final JsonWriter jw) {
