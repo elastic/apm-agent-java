@@ -82,7 +82,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.jms.JmsMessageListenerInstrumentation$MessageListenerAdvice";
+        return "co.elastic.apm.agent.jms.jakarta.JmsMessageListenerInstrumentation$MessageListenerAdvice";
     }
 
     public static class MessageListenerAdvice extends BaseAdvice {

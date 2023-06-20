@@ -75,7 +75,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.jms.JmsMessageConsumerInstrumentation$ReceiveInstrumentation$MessageConsumerAdvice";
+            return "co.elastic.apm.agent.jms.javax.JmsMessageConsumerInstrumentation$ReceiveInstrumentation$MessageConsumerAdvice";
         }
 
         public static class MessageConsumerAdvice extends BaseAdvice {
@@ -230,7 +230,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
         @Override
         public String getAdviceClassName() {
-            return "co.elastic.apm.agent.jms.JmsMessageConsumerInstrumentation$SetMessageListenerInstrumentation$ListenerWrappingAdvice";
+            return "co.elastic.apm.agent.jms.javax.JmsMessageConsumerInstrumentation$SetMessageListenerInstrumentation$ListenerWrappingAdvice";
         }
 
         public static class ListenerWrappingAdvice extends BaseAdvice {

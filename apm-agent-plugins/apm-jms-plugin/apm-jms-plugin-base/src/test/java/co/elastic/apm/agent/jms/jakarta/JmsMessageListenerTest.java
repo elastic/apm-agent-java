@@ -81,7 +81,7 @@ public class JmsMessageListenerTest {
 
     @Test
     public void testJmsMessageListenerPackage_customValue() throws Exception {
-        doReturn(Arrays.asList("co.elastic.apm.agent.jms.test")).when(config.getConfig(MessagingConfiguration.class)).getJmsListenerPackages();
+        doReturn(Arrays.asList("co.elastic.apm.agent.jms.jakarta.test")).when(config.getConfig(MessagingConfiguration.class)).getJmsListenerPackages();
 
         startAgent();
 
