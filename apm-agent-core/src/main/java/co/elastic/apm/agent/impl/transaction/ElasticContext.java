@@ -23,15 +23,6 @@ import javax.annotation.Nullable;
 public interface ElasticContext<T extends ElasticContext<T>> extends co.elastic.apm.agent.tracer.ElasticContext<T> {
 
     /**
-     * Adds a span as active within context. Might return a different context instance if required, for example
-     * when the context implementation is immutable and thus can't be modified.
-     *
-     * @param span span to add to the context
-     * @return context with activated span
-     */
-    ElasticContext<T> withActiveSpan(AbstractSpan<?> span);
-
-    /**
      * @return the span/transaction that is associated to this context, {@literal null} if there is none
      */
     @Nullable

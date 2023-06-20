@@ -107,11 +107,6 @@ public class ElasticContextWrapper<T extends ElasticContext<T>> implements Elast
         throw activationNotSupported();
     }
 
-    @Override
-    public ElasticContext<T> withActiveSpan(AbstractSpan<?> span) {
-        throw activationNotSupported();
-    }
-
     private static UnsupportedOperationException activationNotSupported() {
         // activation is not expected to happen on this wrapper but only on the wrapped context
         return new UnsupportedOperationException("activation not expected on context wrapper");
