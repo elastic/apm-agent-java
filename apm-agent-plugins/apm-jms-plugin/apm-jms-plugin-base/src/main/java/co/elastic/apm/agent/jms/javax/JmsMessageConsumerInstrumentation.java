@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jms;
+package co.elastic.apm.agent.jms.javax;
 
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.AbstractSpan;
@@ -38,10 +38,6 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_HANDLING;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_POLLING;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.RECEIVE_NAME_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -98,13 +94,13 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 } else {
                     if (parent instanceof Transaction<?>) {
                         Transaction<?> transaction = (Transaction<?>) parent;
-                        if (MESSAGE_POLLING.equals(transaction.getType())) {
+                        if (JmsInstrumentationHelper.MESSAGE_POLLING.equals(transaction.getType())) {
                             // Avoid duplications for nested calls
                             return null;
-                        } else if (MESSAGE_HANDLING.equals(transaction.getType())) {
+                        } else if (JmsInstrumentationHelper.MESSAGE_HANDLING.equals(transaction.getType())) {
                             // A transaction created in the OnMethodExit of the poll- end it here
                             // Type must be changed to "messaging"
-                            transaction.withType(MESSAGING_TYPE);
+                            transaction.withType(JmsInstrumentationHelper.MESSAGING_TYPE);
                             transaction.deactivate().end();
                             createPollingTransaction = true;
                         } else {
@@ -112,7 +108,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         }
                     } else if (parent instanceof Span<?>) {
                         Span<?> parentSpan = (Span<?>) parent;
-                        if (MESSAGING_TYPE.equals(parentSpan.getType()) && "receive".equals(parentSpan.getAction())) {
+                        if (JmsInstrumentationHelper.MESSAGING_TYPE.equals(parentSpan.getType()) && "receive".equals(parentSpan.getAction())) {
                             // Avoid duplication for nested calls
                             return null;
                         }
@@ -125,18 +121,18 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
                 if (createPollingSpan) {
                     createdSpan = parent.createSpan()
-                        .withType(MESSAGING_TYPE)
+                        .withType(JmsInstrumentationHelper.MESSAGING_TYPE)
                         .withSubtype("jms")
                         .withAction("receive");
                 } else if (createPollingTransaction) {
                     createdSpan = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
                     if (createdSpan != null) {
-                        ((Transaction<?>) createdSpan).withType(MESSAGE_POLLING);
+                        ((Transaction<?>) createdSpan).withType(JmsInstrumentationHelper.MESSAGE_POLLING);
                     }
                 }
 
                 if (createdSpan != null) {
-                    createdSpan.withName(RECEIVE_NAME_PREFIX);
+                    createdSpan.withName(JmsInstrumentationHelper.RECEIVE_NAME_PREFIX);
                     createdSpan.activate();
                 }
                 return createdSpan;
@@ -171,7 +167,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                             transaction.ignoreTransaction();
                         } else {
                             transaction
-                                .withType(MESSAGING_TYPE)
+                                .withType(JmsInstrumentationHelper.MESSAGING_TYPE)
                                 .addLink(JmsMessagePropertyAccessor.instance(), message);
                             helper.addMessageDetails(message, abstractSpan);
                         }
@@ -208,8 +204,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
                     Transaction<?> messageHandlingTransaction = helper.startJmsTransaction(message, clazz);
                     if (messageHandlingTransaction != null) {
-                        messageHandlingTransaction.withType(MESSAGE_HANDLING)
-                            .withName(RECEIVE_NAME_PREFIX);
+                        messageHandlingTransaction.withType(JmsInstrumentationHelper.MESSAGE_HANDLING)
+                            .withName(JmsInstrumentationHelper.RECEIVE_NAME_PREFIX);
 
                         if (destinationName != null) {
                             messageHandlingTransaction.appendToName(" from ");

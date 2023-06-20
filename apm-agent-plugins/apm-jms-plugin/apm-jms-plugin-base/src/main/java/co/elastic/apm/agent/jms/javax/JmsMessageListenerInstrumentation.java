@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jms;
+package co.elastic.apm.agent.jms.javax;
 
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -38,8 +38,6 @@ import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.RECEIVE_NAME_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -125,8 +123,8 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
             // Create a transaction - even if running on same JVM as the sender
             Transaction<?> transaction = helper.startJmsTransaction(message, clazz);
             if (transaction != null) {
-                transaction.withType(MESSAGING_TYPE)
-                    .withName(RECEIVE_NAME_PREFIX);
+                transaction.withType(JmsInstrumentationHelper.MESSAGING_TYPE)
+                    .withName(JmsInstrumentationHelper.RECEIVE_NAME_PREFIX);
 
                 if (destinationName != null) {
                     helper.addDestinationDetails(destination, destinationName, transaction.appendToName(" from "));

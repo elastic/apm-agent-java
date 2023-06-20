@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jms;
+package co.elastic.apm.agent.jms.javax;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
@@ -25,9 +25,9 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.jms.test.TestMessageConsumer;
-import co.elastic.apm.agent.jms.test.TestMessageListener;
-import co.elastic.apm.agent.jms.test.TestMsgHandler;
+import co.elastic.apm.agent.jms.javax.test.TestMessageConsumer;
+import co.elastic.apm.agent.jms.javax.test.TestMessageListener;
+import co.elastic.apm.agent.jms.javax.test.TestMsgHandler;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

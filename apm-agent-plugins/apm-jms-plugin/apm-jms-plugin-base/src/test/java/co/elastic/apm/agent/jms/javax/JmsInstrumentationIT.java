@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jms;
+package co.elastic.apm.agent.jms.javax;
 
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
@@ -64,12 +64,6 @@ import java.util.stream.Collectors;
 
 import static co.elastic.apm.agent.tracer.configuration.MessagingConfiguration.JmsStrategy.BOTH;
 import static co.elastic.apm.agent.tracer.configuration.MessagingConfiguration.JmsStrategy.POLLING;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_EXPIRATION_HEADER;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_MESSAGE_ID_HEADER;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TIMESTAMP_HEADER;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.TEMP;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.TIBCO_TMP_QUEUE_PREFIX;
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -460,7 +454,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             assertThat(receiveTransaction.getFrameworkName()).isEqualTo("JMS");
             assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
             assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendSpan.getTraceContext().getId());
-            assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
+            assertThat(receiveTransaction.getType()).isEqualTo(JmsInstrumentationHelper.MESSAGING_TYPE);
             assertThat(receiveTransaction.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
             StringBuilder body = receiveTransaction.getContext().getMessage().getBodyForRead();
             assertThat(body).isNotNull();
@@ -476,9 +470,9 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             headersMap.put(header.getKey(), header.getValue());
         }
         assertThat(headersMap).isNotEmpty();
-        assertThat(message.getJMSMessageID()).isEqualTo(headersMap.get(JMS_MESSAGE_ID_HEADER));
-        assertThat(String.valueOf(message.getJMSExpiration())).isEqualTo(headersMap.get(JMS_EXPIRATION_HEADER));
-        assertThat(String.valueOf(message.getJMSTimestamp())).isEqualTo(headersMap.get(JMS_TIMESTAMP_HEADER));
+        assertThat(message.getJMSMessageID()).isEqualTo(headersMap.get(JmsInstrumentationHelper.JMS_MESSAGE_ID_HEADER));
+        assertThat(String.valueOf(message.getJMSExpiration())).isEqualTo(headersMap.get(JmsInstrumentationHelper.JMS_EXPIRATION_HEADER));
+        assertThat(String.valueOf(message.getJMSTimestamp())).isEqualTo(headersMap.get(JmsInstrumentationHelper.JMS_TIMESTAMP_HEADER));
         assertThat(String.valueOf(message.getObjectProperty("test_string_property"))).isEqualTo(headersMap.get("test_string_property"));
         assertThat(String.valueOf(message.getObjectProperty("test_int_property"))).isEqualTo(headersMap.get("test_int_property"));
         assertThat(String.valueOf(message.getStringProperty("passwd"))).isEqualTo("secret");
@@ -544,7 +538,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
                 assertThat(receiveTransaction.getSpanLinks().get(0).getTraceId()).isEqualTo(currentTraceId);
                 assertThat(receiveTransaction.getSpanLinks().get(0).getParentId()).isEqualTo(sendInitialMessageSpan.getTraceContext().getId());
             }
-            assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
+            assertThat(receiveTransaction.getType()).isEqualTo(JmsInstrumentationHelper.MESSAGING_TYPE);
             assertThat(receiveTransaction.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
             StringBuilder body = receiveTransaction.getContext().getMessage().getBodyForRead();
             assertThat(body).isNotNull();
@@ -588,7 +582,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     @Test
     public void testTibcoTempQueueListener() {
         try {
-            testQueueSendListen(brokerFacade.createQueue(TIBCO_TMP_QUEUE_PREFIX + UUID.randomUUID().toString()),
+            testQueueSendListen(brokerFacade.createQueue(JmsInstrumentationHelper.TIBCO_TMP_QUEUE_PREFIX + UUID.randomUUID().toString()),
                 brokerFacade::registerConcreteListenerImplementation);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -637,8 +631,8 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         verifyMessage(message, incomingMessage);
         String queueName = queue.getQueueName();
         // special handling for temp queues
-        if (queue instanceof TemporaryQueue || queueName.startsWith(TIBCO_TMP_QUEUE_PREFIX)) {
-            queueName = TEMP;
+        if (queue instanceof TemporaryQueue || queueName.startsWith(JmsInstrumentationHelper.TIBCO_TMP_QUEUE_PREFIX)) {
+            queueName = JmsInstrumentationHelper.TEMP;
         }
         verifySendListenOnNonTracedThread(queueName, outgoingMessage, 1);
     }

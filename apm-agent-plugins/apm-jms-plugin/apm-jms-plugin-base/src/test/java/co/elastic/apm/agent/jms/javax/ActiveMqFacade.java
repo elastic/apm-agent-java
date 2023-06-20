@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jms;
+package co.elastic.apm.agent.jms.javax;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 

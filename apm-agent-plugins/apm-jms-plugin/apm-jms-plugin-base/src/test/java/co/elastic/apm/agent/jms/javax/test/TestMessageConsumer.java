@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jms.test;
+package co.elastic.apm.agent.jms.javax.test;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
