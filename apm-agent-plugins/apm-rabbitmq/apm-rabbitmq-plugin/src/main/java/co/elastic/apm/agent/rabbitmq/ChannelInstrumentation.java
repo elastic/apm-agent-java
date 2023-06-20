@@ -18,12 +18,13 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderSetter;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.Span;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -134,26 +135,28 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                 }
 
                 Span<?> exitSpan = RabbitMqHelper.createExitSpan(exchange);
-                if (exitSpan == null) {
-                    // tracer disabled or ignored exchange or this is nested within another exit span
-                    return null;
+                if (exitSpan != null) {
+
+                    exchange = normalizeExchangeName(exchange);
+
+                    exitSpan.withAction("send")
+                        .withName("RabbitMQ SEND to ").appendToName(exchange);
+
                 }
 
-                exchange = normalizeExchangeName(exchange);
+                properties = propagateTraceContext(tracer.currentContext(), properties);
 
-                exitSpan.withAction("send")
-                    .withName("RabbitMQ SEND to ").appendToName(exchange);
+                if (exitSpan != null) {
+                    captureMessage(exchange, routingKey, getTimestamp(properties.getTimestamp()), exitSpan);
+                    Connection connection = channel.getConnection();
+                    RabbitMqHelper.captureDestination(exchange, connection.getAddress(), connection.getPort(), exitSpan);
+                }
 
-                properties = propagateTraceContext(exitSpan, properties);
-
-                captureMessage(exchange, routingKey, getTimestamp(properties.getTimestamp()), exitSpan);
-                Connection connection = channel.getConnection();
-                RabbitMqHelper.captureDestination(exchange, connection.getAddress(), connection.getPort(), exitSpan);
 
                 return new Object[]{properties, exitSpan};
             }
 
-            private static AMQP.BasicProperties propagateTraceContext(Span<?> exitSpan,
+            private static AMQP.BasicProperties propagateTraceContext(ElasticContext<?> toPropagate,
                                                                       @Nullable AMQP.BasicProperties originalBasicProperties) {
                 AMQP.BasicProperties properties = originalBasicProperties;
                 if (properties == null) {
@@ -167,7 +170,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
 
                 HashMap<String, Object> headersWithContext = new HashMap<>(currentHeaders);
 
-                exitSpan.propagateTraceContext(headersWithContext, RabbitMQTextHeaderSetter.INSTANCE);
+                toPropagate.propagateContext(headersWithContext, RabbitMQTextHeaderSetter.INSTANCE, null);
 
                 return properties.builder().headers(headersWithContext).build();
             }

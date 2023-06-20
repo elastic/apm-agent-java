@@ -19,9 +19,7 @@
 package co.elastic.apm.agent.tracer;
 
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 
 import javax.annotation.Nullable;
@@ -37,25 +35,6 @@ public interface AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<
     AbstractContext getContext();
 
     TraceContext getTraceContext();
-
-    /**
-     * Sets Trace context binary headers, using this context as parent, on the provided carrier using the provided setter
-     *
-     * @param carrier      the binary headers carrier
-     * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
-     * @param <C>          the header carrier type, for example - a Kafka record
-     * @return true if Trace Context headers were set; false otherwise
-     */
-    <C> boolean propagateTraceContext(C carrier, BinaryHeaderSetter<C> headerSetter);
-
-    /**
-     * Sets Trace context text headers, using this context as parent, on the provided carrier using the provided setter
-     *
-     * @param carrier      the text headers carrier
-     * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
-     * @param <C>          the header carrier type, for example - an HTTP request
-     */
-    <C> void propagateTraceContext(C carrier, TextHeaderSetter<C> headerSetter);
 
     Span<?> createSpan();
 

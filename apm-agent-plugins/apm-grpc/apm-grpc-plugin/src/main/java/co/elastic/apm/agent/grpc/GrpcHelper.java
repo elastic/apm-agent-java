@@ -18,16 +18,15 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
@@ -444,17 +443,14 @@ public class GrpcHelper {
         // span should already have been registered
         // no other lookup by client call is required, thus removing entry
         Span<?> span = clientCallSpans.remove(clientCall);
-        if (span == null) {
-            return null;
+        if (span != null) {
+            clientCallListenerSpans.put(listener, span);
+            span.activate();
         }
 
-        clientCallListenerSpans.put(listener, span);
+        tracer.currentContext().propagateContext(headers, headerSetter, headerGetter);
 
-        if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), headers, headerGetter)) {
-            span.propagateTraceContext(headers, headerSetter);
-        }
-
-        return span.activate();
+        return span;
     }
 
     /**

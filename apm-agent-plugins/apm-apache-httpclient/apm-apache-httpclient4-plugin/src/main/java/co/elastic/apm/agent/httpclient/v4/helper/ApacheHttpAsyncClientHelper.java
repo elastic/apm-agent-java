@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.httpclient.v4.helper;
 
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
@@ -65,8 +65,8 @@ public class ApacheHttpAsyncClientHelper {
     }
 
     public HttpAsyncRequestProducer wrapRequestProducer(HttpAsyncRequestProducer requestProducer, @Nullable Span<?> span,
-                                                        @Nullable AbstractSpan<?> parent) {
-        return requestProducerWrapperObjectPool.createInstance().with(requestProducer, span, parent);
+                                                        ElasticContext<?> toPropagate) {
+        return requestProducerWrapperObjectPool.createInstance().with(requestProducer, span, toPropagate);
     }
 
     public <T> FutureCallback<T> wrapFutureCallback(FutureCallback<T> futureCallback, HttpContext context, Span<?> span) {

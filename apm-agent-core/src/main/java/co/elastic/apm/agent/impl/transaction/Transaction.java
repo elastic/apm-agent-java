@@ -113,7 +113,7 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
     private final AtomicBoolean wasActivated = new AtomicBoolean();
 
     @Override
-    public Transaction getTransaction() {
+    public Transaction getParentTransaction() {
         return this;
     }
 

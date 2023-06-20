@@ -20,9 +20,9 @@ package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
 import net.bytebuddy.description.method.MethodDescription;
@@ -55,30 +55,30 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
         @Advice.AssignReturned.ToFields(@ToField(index = 0, value = "originalRequest", typing = Assigner.Typing.DYNAMIC))
         public static Object[] onBeforeExecute(final @Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
 
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null || !(originalRequest instanceof Request)) {
+            if (!(originalRequest instanceof Request)) {
                 return new Object[]{originalRequest, null};
             }
+            final AbstractSpan<?> parent = tracer.getActive();
 
             okhttp3.Request request = (okhttp3.Request) originalRequest;
-            HttpUrl url = request.url();
+            Span<?> span = null;
+            if (parent != null) {
+                HttpUrl url = request.url();
+                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(),
+                    OkHttpClientHelper.computeHostName(url.host()), url.port());
 
-            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(),
-                OkHttpClientHelper.computeHostName(url.host()), url.port());
-
-            if (span != null) {
-                span.activate();
+                if (span != null) {
+                    span.activate();
+                }
             }
 
-            if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), request, OkHttp3RequestHeaderGetter.INSTANCE)) {
+            ElasticContext<?> toPropagate = tracer.currentContext();
+            if (toPropagate.isPropagationRequired(request, OkHttp3RequestHeaderGetter.INSTANCE)) {
                 Request.Builder builder = ((Request) originalRequest).newBuilder();
-                if (span != null) {
-                    span.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
-                } else {
-                    parent.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
-                }
+                toPropagate.propagateContext(builder, OkHttp3RequestHeaderSetter.INSTANCE, request, OkHttp3RequestHeaderGetter.INSTANCE);
                 request = builder.build();
             }
+
             return new Object[]{request, span};
         }
 

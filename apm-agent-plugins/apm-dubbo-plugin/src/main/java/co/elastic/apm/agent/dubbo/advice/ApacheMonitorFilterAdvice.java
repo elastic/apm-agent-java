@@ -20,16 +20,24 @@ package co.elastic.apm.agent.dubbo.advice;
 
 import co.elastic.apm.agent.dubbo.helper.ApacheDubboTextMapPropagator;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
-import co.elastic.apm.agent.tracer.*;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
-import org.apache.dubbo.rpc.*;
-import org.apache.dubbo.rpc.protocol.AsyncToSyncInvoker;
+import org.apache.dubbo.rpc.AppResponse;
+import org.apache.dubbo.rpc.AsyncRpcResult;
+import org.apache.dubbo.rpc.Invocation;
+import org.apache.dubbo.rpc.InvokeMode;
+import org.apache.dubbo.rpc.Invoker;
+import org.apache.dubbo.rpc.Result;
+import org.apache.dubbo.rpc.RpcContext;
+import org.apache.dubbo.rpc.RpcInvocation;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 
 public class ApacheMonitorFilterAdvice {
@@ -44,13 +52,13 @@ public class ApacheMonitorFilterAdvice {
         RpcContext context = RpcContext.getContext();
         AbstractSpan<?> active = tracer.getActive();
         // for consumer side, just create span, more information will be collected in provider side
-        if (context.isConsumerSide() && active != null) {
-            Span<?> span = DubboTraceHelper.createConsumerSpan(tracer, invocation.getInvoker().getInterface(), invocation.getMethodName(), context.getRemoteAddress());
-
-            if (span != null) {
-                span.propagateTraceContext(context, ApacheDubboTextMapPropagator.INSTANCE);
-                return span;
+        if (context.isConsumerSide()) {
+            Span<?> span = null;
+            if (active != null) {
+                span = DubboTraceHelper.createConsumerSpan(tracer, invocation.getInvoker().getInterface(), invocation.getMethodName(), context.getRemoteAddress());
             }
+            tracer.currentContext().propagateContext(context, ApacheDubboTextMapPropagator.INSTANCE, null);
+            return span;
         } else if (context.isProviderSide() && active == null) {
             // for provider side
             Transaction<?> transaction = tracer.startChildTransaction(context, ApacheDubboTextMapPropagator.INSTANCE, PrivilegedActionUtils.getClassLoader(Invocation.class));

@@ -29,8 +29,8 @@ import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.util.CharSequenceUtils;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
+import co.elastic.apm.agent.util.CharSequenceUtils;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -520,9 +520,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.a
         return stackFrames;
     }
 
-    @Nullable
+
     @Override
-    public Transaction getTransaction() {
+    public Transaction getParentTransaction() {
         return transaction;
     }
 

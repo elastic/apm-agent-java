@@ -25,7 +25,6 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import co.elastic.apm.agent.util.LoggerUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -38,7 +37,6 @@ import org.apache.commons.httpclient.StatusLine;
 import org.apache.commons.httpclient.URI;
 
 import javax.annotation.Nullable;
-
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -82,53 +80,45 @@ public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.Argument(0) HttpMethod httpMethod,
                                      @Advice.FieldValue(value = "hostConfiguration") HostConfiguration hostConfiguration) {
+            Span<?> span = null;
             final AbstractSpan<?> parent = TracerAwareInstrumentation.tracer.getActive();
-            if (parent == null) {
-                return null;
-            }
+            if (parent != null) {
 
-            String host;
-            String uri;
-            String protocol;
-            int port;
-            URI httpClientURI = null;
-            try {
-                httpClientURI = httpMethod.getURI();
-                host = hostConfiguration.getHost();
-                port = hostConfiguration.getPort();
-                protocol = hostConfiguration.getProtocol().getScheme();
-                uri = httpClientURI.toString();
-            } catch (Exception e) {
+                String host;
+                String uri;
+                String protocol;
+                int port;
+                URI httpClientURI = null;
                 try {
-                    if (httpClientURI != null) {
-                        host = httpClientURI.getHost();
-                        uri = httpClientURI.toString();
-                        protocol = httpClientURI.getScheme();
-                        port = httpClientURI.getPort();
-                    } else {
-                        oneTimeNoDestinationInfoLogger.warn("Failed to obtain Apache HttpClient destination info, null httpClientURI", e);
+                    httpClientURI = httpMethod.getURI();
+                    host = hostConfiguration.getHost();
+                    port = hostConfiguration.getPort();
+                    protocol = hostConfiguration.getProtocol().getScheme();
+                    uri = httpClientURI.toString();
+                } catch (Exception e) {
+                    try {
+                        if (httpClientURI != null) {
+                            host = httpClientURI.getHost();
+                            uri = httpClientURI.toString();
+                            protocol = httpClientURI.getScheme();
+                            port = httpClientURI.getPort();
+                        } else {
+                            oneTimeNoDestinationInfoLogger.warn("Failed to obtain Apache HttpClient destination info, null httpClientURI", e);
+                            return null;
+                        }
+                    } catch (Exception e1) {
+                        oneTimeNoDestinationInfoLogger.warn("Failed to obtain Apache HttpClient destination info", e);
                         return null;
                     }
-                } catch (Exception e1) {
-                    oneTimeNoDestinationInfoLogger.warn("Failed to obtain Apache HttpClient destination info", e);
-                    return null;
                 }
-            }
 
-            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, httpMethod.getName(), uri, protocol, host, port);
-
-            if (span != null) {
-                span.activate();
-            }
-
-            if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
+                span = HttpClientHelper.startHttpClientSpan(parent, httpMethod.getName(), uri, protocol, host, port);
                 if (span != null) {
-                    span.propagateTraceContext(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE);
-                } else if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
-                    // re-adds the header on redirects
-                    parent.propagateTraceContext(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE);
+                    span.activate();
                 }
             }
+
+            tracer.currentContext().propagateContext(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE, HttpClient3RequestHeaderAccessor.INSTANCE);
 
             return span;
         }

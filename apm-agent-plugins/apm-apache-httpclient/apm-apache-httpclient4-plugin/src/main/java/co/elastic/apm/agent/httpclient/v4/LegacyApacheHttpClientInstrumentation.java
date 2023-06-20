@@ -23,7 +23,6 @@ import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -37,7 +36,6 @@ import org.apache.http.client.CircularRedirectException;
 import org.apache.http.client.methods.HttpUriRequest;
 
 import javax.annotation.Nullable;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -82,39 +80,31 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
         public static Object onBeforeExecute(@Advice.Argument(0) @Nullable HttpHost host,
                                              @Advice.Argument(1) HttpRequest request) {
             final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
-            }
-            String hostName = (host != null) ? host.getHostName() : null;
-            String method;
-            URI uri = null;
-            if (request instanceof HttpUriRequest) {
-                HttpUriRequest uriRequest = (HttpUriRequest) request;
-                method = uriRequest.getMethod();
-                uri = uriRequest.getURI();
-            } else {
-                RequestLine requestLine = request.getRequestLine();
-                method = requestLine.getMethod();
-                try {
-                    uri = new URI(requestLine.getUri());
-                } catch (URISyntaxException ignore) {
+            Span<?> span = null;
+            if (parent != null) {
+                String hostName = (host != null) ? host.getHostName() : null;
+                String method;
+                URI uri = null;
+                if (request instanceof HttpUriRequest) {
+                    HttpUriRequest uriRequest = (HttpUriRequest) request;
+                    method = uriRequest.getMethod();
+                    uri = uriRequest.getURI();
+                } else {
+                    RequestLine requestLine = request.getRequestLine();
+                    method = requestLine.getMethod();
+                    try {
+                        uri = new URI(requestLine.getUri());
+                    } catch (URISyntaxException ignore) {
+                    }
                 }
-            }
-            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, method, uri, hostName);
+                span = HttpClientHelper.startHttpClientSpan(parent, method, uri, hostName);
 
-            if (span != null) {
-                span.activate();
-            }
-
-            if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), request, RequestHeaderAccessor.INSTANCE)) {
                 if (span != null) {
-                    span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
-                } else if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), request, RequestHeaderAccessor.INSTANCE)) {
-                    // re-adds the header on redirects
-                    parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
+                    span.activate();
                 }
             }
 
+            tracer.currentContext().propagateContext(request, RequestHeaderAccessor.INSTANCE, RequestHeaderAccessor.INSTANCE);
             return span;
         }
 

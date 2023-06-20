@@ -29,10 +29,8 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import co.elastic.apm.agent.util.LoggerUtils;
 
@@ -44,7 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recyclable, ElasticContext<T>, co.elastic.apm.agent.tracer.AbstractSpan<T> {
+public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<T> implements Recyclable, co.elastic.apm.agent.tracer.AbstractSpan<T> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
     private static final Logger oneTimeDuplicatedEndLogger = LoggerUtils.logOnce(logger);
     private static final Logger oneTimeMaxSpanLinksLogger = LoggerUtils.logOnce(logger);
@@ -619,6 +617,14 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return false;
     }
 
+    /**
+     * If this AbstractSpan is a transaction, then the AbstractSpan itself is returned.
+     * Otherwise, the parent transaction of the span is returned.
+     *
+     * @return the transaction.
+     */
+    public abstract Transaction getParentTransaction();
+
     @Override
     public T activate() {
         tracer.activate(this);
@@ -692,20 +698,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     }
 
     protected abstract void recycle();
-
-    @Override
-    public <C> void propagateTraceContext(C carrier, TextHeaderSetter<C> headerSetter) {
-        // the context of this span is propagated downstream so we can't discard it even if it's faster than span_min_duration
-        setNonDiscardable();
-        getTraceContext().propagateTraceContext(carrier, headerSetter);
-    }
-
-    @Override
-    public <C> boolean propagateTraceContext(C carrier, BinaryHeaderSetter<C> headerSetter) {
-        // the context of this span is propagated downstream so we can't discard it even if it's faster than span_min_duration
-        setNonDiscardable();
-        return getTraceContext().propagateTraceContext(carrier, headerSetter);
-    }
 
     @Override
     public void setNonDiscardable() {

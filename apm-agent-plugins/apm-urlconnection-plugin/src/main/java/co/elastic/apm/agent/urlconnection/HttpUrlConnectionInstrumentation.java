@@ -20,12 +20,11 @@ package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.sdk.state.CallDepth;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.sdk.state.CallDepth;
-import co.elastic.apm.agent.sdk.state.GlobalState;
-import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -78,26 +77,25 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
 
                 boolean isNestedCall = callDepth.isNestedCallAndIncrement();
                 AbstractSpan<?> parent = tracer.getActive();
-                if (parent == null) {
-                    return null;
-                }
-                Span<?> span = inFlightSpans.get(thiz);
-                if (span == null && !connected) {
-                    final URL url = thiz.getURL();
-                    span = HttpClientHelper.startHttpClientSpan(parent, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
-                    if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), thiz, UrlConnectionPropertyAccessor.instance())) {
-                        if (span != null) {
-                            span.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
-                        } else {
-                            parent.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
-                        }
+                Span<?> span = null;
+                if (parent != null) {
+                    span = inFlightSpans.get(thiz);
+                    if (span == null && !connected) {
+                        final URL url = thiz.getURL();
+                        span = HttpClientHelper.startHttpClientSpan(parent, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
+                    }
+                    if (!isNestedCall && span != null) {
+                        span.activate();
+                    } else {
+                        span = null; //do not deactivate this span on exit
                     }
                 }
-                if (!isNestedCall && span != null) {
-                    span.activate();
-                    return span;
+
+                if (!isNestedCall && !connected) {
+                    tracer.currentContext().propagateContext(thiz, UrlConnectionPropertyAccessor.instance(), UrlConnectionPropertyAccessor.instance());
                 }
-                return null;
+
+                return span;
             }
 
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

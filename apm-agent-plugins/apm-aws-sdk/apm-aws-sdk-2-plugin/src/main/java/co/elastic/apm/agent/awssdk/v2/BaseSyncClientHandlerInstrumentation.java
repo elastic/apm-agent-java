@@ -91,12 +91,13 @@ public class BaseSyncClientHandlerInstrumentation extends TracerAwareInstrumenta
                 span = DynamoDbHelper.getInstance().startSpan(sdkRequest, uri, executionContext);
             } else if ("Sqs".equalsIgnoreCase(awsService)) {
                 span = SQSHelper.getInstance().startSpan(sdkRequest, uri, executionContext);
-                SQSHelper.getInstance().modifyRequestObject(span, clientExecutionParams, executionContext);
             }
 
             if (span != null) {
                 span.activate();
             }
+
+            SQSHelper.getInstance().modifyRequestObject(tracer.currentContext(), clientExecutionParams, executionContext);
 
             return span;
         }

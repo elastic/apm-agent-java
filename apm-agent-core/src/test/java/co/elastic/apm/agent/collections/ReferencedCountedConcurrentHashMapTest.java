@@ -189,7 +189,7 @@ class ReferencedCountedConcurrentHashMapTest {
 
         @Nullable
         @Override
-        public Transaction getTransaction() {
+        public Transaction getParentTransaction() {
             return null;
         }
 

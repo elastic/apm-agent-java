@@ -20,12 +20,12 @@ package co.elastic.apm.agent.resttemplate;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 
@@ -44,17 +44,16 @@ public class SpringRestTemplateAdvice {
         logger.trace("Enter advice for method {}#execute()", request.getClass().getName());
 
         final AbstractSpan<?> parent = TracerAwareInstrumentation.tracer.getActive();
-        if (parent == null) {
-            return null;
+        Span<?> span = null;
+        if (parent != null) {
+            URI uri = request.getURI();
+            span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), uri, uri.getHost());
+            if (span != null) {
+                span.activate();
+            }
         }
-        URI uri = request.getURI();
-        Span<?> span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), uri, uri.getHost());
-        if (span != null) {
-            span.activate();
-            span.propagateTraceContext(request, SpringRestRequestHeaderSetter.INSTANCE);
-        } else {
-            parent.propagateTraceContext(request, SpringRestRequestHeaderSetter.INSTANCE);
-        }
+        TracerAwareInstrumentation.tracer.currentContext().propagateContext(request, SpringRestRequestHeaderSetter.INSTANCE, null);
+
         return span;
     }
 

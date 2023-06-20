@@ -20,11 +20,11 @@ package co.elastic.apm.agent.asynchttpclient;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.sdk.DynamicTransformer;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.sdk.DynamicTransformer;
-import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -100,22 +100,20 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
             public static Object onBeforeExecute(@Advice.Argument(value = 0) Request request,
                                                  @Advice.Argument(value = 1) AsyncHandler<?> asyncHandler) {
                 final AbstractSpan<?> parent = tracer.getActive();
-                if (parent == null) {
-                    return null;
+                Span<?> span = null;
+                if (parent != null) {
+                    DynamicTransformer.ensureInstrumented(asyncHandler.getClass(), Helper.ASYNC_HANDLER_INSTRUMENTATIONS);
+                    Uri uri = request.getUri();
+                    span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
+                    if (span != null) {
+                        span.withSync(false);
+                        span.activate();
+                        Helper.handlerSpanMap.put(asyncHandler, span);
+                    }
                 }
-                DynamicTransformer.ensureInstrumented(asyncHandler.getClass(), Helper.ASYNC_HANDLER_INSTRUMENTATIONS);
 
-                Uri uri = request.getUri();
-                Span<?> span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
+                tracer.currentContext().propagateContext(request, RequestHeaderSetter.INSTANCE, null);
 
-                if (span != null) {
-                    span.withSync(false);
-                    span.activate();
-                    span.propagateTraceContext(request, RequestHeaderSetter.INSTANCE);
-                    Helper.handlerSpanMap.put(asyncHandler, span);
-                } else {
-                    parent.propagateTraceContext(request, RequestHeaderSetter.INSTANCE);
-                }
                 return span;
             }
 

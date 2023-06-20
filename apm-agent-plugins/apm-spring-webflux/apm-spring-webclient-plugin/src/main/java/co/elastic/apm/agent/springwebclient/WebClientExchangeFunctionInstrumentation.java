@@ -21,6 +21,7 @@ package co.elastic.apm.agent.springwebclient;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
@@ -75,19 +76,22 @@ public class WebClientExchangeFunctionInstrumentation extends TracerAwareInstrum
         @Advice.AssignReturned.ToArguments(@ToArgument(index = 0, value = 0, typing = Assigner.Typing.DYNAMIC))
         public static Object[] onBefore(@Advice.Argument(0) ClientRequest clientRequest) {
             final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
+            Span<?> span = null;
+            if (parent != null) {
+                URI uri = clientRequest.url();
+                span = HttpClientHelper.startHttpClientSpan(parent, clientRequest.method().name(), uri, uri.getHost());
+                if (span != null) {
+                    span.activate();
+                }
             }
-            ClientRequest.Builder builder = ClientRequest.from(clientRequest);
-            URI uri = clientRequest.url();
-            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, clientRequest.method().name(), uri, uri.getHost());
-            if (span != null) {
-                span.activate();
-                span.propagateTraceContext(builder, WebClientRequestHeaderSetter.INSTANCE);
-            } else {
-                parent.propagateTraceContext(builder, WebClientRequestHeaderSetter.INSTANCE);
+
+            ElasticContext<?> toPropagate = tracer.currentContext();
+            if (!toPropagate.isEmpty()) {
+                ClientRequest.Builder builder = ClientRequest.from(clientRequest);
+                toPropagate.propagateContext(builder, WebClientRequestHeaderSetter.INSTANCE, null);
+                clientRequest = builder.build();
             }
-            clientRequest = builder.build();
+
             return new Object[]{clientRequest, span};
         }
 

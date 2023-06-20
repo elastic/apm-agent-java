@@ -94,6 +94,11 @@ public class GlobalTracer implements Tracer {
         return tracer.getTraceHeaderNames();
     }
 
+    @Override
+    public ElasticContext<?> currentContext() {
+        return tracer.currentContext();
+    }
+
     @Nullable
     @Override
     public AbstractSpan<?> getActive() {

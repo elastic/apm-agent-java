@@ -18,20 +18,65 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
+
 import javax.annotation.Nullable;
 
-public interface ElasticContext<T extends ElasticContext<T>> extends co.elastic.apm.agent.tracer.ElasticContext<T> {
+public abstract class ElasticContext<T extends ElasticContext<T>> implements co.elastic.apm.agent.tracer.ElasticContext<T> {
 
-    /**
-     * @return the span/transaction that is associated to this context, {@literal null} if there is none
-     */
     @Nullable
-    AbstractSpan<?> getSpan();
+    public abstract AbstractSpan<?> getSpan();
 
     /**
      * @return transaction associated to this context, {@literal null} if there is none
      */
     @Nullable
-    Transaction getTransaction();
+    public final Transaction getTransaction() {
+        AbstractSpan<?> contextSpan = getSpan();
+        return contextSpan != null ? contextSpan.getParentTransaction() : null;
+    }
 
+    public boolean isEmpty() {
+        return getSpan() == null && !containsBaggage();
+    }
+
+    //TODO: make abstract and implement correctly in subclasses
+    protected final boolean containsBaggage() {
+        return false;
+    }
+
+    @Override
+    public final <C> boolean propagateContext(C carrier, BinaryHeaderSetter<C> headerSetter) {
+        AbstractSpan<?> contextSpan = getSpan();
+        if (contextSpan != null) {
+            contextSpan.setNonDiscardable();
+            return contextSpan.getTraceContext().propagateTraceContext(carrier, headerSetter);
+        }
+        return false;
+    }
+
+    @Override
+    public final <C> void propagateContext(C carrier, TextHeaderSetter<C> headerSetter, @Nullable TextHeaderGetter<C> headerGetter) {
+        propagateContext(carrier, headerSetter, carrier, headerGetter);
+    }
+
+    @Override
+    public <C1, C2> void propagateContext(C1 carrier, TextHeaderSetter<C1> headerSetter, @Nullable C2 carrier2, @Nullable TextHeaderGetter<C2> headerGetter) {
+        AbstractSpan<?> contextSpan = getSpan();
+        if (contextSpan != null) {
+            if (headerGetter == null || carrier2 == null || !HeaderUtils.containsAny(TraceContext.TRACE_TEXTUAL_HEADERS, carrier2, headerGetter)) {
+                contextSpan.setNonDiscardable();
+                contextSpan.getTraceContext().propagateTraceContext(carrier, headerSetter);
+            }
+        }
+    }
+
+    @Override
+    public <C> boolean isPropagationRequired(C carrier, TextHeaderGetter<C> headerGetter) {
+        AbstractSpan<?> contextSpan = getSpan();
+        return contextSpan != null && !HeaderUtils.containsAny(TraceContext.TRACE_TEXTUAL_HEADERS, carrier, headerGetter);
+    }
 }
