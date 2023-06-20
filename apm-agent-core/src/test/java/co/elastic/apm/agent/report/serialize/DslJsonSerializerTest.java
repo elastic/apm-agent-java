@@ -1108,7 +1108,7 @@ class DslJsonSerializerTest {
         } else {
             assertThat(system.get("configured_hostname")).isNull();
             assertThat(system.get("detected_hostname")).isNull();
-            assertThat(system.get("hostname").asText()).isEqualTo("detected");
+            assertThat(system.get("hostname").asText()).isEqualTo("detected.fqdn");
         }
     }
 
