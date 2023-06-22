@@ -52,6 +52,9 @@ public class SystemInfo {
     private static final String CGROUPV2_HOSTNAME_FILE = "/etc/hostname";
     private static final Pattern CGROUPV2_CONTAINER_PATTERN = Pattern.compile("^.*(" + CONTAINER_REGEX_64 + ").*$");
 
+    private static final String CGROUP_V1_FILE = "/proc/self/cgroup";
+    private static final String CGROUP_V2_FILE = "/proc/self/mountinfo";
+
     /**
      * Architecture of the system the agent is running on.
      */
@@ -268,33 +271,9 @@ public class SystemInfo {
      * @return container ID parsed from {@code /proc/self/cgroup} file lines, or {@code null} if can't find/read/parse file lines
      */
     SystemInfo findContainerDetails() {
-        String containerId = null;
-        try {
-            // cgroups v1
-            Path path = FileSystems.getDefault().getPath("/proc/self/cgroup");
-            if (Files.isRegularFile(path)) {
-                List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-                for (String line : lines) {
-                    parseCgroupsV1ContainerId(line);
-                    if (container != null) {
-                        containerId = container.getId();
-                        break;
-                    }
-                }
-            }
-            // cgroups v2
-            if (containerId == null) {
-                path = FileSystems.getDefault().getPath("/proc/self/mountinfo");
-                if (Files.isRegularFile(path)) {
-                    List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-                    parseCgroupsV2ContainerId(lines);
-                    if (container != null) {
-                        containerId = container.getId();
-                    }
-                }
-            }
-        } catch (Throwable e) {
-            logger.warn("Failed to read/parse container ID from '/proc/self/cgroup'", e);
+        tryParseCgroupV1(FileSystems.getDefault().getPath(CGROUP_V1_FILE));
+        if (container == null) {
+            tryParseCgroupV2(FileSystems.getDefault().getPath(CGROUP_V2_FILE));
         }
 
         try {
@@ -318,8 +297,45 @@ public class SystemInfo {
             logger.warn("Failed to read environment variables for Kubernetes Downward API discovery", e);
         }
 
-        logger.debug("container ID is {}", containerId);
+        logger.debug("container ID is {}", container != null ? container.getId() : null);
         return this;
+    }
+
+    @Nullable
+    private void tryParseCgroupV2(Path path) {
+        if (!Files.isRegularFile(path)) {
+            logger.debug("Could not parse container ID from '{}'", path);
+            return;
+        }
+        try {
+            List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+            parseCgroupsV2ContainerId(lines);
+            if (container != null) {
+                return;
+            }
+            logger.debug("Could not parse container ID from '{}' lines: {}", path, lines);
+        } catch (Throwable e) {
+            logger.warn(String.format("Failed to read/parse container ID from '%s'", path), e);
+        }
+    }
+
+    @Nullable
+    private void tryParseCgroupV1(Path path) {
+        if(!Files.isRegularFile(path)){
+            logger.debug("Could not parse container ID from '{}'", path);
+            return;
+        }
+        try {
+            List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+            for (String line : lines) {
+                parseCgroupsV1ContainerId(line);
+                if (container != null) {
+                    return;
+                }
+            }
+        } catch (Throwable e) {
+            logger.warn(String.format("Failed to read/parse container ID from '%s'", path), e);
+        }
     }
 
     /**
@@ -393,7 +409,7 @@ public class SystemInfo {
             }
         }
         if (container == null) {
-            logger.debug("Could not parse container ID from '/proc/self/cgroup' line: {}", line);
+            logger.debug("Could not parse container ID from line: {}", line);
         }
         return this;
     }
@@ -415,6 +431,8 @@ public class SystemInfo {
                 }
             }
         }
+
+
 
 
         return this;
