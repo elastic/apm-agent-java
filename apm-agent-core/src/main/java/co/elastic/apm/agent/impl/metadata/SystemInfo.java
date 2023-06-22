@@ -43,10 +43,14 @@ import static co.elastic.apm.agent.common.util.ProcessExecutionUtil.cmdAsString;
 public class SystemInfo {
     private static final Logger logger = LoggerFactory.getLogger(SystemInfo.class);
 
-    private static final String CONTAINER_UID_REGEX = "^[0-9a-fA-F]{64}$";
+    private static final String CONTAINER_REGEX_64 = "[0-9a-fA-F]{64}";
+    private static final String CONTAINER_UID_REGEX = "^" + CONTAINER_REGEX_64 + "$";
     private static final String SHORTENED_UUID_PATTERN = "^[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4,}";
     private static final String AWS_FARGATE_UID_REGEX = "^[0-9a-fA-F]{32}\\-[0-9]{10}$";
     private static final String POD_REGEX = "(?:^/kubepods[\\S]*/pod([^/]+)$)|(?:kubepods[^/]*-pod([^/]+)\\.slice)";
+
+    private static final String CGROUPV2_HOSTNAME_FILE = "/etc/hostname";
+    private static final Pattern CGROUPV2_CONTAINER_PATTERN = Pattern.compile("^.*(" + CONTAINER_REGEX_64 + ").*$");
 
     /**
      * Architecture of the system the agent is running on.
@@ -261,14 +265,26 @@ public class SystemInfo {
     SystemInfo findContainerDetails() {
         String containerId = null;
         try {
+            // cgroups v1
             Path path = FileSystems.getDefault().getPath("/proc/self/cgroup");
-            if (path.toFile().exists()) {
+            if (Files.isRegularFile(path)) {
                 List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-                for (final String line : lines) {
-                    parseContainerId(line);
+                for (String line : lines) {
+                    parseCgroupsV1ContainerId(line);
                     if (container != null) {
                         containerId = container.getId();
                         break;
+                    }
+                }
+            }
+            // cgroups v2
+            if (containerId == null) {
+                path = FileSystems.getDefault().getPath("/proc/self/mountinfo");
+                if (Files.isRegularFile(path)) {
+                    List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+                    parseCgroupsV2ContainerId(lines);
+                    if (container != null) {
+                        containerId = container.getId();
                     }
                 }
             }
@@ -319,7 +335,7 @@ public class SystemInfo {
      * @param line a line from the /proc/self/cgroup file
      * @return this SystemInfo object after parsing
      */
-    SystemInfo parseContainerId(String line) {
+    SystemInfo parseCgroupsV1ContainerId(String line) {
         final String[] fields = line.split(":", 3);
         if (fields.length == 3) {
             String cGroupPath = fields[2];
@@ -364,7 +380,7 @@ public class SystemInfo {
                 if (kubernetes != null ||
                     idPart.matches(CONTAINER_UID_REGEX) ||
                     idPart.matches(SHORTENED_UUID_PATTERN) ||
-                    idPart.matches(AWS_FARGATE_UID_REGEX))  {
+                    idPart.matches(AWS_FARGATE_UID_REGEX)) {
                     container = new Container(idPart);
                 }
             }
@@ -372,6 +388,28 @@ public class SystemInfo {
         if (container == null) {
             logger.debug("Could not parse container ID from '/proc/self/cgroup' line: {}", line);
         }
+        return this;
+    }
+
+    /**
+     * @param lines lines from the /proc/self/mountinfo file
+     * @return this SystemInfo object after parsing
+     */
+    SystemInfo parseCgroupsV2ContainerId(List<String> lines) {
+        for (String line : lines) {
+            int index = line.indexOf(CGROUPV2_HOSTNAME_FILE);
+            if (index > 0) {
+                String[] parts = line.split(" ");
+                if (parts.length > 3) {
+                    Matcher matcher = CGROUPV2_CONTAINER_PATTERN.matcher(parts[3]);
+                    if (matcher.matches() && matcher.groupCount() == 1) {
+                        container = new Container(matcher.group(1));
+                    }
+                }
+            }
+        }
+
+
         return this;
     }
 
@@ -386,21 +424,23 @@ public class SystemInfo {
      * Returns the hostname. If a non-empty hostname was configured manually, it will be returned.
      * Otherwise, the automatically discovered hostname will be returned.
      * If both are null or empty, this method returns {@code <unknown>}.
+     *
      * @deprecated should only be used when communicating to APM Server of version lower than 7.4
      */
-     @Deprecated
+    @Deprecated
     public String getHostname() {
-         if (configuredHostname != null && !configuredHostname.isEmpty()) {
-             return configuredHostname;
-         }
-         if (detectedHostname != null && !detectedHostname.isEmpty()) {
-             return detectedHostname;
-         }
-         return "<unknown>";
+        if (configuredHostname != null && !configuredHostname.isEmpty()) {
+            return configuredHostname;
+        }
+        if (detectedHostname != null && !detectedHostname.isEmpty()) {
+            return detectedHostname;
+        }
+        return "<unknown>";
     }
 
     /**
      * The hostname manually configured through {@link co.elastic.apm.agent.configuration.CoreConfiguration#hostname}
+     *
      * @return the manually configured hostname
      */
     @Nullable

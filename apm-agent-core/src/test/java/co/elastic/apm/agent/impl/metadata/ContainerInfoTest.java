@@ -41,8 +41,8 @@ public class ContainerInfoTest extends CustomEnvVariables {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("getCommonPatterns")
-    void testCommonPatterns(String testName, String groupLine, @Nullable String containerId, @Nullable String podId) {
-        SystemInfo systemInfo = createSystemInfo().parseContainerId(groupLine);
+    void testCommonPatternsCgroupsV1(String testName, String groupLine, @Nullable String containerId, @Nullable String podId) {
+        SystemInfo systemInfo = createSystemInfo().parseCgroupsV1ContainerId(groupLine);
         assertThat(systemInfo).isNotNull();
         SystemInfo.Container containerInfo = systemInfo.getContainerInfo();
         if (containerId == null) {
@@ -81,6 +81,29 @@ public class ContainerInfoTest extends CustomEnvVariables {
         }
 
         return args.stream();
+    }
+
+    @Test
+    void testCgroupsV2() {
+        JsonNode json = TestJsonSpec.getJson("cgroup_v2_parsing.json");
+        assertThat(json.isObject())
+            .describedAs("unexpected JSON spec format")
+            .isTrue();
+
+        JsonNode jsonLines = json.get("lines");
+        assertThat(jsonLines.isArray()).isTrue();
+        List<String> lines = new ArrayList<>();
+        for (int i = 0; i < jsonLines.size(); i++) {
+            lines.add(jsonLines.get(i).asText());
+        }
+        JsonNode jsonContainerId = json.get("containerId");
+        assertThat(jsonContainerId.isTextual()).isTrue();
+        String expectedContainerId = jsonContainerId.asText();
+
+        SystemInfo systemInfo = createSystemInfo().parseCgroupsV2ContainerId(lines);
+        assertThat(systemInfo).isNotNull();
+        assertThat(systemInfo.getContainerInfo()).describedAs("missing container info").isNotNull();
+        assertThat(systemInfo.getContainerInfo().getId()).isEqualTo(expectedContainerId);
     }
 
     @Test
@@ -168,7 +191,7 @@ public class ContainerInfoTest extends CustomEnvVariables {
     void testUbuntuCgroup() {
         String line = "1:name=systemd:/user.slice/user-1000.slice/user@1000.service/apps.slice/apps-org.gnome.Terminal" +
             ".slice/vte-spawn-75bc72bd-6642-4cf5-b62c-0674e11bfc84.scope";
-        assertThat(createSystemInfo().parseContainerId(line).getContainerInfo()).isNull();
+        assertThat(createSystemInfo().parseCgroupsV1ContainerId(line).getContainerInfo()).isNull();
     }
 
     @Test
@@ -237,7 +260,7 @@ public class ContainerInfoTest extends CustomEnvVariables {
 
     private SystemInfo assertContainerId(String line, String containerId) {
         SystemInfo systemInfo = createSystemInfo();
-        assertThat(systemInfo.parseContainerId(line).getContainerInfo()).isNotNull();
+        assertThat(systemInfo.parseCgroupsV1ContainerId(line).getContainerInfo()).isNotNull();
         //noinspection ConstantConditions
         assertThat(systemInfo.getContainerInfo().getId()).isEqualTo(containerId);
         return systemInfo;
@@ -245,7 +268,7 @@ public class ContainerInfoTest extends CustomEnvVariables {
 
     private void assertContainerInfoIsNull(String line) {
         SystemInfo systemInfo = createSystemInfo();
-        assertThat(systemInfo.parseContainerId(line).getContainerInfo()).isNull();
+        assertThat(systemInfo.parseCgroupsV1ContainerId(line).getContainerInfo()).isNull();
     }
 
     private void assertKubernetesInfo(SystemInfo systemInfo, @Nullable String podUid, @Nullable String podName, @Nullable String nodeName,
