@@ -103,8 +103,9 @@ public class SystemInfo {
     /**
      * Creates a {@link SystemInfo} containing auto-discovered info about the system.
      * This method may block on reading files and executing external processes.
-     * @param configuredHostname hostname configured through the {@link co.elastic.apm.agent.configuration.CoreConfiguration#hostname} config
-     * @param timeoutMillis enables to limit the execution of the system discovery task
+     *
+     * @param configuredHostname      hostname configured through the {@link co.elastic.apm.agent.configuration.CoreConfiguration#hostname} config
+     * @param timeoutMillis           enables to limit the execution of the system discovery task
      * @param serverlessConfiguration serverless config
      * @return a future from which this system's info can be obtained
      */
@@ -138,7 +139,8 @@ public class SystemInfo {
      * Discover the current host's name. This method separates operating systems only to Windows and non-Windows,
      * both in the executed hostname-discovery-command and the fallback environment variables.
      * It always starts with execution of a command on an external process, so it may block up to the specified timeout.
-     * @param isWindows used to decide how hostname discovery should be executed
+     *
+     * @param isWindows     used to decide how hostname discovery should be executed
      * @param timeoutMillis limits the time this method may block on executing external commands
      * @return the discovered hostname
      */
@@ -197,7 +199,8 @@ public class SystemInfo {
     /**
      * Tries to discover the current host name by executing the provided command in a spawned process.
      * This method may block up to the specified timeout, waiting for the spawned process to terminate.
-     * @param cmd the hostname discovery command
+     *
+     * @param cmd           the hostname discovery command
      * @param timeoutMillis maximum time to allow to the provided command to execute
      * @return the discovered hostname
      */
@@ -320,17 +323,19 @@ public class SystemInfo {
     /**
      * The virtual file /proc/self/cgroup lists the control groups that the process is a member of. Each line contains
      * three colon-separated fields of the form hierarchy-ID:subsystem-list:cgroup-path.
-     *
+     * <p>
      * Depending on the filesystem driver used for cgroup management, the cgroup-path will have
      * one of the following formats in a Docker container:
-     *
-     * 		systemd: /system.slice/docker-<container-ID>.scope
-     * 		cgroupfs: /docker/<container-ID>
-     *
-     * 	In a Kubernetes pod, the cgroup path will look like:
-     *
-     * 		systemd: /kubepods.slice/kubepods-<QoS-class>.slice/kubepods-<QoS-class>-pod<pod-UID>.slice/<container-iD>.scope
-     * 		cgroupfs: /kubepods/<QoS-class>/pod<pod-UID>/<container-iD>
+     * </p>
+     * <pre>
+     *   systemd: /system.slice/docker-<container-ID>.scope
+     *   cgroupfs: /docker/<container-ID>
+     * </pre>
+     * In a Kubernetes pod, the cgroup path will look like:
+     * <pre>
+     *   systemd: /kubepods.slice/kubepods-<QoS-class>.slice/kubepods-<QoS-class>-pod<pod-UID>.slice/<container-iD>.scope
+     *   cgroupfs: /kubepods/<QoS-class>/pod<pod-UID>/<container-iD>
+     * </pre
      *
      * @param line a line from the /proc/self/cgroup file
      * @return this SystemInfo object after parsing
