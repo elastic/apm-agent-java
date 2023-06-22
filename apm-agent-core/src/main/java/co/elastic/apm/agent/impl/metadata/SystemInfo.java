@@ -60,6 +60,7 @@ public class SystemInfo {
     /**
      * Hostname configured manually through {@link co.elastic.apm.agent.configuration.CoreConfiguration#hostname}.
      */
+    @SuppressWarnings("JavadocReference")
     @Nullable
     private final String configuredHostname;
 
@@ -109,6 +110,7 @@ public class SystemInfo {
      * @param serverlessConfiguration serverless config
      * @return a future from which this system's info can be obtained
      */
+    @SuppressWarnings("JavadocReference")
     public static SystemInfo create(final @Nullable String configuredHostname, final long timeoutMillis, ServerlessConfiguration serverlessConfiguration) {
         final String osName = System.getProperty("os.name");
         final String osArch = System.getProperty("os.arch");
@@ -448,6 +450,7 @@ public class SystemInfo {
      *
      * @return the manually configured hostname
      */
+    @SuppressWarnings("JavadocReference")
     @Nullable
     public String getConfiguredHostname() {
         return configuredHostname;
@@ -489,7 +492,7 @@ public class SystemInfo {
     }
 
     public static class Container {
-        private String id;
+        private final String id;
 
         Container(String id) {
             this.id = id;
