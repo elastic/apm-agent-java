@@ -52,8 +52,8 @@ public class SystemInfo {
     private static final String CGROUPV2_HOSTNAME_FILE = "/etc/hostname";
     private static final Pattern CGROUPV2_CONTAINER_PATTERN = Pattern.compile("^.*(" + CONTAINER_REGEX_64 + ").*$");
 
-    private static final String CGROUP_V1_FILE = "/proc/self/cgroup";
-    private static final String CGROUP_V2_FILE = "/proc/self/mountinfo";
+    private static final String SELF_CGROUP = "/proc/self/cgroup";
+    private static final String SELF_MOUNTINFO = "/proc/self/mountinfo";
 
     /**
      * Architecture of the system the agent is running on.
@@ -271,9 +271,9 @@ public class SystemInfo {
      * @return container ID parsed from {@code /proc/self/cgroup} file lines, or {@code null} if can't find/read/parse file lines
      */
     SystemInfo findContainerDetails() {
-        tryParseCgroupV1(FileSystems.getDefault().getPath(CGROUP_V1_FILE));
+        parseCgroupsFile(FileSystems.getDefault().getPath(SELF_CGROUP));
         if (container == null) {
-            tryParseCgroupV2(FileSystems.getDefault().getPath(CGROUP_V2_FILE));
+            parseMountInfo(FileSystems.getDefault().getPath(SELF_MOUNTINFO));
         }
 
         try {
@@ -302,7 +302,7 @@ public class SystemInfo {
     }
 
     @Nullable
-    private void tryParseCgroupV2(Path path) {
+    private void parseMountInfo(Path path) {
         if (!Files.isRegularFile(path)) {
             logger.debug("Could not parse container ID from '{}'", path);
             return;
@@ -320,7 +320,7 @@ public class SystemInfo {
     }
 
     @Nullable
-    private void tryParseCgroupV1(Path path) {
+    private void parseCgroupsFile(Path path) {
         if(!Files.isRegularFile(path)){
             logger.debug("Could not parse container ID from '{}'", path);
             return;
@@ -328,7 +328,7 @@ public class SystemInfo {
         try {
             List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
             for (String line : lines) {
-                parseCgroupsV1ContainerId(line);
+                parseCgroupsLine(line);
                 if (container != null) {
                     return;
                 }
@@ -358,7 +358,7 @@ public class SystemInfo {
      * @param line a line from the /proc/self/cgroup file
      * @return this SystemInfo object after parsing
      */
-    SystemInfo parseCgroupsV1ContainerId(String line) {
+    SystemInfo parseCgroupsLine(String line) {
         final String[] fields = line.split(":", 3);
         if (fields.length == 3) {
             String cGroupPath = fields[2];
