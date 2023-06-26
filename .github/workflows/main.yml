@@ -94,6 +94,7 @@ jobs:
           path: |
             ./apm-agent-attach-cli/target/apm-agent-attach-cli-*.jar
             !./**/*-sources.jar
+            !./**/*-tests.jar
       - name: Upload agent attach artifacts
         uses: actions/upload-artifact@v3
         with:
