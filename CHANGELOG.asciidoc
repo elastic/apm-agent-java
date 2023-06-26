@@ -34,6 +34,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Bug fixes
 * Fixed agent programmatic attach with immutable config - {pull}3170[#3170]
+* Prevent overriding `ELASTIC_APM_AWS_LAMBDA_HANDLER` in AWS lambda execution when explicitly set - {pull}3205[#3205]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

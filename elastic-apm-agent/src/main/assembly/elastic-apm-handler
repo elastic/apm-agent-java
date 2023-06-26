@@ -2,11 +2,15 @@
 
 export JAVA_TOOL_OPTIONS="-javaagent:/opt/elastic-apm-agent.jar ${JAVA_TOOL_OPTIONS}"
 
-export ELASTIC_APM_AWS_LAMBDA_HANDLER="${_HANDLER}"
+# if ELASTIC_APM_AWS_LAMBDA_HANDLER is explicitly set its value has priority
+export ELASTIC_APM_AWS_LAMBDA_HANDLER="${ELASTIC_APM_AWS_LAMBDA_HANDLER:-${_HANDLER}}"
+
 export ELASTIC_APM_METRICS_INTERVAL="0s"
 export ELASTIC_APM_CENTRAL_CONFIG="false"
 export ELASTIC_APM_CLOUD_PROVIDER="none"
 export ELASTIC_APM_ACTIVATION_METHOD="AWS_LAMBDA_LAYER"
 
+# removing class file sharing as it prevents bytecode instrumentation
 CMD="$(echo "$@" | sed 's/-Xshare:on/-Xshare:auto/g')"
+
 exec $CMD
