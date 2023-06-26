@@ -82,6 +82,21 @@ jobs:
         with:
           name: elastic-apm-agent-java8
           path: ./elastic-apm-agent-java8/target/elastic-apm-agent-java8-*.jar
+      - name: Upload agent attach CLI artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: apm-agent-attach-cli
+          path: ./apm-agent-attach-cli/target/apm-agent-attach-cli-*.jar
+      - name: Upload agent attach artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: apm-agent-attach
+          path: ./apm-agent-attach/target/apm-agent-attach-*.jar
+      - name: Upload agent API artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: apm-agent-api
+          path: ./apm-agent-api/target/apm-agent-api-*.jar
 
   license:
     name: License
