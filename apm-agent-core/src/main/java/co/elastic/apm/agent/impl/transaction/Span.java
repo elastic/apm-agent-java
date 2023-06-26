@@ -497,11 +497,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.a
     }
 
     @Override
-    public boolean shouldSkipChildSpanCreation() {
-        return transaction != null && transaction.shouldSkipChildSpanCreation();
-    }
-
-    @Override
     protected void recycle() {
         tracer.recycle(this);
     }

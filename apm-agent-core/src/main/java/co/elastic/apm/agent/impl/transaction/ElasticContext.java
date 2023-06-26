@@ -93,4 +93,10 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
         AbstractSpan<?> contextSpan = getSpan();
         return contextSpan != null && !HeaderUtils.containsAny(TraceContext.TRACE_TEXTUAL_HEADERS, carrier, headerGetter);
     }
+
+    @Override
+    public final boolean shouldSkipChildSpanCreation() {
+        Transaction contextTransaction = getTransaction();
+        return contextTransaction == null || contextTransaction.checkSkipChildSpanCreation();
+    }
 }

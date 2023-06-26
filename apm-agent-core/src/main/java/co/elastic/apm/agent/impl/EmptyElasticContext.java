@@ -61,4 +61,5 @@ class EmptyElasticContext extends ElasticContext<EmptyElasticContext> {
     public void decrementReferences() {
 
     }
+
 }

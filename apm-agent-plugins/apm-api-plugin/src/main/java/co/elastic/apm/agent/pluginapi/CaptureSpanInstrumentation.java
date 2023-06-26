@@ -92,7 +92,7 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
                 logger.debug("Not creating span for {} because there is no currently active span.", signature);
                 return null;
             }
-            if (parentSpan.shouldSkipChildSpanCreation()) {
+            if (parent.shouldSkipChildSpanCreation()) {
                 // span limit reached means span will not be reported, thus we can optimize and skip creating one
                 logger.debug("Not creating span for {} because span limit is reached.", signature);
                 return null;

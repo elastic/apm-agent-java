@@ -295,8 +295,8 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         return droppedSpanStats;
     }
 
-    @Override
-    public boolean shouldSkipChildSpanCreation() {
+
+    public boolean checkSkipChildSpanCreation() {
         boolean drop = spanCount.isSpanLimitReached(maxSpans);
         if (drop) {
             // when dropping, the caller is expected to optimize and avoid span creation. As a consequence we have

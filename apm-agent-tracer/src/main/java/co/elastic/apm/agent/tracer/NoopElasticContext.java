@@ -97,6 +97,11 @@ public class NoopElasticContext implements ElasticContext<NoopElasticContext> {
     }
 
     @Override
+    public boolean shouldSkipChildSpanCreation() {
+        return true;
+    }
+
+    @Override
     public void incrementReferences() {
 
     }

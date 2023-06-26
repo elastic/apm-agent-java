@@ -324,7 +324,7 @@ public class GrpcHelper {
      * This is the 2nd method called during client call execution, the next is {@link #clientCallStartEnter(ClientCall, ClientCall.Listener, Metadata)}.
      *
      * @param clientCall    client call
-     * @param spanFromEntry span created at {@link #onClientCallCreationEntry(AbstractSpan, MethodDescriptor, String)}
+     * @param spanFromEntry span created at {@link #onClientCallCreationEntry(ElasticContext, MethodDescriptor, String)}
      */
     public void onClientCallCreationExit(@Nullable ClientCall<?, ?> clientCall, @Nullable Span<?> spanFromEntry) {
         if (clientCall != null) {

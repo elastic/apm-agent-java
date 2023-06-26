@@ -91,11 +91,13 @@ public interface ElasticContext<T extends ElasticContext<T>> extends ReferenceCo
      * Same as {@link #propagateContext(Object, TextHeaderSetter, TextHeaderGetter)}, except that different types can be used
      * for the getter and setter carriers (e.g. builder vs request).
      *
-     * @param carrier      the text headers carrier
+     * @param carrier      the text headers carrier for setting header
      * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
+     * @param carrier2     the text headers carrier for setting header
      * @param headerGetter a getter for headers of the carries. Used to detect already present headers to prevent overriding.
      *                     If not provided, no such check will be performed.
-     * @param <C>          the header carrier type, for example - an HTTP request
+     * @param <C1>         the header carrier type for writing headers
+     * @param <C2>         the header carrier type for reading headers
      */
     <C1, C2> void propagateContext(C1 carrier, TextHeaderSetter<C1> headerSetter, @Nullable C2 carrier2, @Nullable TextHeaderGetter<C2> headerGetter);
 
@@ -111,5 +113,18 @@ public interface ElasticContext<T extends ElasticContext<T>> extends ReferenceCo
      * @return true, if a call to propagateContext would modify the headers of the carrier
      */
     <C> boolean isPropagationRequired(C carrier, TextHeaderGetter<C> headerGetter);
+
+    /**
+     * @return {@literal true} when span limit is reached and the caller can optimize and not create a span. The caller
+     * is expected to call this method before every span creation operation for proper dropped spans accounting. If not
+     * called before attempting span creation, a span will be created and dropped before reporting.
+     * <br/>
+     * Expected caller behavior depends on the returned value:
+     * <ul>
+     *     <li>{@literal true} returned means the caller is expected to NOT call {@link #createSpan()} or {@link #createExitSpan()}</li>
+     *     <li>{@literal false} returned means the caller MAY call {@link #createSpan()} or {@link #createExitSpan()}</li>
+     * </ul>
+     */
+    boolean shouldSkipChildSpanCreation();
 
 }

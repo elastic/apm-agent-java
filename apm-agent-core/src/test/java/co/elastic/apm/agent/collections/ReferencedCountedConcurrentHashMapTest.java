@@ -217,11 +217,7 @@ class ReferencedCountedConcurrentHashMapTest {
         protected TestSpan thiz() {
             return null;
         }
-
-        @Override
-        public boolean shouldSkipChildSpanCreation() {
-            return false;
-        }
+        
     }
 
 }
