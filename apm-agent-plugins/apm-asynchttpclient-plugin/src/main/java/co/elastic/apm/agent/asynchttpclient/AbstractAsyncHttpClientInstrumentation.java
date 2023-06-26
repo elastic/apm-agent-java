@@ -23,6 +23,7 @@ import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
@@ -99,9 +100,10 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object onBeforeExecute(@Advice.Argument(value = 0) Request request,
                                                  @Advice.Argument(value = 1) AsyncHandler<?> asyncHandler) {
-                final AbstractSpan<?> parent = tracer.getActive();
+                final ElasticContext<?> parent = tracer.currentContext();
+                final AbstractSpan<?> parentSpan = tracer.getActive();
                 Span<?> span = null;
-                if (parent != null) {
+                if (parentSpan != null) {
                     DynamicTransformer.ensureInstrumented(asyncHandler.getClass(), Helper.ASYNC_HANDLER_INSTRUMENTATIONS);
                     Uri uri = request.getUri();
                     span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());

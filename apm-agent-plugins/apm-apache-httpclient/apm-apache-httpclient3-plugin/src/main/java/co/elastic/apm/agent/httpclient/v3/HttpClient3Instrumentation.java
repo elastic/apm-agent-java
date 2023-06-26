@@ -22,7 +22,7 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.util.LoggerUtils;
@@ -81,8 +81,8 @@ public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
         public static Object onEnter(@Advice.Argument(0) HttpMethod httpMethod,
                                      @Advice.FieldValue(value = "hostConfiguration") HostConfiguration hostConfiguration) {
             Span<?> span = null;
-            final AbstractSpan<?> parent = TracerAwareInstrumentation.tracer.getActive();
-            if (parent != null) {
+            final ElasticContext<?> parent = TracerAwareInstrumentation.tracer.currentContext();
+            if (parent.getSpan() != null) {
 
                 String host;
                 String uri;

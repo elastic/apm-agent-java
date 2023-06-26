@@ -21,7 +21,6 @@ package co.elastic.apm.agent.okhttp;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -67,7 +66,6 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
                                                final @Advice.FieldValue("originalRequest") @Nullable okhttp3.Request originalRequest,
                                                final @Advice.Argument(0) @Nullable Callback originalCallback) {
 
-            final AbstractSpan<?> parent = tracer.getActive();
 
             if (originalRequest == null || originalCallback == null) {
                 return null;
@@ -76,17 +74,13 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
             okhttp3.Request request = originalRequest;
             Callback callback = originalCallback;
             HttpUrl url = request.url();
-            Span<?> span = null;
+            Span<?> span = HttpClientHelper.startHttpClientSpan(tracer.currentContext(), request.method(), url.toString(), url.scheme(),
+                OkHttpClientHelper.computeHostName(url.host()), url.port());
 
-            if (parent != null) {
-                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(),
-                    OkHttpClientHelper.computeHostName(url.host()), url.port());
-
-                if (span != null) {
-                    span.activate()
-                        .withSync(false);
-                    callback = CallbackWrapperCreator.INSTANCE.wrap(callback, span);
-                }
+            if (span != null) {
+                span.activate()
+                    .withSync(false);
+                callback = CallbackWrapperCreator.INSTANCE.wrap(callback, span);
             }
 
             ElasticContext<?> currentContext = tracer.currentContext();

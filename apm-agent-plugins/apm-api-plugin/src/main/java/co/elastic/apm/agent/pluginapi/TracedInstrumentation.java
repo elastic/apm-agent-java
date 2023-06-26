@@ -26,6 +26,7 @@ import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -92,9 +93,10 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
                 defaultValueProvider = AnnotationValueOffsetMappingFactory.TrueDefaultValueProvider.class
             ) boolean discardable) {
 
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent != null) {
-                if (parent.shouldSkipChildSpanCreation()) {
+            final ElasticContext<?> parent = tracer.currentContext();
+            final AbstractSpan<?> parentSpan = parent.getSpan();
+            if (parentSpan != null) {
+                if (parentSpan.shouldSkipChildSpanCreation()) {
                     // span limit reached means span will not be reported, thus we can optimize and skip creating one
                     logger.debug("Not creating span for {} because span limit is reached.", signature);
                     return null;

@@ -20,7 +20,6 @@ package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpAsyncClientHelper;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
@@ -99,8 +98,8 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
             }
             FutureCallback<?> wrappedFutureCallback = futureCallback;
             Span<?> span = null;
-            AbstractSpan<?> parent = tracer.getActive();
-            if (parent != null) {
+            ElasticContext<?> parent = tracer.currentContext();
+            if (parent.getSpan() != null) {
                 span = parent.createExitSpan();
                 if (span != null) {
                     span.withType(HttpClientHelper.EXTERNAL_TYPE)

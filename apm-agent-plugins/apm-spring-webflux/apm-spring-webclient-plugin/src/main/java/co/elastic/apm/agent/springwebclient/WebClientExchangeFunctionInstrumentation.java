@@ -20,7 +20,6 @@ package co.elastic.apm.agent.springwebclient;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
@@ -75,14 +74,11 @@ public class WebClientExchangeFunctionInstrumentation extends TracerAwareInstrum
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @Advice.AssignReturned.ToArguments(@ToArgument(index = 0, value = 0, typing = Assigner.Typing.DYNAMIC))
         public static Object[] onBefore(@Advice.Argument(0) ClientRequest clientRequest) {
-            final AbstractSpan<?> parent = tracer.getActive();
-            Span<?> span = null;
-            if (parent != null) {
-                URI uri = clientRequest.url();
-                span = HttpClientHelper.startHttpClientSpan(parent, clientRequest.method().name(), uri, uri.getHost());
-                if (span != null) {
-                    span.activate();
-                }
+
+            URI uri = clientRequest.url();
+            Span<?> span = HttpClientHelper.startHttpClientSpan(tracer.currentContext(), clientRequest.method().name(), uri, uri.getHost());
+            if (span != null) {
+                span.activate();
             }
 
             ElasticContext<?> toPropagate = tracer.currentContext();

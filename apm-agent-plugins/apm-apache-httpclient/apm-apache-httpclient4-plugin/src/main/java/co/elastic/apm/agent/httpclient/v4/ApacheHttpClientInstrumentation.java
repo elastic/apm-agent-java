@@ -20,7 +20,7 @@ package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
-import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
@@ -53,9 +53,9 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(0) HttpRoute route,
                                              @Advice.Argument(1) HttpRequestWrapper request) {
-            AbstractSpan<?> parent = tracer.getActive();
+            ElasticContext<?> parent = tracer.currentContext();
             Span<?> span = null;
-            if (parent != null) {
+            if (parent.getSpan() != null) {
                 span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());
 
                 if (span != null) {

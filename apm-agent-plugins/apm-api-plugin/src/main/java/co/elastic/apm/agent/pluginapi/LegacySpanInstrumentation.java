@@ -104,7 +104,14 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             @Advice.OnMethodExit(inline = false)
             public static Object doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span) {
                 if (span instanceof Span<?>) {
-                    return ((Span<?>) span).createSpan();
+                    Span<?> spanTyped = (Span<?>) span;
+                    //TODO: make the public API work on contexts instead of spans, otherwise baggage might be lost
+                    spanTyped.activate();
+                    try {
+                        return tracer.currentContext().createSpan();
+                    } finally {
+                        spanTyped.deactivate();
+                    }
                 } else {
                     return null;
                 }

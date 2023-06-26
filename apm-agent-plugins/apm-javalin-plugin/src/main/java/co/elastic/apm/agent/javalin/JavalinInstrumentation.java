@@ -19,11 +19,12 @@
 package co.elastic.apm.agent.javalin;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.util.TransactionNameUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import io.javalin.http.Context;
@@ -33,8 +34,6 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
@@ -166,16 +165,14 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
             }
 
             // create own span for all handlers including after/before
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
+            Span<?> span = tracer.currentContext().createSpan();
+            if (span != null) {
+                span.activate()
+                    .withType("app")
+                    .withSubtype("internal")
+                    .appendToName(handlerType.name()).appendToName(" ").appendToName(ctx.matchedPath());
             }
-
-            return parent.createSpan()
-                .activate()
-                .withType("app")
-                .withSubtype("internal")
-                .appendToName(handlerType.name()).appendToName(" ").appendToName(ctx.matchedPath());
+            return span;
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

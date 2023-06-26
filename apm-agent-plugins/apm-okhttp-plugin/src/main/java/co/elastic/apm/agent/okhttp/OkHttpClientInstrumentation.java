@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -57,17 +56,12 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
             }
             Request request = (Request) originalRequest;
 
-            final AbstractSpan<?> parent = tracer.getActive();
-            Span<?> span = null;
-            if (parent != null) {
-                HttpUrl httpUrl = request.httpUrl();
+            HttpUrl httpUrl = request.httpUrl();
+            Span<?> span = HttpClientHelper.startHttpClientSpan(tracer.currentContext(), request.method(), httpUrl.toString(), httpUrl.scheme(),
+                OkHttpClientHelper.computeHostName(httpUrl.host()), httpUrl.port());
 
-                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), httpUrl.toString(), httpUrl.scheme(),
-                    OkHttpClientHelper.computeHostName(httpUrl.host()), httpUrl.port());
-
-                if (span != null) {
-                    span.activate();
-                }
+            if (span != null) {
+                span.activate();
             }
 
             ElasticContext<?> toPropagate = tracer.currentContext();

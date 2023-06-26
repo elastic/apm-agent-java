@@ -22,7 +22,6 @@ import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderSetter;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Span;
 import com.rabbitmq.client.AMQP;
@@ -275,11 +274,10 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
          */
         @Nullable
         public static Span<?> createExitSpan(@Nullable String exchangeOrQueue) {
-            AbstractSpan<?> context = tracer.getActive();
-            if (exchangeOrQueue == null || context == null || isIgnored(exchangeOrQueue)) {
+            if (exchangeOrQueue == null || isIgnored(exchangeOrQueue)) {
                 return null;
             }
-            Span<?> exitSpan = context.createExitSpan();
+            Span<?> exitSpan = tracer.currentContext().createExitSpan();
             if (exitSpan == null) {
                 return null;
             }

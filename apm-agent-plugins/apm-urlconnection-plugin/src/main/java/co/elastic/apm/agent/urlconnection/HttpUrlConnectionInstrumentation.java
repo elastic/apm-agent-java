@@ -23,6 +23,7 @@ import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
@@ -76,9 +77,10 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                                        @Advice.Origin String signature) {
 
                 boolean isNestedCall = callDepth.isNestedCallAndIncrement();
-                AbstractSpan<?> parent = tracer.getActive();
+                ElasticContext<?> parent = tracer.currentContext();
+                AbstractSpan<?> parentSpan = parent.getSpan();
                 Span<?> span = null;
-                if (parent != null) {
+                if (parentSpan != null) {
                     span = inFlightSpans.get(thiz);
                     if (span == null && !connected) {
                         final URL url = thiz.getURL();

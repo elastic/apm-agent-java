@@ -21,7 +21,6 @@ package co.elastic.apm.agent.okhttp;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -71,18 +70,14 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
             Request request = originalRequest;
             Callback callback = originalCallback;
 
-            final AbstractSpan<?> parent = tracer.getActive();
-            Span<?> span = null;
-            if (parent != null) {
-                URL url = request.url();
-                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.getProtocol(),
-                    OkHttpClientHelper.computeHostName(url.getHost()), url.getPort());
+            URL url = request.url();
+            Span<?> span = HttpClientHelper.startHttpClientSpan(tracer.currentContext(), request.method(), url.toString(), url.getProtocol(),
+                OkHttpClientHelper.computeHostName(url.getHost()), url.getPort());
 
-                if (span != null) {
-                    span.withSync(false)
-                        .activate();
-                    callback = CallbackWrapperCreator.INSTANCE.wrap(originalCallback, span);
-                }
+            if (span != null) {
+                span.withSync(false)
+                    .activate();
+                callback = CallbackWrapperCreator.INSTANCE.wrap(originalCallback, span);
             }
 
             ElasticContext<?> toPropagate = tracer.currentContext();

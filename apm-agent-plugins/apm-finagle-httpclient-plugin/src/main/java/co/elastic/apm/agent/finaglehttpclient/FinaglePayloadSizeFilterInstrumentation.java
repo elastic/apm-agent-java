@@ -27,6 +27,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Span;
 import com.twitter.finagle.http.Request;
 import com.twitter.finagle.http.Response;
@@ -122,7 +123,8 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
             if (request == null || INBOUND_REQUEST_CLASS.isInstance(request)) {
                 return null;
             }
-            AbstractSpan<?> parent = tracer.getActive();
+            ElasticContext<?> parentContext = tracer.currentContext();
+            AbstractSpan<?> parent = parentContext.getSpan();
             Span<?> span = null;
             if (parent != null) {
 
@@ -138,7 +140,7 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
                 }
 
                 URI uri = resolveURI(request, host);
-                span = HttpClientHelper.startHttpClientSpan(parent, request.method().name(), uri, null);
+                span = HttpClientHelper.startHttpClientSpan(parentContext, request.method().name(), uri, null);
 
                 if (span != null) {
                     span.activate();

@@ -18,18 +18,18 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
-import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.metadata.Message;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -87,11 +87,7 @@ public abstract class AbstractSQSInstrumentationHelper<R, C, MessageT> extends A
         if (WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), queueName)) {
             return null;
         }
-        AbstractSpan<?> active = tracer.getActive();
-        if (active == null) {
-            return null;
-        }
-        Span<?> span = active.createExitSpan();
+        Span<?> span = tracer.currentContext().createExitSpan();
         if (span != null) {
             span.withType(MESSAGING_TYPE)
                 .withSubtype(SQS_TYPE);

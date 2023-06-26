@@ -25,28 +25,7 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 
 import javax.annotation.Nullable;
 
-public interface ElasticContext<T extends ElasticContext<T>> extends ReferenceCounted {
-
-    /**
-     * Makes the context active
-     *
-     * @return this
-     */
-    T activate();
-
-    /**
-     * Deactivates context
-     *
-     * @return this
-     */
-    T deactivate();
-
-    /**
-     * Activates context in a scope
-     *
-     * @return active scope that will deactivate context when closed
-     */
-    Scope activateInScope();
+public interface ElasticContext<T extends ElasticContext<T>> extends ReferenceCounted, Activateable<T> {
 
     /**
      * @return the span/transaction that is associated to this context, {@literal null} if there is none
@@ -59,6 +38,25 @@ public interface ElasticContext<T extends ElasticContext<T>> extends ReferenceCo
      */
     @Nullable
     Transaction<?> getTransaction();
+
+
+    /**
+     * Creates a child span of this context, if possible.
+     * Guaranteed to be non-null if {@link #getSpan()} returns non null.
+     *
+     * @return the newly created span with this context as parent.
+     */
+    @Nullable
+    Span<?> createSpan();
+
+    /**
+     * Creates a child Span representing a remote call event, unless this TraceContextHolder already represents an exit event.
+     * If current TraceContextHolder is representing an Exit- returns null
+     *
+     * @return an Exit span if this TraceContextHolder is not an exit span, null otherwise
+     */
+    @Nullable
+    Span<?> createExitSpan();
 
     /**
      * If a context is empty, it does not need to be propagated (neither within the process, nor via external calls).

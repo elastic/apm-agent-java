@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.process;
 
-import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.sdk.state.GlobalVariables;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 
 import javax.annotation.Nonnull;
@@ -54,7 +54,7 @@ class ProcessHelper {
         return inTracingContext.get() == Boolean.TRUE;
     }
 
-    static void startProcess(AbstractSpan<?> parentContext, Process process, List<String> command) {
+    static void startProcess(ElasticContext<?> parentContext, Process process, List<String> command) {
         INSTANCE.doStartProcess(parentContext, process, command.get(0));
     }
 
@@ -73,15 +73,18 @@ class ProcessHelper {
      * @param process       started process
      * @param processName   process name
      */
-    void doStartProcess(@Nonnull AbstractSpan<?> parentContext, @Nonnull Process process, @Nonnull String processName) {
+    void doStartProcess(ElasticContext<?> parentContext, @Nonnull Process process, @Nonnull String processName) {
         if (inFlightSpans.contains(process)) {
+            return;
+        }
+        Span<?> span = parentContext.createSpan();
+        if (span == null) {
             return;
         }
 
         String binaryName = getBinaryName(processName);
 
-        Span<?> span = parentContext.createSpan()
-            .withType("process")
+        span.withType("process")
             .withName(binaryName);
 
         // We don't require span to be activated as the background process is not really linked to current thread

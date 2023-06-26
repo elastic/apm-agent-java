@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -57,7 +58,8 @@ public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
                                   @Advice.Return @Nullable Process process,
                                   @Advice.Thrown @Nullable Throwable t) {
 
-            AbstractSpan<?> parentSpan = tracer.getActive();
+            ElasticContext<?> parent = tracer.currentContext();
+            AbstractSpan<?> parentSpan = parent.getSpan();
             if (parentSpan == null) {
                 return;
             }
@@ -69,7 +71,7 @@ public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
 
             if (process != null) {
                 // when an exception is thrown, there is no return value
-                ProcessHelper.startProcess(parentSpan, process, processBuilder.command());
+                ProcessHelper.startProcess(parent, process, processBuilder.command());
             }
         }
     }

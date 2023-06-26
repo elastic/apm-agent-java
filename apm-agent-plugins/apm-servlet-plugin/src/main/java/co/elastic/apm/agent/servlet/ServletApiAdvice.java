@@ -18,21 +18,22 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.servlet.adapter.ServletApiAdapter;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Scope;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.metadata.Request;
 import co.elastic.apm.agent.tracer.metadata.Response;
 import co.elastic.apm.agent.util.TransactionNameUtils;
-import co.elastic.apm.agent.tracer.Scope;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -40,8 +41,8 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
-import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEWORK;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEWORK;
 
 public abstract class ServletApiAdvice {
 
@@ -118,8 +119,9 @@ public abstract class ServletApiAdvice {
 
             ret = transaction;
         } else if (!adapter.isAsyncDispatcherType(httpServletRequest) && coreConfig.isInstrumentationEnabled(Constants.SERVLET_API_DISPATCH)) {
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent != null) {
+            final ElasticContext<?> parent = tracer.currentContext();
+            final AbstractSpan<?> parentSpan = parent.getSpan();
+            if (parentSpan != null) {
                 Object servletPath = null;
                 Object pathInfo = null;
                 RequestDispatcherSpanType spanType = null;

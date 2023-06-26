@@ -24,7 +24,7 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 
 import javax.annotation.Nullable;
 
-public interface AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<T>, ReferenceCounted {
+public interface AbstractSpan<T extends AbstractSpan<T>> extends Activateable<T>, ReferenceCounted {
 
     int PRIORITY_DEFAULT = 0;
     int PRIORITY_LOW_LEVEL_FRAMEWORK = 10;
@@ -36,16 +36,6 @@ public interface AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<
 
     TraceContext getTraceContext();
 
-    Span<?> createSpan();
-
-    /**
-     * Creates a child Span representing a remote call event, unless this TraceContextHolder already represents an exit event.
-     * If current TraceContextHolder is representing an Exit- returns null
-     *
-     * @return an Exit span if this TraceContextHolder is not an exit span, null otherwise
-     */
-    @Nullable
-    Span<?> createExitSpan();
 
     void end();
 
@@ -177,4 +167,5 @@ public interface AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<
      * </ul>
      */
     boolean shouldSkipChildSpanCreation();
+
 }

@@ -21,6 +21,7 @@ package co.elastic.apm.agent.grpc;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -286,13 +287,9 @@ public class GrpcHelper {
      * @return client call span (activated) or {@literal null} if not within an exit span.
      */
     @Nullable
-    public Span<?> onClientCallCreationEntry(@Nullable AbstractSpan<?> parent,
-                                          @Nullable MethodDescriptor<?, ?> method,
-                                          @Nullable String authority) {
-
-        if (null == parent) {
-            return null;
-        }
+    public Span<?> onClientCallCreationEntry(ElasticContext<?> parent,
+                                             @Nullable MethodDescriptor<?, ?> method,
+                                             @Nullable String authority) {
 
         // we only support unary method calls and ignore others for now
         if (method != null && method.getType() != MethodDescriptor.MethodType.UNARY) {

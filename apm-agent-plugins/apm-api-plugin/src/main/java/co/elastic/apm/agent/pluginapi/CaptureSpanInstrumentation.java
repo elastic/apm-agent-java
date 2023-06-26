@@ -23,7 +23,10 @@ import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFact
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -35,8 +38,6 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -85,12 +86,13 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
                 defaultValueProvider = AnnotationValueOffsetMappingFactory.TrueDefaultValueProvider.class
             ) boolean discardable
         ) {
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
+            ElasticContext<?> parent = tracer.currentContext();
+            final AbstractSpan<?> parentSpan = parent.getSpan();
+            if (parentSpan == null) {
                 logger.debug("Not creating span for {} because there is no currently active span.", signature);
                 return null;
             }
-            if (parent.shouldSkipChildSpanCreation()) {
+            if (parentSpan.shouldSkipChildSpanCreation()) {
                 // span limit reached means span will not be reported, thus we can optimize and skip creating one
                 logger.debug("Not creating span for {} because span limit is reached.", signature);
                 return null;

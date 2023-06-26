@@ -18,10 +18,13 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
@@ -29,8 +32,6 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.jms.Destination;
@@ -92,12 +93,13 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 AbstractSpan<?> createdSpan = null;
                 boolean createPollingTransaction = false;
                 boolean createPollingSpan = false;
-                final AbstractSpan<?> parent = tracer.getActive();
-                if (parent == null) {
+                final ElasticContext<?> parent = tracer.currentContext();
+                final AbstractSpan<?> parentSpan = parent.getSpan();
+                if (parentSpan == null) {
                     createPollingTransaction = true;
                 } else {
-                    if (parent instanceof Transaction<?>) {
-                        Transaction<?> transaction = (Transaction<?>) parent;
+                    if (parentSpan instanceof Transaction<?>) {
+                        Transaction<?> transaction = (Transaction<?>) parentSpan;
                         if (MESSAGE_POLLING.equals(transaction.getType())) {
                             // Avoid duplications for nested calls
                             return null;
@@ -110,9 +112,9 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         } else {
                             createPollingSpan = true;
                         }
-                    } else if (parent instanceof Span<?>) {
-                        Span<?> parentSpan = (Span<?>) parent;
-                        if (MESSAGING_TYPE.equals(parentSpan.getType()) && "receive".equals(parentSpan.getAction())) {
+                    } else if (parentSpan instanceof Span<?>) {
+                        Span<?> parSpan = (Span<?>) parentSpan;
+                        if (MESSAGING_TYPE.equals(parSpan.getType()) && "receive".equals(parSpan.getAction())) {
                             // Avoid duplication for nested calls
                             return null;
                         }

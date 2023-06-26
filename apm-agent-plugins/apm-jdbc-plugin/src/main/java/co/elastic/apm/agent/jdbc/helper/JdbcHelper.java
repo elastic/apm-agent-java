@@ -20,12 +20,13 @@ package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.db.signature.Scanner;
 import co.elastic.apm.agent.db.signature.SignatureParser;
-import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.jdbc.JdbcFilter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.Span;
 
 import javax.annotation.Nullable;
 import java.sql.Connection;
@@ -81,8 +82,8 @@ public class JdbcHelper {
 
 
     @Nullable
-    public Span<?> createJdbcSpan(@Nullable String sql, Object statement, @Nullable AbstractSpan<?> parent, boolean preparedStatement) {
-        if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(parent) || parent == null) {
+    public Span<?> createJdbcSpan(@Nullable String sql, Object statement, ElasticContext<?> parent, boolean preparedStatement) {
+        if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(parent.getSpan())) {
             return null;
         }
 

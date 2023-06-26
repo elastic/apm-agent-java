@@ -59,6 +59,18 @@ public class NoopElasticContext implements ElasticContext<NoopElasticContext> {
         return null;
     }
 
+    @Nullable
+    @Override
+    public Span<?> createSpan() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Span<?> createExitSpan() {
+        return null;
+    }
+
     @Override
     public boolean isEmpty() {
         return false;
@@ -76,7 +88,7 @@ public class NoopElasticContext implements ElasticContext<NoopElasticContext> {
 
     @Override
     public <C1, C2> void propagateContext(C1 carrier, TextHeaderSetter<C1> headerSetter, @Nullable C2 carrier2, @Nullable TextHeaderGetter<C2> headerGetter) {
-        
+
     }
 
     @Override

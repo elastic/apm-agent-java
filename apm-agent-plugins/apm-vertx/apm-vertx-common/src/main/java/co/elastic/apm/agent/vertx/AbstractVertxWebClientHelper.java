@@ -20,6 +20,7 @@ package co.elastic.apm.agent.vertx;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -49,7 +50,7 @@ public abstract class AbstractVertxWebClientHelper {
         }
     }
 
-    public void startSpan(AbstractSpan<?> parent, HttpContext<?> httpContext, HttpClientRequest httpRequest) {
+    public void startSpan(ElasticContext<?> parent, HttpContext<?> httpContext, HttpClientRequest httpRequest) {
         Object existingSpanObj = httpContext.get(WEB_CLIENT_SPAN_KEY);
 
         AbstractSpan<?> propagateContextOf;
@@ -67,7 +68,7 @@ public abstract class AbstractVertxWebClientHelper {
                 span.incrementReferences();
                 httpContext.set(WEB_CLIENT_SPAN_KEY, span);
             } else {
-                propagateContextOf = parent;
+                propagateContextOf = parent.getSpan();
             }
         }
         propagateContextOf.activate();

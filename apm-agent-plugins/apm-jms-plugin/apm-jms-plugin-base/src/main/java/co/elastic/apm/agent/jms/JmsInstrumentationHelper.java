@@ -128,16 +128,12 @@ public class JmsInstrumentationHelper {
             return null;
         }
 
-        final AbstractSpan<?> activeSpan = tracer.getActive();
-        Span<?> span = null;
-        if (activeSpan != null) {
-            span = activeSpan.createExitSpan();
-            if (span != null) {
-                span.withType(MESSAGING_TYPE)
-                    .withSubtype("jms")
-                    .withAction("send")
-                    .activate();
-            }
+        Span<?> span = tracer.currentContext().createExitSpan();
+        if (span != null) {
+            span.withType(MESSAGING_TYPE)
+                .withSubtype("jms")
+                .withAction("send")
+                .activate();
         }
 
         tracer.currentContext().propagateContext(message, JmsMessagePropertyAccessor.instance(), null);

@@ -20,7 +20,6 @@ package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.servlet.Constants;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -57,14 +56,14 @@ public class ViewRenderInstrumentation extends TracerAwareInstrumentation {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object beforeExecute(@Advice.This Object thiz) {
-            if (tracer.getActive() == null) {
+
+            Span<?> span = tracer.currentContext().createSpan();
+            if (span == null) {
                 return null;
             }
-            final AbstractSpan<?> parent = tracer.getActive();
 
             String className = thiz.getClass().getName();
-            Span<?> span = parent.createSpan()
-                .withType(SPAN_TYPE)
+            span.withType(SPAN_TYPE)
                 .withSubtype(getSubtype(className))
                 .withAction(SPAN_ACTION)
                 .withName(DISPATCHER_SERVLET_RENDER_METHOD);

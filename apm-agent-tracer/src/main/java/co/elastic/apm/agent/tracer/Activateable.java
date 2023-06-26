@@ -16,27 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.httpclient;
+package co.elastic.apm.agent.tracer;
 
-import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.Tracer;
+public interface Activateable<T extends Activateable<T>> {
 
-import javax.annotation.Nullable;
-import java.net.URI;
-import java.net.http.HttpRequest;
+    /**
+     * Makes this the active context.
+     *
+     * @return this
+     */
+    T activate();
 
-public class HttpClientAdviceHelper {
+    /**
+     * Deactivates the context previously activated via {@link #activate()}
+     *
+     * @return this
+     */
+    T deactivate();
 
-    private static final Tracer tracer = GlobalTracer.get();
-
-    @Nullable
-    public static Span<?> startSpan(HttpRequest httpRequest) {
-        URI uri = httpRequest.uri();
-        Span<?> span = HttpClientHelper.startHttpClientSpan(tracer.currentContext(), httpRequest.method(), uri, uri.getHost());
-        if (span != null) {
-            span.activate();
-        }
-        return span;
-    }
+    /**
+     * Activates context in a scope
+     *
+     * @return active scope that will deactivate context when closed
+     */
+    Scope activateInScope();
 }
