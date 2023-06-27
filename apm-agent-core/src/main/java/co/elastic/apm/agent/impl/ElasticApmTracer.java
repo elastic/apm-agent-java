@@ -107,10 +107,12 @@ public class ElasticApmTracer implements Tracer {
     private final Reporter reporter;
     private final ObjectPoolFactory objectPoolFactory;
 
+    private final EmptyElasticContext emptyContext;
+
     private final ThreadLocal<ActiveStack> activeStack = new ThreadLocal<ActiveStack>() {
         @Override
         protected ActiveStack initialValue() {
-            return new ActiveStack(transactionMaxSpans);
+            return new ActiveStack(transactionMaxSpans, emptyContext);
         }
     };
 
@@ -186,6 +188,7 @@ public class ElasticApmTracer implements Tracer {
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, MetricRegistry metricRegistry, Reporter reporter, ObjectPoolFactory poolFactory,
                      ApmServerClient apmServerClient, final String ephemeralId, MetaDataFuture metaDataFuture) {
+        this.emptyContext = new EmptyElasticContext(this);
         this.metricRegistry = metricRegistry;
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;

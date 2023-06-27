@@ -714,19 +714,8 @@ class ElasticApmTracerTest {
 
     private static final class TestContext extends ElasticContext<TestContext> {
 
-        @Override
-        public TestContext activate() {
-            return null;
-        }
-
-        @Override
-        public TestContext deactivate() {
-            return null;
-        }
-
-        @Override
-        public Scope activateInScope() {
-            return null;
+        private TestContext() {
+            super(null);
         }
 
         @Nullable

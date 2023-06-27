@@ -58,8 +58,11 @@ class ActiveStack {
      */
     private final Deque<ElasticContext<?>> activeContextStack = new ArrayDeque<ElasticContext<?>>();
 
-    ActiveStack(int stackMaxDepth) {
+    private final EmptyElasticContext emptyContext;
+
+    ActiveStack(int stackMaxDepth, EmptyElasticContext emptyContextForTracer) {
         this.stackMaxDepth = stackMaxDepth;
+        this.emptyContext = emptyContextForTracer;
     }
 
     @Nullable
@@ -80,7 +83,7 @@ class ActiveStack {
         if (current instanceof ElasticContextWrapper) {
             return ((ElasticContextWrapper<?>) current).getWrappedContext();
         }
-        return current != null ? current : EmptyElasticContext.INSTANCE;
+        return current != null ? current : emptyContext;
     }
 
     boolean activate(ElasticContext<?> context, List<ActivationListener> activationListeners) {

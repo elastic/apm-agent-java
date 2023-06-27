@@ -59,6 +59,7 @@ public class ElasticContextWrapper<T extends ElasticContext<T>> extends ElasticC
     private final Map<Class<?>, ElasticContext<?>> contextWrappers;
 
     public ElasticContextWrapper(int initialSize, ElasticContext<T> context) {
+        super(context.tracer);
         this.contextWrappers = new HashMap<>(initialSize, 1.0f);
         this.context = context;
     }

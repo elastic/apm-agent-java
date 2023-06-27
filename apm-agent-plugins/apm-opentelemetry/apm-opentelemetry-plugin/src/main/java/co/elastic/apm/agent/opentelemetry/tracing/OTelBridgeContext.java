@@ -51,10 +51,8 @@ public class OTelBridgeContext extends ElasticContext<OTelBridgeContext> impleme
      */
     private final Context otelContext;
 
-    private final ElasticApmTracer tracer;
-
     private OTelBridgeContext(ElasticApmTracer tracer, Context otelContext) {
-        this.tracer = tracer;
+        super(tracer);
         this.otelContext = otelContext;
     }
 
@@ -97,23 +95,6 @@ public class OTelBridgeContext extends ElasticContext<OTelBridgeContext> impleme
 
         OTelSpan otelSpan = new OTelSpan(span);
         return new OTelBridgeContext(tracer, originalRootContext.with(otelSpan));
-    }
-
-    @Override
-    public OTelBridgeContext activate() {
-        tracer.activate(this);
-        return this;
-    }
-
-    @Override
-    public co.elastic.apm.agent.tracer.Scope activateInScope() {
-        return tracer.activateInScope(this);
-    }
-
-    @Override
-    public OTelBridgeContext deactivate() {
-        tracer.deactivate(this);
-        return this;
     }
 
     @Nullable

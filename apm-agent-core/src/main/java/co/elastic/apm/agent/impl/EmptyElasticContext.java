@@ -20,36 +20,19 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.tracer.Scope;
 
 import javax.annotation.Nullable;
 
 class EmptyElasticContext extends ElasticContext<EmptyElasticContext> {
 
-    static final ElasticContext<?> INSTANCE = new EmptyElasticContext();
-
-    private EmptyElasticContext() {
+    EmptyElasticContext(ElasticApmTracer tracer) {
+        super(tracer);
     }
 
     @Nullable
     @Override
     public AbstractSpan<?> getSpan() {
         return null;
-    }
-
-    @Override
-    public EmptyElasticContext activate() {
-        return this;
-    }
-
-    @Override
-    public EmptyElasticContext deactivate() {
-        return this;
-    }
-
-    @Override
-    public Scope activateInScope() {
-        return NoopScope.INSTANCE;
     }
 
     @Override

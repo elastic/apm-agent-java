@@ -28,7 +28,6 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
@@ -55,7 +54,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
      */
     protected final StringBuilder name = new StringBuilder();
     protected final boolean collectBreakdownMetrics;
-    protected final ElasticApmTracer tracer;
     protected final AtomicLong timestamp = new AtomicLong();
     protected final AtomicLong endTimestamp = new AtomicLong();
 
@@ -197,7 +195,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
     }
 
     public AbstractSpan(ElasticApmTracer tracer) {
-        this.tracer = tracer;
+        super(tracer);
         traceContext = TraceContext.with64BitId(this.tracer);
         boolean selfTimeCollectionEnabled = !WildcardMatcher.isAnyMatch(tracer.getConfig(ReporterConfiguration.class).getDisableMetrics(), "span.self_time");
         boolean breakdownMetricsEnabled = tracer.getConfig(CoreConfiguration.class).isBreakdownMetricsEnabled();
@@ -624,23 +622,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
      * @return the transaction.
      */
     public abstract Transaction getParentTransaction();
-
-    @Override
-    public T activate() {
-        tracer.activate(this);
-        return thiz();
-    }
-
-    @Override
-    public T deactivate() {
-        tracer.deactivate(this);
-        return thiz();
-    }
-
-    @Override
-    public Scope activateInScope() {
-        return tracer.activateInScope(this);
-    }
 
     /**
      * Set start timestamp
