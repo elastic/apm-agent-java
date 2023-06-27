@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
@@ -36,7 +37,11 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
     }
 
     @Nullable
+    @Override
     public abstract AbstractSpan<?> getSpan();
+
+    @Override
+    public abstract Baggage getBaggage();
 
     /**
      * @return transaction associated to this context, {@literal null} if there is none
@@ -81,13 +86,9 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
     }
 
     public boolean isEmpty() {
-        return getSpan() == null && !containsBaggage();
+        return getSpan() == null && getBaggage().isEmpty();
     }
 
-    //TODO: make abstract and implement correctly in subclasses
-    protected final boolean containsBaggage() {
-        return false;
-    }
 
     @Override
     public final <C> boolean propagateContext(C carrier, BinaryHeaderSetter<C> headerSetter) {
