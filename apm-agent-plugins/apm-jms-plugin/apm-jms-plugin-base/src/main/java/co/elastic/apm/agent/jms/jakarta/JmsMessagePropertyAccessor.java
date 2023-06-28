@@ -40,7 +40,7 @@ public class JmsMessagePropertyAccessor extends co.elastic.apm.agent.jms.JmsMess
     @Override
     protected void trySetProperty(String headerName, String headerValue, Message message) throws Exception {
         try {
-            helper.setObjectProperty(message, headerName, headerValue);
+            helper.setStringProperty(message, headerName, headerValue);
         } catch (MessageNotWriteableException e) {
             logger.debug("Failed to set JMS message property {} due to read-only message", headerName, e);
         }

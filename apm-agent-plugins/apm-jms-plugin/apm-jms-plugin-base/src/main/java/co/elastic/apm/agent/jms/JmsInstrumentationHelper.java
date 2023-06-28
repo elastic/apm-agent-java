@@ -429,7 +429,7 @@ public abstract class JmsInstrumentationHelper<DESTINATION, MESSAGE, MESSAGELIST
 
     protected abstract Object getObjectProperty(MESSAGE message, String propertyName) throws JMSEXCEPTION;
 
-    public abstract void setObjectProperty(MESSAGE message, String propertyName, Object value) throws JMSEXCEPTION;
+    public abstract void setStringProperty(MESSAGE message, String propertyName, String value) throws JMSEXCEPTION;
 
     protected abstract DESTINATION getJMSDestination(MESSAGE message) throws JMSEXCEPTION;
 

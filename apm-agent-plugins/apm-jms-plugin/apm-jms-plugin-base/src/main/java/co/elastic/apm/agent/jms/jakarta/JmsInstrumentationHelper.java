@@ -164,8 +164,8 @@ public class JmsInstrumentationHelper extends co.elastic.apm.agent.jms.JmsInstru
     }
 
     @Override
-    public void setObjectProperty(Message message, String propertyName, Object value) throws JMSException {
-        message.setObjectProperty(propertyName, value);
+    public void setStringProperty(Message message, String propertyName, String value) throws JMSException {
+        message.setStringProperty(propertyName, value);
     }
 
     @Override
