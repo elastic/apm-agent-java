@@ -18,37 +18,19 @@
  */
 package co.elastic.apm.agent.jms.javax;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
-import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
-import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Collection;
-import java.util.Collections;
-
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
-import static net.bytebuddy.matcher.ElementMatchers.not;
-
-public abstract class BaseJmsInstrumentation extends TracerAwareInstrumentation {
+public abstract class BaseJmsInstrumentation extends co.elastic.apm.agent.jms.BaseJmsInstrumentation {
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("jms");
+    public String rootClassNameThatClassloaderCanLoad() {
+        return "javax.jms.Message";
     }
 
-    @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("javax.jms.Message"));
-    }
-
-    protected static class BaseAdvice {
+    protected static class JavaxBaseAdvice extends BaseAdvice {
 
         protected static final JmsInstrumentationHelper helper;
-        protected static final MessagingConfiguration messagingConfiguration;
-        protected static final CoreConfiguration coreConfiguration;
 
         static {
             Tracer tracer = GlobalTracer.get();
@@ -57,9 +39,6 @@ public abstract class BaseJmsInstrumentation extends TracerAwareInstrumentation 
             // that fails when trying to load instrumentation classes without JMS dependencies, for example when generating
             // documentation that relies on instrumentation group names
             helper = JmsInstrumentationHelper.get();
-
-            messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
-            coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         }
     }
 }

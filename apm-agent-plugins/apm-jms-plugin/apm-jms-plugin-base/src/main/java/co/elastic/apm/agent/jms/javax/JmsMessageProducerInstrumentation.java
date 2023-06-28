@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.agent.jms.javax;
 
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.jms.Destination;
@@ -36,7 +36,6 @@ import javax.jms.MessageProducer;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -54,10 +53,7 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Message")
-            .or(nameContains("Producer"))
-            .or(nameContains("Sender"))
-            .or(nameContains("Publisher"));
+        return getProducerPreFilterTypeMatcher();
     }
 
     @Override
@@ -77,7 +73,7 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
             return "co.elastic.apm.agent.jms.javax.JmsMessageProducerInstrumentation$JmsMessageProducerNoDestinationInstrumentation$MessageProducerNoDestinationAdvice";
         }
 
-        public static class MessageProducerNoDestinationAdvice extends BaseAdvice {
+        public static class MessageProducerNoDestinationAdvice extends JavaxBaseAdvice {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             @Nullable
             public static Object beforeSend(@Advice.Argument(0) final Message message,
@@ -120,7 +116,7 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
             return "co.elastic.apm.agent.jms.javax.JmsMessageProducerInstrumentation$JmsMessageProducerWithDestinationInstrumentation$MessageProducerWithDestinationAdvice";
         }
 
-        public static class MessageProducerWithDestinationAdvice extends BaseAdvice {
+        public static class MessageProducerWithDestinationAdvice extends JavaxBaseAdvice {
 
             @Nullable
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)

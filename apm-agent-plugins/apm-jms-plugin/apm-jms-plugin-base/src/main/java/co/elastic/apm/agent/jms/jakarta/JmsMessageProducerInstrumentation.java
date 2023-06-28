@@ -33,7 +33,12 @@ import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.MessageProducer;
 
-import static net.bytebuddy.matcher.ElementMatchers.*;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.isPublic;
+import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 /**
  * In JMS 2 there is also JMSProducer, but likely its implementation is usually using a MessageProducer underneath,
@@ -48,10 +53,7 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Message")
-            .or(nameContains("Producer"))
-            .or(nameContains("Sender"))
-            .or(nameContains("Publisher"));
+        return getProducerPreFilterTypeMatcher();
     }
 
     @Override
@@ -71,7 +73,7 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
             return "co.elastic.apm.agent.jms.jakarta.JmsMessageProducerInstrumentation$JmsMessageProducerNoDestinationInstrumentation$MessageProducerNoDestinationAdvice";
         }
 
-        public static class MessageProducerNoDestinationAdvice extends BaseAdvice {
+        public static class MessageProducerNoDestinationAdvice extends JakartaBaseAdvice {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             @Nullable
             public static Object beforeSend(@Advice.Argument(0) final Message message,
@@ -114,7 +116,7 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
             return "co.elastic.apm.agent.jms.jakarta.JmsMessageProducerInstrumentation$JmsMessageProducerWithDestinationInstrumentation$MessageProducerWithDestinationAdvice";
         }
 
-        public static class MessageProducerWithDestinationAdvice extends BaseAdvice {
+        public static class MessageProducerWithDestinationAdvice extends JakartaBaseAdvice {
 
             @Nullable
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)

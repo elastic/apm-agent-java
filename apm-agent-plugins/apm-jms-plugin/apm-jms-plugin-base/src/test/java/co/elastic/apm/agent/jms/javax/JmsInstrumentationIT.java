@@ -20,18 +20,18 @@ package co.elastic.apm.agent.jms.javax;
 
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.Id;
-import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -62,11 +62,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static co.elastic.apm.agent.tracer.configuration.MessagingConfiguration.JmsStrategy.BOTH;
 import static co.elastic.apm.agent.tracer.configuration.MessagingConfiguration.JmsStrategy.POLLING;
-import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 
 @RunWith(Parameterized.class)
 public class JmsInstrumentationIT extends AbstractInstrumentationTest {

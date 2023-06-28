@@ -20,19 +20,20 @@ package co.elastic.apm.agent.jms.jakarta;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.jms.jakarta.JmsMessagePropertyAccessor;
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
+import jakarta.jms.MessageNotWriteableException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 
-import jakarta.jms.JMSException;
-import jakarta.jms.Message;
-import jakarta.jms.MessageNotWriteableException;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 class JmsMessagePropertyAccessorTest extends AbstractInstrumentationTest {
 

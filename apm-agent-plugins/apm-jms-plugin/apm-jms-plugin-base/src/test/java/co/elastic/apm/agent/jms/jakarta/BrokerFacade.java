@@ -18,7 +18,14 @@
  */
 package co.elastic.apm.agent.jms.jakarta;
 
-import jakarta.jms.*;
+import jakarta.jms.Destination;
+import jakarta.jms.Message;
+import jakarta.jms.Queue;
+import jakarta.jms.TemporaryQueue;
+import jakarta.jms.TemporaryTopic;
+import jakarta.jms.TextMessage;
+import jakarta.jms.Topic;
+
 import java.util.concurrent.CompletableFuture;
 
 interface BrokerFacade {
