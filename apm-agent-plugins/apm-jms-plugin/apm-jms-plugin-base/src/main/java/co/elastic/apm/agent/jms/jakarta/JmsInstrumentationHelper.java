@@ -102,12 +102,12 @@ public class JmsInstrumentationHelper extends co.elastic.apm.agent.jms.JmsInstru
 
     @Override
     public TextHeaderGetter<Message> propertyAccessorGetter() {
-        return null;
+        return JmsMessagePropertyAccessor.instance();
     }
 
     @Override
     public TextHeaderSetter<Message> propertyAccessorSetter() {
-        return null;
+        return JmsMessagePropertyAccessor.instance();
     }
 
     @Override

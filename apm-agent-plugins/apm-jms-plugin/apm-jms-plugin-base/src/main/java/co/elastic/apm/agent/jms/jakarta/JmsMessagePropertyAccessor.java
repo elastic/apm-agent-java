@@ -18,10 +18,14 @@
  */
 package co.elastic.apm.agent.jms.jakarta;
 
-import jakarta.jms.JMSException;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import jakarta.jms.Message;
+import jakarta.jms.MessageNotWriteableException;
 
-public class JmsMessagePropertyAccessor extends co.elastic.apm.agent.jms.JmsMessagePropertyAccessor<Message, JMSException> {
+public class JmsMessagePropertyAccessor extends co.elastic.apm.agent.jms.JmsMessagePropertyAccessor<Message> {
+
+    private static final Logger logger = LoggerFactory.getLogger(JmsMessagePropertyAccessor.class);
 
     private static final JmsMessagePropertyAccessor INSTANCE = new JmsMessagePropertyAccessor();
 
@@ -31,6 +35,15 @@ public class JmsMessagePropertyAccessor extends co.elastic.apm.agent.jms.JmsMess
 
     private JmsMessagePropertyAccessor() {
         super(JmsInstrumentationHelper.get());
+    }
+
+    @Override
+    protected void trySetProperty(String headerName, String headerValue, Message message) throws Exception {
+        try {
+            helper.setObjectProperty(message, headerName, headerValue);
+        } catch (MessageNotWriteableException e) {
+            logger.debug("Failed to set JMS message property {} due to read-only message", headerName, e);
+        }
     }
 
 }

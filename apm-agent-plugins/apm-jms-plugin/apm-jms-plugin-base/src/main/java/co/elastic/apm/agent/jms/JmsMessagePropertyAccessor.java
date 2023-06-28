@@ -26,11 +26,11 @@ import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 
 import javax.annotation.Nullable;
 
-abstract public class JmsMessagePropertyAccessor<MESSAGE, JMSEXCEPTION extends Exception> extends AbstractHeaderGetter<String, MESSAGE> implements TextHeaderGetter<MESSAGE>, TextHeaderSetter<MESSAGE> {
+abstract public class JmsMessagePropertyAccessor<MESSAGE> extends AbstractHeaderGetter<String, MESSAGE> implements TextHeaderGetter<MESSAGE>, TextHeaderSetter<MESSAGE> {
 
     private static final Logger logger = LoggerFactory.getLogger(JmsMessagePropertyAccessor.class);
 
-    private final JmsInstrumentationHelper helper;
+    protected final JmsInstrumentationHelper helper;
 
     protected JmsMessagePropertyAccessor(JmsInstrumentationHelper helper) {
         this.helper = helper;
@@ -56,12 +56,13 @@ abstract public class JmsMessagePropertyAccessor<MESSAGE, JMSEXCEPTION extends E
             return;
         }
         try {
-            helper.setObjectProperty(message, headerName, headerValue);
-        } catch (javax.jms.MessageNotWriteableException | jakarta.jms.MessageNotWriteableException e) {
-            logger.debug("Failed to set JMS message property {} due to read-only message", headerName, e);
+            trySetProperty(headerName, headerValue, message);
         } catch (Exception e) {
             logger.warn("Failed to set JMS message property {}. Distributed tracing may not work.", headerName);
             logger.debug("Detailed error: ", e);
         }
     }
+
+    protected abstract void trySetProperty(String headerName, String headerValue, MESSAGE message) throws Exception;
+
 }
