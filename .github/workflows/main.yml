@@ -109,6 +109,15 @@ jobs:
           path: |
             ./apm-agent-api/target/apm-agent-api-*.jar
             !./**/*-sources.jar
+      - name: Upload agent plugin SDK artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: apm-agent-plugin-sdk
+          path: |
+            ./apm-agent-plugin-sdk/target/apm-agent-plugin-sdk-*.jar
+            !./**/*-sources.jar
+
+
 
   license:
     name: License
