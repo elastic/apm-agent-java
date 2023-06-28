@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.tracer.Scope;
 
 import javax.annotation.Nullable;
@@ -108,6 +109,12 @@ public class ElasticContextWrapper<T extends ElasticContext<T>> extends ElasticC
         throw activationNotSupported();
     }
 
+    @Nullable
+    @Override
+    public Span createSpan() {
+        throw new UnsupportedOperationException("span creation not expected on context wrapper");
+    }
+
     private static UnsupportedOperationException activationNotSupported() {
         // activation is not expected to happen on this wrapper but only on the wrapped context
         return new UnsupportedOperationException("activation not expected on context wrapper");
@@ -117,6 +124,11 @@ public class ElasticContextWrapper<T extends ElasticContext<T>> extends ElasticC
     @Nullable
     public AbstractSpan<?> getSpan() {
         return context.getSpan();
+    }
+
+    @Override
+    public Baggage getBaggage() {
+        throw new UnsupportedOperationException("Baggage should not be accessed on context wrapper");
     }
 
 

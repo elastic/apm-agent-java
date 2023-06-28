@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.BinaryHeaderMapAccessor;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Headers;
@@ -169,7 +170,7 @@ class DslJsonSerializerTest {
     @Test
     void testErrorSerialization() {
         Transaction transaction = new Transaction(tracer);
-        transaction.startRoot(-1, ConstantSampler.of(true));
+        transaction.startRoot(-1, ConstantSampler.of(true), Baggage.EMPTY);
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
@@ -217,7 +218,7 @@ class DslJsonSerializerTest {
     @Test
     void testErrorSerializationWithEmptyTraceId() {
         Transaction transaction = new Transaction(tracer);
-        transaction.startRoot(-1, ConstantSampler.of(true));
+        transaction.startRoot(-1, ConstantSampler.of(true), Baggage.EMPTY);
         transaction.getTraceContext().getTraceId().resetState();
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
 
@@ -1348,7 +1349,7 @@ class DslJsonSerializerTest {
 
     private Transaction createRootTransaction(Sampler sampler) {
         Transaction t = new Transaction(tracer);
-        t.startRoot(0, sampler);
+        t.startRoot(0, sampler, Baggage.EMPTY);
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().withFull("http://localhost:8080/foo/bar");

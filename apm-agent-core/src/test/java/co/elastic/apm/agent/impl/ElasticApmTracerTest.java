@@ -24,6 +24,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.source.ConfigSources;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -513,7 +514,7 @@ class ElasticApmTracerTest {
 
         try (Scope transactionScope = transaction.activateInScope()) {
             assertThat(tracerImpl.getActive()).isEqualTo(transaction);
-            final Span span = tracerImpl.startSpan(TraceContext.fromActive(), tracerImpl);
+            final Span span = tracerImpl.startSpan(TraceContext.fromActive(), tracerImpl, Baggage.EMPTY);
             assertThat(span).isNotNull();
             try (Scope scope = span.activateInScope()) {
                 assertThat(tracerImpl.currentTransaction()).isNotNull();
@@ -739,6 +740,17 @@ class ElasticApmTracerTest {
         @Nullable
         @Override
         public AbstractSpan<?> getSpan() {
+            return null;
+        }
+
+        @Override
+        public Baggage getBaggage() {
+            return null;
+        }
+
+        @Nullable
+        @Override
+        public Span createSpan() {
             return null;
         }
 

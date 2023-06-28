@@ -18,13 +18,14 @@
  */
 package co.elastic.apm.agent;
 
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
-import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Outcome;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +33,7 @@ import java.util.List;
 public class TransactionUtils {
 
     public static void fillTransaction(Transaction t) {
-        t.startRoot((long) 0, ConstantSampler.of(true))
+        t.startRoot((long) 0, ConstantSampler.of(true), Baggage.EMPTY)
             .withName("GET /api/types")
             .withType("request")
             .withResult("success")
@@ -79,7 +80,7 @@ public class TransactionUtils {
     public static List<Span> getSpans(Transaction t) {
         List<Span> spans = new ArrayList<>();
         Span span = new Span(MockTracer.create())
-            .start(TraceContext.fromParent(), t, -1)
+            .start(TraceContext.fromParent(), t, Baggage.EMPTY, -1)
             .withName("SELECT FROM product_types")
             .withType("db")
             .withSubtype("postgresql")
@@ -95,20 +96,20 @@ public class TransactionUtils {
         spans.add(span);
 
         spans.add(new Span(MockTracer.create())
-            .start(TraceContext.fromParent(), t, -1)
+            .start(TraceContext.fromParent(), t, Baggage.EMPTY, -1)
             .withName("GET /api/types")
             .withType("request"));
         spans.add(new Span(MockTracer.create())
-            .start(TraceContext.fromParent(), t, -1)
+            .start(TraceContext.fromParent(), t, Baggage.EMPTY, -1)
             .withName("GET /api/types")
             .withType("request"));
         spans.add(new Span(MockTracer.create())
-            .start(TraceContext.fromParent(), t, -1)
+            .start(TraceContext.fromParent(), t, Baggage.EMPTY, -1)
             .withName("GET /api/types")
             .withType("request"));
 
         span = new Span(MockTracer.create())
-            .start(TraceContext.fromParent(), t, -1)
+            .start(TraceContext.fromParent(), t, Baggage.EMPTY, -1)
             .appendToName("GET ")
             .appendToName("test.elastic.co")
             .withType("ext")

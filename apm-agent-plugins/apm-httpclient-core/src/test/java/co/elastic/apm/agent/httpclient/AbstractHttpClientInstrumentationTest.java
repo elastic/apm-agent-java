@@ -411,7 +411,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             HttpHeaders headers = loggedRequest.getHeaders();
             if (headers != null) {
                 HttpHeader header = headers.getHeader(headerName);
-                if (header != null) {
+                if (header.isPresent()) {
                     List<String> values = header.values();
                     for (String value : values) {
                         consumer.accept(value, state);
