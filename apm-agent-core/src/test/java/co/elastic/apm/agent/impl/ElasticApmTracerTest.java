@@ -545,6 +545,24 @@ class ElasticApmTracerTest {
     }
 
     @Test
+    void testEmptyContextActivation() {
+        final Transaction transaction = startTestRootTransaction();
+        assertThat(tracerImpl.currentContext().getTransaction()).isNull();
+        tracerImpl.activate(transaction);
+        assertThat(tracerImpl.currentContext().getTransaction()).isEqualTo(transaction);
+
+        EmptyElasticContext empty = new EmptyElasticContext(tracerImpl);
+        empty.activate();
+        assertThat(tracerImpl.currentContext().getTransaction()).isNull();
+
+        empty.deactivate();
+        assertThat(tracerImpl.currentContext().getTransaction()).isEqualTo(transaction);
+        tracerImpl.deactivate(transaction);
+        assertThat(tracerImpl.currentContext().getTransaction()).isNull();
+        transaction.end();
+    }
+
+    @Test
     void testOverrideServiceNameWithoutExplicitServiceName() {
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(SpyConfiguration.createSpyConfig())
