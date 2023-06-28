@@ -145,7 +145,7 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
             return startRoot(epochMicros, sampler, baseBaggage);
         }
         if (headerGetter instanceof TextHeaderGetter) {
-            Baggage.Builder baggageBuilder = baggage.toBuilder();
+            Baggage.Builder baggageBuilder = baseBaggage.toBuilder();
             W3CBaggagePropagation.parse(parent, (TextHeaderGetter<C>) headerGetter, baggageBuilder);
             this.baggage = baggageBuilder.build();
         } else {
