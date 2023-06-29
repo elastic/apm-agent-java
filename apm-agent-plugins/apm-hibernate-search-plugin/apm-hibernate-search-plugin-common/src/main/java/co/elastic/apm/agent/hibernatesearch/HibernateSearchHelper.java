@@ -33,7 +33,7 @@ public final class HibernateSearchHelper {
                                                 final String query) {
 
         ElasticContext<?> active = tracer.currentContext();
-        AbstractSpan<?> activeSpan = active.getSpan();
+        AbstractSpan<?> activeSpan = active.getAbstractSpan();
         // avoid creating the same span twice for example, when an instrumented API is wrapped
         if (activeSpan == null || activeSpan instanceof Span<?> && HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE
             .equals(((Span<?>) activeSpan).getSubtype())) {

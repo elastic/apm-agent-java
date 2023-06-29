@@ -64,16 +64,16 @@ public class ApacheHttpAsyncClientHelper {
         }
     }
 
-    public HttpAsyncRequestProducer wrapRequestProducer(HttpAsyncRequestProducer requestProducer, @Nullable Span<?> span,
-                                                        ElasticContext<?> toPropagate) {
+    public HttpAsyncRequestProducerWrapper wrapRequestProducer(HttpAsyncRequestProducer requestProducer, @Nullable Span<?> span,
+                                                               ElasticContext<?> toPropagate) {
         return requestProducerWrapperObjectPool.createInstance().with(requestProducer, span, toPropagate);
     }
 
-    public <T> FutureCallback<T> wrapFutureCallback(FutureCallback<T> futureCallback, HttpContext context, Span<?> span) {
+    public <T> FutureCallbackWrapper<T> wrapFutureCallback(FutureCallback<T> futureCallback, HttpContext context, Span<?> span) {
         return ((FutureCallbackWrapper<T>) futureCallbackWrapperObjectPool.createInstance()).with(futureCallback, context, span);
     }
 
-    void recycle(HttpAsyncRequestProducerWrapper requestProducerWrapper) {
+    public void recycle(HttpAsyncRequestProducerWrapper requestProducerWrapper) {
         requestProducerWrapperObjectPool.recycle(requestProducerWrapper);
     }
 

@@ -756,7 +756,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
     }
 
     @Override
-    public AbstractSpan<?> getSpan() {
+    public AbstractSpan<?> getAbstractSpan() {
         return this;
     }
 

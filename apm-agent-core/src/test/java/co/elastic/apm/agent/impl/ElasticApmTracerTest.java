@@ -731,7 +731,7 @@ class ElasticApmTracerTest {
 
         @Nullable
         @Override
-        public AbstractSpan<?> getSpan() {
+        public AbstractSpan<?> getAbstractSpan() {
             return null;
         }
 

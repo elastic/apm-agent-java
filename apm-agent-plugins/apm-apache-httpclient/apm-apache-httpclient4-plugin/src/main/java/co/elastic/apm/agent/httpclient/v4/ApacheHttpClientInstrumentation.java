@@ -55,7 +55,7 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
                                              @Advice.Argument(1) HttpRequestWrapper request) {
             ElasticContext<?> parent = tracer.currentContext();
             Span<?> span = null;
-            if (parent.getSpan() != null) {
+            if (parent.getAbstractSpan() != null) {
                 span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());
 
                 if (span != null) {

@@ -34,7 +34,7 @@ import org.apache.http.protocol.HttpContext;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
-class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyclable {
+public class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyclable {
     private final ApacheHttpAsyncClientHelper asyncClientHelper;
     private volatile HttpAsyncRequestProducer delegate;
 

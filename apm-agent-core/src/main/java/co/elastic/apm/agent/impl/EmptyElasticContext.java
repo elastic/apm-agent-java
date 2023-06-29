@@ -33,7 +33,7 @@ class EmptyElasticContext extends ElasticContext<EmptyElasticContext> {
 
     @Nullable
     @Override
-    public AbstractSpan<?> getSpan() {
+    public AbstractSpan<?> getAbstractSpan() {
         return null;
     }
 

@@ -31,7 +31,7 @@ public interface ElasticContext<T extends ElasticContext<T>> extends ReferenceCo
      * @return the span/transaction that is associated to this context, {@literal null} if there is none
      */
     @Nullable
-    AbstractSpan<?> getSpan();
+    AbstractSpan<?> getAbstractSpan();
 
     /**
      * @return the transaction that is associated to this context, {@literal null} if there is none
@@ -42,7 +42,7 @@ public interface ElasticContext<T extends ElasticContext<T>> extends ReferenceCo
 
     /**
      * Creates a child span of this context, if possible.
-     * Guaranteed to be non-null if {@link #getSpan()} returns non null.
+     * Guaranteed to be non-null if {@link #getAbstractSpan()} returns non null.
      *
      * @return the newly created span with this context as parent.
      */

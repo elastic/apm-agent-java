@@ -78,7 +78,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
 
                 boolean isNestedCall = callDepth.isNestedCallAndIncrement();
                 ElasticContext<?> parent = tracer.currentContext();
-                AbstractSpan<?> parentSpan = parent.getSpan();
+                AbstractSpan<?> parentSpan = parent.getAbstractSpan();
                 Span<?> span = null;
                 if (parentSpan != null) {
                     span = inFlightSpans.get(thiz);

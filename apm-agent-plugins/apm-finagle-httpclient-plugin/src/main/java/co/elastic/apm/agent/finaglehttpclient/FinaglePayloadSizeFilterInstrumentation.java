@@ -124,7 +124,7 @@ public class FinaglePayloadSizeFilterInstrumentation extends TracerAwareInstrume
                 return null;
             }
             ElasticContext<?> parentContext = tracer.currentContext();
-            AbstractSpan<?> parent = parentContext.getSpan();
+            AbstractSpan<?> parent = parentContext.getAbstractSpan();
             Span<?> span = null;
             if (parent != null) {
 

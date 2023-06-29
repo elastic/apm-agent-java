@@ -87,7 +87,7 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
             ) boolean discardable
         ) {
             ElasticContext<?> parent = tracer.currentContext();
-            final AbstractSpan<?> parentSpan = parent.getSpan();
+            final AbstractSpan<?> parentSpan = parent.getAbstractSpan();
             if (parentSpan == null) {
                 logger.debug("Not creating span for {} because there is no currently active span.", signature);
                 return null;

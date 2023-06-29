@@ -94,7 +94,7 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
             ) boolean discardable) {
 
             final ElasticContext<?> parent = tracer.currentContext();
-            final AbstractSpan<?> parentSpan = parent.getSpan();
+            final AbstractSpan<?> parentSpan = parent.getAbstractSpan();
             if (parentSpan != null) {
                 if (parent.shouldSkipChildSpanCreation()) {
                     // span limit reached means span will not be reported, thus we can optimize and skip creating one

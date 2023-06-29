@@ -20,6 +20,8 @@ package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpAsyncClientHelper;
+import co.elastic.apm.agent.httpclient.v4.helper.FutureCallbackWrapper;
+import co.elastic.apm.agent.httpclient.v4.helper.HttpAsyncRequestProducerWrapper;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
@@ -99,7 +101,7 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
             FutureCallback<?> wrappedFutureCallback = futureCallback;
             Span<?> span = null;
             ElasticContext<?> parent = tracer.currentContext();
-            if (parent.getSpan() != null) {
+            if (parent.getAbstractSpan() != null) {
                 span = parent.createExitSpan();
                 if (span != null) {
                     span.withType(HttpClientHelper.EXTERNAL_TYPE)
@@ -118,8 +120,16 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
                                           @Advice.Thrown @Nullable Throwable t) {
             Span<?> span = enter != null ? (Span<?>) enter[2] : null;
             if (span != null) {
-                // Deactivate in this thread. Span will be ended and reported by the listener
+                // Deactivate in this thread
                 span.deactivate();
+                // End the span if the method terminated with an exception.
+                // The exception means that the listener who normally does the ending will not be invoked.
+                if (t != null) {
+                    HttpAsyncRequestProducerWrapper wrapper = (HttpAsyncRequestProducerWrapper) enter[0];
+                    FutureCallbackWrapper<?> cb = (FutureCallbackWrapper<?>) enter[1];
+                    cb.failedWithoutExecution(t);
+                    asyncHelper.recycle(wrapper);
+                }
             }
         }
     }

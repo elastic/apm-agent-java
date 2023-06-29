@@ -82,7 +82,7 @@ public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
                                      @Advice.FieldValue(value = "hostConfiguration") HostConfiguration hostConfiguration) {
             Span<?> span = null;
             final ElasticContext<?> parent = TracerAwareInstrumentation.tracer.currentContext();
-            if (parent.getSpan() != null) {
+            if (parent.getAbstractSpan() != null) {
 
                 String host;
                 String uri;
