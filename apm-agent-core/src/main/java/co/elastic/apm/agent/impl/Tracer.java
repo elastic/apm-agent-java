@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -40,6 +41,9 @@ public interface Tracer extends co.elastic.apm.agent.tracer.Tracer {
     @Nullable
     Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader, long epochMicro);
 
+    @Nullable
+    Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader, Baggage baseBaggage, long epochMicro);
+
     /**
      * Starts a trace-root transaction with a specified sampler and start timestamp
      *
@@ -51,14 +55,14 @@ public interface Tracer extends co.elastic.apm.agent.tracer.Tracer {
      * @return a transaction that will be the root of the current trace if the agent is currently RUNNING; null otherwise
      */
     @Nullable
-    Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader);
+    Transaction startRootTransaction(Sampler sampler, long epochMicros, Baggage baseBaggage, @Nullable ClassLoader initiatingClassLoader);
 
     @Override
     @Nullable
     <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader);
 
     @Nullable
-    <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, long epochMicros);
+    <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, Baggage baseBaggage, long epochMicros);
 
     /**
      * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
