@@ -42,9 +42,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class BaseJmsInstrumentation extends TracerAwareInstrumentation {
 
-    protected static final MessagingConfiguration messagingConfiguration;
+    protected final MessagingConfiguration messagingConfiguration;
 
-    static {
+    protected BaseJmsInstrumentation() {
         Tracer tracer = GlobalTracer.get();
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
     }

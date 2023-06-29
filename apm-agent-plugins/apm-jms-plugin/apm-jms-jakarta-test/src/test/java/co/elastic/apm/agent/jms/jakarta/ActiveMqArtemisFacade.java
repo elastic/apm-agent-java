@@ -18,6 +18,17 @@
  */
 package co.elastic.apm.agent.jms.jakarta;
 
+import jakarta.jms.Destination;
+import jakarta.jms.JMSConsumer;
+import jakarta.jms.JMSContext;
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
+import jakarta.jms.MessageListener;
+import jakarta.jms.Queue;
+import jakarta.jms.TemporaryQueue;
+import jakarta.jms.TemporaryTopic;
+import jakarta.jms.TextMessage;
+import jakarta.jms.Topic;
 import org.apache.activemq.artemis.api.core.TransportConfiguration;
 import org.apache.activemq.artemis.core.config.Configuration;
 import org.apache.activemq.artemis.core.config.impl.ConfigurationImpl;
@@ -25,7 +36,6 @@ import org.apache.activemq.artemis.core.remoting.impl.invm.InVMAcceptorFactory;
 import org.apache.activemq.artemis.core.server.impl.ActiveMQServerImpl;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 
-import jakarta.jms.*;
 import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,8 +45,8 @@ import java.util.concurrent.CompletableFuture;
 /**
  * ActiveMQ Artemis tests for JMS 2 API
  */
-public class ActiveMqArtemisFacade /*implements BrokerFacade*/ {
-/*
+public class ActiveMqArtemisFacade implements BrokerFacade {
+
     private ActiveMQConnectionFactory connectionFactory;
     private ActiveMQServerImpl activeMQServer;
     private JMSContext context;
@@ -177,5 +187,4 @@ public class ActiveMqArtemisFacade /*implements BrokerFacade*/ {
         return consumer;
     }
 
- */
 }
