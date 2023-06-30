@@ -18,40 +18,44 @@
  */
 package co.elastic.apm.agent.vertx;
 
-import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import io.vertx.core.Handler;
 
 public class GenericHandlerWrapper<T> implements Handler<T> {
 
     protected final Handler<T> actualHandler;
-    private final AbstractSpan<?> parentSpan;
+    private final ElasticContext<?> parentContext;
 
-    public GenericHandlerWrapper(AbstractSpan<?> parentSpan, Handler<T> actualHandler) {
-        this.parentSpan = parentSpan;
+    public GenericHandlerWrapper(ElasticContext<?> parentContext, Handler<T> actualHandler) {
+        this.parentContext = parentContext;
         this.actualHandler = actualHandler;
-        parentSpan.incrementReferences();
+        parentContext.incrementReferences();
     }
 
     @Override
     public void handle(T event) {
-        parentSpan.activate();
-        parentSpan.decrementReferences();
+        parentContext.activate();
+        parentContext.decrementReferences();
         try {
             actualHandler.handle(event);
         } catch (Throwable throwable) {
-            parentSpan.captureException(throwable);
+            AbstractSpan<?> activeSpan = parentContext.getSpan();
+            if (activeSpan != null) {
+                activeSpan.captureException(throwable);
+            }
             throw throwable;
         } finally {
-            parentSpan.deactivate();
+            parentContext.deactivate();
         }
     }
 
-    public static <T> Handler<T> wrapIfActiveSpan(Handler<T> handler) {
-        AbstractSpan<?> currentSpan = GlobalTracer.get().getActive();
+    public static <T> Handler<T> wrapIfNonEmptyContext(Handler<T> handler) {
+        ElasticContext<?> currentContext = GlobalTracer.get().currentContext();
 
-        if (currentSpan != null) {
-            handler = new GenericHandlerWrapper<>(currentSpan, handler);
+        if (!currentContext.isEmpty()) {
+            handler = new GenericHandlerWrapper<>(currentContext, handler);
         }
 
         return handler;
