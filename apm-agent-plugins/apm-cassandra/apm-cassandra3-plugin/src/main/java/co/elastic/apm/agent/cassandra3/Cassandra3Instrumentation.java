@@ -44,7 +44,7 @@ import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.*;
 
-public abstract class Cassandra3Instrumentation extends TracerAwareInstrumentation {
+public abstract class Cassandra3Instrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {

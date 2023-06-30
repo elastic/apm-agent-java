@@ -54,7 +54,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 /**
  * Instruments {@link Session#execute(Request, GenericType)}
  */
-public class Cassandra4Instrumentation extends TracerAwareInstrumentation {
+public class Cassandra4Instrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
