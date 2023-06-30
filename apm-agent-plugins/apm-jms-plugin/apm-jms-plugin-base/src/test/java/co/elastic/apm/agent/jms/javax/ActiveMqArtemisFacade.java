@@ -186,4 +186,5 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
         }
         return consumer;
     }
+
 }

@@ -43,7 +43,7 @@ class JmsMessagePropertyAccessorTest extends AbstractInstrumentationTest {
 
         doThrow(JMSException.class).when(msg).getStringProperty(any(String.class));
 
-        assertThat(co.elastic.apm.agent.jms.jakarta.JmsMessagePropertyAccessor.instance().getFirstHeader("header", msg)).isNull();
+        assertThat(JmsMessagePropertyAccessor.instance().getFirstHeader("header", msg)).isNull();
     }
 
     @Test
@@ -55,7 +55,7 @@ class JmsMessagePropertyAccessorTest extends AbstractInstrumentationTest {
 
         doReturn(null).when(msg).getStringProperty(any(String.class));
 
-        co.elastic.apm.agent.jms.jakarta.JmsMessagePropertyAccessor.instance().setHeader(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, "header-value", msg);
+        JmsMessagePropertyAccessor.instance().setHeader(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, "header-value", msg);
 
         verify(msg).setStringProperty(headerName.capture(), headerValue.capture());
 
@@ -73,7 +73,7 @@ class JmsMessagePropertyAccessorTest extends AbstractInstrumentationTest {
         doReturn("msg-value").when(msg).getStringProperty(header);
         doThrow(RuntimeException.class).when(msg).setStringProperty(header, newValue);
 
-        co.elastic.apm.agent.jms.jakarta.JmsMessagePropertyAccessor.instance().setHeader(header, newValue, msg);
+        JmsMessagePropertyAccessor.instance().setHeader(header, newValue, msg);
     }
 
     @ParameterizedTest

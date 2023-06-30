@@ -20,6 +20,7 @@ package co.elastic.apm.agent.jms.jakarta;
 
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+
 import jakarta.jms.Message;
 import jakarta.jms.MessageNotWriteableException;
 
