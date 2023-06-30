@@ -47,7 +47,7 @@ class ElasticApmTracerShutdownTest {
     void testUsingSharedPoolOnShutdown() {
         AtomicBoolean shutdownHookExecuted = new AtomicBoolean(false);
         tracerImpl.addShutdownHook(() -> tracerImpl.getSharedSingleThreadedPool().submit(() -> shutdownHookExecuted.set(true)));
-        tracerImpl.stop();
+        tracerImpl.stopForTest();
         await().untilTrue(shutdownHookExecuted);
     }
 
@@ -55,7 +55,7 @@ class ElasticApmTracerShutdownTest {
     void testTracerStateIsRunningInTaskSubmittedInShutdownHook() {
         AtomicReference<Tracer.TracerState> tracerStateInShutdownHook = new AtomicReference<>();
         tracerImpl.addShutdownHook(() -> tracerImpl.getSharedSingleThreadedPool().submit(() -> tracerStateInShutdownHook.set(tracerImpl.getState())));
-        tracerImpl.stop();
+        tracerImpl.stopForTest();
         reporter.awaitUntilAsserted(() -> assertThat(tracerStateInShutdownHook.get()).isNotNull());
         assertThat(tracerStateInShutdownHook.get()).isEqualTo(Tracer.TracerState.RUNNING);
     }

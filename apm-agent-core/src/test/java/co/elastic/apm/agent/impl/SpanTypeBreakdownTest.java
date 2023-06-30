@@ -55,7 +55,7 @@ class SpanTypeBreakdownTest {
     @AfterEach
     void cleanup() {
         // some extra checks might be done when tracer is being stopped
-        tracer.stop();
+        tracer.stopForTest();
     }
 
     /*

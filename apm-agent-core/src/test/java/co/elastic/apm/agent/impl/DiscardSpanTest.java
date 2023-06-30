@@ -45,7 +45,7 @@ public class DiscardSpanTest {
     @AfterEach
     void cleanupAndCheck() {
         reporter.assertRecycledAfterDecrementingReferences();
-        tracer.stop();
+        tracer.stopForTest();
     }
 
     @Test

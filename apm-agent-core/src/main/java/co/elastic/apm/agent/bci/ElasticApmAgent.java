@@ -647,7 +647,12 @@ public class ElasticApmAgent {
         if (instrumentation == null) {
             return;
         }
-        GlobalTracer.get().require(Tracer.class).stop();
+        Tracer tracer = GlobalTracer.get().require(Tracer.class);
+        if (tracer instanceof ElasticApmTracer) {
+            ((ElasticApmTracer) tracer).stopForTest();
+        } else {
+            tracer.stop();
+        }
         GlobalTracer.setNoop();
         Exception exception = null;
         if (resettableClassFileTransformer != null) {

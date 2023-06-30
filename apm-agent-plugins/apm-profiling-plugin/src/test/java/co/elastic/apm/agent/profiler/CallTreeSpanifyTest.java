@@ -61,7 +61,7 @@ class CallTreeSpanifyTest {
     void tearDown() throws IOException {
         Objects.requireNonNull(tracer.getLifecycleListener(ProfilingFactory.class)).getProfiler().clear();
         reporter.assertRecycledAfterDecrementingReferences();
-        tracer.stop();
+        tracer.stopForTest();
     }
 
     @Test

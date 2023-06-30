@@ -92,7 +92,7 @@ public class LifecycleTest {
         assertThat(tracerImpl.isRunning()).isTrue();
         assertThat(TestLifecycleListener.resume.get()).isEqualTo(resumeBefore + 1);
 
-        tracerImpl.stop();
+        tracerImpl.stopForTest();
         assertThat(tracerImpl.getState()).isEqualTo(STOPPED);
         assertThat(tracerImpl.isRunning()).isFalse();
         assertThat(TestLifecycleListener.stop.get()).isEqualTo(stopBefore + 1);

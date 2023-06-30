@@ -42,7 +42,7 @@ public class CorrelationIdMapAdapterTest {
 
     @AfterEach
     void tearDown() {
-        tracer.stop();
+        tracer.stopForTest();
         GlobalTracer.setNoop();
     }
 

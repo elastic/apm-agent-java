@@ -88,7 +88,7 @@ class MicrometerMetricsReporterTest {
     @AfterEach
     void tearDown() {
         int metricReports = reporter.getBytes().size();
-        tracer.stop();
+        tracer.stopForTest();
         reporter.awaitUntilAsserted(() -> assertThat(reporter.getBytes()).hasSizeGreaterThan(metricReports));
     }
 

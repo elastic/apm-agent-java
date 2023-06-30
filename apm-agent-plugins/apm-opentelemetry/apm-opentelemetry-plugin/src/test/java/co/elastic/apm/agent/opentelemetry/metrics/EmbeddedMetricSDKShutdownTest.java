@@ -57,7 +57,7 @@ public class EmbeddedMetricSDKShutdownTest {
 
         counter.add(42);
 
-        tracer.stop();
+        tracer.stopForTest();
 
         assertThatMetricSets(reporter.getBytes())
             .hasMetricsetWithLabelsSatisfying("otel_instrumentation_scope_name", "test", metrics ->
