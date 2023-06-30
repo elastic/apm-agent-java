@@ -42,7 +42,7 @@ then
       echo "ERROR: Pulling images from Sonatype Nexus repo requires cURL to be installed" && exit 1
   fi
   curl -L -s -o apm-agent-java.jar \
-    "http://repository.sonatype.org/service/local/artifact/maven/redirect?r=central-proxy&g=co.elastic.apm&a=elastic-apm-agent&v=$GIT_TAG"
+    "https://oss.sonatype.org/service/local/artifact/maven/redirect?r=releases&g=co.elastic.apm&a=elastic-apm-agent&v=$GIT_TAG"
   else
     echo "ERROR: No suitable build artifact was found. Re-running this script with the SONATYPE_FALLBACK variable set to true will try to use the Sonatype artifact for the latest tag"
     exit 1

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.agent.test.AgentTestContainer;
 import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.JavaxExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
@@ -28,43 +29,47 @@ import org.junit.runners.Parameterized;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.util.Arrays;
+import java.util.concurrent.Future;
 
 @RunWith(Parameterized.class)
 public class PayaraIT extends AbstractServletContainerIntegrationTest {
 
-    public PayaraIT(final String serverVersion, final String deploymentsFolder) {
-        super(new GenericContainerWithTcpProxy<>(
-                new ImageFromDockerfile()
-                    .withDockerfileFromBuilder(builder -> {
-                            builder
-                                .from("payara/server-web:" + serverVersion)
-                                .run("sed", "-i", "s#" +
-                                        "</java-config>#" +
-                                        "<jvm-options>-javaagent:/elastic-apm-agent.jar</jvm-options></java-config>#",
-                                    "glassfish/domains/domain1/config/domain.xml")
-                                .run("sed", "-i", "s#" +
-                                        "</java-config>#" +
-                                        "<jvm-options>-Xdebug</jvm-options></java-config>#",
-                                    "glassfish/domains/domain1/config/domain.xml");
-                            if (ENABLE_DEBUGGING) {
-                                builder.run("sed", "-i", "s#" +
-                                        "</java-config>#" +
-                                        "<jvm-options>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</jvm-options></java-config>#",
-                                    "glassfish/domains/domain1/config/domain.xml");
-                            }
-                        }
-                    )
-            ),
-            "glassfish-application",
-            deploymentsFolder,
-            "payara");
+    public PayaraIT(String serverVersion, String homeFolder) {
+        super(AgentTestContainer.appServer(getImage(serverVersion, homeFolder))
+                .withContainerName("payara")
+                .withHttpPort(8080)
+                .withJvmArgumentsVariable("ELASTIC_JVM_ARGUMENTS")
+                .withDeploymentPath(homeFolder + "/deployments"),
+            "glassfish-application");
+    }
+
+    private static Future<String> getImage(String serverVersion, String homeFolder) {
+        return new ImageFromDockerfile()
+            .withDockerfileFromBuilder(builder -> {
+                builder.from("payara/server-web:" + serverVersion)
+                    .user("root")
+                    .run("/bin/bash", "-x", "-c",
+                        "sed -i '/^#!/a " +
+                            // command that is added just after #!/bin/bash and will modify domain config on startup
+                            "sed -i \"s#" +
+                            "</java-config>" +
+                            "#" +
+                            // using -DignoreMe in JVM command when arguments are not provided to avoid empty jvm-options tag
+                            "<jvm-options>${ELASTIC_JVM_ARGUMENTS:--DignoreMe}</jvm-options></java-config>" +
+                            "#\" " +
+                            // configuration file
+                            homeFolder + "/glassfish/domains/domain1/config/domain.xml' " +
+                            // startup script that is modified to inject the command above
+                            homeFolder + "/bin/startInForeground.sh")
+                    .user("payara");
+            });
     }
 
     @Parameterized.Parameters(name = "Payara {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"4.181", "/opt/payara41/deployments"},
-            {"5.182", "/opt/payara5/deployments"}
+            {"4.181", "/opt/payara41"},
+            {"5.182", "/opt/payara5"}
         });
     }
 

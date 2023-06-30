@@ -36,7 +36,10 @@ public class JakartaeeJettyIT extends AbstractJettyIT {
 
     @Parameterized.Parameters(name = "Jetty {0}")
     public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][]{{"11.0.6-jdk11"}, {"11.0.6-jdk16"}});
+        return Arrays.asList(new Object[][]{
+            {"11.0.6-jdk11"},
+            {"11.0.6-jdk16"}
+        });
     }
 
     @Override

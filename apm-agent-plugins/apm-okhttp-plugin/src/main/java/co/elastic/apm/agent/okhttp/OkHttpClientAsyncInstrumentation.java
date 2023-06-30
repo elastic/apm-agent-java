@@ -80,7 +80,8 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
                 OkHttpClientHelper.computeHostName(url.getHost()), url.getPort());
 
             if (span != null) {
-                span.activate();
+                span.withSync(false)
+                    .activate();
             }
 
             if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), request, OkHttpRequestHeaderGetter.INSTANCE)) {

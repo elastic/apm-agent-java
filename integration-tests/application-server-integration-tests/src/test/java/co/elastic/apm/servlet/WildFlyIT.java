@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.agent.test.AgentTestContainer;
 import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.JBossServletApiTestApp;
 import co.elastic.apm.servlet.tests.JavaxExternalPluginTestApp;
@@ -26,7 +27,6 @@ import co.elastic.apm.servlet.tests.SoapTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.testcontainers.containers.GenericContainer;
 
 import java.util.Arrays;
 
@@ -34,13 +34,15 @@ import java.util.Arrays;
 public class WildFlyIT extends AbstractServletContainerIntegrationTest {
 
     public WildFlyIT(final String wildFlyVersion) {
-        super(new GenericContainerWithTcpProxy<>("jboss/wildfly:" + wildFlyVersion)
+        super(AgentTestContainer.appServer("jboss/wildfly:" + wildFlyVersion)
+                .withContainerName("wildfly")
+                .withHttpPort(8080)
+                .withJvmArgumentsVariable("JAVA_OPTS") // using JAVA_OPTS to provide JVM arguments
                 // this overrides the defaults, so we have to manually re-add preferIPv4Stack
                 // the other defaults don't seem to be important
-                .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true"),
-            "jboss-application",
-            "/opt/jboss/wildfly/standalone/deployments",
-            "wildfly");
+                .withSystemProperty("java.net.preferIPv4Stack", "true")
+                .withDeploymentPath("/opt/jboss/wildfly/standalone/deployments"),
+            "jboss-application");
     }
 
     @Parameterized.Parameters(name = "Wildfly {0}")
@@ -48,21 +50,11 @@ public class WildFlyIT extends AbstractServletContainerIntegrationTest {
         return Arrays.asList(new Object[][]{
             {"8.2.1.Final"},
             {"9.0.0.Final"},
-            {"10.0.0.Final"},
             {"11.0.0.Final"},
-            {"12.0.0.Final"},
             {"13.0.0.Final"},
-            {"14.0.0.Final"},
             {"15.0.0.Final"},
-            {"16.0.0.Final"}
+            {"25.0.0.Final"}
         });
-    }
-
-    @Override
-    protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
-        // for 16.0.0.Final
-        // servletContainer.withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005");
     }
 
     @Override

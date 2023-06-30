@@ -23,6 +23,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 
 public abstract class AbstractAlibabaDubboInstrumentation extends AbstractDubboInstrumentation {
+
     // these type is available as of dubbo 2.5.0
     private static final ElementMatcher.Junction<ClassLoader> CAN_LOAD_FUTURE_FILTER = classLoaderCanLoadClass("com.alibaba.dubbo.rpc.protocol.dubbo.filter.FutureFilter");
 

@@ -31,7 +31,7 @@ import java.util.Arrays;
 @RunWith(Parameterized.class)
 public class JakartaeeTomcatIT extends AbstractTomcatIT {
 
-    public JakartaeeTomcatIT(final String tomcatVersion) {
+    public JakartaeeTomcatIT(String tomcatVersion) {
         super(tomcatVersion);
     }
 

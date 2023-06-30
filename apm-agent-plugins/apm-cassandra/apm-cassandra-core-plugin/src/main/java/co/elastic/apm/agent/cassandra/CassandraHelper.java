@@ -34,6 +34,16 @@ public class CassandraHelper {
         this.tracer = tracer;
     }
 
+    private static final ThreadLocal<Boolean> isSync = new ThreadLocal<Boolean>();
+
+    public static void inSyncExecute(boolean sync) {
+        isSync.set(sync);
+    }
+
+    public static boolean isSyncExecute() {
+        return isSync.get().booleanValue();
+    }
+
     @Nullable
     public Span<?> startCassandraSpan(@Nullable String query, boolean preparedStatement, @Nullable String keyspace) {
         AbstractSpan<?> active = tracer.getActive();

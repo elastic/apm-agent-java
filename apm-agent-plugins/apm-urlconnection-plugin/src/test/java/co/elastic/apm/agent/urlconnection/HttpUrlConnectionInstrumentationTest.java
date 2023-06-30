@@ -59,7 +59,7 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
         thread.start();
         thread.join();
 
-        verifyHttpSpan("/");
+        expectSpan("/").verify();
     }
 
     @Test
@@ -78,7 +78,7 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
         urlConnection.connect();
         urlConnection.getInputStream();
 
-        verifyHttpSpan("/");
+        expectSpan("/").verify();
     }
 
     @Test
@@ -88,7 +88,7 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
         urlConnection.getOutputStream();
         urlConnection.getInputStream();
 
-        verifyHttpSpan("/");
+        expectSpan("/").verify();
     }
 
     @Test
@@ -100,7 +100,7 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
         urlConnection.connect();
         urlConnection.disconnect();
 
-        verifyHttpSpan("/");
+        expectSpan("/").verify();
     }
 
     @Test
@@ -120,7 +120,7 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
         urlConnection.disconnect();
 
         verify(1, getRequestedFor(urlPathEqualTo("/")));
-        verifyHttpSpan("/");
+        expectSpan("/").verify();
     }
 
     @Test
@@ -152,7 +152,10 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
         urlConnection.getResponseCode();
         urlConnection.disconnect();
 
-        verifyHttpSpan("localhost", "/non-existent", 404);
+        expectSpan("/non-existent")
+            .withStatus(404)
+            .verify();
+
         assertThat(reporter.getErrors()).isEmpty();
     }
 
@@ -161,7 +164,10 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
         String path = "/non-existing";
         performGetWithinTransaction(path);
 
-        verifyHttpSpan("localhost", path, 404);
+        expectSpan(path)
+            .withStatus(404)
+            .verify();
+
         assertThat(reporter.getErrors()).hasSize(1);
     }
 

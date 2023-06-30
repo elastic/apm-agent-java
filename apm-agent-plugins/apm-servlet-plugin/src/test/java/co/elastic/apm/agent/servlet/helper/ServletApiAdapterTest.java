@@ -19,9 +19,11 @@
 package co.elastic.apm.agent.servlet.helper;
 
 import co.elastic.apm.agent.servlet.adapter.JavaxServletApiAdapter;
+import co.elastic.apm.agent.testutils.TestClassWithDependencyRunner;
 import org.junit.jupiter.api.Test;
 
 import javax.servlet.ServletContext;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
@@ -45,4 +47,14 @@ public class ServletApiAdapterTest {
         doReturn(cl).when(servletContext).getClassLoader();
         assertThat(adapter.getClassLoader(servletContext)).isSameAs(cl);
     }
+
+    @Test
+    void checkAncientServletApiVersionDoesNotThrowErrors() throws Exception {
+        new TestClassWithDependencyRunner(
+            List.of("javax.servlet:servlet-api:2.5"),
+            AncientServletAPITest.class.getName(),
+            JavaxServletApiAdapter.class.getName())
+            .run();
+    }
+
 }

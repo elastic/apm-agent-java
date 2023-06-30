@@ -2195,6 +2195,7 @@ Valid options: `OFF`, `SHADE`, `REPLACE`, `OVERRIDE`
 A comma-separated list of key-value pairs that will be added as additional fields to all log events.
  Takes the format `key=value[,key=value[,...]]`, for example: `key1=value1,key2=value2`.
  Only relevant if <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to any option other than `OFF`.
+Additional fields are currently not supported for direct log sending through the agent.
 
 
 
@@ -4398,6 +4399,7 @@ Example: `5ms`.
 # A comma-separated list of key-value pairs that will be added as additional fields to all log events.
 #  Takes the format `key=value[,key=value[,...]]`, for example: `key1=value1,key2=value2`.
 #  Only relevant if <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to any option other than `OFF`.
+# Additional fields are currently not supported for direct log sending through the agent.
 # 
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.

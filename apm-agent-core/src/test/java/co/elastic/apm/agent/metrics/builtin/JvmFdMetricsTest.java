@@ -22,6 +22,9 @@ import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -39,8 +42,8 @@ class JvmFdMetricsTest {
         "jvm.fd.used",
         "jvm.fd.max"
     })
+    @DisabledOnOs(OS.WINDOWS)
     void testMetrics(String metric) {
-
         MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class), spy(MetricsConfiguration.class));
         jvmFdMetrics.bindTo(registry);
 
@@ -49,6 +52,19 @@ class JvmFdMetricsTest {
             .isNotNaN()
             .isPositive();
 
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {
+        "jvm.fd.used",
+        "jvm.fd.max"
+    })
+    @EnabledOnOs(OS.WINDOWS)
+    void testMetricsDisabledOnWindows(String metric) {
+        MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class), spy(MetricsConfiguration.class));
+        jvmFdMetrics.bindTo(registry);
+
+        assertThat(registry.getGauge(metric, Labels.EMPTY)).isNull();
     }
 
 }

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.agent.test.AgentTestContainer;
 import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.JavaxExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
@@ -27,7 +28,6 @@ import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.MountableFile;
 
 import java.util.Arrays;
@@ -38,13 +38,13 @@ import java.util.List;
 public class WebLogicIT extends AbstractServletContainerIntegrationTest {
 
     public WebLogicIT(final String webLogicVersion) {
-        super(new GenericContainerWithTcpProxy<>("store/oracle/weblogic:" + webLogicVersion)
+        super(AgentTestContainer.appServer("store/oracle/weblogic:" + webLogicVersion)
+                .withContainerName("weblogic")
+                .withDeploymentPath("/u01/oracle/user_projects/domains/base_domain/autodeploy")
+                .withHttpPort(7001)
+                // domain configuration using provided properties file
                 .withCopyFileToContainer(MountableFile.forClasspathResource("domain.properties"), "/u01/oracle/properties/domain.properties"),
-            7001,
-            5005,
-            "weblogic-application",
-            "/u01/oracle/user_projects/domains/base_domain/autodeploy",
-            "weblogic");
+            "weblogic-application");
     }
 
     @Parameterized.Parameters(name = "WebLogic {0}")
@@ -52,11 +52,6 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
         return Arrays.asList(new Object[][]{
             {"12.2.1.3-dev"}
         });
-    }
-
-    @Override
-    protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("EXTRA_JAVA_PROPERTIES", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
     }
 
     @Override

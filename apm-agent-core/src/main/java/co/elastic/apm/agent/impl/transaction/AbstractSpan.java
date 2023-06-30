@@ -18,22 +18,22 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.agent.sdk.collections.LongList;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.sdk.collections.LongList;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.sdk.util.LoggerUtils;
 import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
-import co.elastic.apm.agent.sdk.util.LoggerUtils;
-import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
@@ -115,7 +115,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     @Nullable
     protected volatile String type;
 
-    protected volatile boolean sync = true;
+    private volatile boolean sync = true;
 
     protected final SpanAtomicReference<Span> bufferedSpan = new SpanAtomicReference<>();
 
@@ -761,13 +761,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     public T withUserOutcome(Outcome outcome) {
         this.userOutcome = outcome;
         return thiz();
-    }
-
-    @Override
-    public ElasticContext<T> withActiveSpan(AbstractSpan<?> span) {
-        // for internal spans the active span is only stored implicitly in the stack, hence we have no requirement
-        // to have any other kind of context storage.
-        return this;
     }
 
     @Override

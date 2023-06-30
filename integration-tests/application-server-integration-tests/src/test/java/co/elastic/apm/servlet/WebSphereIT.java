@@ -18,35 +18,23 @@
  */
 package co.elastic.apm.servlet;
 
-import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
-import co.elastic.apm.servlet.tests.JavaxExternalPluginTestApp;
-import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
-import co.elastic.apm.servlet.tests.ServletApiTestApp;
-import co.elastic.apm.servlet.tests.TestApp;
+import co.elastic.apm.agent.test.AgentTestContainer;
+import co.elastic.apm.servlet.tests.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.util.Arrays;
 
 @RunWith(Parameterized.class)
 public class WebSphereIT extends AbstractServletContainerIntegrationTest {
 
-    public WebSphereIT(final String version) {
-        super((ENABLE_DEBUGGING
-                ? new GenericContainerWithTcpProxy<>(new ImageFromDockerfile()
-                .withDockerfileFromBuilder(builder -> builder
-                    .from("websphere-liberty:" + version)
-                    .cmd("/opt/ibm/wlp/bin/server", "debug", "defaultServer")),
-                7777)
-                : new GenericContainer<>("websphere-liberty:" + version)
-            ).withEnv("JVM_ARGS", "-javaagent:/elastic-apm-agent.jar"),
-            9080,
-            7777,
-            "websphere-application",
-            "/config/dropins",
-            "websphere");
+    public WebSphereIT(String version) {
+        super(AgentTestContainer.appServer("websphere-liberty:" + version)
+                .withContainerName("websphere")
+                .withHttpPort(9080)
+                .withDeploymentPath("/config/dropins")
+                .withJvmArgumentsVariable("JVM_ARGS"),
+            "websphere-application");
     }
 
     @Parameterized.Parameters(name = "WebSphere {0}")
