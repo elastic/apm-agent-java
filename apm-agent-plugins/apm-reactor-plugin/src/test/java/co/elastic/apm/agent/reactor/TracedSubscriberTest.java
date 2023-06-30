@@ -315,9 +315,15 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
         }
 
         TestObservation checkActiveContext(@Nullable ElasticContext<?> expectedActiveContext) {
-            assertThat(activeContext)
-                .describedAs("%s active context in thread %d", activeContext == null ? "missing" : "unexpected", threadId)
-                .isEqualTo(expectedActiveContext);
+            if (expectedActiveContext == null) {
+                assertThat(activeContext.isEmpty())
+                    .describedAs("unexpected active context in thread %d", threadId)
+                    .isTrue();
+            } else {
+                assertThat(activeContext)
+                    .describedAs("%s active context in thread %d", activeContext.isEmpty() ? "missing" : "unexpected", threadId)
+                    .isEqualTo(expectedActiveContext);
+            }
             return this;
         }
 
