@@ -60,7 +60,7 @@ public class JmsMessageListenerTest {
 
     @AfterEach
     public void after() {
-        tracer.stopForTest();
+        tracer.stop();
         ElasticApmAgent.reset();
     }
 

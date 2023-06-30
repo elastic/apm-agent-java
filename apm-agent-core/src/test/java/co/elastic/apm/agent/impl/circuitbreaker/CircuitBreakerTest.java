@@ -86,7 +86,7 @@ public class CircuitBreakerTest {
     @AfterEach
     public void tearDown() {
         circuitBreaker.unregisterStressMonitor(monitor);
-        tracer.stopForTest();
+        tracer.stop();
     }
 
     @Test

@@ -79,7 +79,7 @@ class CallTreeTest {
     @AfterEach
     void tearDown() throws IOException {
         Objects.requireNonNull(tracer.getLifecycleListener(ProfilingFactory.class)).getProfiler().clear();
-        tracer.stopForTest();
+        tracer.stop();
     }
 
     @Test

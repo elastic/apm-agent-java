@@ -649,7 +649,7 @@ public class ElasticApmAgent {
         }
         Tracer tracer = GlobalTracer.get().require(Tracer.class);
         if (tracer instanceof ElasticApmTracer) {
-            ((ElasticApmTracer) tracer).stopForTest();
+            ((ElasticApmTracer) tracer).stop();
         } else {
             tracer.stop();
         }

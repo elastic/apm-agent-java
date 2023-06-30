@@ -52,7 +52,7 @@ class JmxMetricTrackerTest {
 
     @AfterEach
     void cleanup() {
-        tracer.stopForTest();
+        tracer.stop();
     }
 
     @Test

@@ -70,7 +70,7 @@ class SamplingProfilerTest {
     @AfterEach
     void tearDown() {
         if (tracer != null) {
-            tracer.stopForTest();
+            tracer.stop();
         }
 
         getProfilerTempFiles().forEach(SamplingProfilerTest::silentDeleteFile);

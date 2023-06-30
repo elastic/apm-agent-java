@@ -565,15 +565,7 @@ public class ElasticApmTracer implements Tracer {
         spanLinkPool.recycle(traceContext);
     }
 
-    public void stop() {
-        stop(false);
-    }
-
-    public void stopForTest() {
-        stop(true);
-    }
-
-    private synchronized void stop(boolean fromTest) {
+    public synchronized void stop() {
         if (tracerState == TracerState.STOPPED) {
             // may happen if explicitly stopped in a unit test and executed again within a shutdown hook
             return;
@@ -598,7 +590,7 @@ public class ElasticApmTracer implements Tracer {
         } catch (Exception e) {
             logger.warn("Suppressed exception while calling stop()", e);
         }
-        if (!fromTest) {
+        if (!assertionsEnabled) {
             LoggingConfiguration.shutdown();
         }
     }

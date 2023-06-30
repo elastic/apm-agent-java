@@ -53,7 +53,7 @@ class MetricRegistryReporterTest {
                 assertThat(jsonNode.get("metricset").get("service")).isNull();
             }
         } finally {
-            tracer.stopForTest();
+            tracer.stop();
         }
     }
 }

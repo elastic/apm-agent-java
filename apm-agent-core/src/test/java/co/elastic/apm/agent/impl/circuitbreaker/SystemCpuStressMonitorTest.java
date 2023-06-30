@@ -66,7 +66,7 @@ class SystemCpuStressMonitorTest {
 
     @AfterAll
     static void tearDown() {
-        tracer.stopForTest();
+        tracer.stop();
     }
 
     @BeforeEach
