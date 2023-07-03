@@ -590,6 +590,7 @@ public class ElasticApmTracer implements Tracer {
         } catch (Exception e) {
             logger.warn("Suppressed exception while calling stop()", e);
         }
+        //Shutting down logging resets the log level to OFF - subsequent tests in the class will get no log output, hence the guard
         if (!assertionsEnabled) {
             LoggingConfiguration.shutdown();
         }
