@@ -64,15 +64,15 @@ public abstract class AbstractJsfLifecycleRenderInstrumentation extends Abstract
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object createRenderSpan() {
-            final ElasticContext<?> parent = tracer.currentContext();
-            final AbstractSpan<?> parentSpan = parent.getSpan();
+            final ElasticContext<?> activeContext = tracer.currentContext();
+            final AbstractSpan<?> parentSpan = activeContext.getSpan();
             if (parentSpan instanceof Span<?>) {
                 Span<?> parSpan = (Span<?>) parentSpan;
                 if (SPAN_SUBTYPE.equals(parSpan.getSubtype()) && SPAN_ACTION.equals(parSpan.getAction())) {
                     return null;
                 }
             }
-            Span<?> span = parent.createSpan();
+            Span<?> span = activeContext.createSpan();
             if (span != null) {
                 span.withType(SPAN_TYPE)
                     .withSubtype(SPAN_SUBTYPE)

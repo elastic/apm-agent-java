@@ -79,9 +79,9 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(0) @Nullable HttpHost host,
                                              @Advice.Argument(1) HttpRequest request) {
-            final ElasticContext<?> parent = tracer.currentContext();
+            final ElasticContext<?> activeContext = tracer.currentContext();
             Span<?> span = null;
-            if (parent.getSpan() != null) {
+            if (activeContext.getSpan() != null) {
                 String hostName = (host != null) ? host.getHostName() : null;
                 String method;
                 URI uri = null;
@@ -97,7 +97,7 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                     } catch (URISyntaxException ignore) {
                     }
                 }
-                span = HttpClientHelper.startHttpClientSpan(parent, method, uri, hostName);
+                span = HttpClientHelper.startHttpClientSpan(activeContext, method, uri, hostName);
 
                 if (span != null) {
                     span.activate();

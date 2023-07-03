@@ -77,14 +77,14 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                                        @Advice.Origin String signature) {
 
                 boolean isNestedCall = callDepth.isNestedCallAndIncrement();
-                ElasticContext<?> parent = tracer.currentContext();
-                AbstractSpan<?> parentSpan = parent.getSpan();
+                ElasticContext<?> activeContext = tracer.currentContext();
+                AbstractSpan<?> parentSpan = activeContext.getSpan();
                 Span<?> span = null;
                 if (parentSpan != null) {
                     span = inFlightSpans.get(thiz);
                     if (span == null && !connected) {
                         final URL url = thiz.getURL();
-                        span = HttpClientHelper.startHttpClientSpan(parent, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
+                        span = HttpClientHelper.startHttpClientSpan(activeContext, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
                     }
                     if (!isNestedCall && span != null) {
                         span.activate();

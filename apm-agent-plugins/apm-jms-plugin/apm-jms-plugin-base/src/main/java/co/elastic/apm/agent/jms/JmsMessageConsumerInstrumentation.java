@@ -93,8 +93,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 AbstractSpan<?> createdSpan = null;
                 boolean createPollingTransaction = false;
                 boolean createPollingSpan = false;
-                final ElasticContext<?> parent = tracer.currentContext();
-                final AbstractSpan<?> parentSpan = parent.getSpan();
+                final ElasticContext<?> activeContext = tracer.currentContext();
+                final AbstractSpan<?> parentSpan = activeContext.getSpan();
                 if (parentSpan == null) {
                     createPollingTransaction = true;
                 } else {
@@ -126,7 +126,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 createPollingTransaction |= "receiveNoWait".equals(methodName);
 
                 if (createPollingSpan) {
-                    createdSpan = parent.createSpan()
+                    createdSpan = activeContext.createSpan()
                         .withType(MESSAGING_TYPE)
                         .withSubtype("jms")
                         .withAction("receive");

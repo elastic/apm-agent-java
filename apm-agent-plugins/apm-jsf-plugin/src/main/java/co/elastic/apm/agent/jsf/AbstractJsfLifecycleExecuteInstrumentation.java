@@ -46,14 +46,14 @@ public abstract class AbstractJsfLifecycleExecuteInstrumentation extends Abstrac
 
         @Nullable
         protected static Object createAndActivateSpan(boolean withExternalContext, @Nullable String requestServletPath, @Nullable String requestPathInfo) {
-            final ElasticContext<?> parent = tracer.currentContext();
-            if (parent.getSpan() instanceof Span<?>) {
-                Span<?> parentSpan = (Span<?>) parent.getSpan();
+            final ElasticContext<?> activeContext = tracer.currentContext();
+            if (activeContext.getSpan() instanceof Span<?>) {
+                Span<?> parentSpan = (Span<?>) activeContext.getSpan();
                 if (SPAN_SUBTYPE.equals(parentSpan.getSubtype()) && SPAN_ACTION.equals(parentSpan.getAction())) {
                     return null;
                 }
             }
-            Transaction<?> transaction = parent.getTransaction();
+            Transaction<?> transaction = activeContext.getTransaction();
             if (transaction != null) {
                 try {
                     if (withExternalContext) {
@@ -67,7 +67,7 @@ public abstract class AbstractJsfLifecycleExecuteInstrumentation extends Abstrac
                     // do nothing- rely on the default servlet name logic
                 }
             }
-            Span<?> span = parent.createSpan();
+            Span<?> span = activeContext.createSpan();
             if (span != null) {
                 span.withType(SPAN_TYPE)
                     .withSubtype(SPAN_SUBTYPE)

@@ -58,8 +58,8 @@ public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
                                   @Advice.Return @Nullable Process process,
                                   @Advice.Thrown @Nullable Throwable t) {
 
-            ElasticContext<?> parent = tracer.currentContext();
-            AbstractSpan<?> parentSpan = parent.getSpan();
+            ElasticContext<?> activeContext = tracer.currentContext();
+            AbstractSpan<?> parentSpan = activeContext.getSpan();
             if (parentSpan == null) {
                 return;
             }
@@ -71,7 +71,7 @@ public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
 
             if (process != null) {
                 // when an exception is thrown, there is no return value
-                ProcessHelper.startProcess(parent, process, processBuilder.command());
+                ProcessHelper.startProcess(activeContext, process, processBuilder.command());
             }
         }
     }

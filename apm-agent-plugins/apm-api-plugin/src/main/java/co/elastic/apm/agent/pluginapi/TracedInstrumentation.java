@@ -93,15 +93,15 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
                 defaultValueProvider = AnnotationValueOffsetMappingFactory.TrueDefaultValueProvider.class
             ) boolean discardable) {
 
-            final ElasticContext<?> parent = tracer.currentContext();
-            final AbstractSpan<?> parentSpan = parent.getSpan();
+            final ElasticContext<?> activeContext = tracer.currentContext();
+            final AbstractSpan<?> parentSpan = activeContext.getSpan();
             if (parentSpan != null) {
-                if (parent.shouldSkipChildSpanCreation()) {
+                if (activeContext.shouldSkipChildSpanCreation()) {
                     // span limit reached means span will not be reported, thus we can optimize and skip creating one
                     logger.debug("Not creating span for {} because span limit is reached.", signature);
                     return null;
                 }
-                Span<?> span = asExit ? parent.createExitSpan() : parent.createSpan();
+                Span<?> span = asExit ? activeContext.createExitSpan() : activeContext.createSpan();
                 if (span == null) {
                     return null;
                 }

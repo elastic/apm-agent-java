@@ -119,8 +119,8 @@ public abstract class ServletApiAdvice {
 
             ret = transaction;
         } else if (!adapter.isAsyncDispatcherType(httpServletRequest) && coreConfig.isInstrumentationEnabled(Constants.SERVLET_API_DISPATCH)) {
-            final ElasticContext<?> parent = tracer.currentContext();
-            final AbstractSpan<?> parentSpan = parent.getSpan();
+            final ElasticContext<?> activeContext = tracer.currentContext();
+            final AbstractSpan<?> parentSpan = activeContext.getSpan();
             if (parentSpan != null) {
                 Object servletPath = null;
                 Object pathInfo = null;
@@ -139,7 +139,7 @@ public abstract class ServletApiAdvice {
                 }
 
                 if (spanType != null && (areNotEqual(servletPathTL.get(), servletPath) || areNotEqual(pathInfoTL.get(), pathInfo))) {
-                    ret = parent.createSpan()
+                    ret = activeContext.createSpan()
                         .appendToName(spanType.getNamePrefix())
                         .withAction(spanType.getAction())
                         .withType(SPAN_TYPE)

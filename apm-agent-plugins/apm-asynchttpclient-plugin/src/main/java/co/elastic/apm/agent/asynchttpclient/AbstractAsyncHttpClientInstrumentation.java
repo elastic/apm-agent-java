@@ -100,13 +100,13 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object onBeforeExecute(@Advice.Argument(value = 0) Request request,
                                                  @Advice.Argument(value = 1) AsyncHandler<?> asyncHandler) {
-                final ElasticContext<?> parent = tracer.currentContext();
+                final ElasticContext<?> activeContext = tracer.currentContext();
                 final AbstractSpan<?> parentSpan = tracer.getActive();
                 Span<?> span = null;
                 if (parentSpan != null) {
                     DynamicTransformer.ensureInstrumented(asyncHandler.getClass(), Helper.ASYNC_HANDLER_INSTRUMENTATIONS);
                     Uri uri = request.getUri();
-                    span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
+                    span = HttpClientHelper.startHttpClientSpan(activeContext, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
                     if (span != null) {
                         span.withSync(false);
                         span.activate();

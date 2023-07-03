@@ -63,8 +63,8 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
         @SuppressWarnings("unused")
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void pollStart() {
-            final ElasticContext<?> parent = tracer.currentContext();
-            final AbstractSpan<?> activeSpan = parent.getSpan();
+            final ElasticContext<?> activeContext = tracer.currentContext();
+            final AbstractSpan<?> activeSpan = activeContext.getSpan();
             if (activeSpan == null) {
                 return;
             }
@@ -77,7 +77,7 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
                 }
             }
 
-            Span<?> span = parent.createExitSpan();
+            Span<?> span = activeContext.createExitSpan();
             if (span == null) {
                 return;
             }

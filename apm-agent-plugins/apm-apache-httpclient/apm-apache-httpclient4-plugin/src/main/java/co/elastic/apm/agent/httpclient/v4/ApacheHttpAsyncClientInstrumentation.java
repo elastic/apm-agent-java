@@ -99,8 +99,8 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
                 return null;
             }
             FutureCallback<?> wrappedFutureCallback = futureCallback;
-            ElasticContext<?> parent = tracer.currentContext();
-            Span<?> span = parent.createExitSpan();
+            ElasticContext<?> activeContext = tracer.currentContext();
+            Span<?> span = activeContext.createExitSpan();
             if (span != null) {
                 span.withType(HttpClientHelper.EXTERNAL_TYPE)
                     .withSubtype(HttpClientHelper.HTTP_SUBTYPE)

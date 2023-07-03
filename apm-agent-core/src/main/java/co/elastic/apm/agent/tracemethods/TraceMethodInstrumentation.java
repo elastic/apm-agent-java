@@ -144,7 +144,7 @@ public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
         public static Object onMethodEnter(@Advice.Origin Class<?> clazz,
                                            @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature) {
             AbstractSpan<?> span = null;
-            ElasticContext<?> parent = tracer.currentContext();
+            ElasticContext<?> activeContext = tracer.currentContext();
             final AbstractSpan<?> parentSpan = tracer.getActive();
             if (parentSpan == null) {
                 span = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
@@ -157,7 +157,7 @@ public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
                     logger.debug("Not creating span for {} because span limit is reached.", signature);
                     return null;
                 }
-                span = parent.createSpan()
+                span = activeContext.createSpan()
                     .withName(signature)
                     .activate();
             }

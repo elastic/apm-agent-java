@@ -53,10 +53,10 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(0) HttpRoute route,
                                              @Advice.Argument(1) HttpRequestWrapper request) {
-            ElasticContext<?> parent = tracer.currentContext();
+            ElasticContext<?> activeContext = tracer.currentContext();
             Span<?> span = null;
-            if (parent.getSpan() != null) {
-                span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());
+            if (activeContext.getSpan() != null) {
+                span = HttpClientHelper.startHttpClientSpan(activeContext, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());
 
                 if (span != null) {
                     span.activate();
