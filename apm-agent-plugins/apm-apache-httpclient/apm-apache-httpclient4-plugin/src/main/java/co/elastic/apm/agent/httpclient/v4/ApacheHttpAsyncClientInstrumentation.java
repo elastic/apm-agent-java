@@ -99,17 +99,14 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
                 return null;
             }
             FutureCallback<?> wrappedFutureCallback = futureCallback;
-            Span<?> span = null;
             ElasticContext<?> parent = tracer.currentContext();
-            if (parent.getSpan() != null) {
-                span = parent.createExitSpan();
-                if (span != null) {
-                    span.withType(HttpClientHelper.EXTERNAL_TYPE)
-                        .withSubtype(HttpClientHelper.HTTP_SUBTYPE)
-                        .withSync(false)
-                        .activate();
-                    wrappedFutureCallback = asyncHelper.wrapFutureCallback(futureCallback, context, span);
-                }
+            Span<?> span = parent.createExitSpan();
+            if (span != null) {
+                span.withType(HttpClientHelper.EXTERNAL_TYPE)
+                    .withSubtype(HttpClientHelper.HTTP_SUBTYPE)
+                    .withSync(false)
+                    .activate();
+                wrappedFutureCallback = asyncHelper.wrapFutureCallback(futureCallback, context, span);
             }
             HttpAsyncRequestProducer wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, span, tracer.currentContext());
             return new Object[]{wrappedProducer, wrappedFutureCallback, span};

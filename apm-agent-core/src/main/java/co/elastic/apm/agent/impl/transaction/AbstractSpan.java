@@ -618,8 +618,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
     }
 
     /**
-     * If this AbstractSpan is a transaction, then the AbstractSpan itself is returned.
-     * Otherwise, the parent transaction of the span is returned.
+     * Returns this, if this AbstractSpan is a {@link co.elastic.apm.agent.tracer.Transaction}.
+     * Otherwise returns the parent transaction of this span.
      *
      * @return the transaction.
      */

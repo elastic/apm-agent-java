@@ -80,47 +80,50 @@ public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.Argument(0) HttpMethod httpMethod,
                                      @Advice.FieldValue(value = "hostConfiguration") HostConfiguration hostConfiguration) {
-            Span<?> span = null;
-            final ElasticContext<?> parent = TracerAwareInstrumentation.tracer.currentContext();
-            if (parent.getSpan() != null) {
-
-                String host;
-                String uri;
-                String protocol;
-                int port;
-                URI httpClientURI = null;
-                try {
-                    httpClientURI = httpMethod.getURI();
-                    host = hostConfiguration.getHost();
-                    port = hostConfiguration.getPort();
-                    protocol = hostConfiguration.getProtocol().getScheme();
-                    uri = httpClientURI.toString();
-                } catch (Exception e) {
-                    try {
-                        if (httpClientURI != null) {
-                            host = httpClientURI.getHost();
-                            uri = httpClientURI.toString();
-                            protocol = httpClientURI.getScheme();
-                            port = httpClientURI.getPort();
-                        } else {
-                            oneTimeNoDestinationInfoLogger.warn("Failed to obtain Apache HttpClient destination info, null httpClientURI", e);
-                            return null;
-                        }
-                    } catch (Exception e1) {
-                        oneTimeNoDestinationInfoLogger.warn("Failed to obtain Apache HttpClient destination info", e);
-                        return null;
-                    }
-                }
-
-                span = HttpClientHelper.startHttpClientSpan(parent, httpMethod.getName(), uri, protocol, host, port);
-                if (span != null) {
-                    span.activate();
-                }
+            Span<?> span = startClientSpan(httpMethod, hostConfiguration);
+            if (span != null) {
+                span.activate();
             }
-
             tracer.currentContext().propagateContext(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE, HttpClient3RequestHeaderAccessor.INSTANCE);
 
             return span;
+        }
+
+        @Nullable
+        private static Span<?> startClientSpan(HttpMethod httpMethod, HostConfiguration hostConfiguration) {
+            final ElasticContext<?> activeContext = TracerAwareInstrumentation.tracer.currentContext();
+            if (activeContext.getSpan() == null) {
+                return null;
+            }
+
+            String host;
+            String uri;
+            String protocol;
+            int port;
+            URI httpClientURI = null;
+            try {
+                httpClientURI = httpMethod.getURI();
+                host = hostConfiguration.getHost();
+                port = hostConfiguration.getPort();
+                protocol = hostConfiguration.getProtocol().getScheme();
+                uri = httpClientURI.toString();
+            } catch (Exception e) {
+                try {
+                    if (httpClientURI != null) {
+                        host = httpClientURI.getHost();
+                        uri = httpClientURI.toString();
+                        protocol = httpClientURI.getScheme();
+                        port = httpClientURI.getPort();
+                    } else {
+                        oneTimeNoDestinationInfoLogger.warn("Failed to obtain Apache HttpClient destination info, null httpClientURI", e);
+                        return null;
+                    }
+                } catch (Exception e1) {
+                    oneTimeNoDestinationInfoLogger.warn("Failed to obtain Apache HttpClient destination info", e);
+                    return null;
+                }
+            }
+            return HttpClientHelper.startHttpClientSpan(activeContext, httpMethod.getName(), uri, protocol, host, port);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
