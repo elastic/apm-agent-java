@@ -105,7 +105,8 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             public static Object doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span) {
                 if (span instanceof Span<?>) {
                     Span<?> spanTyped = (Span<?>) span;
-                    //TODO: make the public API work on contexts instead of spans, otherwise baggage might be lost
+                    // This approach of starting a span has the limitation that baggage updated which happened after the parent span was started might be lost
+                    // This is an accepted limitation, as in practice this can only occur if public-API and OTel custom instrumentation is mixed.
                     spanTyped.activate();
                     try {
                         return tracer.currentContext().createSpan();

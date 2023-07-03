@@ -69,7 +69,7 @@ class ActiveStack {
     }
 
     /**
-     * @return the currently active context, {@literal null} if there is none.
+     * @return the current context, potentially empty when no span, transaction or baggage is currently active.
      */
 
     public ElasticContext<?> currentContext() {

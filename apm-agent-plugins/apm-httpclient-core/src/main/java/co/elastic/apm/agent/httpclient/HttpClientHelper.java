@@ -34,7 +34,7 @@ public class HttpClientHelper {
     public static final String HTTP_SUBTYPE = "http";
 
     @Nullable
-    public static Span<?> startHttpClientSpan(ElasticContext<?> parent, String method, @Nullable URI uri, @Nullable CharSequence hostName) {
+    public static Span<?> startHttpClientSpan(ElasticContext<?> activeContext, String method, @Nullable URI uri, @Nullable CharSequence hostName) {
         String uriString = null;
         String scheme = null;
         int port = -1;
@@ -46,18 +46,18 @@ public class HttpClientHelper {
                 hostName = uri.getHost();
             }
         }
-        return startHttpClientSpan(parent, method, uriString, scheme, hostName, port);
+        return startHttpClientSpan(activeContext, method, uriString, scheme, hostName, port);
     }
 
     @Nullable
-    public static Span<?> startHttpClientSpan(ElasticContext<?> parent, String method, @Nullable String uri,
+    public static Span<?> startHttpClientSpan(ElasticContext<?> activeContext, String method, @Nullable String uri,
                                               @Nullable String scheme, @Nullable CharSequence hostName, int port) {
-        Span<?> span = parent.createExitSpan();
+        Span<?> span = activeContext.createExitSpan();
         if (span != null) {
             updateHttpSpanNameAndContext(span, method, uri, scheme, hostName, port);
         }
         if (logger.isTraceEnabled()) {
-            logger.trace("Created an HTTP exit span: {} for URI: {}. Parent span: {}", span, uri, parent);
+            logger.trace("Created an HTTP exit span: {} for URI: {}. Parent span: {}", span, uri, activeContext);
         }
         return span;
     }

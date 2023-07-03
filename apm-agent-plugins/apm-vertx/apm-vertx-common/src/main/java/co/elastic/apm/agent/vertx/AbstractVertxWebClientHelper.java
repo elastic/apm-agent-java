@@ -50,7 +50,7 @@ public abstract class AbstractVertxWebClientHelper {
         }
     }
 
-    public void startSpan(ElasticContext<?> parent, HttpContext<?> httpContext, HttpClientRequest httpRequest) {
+    public void startSpan(ElasticContext<?> activeContext, HttpContext<?> httpContext, HttpClientRequest httpRequest) {
         Object existingSpanObj = httpContext.get(WEB_CLIENT_SPAN_KEY);
 
         AbstractSpan<?> propagateContextOf;
@@ -61,14 +61,14 @@ public abstract class AbstractVertxWebClientHelper {
             propagateContextOf = (Span<?>) existingSpanObj;
         } else {
             URI requestUri = URI.create(httpRequest.absoluteURI());
-            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, getMethod(httpRequest), requestUri, null);
+            Span<?> span = HttpClientHelper.startHttpClientSpan(activeContext, getMethod(httpRequest), requestUri, null);
 
             if (span != null) {
                 propagateContextOf = span;
                 span.incrementReferences();
                 httpContext.set(WEB_CLIENT_SPAN_KEY, span);
             } else {
-                propagateContextOf = parent.getSpan();
+                propagateContextOf = activeContext.getSpan();
             }
         }
         propagateContextOf.activate();

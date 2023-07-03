@@ -87,7 +87,7 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
     }
 
     @Test
-    public void testSpanFinishOnCallbackInvocation() throws Exception {
+    public void testSpanFinishOnEarlyException() throws Exception {
 
         client.close(); //this forces execute to immediately exit with an exception
 

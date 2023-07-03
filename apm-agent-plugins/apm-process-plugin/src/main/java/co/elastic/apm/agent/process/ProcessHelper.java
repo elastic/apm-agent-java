@@ -54,8 +54,8 @@ class ProcessHelper {
         return inTracingContext.get() == Boolean.TRUE;
     }
 
-    static void startProcess(ElasticContext<?> parentContext, Process process, List<String> command) {
-        INSTANCE.doStartProcess(parentContext, process, command.get(0));
+    static void startProcess(ElasticContext<?> activeContext, Process process, List<String> command) {
+        INSTANCE.doStartProcess(activeContext, process, command.get(0));
     }
 
     static void endProcess(@Nonnull Process process, boolean checkTerminatedProcess) {
@@ -69,15 +69,15 @@ class ProcessHelper {
     /**
      * Starts process span
      *
-     * @param parentContext parent context
+     * @param activeContext parent context
      * @param process       started process
      * @param processName   process name
      */
-    void doStartProcess(ElasticContext<?> parentContext, @Nonnull Process process, @Nonnull String processName) {
+    void doStartProcess(ElasticContext<?> activeContext, @Nonnull Process process, @Nonnull String processName) {
         if (inFlightSpans.contains(process)) {
             return;
         }
-        Span<?> span = parentContext.createSpan();
+        Span<?> span = activeContext.createSpan();
         if (span == null) {
             return;
         }

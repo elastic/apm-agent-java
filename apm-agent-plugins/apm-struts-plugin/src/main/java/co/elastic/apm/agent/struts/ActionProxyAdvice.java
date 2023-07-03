@@ -38,8 +38,8 @@ public class ActionProxyAdvice {
     @Nullable
     public static Object onEnterExecute(@Advice.This ActionProxy actionProxy) {
 
-        ElasticContext<?> parent = GlobalTracer.get().currentContext();
-        Transaction<?> transaction = parent.getTransaction();
+        ElasticContext<?> activeContext = GlobalTracer.get().currentContext();
+        Transaction<?> transaction = activeContext.getTransaction();
         if (transaction == null) {
             return null;
         }
@@ -47,7 +47,7 @@ public class ActionProxyAdvice {
         String className = actionProxy.getAction().getClass().getSimpleName();
         String methodName = actionProxy.getMethod();
         if (ActionContext.getContext().get("CHAIN_HISTORY") != null) {
-            Span<?> span = parent.createSpan().withType("app").withSubtype("internal");
+            Span<?> span = activeContext.createSpan().withType("app").withSubtype("internal");
             TransactionNameUtils.setNameFromClassAndMethod(className, methodName, span.getAndOverrideName(PRIORITY_HIGH_LEVEL_FRAMEWORK));
             return span.activate();
         } else {
