@@ -77,7 +77,7 @@ public class OTelContextStorage implements ContextStorage {
             return (Context) current;
         }
 
-        AbstractSpan<?> currentSpan = current.getAbstractSpan();
+        AbstractSpan<?> currentSpan = current.getSpan();
         if (currentSpan == null) {
             // OTel context without an active span is not supported yet
             return null;

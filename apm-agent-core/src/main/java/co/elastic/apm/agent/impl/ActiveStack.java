@@ -100,7 +100,7 @@ class ActiveStack {
         }
 
         context.incrementReferences();
-        AbstractSpan<?> span = context.getAbstractSpan();
+        AbstractSpan<?> span = context.getSpan();
         if (span != null) {
             triggerActivationListeners(span, true, activationListeners);
         }
@@ -125,7 +125,7 @@ class ActiveStack {
         try {
             assertIsActive(context, activeContext, assertionsEnabled);
 
-            AbstractSpan<?> span = context.getAbstractSpan();
+            AbstractSpan<?> span = context.getSpan();
             if (null != span) {
                 triggerActivationListeners(span, false, activationListeners);
             }

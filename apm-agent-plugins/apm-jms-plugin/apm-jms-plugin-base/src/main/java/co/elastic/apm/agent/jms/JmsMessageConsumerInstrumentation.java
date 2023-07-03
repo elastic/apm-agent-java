@@ -94,7 +94,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 boolean createPollingTransaction = false;
                 boolean createPollingSpan = false;
                 final ElasticContext<?> parent = tracer.currentContext();
-                final AbstractSpan<?> parentSpan = parent.getAbstractSpan();
+                final AbstractSpan<?> parentSpan = parent.getSpan();
                 if (parentSpan == null) {
                     createPollingTransaction = true;
                 } else {

@@ -403,7 +403,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
             assertThat(tracer.currentTransaction())
                 .describedAs("elastic transaction is preserved")
-                .isSameAs(tracer.currentContext().getAbstractSpan())
+                .isSameAs(tracer.currentContext().getSpan())
                 .isSameAs(transaction)
                 .describedAs("elastic transaction should still be active")
                 .isSameAs(tracer.getActive());
@@ -442,7 +442,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         assertThat(reporter.getFirstTransaction()).isSameAs(transaction);
 
         assertThat(reporter.getNumReportedSpans()).isEqualTo(1);
-        AbstractSpan<?> reportedSpan = reporter.getFirstSpan().getAbstractSpan();
+        AbstractSpan<?> reportedSpan = reporter.getFirstSpan().getSpan();
         assertThat(reportedSpan).isNotNull();
         assertThat(reportedSpan.getNameAsString()).isEqualTo("otel span");
         assertThat(reportedSpan.getTraceContext().getId().toString()).isEqualTo(spanId);
@@ -500,7 +500,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         assertThat(transaction.getNameAsString()).isEqualTo("otel transaction");
 
         assertThat(reporter.getNumReportedSpans()).isEqualTo(1);
-        AbstractSpan<?> reportedSpan = reporter.getFirstSpan().getAbstractSpan();
+        AbstractSpan<?> reportedSpan = reporter.getFirstSpan().getSpan();
         assertThat(reportedSpan).isNotNull();
         assertThat(reportedSpan.getNameAsString()).isEqualTo("elastic span");
         assertThat(reportedSpan.getTraceContext().isChildOf(transaction.getTraceContext())).isTrue();

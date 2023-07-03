@@ -803,7 +803,7 @@ public class ElasticApmTracer implements Tracer {
     @Nullable
     @Override
     public AbstractSpan<?> getActive() {
-        return currentContext().getAbstractSpan();
+        return currentContext().getSpan();
     }
 
     /**

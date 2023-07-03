@@ -28,33 +28,33 @@ import javax.annotation.Nullable;
 public abstract class ElasticContext<T extends ElasticContext<T>> implements co.elastic.apm.agent.tracer.ElasticContext<T> {
 
     @Nullable
-    public abstract AbstractSpan<?> getAbstractSpan();
+    public abstract AbstractSpan<?> getSpan();
 
     /**
      * @return transaction associated to this context, {@literal null} if there is none
      */
     @Nullable
     public final Transaction getTransaction() {
-        AbstractSpan<?> contextSpan = getAbstractSpan();
+        AbstractSpan<?> contextSpan = getSpan();
         return contextSpan != null ? contextSpan.getParentTransaction() : null;
     }
 
     @Nullable
     @Override
     public co.elastic.apm.agent.impl.transaction.Span createSpan() {
-        AbstractSpan<?> contextSpan = getAbstractSpan();
+        AbstractSpan<?> contextSpan = getSpan();
         return contextSpan != null ? contextSpan.createSpan() : null;
     }
 
     @Nullable
     @Override
     public co.elastic.apm.agent.impl.transaction.Span createExitSpan() {
-        AbstractSpan<?> contextSpan = getAbstractSpan();
+        AbstractSpan<?> contextSpan = getSpan();
         return contextSpan != null ? contextSpan.createExitSpan() : null;
     }
 
     public boolean isEmpty() {
-        return getAbstractSpan() == null && !containsBaggage();
+        return getSpan() == null && !containsBaggage();
     }
 
     //TODO: make abstract and implement correctly in subclasses
@@ -64,7 +64,7 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
 
     @Override
     public final <C> boolean propagateContext(C carrier, BinaryHeaderSetter<C> headerSetter) {
-        AbstractSpan<?> contextSpan = getAbstractSpan();
+        AbstractSpan<?> contextSpan = getSpan();
         if (contextSpan != null) {
             contextSpan.setNonDiscardable();
             return contextSpan.getTraceContext().propagateTraceContext(carrier, headerSetter);
@@ -79,7 +79,7 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
 
     @Override
     public <C1, C2> void propagateContext(C1 carrier, TextHeaderSetter<C1> headerSetter, @Nullable C2 carrier2, @Nullable TextHeaderGetter<C2> headerGetter) {
-        AbstractSpan<?> contextSpan = getAbstractSpan();
+        AbstractSpan<?> contextSpan = getSpan();
         if (contextSpan != null) {
             if (headerGetter == null || carrier2 == null || !HeaderUtils.containsAny(TraceContext.TRACE_TEXTUAL_HEADERS, carrier2, headerGetter)) {
                 contextSpan.setNonDiscardable();
@@ -90,7 +90,7 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
 
     @Override
     public <C> boolean isPropagationRequired(C carrier, TextHeaderGetter<C> headerGetter) {
-        AbstractSpan<?> contextSpan = getAbstractSpan();
+        AbstractSpan<?> contextSpan = getSpan();
         return contextSpan != null && !HeaderUtils.containsAny(TraceContext.TRACE_TEXTUAL_HEADERS, carrier, headerGetter);
     }
 

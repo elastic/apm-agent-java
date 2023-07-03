@@ -114,8 +114,8 @@ public class ElasticContextWrapper<T extends ElasticContext<T>> extends ElasticC
 
     @Override
     @Nullable
-    public AbstractSpan<?> getAbstractSpan() {
-        return context.getAbstractSpan();
+    public AbstractSpan<?> getSpan() {
+        return context.getSpan();
     }
 
 

@@ -59,7 +59,7 @@ public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
                                   @Advice.Thrown @Nullable Throwable t) {
 
             ElasticContext<?> parent = tracer.currentContext();
-            AbstractSpan<?> parentSpan = parent.getAbstractSpan();
+            AbstractSpan<?> parentSpan = parent.getSpan();
             if (parentSpan == null) {
                 return;
             }

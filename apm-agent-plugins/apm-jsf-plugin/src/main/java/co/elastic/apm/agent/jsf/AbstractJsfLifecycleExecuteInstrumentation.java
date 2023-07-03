@@ -47,8 +47,8 @@ public abstract class AbstractJsfLifecycleExecuteInstrumentation extends Abstrac
         @Nullable
         protected static Object createAndActivateSpan(boolean withExternalContext, @Nullable String requestServletPath, @Nullable String requestPathInfo) {
             final ElasticContext<?> parent = tracer.currentContext();
-            if (parent.getAbstractSpan() instanceof Span<?>) {
-                Span<?> parentSpan = (Span<?>) parent.getAbstractSpan();
+            if (parent.getSpan() instanceof Span<?>) {
+                Span<?> parentSpan = (Span<?>) parent.getSpan();
                 if (SPAN_SUBTYPE.equals(parentSpan.getSubtype()) && SPAN_ACTION.equals(parentSpan.getAction())) {
                     return null;
                 }

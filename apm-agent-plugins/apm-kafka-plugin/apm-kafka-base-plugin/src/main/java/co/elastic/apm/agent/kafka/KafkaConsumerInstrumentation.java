@@ -64,7 +64,7 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void pollStart() {
             final ElasticContext<?> parent = tracer.currentContext();
-            final AbstractSpan<?> activeSpan = parent.getAbstractSpan();
+            final AbstractSpan<?> activeSpan = parent.getSpan();
             if (activeSpan == null) {
                 return;
             }

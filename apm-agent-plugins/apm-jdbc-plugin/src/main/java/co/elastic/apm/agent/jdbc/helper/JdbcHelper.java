@@ -83,7 +83,7 @@ public class JdbcHelper {
 
     @Nullable
     public Span<?> createJdbcSpan(@Nullable String sql, Object statement, ElasticContext<?> parent, boolean preparedStatement) {
-        if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(parent.getAbstractSpan())) {
+        if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(parent.getSpan())) {
             return null;
         }
 

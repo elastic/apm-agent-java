@@ -118,7 +118,7 @@ public class OTelBridgeContext extends ElasticContext<OTelBridgeContext> impleme
 
     @Nullable
     @Override
-    public AbstractSpan<?> getAbstractSpan() {
+    public AbstractSpan<?> getSpan() {
         // get otel span from context
         Span span = Span.fromContext(otelContext);
         if (span instanceof OTelSpan) {

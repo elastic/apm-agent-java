@@ -68,7 +68,7 @@ public abstract class AbstractVertxWebClientHelper {
                 span.incrementReferences();
                 httpContext.set(WEB_CLIENT_SPAN_KEY, span);
             } else {
-                propagateContextOf = parent.getAbstractSpan();
+                propagateContextOf = parent.getSpan();
             }
         }
         propagateContextOf.activate();

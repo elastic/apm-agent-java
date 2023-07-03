@@ -120,7 +120,7 @@ public abstract class ServletApiAdvice {
             ret = transaction;
         } else if (!adapter.isAsyncDispatcherType(httpServletRequest) && coreConfig.isInstrumentationEnabled(Constants.SERVLET_API_DISPATCH)) {
             final ElasticContext<?> parent = tracer.currentContext();
-            final AbstractSpan<?> parentSpan = parent.getAbstractSpan();
+            final AbstractSpan<?> parentSpan = parent.getSpan();
             if (parentSpan != null) {
                 Object servletPath = null;
                 Object pathInfo = null;

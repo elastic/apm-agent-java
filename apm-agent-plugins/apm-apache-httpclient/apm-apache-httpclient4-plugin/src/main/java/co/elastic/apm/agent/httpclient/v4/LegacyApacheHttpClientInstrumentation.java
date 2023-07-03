@@ -81,7 +81,7 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                                              @Advice.Argument(1) HttpRequest request) {
             final ElasticContext<?> parent = tracer.currentContext();
             Span<?> span = null;
-            if (parent.getAbstractSpan() != null) {
+            if (parent.getSpan() != null) {
                 String hostName = (host != null) ? host.getHostName() : null;
                 String method;
                 URI uri = null;
