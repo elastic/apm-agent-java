@@ -57,7 +57,7 @@
         </dependency>
         <dependency>
             <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-jms-plugin-base</artifactId>
+            <artifactId>apm-jms-javax</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

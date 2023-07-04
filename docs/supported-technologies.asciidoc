@@ -442,7 +442,7 @@ same trace.
 |JMS
 |1.1, 2.0
 |The agent captures JMS sends and receives as spans/transactions
-|`javax.jms` since 1.13.0, `jakarta.jms` since 1.28.0
+|`javax.jms` since 1.13.0, `jakarta.jms` since 1.40.0
 
 |Kafka
 | <0.11.0 - without distributed tracing; 0.11.0+ - full support

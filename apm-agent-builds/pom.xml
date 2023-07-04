@@ -164,7 +164,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jms-plugin-base</artifactId>
+            <artifactId>apm-jms-javax</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jms-jakarta</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

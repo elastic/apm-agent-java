@@ -9,36 +9,37 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>apm-jms-jakarta-test</artifactId>
+    <artifactId>apm-jms-javax</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
-        <artemis.version>2.29.0</artemis.version>
+        <activemq.version>5.15.9</activemq.version>
+        <artemis.version>2.8.1</artemis.version>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>jakarta.jms</groupId>
-            <artifactId>jakarta.jms-api</artifactId>
-            <version>3.1.0</version>
+            <groupId>javax.jms</groupId>
+            <artifactId>javax.jms-api</artifactId>
+            <version>2.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.activemq</groupId>
+            <artifactId>activemq-broker</artifactId>
+            <version>${activemq.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.activemq</groupId>
-            <artifactId>artemis-core-client</artifactId>
+            <artifactId>artemis-jms-client</artifactId>
             <version>${artemis.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.activemq</groupId>
-            <artifactId>artemis-jakarta-client</artifactId>
-            <version>${artemis.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.activemq</groupId>
-            <artifactId>artemis-jakarta-server</artifactId>
+            <artifactId>artemis-jms-server</artifactId>
             <version>${artemis.version}</version>
             <scope>test</scope>
         </dependency>
@@ -46,13 +47,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-jms-plugin-base</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>javax.json</groupId>
-            <artifactId>javax.json-api</artifactId>
-            <version>1.1.4</version>
         </dependency>
     </dependencies>
-
 </project>

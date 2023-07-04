@@ -20,7 +20,8 @@
     <modules>
         <module>apm-jms-plugin-base</module>
         <module>apm-jms-spring-plugin</module>
-        <module>apm-jms-jakarta-test</module>
+        <module>apm-jms-jakarta</module>
+        <module>apm-jms-javax</module>
     </modules>
 
 </project>

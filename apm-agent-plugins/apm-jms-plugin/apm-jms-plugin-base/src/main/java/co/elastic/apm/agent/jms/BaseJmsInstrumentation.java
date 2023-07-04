@@ -98,12 +98,10 @@ public abstract class BaseJmsInstrumentation extends TracerAwareInstrumentation 
 
     protected static class BaseAdvice {
 
-//        protected static final MessagingConfiguration messagingConfiguration;
         protected static final CoreConfiguration coreConfiguration;
 
         static {
             Tracer tracer = GlobalTracer.get();
-//            messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
             coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         }
     }

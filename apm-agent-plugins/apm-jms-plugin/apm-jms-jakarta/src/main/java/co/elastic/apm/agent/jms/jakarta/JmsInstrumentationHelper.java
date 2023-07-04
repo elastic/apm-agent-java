@@ -77,7 +77,7 @@ public class JmsInstrumentationHelper extends co.elastic.apm.agent.jms.JmsInstru
     public String extractDestinationName(@Nullable Message message, Destination destination) {
         String destinationName = null;
         if (message != null) {
-            destinationName = JmsMessagePropertyAccessor.instance().getFirstHeader(JMS_DESTINATION_NAME_PROPERTY, message);
+            destinationName = JmsMessagePropertyAccessor.instance().getFirstHeader(JmsInstrumentationHelper.JMS_DESTINATION_NAME_PROPERTY, message);
         }
         if (destinationName == null) {
             try {
@@ -97,7 +97,7 @@ public class JmsInstrumentationHelper extends co.elastic.apm.agent.jms.JmsInstru
     public boolean isTempDestination(Destination destination, @Nullable String extractedDestinationName) {
         return destination instanceof TemporaryQueue
             || destination instanceof TemporaryTopic
-            || (extractedDestinationName != null && extractedDestinationName.startsWith(TIBCO_TMP_QUEUE_PREFIX));
+            || (extractedDestinationName != null && extractedDestinationName.startsWith(JmsInstrumentationHelper.TIBCO_TMP_QUEUE_PREFIX));
     }
 
     @Override

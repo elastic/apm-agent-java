@@ -381,8 +381,8 @@ public abstract class JmsInstrumentationHelper<DESTINATION, MESSAGE, MESSAGELIST
         // Create a transaction - even if running on same JVM as the sender
         Transaction<?> transaction = startJmsTransaction(message, clazz);
         if (transaction != null) {
-            transaction.withType(co.elastic.apm.agent.jms.javax.JmsInstrumentationHelper.MESSAGING_TYPE)
-                .withName(co.elastic.apm.agent.jms.javax.JmsInstrumentationHelper.RECEIVE_NAME_PREFIX);
+            transaction.withType(MESSAGING_TYPE)
+                .withName(RECEIVE_NAME_PREFIX);
 
             if (destinationName != null) {
                 addDestinationDetails(destination, destinationName, transaction.appendToName(" from "));

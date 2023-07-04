@@ -1,8 +1,3 @@
-co.elastic.apm.agent.jms.javax.JmsMessageProducerInstrumentation$JmsMessageProducerNoDestinationInstrumentation
-co.elastic.apm.agent.jms.javax.JmsMessageProducerInstrumentation$JmsMessageProducerWithDestinationInstrumentation
-co.elastic.apm.agent.jms.javax.JmsMessageConsumerInstrumentation$ReceiveInstrumentation
-co.elastic.apm.agent.jms.javax.JmsMessageConsumerInstrumentation$SetMessageListenerInstrumentation
-co.elastic.apm.agent.jms.javax.JmsMessageListenerInstrumentation
 co.elastic.apm.agent.jms.jakarta.JmsMessageProducerInstrumentation$JmsMessageProducerNoDestinationInstrumentation
 co.elastic.apm.agent.jms.jakarta.JmsMessageProducerInstrumentation$JmsMessageProducerWithDestinationInstrumentation
 co.elastic.apm.agent.jms.jakarta.JmsMessageConsumerInstrumentation$ReceiveInstrumentation
