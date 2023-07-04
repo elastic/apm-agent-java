@@ -23,8 +23,8 @@
  * <p>
  * Capturing of sending event is trivial- can only be traced as a span within a traced transaction.
  * Receive events are a bit trickier. Message receive can be passive (i.e. listening, for example through the
- * {@link javax.jms.MessageListener#onMessage(javax.jms.Message)}/{@link jakarta.jms.MessageListener#onMessage(jakarta.jms.Message)} API) or active (i.e. polling, for example through the
- * {@link javax.jms.MessageConsumer#receive()}/{@link jakarta.jms.MessageConsumer#receive()} API).
+ * {@link jakarta.jms.MessageListener#onMessage(jakarta.jms.Message)} API) or active (i.e. polling, for example through the
+ * {@link jakarta.jms.MessageConsumer#receive()} API).
  * <p>
  * Passive listening is easy to trace, as the API is natural for this purpose- its start marks the interesting start
  * event, where the Message is provided with required metadata, and its end marks the interesting end event.
@@ -43,6 +43,6 @@
  * to hide so to avoid name explosion.
  */
 @NonnullApi
-package co.elastic.apm.agent.jms;
+package co.elastic.apm.agent.jms.jakarta;
 
 import co.elastic.apm.agent.sdk.NonnullApi;
