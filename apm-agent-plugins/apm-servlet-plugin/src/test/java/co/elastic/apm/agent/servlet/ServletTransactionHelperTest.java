@@ -126,6 +126,8 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
                 // limit case where the pathInfo contains the request path, the servlet path should be empty
                 assertThat(servletTransactionHelper.normalizeServletPath("/request/uri", null, servletPath, "/request/uri")).isEqualTo("");
                 assertThat(servletTransactionHelper.normalizeServletPath("/request/uri", "", servletPath, "/request/uri")).isEqualTo("");
+                assertThat(servletTransactionHelper.normalizeServletPath("/context/request/uri", "/context", servletPath, "/context/request/uri")).isEqualTo("");
+
 
             }
         );
