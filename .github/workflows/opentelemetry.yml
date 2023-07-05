@@ -9,6 +9,7 @@ on:
       - snapshot
       - Snapshoty
       - updatecli
+      - microbenchmark
     types: [completed]
 
 jobs:
