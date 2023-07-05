@@ -22,13 +22,12 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.testutils.TestPort;
+import co.elastic.apm.agent.test.TestPort;
+import co.elastic.apm.agent.tracer.Outcome;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -126,11 +125,13 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
 
         // transaction on the receiving side
         reporter.awaitTransactionCount(1);
-        validateDubboTransaction(reporter.getFirstTransaction(), DubboTestApi.class, "normalReturn");
+        Transaction transaction = reporter.getFirstTransaction();
+        validateDubboTransaction(transaction, "normalReturn");
 
         // span on the emitting side (outgoing from this method)
         reporter.awaitSpanCount(1);
-        validateDubboSpan(reporter.getFirstSpan(), DubboTestApi.class, "normalReturn", port);
+        Span span = validateDubboSpan(reporter.getFirstSpan(), "normalReturn");
+        assertThat(span).isSync();
 
         List<ErrorCapture> errors = reporter.getErrors();
         assertThat(errors.size()).isEqualTo(0);
@@ -143,19 +144,17 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
             dubboTestApi.throwBizException("bizException-arg1");
         } catch (Exception e) {
             // do nothing
-            assertThat(e instanceof BizException).isTrue();
+            assertThat(e).isInstanceOf(BizException.class);
         }
 
         List<ErrorCapture> errors = reporter.getErrors();
-        assertThat(errors.size()).isEqualTo(2);
+        assertThat(errors).hasSize(2);
         for (ErrorCapture error : errors) {
-            Throwable t = error.getException();
-            assertThat(t instanceof BizException).isTrue();
+            assertThat(error.getException()).isInstanceOf(BizException.class);
         }
 
         assertThat(reporter.getNumReportedSpans()).isEqualTo(1);
-        Span span = reporter.getFirstSpan();
-        assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
+        assertThat(reporter.getFirstSpan()).hasOutcome(Outcome.FAILURE);
     }
 
     @Test
@@ -167,6 +166,8 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         assertThat(reporter.getFirstSpan(5000)).isNotNull();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(2);
+
+        assertThat(reporter.getSpanByName("DubboTestApi#asyncNoReturn")).isAsync();
     }
 
     @Test
@@ -180,25 +181,26 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         assertThat(reporter.getSpans()).hasSize(2);
         List<ErrorCapture> errors = reporter.getErrors();
         assertThat(errors).hasSize(1);
-        assertThat(errors.get(0).getException() instanceof BizException).isTrue();
+        assertThat(errors.get(0).getException()).isInstanceOf(BizException.class);
+
+        assertThat(reporter.getSpanByName("DubboTestApi#asyncNoReturn")).isAsync();
     }
 
-    public void validateDubboTransaction(Transaction transaction, Class<?> apiClass, String methodName) {
-        assertThat(transaction.getNameAsString()).isEqualTo(getDubboName(apiClass, methodName));
-        assertThat(transaction.getType()).isEqualTo("request");
+    public void validateDubboTransaction(Transaction transaction, String methodName) {
+        assertThat(transaction)
+            .hasType("request")
+            .hasName("DubboTestApi#" + methodName);
     }
 
-    protected static String getDubboName(Class<?> apiClass, String methodName) {
-        return apiClass.getSimpleName() + "#" + methodName;
-    }
+    public static Span validateDubboSpan(Span span, String methodName) {
+        assertThat(span)
+            .hasName("DubboTestApi#" + methodName)
+            .hasType("external")
+            .hasSubType("dubbo");
 
-    public static void validateDubboSpan(Span span, Class<?> apiClass, String methodName, int port) {
-        assertThat(span.getNameAsString()).isEqualTo(getDubboName(apiClass, methodName));
-        assertThat(span.getType()).isEqualTo("external");
-        assertThat(span.getSubtype()).isEqualTo("dubbo");
-        Destination destination = span.getContext().getDestination();
-        assertThat(destination.getAddress().toString()).isIn("localhost", "127.0.0.1");
-        assertThat(destination.getPort()).isEqualTo(port);
+        assertThat(span.getContext().getDestination())
+            .hasLocalAddress()
+            .hasPort(port);
 
         assertThat(span.getContext().getServiceTarget())
             .hasType("dubbo")
@@ -208,6 +210,8 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         assertThat(span.getOutcome())
             .describedAs("span outcome should be known")
             .isNotEqualTo(Outcome.UNKNOWN);
+
+        return span;
     }
 
     @Test

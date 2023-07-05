@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.matcher;
 
-import co.elastic.apm.agent.configuration.converter.ListValueConverter;
+import co.elastic.apm.agent.tracer.configuration.ListValueConverter;
 import org.stagemonitor.configuration.converter.ValueConverter;
 
-import static co.elastic.apm.agent.configuration.converter.ListValueConverter.COMMA_OUT_OF_BRACKETS;
+import static co.elastic.apm.agent.tracer.configuration.ListValueConverter.COMMA_OUT_OF_BRACKETS;
 
 public enum MethodMatcherValueConverter implements ValueConverter<MethodMatcher> {
     INSTANCE;

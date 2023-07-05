@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.httpserver;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.tracer.metadata.Request;
@@ -69,10 +69,10 @@ public class HttpHandlerAdvice {
         TransactionNameUtils.setNameFromHttpRequestPath(
             exchange.getRequestMethod(),
             exchange.getRequestURI().getPath(),
-            transaction.getAndOverrideName(AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK),
+            transaction.getAndOverrideName(AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEWORK),
             webConfiguration.getUrlGroups());
 
-        transaction.withType(co.elastic.apm.agent.impl.transaction.Transaction.TYPE_REQUEST)
+        transaction.withType(Transaction.TYPE_REQUEST)
             .setFrameworkName("JDK HTTP Server");
 
         Request request = transaction.getContext().getRequest();

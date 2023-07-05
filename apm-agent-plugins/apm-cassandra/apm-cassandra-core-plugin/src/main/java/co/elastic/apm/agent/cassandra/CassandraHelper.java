@@ -34,6 +34,16 @@ public class CassandraHelper {
         this.tracer = tracer;
     }
 
+    private static final ThreadLocal<Boolean> isSync = new ThreadLocal<Boolean>();
+
+    public static void inSyncExecute(boolean sync) {
+        isSync.set(sync);
+    }
+
+    public static boolean isSyncExecute() {
+        return isSync.get().booleanValue();
+    }
+
     @Nullable
     public Span<?> startCassandraSpan(@Nullable String query, boolean preparedStatement, @Nullable String keyspace) {
         AbstractSpan<?> active = tracer.getActive();
@@ -52,11 +62,11 @@ public class CassandraHelper {
             .withStatement(query)
             .withInstance(keyspace);
 
-        StringBuilder name = span.getAndOverrideName(co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT);
+        StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIORITY_DEFAULT);
         if (query != null && name != null) {
             signatureParser.querySignature(query, name, preparedStatement);
         }
-        span.withName(CASSANDRA, co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT - 1);
+        span.withName(CASSANDRA, AbstractSpan.PRIORITY_DEFAULT - 1);
 
         span.getContext().getServiceTarget()
             .withType(CASSANDRA)

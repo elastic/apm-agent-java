@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
@@ -42,9 +42,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_DEFAULT;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.EventType.OFF;
 
 public class ServletTransactionHelper {
 
@@ -267,9 +267,9 @@ public class ServletTransactionHelper {
         // JSPs don't contain path params and the name is more telling than the generated servlet class
         if (webConfiguration.isUsePathAsName() || ENDS_WITH_JSP.matches(servletPath, pathInfo)) {
             // should override ServletName#doGet
-            TransactionNameUtils.setNameFromHttpRequestPath(method, servletPath, pathInfo, transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1), webConfiguration.getUrlGroups());
+            TransactionNameUtils.setNameFromHttpRequestPath(method, servletPath, pathInfo, transaction.getAndOverrideName(PRIORITY_LOW_LEVEL_FRAMEWORK + 1), webConfiguration.getUrlGroups());
         } else {
-            TransactionNameUtils.setNameUnknownRoute(method, transaction.getAndOverrideName(PRIO_DEFAULT));
+            TransactionNameUtils.setNameUnknownRoute(method, transaction.getAndOverrideName(PRIORITY_DEFAULT));
         }
     }
 

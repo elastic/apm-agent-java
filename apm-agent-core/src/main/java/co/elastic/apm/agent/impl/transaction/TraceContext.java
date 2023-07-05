@@ -35,7 +35,10 @@ import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * This is an implementation of the
@@ -82,7 +85,6 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
     private static final int TEXT_HEADER_PARENT_ID_OFFSET = 36;
     private static final int TEXT_HEADER_FLAGS_OFFSET = 53;
 
-    public static final String TRACE_PARENT_BINARY_HEADER_NAME = "elasticapmtraceparent";
     public static final int BINARY_FORMAT_EXPECTED_LENGTH = 29;
     private static final byte BINARY_FORMAT_CURRENT_VERSION = (byte) 0b0000_0000;
     // one byte for the trace-id field id (0x00), followed by 16 bytes of the actual ID
@@ -97,6 +99,16 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
     private static final Logger logger = LoggerFactory.getLogger(TraceContext.class);
 
     private static final Double SAMPLE_RATE_ZERO = 0d;
+
+    public static final Set<String> TRACE_TEXTUAL_HEADERS;
+
+    static {
+        Set<String> traceParentTextualHeaders = new HashSet<>();
+        traceParentTextualHeaders.add(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME);
+        traceParentTextualHeaders.add(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME);
+        traceParentTextualHeaders.add(TRACESTATE_HEADER_NAME);
+        TRACE_TEXTUAL_HEADERS = Collections.unmodifiableSet(traceParentTextualHeaders);
+    }
 
     private static final ChildContextCreator<TraceContext> FROM_PARENT_CONTEXT = new ChildContextCreator<TraceContext>() {
         @Override
@@ -157,7 +169,7 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
                 if (carrier == null) {
                     return false;
                 }
-                byte[] traceparent = traceContextHeaderGetter.getFirstHeader(TRACE_PARENT_BINARY_HEADER_NAME, carrier);
+                byte[] traceparent = traceContextHeaderGetter.getFirstHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
                 if (traceparent != null) {
                     return child.asChildOf(traceparent);
                 }
@@ -184,6 +196,7 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
 
 
     public static <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter) {
+        // We assume that this header is always present if we found any of the other headers.
         return headerGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier) != null;
     }
 
@@ -191,7 +204,6 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
         headerRemover.remove(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
         headerRemover.remove(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
         headerRemover.remove(TRACESTATE_HEADER_NAME, carrier);
-        headerRemover.remove(TRACE_PARENT_BINARY_HEADER_NAME, carrier);
     }
 
     public static <S, D> void copyTraceContextTextHeaders(S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
@@ -576,7 +588,7 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
             logger.debug("Outgoing TraceContext header injection is disabled");
             return false;
         }
-        byte[] buffer = headerSetter.getFixedLengthByteArray(TRACE_PARENT_BINARY_HEADER_NAME, BINARY_FORMAT_EXPECTED_LENGTH);
+        byte[] buffer = headerSetter.getFixedLengthByteArray(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, BINARY_FORMAT_EXPECTED_LENGTH);
         if (buffer == null || buffer.length != BINARY_FORMAT_EXPECTED_LENGTH) {
             logger.warn("Header setter {} failed to provide a byte buffer with the proper length. Allocating a buffer for each header.",
                 headerSetter.getClass().getName());
@@ -584,7 +596,7 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
         }
         boolean headerBufferFilled = fillOutgoingTraceParentBinaryHeader(buffer);
         if (headerBufferFilled) {
-            headerSetter.setHeader(TRACE_PARENT_BINARY_HEADER_NAME, buffer, carrier);
+            headerSetter.setHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, buffer, carrier);
         }
         return headerBufferFilled;
     }

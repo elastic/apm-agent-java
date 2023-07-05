@@ -20,10 +20,9 @@ package co.elastic.apm.agent.awssdk.v1;
 
 import co.elastic.apm.agent.awssdk.common.AbstractSQSClientIT;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
@@ -78,20 +77,37 @@ public class SQSClientIT extends AbstractSQSClientIT {
     public void testSQSClient() {
         Transaction transaction = startTestRootTransaction("sqs-test");
 
-        executeTest("CreateQueue", SQS_QUEUE_NAME, () -> sqs.createQueue(SQS_QUEUE_NAME),
-            messagingAssert);
-        executeTest("ListQueues", null, () -> sqs.listQueues());
-        final StringBuilder queueUrl = new StringBuilder();
-        executeTest("GetQueueUrl", SQS_QUEUE_NAME, () ->
-                queueUrl.append(sqs.getQueueUrl(SQS_QUEUE_NAME).getQueueUrl()),
-            messagingAssert);
+        newTest(() -> sqs.createQueue(SQS_QUEUE_NAME))
+            .operationName("CreateQueue")
+            .entityName(SQS_QUEUE_NAME)
+            .action("CreateQueue")
+            .withSpanAssertions(messagingAssert)
+            .execute();
 
-        executeTest("SEND to", "send", SQS_QUEUE_NAME, () -> sqs.sendMessage(
-            new SendMessageRequest(queueUrl.toString(), MESSAGE_BODY)),
-            messagingAssert);
+        newTest(() -> sqs.listQueues())
+            .operationName("ListQueues")
+            .execute();
+
+        final StringBuilder queueUrl = new StringBuilder();
+
+        newTest(() -> queueUrl.append(sqs.getQueueUrl(SQS_QUEUE_NAME).getQueueUrl()))
+            .operationName("GetQueueUrl")
+            .entityName(SQS_QUEUE_NAME)
+            .action("GetQueueUrl")
+            .withSpanAssertions(messagingAssert)
+            .execute();
+
+        newTest(() -> sqs.sendMessage(
+            new SendMessageRequest(queueUrl.toString(), MESSAGE_BODY)))
+            .operationName("SEND to")
+            .entityName(SQS_QUEUE_NAME)
+            .action("send")
+            .withSpanAssertions(messagingAssert)
+            .execute();
 
         final StringBuilder receiptHandle = new StringBuilder();
-        executeTest("POLL from", "poll", SQS_QUEUE_NAME, () -> {
+
+        newTest(() -> {
             ReceiveMessageResult result = sqs.receiveMessage(queueUrl.toString());
             assertThat(result.getMessages().size()).isEqualTo(1);
             Message message = result.getMessages().get(0);
@@ -99,21 +115,40 @@ public class SQSClientIT extends AbstractSQSClientIT {
             assertThat(message.getMessageAttributes()).containsKey("tracestate");
             receiptHandle.append(message.getReceiptHandle());
             return result;
-        }, messagingAssert);
+        })
+            .operationName("POLL from")
+            .entityName(SQS_QUEUE_NAME)
+            .action("poll")
+            .withSpanAssertions(messagingAssert)
+            .execute();
 
         List<SendMessageBatchRequestEntry> batchMessages = new ArrayList<>();
         batchMessages.add(new SendMessageBatchRequestEntry("first", MESSAGE_BODY));
         batchMessages.add(new SendMessageBatchRequestEntry("second", MESSAGE_BODY));
-        executeTest("SEND_BATCH to", "send_batch", SQS_QUEUE_NAME, () -> sqs.sendMessageBatch(queueUrl.toString(), batchMessages),
-            messagingAssert);
 
-        executeTest("DELETE from", "delete", SQS_QUEUE_NAME, () -> sqs.deleteMessage(queueUrl.toString(), receiptHandle.toString()),
-            messagingAssert);
+        newTest(() -> sqs.sendMessageBatch(queueUrl.toString(), batchMessages))
+            .operationName("SEND_BATCH to")
+            .entityName(SQS_QUEUE_NAME)
+            .action("send_batch")
+            .withSpanAssertions(messagingAssert)
+            .execute();
 
-        executeTest("DeleteQueue", SQS_QUEUE_NAME, () -> sqs.deleteQueue(queueUrl.toString()),
-            messagingAssert);
+        newTest(() -> sqs.deleteMessage(queueUrl.toString(), receiptHandle.toString()))
+            .operationName("DELETE from")
+            .entityName(SQS_QUEUE_NAME)
+            .action("delete")
+            .withSpanAssertions(messagingAssert)
+            .execute();
 
-        assertThat(reporter.getSpans()).allMatch(AbstractSpan::isSync);
+        newTest(() -> sqs.deleteQueue(queueUrl.toString()))
+            .operationName("DeleteQueue")
+            .entityName(SQS_QUEUE_NAME)
+            .action("DeleteQueue")
+            .withSpanAssertions(messagingAssert)
+            .execute();
+
+        assertThat(reporter.getSpans()).hasSize(8);
+
         transaction.deactivate().end();
     }
 
@@ -121,28 +156,51 @@ public class SQSClientIT extends AbstractSQSClientIT {
     public void testAsyncSQSClient() {
         Transaction transaction = startTestRootTransaction("sqs-test");
 
-        executeTest("CreateQueue", SQS_QUEUE_NAME, () -> sqsAsync.createQueueAsync(SQS_QUEUE_NAME),
-            messagingAssert);
-        executeTest("ListQueues", null, () -> sqsAsync.listQueuesAsync());
-        final StringBuilder queueUrl = new StringBuilder();
-        executeTest("GetQueueUrl", SQS_QUEUE_NAME, () ->
-            {
-                try {
-                    return queueUrl.append(sqsAsync.getQueueUrlAsync(SQS_QUEUE_NAME).get().getQueueUrl());
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            },
-            messagingAssert);
+        newTest(() -> sqsAsync.createQueueAsync(SQS_QUEUE_NAME))
+            .operationName("CreateQueue")
+            .entityName(SQS_QUEUE_NAME)
+            .action("CreateQueue")
+            .withSpanAssertions(messagingAssert)
+            .async()
+            .execute();
 
-        executeTest("SEND to", "send", SQS_QUEUE_NAME, () -> sqsAsync.sendMessageAsync(
+        newTest(() -> sqsAsync.listQueuesAsync())
+            .operationName("ListQueues")
+            .async()
+            .execute();
+
+        final StringBuilder queueUrl = new StringBuilder();
+
+        newTest(() -> {
+            try {
+                return queueUrl.append(sqsAsync.getQueueUrlAsync(SQS_QUEUE_NAME).get().getQueueUrl());
+            } catch (Exception e1) {
+                throw new RuntimeException(e1);
+            }
+        })
+            .operationName("GetQueueUrl")
+            .entityName(SQS_QUEUE_NAME)
+            .action("GetQueueUrl")
+            .withSpanAssertions(messagingAssert)
+            .async()
+            .execute();
+
+        //.addMessageAttributesEntry("myKey", new MessageAttributeValue().withDataType("String").withStringValue("myValue"))
+
+        newTest(() -> sqsAsync.sendMessageAsync(
             new SendMessageRequest(queueUrl.toString(), MESSAGE_BODY)
             //.addMessageAttributesEntry("myKey", new MessageAttributeValue().withDataType("String").withStringValue("myValue"))
-            ),
-            messagingAssert);
+        ))
+            .operationName("SEND to")
+            .entityName(SQS_QUEUE_NAME)
+            .action("send")
+            .withSpanAssertions(messagingAssert)
+            .async()
+            .execute();
 
         final StringBuilder receiptHandle = new StringBuilder();
-        executeTest("POLL from", "poll", SQS_QUEUE_NAME, () -> {
+
+        newTest(() -> {
             ReceiveMessageResult result;
             try {
                 result = sqsAsync.receiveMessageAsync(queueUrl.toString()).get();
@@ -155,21 +213,44 @@ public class SQSClientIT extends AbstractSQSClientIT {
             assertThat(message.getMessageAttributes()).containsKey("tracestate");
             receiptHandle.append(message.getReceiptHandle());
             return result;
-        }, messagingAssert);
+        })
+            .operationName("POLL from")
+            .entityName(SQS_QUEUE_NAME)
+            .action("poll")
+            .withSpanAssertions(messagingAssert)
+            .async()
+            .execute();
 
         List<SendMessageBatchRequestEntry> batchMessages = new ArrayList<>();
         batchMessages.add(new SendMessageBatchRequestEntry("first", MESSAGE_BODY));
         batchMessages.add(new SendMessageBatchRequestEntry("second", MESSAGE_BODY));
-        executeTest("SEND_BATCH to", "send_batch", SQS_QUEUE_NAME, () -> sqsAsync.sendMessageBatchAsync(queueUrl.toString(), batchMessages),
-            messagingAssert);
 
-        executeTest("DELETE from", "delete", SQS_QUEUE_NAME, () -> sqsAsync.deleteMessageAsync(queueUrl.toString(), receiptHandle.toString()),
-            messagingAssert);
+        newTest(() -> sqsAsync.sendMessageBatchAsync(queueUrl.toString(), batchMessages))
+            .operationName("SEND_BATCH to")
+            .entityName(SQS_QUEUE_NAME)
+            .action("send_batch")
+            .withSpanAssertions(messagingAssert)
+            .async()
+            .execute();
 
-        executeTest("DeleteQueue", SQS_QUEUE_NAME, () -> sqsAsync.deleteQueueAsync(queueUrl.toString()),
-            messagingAssert);
+        newTest(() -> sqsAsync.deleteMessageAsync(queueUrl.toString(), receiptHandle.toString()))
+            .operationName("DELETE from")
+            .entityName(SQS_QUEUE_NAME)
+            .action("delete")
+            .withSpanAssertions(messagingAssert)
+            .async()
+            .execute();
 
-        assertThat(reporter.getSpans()).noneMatch(AbstractSpan::isSync);
+        newTest(() -> sqsAsync.deleteQueueAsync(queueUrl.toString()))
+            .operationName("DeleteQueue")
+            .entityName(SQS_QUEUE_NAME)
+            .action("DeleteQueue")
+            .withSpanAssertions(messagingAssert)
+            .async()
+            .execute();
+
+        assertThat(reporter.getSpans()).hasSize(8);
+
         transaction.deactivate().end();
     }
 

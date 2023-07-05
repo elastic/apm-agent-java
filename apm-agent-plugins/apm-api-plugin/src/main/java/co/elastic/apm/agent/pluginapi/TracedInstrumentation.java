@@ -20,16 +20,18 @@ package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -46,10 +48,10 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_METHOD_SIGNATURE;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static co.elastic.apm.agent.pluginapi.Utils.FRAMEWORK_NAME;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_METHOD_SIGNATURE;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_USER_SUPPLIED;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -58,6 +60,8 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 public class TracedInstrumentation extends ElasticApmInstrumentation {
 
     public static final Tracer tracer = GlobalTracer.get();
+
+    public static final Logger logger = LoggerFactory.getLogger(TracedInstrumentation.class);
 
     private final CoreConfiguration coreConfig;
     private final StacktraceConfiguration stacktraceConfig;
@@ -90,6 +94,11 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
 
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {
+                if (parent.shouldSkipChildSpanCreation()) {
+                    // span limit reached means span will not be reported, thus we can optimize and skip creating one
+                    logger.debug("Not creating span for {} because span limit is reached.", signature);
+                    return null;
+                }
                 Span<?> span = asExit ? parent.createExitSpan() : parent.createSpan();
                 if (span == null) {
                     return null;
@@ -115,13 +124,13 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
             int namePriority;
             if (spanName.isEmpty()) {
                 name = signature;
-                namePriority = PRIO_METHOD_SIGNATURE;
+                namePriority = PRIORITY_METHOD_SIGNATURE;
             } else {
                 name = spanName;
-                namePriority = PRIO_USER_SUPPLIED;
+                namePriority = PRIORITY_USER_SUPPLIED;
             }
             return transaction.withName(name, namePriority)
-                .withType(type.isEmpty() ? co.elastic.apm.agent.impl.transaction.Transaction.TYPE_REQUEST : type)
+                .withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
                 .activate();
         }
 

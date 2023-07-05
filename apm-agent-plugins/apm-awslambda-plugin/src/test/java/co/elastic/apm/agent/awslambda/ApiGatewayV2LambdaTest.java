@@ -26,10 +26,10 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.Url;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Faas;
-import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
@@ -107,6 +107,7 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPE
         assertThat(transaction.getNameAsString()).isEqualTo(HTTP_METHOD + " /" + API_GATEWAY_STAGE + API_GATEWAY_RESOURCE_PATH);
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getResult()).isEqualTo("HTTP 2xx");
+        assertThat(reporter.getPartialTransactions()).containsExactly(transaction);
 
         Request request = transaction.getContext().getRequest();
         assertThat(request.getMethod()).isEqualTo(HTTP_METHOD);

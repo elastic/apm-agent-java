@@ -24,7 +24,7 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.Socket;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
@@ -107,7 +107,7 @@ class HttpHandlerTest extends AbstractInstrumentationTest {
 
         Transaction transaction = reporter.getFirstTransaction(500);
         assertThat(transaction.getTraceContext().getParentId().toString()).isEqualTo("0000000000000000");
-        assertThat(transaction.getType()).isEqualTo(Transaction.TYPE_REQUEST);
+        assertThat(transaction.getType()).isEqualTo(co.elastic.apm.agent.tracer.Transaction.TYPE_REQUEST);
         assertThat(transaction.getNameAsString()).isEqualTo("GET /status_%d", expectedStatus);
         assertThat(transaction.getResult()).isEqualTo(ResultUtil.getResultByHttpStatus(expectedStatus));
         assertThat(transaction.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpServerStatus(expectedStatus));

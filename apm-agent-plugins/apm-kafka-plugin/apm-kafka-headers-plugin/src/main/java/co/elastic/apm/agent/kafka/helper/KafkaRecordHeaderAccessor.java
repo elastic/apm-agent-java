@@ -45,9 +45,12 @@ public class KafkaRecordHeaderAccessor implements BinaryHeaderGetter<ConsumerRec
         return INSTANCE;
     }
 
+    private final KafkaInstrumentationHeadersHelper helper = KafkaInstrumentationHeadersHelper.get();
+
     @Nullable
     @Override
     public byte[] getFirstHeader(String headerName, ConsumerRecord record) {
+        headerName = helper.resolvePossibleTraceHeader(headerName);
         Header traceParentHeader = record.headers().lastHeader(headerName);
         if (traceParentHeader != null) {
             return traceParentHeader.value();
@@ -57,6 +60,7 @@ public class KafkaRecordHeaderAccessor implements BinaryHeaderGetter<ConsumerRec
 
     @Override
     public <S> void forEach(String headerName, ConsumerRecord carrier, S state, HeaderConsumer<byte[], S> consumer) {
+        headerName = helper.resolvePossibleTraceHeader(headerName);
         for (Header header : carrier.headers().headers(headerName)) {
             consumer.accept(header.value(), state);
         }
@@ -65,6 +69,7 @@ public class KafkaRecordHeaderAccessor implements BinaryHeaderGetter<ConsumerRec
     @Override
     @Nullable
     public byte[] getFixedLengthByteArray(String headerName, int length) {
+        headerName = helper.resolvePossibleTraceHeader(headerName);
         Map<String, ElasticHeaderImpl> headerMap = threadLocalHeaderMap.get();
         if (headerMap == null) {
             headerMap = new HashMap<>();
@@ -80,6 +85,7 @@ public class KafkaRecordHeaderAccessor implements BinaryHeaderGetter<ConsumerRec
 
     @Override
     public void setHeader(String headerName, byte[] headerValue, ProducerRecord record) {
+        headerName = helper.resolvePossibleTraceHeader(headerName);
         ElasticHeaderImpl header = null;
         Map<String, ElasticHeaderImpl> headerMap = threadLocalHeaderMap.get();
         if (headerMap != null) {
@@ -96,6 +102,7 @@ public class KafkaRecordHeaderAccessor implements BinaryHeaderGetter<ConsumerRec
 
     @Override
     public void remove(String headerName, ProducerRecord carrier) {
+        headerName = helper.resolvePossibleTraceHeader(headerName);
         carrier.headers().remove(headerName);
     }
 

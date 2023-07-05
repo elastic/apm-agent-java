@@ -19,16 +19,16 @@
 package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.converter.ListValueConverter;
-import co.elastic.apm.agent.configuration.converter.RoundedDoubleConverter;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
-import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
+import co.elastic.apm.agent.tracer.configuration.ListValueConverter;
+import co.elastic.apm.agent.tracer.configuration.RoundedDoubleConverter;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
 import co.elastic.apm.agent.configuration.validation.RegexValidator;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.tracer.configuration.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -59,7 +59,7 @@ import java.util.concurrent.TimeUnit;
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACEHOLDER;
 
-public class CoreConfiguration extends ConfigurationOptionProvider {
+public class CoreConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.CoreConfiguration {
 
     public static final int DEFAULT_LONG_FIELD_MAX_LENGTH = 10000;
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -401,6 +401,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         )
         .dynamic(true)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
+
+    private final ConfigurationOption<Boolean> captureExceptionDetails = ConfigurationOption.<Boolean>booleanOption()
+        .key("capture_exception_details")
+        .tags("internal")
+        .configurationCategory(CORE_CATEGORY)
+        .dynamic(true)
+        .buildWithDefault(true);
 
     private final ConfigurationOption<EventType> captureBody = ConfigurationOption.enumOption(EventType.class)
         .key("capture_body")
@@ -847,6 +854,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return Arrays.asList(instrument, traceMethods, enabledInstrumentations, disabledInstrumentations, enableExperimentalInstrumentations);
     }
 
+    @Override
     public String getServiceName() {
         return serviceName.get();
     }
@@ -895,10 +903,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return longFieldMaxLength.get();
     }
 
+    @Override
     public List<WildcardMatcher> getSanitizeFieldNames() {
         return sanitizeFieldNames.get();
     }
 
+    @Override
     public boolean isInstrumentationEnabled(String instrumentationGroupName) {
         final Collection<String> enabledInstrumentationGroupNames = enabledInstrumentations.get();
         final Collection<String> disabledInstrumentationGroupNames = disabledInstrumentations.get();
@@ -907,6 +917,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             (enableExperimentalInstrumentations.get() || !instrumentationGroupName.equals("experimental"));
     }
 
+    @Override
     public boolean isInstrumentationEnabled(Collection<String> instrumentationGroupNames) {
         return isGroupEnabled(instrumentationGroupNames) &&
             !isGroupDisabled(instrumentationGroupNames);
@@ -943,10 +954,16 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return ignoreExceptions.get();
     }
 
+    public boolean captureExceptionDetails() {
+        return captureExceptionDetails.get();
+    }
+
+    @Override
     public EventType getCaptureBody() {
         return captureBody.get();
     }
 
+    @Override
     public boolean isCaptureHeaders() {
         return captureHeaders.get();
     }
@@ -1020,6 +1037,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return tracestateHeaderSizeLimit.get();
     }
 
+    @Override
     public TimeDuration getSpanMinDuration() {
         return spanMinDuration.get();
     }
@@ -1095,6 +1113,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return cloudProvider.get();
     }
 
+    @Override
     public boolean isEnablePublicApiAnnotationInheritance() {
         return enablePublicApiAnnotationInheritance.get();
     }
@@ -1107,32 +1126,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return traceContinuationStrategy.get();
     }
 
+    @Override
     public ActivationMethod getActivationMethod() {
         return activationMethod.get();
-    }
-
-    public enum EventType {
-        /**
-         * Request bodies will never be reported
-         */
-        OFF,
-        /**
-         * Request bodies will only be reported with errors
-         */
-        ERRORS,
-        /**
-         * Request bodies will only be reported with request transactions
-         */
-        TRANSACTIONS,
-        /**
-         * Request bodies will be reported with both errors and request transactions
-         */
-        ALL;
-
-        @Override
-        public String toString() {
-            return name().toLowerCase();
-        }
     }
 
     public enum CloudProvider {

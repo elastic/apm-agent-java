@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -230,7 +229,7 @@ public class ApmServerClientProxySupportIT {
         ReporterConfiguration config = spyConfig.getConfig(ReporterConfiguration.class);
 
         doReturn(Collections.singletonList(useProxy ? proxyUrl : directUrl)).when(config).getServerUrls();
-        ApmServerClient client = new ApmServerClient(config, spyConfig.getConfig(CoreConfiguration.class));
+        ApmServerClient client = new ApmServerClient(spyConfig);
         client.start();
         return client;
     }

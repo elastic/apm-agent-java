@@ -19,22 +19,22 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.collections.LongList;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
-import co.elastic.apm.agent.util.LoggerUtils;
-import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
+import co.elastic.apm.agent.util.LoggerUtils;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -45,11 +45,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recyclable, ElasticContext<T>, co.elastic.apm.agent.tracer.AbstractSpan<T> {
-    public static final int PRIO_USER_SUPPLIED = 1000;
-    public static final int PRIO_HIGH_LEVEL_FRAMEWORK = 100;
-    public static final int PRIO_METHOD_SIGNATURE = 100;
-    public static final int PRIO_LOW_LEVEL_FRAMEWORK = 10;
-    public static final int PRIO_DEFAULT = 0;
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
     private static final Logger oneTimeDuplicatedEndLogger = LoggerUtils.logOnce(logger);
     private static final Logger oneTimeMaxSpanLinksLogger = LoggerUtils.logOnce(logger);
@@ -69,7 +64,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     private ChildDurationTimer childDurations = new ChildDurationTimer();
     protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
-    private int namePriority = PRIO_DEFAULT;
+    private int namePriority = PRIORITY_DEFAULT;
     private boolean discardRequested = false;
     /**
      * Flag to mark a span as representing an exit event
@@ -120,7 +115,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     @Nullable
     protected volatile String type;
 
-    protected volatile boolean sync = true;
+    private volatile boolean sync = true;
 
     protected final SpanAtomicReference<Span> bufferedSpan = new SpanAtomicReference<>();
 
@@ -272,7 +267,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * @param methodName the method that should be part of this span's name
      */
     public void updateName(Class<?> clazz, String methodName) {
-        StringBuilder spanName = getAndOverrideName(PRIO_DEFAULT);
+        StringBuilder spanName = getAndOverrideName(PRIORITY_DEFAULT);
         if (spanName != null) {
             String className = clazz.getName();
             spanName.append(className, className.lastIndexOf('.') + 1, className.length());
@@ -291,7 +286,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     @Override
     public T appendToName(CharSequence cs) {
-        return appendToName(cs, PRIO_DEFAULT);
+        return appendToName(cs, PRIORITY_DEFAULT);
     }
 
     @Override
@@ -310,7 +305,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     @Override
     public T withName(@Nullable String name) {
-        return withName(name, PRIO_DEFAULT);
+        return withName(name, PRIORITY_DEFAULT);
     }
 
     @Override
@@ -340,6 +335,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         this.sync = sync;
         return thiz();
     }
+
+
 
     @Nullable
     protected static String normalizeEmpty(@Nullable String value) {
@@ -451,7 +448,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         traceContext.resetState();
         childDurations.resetState();
         references.set(0);
-        namePriority = PRIO_DEFAULT;
+        namePriority = PRIORITY_DEFAULT;
         discardRequested = false;
         isExit = false;
         childIds = null;
@@ -767,13 +764,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     }
 
     @Override
-    public ElasticContext<T> withActiveSpan(AbstractSpan<?> span) {
-        // for internal spans the active span is only stored implicitly in the stack, hence we have no requirement
-        // to have any other kind of context storage.
-        return this;
-    }
-
-    @Override
     public AbstractSpan<?> getSpan() {
         return this;
     }
@@ -790,6 +780,14 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     public Map<String, Object> getOtelAttributes() {
         return otelAttributes;
+    }
+
+    @Override
+    public T withOtelAttribute(String key, @Nullable Object value) {
+        if (value != null) {
+            otelAttributes.put(key, value);
+        }
+        return thiz();
     }
 
     @Override

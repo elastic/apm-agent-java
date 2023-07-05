@@ -49,11 +49,11 @@ NOTE: As of version 1.33.0, Java 7 support is deprecated and will be removed in 
 |Vendor |Supported versions |Notes
 
 |Oracle JDK
-|7u60+*, 8u40+, 9, 10, 11, 17
+|7u60+*, 8u40+, 9, 10, 11, 17, 20
 |`--module-path` has not been tested yet
 
 |OpenJDK
-|7u60+*, 8u40+, 9, 10, 11, 17
+|7u60+*, 8u40+, 9, 10, 11, 17, 20
 |`--module-path` has not been tested yet
 
 |IBM J9 VM
@@ -104,10 +104,10 @@ the JVM arguments, or setting `ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS=true` for th
 |1.0.0, 4.0+ (`jakarta.servlet`) since 1.28.0
 
 |Spring Web MVC
-|4.x, 5.x
+|4.x, 5.x, 6.x
 |If you are using Spring MVC (for example with Spring Boot),
   the transactions are named based on your controllers (`ControllerClass#controllerMethod`).
-|1.0.0
+|1.0.0, 6.x since 1.38.0
 
 |Spring Webflux
 |5.2.3+
@@ -121,9 +121,9 @@ rendering
 |1.0.0, `jakarta.faces` since 1.28.0
 
 |Spring Boot
-|1.5+, 2.x
+|1.5+, 2.x, 3.x
 |Supports embedded Tomcat, Jetty and Undertow
-|1.0.0
+|1.0.0, 3.x since 1.38.0
 
 |JAX-RS
 |2.x, 3.x
@@ -201,7 +201,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |7.x, 8.5.x, 9.x, 10.x
 
 |<<setup-jboss-wildfly,WildFly>>
-|8-16
+|8+
 
 |<<setup-jboss-wildfly,JBoss EAP>>
 |6.4, 7.0, 7.1, 7.2
@@ -550,18 +550,16 @@ NOTE: only classes from the quartz-jobs dependency will be instrumented automati
 
 There are multiple log-related features in the agent and their support depend on the logging framework:
 
-- *<<log-correlation-ids, Log Correlation>>*:
+- *<<log-correlation-ids, Correlation>>*:
     The agent automatically injects `trace.id`, `transaction.id` and `error.id` into the MDC implementation (see below for framework specific MDC implementations used. MDC = Mapped Diagnostic Context, a standard way to enrich log messages with additional information).
+    For service correlation, the agent sets values for `service.name`, `service.version` and `service.environment`, using ECS log format is required (`ecs-logging-java` or reformatting).
 
-- *<<log-error-capturing, Log Error capturing>>*:
+- *<<log-error-capturing, Error capturing>>*:
     Automatically captures exceptions for calls like `logger.error("message", exception)`.
 
-- *<<config-log-ecs-reformatting,ECS reformatting>>*:
+- *<<config-log-ecs-reformatting,Reformatting>>*:
     When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
     ECS-compatible format.
-
-- *<<ecs-logging-service-fields, ECS Logging service fields>>*: For users of `ecs-logging-java`, the agent sets the service name and version for the `EcsLayout` if not provided explicitly by the
-application.
 
 |===
 |Framework |Supported versions | Description | Since
@@ -572,31 +570,33 @@ application.
 |Error capturing - 1.10.0
 
 |log4j2
-|Trace correlation - 2.0+
+| Correlation - 2.0+
 
-ECS Reformatting - 2.6+
+Reformatting - 2.6+
 
 |https://logging.apache.org/log4j/2.x/manual/thread-context.html[`org.apache.logging.log4j.ThreadContext`] is used for correlation.
 
-|Trace correlation - 1.13.0
+|Correlation (traces) - 1.13.0
+
+Correlation (service) - 1.29.0
 
 Error capturing - 1.10.0
 
-ECS Service Name - 1.29.0
-
-ECS Reformatting - 1.22.0
+Reformatting - 1.22.0
 
 
 |log4j1
-|Trace correlation and error capture - 1.x
+|Correlation & error capture - 1.x
 
-ECS Reformatting - 1.2.17
+Reformatting - 1.2.17
 
 |https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[`org.apache.log4j.MDC`] is used for correlation.
 
-|Trace correlation - 1.13.0
+|Correlation (traces) - 1.13.0
 
-ECS Reformatting - 1.22.0
+Correlation (service) - 1.38.0
+
+Reformatting - 1.22.0
 
 Error capturing - 1.30.0
 
@@ -604,36 +604,46 @@ Error capturing - 1.30.0
 |1.1.0+
 |https://www.slf4j.org/api/org/slf4j/MDC.html[`org.slf4j.MDC`] is used for correlation.
 
-|Trace correlation - 1.0.0
+|Correlation (traces) - 1.0.0
+
+Correlation (service) - 1.38.0
 
 ECS Reformatting - 1.22.0
 
 |JBoss Logging
 |3.0.0+
 | http://javadox.com/org.jboss.logging/jboss-logging/3.3.0.Final/org/jboss/logging/MDC.html[`org.jboss.logging.MDC`] is used for correlation.
-|Trace correlation - 1.23.0 (LogManager 1.30.0)
+|Correlation (traces) - 1.23.0 (LogManager 1.30.0)
+
+Correlation (service) - 1.38.0
+
+Reformatting - 1.31.0
 
 |JUL - `java.util.logging`
 |All supported Java versions
-|Trace correlation is only supported when used ECS logging library or with ECS Reformatting as JUL does
+|Correlation is only supported with ECS logging (library or reformatting) as JUL does
 not provide any MDC implementation.
-|Trace correlation - 1.35.0 (only when using ECS format as there is no MDC in JUL)
+|Correlation (traces) - 1.35.0 (requires ECS logging)
 
-ECS Reformatting - 1.31.0
+Correlation (service) - 1.38.0 (requires ECS logging)
+
+Reformatting - 1.31.0
 
 Error capturing - 1.31.0
 
 | Tomcat JULI
 | 7.0.0+
-|Trace correlation is only supported when used ECS logging library or with ECS Reformatting as JUL does
+|Trace correlation is only supported with ECS logging (library or reformatting) as JUL does
 not provide any MDC implementation.
 
 Tomcat access logs are not supported.
-|Trace correlation - 1.35.0 (only when using ECS format as there is no MDC in JUL)
+|Correlation (traces) - 1.35.0 (requires ECS logging)
 
-ECS Reformatting - 1.35.0
+Correlation (service) - 1.38.0 (requires ECS logging)
 
-Error capturing - 1.35.0 (through JUL)
+Reformatting - 1.35.0
+
+Error capturing - 1.35.0
 
 |===
 

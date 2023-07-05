@@ -22,37 +22,47 @@ import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
-public class ServerlessConfiguration extends ConfigurationOptionProvider {
+public class ServerlessConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration {
     public static final String SERVERLESS_CATEGORY = "Serverless";
 
+    private final boolean runsOnAwsLambda;
+
+    public ServerlessConfiguration() {
+        String lambdaName = PrivilegedActionUtils.getEnv("AWS_LAMBDA_FUNCTION_NAME");
+        this.runsOnAwsLambda = null != lambdaName && !lambdaName.isEmpty();
+    }
+    
     private final ConfigurationOption<String> awsLambdaHandler = ConfigurationOption.stringOption()
-            .key("aws_lambda_handler")
-            .tags("added[1.28.0]")
-            .configurationCategory(SERVERLESS_CATEGORY)
-            .description("This config option must be used when running the agent in an AWS Lambda context. \n" +
-                    "This config value allows to specify the fully qualified name of the class handling the lambda function. \n" +
-                    "An empty value (default value) indicates that the agent is not running within an AWS lambda function.")
-            .buildWithDefault("");
+        .key("aws_lambda_handler")
+        .tags("added[1.28.0]")
+        .configurationCategory(SERVERLESS_CATEGORY)
+        .description("This config option must be used when running the agent in an AWS Lambda context. \n" +
+            "This config value allows to specify the fully qualified name of the class handling the lambda function. \n" +
+            "An empty value (default value) indicates that the agent is not running within an AWS lambda function.")
+        .buildWithDefault("");
 
     private final ConfigurationOption<Long> dataFlushTimeout = ConfigurationOption.longOption()
-            .key("data_flush_timeout")
-            .tags("added[1.28.0]")
-            .configurationCategory(SERVERLESS_CATEGORY)
-            .description("This config value allows to specify the timeout in milliseconds for flushing APM data at the end of a serverless function. \n" +
-                    "For serverless functions, APM data is written in a synchronous way, thus, blocking the termination of the function util data is written or the specified timeout is reached.")
-            .buildWithDefault(1000L);
+        .key("data_flush_timeout")
+        .tags("added[1.28.0]")
+        .configurationCategory(SERVERLESS_CATEGORY)
+        .description("This config value allows to specify the timeout in milliseconds for flushing APM data at the end of a serverless function. \n" +
+            "For serverless functions, APM data is written in a synchronous way, thus, blocking the termination of the function util data is written or the specified timeout is reached.")
+        .buildWithDefault(1000L);
 
+
+    @Override
     public String getAwsLambdaHandler() {
         return awsLambdaHandler.get();
     }
 
+    @Override
     public long getDataFlushTimeout() {
         return dataFlushTimeout.get();
     }
 
+    @Override
     public boolean runsOnAwsLambda() {
-        String lambdaName = PrivilegedActionUtils.getEnv("AWS_LAMBDA_FUNCTION_NAME");
-        return null != lambdaName && !lambdaName.isEmpty();
+        return runsOnAwsLambda;
     }
 
 }

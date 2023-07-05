@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.report.serialize.PayloadSerializer;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -41,7 +41,7 @@ public class AbstractIntakeApiHandler {
     private static final Object WAIT_LOCK = new Object();
 
     protected final ReporterConfiguration reporterConfiguration;
-    protected final PayloadSerializer payloadSerializer;
+    protected final DslJsonSerializer.Writer payloadSerializer;
     protected final ApmServerClient apmServerClient;
     protected Deflater deflater;
     @Nullable
@@ -55,9 +55,9 @@ public class AbstractIntakeApiHandler {
     private volatile boolean healthy = true;
     private long requestStartedNanos;
 
-    protected AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
+    protected AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, DslJsonSerializer payloadSerializer, ApmServerClient apmServerClient) {
         this.reporterConfiguration = reporterConfiguration;
-        this.payloadSerializer = payloadSerializer;
+        this.payloadSerializer = payloadSerializer.newWriter();
         this.apmServerClient = apmServerClient;
         this.deflater = new Deflater(Deflater.BEST_SPEED);
     }

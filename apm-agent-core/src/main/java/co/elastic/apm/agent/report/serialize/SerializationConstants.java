@@ -27,7 +27,7 @@ public class SerializationConstants {
     /**
      * Matches default ZLIB buffer size.
      * Lets us assume the ZLIB buffer is always empty,
-     * so that {@link DslJsonSerializer#getBufferSize()} is the total amount of buffered bytes.
+     * so that {@link DslJsonSerializer.Writer#getBufferSize()} is the total amount of buffered bytes.
      */
     public static final int BUFFER_SIZE = 16384;
 

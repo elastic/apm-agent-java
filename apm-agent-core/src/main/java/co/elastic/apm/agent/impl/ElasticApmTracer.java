@@ -18,8 +18,13 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.collections.WeakReferenceCountedMap;
+import co.elastic.apm.agent.bci.IndyBootstrap;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
@@ -35,7 +40,6 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
@@ -47,6 +51,8 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
+import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.tracer.Scope;
@@ -62,8 +68,10 @@ import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -80,6 +88,8 @@ public class ElasticApmTracer implements Tracer {
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
 
     private static final WeakMap<ClassLoader, ServiceInfo> serviceInfoByClassLoader = WeakConcurrent.buildMap();
+
+    private static final Map<Class<?>, Class<? extends ConfigurationOptionProvider>> configs = new HashMap<>();
 
     private static volatile boolean classloaderCheckOk = false;
 
@@ -125,6 +135,11 @@ public class ElasticApmTracer implements Tracer {
 
     static {
         checkClassloader();
+        configs.put(co.elastic.apm.agent.tracer.configuration.CoreConfiguration.class, CoreConfiguration.class);
+        configs.put(co.elastic.apm.agent.tracer.configuration.LoggingConfiguration.class, LoggingConfiguration.class);
+        configs.put(co.elastic.apm.agent.tracer.configuration.MetricsConfiguration.class, MetricsConfiguration.class);
+        configs.put(co.elastic.apm.agent.tracer.configuration.ReporterConfiguration.class, ReporterConfiguration.class);
+        configs.put(co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration.class, ServerlessConfiguration.class);
     }
 
     private static void checkClassloader() {
@@ -208,6 +223,7 @@ public class ElasticApmTracer implements Tracer {
         });
         this.activationListeners = DependencyInjectingServiceLoader.load(ActivationListener.class, this);
         sharedPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool("shared");
+        IndyBootstrap.setFallbackLogExecutor(sharedPool);
 
         // The estimated number of wrappers is linear to the number of the number of external/OTel plugins
         // - for an internal agent context, there will be at most one wrapper per external/OTel plugin.
@@ -387,6 +403,10 @@ public class ElasticApmTracer implements Tracer {
             return null;
         }
 
+        if (!coreConfiguration.captureExceptionDetails()) {
+            return null;
+        }
+
         while (e != null && WildcardMatcher.anyMatch(coreConfiguration.getUnnestExceptions(), e.getClass().getName()) != null) {
             e = e.getCause();
         }
@@ -428,7 +448,9 @@ public class ElasticApmTracer implements Tracer {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public <T> T getConfig(Class<T> configProvider) {
         T configuration = null;
-        if (ConfigurationOptionProvider.class.isAssignableFrom(configProvider)) {
+        if (configs.containsKey(configProvider)) {
+            configuration = (T) configurationRegistry.getConfig(configs.get(configProvider));
+        } else if (ConfigurationOptionProvider.class.isAssignableFrom(configProvider)) {
              configuration = (T) configurationRegistry.getConfig((Class) configProvider);
         }
         if (configuration == null) {
@@ -452,6 +474,10 @@ public class ElasticApmTracer implements Tracer {
         } else {
             transaction.decrementReferences();
         }
+    }
+
+    public void reportPartialTransaction(Transaction transaction) {
+        reporter.reportPartialTransaction(transaction);
     }
 
     public void endSpan(Span span) {
@@ -564,7 +590,10 @@ public class ElasticApmTracer implements Tracer {
         } catch (Exception e) {
             logger.warn("Suppressed exception while calling stop()", e);
         }
-        LoggingConfiguration.shutdown();
+        //Shutting down logging resets the log level to OFF - subsequent tests in the class will get no log output, hence the guard
+        if (!assertionsEnabled) {
+            LoggingConfiguration.shutdown();
+        }
     }
 
     public Reporter getReporter() {
@@ -578,6 +607,11 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public ObjectPoolFactory getObjectPoolFactory() {
         return objectPoolFactory;
+    }
+
+    @Override
+    public <K, V extends ReferenceCounted> ReferenceCountedMap<K, V> newReferenceCountedMap() {
+        return new WeakReferenceCountedMap<>();
     }
 
     @Override
@@ -915,5 +949,10 @@ public class ElasticApmTracer implements Tracer {
             throw new IllegalStateException(this + " does not implement " + type.getName());
         }
         return cast;
+    }
+
+    @Override
+    public Set<String> getTraceHeaderNames() {
+        return TraceContext.TRACE_TEXTUAL_HEADERS;
     }
 }

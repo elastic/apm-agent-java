@@ -4,7 +4,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.37.0</version>
+        <version>1.39.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-tracer</artifactId>
@@ -13,6 +13,18 @@
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.stagemonitor</groupId>
+            <artifactId>stagemonitor-configuration</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>

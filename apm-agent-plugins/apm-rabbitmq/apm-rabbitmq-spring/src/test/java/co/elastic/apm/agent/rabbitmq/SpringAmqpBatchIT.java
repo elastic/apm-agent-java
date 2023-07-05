@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.rabbitmq;
 
 
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;

@@ -20,6 +20,7 @@ package co.elastic.apm.agent.testutils.assertions;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.tracer.Outcome;
 
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -33,6 +34,15 @@ public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, A
     public SELF hasName(String name) {
         isNotNull();
         checkString("Expected span with name '%s' but was '%s'", name, normalizeToString(actual.getNameForSerialization()));
+        return thiz();
+    }
+
+    public SELF hasNameContaining(String nameContains) {
+        isNotNull();
+        String actualName = normalizeToString(actual.getNameForSerialization());
+        if (!actualName.contains(nameContains)) {
+            failWithMessage("Expected name '%s' to contain '%s'", actualName, nameContains);
+        }
         return thiz();
     }
 
@@ -80,6 +90,17 @@ public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, A
         return thiz();
     }
 
+    public SELF hasOutcome(Outcome expectedOutcome) {
+        checkObject("Expected span to have outcome %, but was %s", expectedOutcome, actual.getOutcome());
+        return thiz();
+    }
+
+    public SELF hasOtelAttribute(String key, Object expectedValue) {
+        isNotNull();
+        checkObject("Expected span to have value '%s' for attribute '" + key + "' but was '%s'  ", expectedValue, actual.getOtelAttributes().get(key));
+        return thiz();
+    }
+
     private boolean checkSpanLinksContain(TraceContext expectedLink) {
         return actual.getSpanLinks().stream()
             .anyMatch(ctx -> Objects.equals(ctx.getParentId(), expectedLink.getId())
@@ -87,9 +108,25 @@ public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, A
             );
     }
 
+    public SELF isSync() {
+        return isSync(true);
+    }
+
+    public SELF isAsync() {
+        return isSync(false);
+    }
+
+    public SELF isSync(boolean expectedSync) {
+        String expectedString = expectedSync ? "sync" : "async";
+        String actualString = actual.isSync() ? "sync" : "async";
+        checkTrue(String.format("Expected %s span, got %s span: %s", expectedString, actualString, actual), expectedSync == actual.isSync());
+        return thiz();
+    }
+
     @SuppressWarnings("unchecked")
     private SELF thiz() {
         return (SELF) this;
     }
+
 
 }

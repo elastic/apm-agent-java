@@ -20,12 +20,14 @@ package co.elastic.apm.agent.ecs_logging.jul;
 
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.state.GlobalState;
+import co.elastic.logging.jul.EcsFormatter;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -76,6 +78,7 @@ public class LogManagerTestInstrumentation extends ElasticApmInstrumentation {
     @GlobalState
     public static class JulProperties {
 
+        @Nullable
         public static Properties overridenProperties = null;
 
         public static void override(Map<String, String> map) {

@@ -66,7 +66,7 @@ public class OTelSpan implements Span {
             behavioralAttribute = true;
         }
         if (!behavioralAttribute) {
-            span.getOtelAttributes().put(key.getKey(), value);
+            span.withOtelAttribute(key.getKey(), value);
         }
         return this;
     }
@@ -107,7 +107,7 @@ public class OTelSpan implements Span {
 
     @Override
     public Span updateName(String name) {
-        span.withName(name, AbstractSpan.PRIO_USER_SUPPLIED);
+        span.withName(name, co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_USER_SUPPLIED);
         return this;
     }
 

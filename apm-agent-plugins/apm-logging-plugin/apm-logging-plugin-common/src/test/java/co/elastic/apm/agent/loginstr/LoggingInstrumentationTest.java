@@ -23,7 +23,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.logging.LogEcsReformatting;
+import co.elastic.apm.agent.tracer.configuration.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.logging.TestUtils;
 import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
@@ -68,6 +68,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
     private static final String SERVICE_NODE_NAME = "my-service-node";
     private static final Map<String, String> ADDITIONAL_FIELDS = Map.of("some.field", "some-value", "another.field", "another-value");
+    private static final String ENVIRONMENT = "my-env";
 
     private final LoggerFacade logger;
     private final ObjectMapper objectMapper;
@@ -91,6 +92,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     @BeforeEach
     public void setup() throws Exception {
         doReturn(SERVICE_VERSION).when(config.getConfig(CoreConfiguration.class)).getServiceVersion();
+        doReturn(ENVIRONMENT).when(config.getConfig(CoreConfiguration.class)).getEnvironment();
         doReturn(SERVICE_NODE_NAME).when(config.getConfig(CoreConfiguration.class)).getServiceNodeName();
 
         loggingConfig = config.getConfig(LoggingConfiguration.class);
@@ -342,7 +344,8 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
         assertThat(ecsLogLineTree.get("service.node.name").textValue()).isEqualTo(SERVICE_NODE_NAME);
         assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
-        assertThat(ecsLogLineTree.get("service.version").textValue()).isEqualTo("v42");
+        assertThat(ecsLogLineTree.get("service.version").textValue()).isEqualTo(SERVICE_VERSION);
+        assertThat(ecsLogLineTree.get("service.environment").textValue()).isEqualTo(ENVIRONMENT);
         assertThat(ecsLogLineTree.get("some.field").textValue()).isEqualTo("some-value");
         assertThat(ecsLogLineTree.get("another.field").textValue()).isEqualTo("another-value");
     }

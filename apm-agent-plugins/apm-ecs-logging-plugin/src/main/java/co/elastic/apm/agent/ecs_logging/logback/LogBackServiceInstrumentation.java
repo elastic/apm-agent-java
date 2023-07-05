@@ -30,6 +30,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.declaresField;
+import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -85,16 +86,27 @@ public abstract class LogBackServiceInstrumentation extends EcsLoggingInstrument
 
     }
 
-    public static class VersionAdvice {
+    public static class Environment extends LogBackServiceInstrumentation {
 
-        @Nullable
-        @Advice.AssignReturned.ToFields(@ToField("serviceVersion"))
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static String onExit(@Advice.This Object encoder,
-                                    @Advice.FieldValue("serviceVersion") @Nullable String serviceVersion) {
-
-            return EcsLoggingUtils.getOrWarnServiceVersion(encoder, serviceVersion);
+        @Override
+        public ElementMatcher.Junction<? super TypeDescription> getTypeMatcher() {
+            return super.getTypeMatcher()
+                // setServiceVersion introduced in 1.5.0
+                .and(declaresMethod(named("setServiceEnvironment")));
         }
+
+        public static class AdviceClass {
+
+            @Nullable
+            @Advice.AssignReturned.ToFields(@ToField(value = "serviceEnvironment"))
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static String onEnter(@Advice.This Object formatter,
+                                         @Advice.FieldValue("serviceEnvironment") @Nullable String serviceEnvironment) {
+
+                return EcsLoggingUtils.getOrWarnServiceEnvironment(formatter, serviceEnvironment);
+            }
+        }
+
     }
 
 }

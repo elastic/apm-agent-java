@@ -112,12 +112,6 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
     }
 
     @Override
-    public OTelBridgeContext withActiveSpan(AbstractSpan<?> span) {
-        // otel context is immutable, thus we have to create new bridged context here
-        return new OTelBridgeContext(tracer, otelContext.with(new OTelSpan(span)));
-    }
-
-    @Override
     public OTelBridgeContext deactivate() {
         tracer.deactivate(this);
         return this;

@@ -20,11 +20,14 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.TransactionUtils;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.tracer.Outcome;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,19 +39,23 @@ import java.util.Arrays;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 public class TransactionTest {
 
-    private DslJsonSerializer jsonSerializer;
+    private DslJsonSerializer.Writer jsonSerializer;
 
     @BeforeEach
     void setUp() {
+        CoreConfiguration coreConfig = MockTracer.createRealTracer().getConfig(CoreConfiguration.class);
+        SerializationConstants.init(coreConfig);
+
         jsonSerializer = new DslJsonSerializer(
             mock(StacktraceConfiguration.class),
             mock(ApmServerClient.class),
             MetaDataMock.create()
-        );
+        ).newWriter();
     }
 
     @Test
@@ -117,6 +124,50 @@ public class TransactionTest {
             Arguments.of(null, "custom"),
             Arguments.of("my-type", "my-type")
         );
+    }
+
+    @Test
+    void skipChildSpanCreationWhenLimitReached() {
+        int limit = 3;
+
+        ElasticApmTracer tracer = MockTracer.createRealTracer();
+        doReturn(limit).when(tracer.getConfig(CoreConfiguration.class)).getTransactionMaxSpans();
+
+        Transaction transaction = tracer.startRootTransaction(TransactionTest.class.getClassLoader());
+        assertThat(transaction).isNotNull();
+        transaction.activate();
+
+        int dropped = 7;
+        int total = limit + dropped;
+        for (int i = 1; i <= total; i++) {
+            // emulates an instrumentation that will bypass span creation
+            // each call to createSpan is expected to be guarded by a single call to shouldSkipChildSpanCreation
+            // for proper dropped span accounting.
+
+            boolean shouldSkip = transaction.shouldSkipChildSpanCreation();
+            assertThat(shouldSkip)
+                .describedAs("span %d should be skipped, limit is %d", i, limit)
+                .isEqualTo(i > limit);
+
+            if (shouldSkip) {
+                assertThat(transaction.getSpanCount().getReported().get()).isEqualTo(limit);
+                assertThat(transaction.getSpanCount().getDropped().get()).isEqualTo(i - limit);
+            } else {
+                transaction.createSpan()
+                    .withName("child span " + i)
+                    .activate()
+                    .deactivate()
+                    .end();
+
+                assertThat(transaction.getSpanCount().getReported().get()).isEqualTo(i);
+            }
+        }
+        assertThat(transaction.getSpanCount().getReported().get()).isEqualTo(limit);
+        assertThat(transaction.getSpanCount().getDropped().get()).isEqualTo(dropped);
+        assertThat(transaction.getSpanCount().getTotal().get()).isEqualTo(total);
+
+        transaction.deactivate().end();
+
     }
 
     /**

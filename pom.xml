@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.37.0</version>
+    <version>1.39.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -30,7 +30,7 @@
         <connection>scm:git:git@github.com:elastic/apm-agent-java.git</connection>
         <developerConnection>scm:git:git@github.com:elastic/apm-agent-java.git</developerConnection>
         <url>https://github.com/elastic/apm-agent-java</url>
-        <tag>v1.37.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <developers>
@@ -115,10 +115,9 @@
         <!-- -dependencies versions -->
         <version.error_prone>2.2.0</version.error_prone>
         <version.h2>1.4.196</version.h2>
-        <version.jackson>[2.10.0,)</version.jackson>
+        <version.jackson>2.14.2</version.jackson>
         <version.junit>5.9.1</version.junit>
         <version.junit.vintage>4.13.2</version.junit.vintage>
-        <version.logback>1.2.3</version.logback>
         <version.okhttp>4.9.1</version.okhttp>
         <!-- this is the last version of slf4j that is compatible with Java 7-->
         <version.slf4j>1.7.36</version.slf4j>
@@ -128,12 +127,11 @@
         <version.log4j>2.12.4</version.log4j>
         <version.ecs.logging>1.5.0</version.ecs.logging>
         <version.spring>5.0.15.RELEASE</version.spring>
-        <version.spring-boot>2.2.2.RELEASE</version.spring-boot>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.0.78</version.json-schema-validator>
+        <version.json-schema-validator>1.0.83</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.14.2</version.byte-buddy>
-        <version.asm>9.4</version.asm>
+        <version.byte-buddy>1.14.5</version.byte-buddy>
+        <version.asm>9.5</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
         <version.mockito>5.1.1</version.mockito>
@@ -644,6 +642,12 @@
                 <scope>test</scope>
             </dependency>
 
+            <dependency>
+                <groupId>org.stagemonitor</groupId>
+                <artifactId>stagemonitor-configuration</artifactId>
+                <version>0.87.3</version>
+            </dependency>
+
             <!-- ensures that we always rely on a single bytebuddy version -->
             <dependency>
                 <groupId>net.bytebuddy</groupId>
@@ -737,15 +741,27 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.12.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${version.jackson}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>net.javacrumbs.json-unit</groupId>
+            <artifactId>json-unit-assertj</artifactId>
+            <version>2.37.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.github.tomakehurst</groupId>
-            <artifactId>wiremock-standalone</artifactId>
-            <version>2.27.2</version>
+            <artifactId>wiremock-jre8-standalone</artifactId>
+            <version>2.35.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

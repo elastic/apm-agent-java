@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -68,6 +68,10 @@ public class StartupInfo extends AbstractLifecycleListener {
         StringBuilder serviceNameAndVersion = new StringBuilder(serviceName);
         if (serviceVersion != null) {
             serviceNameAndVersion.append(" (").append(serviceVersion).append(")");
+        }
+
+        if (elasticApmVersion.contains("-SNAPSHOT")) {
+            logger.warn("This is a pre-release snapshot version, usage in production is not recommended unless instructed otherwise.");
         }
 
         logger.info("Starting Elastic APM {} as {} on {}",

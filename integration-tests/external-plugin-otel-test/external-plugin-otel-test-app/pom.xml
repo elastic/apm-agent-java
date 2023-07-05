@@ -4,7 +4,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>external-plugin-otel-test</artifactId>
-        <version>1.37.0</version>
+        <version>1.39.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>external-plugin-otel-test-app</artifactId>
@@ -30,7 +30,6 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>${version.testcontainers}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -46,9 +45,18 @@
         <finalName>${project.artifactId}</finalName>
         <plugins>
             <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Main-Class>testapp.Main</Main-Class>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
-                    <appendAssemblyId>false</appendAssemblyId>
                     <archive>
                         <manifest>
                             <mainClass>testapp.Main</mainClass>

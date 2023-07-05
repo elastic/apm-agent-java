@@ -20,7 +20,7 @@ package co.elastic.apm.agent.javalin;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Transaction;
@@ -45,7 +45,7 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -151,7 +151,7 @@ public class JavalinInstrumentation extends TracerAwareInstrumentation {
 
             // transaction name gets only set if we are dealing with a HTTP method processing, not before/after handlers
             if (handlerType.isHttpMethod()) {
-                final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, false);
+                final StringBuilder name = transaction.getAndOverrideName(PRIORITY_HIGH_LEVEL_FRAMEWORK, false);
                 if (name != null) {
                     transaction.setFrameworkName(FRAMEWORK_NAME);
                     transaction.setFrameworkVersion(VersionUtils.getVersion(Handler.class, "io.javalin", "javalin"));

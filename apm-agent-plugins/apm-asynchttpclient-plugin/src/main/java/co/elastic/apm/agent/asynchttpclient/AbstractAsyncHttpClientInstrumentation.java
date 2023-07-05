@@ -19,14 +19,13 @@
 package co.elastic.apm.agent.asynchttpclient;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -54,7 +53,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
     public static class Helper {
 
-        static final WeakMap<AsyncHandler<?>, Span> handlerSpanMap = WeakConcurrentProviderImpl.createWeakSpanMap();
+        static final ReferenceCountedMap<AsyncHandler<?>, Span> handlerSpanMap = tracer.newReferenceCountedMap();
 
         public static final List<Class<? extends ElasticApmInstrumentation>> ASYNC_HANDLER_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
             AsyncHandlerOnCompletedInstrumentation.class,
@@ -110,6 +109,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
                 Span<?> span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
 
                 if (span != null) {
+                    span.withSync(false);
                     span.activate();
                     span.propagateTraceContext(request, RequestHeaderSetter.INSTANCE);
                     Helper.handlerSpanMap.put(asyncHandler, span);

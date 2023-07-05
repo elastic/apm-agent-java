@@ -37,7 +37,7 @@ import java.util.Optional;
 @Component
 public class GreetingHandler {
 
-    public static final Scheduler CHILDREN_SCHEDULER = Schedulers.newElastic("children");
+    public static final Scheduler CHILDREN_SCHEDULER = Schedulers.newBoundedElastic(16, 128, "children");
 
     public Mono<String> helloMessage(@Nullable String name) {
         return Mono.just(String.format("Hello, %s!", Optional.ofNullable(name).orElse("Spring")));
@@ -74,12 +74,14 @@ public class GreetingHandler {
             .delayElements(Duration.ofMillis(delayMillis))
             .map(i -> String.format("child %d", i))
             .doOnNext(name -> {
-                Span<?> span = Objects.requireNonNull(GlobalTracer.get().require(ElasticApmTracer.class).currentTransaction()).createSpan();
-                span.withName(String.format("%s id=%s", name, span.getTraceContext().getId()));
-                try {
-                    fakeWork(durationMillis);
-                } finally {
-                    span.end();
+                if (!GlobalTracer.isNoop()) {
+                    Span<?> span = Objects.requireNonNull(GlobalTracer.get().require(ElasticApmTracer.class).currentTransaction()).createSpan();
+                    span.withName(String.format("%s id=%s", name, span.getTraceContext().getId()));
+                    try {
+                        fakeWork(durationMillis);
+                    } finally {
+                        span.end();
+                    }
                 }
             });
     }

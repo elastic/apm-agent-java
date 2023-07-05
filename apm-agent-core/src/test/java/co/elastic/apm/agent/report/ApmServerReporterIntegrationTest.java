@@ -19,8 +19,6 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
@@ -30,8 +28,10 @@ import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.handlers.BlockingHandler;
@@ -150,19 +150,20 @@ class ApmServerReporterIntegrationTest {
         final Service service = new Service();
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
-        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration, config.getConfig(CoreConfiguration.class));
+        ApmServerClient apmServerClient = new ApmServerClient(config);
         apmServerClient.start();
+        DslJsonSerializer payloadSerializer = new DslJsonSerializer(
+            mock(StacktraceConfiguration.class),
+            apmServerClient,
+            MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
+        );
         v2handler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             processorEventHandler,
-            new DslJsonSerializer(
-                mock(StacktraceConfiguration.class),
-                apmServerClient,
-                MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
-            ),
+            payloadSerializer,
             apmServerClient);
         mockMonitor = Mockito.mock(ReporterMonitor.class);
-        reporter = new ApmServerReporter(false, reporterConfiguration, v2handler, mockMonitor);
+        reporter = new ApmServerReporter(false, reporterConfiguration, v2handler, mockMonitor, apmServerClient, payloadSerializer, new ObjectPoolFactory());
         reporter.start();
     }
 

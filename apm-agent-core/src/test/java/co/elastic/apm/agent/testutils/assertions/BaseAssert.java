@@ -21,6 +21,7 @@ package co.elastic.apm.agent.testutils.assertions;
 import org.assertj.core.api.AbstractAssert;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 
 public class BaseAssert<SELF extends AbstractAssert<SELF, ACTUAL>, ACTUAL> extends AbstractAssert<SELF, ACTUAL> {
 
@@ -57,6 +58,12 @@ public class BaseAssert<SELF extends AbstractAssert<SELF, ACTUAL>, ACTUAL> exten
     protected void checkTrue(String msg, boolean expectedTrue) {
         if (!expectedTrue) {
             failWithMessage(msg);
+        }
+    }
+
+    protected void checkIn(String msg, Object actual, Object... list) {
+        if (!Arrays.asList(list).contains(actual)) {
+            failWithMessage(msg, actual);
         }
     }
 }

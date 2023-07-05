@@ -18,9 +18,7 @@
  */
 package co.elastic.apm.agent.matcher;
 
-import co.elastic.apm.agent.configuration.converter.ListValueConverter;
-import co.elastic.apm.agent.matcher.MethodMatcher;
-import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
+import co.elastic.apm.agent.tracer.configuration.ListValueConverter;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;

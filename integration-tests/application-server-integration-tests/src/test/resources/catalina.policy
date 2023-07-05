@@ -269,6 +269,6 @@ grant codeBase "file:${catalina.home}/webapps/host-manager/-" {
 
 // ========== APM AGENT PERMISSIONS =====================================
 
-grant codeBase "file:/elastic-apm-agent.jar" {
+grant codeBase "file:/agent.jar" {
     permission java.security.AllPermission;
 };

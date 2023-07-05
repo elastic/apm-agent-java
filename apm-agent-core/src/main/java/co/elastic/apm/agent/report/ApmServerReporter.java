@@ -21,7 +21,11 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.report.disruptor.ExponentionallyIncreasingSleepingWaitStrategy;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.MathUtils;
 import com.dslplatform.json.JsonWriter;
@@ -32,8 +36,6 @@ import com.lmax.disruptor.IgnoreExceptionHandler;
 import com.lmax.disruptor.InsufficientCapacityException;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
@@ -128,8 +130,17 @@ public class ApmServerReporter implements Reporter {
 
     private final ReporterMonitor monitor;
 
-    public ApmServerReporter(boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration,
-                             ReportingEventHandler reportingEventHandler, ReporterMonitor monitor) {
+    private final PartialTransactionReporter partialTransactionReporter;
+
+    public ApmServerReporter(boolean dropTransactionIfQueueFull,
+                             ReporterConfiguration reporterConfiguration,
+                             ReportingEventHandler reportingEventHandler,
+                             ReporterMonitor monitor,
+                             ApmServerClient apmServer,
+                             DslJsonSerializer serializer,
+                             ObjectPoolFactory poolFactory
+
+    ) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
         this.syncReport = reporterConfiguration.isReportSynchronously();
         this.monitor = monitor;
@@ -142,12 +153,18 @@ public class ApmServerReporter implements Reporter {
         this.reportingEventHandler = reportingEventHandler;
         disruptor.setDefaultExceptionHandler(new IgnoreExceptionHandler());
         disruptor.handleEventsWith(this.reportingEventHandler);
+        partialTransactionReporter = new PartialTransactionReporter(apmServer, serializer, poolFactory);
     }
 
     @Override
     public void start() {
         disruptor.start();
         reportingEventHandler.init(this);
+    }
+
+    @Override
+    public void reportPartialTransaction(Transaction transaction) {
+        partialTransactionReporter.reportPartialTransaction(transaction);
     }
 
     @Override

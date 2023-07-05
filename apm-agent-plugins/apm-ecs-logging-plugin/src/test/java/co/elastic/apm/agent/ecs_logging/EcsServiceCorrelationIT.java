@@ -32,6 +32,8 @@ public abstract class EcsServiceCorrelationIT {
 
     protected abstract String getServiceVersionTestClass();
 
+    protected abstract String getServiceEnvironmentTestClass();
+
     @ParameterizedTest(name = "ecs-logging {0}, supports version = {1}, supports environment = {2}")
     @CsvSource(delimiter = '|', value = {
         "1.3.2 | false | false", // 1.3.2 only supports service name
@@ -44,6 +46,10 @@ public abstract class EcsServiceCorrelationIT {
 
         if (serviceVersionSupported) {
             new TestClassWithDependencyRunner(List.of(dependency), getServiceVersionTestClass()).run();
+        }
+
+        if (serviceEnvironmentSupported) {
+            new TestClassWithDependencyRunner(List.of(dependency), getServiceEnvironmentTestClass()).run();
         }
     }
 }

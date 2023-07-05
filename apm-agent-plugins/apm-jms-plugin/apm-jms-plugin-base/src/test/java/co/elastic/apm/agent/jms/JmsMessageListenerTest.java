@@ -20,7 +20,7 @@ package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;

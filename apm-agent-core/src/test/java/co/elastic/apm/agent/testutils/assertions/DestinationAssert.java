@@ -32,6 +32,12 @@ public class DestinationAssert extends BaseAssert<DestinationAssert, Destination
         return this;
     }
 
+    public DestinationAssert hasLocalAddress() {
+        isNotNull();
+        checkIn("Expected destination address to be local", normalizeToString(actual.getAddress()), "localhost", "127.0.0.1");
+        return this;
+    }
+
     public DestinationAssert hasEmptyAddress() {
         isNotNull();
         checkString("Expected destination with empty address '%s' but was '%s'", "", normalizeToString(actual.getAddress()));

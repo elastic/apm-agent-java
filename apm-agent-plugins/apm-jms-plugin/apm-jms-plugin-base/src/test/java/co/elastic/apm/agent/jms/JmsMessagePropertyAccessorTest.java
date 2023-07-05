@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.jms;
 
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -35,7 +36,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-class JmsMessagePropertyAccessorTest {
+class JmsMessagePropertyAccessorTest extends AbstractInstrumentationTest {
 
     @Test
     void returnsNullOnJMSException() throws JMSException {

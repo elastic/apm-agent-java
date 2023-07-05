@@ -21,7 +21,7 @@ package co.elastic.apm.agent.vertx.helper;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxTestContext;

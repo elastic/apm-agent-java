@@ -88,6 +88,8 @@ public interface ServletRequestAdapter<HttpServletRequest, ServletContext> {
     @Nullable
     Object getAttribute(HttpServletRequest request, String attributeName);
 
+    void setAttribute(HttpServletRequest request, String attributeName, Object value);
+
     @Nullable
     Object getHttpAttribute(HttpServletRequest request, String attributeName);
 

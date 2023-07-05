@@ -37,4 +37,8 @@ public class JbossServiceCorrelationIT extends EcsServiceCorrelationIT {
         return "co.elastic.apm.agent.ecs_logging.jbosslogging.JbossServiceVersionInstrumentationTest";
     }
 
+    @Override
+    protected String getServiceEnvironmentTestClass() {
+        return "co.elastic.apm.agent.ecs_logging.jbosslogging.JbossServiceEnvironmentInstrumentationTest";
+    }
 }

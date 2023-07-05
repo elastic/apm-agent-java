@@ -46,12 +46,12 @@ class JvmMemoryMetricsTest {
         jvmMemoryMetrics.bindTo(registry);
 
         Stream.of(
-            "heap.used",
-            "heap.committed",
-            "heap.max",
-            "non_heap.used",
-            "non_heap.committed",
-            "non_heap.max")
+                "heap.used",
+                "heap.committed",
+                "heap.max",
+                "non_heap.used",
+                "non_heap.committed",
+                "non_heap.max")
             .forEach(s ->
                 assertMetric(registry, "jvm.memory." + s, Labels.EMPTY)
                     .isNotZero());
@@ -60,13 +60,11 @@ class JvmMemoryMetricsTest {
         for (String memoryPoolName : memoryPoolNames) {
             final Labels spaceLabel = Labels.Mutable.of("name", memoryPoolName);
 
-            Stream.of(
-                "used",
-                "committed",
-                "max")
+            // we don't test for 'max' because 'max' is often not set with a short-lived JVM
+            Stream.of("used", "committed")
                 .forEach(s -> assertMetric(registry, "jvm.memory.heap.pool." + s, spaceLabel)
                     .isNotNaN()
-                    .isGreaterThanOrEqualTo(s.equals("max") ? -1D : 0D)); // max is often not set with a short-lived JVM
+                    .isNotNegative());
         }
     }
 

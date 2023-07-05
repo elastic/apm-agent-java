@@ -22,7 +22,7 @@ import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import com.squareup.okhttp.Call;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.Request;
@@ -80,10 +80,11 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
                 OkHttpClientHelper.computeHostName(url.getHost()), url.getPort());
 
             if (span != null) {
-                span.activate();
+                span.withSync(false)
+                    .activate();
             }
 
-            if (!TraceContext.containsTraceContextTextHeaders(request, OkHttpRequestHeaderGetter.INSTANCE)) {
+            if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), request, OkHttpRequestHeaderGetter.INSTANCE)) {
                 Request.Builder builder = originalRequest.newBuilder();
                 if (span != null) {
                     span.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);

@@ -22,6 +22,8 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.test.AgentFileAccessor;
+import co.elastic.apm.agent.test.AgentTestContainer;
+import co.elastic.apm.agent.test.JavaExecutable;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import co.elastic.apm.servlet.tests.TestApp;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -38,8 +40,6 @@ import org.junit.Test;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
-import org.testcontainers.containers.Container;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
@@ -47,16 +47,9 @@ import org.testcontainers.utility.MountableFile;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -67,90 +60,75 @@ import static org.mockserver.model.HttpRequest.request;
 
 /**
  * When you want to execute the test in the IDE, execute {@code mvn clean package} before.
- * This creates the {@code ROOT.war} file,
- * which is bound into the docker container.
+ * This creates the {@code ROOT.war} file, which is bound into the docker container.
  * <p>
- * Whenever you make changes to the application,
- * you have to rerun {@code mvn clean package}.
+ * Whenever you make changes to the application, you have to rerun {@code mvn clean package}.
  * </p>
  * <p>
- * To debug, add a remote debugging configuration for port 5005 and set {@link #ENABLE_DEBUGGING} to {@code true}.
- * </p>
- * <p>
- * To test slim CLI tool with any agent version, set {@link #AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN} to the desired version.
- * </p>
- * <p>
- * Servlet containers that support runtime attach are being tested with it by default. In order to test those through
- * the `javaagent` route, set {@link #ENABLE_RUNTIME_ATTACH} to {@code false}
+ * To debug, run a 'listen' configuration on port 5005 (instead of the usual attach), then debug the integration test
+ * as usual. See {@link AgentTestContainer#withRemoteDebug()} for details.
  * </p>
  */
 public abstract class AbstractServletContainerIntegrationTest {
     private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
 
-    public static final String AGENT_JAR_PATH_IN_CONTAINER = "/elastic-apm-agent.jar";
-    public static final String TEST_POLICY_FILE_PATH_IN_CONTAINER = "/test.policy";
-
-    private static final Path pathToJavaagent;
-    private static final Path pathToAttach;
-    private static final Path pathToSlimAttach;
-
-    static boolean ENABLE_DEBUGGING = false;
-    static boolean ENABLE_RUNTIME_ATTACH = true;
-
     /**
      * Set to a specific version to manually test downloading of agent from maven central using the slim cli tool.
-     * Only relevant if {@link #ENABLE_RUNTIME_ATTACH} is set to {@code true} and for Servlet containers for which
-     * {@link #runtimeAttachSupported()} returns {@code true}.
+     * Only relevant for Servlet containers for which {@link #runtimeAttachSupported()} returns {@code true}.
      */
     @Nullable
     private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
 
-    private static MockServerContainer mockServerContainer = new MockServerContainer()
-        //.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockServerContainer.class))
-        .withNetworkAliases("apm-server")
-        .waitingFor(Wait.forHttp(MockServerContainer.HEALTH_ENDPOINT).forStatusCode(200))
-        .withNetwork(Network.SHARED);
-    private static OkHttpClient httpClient;
+    private static final MockServerContainer mockServerContainer;
+
+    private static final OkHttpClient httpClient;
 
     static {
+        mockServerContainer = new MockServerContainer()
+            .withNetworkAliases("apm-server")
+            .waitingFor(Wait.forHttp(MockServerContainer.HEALTH_ENDPOINT).forStatusCode(200))
+            .withNetwork(Network.SHARED);
+
+        if (JavaExecutable.isDebugging()) {
+            mockServerContainer.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockServerContainer.class));
+        }
+
+        final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger::info);
+        loggingInterceptor.setLevel(JavaExecutable.isDebugging() ? HttpLoggingInterceptor.Level.BODY : HttpLoggingInterceptor.Level.BASIC);
+        httpClient = new OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .readTimeout(JavaExecutable.isDebugging() ? 0 : 10, TimeUnit.SECONDS)
+            .build();
+
         mockServerContainer.start();
         mockServerContainer.getClient().when(request(INTAKE_V2_URL)).respond(HttpResponse.response().withStatusCode(200));
         mockServerContainer.getClient().when(request("/")).respond(HttpResponse.response().withStatusCode(200));
-        final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger::info);
-        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
-        httpClient = new OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)
-            .readTimeout(ENABLE_DEBUGGING ? 0 : 10, TimeUnit.SECONDS)
-            .build();
-        pathToJavaagent = checkFilePresent(AgentFileAccessor.getPathToJavaagent());
-        pathToAttach = checkFilePresent(AgentFileAccessor.getPathToAttacher());
-        pathToSlimAttach = checkFilePresent(AgentFileAccessor.getPathToSlimAttacher());
     }
 
     private final MockReporter mockReporter = new MockReporter();
-    private final GenericContainer<?> servletContainer;
     private final int webPort;
     private final String expectedDefaultServiceName;
     private final String containerName;
+    private final AgentTestContainer.AppServer container;
     private TestApp currentTestApp;
 
-    protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer, String expectedDefaultServiceName, String deploymentPath, String containerName) {
-        this(servletContainer, 8080, 5005, expectedDefaultServiceName, deploymentPath, containerName);
-    }
+    protected AbstractServletContainerIntegrationTest(AgentTestContainer.AppServer container, String expectedDefaultServiceName) {
+        this.container = container;
+        this.webPort = container.getHttpPort();
 
-    protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer, int webPort,
-                                                      int debugPort, String expectedDefaultServiceName, String deploymentPath, String containerName) {
-        this.servletContainer = servletContainer;
-        this.webPort = webPort;
-        if (ENABLE_DEBUGGING) {
-            enableDebugging(servletContainer);
+        // automatic remote debug for all
+        container.withRemoteDebug();
+
+        // copy java agent binaries
+        container.withJavaAgentBinaries();
+
+        if (!runtimeAttachSupported()) {
+            // use the -javaagent argument when not using runtime attach
+            container.withJavaAgentArgument(AgentFileAccessor.Variant.STANDARD);
         }
-        if (runtimeAttachSupported() && !ENABLE_RUNTIME_ATTACH) {
-            // If runtime attach is off for Servlet containers that support that, we need to add the javaagent here
-            appendToEnvVariable(servletContainer, getJavaagentEnvVariable(), "-javaagent:" + AGENT_JAR_PATH_IN_CONTAINER);
-        }
+
         this.expectedDefaultServiceName = expectedDefaultServiceName;
-        this.containerName = containerName;
+        this.containerName = container.getContainerName();
 
         List<String> ignoreUrls = new ArrayList<>();
         for (TestApp app : getTestApps()) {
@@ -165,7 +143,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         ignoreUrls.add("/favicon.ico");
         String ignoreUrlConfig = String.join(",", ignoreUrls);
 
-        servletContainer
+        container
             .withNetwork(Network.SHARED)
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", ignoreUrlConfig)
@@ -180,67 +158,43 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_PROFILING_SPANS_ENABLED", "true")
             .withEnv("ELASTIC_APM_APPLICATION_PACKAGES", "co.elastic") // allows to use API annotations, we have to use a broad package due to multiple apps
             .withEnv("ELASTIC_APM_SPAN_COMPRESSION_ENABLED", "false")
-            .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
-            .withCopyFileToContainer(MountableFile.forHostPath(pathToJavaagent), AGENT_JAR_PATH_IN_CONTAINER)
-            .withCopyFileToContainer(MountableFile.forHostPath(pathToAttach), "/apm-agent-attach-cli.jar")
-            .withCopyFileToContainer(MountableFile.forHostPath(pathToSlimAttach), "/apm-agent-attach-cli-slim.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
-        if (ENABLE_DEBUGGING) {
-            servletContainer.withExposedPorts(webPort, debugPort);
-        } else {
-            servletContainer.withExposedPorts(webPort);
-        }
-        for (TestApp testApp : getTestApps()) {
-            testApp.getAdditionalEnvVariables().forEach(servletContainer::withEnv);
-            try {
-                testApp.getAdditionalFilesToBind().forEach((pathToFile, containerPath) -> {
-                    checkFilePresent(Path.of(pathToFile));
-                    servletContainer.withCopyFileToContainer(MountableFile.forHostPath(pathToFile), containerPath);
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        for (TestApp testApp : getTestApps()) {
-            String pathToAppFile = testApp.getAppFilePath();
-            checkFilePresent(Path.of(pathToAppFile));
-            servletContainer.withCopyFileToContainer(MountableFile.forHostPath(pathToAppFile), deploymentPath + "/" + testApp.getAppFileName());
-        }
-        this.servletContainer.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
 
-        if (isSecurityManagerEnabled()) {
-            // setting up security manager prerequisites
-            String localPolicyFilePath = Objects.requireNonNull(getLocalPolicyFilePath());
-            servletContainer.withCopyFileToContainer(MountableFile.forHostPath(localPolicyFilePath), TEST_POLICY_FILE_PATH_IN_CONTAINER);
-            enableSecurityManager(servletContainer, TEST_POLICY_FILE_PATH_IN_CONTAINER);
+        for (TestApp testApp : getTestApps()) {
+            testApp.getAdditionalEnvVariables()
+                .forEach(container::withEnv);
+            testApp.getAdditionalFilesToBind()
+                .forEach((pathToFile, containerPath) -> container.withCopyFileToContainer(MountableFile.forHostPath(Paths.get(pathToFile)), containerPath));
+
+            container.deploy(Paths.get(testApp.getAppFilePath()));
         }
 
-        this.servletContainer.start();
-        if (runtimeAttachSupported() && ENABLE_RUNTIME_ATTACH) {
-            try {
-                String[] cliArgs;
-                if (AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN != null) {
-                    cliArgs = new String[]{"java", "-jar", "/apm-agent-attach-cli-slim.jar", "--download-agent-version", AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN, "--include-all"};
-                } else {
-                    cliArgs = new String[]{"java", "-jar", "/apm-agent-attach-cli-slim.jar", "--include-all", "--agent-jar", AGENT_JAR_PATH_IN_CONTAINER};
-                }
-                Container.ExecResult result = this.servletContainer.execInContainer(cliArgs);
-                System.out.println(result.getStdout());
-                System.out.println(result.getStderr());
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+        container.withMemoryLimit(4096);
+
+        beforeContainerStart(container);
+
+        container.start();
+
+        if (runtimeAttachSupported()) {
+            if (AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN != null) {
+                container.startCliRuntimeAttach(AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN);
+            } else {
+                container.startCliRuntimeAttach(AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN);
             }
         }
     }
 
-    private void appendToEnvVariable(GenericContainer<?> servletContainer, String key, String value) {
-        Map<String, String> envMap = servletContainer.getEnvMap();
-        String currentValue = envMap.get(key);
-        if (currentValue == null) {
-            servletContainer.withEnv(key, value);
-        } else {
-            servletContainer.withEnv(key, currentValue + " " + value);
-        }
+    private static OkHttpClient setupHttpClient(boolean isDebug) {
+        final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger::info);
+        loggingInterceptor.setLevel(isDebug ? HttpLoggingInterceptor.Level.BODY : HttpLoggingInterceptor.Level.BASIC);
+        return new OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .readTimeout(isDebug ? 0 : 10, TimeUnit.SECONDS)
+            .build();
+    }
+
+    protected void beforeContainerStart(AgentTestContainer.AppServer container) {
+
     }
 
     public String getContainerName() {
@@ -248,12 +202,11 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     public String getImageName() {
-        return servletContainer.getDockerImageName();
+        return container.getDockerImageName();
     }
 
     /**
      * Change to false in the Servlet-container implementation in order to attach through {@code premain()}
-     * See also {@link AbstractServletContainerIntegrationTest#getJavaagentEnvVariable()}
      *
      * @return whether the agent should be attached using the remote attach option or through `javaagent`
      */
@@ -261,65 +214,12 @@ public abstract class AbstractServletContainerIntegrationTest {
         return false;
     }
 
-    /**
-     * Override with the name of the environment variable to which the `javaagent` argument should be appended.
-     * See also {@link AbstractServletContainerIntegrationTest#runtimeAttachSupported()}
-     *
-     * @return the name of the environment variable to which the `javaagent` argument should be appended
-     */
-    protected String getJavaagentEnvVariable() {
-        throw new UnsupportedOperationException("You must provide the proper config that will append the `javaagent` " +
-            "argument properly to the command line");
-    }
-
-    private static Path checkFilePresent(Path file) {
-        logger.info("Check file {}", file.toAbsolutePath());
-        assertThat(file).exists().isNotEmptyFile();
-        return file;
-    }
-
-    protected void enableDebugging(GenericContainer<?> servletContainer) {
-    }
-
-    /**
-     * By default, we test without the security manager.
-     * In order to enable tests with it, subclasses must return {@code true} and implement both {@link #getLocalPolicyFilePath()}
-     * and {@link #enableSecurityManager(GenericContainer, String)}
-     * @return whether the security manager is enabled within this servlet container test or not
-     */
-    protected boolean isSecurityManagerEnabled() {
-        return false;
-    }
-
-    /**
-     * By default, we test without the security manager.
-     * If a subclass is to enable security manager, it must provide a path to a policy file that grants full
-     * permissions to the agent jar, as well as everything else required in order to execute the tests.
-     *
-     * @return the path to the policy file, or {@code null} if this servlet container test does not enable the security manager
-     */
-    @Nullable
-    protected String getLocalPolicyFilePath() {
-        return null;
-    }
-
-    /**
-     * By default, we test without the security manager, but any subclass may override this method to enable it.
-     * If it does, it must also set the {@code java.security.policy} system property to point to the provided
-     * {@code policyFilePathWithinContainer}
-     *
-     * @param servletContainer the servlet container instance
-     * @param policyFilePathWithinContainer the policy file path within the container
-     */
-    protected void enableSecurityManager(GenericContainer<?> servletContainer, String policyFilePathWithinContainer) {
-    }
-
     @After
     public final void stopServer() {
-        servletContainer.getDockerClient()
-            .stopContainerCmd(servletContainer.getContainerId())
+        container.getDockerClient()
+            .stopContainerCmd(container.getContainerId())
             .exec();
-        servletContainer.stop();
+        container.stop();
     }
 
     protected Iterable<TestApp> getTestApps() {
@@ -338,10 +238,6 @@ public abstract class AbstractServletContainerIntegrationTest {
         return Collections.emptyList();
     }
 
-    /**
-     * NOTE: This test class should contain a single test method, otherwise multiple instances may coexist and cause port clash due to the
-     * debug proxy
-     */
     @Test
     public void testAllScenarios() throws Exception {
         for (TestApp testApp : getTestApps()) {
@@ -365,10 +261,10 @@ public abstract class AbstractServletContainerIntegrationTest {
         String pathname1 = transaction.get("context").get("request").get("url").get("pathname").textValue();
         String pathname2 = pathToTest;
         while (pathname1.startsWith("/")) {
-          pathname1 = pathname1.substring(1);
+            pathname1 = pathname1.substring(1);
         }
         while (pathname2.startsWith("/")) {
-          pathname2 = pathname2.substring(1);
+            pathname2 = pathname2.substring(1);
         }
         assertThat(pathname1).isEqualTo(pathname2);
         assertThat(transaction.get("context").get("response").get("status_code").intValue()).isEqualTo(expectedResponseCode);
@@ -430,7 +326,7 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     public Response executePostRequest(String pathToTest, RequestBody postBody) throws IOException {
         if (!pathToTest.startsWith("/")) {
-            pathToTest = "/"+pathToTest;
+            pathToTest = "/" + pathToTest;
         }
         return httpClient.newCall(new Request.Builder()
                 .post(postBody)
@@ -442,7 +338,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     public Response executeRequest(String pathToTest, Map<String, String> headersMap) throws IOException {
         Headers headers = Headers.of((headersMap != null) ? headersMap : new HashMap<>());
         if (!pathToTest.startsWith("/")) {
-            pathToTest = "/"+pathToTest;
+            pathToTest = "/" + pathToTest;
         }
 
         return httpClient.newCall(new Request.Builder()
@@ -455,7 +351,7 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     @Nonnull
     public List<JsonNode> getAllReported(Supplier<List<JsonNode>> supplier, int expected) {
-        long timeout = ENABLE_DEBUGGING ? 600_000 : 500;
+        long timeout = JavaExecutable.isDebugging() ? 600_000 : 500;
         long start = System.currentTimeMillis();
         List<JsonNode> reportedTransactions;
         do {
@@ -467,7 +363,7 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     @Nonnull
     public List<JsonNode> assertSpansTransactionId(Supplier<List<JsonNode>> supplier, String transactionId) {
-        long timeout = ENABLE_DEBUGGING ? 600_000 : 500;
+        long timeout = JavaExecutable.isDebugging() ? 600_000 : 1000;
         long start = System.currentTimeMillis();
         List<JsonNode> reportedSpans;
         do {
@@ -502,18 +398,13 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     @Nonnull
     private String getServerLogs() throws IOException, InterruptedException {
-        final String serverLogsPath = getServerLogsPath();
+        String serverLogsPath = container.getLogsPath();
         if (serverLogsPath != null) {
             return "\nlogs:\n" +
-                servletContainer.execInContainer("bash", "-c", "cat " + serverLogsPath).getStdout();
+                container.execInContainer("bash", "-c", "cat " + serverLogsPath + "*").getStdout();
         } else {
             return "";
         }
-    }
-
-    @Nullable
-    protected String getServerLogsPath() {
-        return null;
     }
 
     public List<String> getPathsToTest() {
@@ -529,7 +420,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     public String getBaseUrl() {
-        return "http://" + servletContainer.getContainerIpAddress() + ":" + servletContainer.getMappedPort(webPort);
+        return container.getBaseUrl();
     }
 
     public List<JsonNode> getReportedTransactions() {
@@ -605,7 +496,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     private void validateServiceName(JsonNode event) {
         String expectedServiceName = currentTestApp.getExpectedServiceName();
         String expectedServiceVersion = currentTestApp.getExpectedServiceVersion();
-        if (event == null || (expectedServiceName == null &&  expectedServiceVersion == null)) {
+        if (event == null || (expectedServiceName == null && expectedServiceVersion == null)) {
             return;
         }
         JsonNode contextService = event.get("context").get("service");
@@ -633,9 +524,9 @@ public abstract class AbstractServletContainerIntegrationTest {
         JsonNode agent = service.get("agent");
         assertThat(agent).isNotNull();
         assertThat(agent.get("ephemeral_id")).isNotNull();
-        JsonNode container = metadata.get("system").get("container");
-        assertThat(container).isNotNull();
-        assertThat(container.get("id").textValue()).isEqualTo(servletContainer.getContainerId());
+        JsonNode jsonContainer = metadata.get("system").get("container");
+        assertThat(jsonContainer).isNotNull();
+        assertThat(jsonContainer.get("id").textValue()).isEqualTo(container.getContainerId());
     }
 
     private void addSpans(List<JsonNode> spans, JsonNode payload) {
@@ -652,8 +543,8 @@ public abstract class AbstractServletContainerIntegrationTest {
         Wait.forHttp(path)
             .forPort(webPort)
             .forStatusCode(200)
-            .withStartupTimeout(Duration.ofMinutes(ENABLE_DEBUGGING ? 1_000 : 5))
-            .waitUntilReady(servletContainer);
+            .withStartupTimeout(Duration.ofMinutes(JavaExecutable.isDebugging() ? 1_000 : 5))
+            .waitUntilReady(container);
     }
 
     public OkHttpClient getHttpClient() {

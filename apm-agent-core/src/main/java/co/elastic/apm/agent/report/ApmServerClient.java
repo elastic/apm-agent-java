@@ -18,14 +18,16 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.report.ssl.SslUtils;
-import co.elastic.apm.agent.util.UrlConnectionUtils;
 import co.elastic.apm.agent.common.util.Version;
-import co.elastic.apm.agent.util.VersionUtils;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.report.ssl.SslUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.UrlConnectionUtils;
+import co.elastic.apm.agent.util.VersionUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -75,6 +77,8 @@ public class ApmServerClient {
     private static final Version VERSION_8_7_1 = Version.of("8.7.1");
 
     private final ReporterConfiguration reporterConfiguration;
+
+    private final ServerlessConfiguration serverlessConfiguration;
     @Nullable
     private volatile List<URL> serverUrls;
     @Nullable
@@ -84,10 +88,11 @@ public class ApmServerClient {
 
     private final String userAgent;
 
-    public ApmServerClient(ReporterConfiguration reporterConfiguration, CoreConfiguration coreConfiguration) {
-        this.reporterConfiguration = reporterConfiguration;
+    public ApmServerClient(ConfigurationRegistry configs) {
+        this.reporterConfiguration = configs.getConfig(ReporterConfiguration.class);
         this.healthChecker = new ApmServerHealthChecker(this);
-        this.userAgent = getUserAgent(coreConfiguration);
+        this.serverlessConfiguration = configs.getConfig(ServerlessConfiguration.class);
+        this.userAgent = getUserAgent(configs.getConfig(CoreConfiguration.class));
     }
 
     public void start() {
@@ -110,6 +115,13 @@ public class ApmServerClient {
             }
         });
         setServerUrls(Collections.unmodifiableList(shuffledUrls));
+    }
+
+    /**
+     * Only for testing.
+     */
+    void start(Future<Version> apmServerVersion) {
+        this.apmServerVersion = apmServerVersion;
     }
 
     private void setServerUrls(List<URL> serverUrls) {
@@ -142,7 +154,7 @@ public class ApmServerClient {
 
     @Nonnull
     private HttpURLConnection startRequestToUrl(URL url) throws IOException {
-        final URLConnection connection = UrlConnectionUtils.openUrlConnectionThreadSafely(url);
+        final URLConnection connection = UrlConnectionUtils.openUrlConnectionThreadSafely(url, true);
 
         // change SSL socket factory to support both TLS fallback and disabling certificate validation
         if (connection instanceof HttpsURLConnection) {
@@ -338,7 +350,8 @@ public class ApmServerClient {
     }
 
     public boolean supportsConfiguredAndDetectedHostname() {
-        return isAtLeast(VERSION_7_4);
+        //running on aws lambda implies that server is >= 8.2 according to support matrix
+        return serverlessConfiguration.runsOnAwsLambda() || isAtLeast(VERSION_7_4);
     }
 
     public boolean supportsLogsEndpoint() {

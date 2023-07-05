@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -25,17 +26,17 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.sampling.Sampler;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
+import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import org.HdrHistogram.WriterReaderPhaser;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static co.elastic.apm.agent.configuration.CoreConfiguration.TraceContinuationStrategy.RESTART;
 import static co.elastic.apm.agent.configuration.CoreConfiguration.TraceContinuationStrategy.RESTART_EXTERNAL;
@@ -51,8 +52,6 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
             return Labels.Mutable.of();
         }
     };
-
-    public static final String TYPE_REQUEST = "request";
 
     /**
      * Context
@@ -110,6 +109,8 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
      * If a services is executed as a serverless function (function as a service), FaaS-specific information can be collected within this object.
      */
     private final Faas faas = new Faas();
+
+    private final AtomicBoolean wasActivated = new AtomicBoolean();
 
     @Override
     public Transaction getTransaction() {
@@ -179,6 +180,26 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         this.noop = true;
         onAfterStart();
         return this;
+    }
+
+    @Override
+    public Transaction activate() {
+        // why first the get() and then the getAndSet() here? get() is a cheap operation (volatile read)
+        // while getAndSet() is an atomic operation with the corresponding performance penalty
+        // therefore we only pay the price of the atomic operation on the first activation
+        if (!wasActivated.get()) {
+            if (!wasActivated.getAndSet(true)) {
+                onFirstActivation();
+            }
+        }
+        return super.activate();
+    }
+
+    private void onFirstActivation() {
+        String execution = getFaas().getExecution();
+        if (execution != null && !execution.isEmpty()) {
+            tracer.reportPartialTransaction(this);
+        }
     }
 
     @Override
@@ -274,7 +295,20 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         return droppedSpanStats;
     }
 
-    boolean isSpanLimitReached() {
+    @Override
+    public boolean shouldSkipChildSpanCreation() {
+        boolean drop = spanCount.isSpanLimitReached(maxSpans);
+        if (drop) {
+            // when dropping, the caller is expected to optimize and avoid span creation. As a consequence we have
+            // to artificially increase those counters to make it as if the span was actually created and dropped
+            // before reporting
+            spanCount.getTotal().incrementAndGet();
+            spanCount.getDropped().incrementAndGet();
+        }
+        return drop;
+    }
+
+     boolean isSpanLimitReached() {
         return getSpanCount().isSpanLimitReached(maxSpans);
     }
 
@@ -297,6 +331,7 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         frameworkName = null;
         frameworkVersion = null;
         faas.resetState();
+        wasActivated.set(false);
         // don't clear timerBySpanTypeAndSubtype map (see field-level javadoc)
     }
 

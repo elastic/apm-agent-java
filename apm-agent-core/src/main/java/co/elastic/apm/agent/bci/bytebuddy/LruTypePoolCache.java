@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
-import co.elastic.apm.agent.configuration.converter.ByteValue;
+import co.elastic.apm.agent.tracer.configuration.ByteValue;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.util.ExecutorUtils;

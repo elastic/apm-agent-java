@@ -19,15 +19,14 @@
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
+import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -50,7 +49,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 @GlobalState
 public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstrumentation {
 
-    public static final WeakMap<HttpURLConnection, Span> inFlightSpans = WeakConcurrentProviderImpl.createWeakSpanMap();
+    public static final ReferenceCountedMap<HttpURLConnection, Span<?>> inFlightSpans = tracer.newReferenceCountedMap();
     public static final CallDepth callDepth = CallDepth.get(HttpUrlConnectionInstrumentation.class);
 
     @Override
@@ -86,7 +85,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                 if (span == null && !connected) {
                     final URL url = thiz.getURL();
                     span = HttpClientHelper.startHttpClientSpan(parent, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
-                    if (!TraceContext.containsTraceContextTextHeaders(thiz, UrlConnectionPropertyAccessor.instance())) {
+                    if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), thiz, UrlConnectionPropertyAccessor.instance())) {
                         if (span != null) {
                             span.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
                         } else {
