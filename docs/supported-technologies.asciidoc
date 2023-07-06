@@ -201,7 +201,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |7.x, 8.5.x, 9.x, 10.x
 
 |<<setup-jboss-wildfly,WildFly>>
-|8-16
+|8+
 
 |<<setup-jboss-wildfly,JBoss EAP>>
 |6.4, 7.0, 7.1, 7.2

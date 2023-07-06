@@ -234,18 +234,21 @@ jobs:
             secret/observability-team/ci/service-account/apm-aws-lambda access_key_id | AWS_ACCESS_KEY_ID ;
             secret/observability-team/ci/service-account/apm-aws-lambda secret_access_key | AWS_SECRET_ACCESS_KEY
       - name: Publish
-        run: make -C .ci publish-in-all-aws-regions
-      - name: Create ARN file
-        run: make -C .ci create-arn-file
+        run: |
+          # Convert v1.2.3 to ver-1-2-3
+          VERSION=${TAG_NAME/v/ver-}
+          VERSION=${VERSION//./-}
+          
+          ELASTIC_LAYER_NAME="elastic-apm-java-${VERSION}" .ci/publish-aws.sh
       - uses: actions/upload-artifact@v3
         with:
           name: arn-file
-          path: .ci/arn-file.md
+          path: .ci/.arn-file.md
       - name: Add ARN file to output
         id: arn_output
         run: |
           echo 'arn_content<<ARN_CONTENT_EOF' >> $GITHUB_OUTPUT
-          cat .ci/arn-file.md >> $GITHUB_OUTPUT
+          cat .ci/.arn-file.md >> $GITHUB_OUTPUT
           echo 'ARN_CONTENT_EOF' >> $GITHUB_OUTPUT
 
 

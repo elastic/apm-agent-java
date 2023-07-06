@@ -279,7 +279,6 @@ public class MicrometerMeterRegistrySerializerTest {
                 .builder(metername())
                 .distributionStatisticBufferLength(20)
                 .serviceLevelObjectives(5,50,95)
-                .publishPercentileHistogram()
                 .register(registry);
         }
 

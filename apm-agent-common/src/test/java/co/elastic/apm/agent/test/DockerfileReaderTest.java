@@ -16,22 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.transaction;
+package co.elastic.apm.agent.test;
 
-import javax.annotation.Nullable;
+import org.junit.jupiter.api.Test;
 
-public interface ElasticContext<T extends ElasticContext<T>> extends co.elastic.apm.agent.tracer.ElasticContext<T> {
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-    /**
-     * @return the span/transaction that is associated to this context, {@literal null} if there is none
-     */
-    @Nullable
-    AbstractSpan<?> getSpan();
+public class DockerfileReaderTest {
 
-    /**
-     * @return transaction associated to this context, {@literal null} if there is none
-     */
-    @Nullable
-    Transaction getTransaction();
+    @Test
+    public void checkValidDockerfile() {
+        assertThat(DockerfileReader.getFrom("/test-dockfile.txt")).isEqualTo("foobar");
+    }
+
+    @Test
+    public void checkInvalidDockerfile() {
+        assertThatThrownBy(() -> DockerfileReader.getFrom("/test-dockfile-invalid.txt"))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
 
 }

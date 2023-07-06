@@ -729,11 +729,6 @@ class ElasticApmTracerTest {
             return null;
         }
 
-        @Override
-        public ElasticContext<TestContext> withActiveSpan(AbstractSpan<?> span) {
-            return null;
-        }
-
         @org.jetbrains.annotations.Nullable
         @Override
         public AbstractSpan<?> getSpan() {

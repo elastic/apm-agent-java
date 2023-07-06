@@ -16,22 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.transaction;
+package co.elastic.apm.servlet.tests;
 
-import javax.annotation.Nullable;
+import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
 
-public interface ElasticContext<T extends ElasticContext<T>> extends co.elastic.apm.agent.tracer.ElasticContext<T> {
+import java.util.Map;
 
-    /**
-     * @return the span/transaction that is associated to this context, {@literal null} if there is none
-     */
-    @Nullable
-    AbstractSpan<?> getSpan();
+public class JBossJakartaServletApiTestApp extends JakartaeeServletApiTestApp {
 
-    /**
-     * @return transaction associated to this context, {@literal null} if there is none
-     */
-    @Nullable
-    Transaction getTransaction();
-
+    @Override
+    public void test(AbstractServletContainerIntegrationTest test) throws Exception {
+        super.test(test);
+        test.executeAndValidateRequest("/jakartaee-simple-webapp/jboss-mbeans", "Found jboss.as:* MBeans", 200, Map.of());
+    }
 }

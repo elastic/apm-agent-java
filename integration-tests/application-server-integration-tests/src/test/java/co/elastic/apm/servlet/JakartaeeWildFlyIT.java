@@ -19,11 +19,11 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.agent.test.AgentTestContainer;
-import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
-import co.elastic.apm.servlet.tests.JBossServletApiTestApp;
-import co.elastic.apm.servlet.tests.JavaxExternalPluginTestApp;
-import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
-import co.elastic.apm.servlet.tests.SoapTestApp;
+import co.elastic.apm.agent.test.DockerfileReader;
+import co.elastic.apm.servlet.tests.CdiJakartaeeApplicationServerTestApp;
+import co.elastic.apm.servlet.tests.JBossJakartaServletApiTestApp;
+import co.elastic.apm.servlet.tests.JakartaExternalPluginTestApp;
+import co.elastic.apm.servlet.tests.JakartaeeJsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -31,10 +31,10 @@ import org.junit.runners.Parameterized;
 import java.util.Arrays;
 
 @RunWith(Parameterized.class)
-public class WildFlyIT extends AbstractServletContainerIntegrationTest {
+public class JakartaeeWildFlyIT extends AbstractServletContainerIntegrationTest {
 
-    public WildFlyIT(final String wildFlyVersion) {
-        super(AgentTestContainer.appServer("jboss/wildfly:" + wildFlyVersion)
+    public JakartaeeWildFlyIT(final String wildFlyImage) {
+        super(AgentTestContainer.appServer(wildFlyImage)
                 .withContainerName("wildfly")
                 .withHttpPort(8080)
                 .withJvmArgumentsVariable("JAVA_OPTS") // using JAVA_OPTS to provide JVM arguments
@@ -48,23 +48,17 @@ public class WildFlyIT extends AbstractServletContainerIntegrationTest {
     @Parameterized.Parameters(name = "Wildfly {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"8.2.1.Final"},
-            {"9.0.0.Final"},
-            {"11.0.0.Final"},
-            {"13.0.0.Final"},
-            {"15.0.0.Final"},
-            {"25.0.0.Final"}
+            {DockerfileReader.getFrom("/Dockerfile-wildfly-latest")},
         });
     }
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
         return Arrays.asList(
-            JBossServletApiTestApp.class,
-            JsfApplicationServerTestApp.class,
-            SoapTestApp.class,
-            CdiApplicationServerTestApp.class,
-            JavaxExternalPluginTestApp.class
+            JBossJakartaServletApiTestApp.class,
+            JakartaeeJsfApplicationServerTestApp.class,
+            CdiJakartaeeApplicationServerTestApp.class,
+            JakartaExternalPluginTestApp.class
         );
     }
 }

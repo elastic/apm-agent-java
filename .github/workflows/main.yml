@@ -72,16 +72,52 @@ jobs:
         with:
           name: build
           path: ${{ github.workspace }}
+
       - name: Upload agent binaries as artifacts
         uses: actions/upload-artifact@v3
         with:
           name: elastic-apm-agent
-          path: ./elastic-apm-agent/target/elastic-apm-agent-*.jar
+          path: |
+            ./elastic-apm-agent/target/elastic-apm-agent-*.jar
+            !./**/*-sources.jar
       - name: Upload agent java 8 binaries as artifacts
         uses: actions/upload-artifact@v3
         with:
           name: elastic-apm-agent-java8
-          path: ./elastic-apm-agent-java8/target/elastic-apm-agent-java8-*.jar
+          path: |
+            ./elastic-apm-agent-java8/target/elastic-apm-agent-java8-*.jar
+            !./**/*-sources.jar
+      - name: Upload agent attach CLI artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: apm-agent-attach-cli
+          path: |
+            ./apm-agent-attach-cli/target/apm-agent-attach-cli-*.jar
+            !./**/*-sources.jar
+            !./**/*-tests.jar
+      - name: Upload agent attach artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: apm-agent-attach
+          path: |
+            ./apm-agent-attach/target/apm-agent-attach-*.jar
+            !./**/*-sources.jar
+      - name: Upload agent API artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: apm-agent-api
+          path: |
+            ./apm-agent-api/target/apm-agent-api-*.jar
+            !./**/*-sources.jar
+      - name: Upload agent plugin SDK artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: apm-agent-plugin-sdk
+          path: |
+            ./apm-agent-plugin-sdk/target/apm-agent-plugin-sdk-*.jar
+            !./**/*-sources.jar
+
+
 
   license:
     name: License
