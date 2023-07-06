@@ -50,6 +50,7 @@ public class CustomElementMatchers {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomElementMatchers.class);
 
+    Nullable
     private static final ClassLoader SELF_CLASS_LOADER = PrivilegedActionUtils.getClassLoader(CustomElementMatchers.class);
 
     private static final CustomElementMatchersProvider supplier = InternalUtil.getServiceProvider(CustomElementMatchersProvider.class);
