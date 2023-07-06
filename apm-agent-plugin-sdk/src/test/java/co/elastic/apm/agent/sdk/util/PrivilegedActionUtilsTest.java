@@ -36,6 +36,7 @@ import java.security.ProtectionDomain;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @EnabledForJreRange(max = JRE.JAVA_17, disabledReason = "SecurityManager is not supported anymore")
@@ -61,8 +62,8 @@ class PrivilegedActionUtilsTest {
         String envValue = envMap.get(envKey);
 
         testWithAndWithoutSecurityManager(() -> {
-            Assertions.assertThat(PrivilegedActionUtils.getEnv(envKey)).isEqualTo(envValue);
-            Assertions.assertThat(PrivilegedActionUtils.getEnv()).containsAllEntriesOf(envMap);
+            assertThat(PrivilegedActionUtils.getEnv(envKey)).isEqualTo(envValue);
+            assertThat(PrivilegedActionUtils.getEnv()).containsAllEntriesOf(envMap);
         });
 
     }
@@ -70,29 +71,29 @@ class PrivilegedActionUtilsTest {
     @Test
     void getClassLoader() {
         ClassLoader cl = PrivilegedActionUtilsTest.class.getClassLoader();
-        testWithAndWithoutSecurityManager(() -> Assertions.assertThat(PrivilegedActionUtils.getClassLoader(PrivilegedActionUtilsTest.class)).isSameAs(cl));
+        testWithAndWithoutSecurityManager(() -> assertThat(PrivilegedActionUtils.getClassLoader(PrivilegedActionUtilsTest.class)).isSameAs(cl));
     }
 
     @Test
     void getProtectionDomain() {
         ProtectionDomain pd = PrivilegedActionUtilsTest.class.getProtectionDomain();
-        testWithAndWithoutSecurityManager(() -> Assertions.assertThat(PrivilegedActionUtils.getProtectionDomain(PrivilegedActionUtilsTest.class)).isSameAs(pd));
+        testWithAndWithoutSecurityManager(() -> assertThat(PrivilegedActionUtils.getProtectionDomain(PrivilegedActionUtilsTest.class)).isSameAs(pd));
     }
 
     @Test
     void getAndSetContextClassLoader() {
         ClassLoader originalCL = Thread.currentThread().getContextClassLoader();
-        Assertions.assertThat(originalCL).isNotNull();
+        assertThat(originalCL).isNotNull();
 
         try {
             testWithAndWithoutSecurityManager(() -> {
                 // when enabling the security manager, the current context CL might be overriden
                 // thus we test our ability to change it by setting it to null
                 PrivilegedActionUtils.setContextClassLoader(Thread.currentThread(), null);
-                Assertions.assertThat(PrivilegedActionUtils.getContextClassLoader(Thread.currentThread())).isNull();
+                assertThat(PrivilegedActionUtils.getContextClassLoader(Thread.currentThread())).isNull();
 
                 PrivilegedActionUtils.setContextClassLoader(Thread.currentThread(), originalCL);
-                Assertions.assertThat(PrivilegedActionUtils.getContextClassLoader(Thread.currentThread())).isSameAs(originalCL);
+                assertThat(PrivilegedActionUtils.getContextClassLoader(Thread.currentThread())).isSameAs(originalCL);
             });
         } finally {
             Thread.currentThread().setContextClassLoader(originalCL);
@@ -115,7 +116,7 @@ class PrivilegedActionUtilsTest {
         try {
             testWithAndWithoutSecurityManager(() -> {
                 try (FileInputStream fis = PrivilegedActionUtils.newFileInputStream(existingFile.toFile())) {
-                    Assertions.assertThat(fis).isNotNull();
+                    assertThat(fis).isNotNull();
 
                     // file not found and other runtime errors should be perserved
                     assertThatThrownBy(() -> PrivilegedActionUtils.newFileInputStream(missingFile.toFile())).isInstanceOf(FileNotFoundException.class);
@@ -137,8 +138,8 @@ class PrivilegedActionUtilsTest {
         Files.createDirectories(existingDir);
         testWithAndWithoutSecurityManager(() -> {
             testPrivileged(() -> {
-                Assertions.assertThat(existingDir).isDirectory();
-                Assertions.assertThat(toCreate).doesNotExist();
+                assertThat(existingDir).isDirectory();
+                assertThat(toCreate).doesNotExist();
             });
 
             try {
@@ -149,8 +150,8 @@ class PrivilegedActionUtilsTest {
             }
 
             testPrivileged(() -> {
-                Assertions.assertThat(existingDir).isDirectory();
-                Assertions.assertThat(toCreate).isDirectory();
+                assertThat(existingDir).isDirectory();
+                assertThat(toCreate).isDirectory();
                 try {
                     Files.delete(toCreate);
                     Files.delete(toCreate.getParent());
