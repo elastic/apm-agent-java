@@ -213,7 +213,7 @@ public class ServletTransactionHelper {
         }
 
         if (hasPathInfo ||  start < end ) {
-            if (end > 0) {
+            if (start < end) {
                 path = requestURI.substring(start, end);
             } else {
                 path = "";

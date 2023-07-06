@@ -127,6 +127,7 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
                 assertThat(servletTransactionHelper.normalizeServletPath("/request/uri", null, servletPath, "/request/uri")).isEqualTo("");
                 assertThat(servletTransactionHelper.normalizeServletPath("/request/uri", "", servletPath, "/request/uri")).isEqualTo("");
                 assertThat(servletTransactionHelper.normalizeServletPath("/context/request/uri", "/context", servletPath, "/context/request/uri")).isEqualTo("");
+                assertThat(servletTransactionHelper.normalizeServletPath("/context/request/uri", "/context/", servletPath, "/request/uri")).isEqualTo("");
 
 
             }
