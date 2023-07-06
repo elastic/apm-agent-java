@@ -41,8 +41,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
 
 public class WarmupInstrumentation extends ElasticApmInstrumentation {
 
-    @SuppressWarnings("unused")
-    private static final Tracer tracer = GlobalTracer.get();
+    static {
+        // assure initialization of tracer
+        @SuppressWarnings("unused")
+        Tracer tracer = GlobalTracer.get();
+    }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
