@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
@@ -269,7 +269,12 @@ public class GrpcHelper {
             transaction.withOutcome(toServerOutcome(terminateStatus));
         }
 
-        transaction.end();
+        // With some implementations we might get called more than once with an extra onCancel before/after
+        // onComplete have been called, thus we have to guard against ending transaction more than once
+        if (!transaction.isFinished()) {
+            transaction.end();
+        }
+
         serverListenerTransactions.remove(listener);
     }
 
@@ -288,8 +293,8 @@ public class GrpcHelper {
      */
     @Nullable
     public Span<?> onClientCallCreationEntry(@Nullable AbstractSpan<?> parent,
-                                          @Nullable MethodDescriptor<?, ?> method,
-                                          @Nullable String authority) {
+                                             @Nullable MethodDescriptor<?, ?> method,
+                                             @Nullable String authority) {
 
         if (null == parent) {
             return null;
