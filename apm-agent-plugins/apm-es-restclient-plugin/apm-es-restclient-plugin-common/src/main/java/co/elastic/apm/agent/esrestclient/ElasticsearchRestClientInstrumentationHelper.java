@@ -21,6 +21,8 @@ package co.elastic.apm.agent.esrestclient;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
@@ -41,6 +43,7 @@ import java.util.concurrent.CancellationException;
 
 public class ElasticsearchRestClientInstrumentationHelper {
 
+    private static final WeakMap<Object, String> requestEndpointIdMap = WeakConcurrent.buildMap();
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelper.class);
 
     private static final Logger unsupportedOperationOnceLogger = LoggerUtils.logOnce(logger);
@@ -74,12 +77,12 @@ public class ElasticsearchRestClientInstrumentationHelper {
     }
 
     public void registerEndpointId(Object requestObj, String endpointId) {
-        RequestEndpointMap.requestEndpointIdMap.put(requestObj, endpointId);
+        requestEndpointIdMap.put(requestObj, endpointId);
     }
 
     @Nullable
     public Span<?> createClientSpan(Object requestObj, String method, String endpoint, @Nullable HttpEntity httpEntity) {
-        String endpointId = RequestEndpointMap.requestEndpointIdMap.remove(requestObj);
+        String endpointId = requestEndpointIdMap.remove(requestObj);
         return createClientSpan(method, endpoint, httpEntity, endpointId);
     }
 

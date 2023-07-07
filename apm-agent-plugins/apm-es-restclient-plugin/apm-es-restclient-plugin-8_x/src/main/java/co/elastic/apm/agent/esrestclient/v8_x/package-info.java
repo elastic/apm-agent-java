@@ -17,6 +17,6 @@
  * under the License.
  */
 @NonnullApi
-package co.elastic.apm.agent.esapiclient.v8_x;
+package co.elastic.apm.agent.esrestclient.v8_x;
 
 import co.elastic.apm.agent.sdk.NonnullApi;

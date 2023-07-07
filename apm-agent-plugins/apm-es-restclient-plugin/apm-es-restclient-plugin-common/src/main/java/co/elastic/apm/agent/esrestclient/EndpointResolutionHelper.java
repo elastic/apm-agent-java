@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.esrestclient;
 
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
 
@@ -30,10 +32,13 @@ import java.util.regex.Pattern;
 
 public class EndpointResolutionHelper {
 
+    private static final Logger logger = LoggerFactory.getLogger(EndpointResolutionHelper.class);
+
     @Nullable
     private static EndpointResolutionHelper INSTANCE;
     private final Map<String, String[]> routesMap = new HashMap<>();
     private final Map<String, Pattern> regexPatternMap = new ConcurrentHashMap<>();
+
     private EndpointResolutionHelper() {
         // This map is generated from the Java client code.
         // It's a one-time generation that shouldn't require maintenance effort,
@@ -469,14 +474,9 @@ public class EndpointResolutionHelper {
         }
 
         span.withOtelAttribute("db.operation", (endpointId.startsWith("es/") && endpointId.length() > 3) ? endpointId.substring(3) : endpointId);
-        if (availableRoutes.length == 1) {
-            enrichSpan(span, method, availableRoutes[0], urlPath);
-        } else {
-            int i = 0;
-            boolean enriched = false;
-            while (i < availableRoutes.length && !enriched) {
-                enriched = enrichSpan(span, method, availableRoutes[i], urlPath);
-                i++;
+        for (String route : availableRoutes) {
+            if (enrichSpan(span, method, route, urlPath)) {
+                break;
             }
         }
     }
@@ -484,9 +484,7 @@ public class EndpointResolutionHelper {
     private Matcher matchUrl(String route, String urlPath) {
         if (!regexPatternMap.containsKey(route)) {
             StringBuilder regexStr = new StringBuilder();
-            regexStr.append('^');
             regexStr.append(route.replace("{", "(?<").replace("}", ">[^/]+)"));
-            regexStr.append('$');
             regexPatternMap.put(route, Pattern.compile(regexStr.toString()));
         }
 
@@ -497,7 +495,7 @@ public class EndpointResolutionHelper {
     private boolean enrichSpan(Span<?> span, String method, String route, String urlPath) {
         if (route.contains("{")) {
             Matcher matcher = matchUrl(route, urlPath);
-            if (!matcher.find()) {
+            if (!matcher.matches()) {
                 return false;
             }
             setTarget(span, matcher, route);
@@ -519,7 +517,7 @@ public class EndpointResolutionHelper {
                 span.withOtelAttribute("db.elasticsearch.target", target);
             }
         } catch (Exception e) {
-            // ignore
+            logger.error("Error setting target", e);
         }
     }
 
@@ -530,7 +528,7 @@ public class EndpointResolutionHelper {
                 span.withOtelAttribute("db.elasticsearch.doc_id", docId);
             }
         } catch (Exception e) {
-            // ignore
+            logger.error("Error setting doc id", e);
         }
     }
 }

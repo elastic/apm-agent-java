@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.esapiclient.v8_x;
+package co.elastic.apm.agent.esrestclient.v8_x;
 
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;

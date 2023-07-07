@@ -1,1 +1,1 @@
-co.elastic.apm.agent.esapiclient.v8_x.RestClientTransportInstrumentation
+co.elastic.apm.agent.esrestclient.v8_x.RestClientTransportInstrumentation

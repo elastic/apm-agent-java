@@ -140,14 +140,12 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     protected void validateSpanContent(Span span, String expectedName, int statusCode, String method, String index, String doc_id) {
         validateSpanContent(span, expectedName, statusCode, method, index);
-        assertThat(span.getOtelAttributes()).containsKey("db.elasticsearch.doc_id");
-        assertThat(span.getOtelAttributes().get("db.elasticsearch.doc_id")).isEqualTo(doc_id);
+        assertThat(span.getOtelAttributes()).containsEntry("db.elasticsearch.doc_id", doc_id);
     }
 
     protected void validateSpanContent(Span span, String expectedName, int statusCode, String method, String index) {
         validateSpanContent(span, expectedName, statusCode, method);
-        assertThat(span.getOtelAttributes()).containsKey("db.elasticsearch.target");
-        assertThat(span.getOtelAttributes().get("db.elasticsearch.target")).isEqualTo(index);
+        assertThat(span.getOtelAttributes()).containsEntry("db.elasticsearch.target", index);
     }
 
     protected void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
