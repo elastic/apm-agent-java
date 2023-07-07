@@ -212,8 +212,12 @@ public class ServletTransactionHelper {
             }
         }
 
-        if (hasPathInfo || end != start) {
-            path = requestURI.substring(start, end);
+        if (hasPathInfo ||  start < end ) {
+            if (start < end) {
+                path = requestURI.substring(start, end);
+            } else {
+                path = "";
+            }
         } else {
             path = requestURI;
         }
