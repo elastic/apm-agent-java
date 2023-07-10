@@ -18,22 +18,23 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
-import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.metadata.Message;
 
 import javax.annotation.Nullable;
 import java.util.Date;
 import java.util.Map;
 
-public abstract class AbstractBaseInstrumentation extends TracerAwareInstrumentation {
-
-    private static final CoreConfiguration coreConfiguration = GlobalTracer.get().getConfig(CoreConfiguration.class);
-    private static final MessagingConfiguration messagingConfiguration = GlobalTracer.get().getConfig(MessagingConfiguration.class);
+public abstract class AbstractBaseInstrumentation extends ElasticApmInstrumentation {
+    static final Tracer tracer = GlobalTracer.get();
+    private static final CoreConfiguration coreConfiguration = tracer.getConfig(CoreConfiguration.class);
+    private static final MessagingConfiguration messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
 
     /**
      * @param name name of the exchange or queue

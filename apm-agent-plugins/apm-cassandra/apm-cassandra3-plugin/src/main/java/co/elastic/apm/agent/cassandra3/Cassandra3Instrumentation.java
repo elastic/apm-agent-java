@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.cassandra3;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.cassandra.CassandraHelper;
 import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import com.datastax.driver.core.BoundStatement;
@@ -44,7 +44,7 @@ import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.*;
 
-public abstract class Cassandra3Instrumentation extends TracerAwareInstrumentation {
+public abstract class Cassandra3Instrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {

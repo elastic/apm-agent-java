@@ -86,7 +86,7 @@ public abstract class WebClientInstrumentation extends Vertx3Instrumentation {
                 AbstractSpan<?> parent = tracer.getActive();
 
                 if (null != parent) {
-                    webClientHelper.startSpan(parent, httpContext, request);
+                    webClientHelper.startSpan(tracer.currentContext(), httpContext, request);
                 } else {
                     webClientHelper.followRedirect(httpContext, request);
                 }

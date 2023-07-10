@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.jdbc;
 
-import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
+import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -95,7 +95,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             public static Object onBeforeExecute(@Advice.This Statement statement,
                                                  @Advice.Argument(0) String sql) {
 
-                return JdbcHelper.get().createJdbcSpan(sql, statement, tracer.getActive(), false);
+                return JdbcHelper.get().createJdbcSpan(sql, statement, tracer.currentContext(), false);
             }
 
 
@@ -144,7 +144,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             public static Object onBeforeExecute(@Advice.This Statement statement,
                                                  @Advice.Argument(0) String sql) {
 
-                return JdbcHelper.get().createJdbcSpan(sql, statement, tracer.getActive(), false);
+                return JdbcHelper.get().createJdbcSpan(sql, statement, tracer.currentContext(), false);
             }
 
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -215,7 +215,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             public static Object onBeforeExecute(@Advice.This Statement statement) {
                 JdbcHelper helper = JdbcHelper.get();
                 String sql = helper.retrieveSqlForStatement(statement);
-                return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
+                return helper.createJdbcSpan(sql, statement, tracer.currentContext(), true);
 
             }
 
@@ -280,7 +280,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
                 JdbcHelper helper = JdbcHelper.get();
                 String sql = helper.retrieveSqlForStatement(statement);
-                return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
+                return helper.createJdbcSpan(sql, statement, tracer.currentContext(), true);
             }
 
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -327,7 +327,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             public static Object onBeforeExecute(@Advice.This Statement statement) {
                 JdbcHelper helper = JdbcHelper.get();
                 @Nullable String sql = helper.retrieveSqlForStatement(statement);
-                return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
+                return helper.createJdbcSpan(sql, statement, tracer.currentContext(), true);
             }
 
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

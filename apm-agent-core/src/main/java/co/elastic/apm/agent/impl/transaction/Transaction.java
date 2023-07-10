@@ -24,7 +24,7 @@ import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
@@ -113,7 +113,7 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
     private final AtomicBoolean wasActivated = new AtomicBoolean();
 
     @Override
-    public Transaction getTransaction() {
+    public Transaction getParentTransaction() {
         return this;
     }
 
@@ -295,8 +295,8 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         return droppedSpanStats;
     }
 
-    @Override
-    public boolean shouldSkipChildSpanCreation() {
+
+    public boolean checkSkipChildSpanCreation() {
         boolean drop = spanCount.isSpanLimitReached(maxSpans);
         if (drop) {
             // when dropping, the caller is expected to optimize and avoid span creation. As a consequence we have

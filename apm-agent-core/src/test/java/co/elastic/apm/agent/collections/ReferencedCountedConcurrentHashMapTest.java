@@ -189,7 +189,7 @@ class ReferencedCountedConcurrentHashMapTest {
 
         @Nullable
         @Override
-        public Transaction getTransaction() {
+        public Transaction getParentTransaction() {
             return null;
         }
 
@@ -217,11 +217,7 @@ class ReferencedCountedConcurrentHashMapTest {
         protected TestSpan thiz() {
             return null;
         }
-
-        @Override
-        public boolean shouldSkipChildSpanCreation() {
-            return false;
-        }
+        
     }
 
 }

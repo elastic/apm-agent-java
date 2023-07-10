@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.mongodb;
 
-import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import org.bson.BsonDocument;
 import org.bson.BsonValue;
@@ -43,11 +43,7 @@ public class MongoHelper {
     }
 
     public Span<?> startSpan(@Nullable String database, @Nullable String collection, @Nullable String command, String host, int port, @Nullable BsonDocument commandDocument) {
-        Span<?> span = null;
-        final AbstractSpan<?> activeSpan = tracer.getActive();
-        if (activeSpan != null) {
-            span = activeSpan.createExitSpan();
-        }
+        Span<?> span = tracer.currentContext().createExitSpan();
 
         if (span == null) {
             return null;

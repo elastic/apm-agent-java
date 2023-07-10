@@ -18,8 +18,10 @@
  */
 package co.elastic.apm.agent.scalaconcurrent;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -35,10 +37,13 @@ import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
-public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
+public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     @SuppressWarnings("WeakerAccess")
     public static final ReferenceCountedMap<Object, AbstractSpan<?>> promisesToContext = tracer.newReferenceCountedMap();
+
 
     @Nonnull
     @Override

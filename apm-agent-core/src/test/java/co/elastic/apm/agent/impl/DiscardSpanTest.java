@@ -55,7 +55,7 @@ public class DiscardSpanTest {
         try {
             Span span = transaction.createSpan().requestDiscarding();
             try {
-                span.propagateTraceContext(new HashMap<>(), TextHeaderMapAccessor.INSTANCE);
+                span.propagateContext(new HashMap<>(), TextHeaderMapAccessor.INSTANCE, null);
                 assertThat(span.isDiscardable()).isFalse();
             } finally {
                 span.end();
@@ -100,7 +100,7 @@ public class DiscardSpanTest {
             try {
                 Span contextPropagatingSpan = parentSpan.createSpan();
                 try {
-                    contextPropagatingSpan.propagateTraceContext(new HashMap<>(), TextHeaderMapAccessor.INSTANCE);
+                    contextPropagatingSpan.propagateContext(new HashMap<>(), TextHeaderMapAccessor.INSTANCE, null);
                     assertThat(contextPropagatingSpan.isDiscardable()).isFalse();
                     assertThat(parentSpan.isDiscardable()).isFalse();
                 } finally {

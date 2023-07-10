@@ -122,7 +122,13 @@ public abstract class HttpContextInstrumentation extends Vertx4Instrumentation {
 
                 if (parentSpan != null) {
                     AbstractSpan<?> parent = (AbstractSpan<?>) parentSpan;
-                    webClientHelper.startSpan(parent, httpContext, request);
+                    //TODO: do actual context propagation instead of span propagation
+                    parent.activate();
+                    try {
+                        webClientHelper.startSpan(tracer.currentContext(), httpContext, request);
+                    } finally {
+                        parent.deactivate();
+                    }
                 }
             }
         }

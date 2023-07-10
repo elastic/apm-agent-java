@@ -21,12 +21,14 @@ package co.elastic.apm.agent.profiler;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 public class SamplingProfilerQueueTest {
 
@@ -37,6 +39,7 @@ public class SamplingProfilerQueueTest {
         System.out.println(System.getProperty("os.name"));
 
         ElasticApmTracer tracer = MockTracer.create();
+        when(tracer.getObjectPoolFactory()).thenReturn(new ObjectPoolFactory());
 
         SamplingProfiler profiler = new SamplingProfiler(tracer, new SystemNanoClock());
 
