@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.finaglehttpclient;
 
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 import com.twitter.finagle.http.Request;
@@ -42,7 +42,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * If this filter is executed for a request, we assume that it is a TLS request.
  */
 @SuppressWarnings("JavadocReference")
-public class FinagleTlsFilterInstrumentation extends TracerAwareInstrumentation {
+public class FinagleTlsFilterInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

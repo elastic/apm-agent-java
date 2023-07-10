@@ -97,14 +97,14 @@ targets:
     sourceid: sql_signature_examples.json
     kind: file
     spec:
-      file: apm-agent-core/src/test/resources/json-specs/sql_signature_examples.json
+      file: apm-agent-plugin-sdk/src/test/resources/json-specs/sql_signature_examples.json
   sql_token_examples.json:
     name: sql_token_examples.json
     scmid: default
     sourceid: sql_token_examples.json
     kind: file
     spec:
-      file: apm-agent-core/src/test/resources/json-specs/sql_token_examples.json
+      file: apm-agent-plugin-sdk/src/test/resources/json-specs/sql_token_examples.json
   w3c_distributed_tracing.json:
     name: w3c_distributed_tracing.json
     scmid: default

@@ -712,7 +712,7 @@ class ElasticApmTracerTest {
 
     }
 
-    private static final class TestContext implements ElasticContext<TestContext> {
+    private static final class TestContext extends ElasticContext<TestContext> {
 
         @Override
         public TestContext activate() {
@@ -729,17 +729,20 @@ class ElasticApmTracerTest {
             return null;
         }
 
-        @org.jetbrains.annotations.Nullable
+        @Nullable
         @Override
         public AbstractSpan<?> getSpan() {
             return null;
         }
 
-        @org.jetbrains.annotations.Nullable
         @Override
-        public Transaction getTransaction() {
-            return null;
+        public void incrementReferences() {
+
         }
 
+        @Override
+        public void decrementReferences() {
+
+        }
     }
 }

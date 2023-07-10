@@ -18,16 +18,16 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -137,8 +137,8 @@ public class KafkaInstrumentationHeadersHelper {
         }
     }
 
-    public void setOutgoingTraceContextHeaders(Span<?> span, ProducerRecord<?, ?> producerRecord) {
-        span.propagateTraceContext(producerRecord, KafkaRecordHeaderAccessor.instance());
+    public void setOutgoingTraceContextHeaders(ElasticContext<?> toPropagate, ProducerRecord<?, ?> producerRecord) {
+        toPropagate.propagateContext(producerRecord, KafkaRecordHeaderAccessor.instance());
     }
 
     public void removeTraceContextHeader(ProducerRecord<?, ?> producerRecord) {

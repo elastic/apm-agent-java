@@ -29,7 +29,7 @@ import org.apache.http.protocol.HttpCoreContext;
 
 import javax.annotation.Nullable;
 
-class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
+public class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
     private final ApacheHttpAsyncClientHelper helper;
     @Nullable
     private FutureCallback<T> delegate;
@@ -69,6 +69,16 @@ class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
             if (delegate != null) {
                 delegate.failed(ex);
             }
+            helper.recycle(this);
+        }
+    }
+
+    public void failedWithoutExecution(Throwable ex) {
+        try {
+            final Span<?> localSpan = span;
+            localSpan.captureException(ex);
+            localSpan.end();
+        } finally {
             helper.recycle(this);
         }
     }

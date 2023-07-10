@@ -46,7 +46,7 @@ import java.util.concurrent.Callable;
  *
  * @param <T>
  */
-public class ElasticContextWrapper<T extends ElasticContext<T>> implements ElasticContext<T> {
+public class ElasticContextWrapper<T extends ElasticContext<T>> extends ElasticContext<T> {
 
     /**
      * Original wrapped context
@@ -118,10 +118,19 @@ public class ElasticContextWrapper<T extends ElasticContext<T>> implements Elast
         return context.getSpan();
     }
 
+
     @Override
-    @Nullable
-    public Transaction getTransaction() {
-        return context.getTransaction();
+    public boolean isEmpty() {
+        throw new UnsupportedOperationException("Context wrapper should not be checked for emptyness");
     }
 
+    @Override
+    public void incrementReferences() {
+        throw new UnsupportedOperationException("Context wrapper should not be involved in reference counting");
+    }
+
+    @Override
+    public void decrementReferences() {
+        throw new UnsupportedOperationException("Context wrapper should not be involved in reference counting");
+    }
 }

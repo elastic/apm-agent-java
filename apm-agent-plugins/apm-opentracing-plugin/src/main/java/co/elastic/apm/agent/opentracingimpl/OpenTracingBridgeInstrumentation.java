@@ -18,12 +18,17 @@
  */
 package co.elastic.apm.agent.opentracingimpl;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import java.util.Collection;
 import java.util.Collections;
 
-public abstract class OpenTracingBridgeInstrumentation extends TracerAwareInstrumentation {
+public abstract class OpenTracingBridgeInstrumentation extends ElasticApmInstrumentation {
+
+    static final Tracer tracer = GlobalTracer.get();
+
     @Override
     public boolean includeWhenInstrumentationIsDisabled() {
         return true;

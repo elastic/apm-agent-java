@@ -18,9 +18,11 @@
  */
 package co.elastic.apm.agent.lettuce;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import io.lettuce.core.protocol.RedisCommand;
 import net.bytebuddy.asm.Advice;
@@ -43,7 +45,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  *
  * The context will be propagated via the Netty instrumentation
  */
-public class Lettuce5StartSpanInstrumentation extends TracerAwareInstrumentation {
+public class Lettuce5StartSpanInstrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     static final ReferenceCountedMap<RedisCommand<?, ?, ?>, Span> commandToSpan = tracer.newReferenceCountedMap();
 

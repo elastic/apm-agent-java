@@ -23,7 +23,8 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Http;
-import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.agent.tracer.util.ResultUtil;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -361,7 +362,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     private void verifyTraceContextHeaders(Span span, String path) {
         Map<String, String> headerMap = new HashMap<>();
-        span.propagateTraceContext(headerMap, TextHeaderMapAccessor.INSTANCE);
+        span.propagateContext(headerMap, TextHeaderMapAccessor.INSTANCE, TextHeaderMapAccessor.INSTANCE);
         assertThat(headerMap).isNotEmpty();
         final List<LoggedRequest> loggedRequests = findLoggedRequests(path);
         loggedRequests.forEach(request -> {

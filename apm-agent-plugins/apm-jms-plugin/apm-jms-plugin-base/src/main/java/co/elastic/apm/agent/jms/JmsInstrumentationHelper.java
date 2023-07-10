@@ -28,7 +28,7 @@ import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 import javax.jms.Destination;
@@ -118,14 +118,8 @@ public class JmsInstrumentationHelper {
     @SuppressWarnings("Duplicates")
     @Nullable
     public Span<?> startJmsSendSpan(Destination destination, Message message) {
-
-        final AbstractSpan<?> activeSpan = tracer.getActive();
-        if (activeSpan == null) {
-            return null;
-        }
-
-        boolean isDestinationNameComputed = false;
         String destinationName = extractDestinationName(null, destination);
+        boolean isDestinationNameComputed = false;
         if (isTempDestination(destination, destinationName)) {
             destinationName = TEMP;
             isDestinationNameComputed = true;
@@ -134,19 +128,17 @@ public class JmsInstrumentationHelper {
             return null;
         }
 
-        Span<?> span = activeSpan.createExitSpan();
-
-        if (span == null) {
-            return null;
+        Span<?> span = tracer.currentContext().createExitSpan();
+        if (span != null) {
+            span.withType(MESSAGING_TYPE)
+                .withSubtype("jms")
+                .withAction("send")
+                .activate();
         }
 
-        span.withType(MESSAGING_TYPE)
-            .withSubtype("jms")
-            .withAction("send")
-            .activate();
+        tracer.currentContext().propagateContext(message, JmsMessagePropertyAccessor.instance(), null);
 
-        span.propagateTraceContext(message, JmsMessagePropertyAccessor.instance());
-        if (span.isSampled()) {
+        if (span != null && span.isSampled()) {
 
             span.getContext().getServiceTarget()
                 .withType("jms")
@@ -160,6 +152,7 @@ public class JmsInstrumentationHelper {
                 }
             }
         }
+
         return span;
     }
 

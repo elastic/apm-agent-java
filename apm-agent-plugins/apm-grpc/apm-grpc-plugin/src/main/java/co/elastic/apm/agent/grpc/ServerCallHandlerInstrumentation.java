@@ -21,7 +21,7 @@ package co.elastic.apm.agent.grpc;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import net.bytebuddy.asm.Advice;

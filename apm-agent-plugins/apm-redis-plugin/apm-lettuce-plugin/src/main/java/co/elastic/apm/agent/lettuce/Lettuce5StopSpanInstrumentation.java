@@ -18,7 +18,9 @@
  */
 package co.elastic.apm.agent.lettuce;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Span;
 import io.lettuce.core.protocol.RedisCommand;
 import net.bytebuddy.asm.Advice;
@@ -26,8 +28,6 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -47,7 +47,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  *     <li>{@link RedisCommand#cancel()}</li>
  * </ul>
  */
-public abstract class Lettuce5StopSpanInstrumentation extends TracerAwareInstrumentation {
+public abstract class Lettuce5StopSpanInstrumentation extends ElasticApmInstrumentation {
 
     private static final Logger logger = LoggerFactory.getLogger(Lettuce5StopSpanInstrumentation.class);
 
