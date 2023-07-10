@@ -22,7 +22,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static co.elastic.apm.agent.sdk.util.ExecutorUtils.*;
+import static co.elastic.apm.agent.sdk.internal.util.ExecutorUtils.*;
 
 public class ExecutorUtilsProviderImpl implements ExecutorUtilsProvider {
 

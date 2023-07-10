@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.sdk.state;
 
 
-import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;

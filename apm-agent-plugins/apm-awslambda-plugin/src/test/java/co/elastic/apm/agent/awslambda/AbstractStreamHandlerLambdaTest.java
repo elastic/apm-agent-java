@@ -24,7 +24,7 @@ import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.sdk.util.VersionUtils;
+import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import org.assertj.core.api.ThrowableAssert;

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.profiler;
 
-import co.elastic.apm.agent.sdk.collections.LongList;
+import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;

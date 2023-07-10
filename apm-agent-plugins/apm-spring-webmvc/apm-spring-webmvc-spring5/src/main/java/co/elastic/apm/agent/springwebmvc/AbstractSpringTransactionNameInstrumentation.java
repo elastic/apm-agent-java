@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.sdk.util.VersionUtils;
+import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import co.elastic.apm.agent.servlet.Constants;
 import co.elastic.apm.agent.servlet.adapter.ServletRequestAdapter;
 import co.elastic.apm.agent.tracer.GlobalTracer;

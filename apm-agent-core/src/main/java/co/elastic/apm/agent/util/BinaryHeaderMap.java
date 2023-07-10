@@ -22,7 +22,7 @@ import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
-import co.elastic.apm.agent.sdk.util.IOUtils;
+import co.elastic.apm.agent.sdk.internal.util.IOUtils;
 
 import javax.annotation.Nullable;
 import java.nio.Buffer;

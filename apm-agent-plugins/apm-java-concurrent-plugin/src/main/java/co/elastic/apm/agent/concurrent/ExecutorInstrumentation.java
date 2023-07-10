@@ -20,7 +20,7 @@ package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
-import co.elastic.apm.agent.sdk.util.ExecutorUtils;
+import co.elastic.apm.agent.sdk.internal.util.ExecutorUtils;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.asm.Advice;

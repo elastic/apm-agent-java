@@ -21,7 +21,7 @@ package co.elastic.apm.agent.objectpool.impl;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.ObjectPoolTest;
 import co.elastic.apm.agent.objectpool.TestRecyclable;
-import co.elastic.apm.agent.sdk.util.IOUtils;
+import co.elastic.apm.agent.sdk.internal.util.IOUtils;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 import org.junit.jupiter.api.Test;
 

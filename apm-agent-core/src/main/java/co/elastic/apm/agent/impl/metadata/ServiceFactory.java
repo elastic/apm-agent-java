@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.impl.metadata;
 
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
-import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 
 public class ServiceFactory {

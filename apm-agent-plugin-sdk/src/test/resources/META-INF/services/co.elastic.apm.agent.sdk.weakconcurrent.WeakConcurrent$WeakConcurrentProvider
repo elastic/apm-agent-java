@@ -1,1 +1,1 @@
-co.elastic.apm.agent.sdk.util.WeakConcurrentProviderTestImpl
+co.elastic.apm.agent.sdk.internal.util.WeakConcurrentProviderTestImpl

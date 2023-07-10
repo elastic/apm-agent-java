@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.concurrent;
 
-import co.elastic.apm.agent.sdk.PluginClassLoaderRootPackageCustomizer;
+import co.elastic.apm.agent.sdk.internal.PluginClassLoaderRootPackageCustomizer;
 
 import java.util.Collection;
 import java.util.Collections;

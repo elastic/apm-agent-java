@@ -23,7 +23,7 @@ import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
-import co.elastic.apm.agent.sdk.util.VersionUtils;
+import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import net.bytebuddy.asm.Advice;
 import spark.Route;
 import spark.routematch.RouteMatch;

@@ -20,7 +20,7 @@ package co.elastic.apm.agent.websocket;
 
 import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.sdk.util.VersionUtils;
+import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import jakarta.websocket.server.ServerEndpoint;
 import net.bytebuddy.asm.Advice;
 

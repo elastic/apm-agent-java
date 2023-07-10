@@ -26,7 +26,7 @@ import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.tracer.GlobalLocks;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nullable;

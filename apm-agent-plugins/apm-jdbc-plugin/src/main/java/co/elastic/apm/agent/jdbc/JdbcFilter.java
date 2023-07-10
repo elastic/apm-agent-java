@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.jdbc;
 
-import co.elastic.apm.agent.sdk.db.signature.Scanner;
-import co.elastic.apm.agent.sdk.db.signature.ScannerFilter;
+import co.elastic.apm.agent.sdk.internal.db.signature.Scanner;
+import co.elastic.apm.agent.sdk.internal.db.signature.ScannerFilter;
 
 public class JdbcFilter implements ScannerFilter {
 

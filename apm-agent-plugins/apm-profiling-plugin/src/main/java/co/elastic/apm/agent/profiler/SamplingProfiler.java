@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.profiler;
 
-import co.elastic.apm.agent.sdk.util.ExecutorUtils;
+import co.elastic.apm.agent.sdk.internal.util.ExecutorUtils;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.context.AbstractLifecycleListener;

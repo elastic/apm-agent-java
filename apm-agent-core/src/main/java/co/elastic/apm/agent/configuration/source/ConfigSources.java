@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.configuration.source;
 
 import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
-import co.elastic.apm.agent.sdk.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import org.stagemonitor.configuration.source.SimpleSource;
 
 import javax.annotation.Nullable;

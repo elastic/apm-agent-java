@@ -20,7 +20,7 @@ package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import co.elastic.apm.agent.common.util.Version;
-import co.elastic.apm.agent.sdk.util.VersionUtils;
+import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;

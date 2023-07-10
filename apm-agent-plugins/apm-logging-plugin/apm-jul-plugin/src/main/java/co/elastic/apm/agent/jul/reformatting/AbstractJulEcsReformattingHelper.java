@@ -24,7 +24,7 @@ import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.sdk.util.LoggerUtils;
+import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.logging.AdditionalField;
 import co.elastic.logging.jul.EcsFormatter;
 

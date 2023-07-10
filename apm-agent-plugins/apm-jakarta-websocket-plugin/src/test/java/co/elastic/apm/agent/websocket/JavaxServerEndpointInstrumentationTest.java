@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.websocket;
 
-import co.elastic.apm.agent.sdk.util.VersionUtils;
+import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import co.elastic.apm.agent.websocket.endpoint.JavaxServerEndpoint;
 
 class JavaxServerEndpointInstrumentationTest extends BaseServerEndpointInstrumentationTest {
