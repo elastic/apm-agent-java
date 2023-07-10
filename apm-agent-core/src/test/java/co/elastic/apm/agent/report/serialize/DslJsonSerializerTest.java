@@ -1088,12 +1088,12 @@ class DslJsonSerializerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
+    @ValueSource(booleans = {false,true})
     void testSystemInfo_detectedHostname(boolean supportsConfiguredAndDetectedHostname) throws Exception {
         String arc = "test-arc";
         String platform = "test-platform";
 
-        MetaData metaData = createMetaData(new SystemInfo(arc, null, "detected", platform));
+        MetaData metaData = createMetaData(new SystemInfo(arc, null, "detected.fqdn", platform));
         DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true);
         writer.appendMetadataToStream();
 
@@ -1103,12 +1103,12 @@ class DslJsonSerializerTest {
         assertThat(platform).isEqualTo(system.get("platform").asText());
         if (supportsConfiguredAndDetectedHostname) {
             assertThat(system.get("configured_hostname")).isNull();
-            assertThat(system.get("detected_hostname").asText()).isEqualTo("detected");
+            assertThat(system.get("detected_hostname").asText()).isEqualTo("detected.fqdn");
             assertThat(system.get("hostname")).isNull();
         } else {
             assertThat(system.get("configured_hostname")).isNull();
             assertThat(system.get("detected_hostname")).isNull();
-            assertThat(system.get("hostname").asText()).isEqualTo("detected");
+            assertThat(system.get("hostname").asText()).isEqualTo("detected.fqdn");
         }
     }
 
