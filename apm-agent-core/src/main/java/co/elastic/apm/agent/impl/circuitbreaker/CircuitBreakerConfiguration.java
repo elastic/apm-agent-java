@@ -23,8 +23,8 @@ import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
-import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
-import static co.elastic.apm.agent.configuration.validation.RangeValidator.isNotInRange;
+import static co.elastic.apm.agent.tracer.configuration.RangeValidator.isInRange;
+import static co.elastic.apm.agent.tracer.configuration.RangeValidator.isNotInRange;
 
 public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
     public static final String CIRCUIT_BREAKER_CATEGORY = "Circuit-Breaker";
