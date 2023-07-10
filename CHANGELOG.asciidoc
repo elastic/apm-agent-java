@@ -32,6 +32,10 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 === Unreleased
 
 [float]
+===== Features
+* Capture `container.id` for cgroups v2 - {pull}3199[#3199]
+
+[float]
 ===== Bug fixes
 * Fixed agent programmatic attach with immutable config - {pull}3170[#3170]
 * Prevent overriding `ELASTIC_APM_AWS_LAMBDA_HANDLER` in AWS lambda execution when explicitly set - {pull}3205[#3205]
