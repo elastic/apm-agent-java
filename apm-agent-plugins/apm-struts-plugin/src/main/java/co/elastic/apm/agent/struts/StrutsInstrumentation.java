@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.struts;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 
 import java.util.Collection;
 
 import static java.util.Collections.singletonList;
 
-abstract class StrutsInstrumentation extends TracerAwareInstrumentation {
+abstract class StrutsInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

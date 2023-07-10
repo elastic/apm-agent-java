@@ -18,19 +18,20 @@
  */
 package co.elastic.apm.agent.tracemethods;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.MethodMatcher;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -43,7 +44,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.matches;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
@@ -55,7 +56,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
+public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
 
     private final MethodMatcher methodMatcher;
     private final CoreConfiguration config;
@@ -143,19 +144,20 @@ public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
         public static Object onMethodEnter(@Advice.Origin Class<?> clazz,
                                            @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature) {
             AbstractSpan<?> span = null;
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
+            ElasticContext<?> activeContext = tracer.currentContext();
+            final AbstractSpan<?> parentSpan = tracer.getActive();
+            if (parentSpan == null) {
                 span = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
                 if (span != null) {
                     span.withName(signature).activate();
                 }
-            } else if (parent.isSampled()) {
-                if (parent.shouldSkipChildSpanCreation()) {
+            } else if (parentSpan.isSampled()) {
+                if (parentSpan.shouldSkipChildSpanCreation()) {
                     // span limit reached means span will not be reported, thus we can optimize and skip creating one
                     logger.debug("Not creating span for {} because span limit is reached.", signature);
                     return null;
                 }
-                span = parent.createSpan()
+                span = activeContext.createSpan()
                     .withName(signature)
                     .activate();
             }

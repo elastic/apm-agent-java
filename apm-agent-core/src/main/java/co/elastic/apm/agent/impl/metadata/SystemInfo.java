@@ -31,7 +31,9 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -167,9 +169,6 @@ public class SystemInfo {
         if (hostname == null || hostname.isEmpty()) {
             try {
                 hostname = InetAddress.getLocalHost().getHostName();
-                if (hostname != null) {
-                    hostname = removeDomain(hostname);
-                }
             } catch (Exception e) {
                 logger.warn("Last fallback for hostname discovery of localhost failed", e);
             }
@@ -180,23 +179,13 @@ public class SystemInfo {
     @Nullable
     static String discoverHostnameThroughCommand(boolean isWindows, long timeoutMillis) {
         String hostname;
-        List<String> cmd;
         if (isWindows) {
-            cmd = new ArrayList<>();
-            cmd.add("cmd");
-            cmd.add("/c");
-            cmd.add("hostname");
-            hostname = executeHostnameDiscoveryCommand(cmd, timeoutMillis);
-        } else {
-            cmd = new ArrayList<>();
-            cmd.add("uname");
-            cmd.add("-n");
-            hostname = executeHostnameDiscoveryCommand(cmd, timeoutMillis);
+            hostname = executeHostnameDiscoveryCommand(Arrays.asList("powershell.exe", "[System.Net.Dns]::GetHostEntry($env:computerName).HostName"), timeoutMillis);
             if (hostname == null || hostname.isEmpty()) {
-                cmd = new ArrayList<>();
-                cmd.add("hostname");
-                hostname = executeHostnameDiscoveryCommand(cmd, timeoutMillis);
+                hostname = executeHostnameDiscoveryCommand(Arrays.asList("cmd.exe", "/c", "hostname"), timeoutMillis);
             }
+        } else {
+            hostname = executeHostnameDiscoveryCommand(Arrays.asList("hostname", "-f"), timeoutMillis);
         }
         return hostname;
     }
@@ -221,6 +210,9 @@ public class SystemInfo {
         } else {
             logger.info("Failed to execute command {} with exit code {}", cmdAsString(cmd), commandOutput.getExitCode());
             logger.debug("Command execution error", commandOutput.getExceptionThrown());
+        }
+        if(hostname != null) {
+            hostname = hostname.toLowerCase(Locale.ROOT);
         }
         return hostname;
     }
@@ -248,13 +240,8 @@ public class SystemInfo {
                 hostname = System.getenv("HOST");
             }
         }
-        return hostname;
-    }
-
-    static String removeDomain(String hostname) {
-        int indexOfDot = hostname.indexOf('.');
-        if (indexOfDot > 0) {
-            hostname = hostname.substring(0, indexOfDot);
+        if (hostname != null) {
+            hostname = hostname.toLowerCase(Locale.ROOT);
         }
         return hostname;
     }

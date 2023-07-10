@@ -71,6 +71,11 @@ class NoopTracer implements Tracer {
         return Collections.<String>emptySet();
     }
 
+    @Override
+    public ElasticContext<?> currentContext() {
+        return NoopElasticContext.INSTANCE;
+    }
+
     @Nullable
     @Override
     public AbstractSpan<?> getActive() {

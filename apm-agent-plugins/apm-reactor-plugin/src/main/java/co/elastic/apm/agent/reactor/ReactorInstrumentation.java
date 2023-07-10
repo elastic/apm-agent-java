@@ -18,7 +18,9 @@
  */
 package co.elastic.apm.agent.reactor;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -38,7 +40,9 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * </ul>
  */
 @SuppressWarnings("JavadocReference")
-public class ReactorInstrumentation extends TracerAwareInstrumentation {
+public class ReactorInstrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.hibernatesearch;
 
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 
@@ -31,20 +32,21 @@ public final class HibernateSearchHelper {
     public static Span<?> createAndActivateSpan(final Tracer tracer, final String methodName,
                                                 final String query) {
 
-        AbstractSpan<?> active = tracer.getActive();
+        ElasticContext<?> active = tracer.currentContext();
+        AbstractSpan<?> activeSpan = active.getSpan();
         // avoid creating the same span twice for example, when an instrumented API is wrapped
-        if (active == null || active instanceof Span<?> && HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE
-            .equals(((Span<?>) active).getSubtype())) {
+        if (activeSpan == null || activeSpan instanceof Span<?> && HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE
+            .equals(((Span<?>) activeSpan).getSubtype())) {
             return null;
         }
 
         Span<?> span = active.createSpan().activate();
 
         span.withType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_TYPE)
-                .withSubtype(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
-                .withAction(methodName);
+            .withSubtype(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
+            .withAction(methodName);
         span.getContext().getDb()
-                .withType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
+            .withType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
                 .withStatement(query);
         span.withName(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_NAME)
                 .appendToName(" ").appendToName(methodName).appendToName("()");

@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.Span;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientCall;
@@ -32,7 +32,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -82,7 +81,7 @@ public class ChannelInstrumentation extends BaseInstrumentation {
         public static Object onEnter(@Advice.This Channel channel,
                                      @Advice.Argument(0) MethodDescriptor<?, ?> method) {
 
-            return GrpcHelper.getInstance().onClientCallCreationEntry(tracer.getActive(), method, channel.authority());
+            return GrpcHelper.getInstance().onClientCallCreationEntry(tracer.currentContext(), method, channel.authority());
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

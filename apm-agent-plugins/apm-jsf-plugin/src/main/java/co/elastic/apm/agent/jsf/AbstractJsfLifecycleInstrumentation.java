@@ -18,7 +18,9 @@
  */
 package co.elastic.apm.agent.jsf;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -26,7 +28,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -37,10 +39,11 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
  * Instruments javax.faces.lifecycle.Lifecycle#execute and javax.faces.lifecycle.Lifecycle#render.
  * Code is duplicated because it is injected inline
  */
-public abstract class AbstractJsfLifecycleInstrumentation extends TracerAwareInstrumentation {
+public abstract class AbstractJsfLifecycleInstrumentation extends ElasticApmInstrumentation {
     protected static final String SPAN_TYPE = "template";
     protected static final String SPAN_SUBTYPE = "jsf";
     protected static final String FRAMEWORK_NAME = "JavaServer Faces";
+    static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {

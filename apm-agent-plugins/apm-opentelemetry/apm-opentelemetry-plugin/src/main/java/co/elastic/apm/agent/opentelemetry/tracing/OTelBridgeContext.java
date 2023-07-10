@@ -21,7 +21,6 @@ package co.elastic.apm.agent.opentelemetry.tracing;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.ContextKey;
@@ -33,7 +32,7 @@ import java.util.Objects;
 /**
  * Bridge implementation of OpenTelemetry {@link Context} that allows to provide compatibility with {@link ElasticContext}.
  */
-public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Context, Scope {
+public class OTelBridgeContext extends ElasticContext<OTelBridgeContext> implements Context, Scope {
 
     /**
      * Original root context as returned by {@link Context#root()} before instrumentation.
@@ -112,12 +111,6 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
     }
 
     @Override
-    public OTelBridgeContext withActiveSpan(AbstractSpan<?> span) {
-        // otel context is immutable, thus we have to create new bridged context here
-        return new OTelBridgeContext(tracer, otelContext.with(new OTelSpan(span)));
-    }
-
-    @Override
     public OTelBridgeContext deactivate() {
         tracer.deactivate(this);
         return this;
@@ -134,12 +127,6 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
         return null;
     }
 
-    @Nullable
-    @Override
-    public Transaction getTransaction() {
-        AbstractSpan<?> span = getSpan();
-        return span != null ? span.getTransaction() : null;
-    }
 
     // OTel context implementation
 
@@ -164,5 +151,20 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
     @Override
     public String toString() {
         return "OTelBridgeContext[" + otelContext + "]";
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return this == root; //we only know that the root context is empty, other contexts could have any kind of keys
+    }
+
+    @Override
+    public void incrementReferences() {
+        //No need for reference counting: the contained span is always kept alive by the wrapping OTelSpan
+    }
+
+    @Override
+    public void decrementReferences() {
+        //No need for reference counting: the contained span is always kept alive by the wrapping OTelSpan
     }
 }

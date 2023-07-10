@@ -18,9 +18,11 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.method.MethodDescription;
@@ -31,8 +33,6 @@ import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.record.RecordBatch;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -71,21 +71,21 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
                                           @Advice.Argument(0) final ProducerRecord<?, ?> record,
                                           @Nullable @Advice.Argument(value = 1) Callback callback) {
             Span<?> span = helper.onSendStart(record);
-            if (span == null) {
-                return null;
-            }
 
             // Avoid adding headers to records sent to a version older than 0.11.0 - see specifications in
             // https://kafka.apache.org/0110/documentation.html#messageformat
             if (apiVersions.maxUsableProduceMagic() >= RecordBatch.MAGIC_VALUE_V2 && headersSupported) {
                 try {
-                    headersHelper.setOutgoingTraceContextHeaders(span, record);
+                    headersHelper.setOutgoingTraceContextHeaders(tracer.currentContext(), record);
                 } catch (final IllegalStateException e) {
                     // headers are in a read-only state
                     logger.debug("Failed to add header to Kafka record {}, probably to headers' read-only state.", record);
                 }
             }
 
+            if (span == null) {
+                return null;
+            }
             return new Object[]{span, helper.wrapCallback(callback, span)};
         }
 

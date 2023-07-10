@@ -19,10 +19,11 @@
 package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import com.squareup.okhttp.Call;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.Request;
@@ -33,8 +34,6 @@ import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -63,10 +62,6 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
                                                final @Advice.FieldValue("originalRequest") @Nullable Request originalRequest,
                                                final @Advice.Argument(0) @Nullable Callback originalCallback) {
 
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
-            }
 
             if (originalRequest == null || originalCallback == null) {
                 return null;
@@ -74,27 +69,24 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
 
             Request request = originalRequest;
             Callback callback = originalCallback;
-            URL url = request.url();
 
-            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.getProtocol(),
+            URL url = request.url();
+            Span<?> span = HttpClientHelper.startHttpClientSpan(tracer.currentContext(), request.method(), url.toString(), url.getProtocol(),
                 OkHttpClientHelper.computeHostName(url.getHost()), url.getPort());
 
             if (span != null) {
                 span.withSync(false)
                     .activate();
+                callback = CallbackWrapperCreator.INSTANCE.wrap(originalCallback, span);
             }
 
-            if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), request, OkHttpRequestHeaderGetter.INSTANCE)) {
+            ElasticContext<?> toPropagate = tracer.currentContext();
+            if (toPropagate.isPropagationRequired(request, OkHttpRequestHeaderGetter.INSTANCE)) {
                 Request.Builder builder = originalRequest.newBuilder();
-                if (span != null) {
-                    span.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
-                    request = builder.build();
-                    callback = CallbackWrapperCreator.INSTANCE.wrap(originalCallback, span);
-                } else {
-                    parent.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
-                    request = builder.build();
-                }
+                toPropagate.propagateContext(builder, OkHttpRequestHeaderSetter.INSTANCE, request, OkHttpRequestHeaderGetter.INSTANCE);
+                request = builder.build();
             }
+
             return new Object[]{request, callback, span};
         }
 

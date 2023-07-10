@@ -18,21 +18,22 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
-import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.sdk.bytebuddy.AnnotationValueOffsetMappingFactory;
+import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -44,10 +45,10 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isProxy;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
 import static co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static co.elastic.apm.agent.pluginapi.Utils.FRAMEWORK_NAME;
 import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_METHOD_SIGNATURE;
@@ -59,7 +60,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class TracedInstrumentation extends ElasticApmInstrumentation {
 
-    public static final Tracer tracer = GlobalTracer.get();
+    protected static final Tracer tracer = GlobalTracer.get();
 
     public static final Logger logger = LoggerFactory.getLogger(TracedInstrumentation.class);
 
@@ -92,14 +93,15 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
                 defaultValueProvider = AnnotationValueOffsetMappingFactory.TrueDefaultValueProvider.class
             ) boolean discardable) {
 
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent != null) {
-                if (parent.shouldSkipChildSpanCreation()) {
+            final ElasticContext<?> activeContext = tracer.currentContext();
+            final AbstractSpan<?> parentSpan = activeContext.getSpan();
+            if (parentSpan != null) {
+                if (activeContext.shouldSkipChildSpanCreation()) {
                     // span limit reached means span will not be reported, thus we can optimize and skip creating one
                     logger.debug("Not creating span for {} because span limit is reached.", signature);
                     return null;
                 }
-                Span<?> span = asExit ? parent.createExitSpan() : parent.createSpan();
+                Span<?> span = asExit ? activeContext.createExitSpan() : activeContext.createSpan();
                 if (span == null) {
                     return null;
                 }

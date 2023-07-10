@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.jsf;
 
-import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Transaction;
 import net.bytebuddy.description.method.MethodDescription;
@@ -46,17 +46,14 @@ public abstract class AbstractJsfLifecycleExecuteInstrumentation extends Abstrac
 
         @Nullable
         protected static Object createAndActivateSpan(boolean withExternalContext, @Nullable String requestServletPath, @Nullable String requestPathInfo) {
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
-            }
-            if (parent instanceof Span<?>) {
-                Span<?> parentSpan = (Span<?>) parent;
+            final ElasticContext<?> activeContext = tracer.currentContext();
+            if (activeContext.getSpan() instanceof Span<?>) {
+                Span<?> parentSpan = (Span<?>) activeContext.getSpan();
                 if (SPAN_SUBTYPE.equals(parentSpan.getSubtype()) && SPAN_ACTION.equals(parentSpan.getAction())) {
                     return null;
                 }
             }
-            Transaction<?> transaction = tracer.currentTransaction();
+            Transaction<?> transaction = activeContext.getTransaction();
             if (transaction != null) {
                 try {
                     if (withExternalContext) {
@@ -70,12 +67,14 @@ public abstract class AbstractJsfLifecycleExecuteInstrumentation extends Abstrac
                     // do nothing- rely on the default servlet name logic
                 }
             }
-            Span<?> span = parent.createSpan()
-                .withType(SPAN_TYPE)
-                .withSubtype(SPAN_SUBTYPE)
-                .withAction(SPAN_ACTION)
-                .withName("JSF Execute");
-            span.activate();
+            Span<?> span = activeContext.createSpan();
+            if (span != null) {
+                span.withType(SPAN_TYPE)
+                    .withSubtype(SPAN_SUBTYPE)
+                    .withAction(SPAN_ACTION)
+                    .withName("JSF Execute")
+                    .activate();
+            }
             return span;
         }
 

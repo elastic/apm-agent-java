@@ -63,11 +63,7 @@ public abstract class AbstractDynamoDBInstrumentationHelper<R, C> extends Abstra
 
     @Nullable
     public Span<?> startSpan(R sdkRequest, URI httpURI, C context) {
-        AbstractSpan<?> active = tracer.getActive();
-        if (active == null) {
-            return null;
-        }
-        Span<?> span = active.createExitSpan();
+        Span<?> span = tracer.currentContext().createExitSpan();
         if (span == null) {
             return null;
         }

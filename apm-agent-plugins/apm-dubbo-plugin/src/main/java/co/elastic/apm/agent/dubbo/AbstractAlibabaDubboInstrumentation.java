@@ -20,7 +20,7 @@ package co.elastic.apm.agent.dubbo;
 
 import net.bytebuddy.matcher.ElementMatcher;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 
 public abstract class AbstractAlibabaDubboInstrumentation extends AbstractDubboInstrumentation {
 

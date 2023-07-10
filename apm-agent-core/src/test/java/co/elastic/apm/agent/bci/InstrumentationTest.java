@@ -491,7 +491,7 @@ class InstrumentationTest {
         return "";
     }
 
-    public static class TestInstrumentation extends TracerAwareInstrumentation {
+    public static class TestInstrumentation extends ElasticApmInstrumentation {
         public static class AdviceClass {
             @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(inline = false)
@@ -541,7 +541,7 @@ class InstrumentationTest {
         }
     }
 
-    public static class MathInstrumentation extends TracerAwareInstrumentation {
+    public static class MathInstrumentation extends ElasticApmInstrumentation {
         public static class AdviceClass {
             @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(inline = false)
@@ -567,7 +567,7 @@ class InstrumentationTest {
 
     }
 
-    public static class ExceptionInstrumentation extends TracerAwareInstrumentation {
+    public static class ExceptionInstrumentation extends ElasticApmInstrumentation {
         public static class AdviceClass {
             @Advice.OnMethodExit(inline = false)
             public static void onMethodExit() {
@@ -592,7 +592,7 @@ class InstrumentationTest {
 
     }
 
-    public static class SuppressExceptionInstrumentation extends TracerAwareInstrumentation {
+    public static class SuppressExceptionInstrumentation extends ElasticApmInstrumentation {
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static String onMethodEnter() {
@@ -623,7 +623,7 @@ class InstrumentationTest {
 
     }
 
-    public static class FieldAccessInstrumentation extends TracerAwareInstrumentation {
+    public static class FieldAccessInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
             @Advice.AssignReturned.ToFields(@ToField(value = "privateString", typing = DYNAMIC))
@@ -650,7 +650,7 @@ class InstrumentationTest {
 
     }
 
-    public static class FieldAccessArrayInstrumentation extends TracerAwareInstrumentation {
+    public static class FieldAccessArrayInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
             @Advice.AssignReturned.ToFields(@ToField(index = 0, value = "privateString", typing = DYNAMIC))
@@ -677,7 +677,7 @@ class InstrumentationTest {
 
     }
 
-    public static class AssignToArgumentInstrumentation extends TracerAwareInstrumentation {
+    public static class AssignToArgumentInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
             @Advice.AssignReturned.ToArguments(@ToArgument(0))
@@ -704,7 +704,7 @@ class InstrumentationTest {
 
     }
 
-    public static class AssignToArgumentsInstrumentation extends TracerAwareInstrumentation {
+    public static class AssignToArgumentsInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
             @Advice.AssignReturned.ToArguments({
@@ -734,7 +734,7 @@ class InstrumentationTest {
 
     }
 
-    public static class AssignToReturnArrayInstrumentation extends TracerAwareInstrumentation {
+    public static class AssignToReturnArrayInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
             @Advice.AssignReturned.ToReturned(index = 0, typing = DYNAMIC)
@@ -761,7 +761,7 @@ class InstrumentationTest {
 
     }
 
-    public static class CommonsLangInstrumentation extends TracerAwareInstrumentation {
+    public static class CommonsLangInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
             public static AtomicInteger enterCount = GlobalVariables.get(CommonsLangInstrumentation.class, "enterCount", new AtomicInteger());
@@ -795,7 +795,7 @@ class InstrumentationTest {
 
     }
 
-    public static class LoggerFactoryInstrumentation extends TracerAwareInstrumentation {
+    public static class LoggerFactoryInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
             public static AtomicInteger enterCount = GlobalVariables.get(LoggerFactoryInstrumentation.class, "enterCount", new AtomicInteger());
@@ -829,7 +829,7 @@ class InstrumentationTest {
 
     }
 
-    public static class StatUtilsInstrumentation extends TracerAwareInstrumentation {
+    public static class StatUtilsInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
             public static AtomicInteger enterCount = GlobalVariables.get(StatUtilsInstrumentation.class, "enterCount", new AtomicInteger());
@@ -863,7 +863,7 @@ class InstrumentationTest {
 
     }
 
-    public static class LogManagerInstrumentation extends TracerAwareInstrumentation {
+    public static class LogManagerInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
             public static AtomicInteger enterCount = GlobalVariables.get(LogManagerInstrumentation.class, "enterCount", new AtomicInteger());
@@ -897,7 +897,7 @@ class InstrumentationTest {
 
     }
 
-    public static class CallStackUtilsInstrumentation extends TracerAwareInstrumentation {
+    public static class CallStackUtilsInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
             public static AtomicInteger enterCount = GlobalVariables.get(CallStackUtilsInstrumentation.class, "enterCount", new AtomicInteger());
@@ -931,7 +931,7 @@ class InstrumentationTest {
 
     }
 
-    public static class ClassLoadingTestInstrumentation extends TracerAwareInstrumentation {
+    public static class ClassLoadingTestInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
             @Advice.AssignReturned.ToReturned
@@ -958,7 +958,7 @@ class InstrumentationTest {
 
     }
 
-    public static class InlinedIndyAdviceInstrumentation extends TracerAwareInstrumentation {
+    public static class InlinedIndyAdviceInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
             @Advice.OnMethodEnter
@@ -983,7 +983,7 @@ class InstrumentationTest {
 
     }
 
-    public static class AgentTypeReturnInstrumentation extends TracerAwareInstrumentation {
+    public static class AgentTypeReturnInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
             @Advice.OnMethodEnter(inline = false)
@@ -1009,7 +1009,7 @@ class InstrumentationTest {
 
     }
 
-    public static class AgentTypeParameterInstrumentation extends TracerAwareInstrumentation {
+    public static class AgentTypeParameterInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
             @Advice.OnMethodEnter(inline = false)
@@ -1039,7 +1039,7 @@ class InstrumentationTest {
 
     }
 
-    public static class GetClassLoaderInstrumentation extends TracerAwareInstrumentation {
+    public static class GetClassLoaderInstrumentation extends ElasticApmInstrumentation {
 
         public static class AdviceClass {
             @Advice.AssignReturned.ToReturned

@@ -18,9 +18,7 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.asm.Advice;
 
@@ -38,12 +36,12 @@ public class HttpRequestHeadersAdvice {
     @Advice.AssignReturned.ToReturned
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static HttpHeaders onAfterExecute(@Advice.Return @Nullable final HttpHeaders httpHeaders) {
-        AbstractSpan<?> active = tracer.getActive();
-        if (!(active instanceof Span<?>) || httpHeaders == null) { // in case of thrown exception return value might be null
-            return httpHeaders;
+        if (httpHeaders == null) { // in case of thrown exception return value might be null
+            return null;
         }
+
         Map<String, List<String>> headersMap = new LinkedHashMap<>(httpHeaders.map());
-        active.propagateTraceContext(headersMap, HttpClientRequestPropertyAccessor.instance());
+        tracer.currentContext().propagateContext(headersMap, HttpClientRequestPropertyAccessor.instance(), null);
         return HttpHeaders.of(headersMap, (x, y) -> true);
     }
 }

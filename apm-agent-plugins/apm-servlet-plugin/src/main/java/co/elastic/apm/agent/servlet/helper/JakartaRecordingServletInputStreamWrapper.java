@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.servlet.helper;
 
 import co.elastic.apm.agent.tracer.metadata.Request;
-import co.elastic.apm.agent.util.IOUtils;
+import co.elastic.apm.agent.sdk.internal.util.IOUtils;
 
 import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletInputStream;

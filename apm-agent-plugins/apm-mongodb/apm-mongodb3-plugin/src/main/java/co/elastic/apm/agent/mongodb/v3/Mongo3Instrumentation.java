@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.mongodb.v3;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -26,14 +26,13 @@ import java.security.ProtectionDomain;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionGte;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.implementationVersionGte;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-
-public abstract class Mongo3Instrumentation extends TracerAwareInstrumentation {
+public abstract class Mongo3Instrumentation extends ElasticApmInstrumentation {
 
     public ElementMatcher.Junction<ProtectionDomain> getProtectionDomainPostFilter() {
         // only use this instrumentation for 3.x

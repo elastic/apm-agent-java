@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.agent.collections.WeakReferenceCountedMap;
 import co.elastic.apm.agent.bci.IndyBootstrap;
+import co.elastic.apm.agent.collections.WeakReferenceCountedMap;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
@@ -51,6 +51,9 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Scope;
+import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
@@ -58,8 +61,8 @@ import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
-import co.elastic.apm.agent.util.VersionUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -590,7 +593,10 @@ public class ElasticApmTracer implements Tracer {
         } catch (Exception e) {
             logger.warn("Suppressed exception while calling stop()", e);
         }
-        LoggingConfiguration.shutdown();
+        //Shutting down logging resets the log level to OFF - subsequent tests in the class will get no log output, hence the guard
+        if (!assertionsEnabled) {
+            LoggingConfiguration.shutdown();
+        }
     }
 
     public Reporter getReporter() {
@@ -609,33 +615,6 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public <K, V extends ReferenceCounted> ReferenceCountedMap<K, V> newReferenceCountedMap() {
         return new WeakReferenceCountedMap<>();
-    }
-
-    @Override
-    @Nullable
-    public AbstractSpan<?> getActive() {
-        ElasticContext<?> active = currentContext();
-        return active != null ? active.getSpan() : null;
-    }
-
-    @Nullable
-    @Override
-    public Span getActiveSpan() {
-        final AbstractSpan<?> active = getActive();
-        if (active instanceof Span) {
-            return (Span) active;
-        }
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Span getActiveExitSpan() {
-        final Span span = getActiveSpan();
-        if (span != null && span.isExit()) {
-            return span;
-        }
-        return null;
     }
 
     public void registerSpanListener(ActivationListener activationListener) {
@@ -822,9 +801,15 @@ public class ElasticApmTracer implements Tracer {
     /**
      * @return the currently active context, {@literal null} if there is none.
      */
-    @Nullable
+
     public ElasticContext<?> currentContext() {
         return activeStack.get().currentContext();
+    }
+
+    @Nullable
+    @Override
+    public AbstractSpan<?> getActive() {
+        return currentContext().getSpan();
     }
 
     /**

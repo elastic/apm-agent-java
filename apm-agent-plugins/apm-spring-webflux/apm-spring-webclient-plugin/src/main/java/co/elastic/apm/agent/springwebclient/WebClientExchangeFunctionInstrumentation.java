@@ -18,10 +18,13 @@
  */
 package co.elastic.apm.agent.springwebclient;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
@@ -44,7 +47,9 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class WebClientExchangeFunctionInstrumentation extends TracerAwareInstrumentation {
+public class WebClientExchangeFunctionInstrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -74,20 +79,20 @@ public class WebClientExchangeFunctionInstrumentation extends TracerAwareInstrum
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @Advice.AssignReturned.ToArguments(@ToArgument(index = 0, value = 0, typing = Assigner.Typing.DYNAMIC))
         public static Object[] onBefore(@Advice.Argument(0) ClientRequest clientRequest) {
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
-            }
-            ClientRequest.Builder builder = ClientRequest.from(clientRequest);
+
             URI uri = clientRequest.url();
-            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, clientRequest.method().name(), uri, uri.getHost());
+            Span<?> span = HttpClientHelper.startHttpClientSpan(tracer.currentContext(), clientRequest.method().name(), uri, uri.getHost());
             if (span != null) {
                 span.activate();
-                span.propagateTraceContext(builder, WebClientRequestHeaderSetter.INSTANCE);
-            } else {
-                parent.propagateTraceContext(builder, WebClientRequestHeaderSetter.INSTANCE);
             }
-            clientRequest = builder.build();
+
+            ElasticContext<?> toPropagate = tracer.currentContext();
+            if (!toPropagate.isEmpty()) {
+                ClientRequest.Builder builder = ClientRequest.from(clientRequest);
+                toPropagate.propagateContext(builder, WebClientRequestHeaderSetter.INSTANCE, null);
+                clientRequest = builder.build();
+            }
+
             return new Object[]{clientRequest, span};
         }
 

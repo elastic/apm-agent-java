@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.agent.log4j2.reformatting;
 
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.loginstr.AbstractLogIntegrationInstrumentation;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isAgentClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -45,7 +45,7 @@ public abstract class Log4j2EcsReformattingInstrumentation extends AbstractLogIn
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
             // Do not instrument the internal agent log4j2 appenders
-            .and(not(CustomElementMatchers.isAgentClassLoader()))
+            .and(not(isAgentClassLoader()))
             .and(classLoaderCanLoadClass("org.apache.logging.log4j.core.Appender"));
     }
 

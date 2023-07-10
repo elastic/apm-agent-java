@@ -18,29 +18,85 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
+
 import javax.annotation.Nullable;
 
-public interface ElasticContext<T extends ElasticContext<T>> extends co.elastic.apm.agent.tracer.ElasticContext<T> {
+public abstract class ElasticContext<T extends ElasticContext<T>> implements co.elastic.apm.agent.tracer.ElasticContext<T> {
 
-    /**
-     * Adds a span as active within context. Might return a different context instance if required, for example
-     * when the context implementation is immutable and thus can't be modified.
-     *
-     * @param span span to add to the context
-     * @return context with activated span
-     */
-    ElasticContext<T> withActiveSpan(AbstractSpan<?> span);
-
-    /**
-     * @return the span/transaction that is associated to this context, {@literal null} if there is none
-     */
     @Nullable
-    AbstractSpan<?> getSpan();
+    public abstract AbstractSpan<?> getSpan();
 
     /**
      * @return transaction associated to this context, {@literal null} if there is none
      */
     @Nullable
-    Transaction getTransaction();
+    public final Transaction getTransaction() {
+        AbstractSpan<?> contextSpan = getSpan();
+        return contextSpan != null ? contextSpan.getParentTransaction() : null;
+    }
 
+    @Nullable
+    @Override
+    public co.elastic.apm.agent.impl.transaction.Span createSpan() {
+        AbstractSpan<?> contextSpan = getSpan();
+        return contextSpan != null ? contextSpan.createSpan() : null;
+    }
+
+    @Nullable
+    @Override
+    public co.elastic.apm.agent.impl.transaction.Span createExitSpan() {
+        AbstractSpan<?> contextSpan = getSpan();
+        return contextSpan != null ? contextSpan.createExitSpan() : null;
+    }
+
+    public boolean isEmpty() {
+        return getSpan() == null && !containsBaggage();
+    }
+
+    //TODO: make abstract and implement correctly in subclasses
+    protected final boolean containsBaggage() {
+        return false;
+    }
+
+    @Override
+    public final <C> boolean propagateContext(C carrier, BinaryHeaderSetter<C> headerSetter) {
+        AbstractSpan<?> contextSpan = getSpan();
+        if (contextSpan != null) {
+            contextSpan.setNonDiscardable();
+            return contextSpan.getTraceContext().propagateTraceContext(carrier, headerSetter);
+        }
+        return false;
+    }
+
+    @Override
+    public final <C> void propagateContext(C carrier, TextHeaderSetter<C> headerSetter, @Nullable TextHeaderGetter<C> headerGetter) {
+        propagateContext(carrier, headerSetter, carrier, headerGetter);
+    }
+
+    @Override
+    public <C1, C2> void propagateContext(C1 carrier, TextHeaderSetter<C1> headerSetter, @Nullable C2 carrier2, @Nullable TextHeaderGetter<C2> headerGetter) {
+        AbstractSpan<?> contextSpan = getSpan();
+        if (contextSpan != null) {
+            if (headerGetter == null || carrier2 == null || !HeaderUtils.containsAny(TraceContext.TRACE_TEXTUAL_HEADERS, carrier2, headerGetter)) {
+                contextSpan.setNonDiscardable();
+                contextSpan.getTraceContext().propagateTraceContext(carrier, headerSetter);
+            }
+        }
+    }
+
+    @Override
+    public <C> boolean isPropagationRequired(C carrier, TextHeaderGetter<C> headerGetter) {
+        AbstractSpan<?> contextSpan = getSpan();
+        return contextSpan != null && !HeaderUtils.containsAny(TraceContext.TRACE_TEXTUAL_HEADERS, carrier, headerGetter);
+    }
+
+    @Override
+    public final boolean shouldSkipChildSpanCreation() {
+        Transaction contextTransaction = getTransaction();
+        return contextTransaction == null || contextTransaction.checkSkipChildSpanCreation();
+    }
 }

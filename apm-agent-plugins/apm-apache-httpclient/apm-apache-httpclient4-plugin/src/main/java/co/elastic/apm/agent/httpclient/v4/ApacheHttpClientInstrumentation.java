@@ -20,10 +20,9 @@ package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
-import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -36,7 +35,7 @@ import org.apache.http.conn.routing.HttpRoute;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -54,25 +53,17 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(0) HttpRoute route,
                                              @Advice.Argument(1) HttpRequestWrapper request) {
-            AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
-            }
-            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());
+            ElasticContext<?> activeContext = tracer.currentContext();
+            Span<?> span = null;
+            if (activeContext.getSpan() != null) {
+                span = HttpClientHelper.startHttpClientSpan(activeContext, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());
 
-            if (span != null) {
-                span.activate();
-            }
-
-            if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), request, RequestHeaderAccessor.INSTANCE)) {
                 if (span != null) {
-                    span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
-                } else if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), request, RequestHeaderAccessor.INSTANCE)) {
-                    // re-adds the header on redirects
-                    parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
+                    span.activate();
                 }
             }
 
+            tracer.currentContext().propagateContext(request, RequestHeaderAccessor.INSTANCE, RequestHeaderAccessor.INSTANCE);
             return span;
         }
 

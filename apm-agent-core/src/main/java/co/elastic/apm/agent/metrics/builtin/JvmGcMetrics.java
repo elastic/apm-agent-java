@@ -62,11 +62,17 @@ public class JvmGcMetrics extends AbstractLifecycleListener {
             // J9 does contain com.sun.management.ThreadMXBean in classpath
             // but the actual MBean it uses (com.ibm.lang.management.internal.ExtendedThreadMXBeanImpl) does not implement it
             if (sunBeanClass.isInstance(ManagementFactory.getThreadMXBean())) {
+
+                DoubleSupplier supplier = (DoubleSupplier) Class.forName(getClass().getName() + "$HotspotAllocationSupplier").getEnumConstants()[0];
+
+                // attempt to read it at least once before registering
+                supplier.get();
+
                 // in reference to JMH's GC profiler (gc.alloc.rate)
-                registry.add("jvm.gc.alloc", Labels.EMPTY,
-                    (DoubleSupplier) Class.forName(getClass().getName() + "$HotspotAllocationSupplier").getEnumConstants()[0]);
+                registry.add("jvm.gc.alloc", Labels.EMPTY, supplier);
             }
         } catch (ClassNotFoundException ignore) {
+        } catch (UnsupportedOperationException ignore){
         }
     }
 
