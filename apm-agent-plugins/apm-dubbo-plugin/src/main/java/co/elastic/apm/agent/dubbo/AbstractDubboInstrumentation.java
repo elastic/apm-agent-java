@@ -18,13 +18,16 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
-public abstract class AbstractDubboInstrumentation extends TracerAwareInstrumentation {
+public abstract class AbstractDubboInstrumentation extends ElasticApmInstrumentation {
+
+    static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

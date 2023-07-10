@@ -18,15 +18,15 @@
  */
 package co.elastic.apm.agent.profiler;
 
-import co.elastic.apm.agent.collections.LongList;
+import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.profiler.collections.LongHashSet;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.pooling.ObjectPool;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
@@ -148,7 +148,7 @@ public class CallTree implements Recyclable {
         return lastSeen < timestamp;
     }
 
-    public static CallTree.Root createRoot(ObjectPool<CallTree.Root> rootPool, byte[] traceContext, @Nullable String serviceName, @Nullable String serviceVersion, long nanoTime) {
+    public static CallTree.Root createRoot(ObjectPool<Root> rootPool, byte[] traceContext, @Nullable String serviceName, @Nullable String serviceVersion, long nanoTime) {
         CallTree.Root root = rootPool.createInstance();
         root.set(traceContext, serviceName, serviceVersion, nanoTime);
         return root;

@@ -21,6 +21,7 @@ package co.elastic.apm.agent.resttemplate;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -37,6 +38,7 @@ import java.util.Objects;
 public class SpringRestTemplateAdvice {
 
     private static final Tracer tracer = GlobalTracer.get();
+
     private static final Logger logger = LoggerFactory.getLogger(SpringRestTemplateAdvice.class);
 
     @Nullable

@@ -18,10 +18,6 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.sdk.state.GlobalVariables;
-import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.servlet.adapter.ServletApiAdapter;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
@@ -30,10 +26,14 @@ import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.sdk.state.GlobalVariables;
+import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.servlet.adapter.ServletApiAdapter;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.metadata.Request;
 import co.elastic.apm.agent.tracer.metadata.Response;
-import co.elastic.apm.agent.util.TransactionNameUtils;
+import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;

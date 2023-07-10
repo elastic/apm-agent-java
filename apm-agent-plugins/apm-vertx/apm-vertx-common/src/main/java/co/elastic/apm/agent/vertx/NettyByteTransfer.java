@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.vertx;
 
-import co.elastic.apm.agent.util.IOUtils;
+import co.elastic.apm.agent.sdk.internal.util.IOUtils;
 import io.netty.buffer.ByteBuf;
 
 import java.nio.Buffer;

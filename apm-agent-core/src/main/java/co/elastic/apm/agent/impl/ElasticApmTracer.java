@@ -58,8 +58,11 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
-import co.elastic.apm.agent.util.VersionUtils;
+import co.elastic.apm.agent.tracer.Scope;
+import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -590,7 +593,10 @@ public class ElasticApmTracer implements Tracer {
         } catch (Exception e) {
             logger.warn("Suppressed exception while calling stop()", e);
         }
-        LoggingConfiguration.shutdown();
+        //Shutting down logging resets the log level to OFF - subsequent tests in the class will get no log output, hence the guard
+        if (!assertionsEnabled) {
+            LoggingConfiguration.shutdown();
+        }
     }
 
     public Reporter getReporter() {

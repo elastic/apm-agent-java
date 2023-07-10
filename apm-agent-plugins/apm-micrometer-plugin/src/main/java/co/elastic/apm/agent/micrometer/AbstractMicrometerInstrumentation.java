@@ -18,13 +18,17 @@
  */
 package co.elastic.apm.agent.micrometer;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import java.util.Collection;
 import java.util.Collections;
 
-public abstract class AbstractMicrometerInstrumentation extends TracerAwareInstrumentation {
+public abstract class AbstractMicrometerInstrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     static final MicrometerMetricsReporter reporter = new MicrometerMetricsReporter(tracer.require(ElasticApmTracer.class));
 

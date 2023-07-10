@@ -18,12 +18,16 @@
  */
 package co.elastic.apm.agent.httpclient.v4;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import java.util.Arrays;
 import java.util.Collection;
 
-public abstract class BaseApacheHttpClientInstrumentation extends TracerAwareInstrumentation {
+public abstract class BaseApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
+
+    static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

@@ -21,8 +21,10 @@ package co.elastic.apm.agent.awssdk.v2;
 import co.elastic.apm.agent.awssdk.v2.helper.DynamoDbHelper;
 import co.elastic.apm.agent.awssdk.v2.helper.S3Helper;
 import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -43,7 +45,9 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class BaseAsyncClientHandlerInstrumentation extends TracerAwareInstrumentation {
+public class BaseAsyncClientHandlerInstrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

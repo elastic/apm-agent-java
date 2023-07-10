@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.testinstr;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
@@ -34,7 +34,7 @@ import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public abstract class SystemEnvVariableInstrumentation extends TracerAwareInstrumentation {
+public abstract class SystemEnvVariableInstrumentation extends ElasticApmInstrumentation {
 
     private static final DetachedThreadLocal<Map<String, String>> customEnvVariablesTL = GlobalVariables
         .get(SystemEnvVariableInstrumentation.class, "customEnvVariables", WeakConcurrent.<Map<String, String>>buildThreadLocal());

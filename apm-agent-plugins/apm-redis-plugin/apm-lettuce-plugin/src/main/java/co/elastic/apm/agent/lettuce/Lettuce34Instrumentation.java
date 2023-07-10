@@ -18,8 +18,10 @@
  */
 package co.elastic.apm.agent.lettuce;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import com.lambdaworks.redis.protocol.RedisCommand;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -27,9 +29,11 @@ import net.bytebuddy.matcher.ElementMatcher;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 
-public abstract class Lettuce34Instrumentation extends TracerAwareInstrumentation {
+public abstract class Lettuce34Instrumentation extends ElasticApmInstrumentation {
+
+    static final Tracer tracer = GlobalTracer.get();
 
     static final ReferenceCountedMap<RedisCommand<?, ?, ?>, Span<?>> commandToSpan = tracer.newReferenceCountedMap();
 

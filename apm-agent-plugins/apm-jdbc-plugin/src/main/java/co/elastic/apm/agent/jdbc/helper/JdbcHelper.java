@@ -18,15 +18,15 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
-import co.elastic.apm.agent.db.signature.Scanner;
-import co.elastic.apm.agent.db.signature.SignatureParser;
+import co.elastic.apm.agent.sdk.internal.db.signature.Scanner;
+import co.elastic.apm.agent.sdk.internal.db.signature.SignatureParser;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.jdbc.JdbcFilter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
-import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
-import co.elastic.apm.agent.tracer.Span;
 
 import javax.annotation.Nullable;
 import java.sql.Connection;

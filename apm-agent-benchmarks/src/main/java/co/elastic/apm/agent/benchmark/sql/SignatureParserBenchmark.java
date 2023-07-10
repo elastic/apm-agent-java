@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.benchmark.sql;
 
 import co.elastic.apm.agent.benchmark.AbstractBenchmark;
-import co.elastic.apm.agent.db.signature.SignatureParser;
+import co.elastic.apm.agent.sdk.internal.db.signature.SignatureParser;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;

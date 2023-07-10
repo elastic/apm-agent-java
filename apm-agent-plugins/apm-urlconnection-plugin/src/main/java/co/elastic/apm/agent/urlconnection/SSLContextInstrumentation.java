@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.urlconnection;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.common.ThreadUtils;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -49,7 +49,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  *   <li>{@link SSLSocketFactory#getDefault()}</li>
  * </ul>
  */
-public class SSLContextInstrumentation extends TracerAwareInstrumentation {
+public class SSLContextInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

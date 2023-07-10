@@ -18,14 +18,16 @@
  */
 package co.elastic.apm.agent.httpclient.v3;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.util.LoggerUtils;
+import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -46,7 +48,9 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * Instruments {@link org.apache.commons.httpclient.HttpMethodDirector#executeMethod(HttpMethod)}
  */
 @SuppressWarnings("JavadocReference") // instrumented class is package-private
-public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
+public class HttpClient3Instrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -91,7 +95,7 @@ public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
 
         @Nullable
         private static Span<?> startClientSpan(HttpMethod httpMethod, HostConfiguration hostConfiguration) {
-            final ElasticContext<?> activeContext = TracerAwareInstrumentation.tracer.currentContext();
+            final ElasticContext<?> activeContext = tracer.currentContext();
             if (activeContext.getSpan() == null) {
                 return null;
             }

@@ -25,20 +25,6 @@ import java.util.ServiceLoader;
 
 public class InternalUtil {
 
-    @Nullable
-    public static ClassLoader getClassLoader(final Class<?> type) {
-        if (System.getSecurityManager() == null) {
-            return type.getClassLoader();
-        }
-        return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
-            @Nullable
-            @Override
-            public ClassLoader run() {
-                return type.getClassLoader();
-            }
-        });
-    }
-
     /**
      * Loads a service provider based on the service interface, assuming that a provider (implementation) is available to the class
      * loader that loads the service (interface). This allows to separate interface and implementation without introducing a

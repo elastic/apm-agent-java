@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.logging.instr;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import net.bytebuddy.asm.Advice;
@@ -36,7 +36,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * Instruments {@link LoggingConfigurationTest.LoggerTest#getLogger()}
  */
 @SuppressWarnings("JavadocReference")
-public class LoggerTestInstrumentation extends TracerAwareInstrumentation {
+public class LoggerTestInstrumentation extends ElasticApmInstrumentation {
 
     public static class AdviceClass {
 

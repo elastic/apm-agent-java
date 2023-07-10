@@ -24,7 +24,7 @@ import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;

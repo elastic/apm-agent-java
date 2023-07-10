@@ -18,9 +18,11 @@
  */
 package co.elastic.apm.agent.concurrent;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -43,7 +45,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * {@linkplain DynamicTransformer#ensureInstrumented(Class, Collection) ensure}
  * that particular {@link Callable}, {@link Runnable} and {@link ForkJoinTask} classes are instrumented.
  */
-public class RunnableCallableForkJoinTaskInstrumentation extends TracerAwareInstrumentation {
+public class RunnableCallableForkJoinTaskInstrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

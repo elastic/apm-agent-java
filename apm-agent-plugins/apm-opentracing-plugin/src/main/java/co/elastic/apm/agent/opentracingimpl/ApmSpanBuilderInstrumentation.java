@@ -18,15 +18,13 @@
  */
 package co.elastic.apm.agent.opentracingimpl;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -91,7 +89,7 @@ public abstract class ApmSpanBuilderInstrumentation extends OpenTracingBridgeIns
                                                                     String operationName, long microseconds,
                                                                     @Nullable Iterable<Map.Entry<String, String>> baggage, ClassLoader applicationClassLoader) {
                 AbstractSpan<?> result = null;
-                ElasticApmTracer tracer = TracerAwareInstrumentation.tracer.require(ElasticApmTracer.class);
+                ElasticApmTracer tracer = OpenTracingBridgeInstrumentation.tracer.require(ElasticApmTracer.class);
                 if (tracer != null) {
                     if (parentContext == null) {
                         result = createTransaction(tags, operationName, microseconds, baggage, tracer, applicationClassLoader);

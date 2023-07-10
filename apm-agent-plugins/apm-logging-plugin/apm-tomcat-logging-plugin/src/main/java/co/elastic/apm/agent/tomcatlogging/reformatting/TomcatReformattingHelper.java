@@ -20,7 +20,7 @@ package co.elastic.apm.agent.tomcatlogging.reformatting;
 
 import co.elastic.apm.agent.jul.reformatting.AbstractJulEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import org.apache.juli.FileHandler;
 
 import javax.annotation.Nullable;

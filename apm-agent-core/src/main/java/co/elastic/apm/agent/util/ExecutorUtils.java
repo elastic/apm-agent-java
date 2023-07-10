@@ -23,6 +23,7 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.CancellationException;
@@ -47,7 +48,6 @@ public final class ExecutorUtils {
     private static volatile ElasticThreadStateListener threadStateListener = null;
 
     private ExecutorUtils() {
-        // don't instantiate
     }
 
     public static ScheduledThreadPoolExecutor createSingleThreadSchedulingDaemonPool(final String threadPurpose) {

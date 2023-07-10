@@ -25,7 +25,7 @@ import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.context.Url;
-import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Outcome;
