@@ -258,7 +258,7 @@ public class ServletTransactionHelper {
         }
         fillResponse(transaction.getContext().getResponse(), committed, status);
         transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status))
-            .withType("request")
+            .withType(transaction.getType() == null ? "request" : transaction.getType())
             .captureException(exception);
         applyDefaultTransactionName(method, servletPath, pathInfo, transaction);
     }
