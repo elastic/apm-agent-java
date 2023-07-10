@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.cache.WeakKeySoftValueLoadingCache;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakKeySoftValueLoadingCache;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;

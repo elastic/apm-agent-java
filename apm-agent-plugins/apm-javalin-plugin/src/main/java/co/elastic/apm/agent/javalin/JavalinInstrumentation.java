@@ -18,14 +18,15 @@
  */
 package co.elastic.apm.agent.javalin;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Transaction;
-import co.elastic.apm.agent.util.TransactionNameUtils;
-import co.elastic.apm.agent.util.VersionUtils;
+import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
+import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
 import io.javalin.http.HandlerType;
@@ -44,7 +45,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -52,9 +53,11 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class JavalinInstrumentation extends TracerAwareInstrumentation {
+public class JavalinInstrumentation extends ElasticApmInstrumentation {
 
     private static final Logger logger = LoggerFactory.getLogger(JavalinInstrumentation.class);
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     private static final String FRAMEWORK_NAME = "Javalin";
 

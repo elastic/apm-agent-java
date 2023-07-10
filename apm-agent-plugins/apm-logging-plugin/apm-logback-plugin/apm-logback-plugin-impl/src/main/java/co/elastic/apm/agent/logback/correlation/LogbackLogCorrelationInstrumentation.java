@@ -19,15 +19,11 @@
 package co.elastic.apm.agent.logback.correlation;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.loginstr.AbstractLogIntegrationInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-
-import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 

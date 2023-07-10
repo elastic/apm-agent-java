@@ -18,7 +18,8 @@
  */
 package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
+import co.elastic.apm.agent.sdk.internal.PluginClassLoaderRootPackageCustomizer;
+import co.elastic.apm.agent.sdk.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
 import co.elastic.apm.agent.bci.bytebuddy.InstallationListenerImpl;
@@ -28,7 +29,7 @@ import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.agent.bci.bytebuddy.NonInstrumented;
 import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
-import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.bci.modules.ModuleOpener;
 import co.elastic.apm.agent.common.ThreadUtils;
@@ -48,7 +49,7 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracemethods.TraceMethodInstrumentation;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.RedefinitionStrategy;
@@ -309,7 +310,7 @@ public class ElasticApmAgent {
     }
 
     public static synchronized Future<?> reInitInstrumentation() {
-        final Tracer tracer = TracerAwareInstrumentation.tracer.require(Tracer.class);
+        final Tracer tracer = GlobalTracer.get().require(Tracer.class);
         if (instrumentation == null) {
             throw new IllegalStateException("Can't re-init agent before it has been initialized");
         }

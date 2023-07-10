@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
-import co.elastic.apm.agent.db.signature.Scanner;
-import co.elastic.apm.agent.db.signature.SignatureParser;
+import co.elastic.apm.agent.sdk.internal.db.signature.Scanner;
+import co.elastic.apm.agent.sdk.internal.db.signature.SignatureParser;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.jdbc.JdbcFilter;

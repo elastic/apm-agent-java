@@ -18,15 +18,17 @@
  */
 package co.elastic.apm.agent.httpclient.v3;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
-import co.elastic.apm.agent.util.LoggerUtils;
+import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -48,7 +50,9 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * Instruments {@link org.apache.commons.httpclient.HttpMethodDirector#executeMethod(HttpMethod)}
  */
 @SuppressWarnings("JavadocReference") // instrumented class is package-private
-public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
+public class HttpClient3Instrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -82,7 +86,7 @@ public class HttpClient3Instrumentation extends TracerAwareInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.Argument(0) HttpMethod httpMethod,
                                      @Advice.FieldValue(value = "hostConfiguration") HostConfiguration hostConfiguration) {
-            final AbstractSpan<?> parent = TracerAwareInstrumentation.tracer.getActive();
+            final AbstractSpan<?> parent = tracer.getActive();
             if (parent == null) {
                 return null;
             }

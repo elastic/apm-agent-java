@@ -31,7 +31,7 @@ import co.elastic.apm.agent.servlet.adapter.ServletApiAdapter;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.metadata.Request;
 import co.elastic.apm.agent.tracer.metadata.Response;
-import co.elastic.apm.agent.util.TransactionNameUtils;
+import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
 import co.elastic.apm.agent.tracer.Scope;
 
 import javax.annotation.Nullable;
