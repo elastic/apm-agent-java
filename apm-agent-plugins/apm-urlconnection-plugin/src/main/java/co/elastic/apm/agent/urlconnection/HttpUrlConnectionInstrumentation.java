@@ -24,6 +24,7 @@ import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -81,27 +82,27 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
                                        @Advice.Origin String signature) {
 
                 boolean isNestedCall = callDepth.isNestedCallAndIncrement();
-                AbstractSpan<?> parent = tracer.getActive();
-                if (parent == null) {
-                    return null;
-                }
-                Span<?> span = inFlightSpans.get(thiz);
-                if (span == null && !connected) {
-                    final URL url = thiz.getURL();
-                    span = HttpClientHelper.startHttpClientSpan(parent, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
-                    if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), thiz, UrlConnectionPropertyAccessor.instance())) {
-                        if (span != null) {
-                            span.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
-                        } else {
-                            parent.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
-                        }
+                ElasticContext<?> activeContext = tracer.currentContext();
+                AbstractSpan<?> parentSpan = activeContext.getSpan();
+                Span<?> span = null;
+                if (parentSpan != null) {
+                    span = inFlightSpans.get(thiz);
+                    if (span == null && !connected) {
+                        final URL url = thiz.getURL();
+                        span = HttpClientHelper.startHttpClientSpan(activeContext, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
+                    }
+                    if (!isNestedCall && span != null) {
+                        span.activate();
+                    } else {
+                        span = null; //do not deactivate this span on exit
                     }
                 }
-                if (!isNestedCall && span != null) {
-                    span.activate();
-                    return span;
+
+                if (!isNestedCall && !connected) {
+                    tracer.currentContext().propagateContext(thiz, UrlConnectionPropertyAccessor.instance(), UrlConnectionPropertyAccessor.instance());
                 }
-                return null;
+
+                return span;
             }
 
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

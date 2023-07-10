@@ -23,6 +23,7 @@ import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
@@ -143,19 +144,20 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
         public static Object onMethodEnter(@Advice.Origin Class<?> clazz,
                                            @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature) {
             AbstractSpan<?> span = null;
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
+            ElasticContext<?> activeContext = tracer.currentContext();
+            final AbstractSpan<?> parentSpan = tracer.getActive();
+            if (parentSpan == null) {
                 span = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
                 if (span != null) {
                     span.withName(signature).activate();
                 }
-            } else if (parent.isSampled()) {
-                if (parent.shouldSkipChildSpanCreation()) {
+            } else if (parentSpan.isSampled()) {
+                if (parentSpan.shouldSkipChildSpanCreation()) {
                     // span limit reached means span will not be reported, thus we can optimize and skip creating one
                     logger.debug("Not creating span for {} because span limit is reached.", signature);
                     return null;
                 }
-                span = parent.createSpan()
+                span = activeContext.createSpan()
                     .withName(signature)
                     .activate();
             }

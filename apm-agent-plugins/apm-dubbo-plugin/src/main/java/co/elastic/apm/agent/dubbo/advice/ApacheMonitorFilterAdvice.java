@@ -20,8 +20,8 @@ package co.elastic.apm.agent.dubbo.advice;
 
 import co.elastic.apm.agent.dubbo.helper.ApacheDubboTextMapPropagator;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
-import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -52,13 +52,13 @@ public class ApacheMonitorFilterAdvice {
         RpcContext context = RpcContext.getContext();
         AbstractSpan<?> active = tracer.getActive();
         // for consumer side, just create span, more information will be collected in provider side
-        if (context.isConsumerSide() && active != null) {
-            Span<?> span = DubboTraceHelper.createConsumerSpan(tracer, invocation.getInvoker().getInterface(), invocation.getMethodName(), context.getRemoteAddress());
-
-            if (span != null) {
-                span.propagateTraceContext(context, ApacheDubboTextMapPropagator.INSTANCE);
-                return span;
+        if (context.isConsumerSide()) {
+            Span<?> span = null;
+            if (active != null) {
+                span = DubboTraceHelper.createConsumerSpan(tracer, invocation.getInvoker().getInterface(), invocation.getMethodName(), context.getRemoteAddress());
             }
+            tracer.currentContext().propagateContext(context, ApacheDubboTextMapPropagator.INSTANCE, null);
+            return span;
         } else if (context.isProviderSide() && active == null) {
             // for provider side
             Transaction<?> transaction = tracer.startChildTransaction(context, ApacheDubboTextMapPropagator.INSTANCE, PrivilegedActionUtils.getClassLoader(Invocation.class));

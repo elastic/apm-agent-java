@@ -169,16 +169,14 @@ public class JavalinInstrumentation extends ElasticApmInstrumentation {
             }
 
             // create own span for all handlers including after/before
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
+            Span<?> span = tracer.currentContext().createSpan();
+            if (span != null) {
+                span.activate()
+                    .withType("app")
+                    .withSubtype("internal")
+                    .appendToName(handlerType.name()).appendToName(" ").appendToName(ctx.matchedPath());
             }
-
-            return parent.createSpan()
-                .activate()
-                .withType("app")
-                .withSubtype("internal")
-                .appendToName(handlerType.name()).appendToName(" ").appendToName(ctx.matchedPath());
+            return span;
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

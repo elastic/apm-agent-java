@@ -16,27 +16,50 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.httpclient;
+package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.tracer.Scope;
 
 import javax.annotation.Nullable;
-import java.net.URI;
-import java.net.http.HttpRequest;
 
-public class HttpClientAdviceHelper {
+class EmptyElasticContext extends ElasticContext<EmptyElasticContext> {
 
-    private static final Tracer tracer = GlobalTracer.get();
+    static final ElasticContext<?> INSTANCE = new EmptyElasticContext();
+
+    private EmptyElasticContext() {
+    }
 
     @Nullable
-    public static Span<?> startSpan(HttpRequest httpRequest) {
-        URI uri = httpRequest.uri();
-        Span<?> span = HttpClientHelper.startHttpClientSpan(tracer.currentContext(), httpRequest.method(), uri, uri.getHost());
-        if (span != null) {
-            span.activate();
-        }
-        return span;
+    @Override
+    public AbstractSpan<?> getSpan() {
+        return null;
     }
+
+    @Override
+    public EmptyElasticContext activate() {
+        return this;
+    }
+
+    @Override
+    public EmptyElasticContext deactivate() {
+        return this;
+    }
+
+    @Override
+    public Scope activateInScope() {
+        return NoopScope.INSTANCE;
+    }
+
+    @Override
+    public void incrementReferences() {
+
+    }
+
+    @Override
+    public void decrementReferences() {
+
+    }
+
 }

@@ -118,14 +118,8 @@ public class JmsInstrumentationHelper {
     @SuppressWarnings("Duplicates")
     @Nullable
     public Span<?> startJmsSendSpan(Destination destination, Message message) {
-
-        final AbstractSpan<?> activeSpan = tracer.getActive();
-        if (activeSpan == null) {
-            return null;
-        }
-
-        boolean isDestinationNameComputed = false;
         String destinationName = extractDestinationName(null, destination);
+        boolean isDestinationNameComputed = false;
         if (isTempDestination(destination, destinationName)) {
             destinationName = TEMP;
             isDestinationNameComputed = true;
@@ -134,19 +128,17 @@ public class JmsInstrumentationHelper {
             return null;
         }
 
-        Span<?> span = activeSpan.createExitSpan();
-
-        if (span == null) {
-            return null;
+        Span<?> span = tracer.currentContext().createExitSpan();
+        if (span != null) {
+            span.withType(MESSAGING_TYPE)
+                .withSubtype("jms")
+                .withAction("send")
+                .activate();
         }
 
-        span.withType(MESSAGING_TYPE)
-            .withSubtype("jms")
-            .withAction("send")
-            .activate();
+        tracer.currentContext().propagateContext(message, JmsMessagePropertyAccessor.instance(), null);
 
-        span.propagateTraceContext(message, JmsMessagePropertyAccessor.instance());
-        if (span.isSampled()) {
+        if (span != null && span.isSampled()) {
 
             span.getContext().getServiceTarget()
                 .withType("jms")
@@ -160,6 +152,7 @@ public class JmsInstrumentationHelper {
                 }
             }
         }
+
         return span;
     }
 

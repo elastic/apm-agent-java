@@ -26,11 +26,16 @@ import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
+import org.assertj.core.api.Assertions;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
@@ -80,4 +85,23 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
 
         responseFuture.get();
     }
+
+    @Test
+    public void testSpanFinishOnEarlyException() throws Exception {
+
+        client.close(); //this forces execute to immediately exit with an exception
+
+        reporter.disableCheckServiceTarget();
+        reporter.disableCheckDestinationAddress();
+        try {
+            assertThatThrownBy(() -> performGet(getBaseUrl() + "/")).isInstanceOf(IllegalStateException.class);
+        } finally {
+            //Reset state for other tests
+            setUp();
+            reporter.resetChecks();
+        }
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
+        Assertions.assertThat(reporter.getSpans()).hasSize(1);
+    }
+
 }

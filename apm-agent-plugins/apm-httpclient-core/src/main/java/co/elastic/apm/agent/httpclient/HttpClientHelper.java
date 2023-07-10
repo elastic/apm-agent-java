@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.Span;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -34,7 +34,7 @@ public class HttpClientHelper {
     public static final String HTTP_SUBTYPE = "http";
 
     @Nullable
-    public static Span<?> startHttpClientSpan(AbstractSpan<?> parent, String method, @Nullable URI uri, @Nullable CharSequence hostName) {
+    public static Span<?> startHttpClientSpan(ElasticContext<?> activeContext, String method, @Nullable URI uri, @Nullable CharSequence hostName) {
         String uriString = null;
         String scheme = null;
         int port = -1;
@@ -46,18 +46,18 @@ public class HttpClientHelper {
                 hostName = uri.getHost();
             }
         }
-        return startHttpClientSpan(parent, method, uriString, scheme, hostName, port);
+        return startHttpClientSpan(activeContext, method, uriString, scheme, hostName, port);
     }
 
     @Nullable
-    public static Span<?> startHttpClientSpan(AbstractSpan<?> parent, String method, @Nullable String uri,
-                                           @Nullable String scheme, @Nullable CharSequence hostName, int port) {
-        Span<?> span = parent.createExitSpan();
+    public static Span<?> startHttpClientSpan(ElasticContext<?> activeContext, String method, @Nullable String uri,
+                                              @Nullable String scheme, @Nullable CharSequence hostName, int port) {
+        Span<?> span = activeContext.createExitSpan();
         if (span != null) {
             updateHttpSpanNameAndContext(span, method, uri, scheme, hostName, port);
         }
         if (logger.isTraceEnabled()) {
-            logger.trace("Created an HTTP exit span: {} for URI: {}. Parent span: {}", span, uri, parent);
+            logger.trace("Created an HTTP exit span: {} for URI: {}. Parent span: {}", span, uri, activeContext);
         }
         return span;
     }

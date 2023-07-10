@@ -46,18 +46,13 @@ public class SpringRestTemplateAdvice {
     public static Object beforeExecute(@Advice.This ClientHttpRequest request) {
         logger.trace("Enter advice for method {}#execute()", request.getClass().getName());
 
-        final AbstractSpan<?> parent = tracer.getActive();
-        if (parent == null) {
-            return null;
-        }
         URI uri = request.getURI();
-        Span<?> span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), uri, uri.getHost());
+        Span<?> span = HttpClientHelper.startHttpClientSpan(tracer.currentContext(), Objects.toString(request.getMethod()), uri, uri.getHost());
         if (span != null) {
             span.activate();
-            span.propagateTraceContext(request, SpringRestRequestHeaderSetter.INSTANCE);
-        } else {
-            parent.propagateTraceContext(request, SpringRestRequestHeaderSetter.INSTANCE);
         }
+        tracer.currentContext().propagateContext(request, SpringRestRequestHeaderSetter.INSTANCE, null);
+
         return span;
     }
 

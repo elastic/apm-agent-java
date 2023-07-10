@@ -21,8 +21,8 @@ package co.elastic.apm.agent.opentelemetry.tracing;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
-import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Outcome;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
@@ -171,7 +171,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         HashMap<String, String> elasticApmHeaders = new HashMap<>();
         try (Scope scope = transaction.makeCurrent()) {
             openTelemetry.getPropagators().getTextMapPropagator().inject(Context.current(), otelHeaders, HashMap::put);
-            tracer.getActive().propagateTraceContext(elasticApmHeaders, (k, v, m) -> m.put(k, v));
+            tracer.currentContext().propagateContext(elasticApmHeaders, (k, v, m) -> m.put(k, v), null);
         } finally {
             transaction.end();
         }
@@ -378,7 +378,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
     private void checkNoActiveContext() {
         assertThat(tracer.currentContext())
             .describedAs("no active elastic context is expected")
-            .isNull();
+            .satisfies(ElasticContext::isEmpty);
         assertThat(Context.current())
             .describedAs("no active otel context is expected")
             .isSameAs(Context.root())
@@ -482,8 +482,8 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
             co.elastic.apm.agent.impl.transaction.Span elasticSpan = transaction.createSpan();
             try (co.elastic.apm.agent.tracer.Scope elasticScope = elasticSpan.activateInScope()) {
-                assertThat(tracer.getActiveSpan()).isNotNull();
-                tracer.getActiveSpan().withName("elastic span");
+                assertThat(tracer.getActive()).isNotNull();
+                tracer.getActive().withName("elastic span");
             } finally {
                 elasticSpan.end();
             }

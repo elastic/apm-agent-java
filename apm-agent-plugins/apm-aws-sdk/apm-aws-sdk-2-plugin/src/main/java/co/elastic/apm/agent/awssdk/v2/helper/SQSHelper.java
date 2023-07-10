@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.awssdk.v2.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractSQSInstrumentationHelper;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -56,11 +57,11 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, Exec
         super(tracer, SdkV2DataSource.getInstance());
     }
 
-    private SdkRequest propagateContext(Span<?> span, SdkRequest sdkRequest) {
+    private SdkRequest propagateContext(ElasticContext<?> toPropagate, SdkRequest sdkRequest) {
         if (sdkRequest instanceof SendMessageRequest) {
             SendMessageRequest sendMessageRequest = (SendMessageRequest) sdkRequest;
             Map<String, MessageAttributeValue> attributesMap = new HashMap<>(sendMessageRequest.messageAttributes());
-            span.propagateTraceContext(attributesMap, this);
+            toPropagate.propagateContext(attributesMap, this, null);
             return sendMessageRequest.toBuilder().messageAttributes(attributesMap).build();
         } else if (sdkRequest instanceof SendMessageBatchRequest) {
             SendMessageBatchRequest sendMessageBatchRequest = (SendMessageBatchRequest) sdkRequest;
@@ -68,7 +69,7 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, Exec
             int idx = 0;
             for (SendMessageBatchRequestEntry entry : sendMessageBatchRequest.entries()) {
                 Map<String, MessageAttributeValue> attributesMap = new HashMap<>(entry.messageAttributes());
-                span.propagateTraceContext(attributesMap, this);
+                toPropagate.propagateContext(attributesMap, this, null);
                 newEntries[idx] = entry.toBuilder().messageAttributes(attributesMap).build();
                 idx++;
             }
@@ -118,11 +119,11 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, Exec
         return request instanceof ReceiveMessageRequest;
     }
 
-    public void modifyRequestObject(@Nullable Span<?> span, ClientExecutionParams clientExecutionParams, ExecutionContext executionContext) {
+    public void modifyRequestObject(ElasticContext<?> toPropagate, ClientExecutionParams clientExecutionParams, ExecutionContext executionContext) {
         SdkRequest sdkRequest = clientExecutionParams.getInput();
         SdkRequest newRequestObj = null;
-        if (span != null && clientExecutionParams.getOperationName().startsWith("SendMessage")) {
-            newRequestObj = SQSHelper.getInstance().propagateContext(span, clientExecutionParams.getInput());
+        if (!toPropagate.isEmpty() && clientExecutionParams.getOperationName().startsWith("SendMessage")) {
+            newRequestObj = SQSHelper.getInstance().propagateContext(toPropagate, clientExecutionParams.getInput());
         } else if (sdkRequest instanceof ReceiveMessageRequest) {
             ReceiveMessageRequest receiveMessageRequest = (ReceiveMessageRequest) sdkRequest;
             if (!receiveMessageRequest.messageAttributeNames().contains(ATTRIBUTE_NAME_ALL) &&

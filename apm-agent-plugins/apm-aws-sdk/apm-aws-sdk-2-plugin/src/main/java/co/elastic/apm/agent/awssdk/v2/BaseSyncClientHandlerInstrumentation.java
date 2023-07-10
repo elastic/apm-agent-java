@@ -24,8 +24,10 @@ import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
 import co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper.MessageListWrapper;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -50,6 +52,9 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class BaseSyncClientHandlerInstrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
+    
     //Coretto causes sigsegv crashes when you try to access a throwable if it thinks
     //it went out of scope, which it seems to for the instrumented throwable access
     //package access and non-final so that tests can replace this
@@ -91,12 +96,13 @@ public class BaseSyncClientHandlerInstrumentation extends ElasticApmInstrumentat
                 span = DynamoDbHelper.getInstance().startSpan(sdkRequest, uri, executionContext);
             } else if ("Sqs".equalsIgnoreCase(awsService)) {
                 span = SQSHelper.getInstance().startSpan(sdkRequest, uri, executionContext);
-                SQSHelper.getInstance().modifyRequestObject(span, clientExecutionParams, executionContext);
             }
 
             if (span != null) {
                 span.activate();
             }
+
+            SQSHelper.getInstance().modifyRequestObject(tracer.currentContext(), clientExecutionParams, executionContext);
 
             return span;
         }

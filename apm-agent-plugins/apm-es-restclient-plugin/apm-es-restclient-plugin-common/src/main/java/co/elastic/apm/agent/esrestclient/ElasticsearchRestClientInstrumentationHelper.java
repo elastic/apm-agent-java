@@ -75,12 +75,8 @@ public class ElasticsearchRestClientInstrumentationHelper {
 
     @Nullable
     public Span<?> createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity) {
-        final AbstractSpan<?> activeSpan = tracer.getActive();
-        if (activeSpan == null) {
-            return null;
-        }
 
-        Span<?> span = activeSpan.createExitSpan();
+        Span<?> span = tracer.currentContext().createExitSpan();
 
         // Don't record nested spans. In 5.x clients the instrumented sync method is calling the instrumented async method
         if (span == null) {

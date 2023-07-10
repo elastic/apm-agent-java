@@ -76,16 +76,14 @@ public class JavalinRenderInstrumentation extends ElasticApmInstrumentation {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object setSpanName(@Advice.Argument(0) String template) {
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
+            Span<?> span = tracer.currentContext().createSpan();
+            if (span != null) {
+                span.activate()
+                    .withType("app")
+                    .withSubtype("internal")
+                    .appendToName("render ").appendToName(template);
             }
-
-            return parent.createSpan()
-                .activate()
-                .withType("app")
-                .withSubtype("internal")
-                .appendToName("render ").appendToName(template);
+            return span;
         }
 
 

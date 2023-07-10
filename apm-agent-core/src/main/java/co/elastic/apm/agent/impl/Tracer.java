@@ -22,6 +22,7 @@ import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
@@ -100,15 +101,16 @@ public interface Tracer extends co.elastic.apm.agent.tracer.Tracer {
                                           Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader);
 
     @Override
-    @Nullable
-    Transaction currentTransaction();
+    ElasticContext<?> currentContext();
 
     @Override
     @Nullable
     AbstractSpan<?> getActive();
 
+    @Override
     @Nullable
-    Span getActiveSpan();
+    Transaction currentTransaction();
+
 
     /**
      * Captures an exception without providing an explicit reference to a parent {@link AbstractSpan}
@@ -123,9 +125,6 @@ public interface Tracer extends co.elastic.apm.agent.tracer.Tracer {
 
     @Nullable
     ErrorCapture captureException(@Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader);
-
-    @Nullable
-    Span getActiveExitSpan();
 
     TracerState getState();
 

@@ -18,16 +18,16 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
@@ -287,13 +287,9 @@ public class GrpcHelper {
      * @return client call span (activated) or {@literal null} if not within an exit span.
      */
     @Nullable
-    public Span<?> onClientCallCreationEntry(@Nullable AbstractSpan<?> parent,
-                                          @Nullable MethodDescriptor<?, ?> method,
-                                          @Nullable String authority) {
-
-        if (null == parent) {
-            return null;
-        }
+    public Span<?> onClientCallCreationEntry(ElasticContext<?> parent,
+                                             @Nullable MethodDescriptor<?, ?> method,
+                                             @Nullable String authority) {
 
         // we only support unary method calls and ignore others for now
         if (method != null && method.getType() != MethodDescriptor.MethodType.UNARY) {
@@ -328,7 +324,7 @@ public class GrpcHelper {
      * This is the 2nd method called during client call execution, the next is {@link #clientCallStartEnter(ClientCall, ClientCall.Listener, Metadata)}.
      *
      * @param clientCall    client call
-     * @param spanFromEntry span created at {@link #onClientCallCreationEntry(AbstractSpan, MethodDescriptor, String)}
+     * @param spanFromEntry span created at {@link #onClientCallCreationEntry(ElasticContext, MethodDescriptor, String)}
      */
     public void onClientCallCreationExit(@Nullable ClientCall<?, ?> clientCall, @Nullable Span<?> spanFromEntry) {
         if (clientCall != null) {
@@ -444,17 +440,14 @@ public class GrpcHelper {
         // span should already have been registered
         // no other lookup by client call is required, thus removing entry
         Span<?> span = clientCallSpans.remove(clientCall);
-        if (span == null) {
-            return null;
+        if (span != null) {
+            clientCallListenerSpans.put(listener, span);
+            span.activate();
         }
 
-        clientCallListenerSpans.put(listener, span);
+        tracer.currentContext().propagateContext(headers, headerSetter, headerGetter);
 
-        if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), headers, headerGetter)) {
-            span.propagateTraceContext(headers, headerSetter);
-        }
-
-        return span.activate();
+        return span;
     }
 
     /**

@@ -20,15 +20,14 @@ package co.elastic.apm.agent.httpclient.v3;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
-import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -40,7 +39,6 @@ import org.apache.commons.httpclient.StatusLine;
 import org.apache.commons.httpclient.URI;
 
 import javax.annotation.Nullable;
-
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -86,8 +84,19 @@ public class HttpClient3Instrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.Argument(0) HttpMethod httpMethod,
                                      @Advice.FieldValue(value = "hostConfiguration") HostConfiguration hostConfiguration) {
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
+            Span<?> span = startClientSpan(httpMethod, hostConfiguration);
+            if (span != null) {
+                span.activate();
+            }
+            tracer.currentContext().propagateContext(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE, HttpClient3RequestHeaderAccessor.INSTANCE);
+
+            return span;
+        }
+
+        @Nullable
+        private static Span<?> startClientSpan(HttpMethod httpMethod, HostConfiguration hostConfiguration) {
+            final ElasticContext<?> activeContext = tracer.currentContext();
+            if (activeContext.getSpan() == null) {
                 return null;
             }
 
@@ -118,23 +127,7 @@ public class HttpClient3Instrumentation extends ElasticApmInstrumentation {
                     return null;
                 }
             }
-
-            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, httpMethod.getName(), uri, protocol, host, port);
-
-            if (span != null) {
-                span.activate();
-            }
-
-            if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
-                if (span != null) {
-                    span.propagateTraceContext(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE);
-                } else if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE)) {
-                    // re-adds the header on redirects
-                    parent.propagateTraceContext(httpMethod, HttpClient3RequestHeaderAccessor.INSTANCE);
-                }
-            }
-
-            return span;
+            return HttpClientHelper.startHttpClientSpan(activeContext, httpMethod.getName(), uri, protocol, host, port);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

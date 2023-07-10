@@ -21,9 +21,9 @@ package co.elastic.apm.agent.awssdk.v1;
 import co.elastic.apm.agent.awssdk.common.AbstractAwsSdkInstrumentation;
 import co.elastic.apm.agent.awssdk.v1.helper.SQSHelper;
 import co.elastic.apm.agent.awssdk.v1.helper.SdkV1DataSource;
+import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.sdk.state.CallDepth;
 import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
@@ -94,10 +94,10 @@ public abstract class SQSMessageDispatchingInstrumentation extends AbstractAwsSd
                 Span<?> span = SQSHelper.getInstance().createSpan(queueName);
 
                 if (span != null) {
-                    SQSHelper.getInstance().propagateContext(span, request);
                     span.activate();
                     SdkV1DataSource.getInstance().putLookupValue(request, queueName);
                 }
+                SQSHelper.getInstance().propagateContext(tracer.currentContext(), request);
 
                 return span;
             }

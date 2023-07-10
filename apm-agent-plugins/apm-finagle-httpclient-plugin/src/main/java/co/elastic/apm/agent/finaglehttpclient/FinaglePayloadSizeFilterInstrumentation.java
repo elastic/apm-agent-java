@@ -23,6 +23,7 @@ import co.elastic.apm.agent.finaglehttpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -127,40 +128,34 @@ public class FinaglePayloadSizeFilterInstrumentation extends ElasticApmInstrumen
             if (request == null || INBOUND_REQUEST_CLASS.isInstance(request)) {
                 return null;
             }
-            AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
-            }
+            ElasticContext<?> parentContext = tracer.currentContext();
+            AbstractSpan<?> parent = parentContext.getSpan();
+            Span<?> span = null;
+            if (parent != null) {
 
-            Trace.apply().recordClientSend();
+                Trace.apply().recordClientSend();
 
-            boolean hostUnknown = true;
-            String host = "unknown-host";
-            if (request.host().nonEmpty()) {
-                //The host should usually be not empty, as it is forbidden by HTTP standards
-                //However, experiments showed that finagle can actually omit this header, e.g. in the zipkin demo app.
-                host = request.host().get();
-                hostUnknown = false;
-            }
-
-            URI uri = resolveURI(request, host);
-            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, request.method().name(), uri, null);
-
-            if (span != null) {
-                span.activate();
-                if (hostUnknown) {
-                    inflightSpansWithUnknownHost.put(request, span);
+                boolean hostUnknown = true;
+                String host = "unknown-host";
+                if (request.host().nonEmpty()) {
+                    //The host should usually be not empty, as it is forbidden by HTTP standards
+                    //However, experiments showed that finagle can actually omit this header, e.g. in the zipkin demo app.
+                    host = request.host().get();
+                    hostUnknown = false;
                 }
-            }
 
-            if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), request, RequestHeaderAccessor.INSTANCE)) {
+                URI uri = resolveURI(request, host);
+                span = HttpClientHelper.startHttpClientSpan(parentContext, request.method().name(), uri, null);
+
                 if (span != null) {
-                    span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
-                } else if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), request, RequestHeaderAccessor.INSTANCE)) {
-                    // adds headers of potential parent exit-spans
-                    parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
+                    span.activate();
+                    if (hostUnknown) {
+                        inflightSpansWithUnknownHost.put(request, span);
+                    }
                 }
             }
+
+            tracer.currentContext().propagateContext(request, RequestHeaderAccessor.INSTANCE, RequestHeaderAccessor.INSTANCE);
 
             return span;
         }

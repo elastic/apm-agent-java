@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.struts;
 
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -34,8 +35,11 @@ import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAME
 public class ActionProxyAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    @Nullable
     public static Object onEnterExecute(@Advice.This ActionProxy actionProxy) {
-        Transaction<?> transaction = GlobalTracer.get().currentTransaction();
+
+        ElasticContext<?> activeContext = GlobalTracer.get().currentContext();
+        Transaction<?> transaction = activeContext.getTransaction();
         if (transaction == null) {
             return null;
         }
@@ -43,7 +47,7 @@ public class ActionProxyAdvice {
         String className = actionProxy.getAction().getClass().getSimpleName();
         String methodName = actionProxy.getMethod();
         if (ActionContext.getContext().get("CHAIN_HISTORY") != null) {
-            Span<?> span = transaction.createSpan().withType("app").withSubtype("internal");
+            Span<?> span = activeContext.createSpan().withType("app").withSubtype("internal");
             TransactionNameUtils.setNameFromClassAndMethod(className, methodName, span.getAndOverrideName(PRIORITY_HIGH_LEVEL_FRAMEWORK));
             return span.activate();
         } else {
