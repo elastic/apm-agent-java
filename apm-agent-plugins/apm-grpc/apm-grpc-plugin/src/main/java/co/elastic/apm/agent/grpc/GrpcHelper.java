@@ -269,7 +269,11 @@ public class GrpcHelper {
             transaction.withOutcome(toServerOutcome(terminateStatus));
         }
 
-        transaction.end();
+        // With some implementations we might get called more than once with an extra onCancel before/after
+        // onComplete have been called, thus we have to guard against ending transaction more than once
+        if (!transaction.isFinished()) {
+            transaction.end();
+        }
         serverListenerTransactions.remove(listener);
     }
 
