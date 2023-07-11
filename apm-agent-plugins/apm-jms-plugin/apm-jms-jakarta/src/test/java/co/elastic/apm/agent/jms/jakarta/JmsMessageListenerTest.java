@@ -99,6 +99,7 @@ public class JmsMessageListenerTest {
     }
 
     private void testJmsMessageListenerPackage(boolean expectIncluded, JmsMessageListenerVariant variant) throws Exception {
+
         assertThat(tracer.currentTransaction())
             .describedAs("no active transaction expected before onMessage")
             .isNull();
