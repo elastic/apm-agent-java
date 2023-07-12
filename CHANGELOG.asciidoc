@@ -34,6 +34,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Capture `container.id` for cgroups v2 - {pull}3199[#3199]
+* Improved span naming and attribute collection for 7.16+ elasticsearch clients - {pull}3157[#3157]
 
 [float]
 ===== Bug fixes
