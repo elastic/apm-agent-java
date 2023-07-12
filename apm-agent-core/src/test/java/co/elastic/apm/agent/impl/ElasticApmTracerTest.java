@@ -545,6 +545,24 @@ class ElasticApmTracerTest {
     }
 
     @Test
+    void testEmptyContextActivation() {
+        final Transaction transaction = startTestRootTransaction();
+        assertThat(tracerImpl.currentContext().getTransaction()).isNull();
+        tracerImpl.activate(transaction);
+        assertThat(tracerImpl.currentContext().getTransaction()).isEqualTo(transaction);
+
+        EmptyElasticContext empty = new EmptyElasticContext(tracerImpl);
+        empty.activate();
+        assertThat(tracerImpl.currentContext().getTransaction()).isNull();
+
+        empty.deactivate();
+        assertThat(tracerImpl.currentContext().getTransaction()).isEqualTo(transaction);
+        tracerImpl.deactivate(transaction);
+        assertThat(tracerImpl.currentContext().getTransaction()).isNull();
+        transaction.end();
+    }
+
+    @Test
     void testOverrideServiceNameWithoutExplicitServiceName() {
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(SpyConfiguration.createSpyConfig())
@@ -714,19 +732,8 @@ class ElasticApmTracerTest {
 
     private static final class TestContext extends ElasticContext<TestContext> {
 
-        @Override
-        public TestContext activate() {
-            return null;
-        }
-
-        @Override
-        public TestContext deactivate() {
-            return null;
-        }
-
-        @Override
-        public Scope activateInScope() {
-            return null;
+        private TestContext() {
+            super(null);
         }
 
         @Nullable

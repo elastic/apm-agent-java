@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
@@ -26,6 +28,12 @@ import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import javax.annotation.Nullable;
 
 public abstract class ElasticContext<T extends ElasticContext<T>> implements co.elastic.apm.agent.tracer.ElasticContext<T> {
+
+    protected final ElasticApmTracer tracer;
+
+    protected ElasticContext(ElasticApmTracer tracer) {
+        this.tracer = tracer;
+    }
 
     @Nullable
     public abstract AbstractSpan<?> getSpan();
@@ -37,6 +45,25 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
     public final Transaction getTransaction() {
         AbstractSpan<?> contextSpan = getSpan();
         return contextSpan != null ? contextSpan.getParentTransaction() : null;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public T activate() {
+        tracer.activate(this);
+        return (T) this;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public T deactivate() {
+        tracer.deactivate(this);
+        return (T) this;
+    }
+
+    @Override
+    public Scope activateInScope() {
+        return tracer.activateInScope(this);
     }
 
     @Nullable
