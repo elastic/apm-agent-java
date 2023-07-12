@@ -135,7 +135,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
 
         Span span = reporter.getFirstSpan();
         assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
-        validateSpanContent(span, "Elasticsearch: DELETE /{index}", 404, "DELETE", SECOND_INDEX);
+        validateSpanContent(span, "Elasticsearch: indices.delete", 404, "DELETE", Map.of("index", SECOND_INDEX));
     }
 
     @Test
@@ -145,7 +145,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
         List<Span> spans = reporter.getSpans();
         try {
             assertThat(spans).hasSize(1);
-            validateSpanContent(spans.get(0), "Elasticsearch: PUT /{index}/_doc/{id}", 201, "PUT", INDEX, DOC_ID);
+            validateSpanContent(spans.get(0), "Elasticsearch: index", 201, "PUT", Map.of("index", INDEX, "id", DOC_ID));
 
             // *** RESET ***
             reporter.reset();
@@ -159,7 +159,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
             spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
             Span searchSpan = spans.get(0);
-            validateSpanContent(searchSpan, "Elasticsearch: POST /{index}/_search", 200, "POST", INDEX);
+            validateSpanContent(searchSpan, "Elasticsearch: search", 200, "POST", Map.of("index", INDEX));
             validateDbContextContent(searchSpan, "{\"from\":0,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\"}}},\"size\":5}");
 
             // *** RESET ***
@@ -179,9 +179,9 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
             spans = reporter.getSpans();
             assertThat(spans).hasSize(2);
             Span updateSpan = spans.get(0);
-            validateSpanContent(updateSpan, "Elasticsearch: POST /{index}/_update/{id}", 200, "POST", INDEX, DOC_ID);
+            validateSpanContent(updateSpan, "Elasticsearch: update", 200, "POST", Map.of("index", INDEX, "id", DOC_ID));
             searchSpan = spans.get(1);
-            validateSpanContent(searchSpan, "Elasticsearch: POST /{index}/_search", 200, "POST", INDEX);
+            validateSpanContent(searchSpan, "Elasticsearch: search", 200, "POST", Map.of("index", INDEX));
             validateDbContextContent(searchSpan, "{}");
 
             // *** RESET ***
@@ -191,7 +191,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
             // 4. Delete document and validate span content.
             co.elastic.clients.elasticsearch.core.DeleteResponse dr = deleteDocument();
             assertThat(dr.result().jsonValue()).isEqualTo("deleted");
-            validateSpanContent(spans.get(0), "Elasticsearch: DELETE /{index}/_doc/{id}", 200, "DELETE", INDEX, DOC_ID);
+            validateSpanContent(spans.get(0), "Elasticsearch: delete", 200, "DELETE", Map.of("index", INDEX, "id", DOC_ID));
         }
     }
 
@@ -210,7 +210,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
             List<Span> spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
             Span span = spans.get(0);
-            validateSpanContent(span, "Elasticsearch: POST /{index}/_count", 200, "POST", INDEX);
+            validateSpanContent(span, "Elasticsearch: count", 200, "POST", Map.of("index", INDEX));
             validateDbContextContent(span, "{\"query\":{\"term\":{\"foo\":{\"value\":\"bar\"}}}}");
         } finally {
             deleteDocument();
@@ -281,7 +281,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
             List<Span> spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
             Span span = spans.get(0);
-            validateSpanContent(span, "Elasticsearch: POST /{index}/_rollup_search", 200, "POST", INDEX);
+            validateSpanContent(span, "Elasticsearch: rollup.rollup_search", 200, "POST", Map.of("index", INDEX));
             validateDbContextContent(span, "{\"query\":{\"term\":{\"foo\":{\"value\":\"bar\"}}},\"size\":5}");
         } finally {
             deleteDocument();
@@ -302,7 +302,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
             List<Span> spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
             Span span = spans.get(0);
-            validateSpanContent(span, "Elasticsearch: POST /{index}/_search/template", 200, "POST", INDEX);
+            validateSpanContent(span, "Elasticsearch: search_template", 200, "POST", Map.of("index", INDEX));
             validateDbContextContent(span, "{\"id\":\"elastic-search-template\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"}}");
         } finally {
             deleteMustacheScript();
@@ -341,7 +341,7 @@ public abstract class AbstractElasticsearchJavaTest extends AbstractEsClientInst
             List<Span> spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
             Span span = spans.get(0);
-            validateSpanContent(span, "Elasticsearch: POST /_msearch/template", 200, "POST");
+            validateSpanContent(span, "Elasticsearch: msearch_template", 200, "POST", Map.of());
             verifyMultiSearchTemplateSpanContent(span);
         } finally {
             deleteMustacheScript();

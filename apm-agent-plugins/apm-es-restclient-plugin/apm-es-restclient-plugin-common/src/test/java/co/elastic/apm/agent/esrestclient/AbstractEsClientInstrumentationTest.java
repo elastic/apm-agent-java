@@ -36,6 +36,8 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.ELASTICSEARCH;
 import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.SPAN_ACTION;
@@ -138,14 +140,17 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(db.getStatementBuffer().toString()).isIn(possibleContents);
     }
 
-    protected void validateSpanContent(Span span, String expectedName, int statusCode, String method, String index, String doc_id) {
-        validateSpanContent(span, expectedName, statusCode, method, index);
-        assertThat(span.getOtelAttributes()).containsEntry("db.elasticsearch.doc_id", doc_id);
-    }
 
-    protected void validateSpanContent(Span span, String expectedName, int statusCode, String method, String index) {
+    protected void validateSpanContent(Span span, String expectedName, int statusCode, String method, Map<String, String> expectedPathParts) {
         validateSpanContent(span, expectedName, statusCode, method);
-        assertThat(span.getOtelAttributes()).containsEntry("db.elasticsearch.target", index);
+        expectedPathParts.forEach((partName, value) -> {
+            assertThat(span.getOtelAttributes()).containsEntry("db.elasticsearch.path_parts." + partName, value);
+        });
+        List<String> spanPartAttributes = span.getOtelAttributes().keySet().stream()
+            .filter(name -> name.startsWith("db.elasticsearch.path_parts."))
+            .map(name -> name.substring("db.elasticsearch.path_parts.".length()))
+            .collect(Collectors.toList());
+        assertThat(spanPartAttributes).containsExactlyElementsOf(expectedPathParts.keySet());
     }
 
     protected void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
@@ -184,7 +189,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         if(usePathPattern){
-            validateSpanContent(spans.get(0), "Elasticsearch: PUT /{index}", 200, "PUT", SECOND_INDEX);
+            validateSpanContent(spans.get(0), "Elasticsearch: indices.create", 200, "PUT", Map.of("index", SECOND_INDEX));
         } else {
             validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s", SECOND_INDEX), 200, "PUT" );
         }
@@ -198,7 +203,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         if(usePathPattern){
-            validateSpanContent(spans.get(0), "Elasticsearch: DELETE /{index}", 200, "DELETE", SECOND_INDEX);
+            validateSpanContent(spans.get(0), "Elasticsearch: indices.delete", 200, "DELETE", Map.of("index", SECOND_INDEX));
         } else {
             validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s", SECOND_INDEX), 200, "DELETE");
         }

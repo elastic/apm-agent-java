@@ -43,7 +43,7 @@ import java.util.concurrent.CancellationException;
 
 public class ElasticsearchRestClientInstrumentationHelper {
 
-    private static final WeakMap<Object, String> requestEndpointIdMap = WeakConcurrent.buildMap();
+    private static final WeakMap<Object, ElasticsearchEndpointDefinition> requestEndpointMap = WeakConcurrent.buildMap();
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelper.class);
 
     private static final Logger unsupportedOperationOnceLogger = LoggerUtils.logOnce(logger);
@@ -77,22 +77,28 @@ public class ElasticsearchRestClientInstrumentationHelper {
     }
 
     public void registerEndpointId(Object requestObj, String endpointId) {
-        requestEndpointIdMap.put(requestObj, endpointId);
+        if (endpointId.startsWith("es/") && endpointId.length() > 3) {
+            endpointId = endpointId.substring(3);
+        }
+        ElasticsearchEndpointDefinition endpoint = ElasticsearchEndpointMap.get(endpointId);
+        if (endpoint != null) {
+            requestEndpointMap.put(requestObj, endpoint);
+        }
     }
 
     @Nullable
-    public Span<?> createClientSpan(Object requestObj, String method, String endpoint, @Nullable HttpEntity httpEntity) {
-        String endpointId = requestEndpointIdMap.remove(requestObj);
-        return createClientSpan(method, endpoint, httpEntity, endpointId);
+    public Span<?> createClientSpan(Object requestObj, String method, String httpPath, @Nullable HttpEntity httpEntity) {
+        ElasticsearchEndpointDefinition endpoint = requestEndpointMap.remove(requestObj);
+        return createClientSpan(method, httpPath, httpEntity, endpoint);
     }
 
     @Nullable
-    public Span<?> createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity) {
-        return createClientSpan(method, endpoint, httpEntity, null);
+    public Span<?> createClientSpan(String method, String httpPath, @Nullable HttpEntity httpEntity) {
+        return createClientSpan(method, httpPath, httpEntity, null);
     }
 
     @Nullable
-    private Span<?> createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity, @Nullable String endpointId) {
+    private Span<?> createClientSpan(String method, String httpPath, @Nullable HttpEntity httpEntity, @Nullable ElasticsearchEndpointDefinition endpoint) {
         final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan == null) {
             return null;
@@ -109,10 +115,17 @@ public class ElasticsearchRestClientInstrumentationHelper {
             .withSubtype(ELASTICSEARCH)
             .withAction(SPAN_ACTION);
 
-        if (endpointId != null) {
-            EndpointResolutionHelper.get().enrichSpanWithRouteInformation(span, method, endpointId, endpoint);
+        StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK);
+        if (endpoint != null) {
+            if (name != null) {
+                name.append("Elasticsearch: ").append(endpoint.getEndpointName());
+            }
+            span.withOtelAttribute("db.operation", endpoint.getEndpointName());
+            endpoint.addPathPartAttributes(httpPath, span);
         } else {
-            span.appendToName("Elasticsearch: ").appendToName(method).appendToName(" ").appendToName(endpoint);
+            if (name != null) {
+                name.append("Elasticsearch: ").append(method).append(" ").append(httpPath);
+            }
         }
 
         span.getContext().getDb().withType(ELASTICSEARCH);
@@ -120,7 +133,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
         span.activate();
         if (span.isSampled()) {
             span.getContext().getHttp().withMethod(method);
-            if (WildcardMatcher.isAnyMatch(config.getCaptureBodyUrls(), endpoint)) {
+            if (WildcardMatcher.isAnyMatch(config.getCaptureBodyUrls(), httpPath)) {
                 if (httpEntity != null && httpEntity.isRepeatable()) {
                     try {
                         IOUtils.readUtf8Stream(httpEntity.getContent(), span.getContext().getDb().withStatementBuffer());

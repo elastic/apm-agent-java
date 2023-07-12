@@ -5,15 +5,20 @@
 
 package co.elastic.apm.agent.esrestclient;
 
-import javax.annotation.Nullable;
+import co.elastic.apm.agent.tracer.Span;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class ElasticsearchEndpointDefinition {
+
+    private static final String OTEL_PATH_PARTS_ATTRIBUTE_PREFIX = "db.elasticsearch.path_parts.";
 
     private static final String UNDERSCORE_REPLACEMENT = "0";
 
@@ -32,7 +37,7 @@ public final class ElasticsearchEndpointDefinition {
         this.isSearchEndpoint = isSearchEndpoint;
     }
 
-    @Nullable
+
     public String getEndpointName() {
         return endpointName;
     }
@@ -41,18 +46,16 @@ public final class ElasticsearchEndpointDefinition {
         return isSearchEndpoint;
     }
 
-    public void processPathParts(String urlPath, BiConsumer<String, String> consumer) {
+    public void addPathPartAttributes(String urlPath, Span<?> spanToEnrich) {
         for (Route route : routes) {
             if (route.hasParameters()) {
-                Matcher matcher = route.createMatcher(urlPath);
+                EndpointPattern pattern = route.getEndpointPattern();
+                Matcher matcher = pattern.createMatcher(urlPath);
                 if (matcher.find()) {
-                    for (String key : route.getPathPartNames()) {
-                        String value = matcher.group(key);
-                        if (key.contains(UNDERSCORE_REPLACEMENT)) {
-                            // replace underscore back
-                            key = key.replace(UNDERSCORE_REPLACEMENT, "_");
-                        }
-                        consumer.accept(key, value);
+                    for (String groupName : pattern.getPatternGroupNames()) {
+                        String value = matcher.group(groupName);
+                        String attributeKey = pattern.getOtelPathPartAttributeName(groupName);
+                        spanToEnrich.withOtelAttribute(attributeKey, value);
                     }
                     return;
                 }
@@ -83,14 +86,6 @@ public final class ElasticsearchEndpointDefinition {
             return hasParameters;
         }
 
-        List<String> getPathPartNames() {
-            return getEndpointPattern().getPathPartNames();
-        }
-
-        Matcher createMatcher(String urlPath) {
-            return getEndpointPattern().getPattern().matcher(urlPath);
-        }
-
         private EndpointPattern getEndpointPattern() {
             // Intentionally NOT synchronizing here to avoid synchronization overhead.
             // Main purpose here is to cache the pattern without the need for strict thread-safety.
@@ -105,7 +100,7 @@ public final class ElasticsearchEndpointDefinition {
     static final class EndpointPattern {
         private static final Pattern PATH_PART_NAMES_PATTERN = Pattern.compile("\\{([^}]+)}");
         private final Pattern pattern;
-        private final List<String> pathPartNames;
+        private final Map<String, String> pathPartNamesToOtelAttributes;
 
         /**
          * Creates, compiles and caches a regular expression pattern and retrieves a set of
@@ -118,18 +113,18 @@ public final class ElasticsearchEndpointDefinition {
             pattern = buildRegexPattern(route.getName());
 
             if (route.hasParameters()) {
-                pathPartNames = new ArrayList<>();
+                pathPartNamesToOtelAttributes = new HashMap<>();
                 Matcher matcher = PATH_PART_NAMES_PATTERN.matcher(route.getName());
                 while (matcher.find()) {
                     String groupName = matcher.group(1);
 
                     if (groupName != null) {
-                        groupName = groupName.replace("_", UNDERSCORE_REPLACEMENT);
-                        pathPartNames.add(groupName);
+                        String actualPatternGroupName = groupName.replace("_", UNDERSCORE_REPLACEMENT);
+                        pathPartNamesToOtelAttributes.put(actualPatternGroupName, OTEL_PATH_PARTS_ATTRIBUTE_PREFIX + groupName);
                     }
                 }
             } else {
-                pathPartNames = Collections.emptyList();
+                pathPartNamesToOtelAttributes = Collections.emptyMap();
             }
         }
 
@@ -166,12 +161,20 @@ public final class ElasticsearchEndpointDefinition {
             return Pattern.compile(regexStr.toString());
         }
 
-        Pattern getPattern() {
-            return pattern;
+        Matcher createMatcher(String urlPath) {
+            return pattern.matcher(urlPath);
         }
 
-        List<String> getPathPartNames() {
-            return pathPartNames;
+        String getOtelPathPartAttributeName(String patternGroupName) {
+            String attributeName = pathPartNamesToOtelAttributes.get(patternGroupName);
+            if (attributeName == null) {
+                throw new IllegalArgumentException(patternGroupName + " is not a group of this pattern!");
+            }
+            return attributeName;
+        }
+
+        Collection<String> getPatternGroupNames() {
+            return pathPartNamesToOtelAttributes.keySet();
         }
     }
 }

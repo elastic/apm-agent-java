@@ -873,7 +873,10 @@ public final class ElasticsearchEndpointMap {
     }
 
     @Nullable
-    public static ElasticsearchEndpointDefinition get(String endpointId) {
+    public static ElasticsearchEndpointDefinition get(@Nullable String endpointId) {
+        if (endpointId == null) {
+            return null;
+        }
         return routesMap.get(endpointId);
     }
 
