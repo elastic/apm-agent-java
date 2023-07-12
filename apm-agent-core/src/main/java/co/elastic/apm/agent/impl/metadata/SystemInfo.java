@@ -31,7 +31,9 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,10 +45,17 @@ import static co.elastic.apm.agent.common.util.ProcessExecutionUtil.cmdAsString;
 public class SystemInfo {
     private static final Logger logger = LoggerFactory.getLogger(SystemInfo.class);
 
-    private static final String CONTAINER_UID_REGEX = "^[0-9a-fA-F]{64}$";
+    private static final String CONTAINER_REGEX_64 = "[0-9a-fA-F]{64}";
+    private static final String CONTAINER_UID_REGEX = "^" + CONTAINER_REGEX_64 + "$";
     private static final String SHORTENED_UUID_PATTERN = "^[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4,}";
     private static final String AWS_FARGATE_UID_REGEX = "^[0-9a-fA-F]{32}\\-[0-9]{10}$";
     private static final String POD_REGEX = "(?:^/kubepods[\\S]*/pod([^/]+)$)|(?:kubepods[^/]*-pod([^/]+)\\.slice)";
+
+    private static final String CGROUPV2_HOSTNAME_FILE = "/etc/hostname";
+    private static final Pattern CGROUPV2_CONTAINER_PATTERN = Pattern.compile("^.*(" + CONTAINER_REGEX_64 + ").*$");
+
+    private static final String SELF_CGROUP = "/proc/self/cgroup";
+    private static final String SELF_MOUNTINFO = "/proc/self/mountinfo";
 
     /**
      * Architecture of the system the agent is running on.
@@ -56,6 +65,7 @@ public class SystemInfo {
     /**
      * Hostname configured manually through {@link co.elastic.apm.agent.configuration.CoreConfiguration#hostname}.
      */
+    @SuppressWarnings("JavadocReference")
     @Nullable
     private final String configuredHostname;
 
@@ -99,11 +109,13 @@ public class SystemInfo {
     /**
      * Creates a {@link SystemInfo} containing auto-discovered info about the system.
      * This method may block on reading files and executing external processes.
-     * @param configuredHostname hostname configured through the {@link co.elastic.apm.agent.configuration.CoreConfiguration#hostname} config
-     * @param timeoutMillis enables to limit the execution of the system discovery task
+     *
+     * @param configuredHostname      hostname configured through the {@link co.elastic.apm.agent.configuration.CoreConfiguration#hostname} config
+     * @param timeoutMillis           enables to limit the execution of the system discovery task
      * @param serverlessConfiguration serverless config
      * @return a future from which this system's info can be obtained
      */
+    @SuppressWarnings("JavadocReference")
     public static SystemInfo create(final @Nullable String configuredHostname, final long timeoutMillis, ServerlessConfiguration serverlessConfiguration) {
         final String osName = System.getProperty("os.name");
         final String osArch = System.getProperty("os.arch");
@@ -134,7 +146,8 @@ public class SystemInfo {
      * Discover the current host's name. This method separates operating systems only to Windows and non-Windows,
      * both in the executed hostname-discovery-command and the fallback environment variables.
      * It always starts with execution of a command on an external process, so it may block up to the specified timeout.
-     * @param isWindows used to decide how hostname discovery should be executed
+     *
+     * @param isWindows     used to decide how hostname discovery should be executed
      * @param timeoutMillis limits the time this method may block on executing external commands
      * @return the discovered hostname
      */
@@ -156,9 +169,6 @@ public class SystemInfo {
         if (hostname == null || hostname.isEmpty()) {
             try {
                 hostname = InetAddress.getLocalHost().getHostName();
-                if (hostname != null) {
-                    hostname = removeDomain(hostname);
-                }
             } catch (Exception e) {
                 logger.warn("Last fallback for hostname discovery of localhost failed", e);
             }
@@ -169,23 +179,13 @@ public class SystemInfo {
     @Nullable
     static String discoverHostnameThroughCommand(boolean isWindows, long timeoutMillis) {
         String hostname;
-        List<String> cmd;
         if (isWindows) {
-            cmd = new ArrayList<>();
-            cmd.add("cmd");
-            cmd.add("/c");
-            cmd.add("hostname");
-            hostname = executeHostnameDiscoveryCommand(cmd, timeoutMillis);
-        } else {
-            cmd = new ArrayList<>();
-            cmd.add("uname");
-            cmd.add("-n");
-            hostname = executeHostnameDiscoveryCommand(cmd, timeoutMillis);
+            hostname = executeHostnameDiscoveryCommand(Arrays.asList("powershell.exe", "[System.Net.Dns]::GetHostEntry($env:computerName).HostName"), timeoutMillis);
             if (hostname == null || hostname.isEmpty()) {
-                cmd = new ArrayList<>();
-                cmd.add("hostname");
-                hostname = executeHostnameDiscoveryCommand(cmd, timeoutMillis);
+                hostname = executeHostnameDiscoveryCommand(Arrays.asList("cmd.exe", "/c", "hostname"), timeoutMillis);
             }
+        } else {
+            hostname = executeHostnameDiscoveryCommand(Arrays.asList("hostname", "-f"), timeoutMillis);
         }
         return hostname;
     }
@@ -193,7 +193,8 @@ public class SystemInfo {
     /**
      * Tries to discover the current host name by executing the provided command in a spawned process.
      * This method may block up to the specified timeout, waiting for the spawned process to terminate.
-     * @param cmd the hostname discovery command
+     *
+     * @param cmd           the hostname discovery command
      * @param timeoutMillis maximum time to allow to the provided command to execute
      * @return the discovered hostname
      */
@@ -209,6 +210,9 @@ public class SystemInfo {
         } else {
             logger.info("Failed to execute command {} with exit code {}", cmdAsString(cmd), commandOutput.getExitCode());
             logger.debug("Command execution error", commandOutput.getExceptionThrown());
+        }
+        if(hostname != null) {
+            hostname = hostname.toLowerCase(Locale.ROOT);
         }
         return hostname;
     }
@@ -236,13 +240,8 @@ public class SystemInfo {
                 hostname = System.getenv("HOST");
             }
         }
-        return hostname;
-    }
-
-    static String removeDomain(String hostname) {
-        int indexOfDot = hostname.indexOf('.');
-        if (indexOfDot > 0) {
-            hostname = hostname.substring(0, indexOfDot);
+        if (hostname != null) {
+            hostname = hostname.toLowerCase(Locale.ROOT);
         }
         return hostname;
     }
@@ -259,21 +258,9 @@ public class SystemInfo {
      * @return container ID parsed from {@code /proc/self/cgroup} file lines, or {@code null} if can't find/read/parse file lines
      */
     SystemInfo findContainerDetails() {
-        String containerId = null;
-        try {
-            Path path = FileSystems.getDefault().getPath("/proc/self/cgroup");
-            if (path.toFile().exists()) {
-                List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-                for (final String line : lines) {
-                    parseContainerId(line);
-                    if (container != null) {
-                        containerId = container.getId();
-                        break;
-                    }
-                }
-            }
-        } catch (Throwable e) {
-            logger.warn("Failed to read/parse container ID from '/proc/self/cgroup'", e);
+        parseCgroupsFile(FileSystems.getDefault().getPath(SELF_CGROUP));
+        if (container == null) {
+            parseMountInfo(FileSystems.getDefault().getPath(SELF_MOUNTINFO));
         }
 
         try {
@@ -297,29 +284,68 @@ public class SystemInfo {
             logger.warn("Failed to read environment variables for Kubernetes Downward API discovery", e);
         }
 
-        logger.debug("container ID is {}", containerId);
+        logger.debug("container ID is {}", container != null ? container.getId() : null);
         return this;
+    }
+
+    @Nullable
+    private void parseMountInfo(Path path) {
+        if (!Files.isRegularFile(path)) {
+            logger.debug("Could not parse container ID from '{}'", path);
+            return;
+        }
+        try {
+            List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+            parseCgroupsV2ContainerId(lines);
+            if (container != null) {
+                return;
+            }
+            logger.debug("Could not parse container ID from '{}' lines: {}", path, lines);
+        } catch (Throwable e) {
+            logger.warn(String.format("Failed to read/parse container ID from '%s'", path), e);
+        }
+    }
+
+    @Nullable
+    private void parseCgroupsFile(Path path) {
+        if(!Files.isRegularFile(path)){
+            logger.debug("Could not parse container ID from '{}'", path);
+            return;
+        }
+        try {
+            List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+            for (String line : lines) {
+                parseCgroupsLine(line);
+                if (container != null) {
+                    return;
+                }
+            }
+        } catch (Throwable e) {
+            logger.warn(String.format("Failed to read/parse container ID from '%s'", path), e);
+        }
     }
 
     /**
      * The virtual file /proc/self/cgroup lists the control groups that the process is a member of. Each line contains
      * three colon-separated fields of the form hierarchy-ID:subsystem-list:cgroup-path.
-     *
+     * <p>
      * Depending on the filesystem driver used for cgroup management, the cgroup-path will have
      * one of the following formats in a Docker container:
-     *
-     * 		systemd: /system.slice/docker-<container-ID>.scope
-     * 		cgroupfs: /docker/<container-ID>
-     *
-     * 	In a Kubernetes pod, the cgroup path will look like:
-     *
-     * 		systemd: /kubepods.slice/kubepods-<QoS-class>.slice/kubepods-<QoS-class>-pod<pod-UID>.slice/<container-iD>.scope
-     * 		cgroupfs: /kubepods/<QoS-class>/pod<pod-UID>/<container-iD>
+     * </p>
+     * <pre>
+     *   systemd: /system.slice/docker-<container-ID>.scope
+     *   cgroupfs: /docker/<container-ID>
+     * </pre>
+     * In a Kubernetes pod, the cgroup path will look like:
+     * <pre>
+     *   systemd: /kubepods.slice/kubepods-<QoS-class>.slice/kubepods-<QoS-class>-pod<pod-UID>.slice/<container-iD>.scope
+     *   cgroupfs: /kubepods/<QoS-class>/pod<pod-UID>/<container-iD>
+     * </pre
      *
      * @param line a line from the /proc/self/cgroup file
      * @return this SystemInfo object after parsing
      */
-    SystemInfo parseContainerId(String line) {
+    SystemInfo parseCgroupsLine(String line) {
         final String[] fields = line.split(":", 3);
         if (fields.length == 3) {
             String cGroupPath = fields[2];
@@ -364,14 +390,38 @@ public class SystemInfo {
                 if (kubernetes != null ||
                     idPart.matches(CONTAINER_UID_REGEX) ||
                     idPart.matches(SHORTENED_UUID_PATTERN) ||
-                    idPart.matches(AWS_FARGATE_UID_REGEX))  {
+                    idPart.matches(AWS_FARGATE_UID_REGEX)) {
                     container = new Container(idPart);
                 }
             }
         }
         if (container == null) {
-            logger.debug("Could not parse container ID from '/proc/self/cgroup' line: {}", line);
+            logger.debug("Could not parse container ID from line: {}", line);
         }
+        return this;
+    }
+
+    /**
+     * @param lines lines from the /proc/self/mountinfo file
+     * @return this SystemInfo object after parsing
+     */
+    SystemInfo parseCgroupsV2ContainerId(List<String> lines) {
+        for (String line : lines) {
+            int index = line.indexOf(CGROUPV2_HOSTNAME_FILE);
+            if (index > 0) {
+                String[] parts = line.split(" ");
+                if (parts.length > 3) {
+                    Matcher matcher = CGROUPV2_CONTAINER_PATTERN.matcher(parts[3]);
+                    if (matcher.matches() && matcher.groupCount() == 1) {
+                        container = new Container(matcher.group(1));
+                    }
+                }
+            }
+        }
+
+
+
+
         return this;
     }
 
@@ -386,23 +436,26 @@ public class SystemInfo {
      * Returns the hostname. If a non-empty hostname was configured manually, it will be returned.
      * Otherwise, the automatically discovered hostname will be returned.
      * If both are null or empty, this method returns {@code <unknown>}.
+     *
      * @deprecated should only be used when communicating to APM Server of version lower than 7.4
      */
-     @Deprecated
+    @Deprecated
     public String getHostname() {
-         if (configuredHostname != null && !configuredHostname.isEmpty()) {
-             return configuredHostname;
-         }
-         if (detectedHostname != null && !detectedHostname.isEmpty()) {
-             return detectedHostname;
-         }
-         return "<unknown>";
+        if (configuredHostname != null && !configuredHostname.isEmpty()) {
+            return configuredHostname;
+        }
+        if (detectedHostname != null && !detectedHostname.isEmpty()) {
+            return detectedHostname;
+        }
+        return "<unknown>";
     }
 
     /**
      * The hostname manually configured through {@link co.elastic.apm.agent.configuration.CoreConfiguration#hostname}
+     *
      * @return the manually configured hostname
      */
+    @SuppressWarnings("JavadocReference")
     @Nullable
     public String getConfiguredHostname() {
         return configuredHostname;
@@ -444,7 +497,7 @@ public class SystemInfo {
     }
 
     public static class Container {
-        private String id;
+        private final String id;
 
         Container(String id) {
             this.id = id;

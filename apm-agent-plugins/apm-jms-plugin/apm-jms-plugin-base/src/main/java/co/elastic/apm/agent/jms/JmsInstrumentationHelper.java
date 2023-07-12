@@ -22,6 +22,7 @@ import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
@@ -29,7 +30,7 @@ import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 import java.util.Enumeration;
@@ -104,14 +105,8 @@ public abstract class JmsInstrumentationHelper<DESTINATION, MESSAGE, MESSAGELIST
     @SuppressWarnings("Duplicates")
     @Nullable
     public Span<?> startJmsSendSpan(DESTINATION destination, MESSAGE message) {
-
-        final AbstractSpan<?> activeSpan = tracer.getActive();
-        if (activeSpan == null) {
-            return null;
-        }
-
-        boolean isDestinationNameComputed = false;
         String destinationName = extractDestinationName(null, destination);
+        boolean isDestinationNameComputed = false;
         if (isTempDestination(destination, destinationName)) {
             destinationName = TEMP;
             isDestinationNameComputed = true;
@@ -120,19 +115,17 @@ public abstract class JmsInstrumentationHelper<DESTINATION, MESSAGE, MESSAGELIST
             return null;
         }
 
-        Span<?> span = activeSpan.createExitSpan();
-
-        if (span == null) {
-            return null;
+        Span<?> span = tracer.currentContext().createExitSpan();
+        if (span != null) {
+            span.withType(MESSAGING_TYPE)
+                .withSubtype("jms")
+                .withAction("send")
+                .activate();
         }
 
-        span.withType(MESSAGING_TYPE)
-            .withSubtype("jms")
-            .withAction("send")
-            .activate();
+        tracer.currentContext().propagateContext(message, propertyAccessorSetter(), null);
 
-        span.propagateTraceContext(message, propertyAccessorSetter());
-        if (span.isSampled()) {
+        if (span != null && span.isSampled()) {
 
             span.getContext().getServiceTarget()
                 .withType("jms")
@@ -226,12 +219,13 @@ public abstract class JmsInstrumentationHelper<DESTINATION, MESSAGE, MESSAGELIST
         AbstractSpan<?> createdSpan = null;
         boolean createPollingTransaction = false;
         boolean createPollingSpan = false;
-        final AbstractSpan<?> parent = tracer.getActive();
-        if (parent == null) {
+        final ElasticContext<?> activeContext = tracer.currentContext();
+        final AbstractSpan<?> parentSpan = activeContext.getSpan();
+        if (parentSpan == null) {
             createPollingTransaction = true;
         } else {
-            if (parent instanceof Transaction<?>) {
-                Transaction<?> transaction = (Transaction<?>) parent;
+            if (parentSpan instanceof Transaction<?>) {
+                Transaction<?> transaction = (Transaction<?>) parentSpan;
                 if (MESSAGE_POLLING.equals(transaction.getType())) {
                     // Avoid duplications for nested calls
                     return null;
@@ -244,9 +238,9 @@ public abstract class JmsInstrumentationHelper<DESTINATION, MESSAGE, MESSAGELIST
                 } else {
                     createPollingSpan = true;
                 }
-            } else if (parent instanceof Span<?>) {
-                Span<?> parentSpan = (Span<?>) parent;
-                if (MESSAGING_TYPE.equals(parentSpan.getType()) && "receive".equals(parentSpan.getAction())) {
+            } else if (parentSpan instanceof Span<?>) {
+                Span<?> parSpan = (Span<?>) parentSpan;
+                if (MESSAGING_TYPE.equals(parSpan.getType()) && "receive".equals(parSpan.getAction())) {
                     // Avoid duplication for nested calls
                     return null;
                 }
@@ -258,7 +252,7 @@ public abstract class JmsInstrumentationHelper<DESTINATION, MESSAGE, MESSAGELIST
         createPollingTransaction |= "receiveNoWait".equals(methodName);
 
         if (createPollingSpan) {
-            createdSpan = parent.createSpan()
+            createdSpan = activeContext.createSpan()
                 .withType(MESSAGING_TYPE)
                 .withSubtype("jms")
                 .withAction("receive");

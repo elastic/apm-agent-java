@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.loginstr.reformatting;
 
-import co.elastic.apm.agent.collections.DetachedThreadLocalImpl;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.metadata.Service;
@@ -148,7 +147,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
      * This state is set at the beginning of {@link #onAppendEnter(Object)} and cleared at the end of {@link #onAppendExit(Object, Object)}.
      * This ensures consistency during the entire handling of each log events and guarantees that each log event is being
      * logged exactly once.
-     * No need to use {@link DetachedThreadLocalImpl} because we already annotate the class
+     * No need to use {@link co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal} because we already annotate the class
      * with {@link GlobalState}.
      */
     private static final ThreadLocal<LogEcsReformatting> configForCurrentLogEvent = new ThreadLocal<>();

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.springwebmvc;
 
-import co.elastic.apm.agent.bci.PluginClassLoaderRootPackageCustomizer;
+import co.elastic.apm.agent.sdk.internal.PluginClassLoaderRootPackageCustomizer;
 
 import java.util.Arrays;
 import java.util.Collection;

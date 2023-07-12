@@ -23,7 +23,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.util.TransactionNameUtils;
+import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -126,6 +126,9 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
                 // limit case where the pathInfo contains the request path, the servlet path should be empty
                 assertThat(servletTransactionHelper.normalizeServletPath("/request/uri", null, servletPath, "/request/uri")).isEqualTo("");
                 assertThat(servletTransactionHelper.normalizeServletPath("/request/uri", "", servletPath, "/request/uri")).isEqualTo("");
+                assertThat(servletTransactionHelper.normalizeServletPath("/context/request/uri", "/context", servletPath, "/context/request/uri")).isEqualTo("");
+                assertThat(servletTransactionHelper.normalizeServletPath("/context/request/uri", "/context/", servletPath, "/request/uri")).isEqualTo("");
+
 
             }
         );

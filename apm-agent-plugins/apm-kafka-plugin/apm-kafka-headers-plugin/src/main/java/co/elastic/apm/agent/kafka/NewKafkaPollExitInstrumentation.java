@@ -27,7 +27,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 
 /**
  * An instrumentation for {@link org.apache.kafka.clients.consumer.KafkaConsumer#poll} exit on new clients

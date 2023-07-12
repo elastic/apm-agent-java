@@ -18,7 +18,9 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -27,7 +29,9 @@ import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 
-public abstract class AbstractAwsSdkInstrumentation extends TracerAwareInstrumentation {
+public abstract class AbstractAwsSdkInstrumentation extends ElasticApmInstrumentation {
+
+    protected static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

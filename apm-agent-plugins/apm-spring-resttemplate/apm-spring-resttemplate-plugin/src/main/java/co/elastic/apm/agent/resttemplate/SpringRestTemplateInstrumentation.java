@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.resttemplate;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -38,7 +38,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 /**
  * Instruments {@link org.springframework.http.client.ClientHttpRequest#execute()}
  */
-public class SpringRestTemplateInstrumentation extends TracerAwareInstrumentation {
+public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

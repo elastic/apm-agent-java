@@ -40,29 +40,46 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ContainerInfoTest extends CustomEnvVariables {
 
     @ParameterizedTest(name = "{0}")
-    @MethodSource("getCommonPatterns")
-    void testCommonPatterns(String testName, String groupLine, @Nullable String containerId, @Nullable String podId) {
-        SystemInfo systemInfo = createSystemInfo().parseContainerId(groupLine);
-        assertThat(systemInfo).isNotNull();
+    @MethodSource("getTestContainerMetadata")
+    void testCommonContainerMetadata(String testName, Map<String,List<String>> files, @Nullable String containerId, @Nullable String podId) {
+
+        SystemInfo systemInfo = createSystemInfo();
+        for (Map.Entry<String, List<String>> fileEntry : files.entrySet()) {
+            String fileName = fileEntry.getKey();
+            List<String> fileContent = fileEntry.getValue();
+
+            switch (fileName) {
+                case "/proc/self/cgroup":
+                    fileContent.forEach(systemInfo::parseCgroupsLine);
+                    break;
+                case "/proc/self/mountinfo":
+                    systemInfo.parseCgroupsV2ContainerId(fileContent);
+                    break;
+                default:
+                    throw new IllegalArgumentException("unknown test file :" + fileName);
+            }
+        }
+
+
         SystemInfo.Container containerInfo = systemInfo.getContainerInfo();
         if (containerId == null) {
             assertThat(containerInfo).isNull();
         } else {
-            assertThat(containerInfo).describedAs("missing container info from '%s'", groupLine).isNotNull();
+            assertThat(containerInfo).describedAs("missing container info from '%s'", null).isNotNull(); // TODO
             assertThat(containerInfo.getId()).isEqualTo(containerId);
         }
         SystemInfo.Kubernetes kubernetesInfo = systemInfo.getKubernetesInfo();
         if (podId == null) {
             assertThat(kubernetesInfo).isNull();
         } else {
-            assertThat(kubernetesInfo).describedAs("missing kubernetes info from '%s'", groupLine).isNotNull();
+            assertThat(kubernetesInfo).describedAs("missing kubernetes info from '%s'", null).isNotNull(); // TODO
             assertThat(kubernetesInfo.getPod()).isNotNull();
             assertThat(kubernetesInfo.getPod().getUid()).isEqualTo(podId);
         }
     }
 
-    static Stream<Arguments> getCommonPatterns() {
-        JsonNode json = TestJsonSpec.getJson("cgroup_parsing.json");
+    static Stream<Arguments> getTestContainerMetadata() {
+        JsonNode json = TestJsonSpec.getJson("container_metadata_discovery.json");
 
         assertThat(json.isObject())
             .describedAs("unexpected JSON spec format")
@@ -72,9 +89,22 @@ public class ContainerInfoTest extends CustomEnvVariables {
         Iterator<Map.Entry<String, JsonNode>> iterator = json.fields();
         while(iterator.hasNext()){
             Map.Entry<String, JsonNode> entry = iterator.next();
+
+            Map<String, List<String>> files = new HashMap<>();
+            Iterator<Map.Entry<String, JsonNode>> filesIterator = entry.getValue().get("files").fields();
+            while (filesIterator.hasNext()) {
+                Map.Entry<String, JsonNode> fileEntry = filesIterator.next();
+                List<String> fileLines = new ArrayList<>();
+                for (int i = 0; i < fileEntry.getValue().size(); i++) {
+                    fileLines.add(fileEntry.getValue().get(i).asText());
+                }
+                files.put(fileEntry.getKey(), fileLines);
+            }
+
+
             args.add(Arguments.of(
                 entry.getKey(),
-                entry.getValue().get("groupLine").asText(),
+                files,
                 entry.getValue().get("containerId").asText(null),
                 entry.getValue().get("podId").asText(null)
             ));
@@ -168,7 +198,7 @@ public class ContainerInfoTest extends CustomEnvVariables {
     void testUbuntuCgroup() {
         String line = "1:name=systemd:/user.slice/user-1000.slice/user@1000.service/apps.slice/apps-org.gnome.Terminal" +
             ".slice/vte-spawn-75bc72bd-6642-4cf5-b62c-0674e11bfc84.scope";
-        assertThat(createSystemInfo().parseContainerId(line).getContainerInfo()).isNull();
+        assertThat(createSystemInfo().parseCgroupsLine(line).getContainerInfo()).isNull();
     }
 
     @Test
@@ -237,7 +267,7 @@ public class ContainerInfoTest extends CustomEnvVariables {
 
     private SystemInfo assertContainerId(String line, String containerId) {
         SystemInfo systemInfo = createSystemInfo();
-        assertThat(systemInfo.parseContainerId(line).getContainerInfo()).isNotNull();
+        assertThat(systemInfo.parseCgroupsLine(line).getContainerInfo()).isNotNull();
         //noinspection ConstantConditions
         assertThat(systemInfo.getContainerInfo().getId()).isEqualTo(containerId);
         return systemInfo;
@@ -245,7 +275,7 @@ public class ContainerInfoTest extends CustomEnvVariables {
 
     private void assertContainerInfoIsNull(String line) {
         SystemInfo systemInfo = createSystemInfo();
-        assertThat(systemInfo.parseContainerId(line).getContainerInfo()).isNull();
+        assertThat(systemInfo.parseCgroupsLine(line).getContainerInfo()).isNull();
     }
 
     private void assertKubernetesInfo(SystemInfo systemInfo, @Nullable String podUid, @Nullable String podName, @Nullable String nodeName,

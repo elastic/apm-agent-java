@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.springwebmvc;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.servlet.Constants;
 import co.elastic.apm.agent.servlet.adapter.ServletRequestAdapter;
 import net.bytebuddy.description.method.MethodDescription;
@@ -33,7 +33,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public abstract class AbstractSpringExceptionHandlerInstrumentation extends TracerAwareInstrumentation {
+public abstract class AbstractSpringExceptionHandlerInstrumentation extends ElasticApmInstrumentation {
 
     public abstract Constants.ServletImpl servletImpl();
 

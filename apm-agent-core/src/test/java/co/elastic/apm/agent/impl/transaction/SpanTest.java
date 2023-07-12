@@ -135,7 +135,7 @@ public class SpanTest {
         assertThat(testSpan.getSpanLinks()).isEmpty();
         Span parent1 = transaction.createSpan();
         Map<String, String> textTraceContextCarrier = new HashMap<>();
-        parent1.propagateTraceContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE);
+        parent1.propagateContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE, null);
         assertThat(testSpan.addSpanLink(
             TraceContext.getFromTraceContextTextHeaders(),
             TextHeaderMapAccessor.INSTANCE,
@@ -146,7 +146,7 @@ public class SpanTest {
         assertThat(testSpan.getSpanLinks()).hasSize(1);
         Span parent2 = transaction.createSpan();
         Map<String, byte[]> binaryTraceContextCarrier = new HashMap<>();
-        parent2.propagateTraceContext(binaryTraceContextCarrier, BinaryHeaderMapAccessor.INSTANCE);
+        parent2.propagateContext(binaryTraceContextCarrier, BinaryHeaderMapAccessor.INSTANCE);
         assertThat(testSpan.addSpanLink(
             TraceContext.getFromTraceContextBinaryHeaders(),
             BinaryHeaderMapAccessor.INSTANCE,
@@ -172,7 +172,7 @@ public class SpanTest {
         assertThat(testSpan.getSpanLinks()).isEmpty();
         Span parent1 = transaction.createSpan();
         Map<String, String> textTraceContextCarrier = new HashMap<>();
-        parent1.propagateTraceContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE);
+        parent1.propagateContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE, null);
         assertThat(testSpan.addSpanLink(
             TraceContext.getFromTraceContextTextHeaders(),
             TextHeaderMapAccessor.INSTANCE,
