@@ -21,6 +21,7 @@ package co.elastic.apm.agent.esrestclient.v8_x;
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.clients.transport.Endpoint;
+import co.elastic.clients.transport.TransportOptions;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -32,6 +33,10 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
+/**
+ * Instruments {@link co.elastic.clients.transport.rest_client.RestClientTransport#prepareLowLevelRequest(Object, Endpoint, TransportOptions)}.
+ */
+@SuppressWarnings("JavadocReference")
 public class RestClientTransportInstrumentation extends ElasticsearchRestClientInstrumentation {
 
     @Override
