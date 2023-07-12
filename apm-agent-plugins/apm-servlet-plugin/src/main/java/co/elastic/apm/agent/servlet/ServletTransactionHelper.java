@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
-import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -32,7 +32,7 @@ import co.elastic.apm.agent.servlet.adapter.ServletRequestAdapter;
 import co.elastic.apm.agent.tracer.TransactionContext;
 import co.elastic.apm.agent.tracer.metadata.Request;
 import co.elastic.apm.agent.tracer.metadata.Response;
-import co.elastic.apm.agent.util.TransactionNameUtils;
+import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
 
 import javax.annotation.Nullable;
 import java.security.Principal;
@@ -212,8 +212,12 @@ public class ServletTransactionHelper {
             }
         }
 
-        if (hasPathInfo || end != start) {
-            path = requestURI.substring(start, end);
+        if (hasPathInfo ||  start < end ) {
+            if (start < end) {
+                path = requestURI.substring(start, end);
+            } else {
+                path = "";
+            }
         } else {
             path = requestURI;
         }

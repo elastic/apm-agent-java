@@ -68,7 +68,7 @@ public class OTelContextStorage implements ContextStorage {
     @Override
     public Context current() {
         ElasticContext<?> current = tracer.currentContext();
-        if (current == null) {
+        if (current.isEmpty()) {
             return null;
         }
 

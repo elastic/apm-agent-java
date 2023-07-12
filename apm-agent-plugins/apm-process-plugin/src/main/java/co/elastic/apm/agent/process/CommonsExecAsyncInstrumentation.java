@@ -18,8 +18,10 @@
  */
 package co.elastic.apm.agent.process;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.concurrent.JavaConcurrent;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
@@ -43,11 +45,13 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Instruments {@code org.apache.commons.exec.DefaultExecutor#createThread(Runnable, String)} and any direct subclass
  * that overrides it.
  */
-public class CommonsExecAsyncInstrumentation extends TracerAwareInstrumentation {
+public class CommonsExecAsyncInstrumentation extends ElasticApmInstrumentation {
 
     private static final String DEFAULT_EXECUTOR_CLASS = "org.apache.commons.exec.DefaultExecutor";
     // only known subclass of default implementation
     private static final String DAEMON_EXECUTOR_CLASS = "org.apache.commons.exec.DaemonExecutor";
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {

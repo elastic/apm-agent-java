@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.jsf;
 
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -60,24 +61,25 @@ public abstract class AbstractJsfLifecycleRenderInstrumentation extends Abstract
         private static final String SPAN_ACTION = "render";
 
         @SuppressWarnings("Duplicates")
+        @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object createRenderSpan() {
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
-            }
-            if (parent instanceof Span<?>) {
-                Span<?> parentSpan = (Span<?>) parent;
-                if (SPAN_SUBTYPE.equals(parentSpan.getSubtype()) && SPAN_ACTION.equals(parentSpan.getAction())) {
+            final ElasticContext<?> activeContext = tracer.currentContext();
+            final AbstractSpan<?> parentSpan = activeContext.getSpan();
+            if (parentSpan instanceof Span<?>) {
+                Span<?> parSpan = (Span<?>) parentSpan;
+                if (SPAN_SUBTYPE.equals(parSpan.getSubtype()) && SPAN_ACTION.equals(parSpan.getAction())) {
                     return null;
                 }
             }
-            Span<?> span = parent.createSpan()
-                .withType(SPAN_TYPE)
-                .withSubtype(SPAN_SUBTYPE)
-                .withAction(SPAN_ACTION)
-                .withName("JSF Render");
-            span.activate();
+            Span<?> span = activeContext.createSpan();
+            if (span != null) {
+                span.withType(SPAN_TYPE)
+                    .withSubtype(SPAN_SUBTYPE)
+                    .withAction(SPAN_ACTION)
+                    .withName("JSF Render")
+                    .activate();
+            }
             return span;
         }
 

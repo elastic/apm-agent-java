@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.sdk.state;
 
 
-import co.elastic.apm.agent.sdk.internal.InternalUtil;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -53,7 +53,7 @@ public class GlobalVariables {
      */
     public static <T> T get(Class<?> adviceClass, String key, T defaultValue) {
         key = adviceClass.getName() + "." + key;
-        if (InternalUtil.getClassLoader(defaultValue.getClass()) != null && !defaultValue.getClass().getName().startsWith("co.elastic.apm.agent")) {
+        if (PrivilegedActionUtils.getClassLoader(defaultValue.getClass()) != null && !defaultValue.getClass().getName().startsWith("co.elastic.apm.agent")) {
             throw new IllegalArgumentException("Registering types specific to an instrumentation plugin would lead to class loader leaks: " + defaultValue);
         }
         T value = (T) registry.get(key);

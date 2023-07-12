@@ -20,7 +20,7 @@ package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import co.elastic.apm.agent.common.util.Version;
-import co.elastic.apm.agent.util.VersionUtils;
+import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
@@ -42,6 +42,11 @@ public class OkHttp3ClientAsyncInstrumentationTest extends AbstractHttpClientIns
         client = new OkHttpClient();
         String versionString = VersionUtils.getVersion(OkHttpClient.class, "com.squareup.okhttp3", "okhttp");
         okhttpVersion = Version.of(Objects.requireNonNullElse(versionString, "4.0.0"));
+    }
+
+    @Override
+    public boolean isAsync() {
+        return true;
     }
 
     @Override

@@ -28,10 +28,10 @@ import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.pooling.Allocator;
 import co.elastic.apm.agent.tracer.pooling.ObjectPool;
-import co.elastic.apm.agent.util.IOUtils;
-import co.elastic.apm.agent.util.LoggerUtils;
+import co.elastic.apm.agent.sdk.internal.util.IOUtils;
+import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
+import co.elastic.apm.agent.tracer.pooling.Allocator;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;
@@ -99,12 +99,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
 
     @Nullable
     private Span<?> createClientSpan(String method, String httpPath, @Nullable HttpEntity httpEntity, @Nullable ElasticsearchEndpointDefinition endpoint) {
-        final AbstractSpan<?> activeSpan = tracer.getActive();
-        if (activeSpan == null) {
-            return null;
-        }
-
-        Span<?> span = activeSpan.createExitSpan();
+        Span<?> span = tracer.currentContext().createExitSpan();
 
         // Don't record nested spans. In 5.x clients the instrumented sync method is calling the instrumented async method
         if (span == null) {

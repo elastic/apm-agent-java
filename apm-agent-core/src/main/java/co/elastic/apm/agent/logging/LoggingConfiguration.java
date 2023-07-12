@@ -19,12 +19,12 @@
 package co.elastic.apm.agent.logging;
 
 import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.configuration.ByteValue;
 import co.elastic.apm.agent.tracer.configuration.ByteValueConverter;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.tracer.configuration.LogEcsReformatting;
 import co.elastic.apm.agent.tracer.configuration.WildcardMatcherValueConverter;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -193,7 +193,8 @@ public class LoggingConfiguration extends ConfigurationOptionProvider implements
         .configurationCategory(LOGGING_CATEGORY)
         .description("A comma-separated list of key-value pairs that will be added as additional fields to all log events.\n " +
             "Takes the format `key=value[,key=value[,...]]`, for example: `key1=value1,key2=value2`.\n " +
-            "Only relevant if <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to any option other than `OFF`.\n")
+            "Only relevant if <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to any option other than `OFF`.\n" +
+            "Additional fields are currently not supported for direct log sending through the agent.\n")
         .dynamic(false)
         .buildWithDefault(Collections.<String, String>emptyMap());
 

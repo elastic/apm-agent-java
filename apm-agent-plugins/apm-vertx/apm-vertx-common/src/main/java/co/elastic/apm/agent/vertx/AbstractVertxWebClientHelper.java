@@ -20,8 +20,11 @@ package co.elastic.apm.agent.vertx;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.ext.web.client.HttpResponse;
@@ -35,6 +38,8 @@ public abstract class AbstractVertxWebClientHelper {
 
     private static final String WEB_CLIENT_SPAN_KEY = AbstractVertxWebClientHelper.class.getName() + ".span";
 
+    private final Tracer tracer = GlobalTracer.get();
+
     static class HeaderSetter implements TextHeaderSetter<HttpClientRequest> {
 
         public static final HeaderSetter INSTANCE = new HeaderSetter();
@@ -45,23 +50,32 @@ public abstract class AbstractVertxWebClientHelper {
         }
     }
 
-    public void startSpan(AbstractSpan<?> parent, HttpContext<?> httpContext, HttpClientRequest httpRequest) {
+    public void startSpan(ElasticContext<?> activeContext, HttpContext<?> httpContext, HttpClientRequest httpRequest) {
         Object existingSpanObj = httpContext.get(WEB_CLIENT_SPAN_KEY);
+
+        AbstractSpan<?> propagateContextOf;
+
         if (existingSpanObj != null) {
             // there is already an active span for this HTTP request,
             // don't create a new span but propagate tracing headers
-            ((Span<?>) existingSpanObj).propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
+            propagateContextOf = (Span<?>) existingSpanObj;
         } else {
             URI requestUri = URI.create(httpRequest.absoluteURI());
-            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, getMethod(httpRequest), requestUri, null);
+            Span<?> span = HttpClientHelper.startHttpClientSpan(activeContext, getMethod(httpRequest), requestUri, null);
 
             if (span != null) {
-                span.propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
+                propagateContextOf = span;
                 span.incrementReferences();
                 httpContext.set(WEB_CLIENT_SPAN_KEY, span);
             } else {
-                parent.propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
+                propagateContextOf = activeContext.getSpan();
             }
+        }
+        propagateContextOf.activate();
+        try {
+            tracer.currentContext().propagateContext(httpRequest, HeaderSetter.INSTANCE, null);
+        } finally {
+            propagateContextOf.deactivate();
         }
     }
 
@@ -69,7 +83,12 @@ public abstract class AbstractVertxWebClientHelper {
         Object existingSpanObj = httpContext.get(WEB_CLIENT_SPAN_KEY);
         if (existingSpanObj != null) {
             Span<?> existingSpan = (Span<?>) existingSpanObj;
-            existingSpan.propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
+            existingSpan.activate();
+            try {
+                tracer.currentContext().propagateContext(httpRequest, HeaderSetter.INSTANCE, null);
+            } finally {
+                existingSpan.deactivate();
+            }
         }
     }
 

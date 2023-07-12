@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.finaglehttpclient;
 
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -36,7 +36,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -50,7 +50,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * If the {@link FinaglePayloadSizeFilterInstrumentation} was not able to determine the service name, we add it here.
  */
 @SuppressWarnings("JavadocReference")
-public class FinagleExceptionSourceFilterInstrumentation extends TracerAwareInstrumentation {
+public class FinagleExceptionSourceFilterInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.cassandra4;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.cassandra.CassandraHelper;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
@@ -32,6 +32,7 @@ import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.api.core.session.Request;
 import com.datastax.oss.driver.api.core.session.Session;
+import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -50,7 +51,10 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class Cassandra4Instrumentation extends TracerAwareInstrumentation {
+/**
+ * Instruments {@link Session#execute(Request, GenericType)}
+ */
+public class Cassandra4Instrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -127,6 +131,7 @@ public class Cassandra4Instrumentation extends TracerAwareInstrumentation {
                 span.end();
             } else if (result instanceof CompletionStage) {
                 ((CompletionStage<?>) result).whenComplete((r, t) -> {
+                    span.withSync(false); // returned type indirectly indicates it's an async execution
                     if (r instanceof AsyncResultSet) {
                         setDestination(span, ((AsyncResultSet) r).getExecutionInfo());
                     }

@@ -52,7 +52,8 @@ public class HttpClientAsyncAdvice {
                     int statusCode = response.statusCode();
                     span.getContext().getHttp().withStatusCode(statusCode);
                 }
-                span.captureException(throwable)
+                span.withSync(false)
+                    .captureException(throwable)
                     .end();
             });
         }

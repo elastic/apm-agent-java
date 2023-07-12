@@ -18,9 +18,11 @@
  */
 package co.elastic.apm.agent.test;
 
+import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 public class JavaExecutable {
 
@@ -39,5 +41,19 @@ public class JavaExecutable {
             throw new IllegalStateException("unable to find java path " + path);
         }
         return path.toAbsolutePath().toString();
+    }
+
+    /**
+     * @return {@literal true} when the current JVM is being debugged (with `-agentlib:...` parameter).
+     */
+    public static boolean isDebugging() {
+        // test if the test code is currently being debugged
+        List<String> jvmArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
+        for (String jvmArg : jvmArgs) {
+            if (jvmArg.contains("-agentlib:jdwp=")) {
+                return true;
+            }
+        }
+        return false;
     }
 }

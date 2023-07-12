@@ -37,6 +37,7 @@ updates:
       - dependency-name: "co.elastic.clients:*"
       - dependency-name: "io.vertx:*"
       - dependency-name: "org.apache.logging.log4j:*"
+      - dependency-name: "org.springframework.boot:*"
     ignore:
       - dependency-name: "net.bytebuddy:byte-buddy-agent"
         # We deliberately want to keep this older version of Byte Buddy for our runtime attach test
@@ -50,6 +51,8 @@ updates:
       # Prevent dependabot from attempting to upgrade vertx from version 3 to 4, but still perform minor & patch updates
       - dependency-name: "io.vertx:*"
         update-types: [ "version-update:semver-major" ]
+      - dependency-name: "org.springframework.boot:*"
+        update-types: [ "version-update:semver-patch" ] # ignore spring patch updates to prevent PR spam
       # Since these AWS dependencies are heavy and are being released very frequently, we ignore in the weekly update and update monthly
       - dependency-name: "com.amazonaws:aws-java-sdk-s3"
       - dependency-name: "com.amazonaws:aws-java-sdk-dynamodb"
@@ -66,3 +69,14 @@ updates:
       - dependency-name: "com.amazonaws:aws-java-sdk-s3"
       - dependency-name: "com.amazonaws:aws-java-sdk-dynamodb"
       - dependency-name: "software.amazon.awssdk:*"
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "@elastic/apm-agent-java"
+    ignore:
+      # We are only interested in major updates
+      - dependency-name: "*"
+        update-types: [ "version-update:semver-minor", "version-update:semver-patch" ]

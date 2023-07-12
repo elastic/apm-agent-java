@@ -18,30 +18,22 @@
  */
 package co.elastic.apm.servlet;
 
-import org.testcontainers.containers.GenericContainer;
-
-import javax.annotation.Nullable;
-import java.util.Objects;
+import co.elastic.apm.agent.test.AgentTestContainer;
+import org.testcontainers.utility.MountableFile;
 
 public abstract class AbstractTomcatIT extends AbstractServletContainerIntegrationTest {
 
     public static final String CATALINA_POLICY_FILE_PATH = "/catalina.policy";
 
-    public AbstractTomcatIT(final String tomcatVersion) {
-        super(new GenericContainer<>("tomcat:" + tomcatVersion),
-            "tomcat-application",
-            "/usr/local/tomcat/webapps",
-            "tomcat");
-    }
-
-    @Override
-    protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("CATALINA_OPTS", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005");
-    }
-
-    @Nullable
-    protected String getServerLogsPath() {
-        return "/usr/local/tomcat/logs/*";
+    public AbstractTomcatIT(String tomcatVersion) {
+        super(AgentTestContainer.appServer("tomcat:" + tomcatVersion)
+                .withContainerName("tomcat")
+                .withDeploymentPath("/usr/local/tomcat/webapps")
+                .withHttpPort(8080)
+                .withLogsPath("/usr/local/tomcat/logs/")
+                .withJvmArgumentsVariable("CATALINA_OPTS"), // using CATALINA_OPTS to configure JVM arguments,
+            "tomcat-application"
+        );
     }
 
     @Override
@@ -49,19 +41,17 @@ public abstract class AbstractTomcatIT extends AbstractServletContainerIntegrati
         return true;
     }
 
-    @Override
-    protected String getJavaagentEnvVariable() {
-        return "CATALINA_OPTS";
-    }
-
-    @Nullable
-    @Override
-    protected String getLocalPolicyFilePath() {
-        return Objects.requireNonNull(getClass().getResource(CATALINA_POLICY_FILE_PATH)).getPath();
+    protected boolean isSecurityManagerEnabled() {
+        return false;
     }
 
     @Override
-    protected void enableSecurityManager(GenericContainer<?> servletContainer, String policyFilePathWithinContainer) {
-        servletContainer.withEnv("JAVA_OPTS", String.format("-Djava.security.manager -Djava.security.debug=failure -Djava.security.policy=%s", policyFilePathWithinContainer));
+    protected void beforeContainerStart(AgentTestContainer.AppServer container) {
+        if (isSecurityManagerEnabled()) {
+            // copy policy and enable security manager
+            container.withSecurityManager(MountableFile.forClasspathResource(CATALINA_POLICY_FILE_PATH));
+        }
+
     }
+
 }

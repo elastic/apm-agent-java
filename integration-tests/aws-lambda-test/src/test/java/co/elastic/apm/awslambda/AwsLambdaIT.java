@@ -80,7 +80,7 @@ public class AwsLambdaIT {
 
         String image = createLambdaImage();
 
-        lambdaContainer = new AgentTestContainer.Generic(image)
+        lambdaContainer = AgentTestContainer.generic(image)
             .withRemoteDebug()
             .withJvmArgumentsVariable("JAVA_TOOL_OPTIONS")
             .withEnv("AWS_LAMBDA_FUNCTION_NAME", LAMBDA_FUNCTION_NAME)

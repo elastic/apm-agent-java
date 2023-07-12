@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

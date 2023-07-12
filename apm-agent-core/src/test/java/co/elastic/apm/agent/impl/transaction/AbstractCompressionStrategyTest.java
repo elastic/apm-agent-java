@@ -21,10 +21,10 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
-import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -195,9 +195,9 @@ abstract class AbstractCompressionStrategyTest {
         runInTransactionScope(t -> {
             startExitSpan(t).end();
             Span span = startExitSpan(t);
-            span.propagateTraceContext(new HashMap<String, String>(), (h, v, c) -> {
+            span.propagateContext(new HashMap<String, String>(), (h, v, c) -> {
                 c.put(h, v);
-            });
+            }, null);
             span.end();
         });
 
@@ -217,9 +217,9 @@ abstract class AbstractCompressionStrategyTest {
             startExitSpan(t).end();
             startExitSpan(t).end();
             Span span = startExitSpan(t);
-            span.propagateTraceContext(new HashMap<String, String>(), (h, v, c) -> {
+            span.propagateContext(new HashMap<String, String>(), (h, v, c) -> {
                 c.put(h, v);
-            });
+            }, null);
             span.end();
         });
 

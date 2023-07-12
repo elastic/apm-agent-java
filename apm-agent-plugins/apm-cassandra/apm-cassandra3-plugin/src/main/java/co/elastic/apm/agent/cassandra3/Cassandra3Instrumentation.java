@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.cassandra3;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.cassandra.CassandraHelper;
-import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Host;
@@ -42,16 +42,9 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
-import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.returns;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
+import static net.bytebuddy.matcher.ElementMatchers.*;
 
-public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
-
-    @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("com.datastax.driver.core.SessionManager");
-    }
+public abstract class Cassandra3Instrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
@@ -59,27 +52,68 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
         return CustomElementMatchers.classLoaderCanLoadClass("com.datastax.driver.core.BoundStatement");
     }
 
-    /**
-     * {@link com.datastax.driver.core.SessionManager#executeAsync(Statement)}
-     */
-    @SuppressWarnings("JavadocReference")
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("executeAsync")
-            .and(returns(named("com.datastax.driver.core.ResultSetFuture")))
-            .and(takesArgument(0, named("com.datastax.driver.core.Statement")));
-    }
-
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("cassandra");
     }
 
-    @Override
-    public String getAdviceClassName() {
-        return "co.elastic.apm.agent.cassandra3.Cassandra3Instrumentation$Cassandra3Advice";
+    /**
+     * Instruments {@code com.datastax.driver.core.SessionManager#executeAsync(Statement)}
+     */
+    public static class Async extends Cassandra3Instrumentation {
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return named("com.datastax.driver.core.SessionManager");
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("executeAsync")
+                .and(returns(named("com.datastax.driver.core.ResultSetFuture")))
+                .and(takesArguments(1))
+                .and(takesArgument(0, named("com.datastax.driver.core.Statement")));
+        }
+
+        @Override
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.cassandra3.Cassandra3Instrumentation$Cassandra3Advice";
+        }
     }
 
+    /**
+     * Instrument {@code AbstractSession#execute(Statement)}
+     */
+    public static class Sync extends Cassandra3Instrumentation {
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return named("com.datastax.driver.core.AbstractSession");
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("execute")
+                .and(returns(named("com.datastax.driver.core.ResultSet")))
+                .and(takesArguments(1))
+                .and(takesArgument(0, named("com.datastax.driver.core.Statement")));
+        }
+
+        public static class AdviceClass {
+
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static void onEnter() {
+                CassandraHelper.inSyncExecute(true);
+            }
+
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onExit(@Advice.Thrown @Nullable Throwable thrown, @Advice.Return @Nullable Object returnValue) {
+                CassandraHelper.inSyncExecute(false);
+            }
+        }
+    }
+
+    @SuppressWarnings("unused")
     public static class Cassandra3Advice {
 
         private static final CassandraHelper cassandraHelper = new CassandraHelper(GlobalTracer.get());
@@ -97,26 +131,21 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
             return cassandraHelper.startCassandraSpan(getQuery(statement), statement instanceof BoundStatement, ks);
         }
 
-        @Nullable
-        private static String getQuery(Statement statement) {
-            if (statement instanceof SimpleStatement) {
-                return ((SimpleStatement) statement).getQueryString();
-            } else if (statement instanceof BoundStatement) {
-                return ((BoundStatement) statement).preparedStatement().getQueryString();
-            }
-            return null;
-        }
-
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
                                   @Advice.Return ResultSetFuture result,
-                                  @Nullable @Advice.Enter Object spanObj) {
+                                  @Advice.Enter @Nullable Object spanObj) {
+
             if (!(spanObj instanceof Span<?>)) {
                 return;
             }
             final Span<?> span = (Span<?>) spanObj;
             span.captureException(thrown).deactivate();
-            Futures.addCallback(result, new FutureCallback<ResultSet>() {
+
+            // synchronous or asynchronous depends on the calling method
+            span.withSync(cassandraHelper.isSyncExecute());
+
+            Futures.addCallback(((ResultSetFuture) result), new FutureCallback<ResultSet>() {
                 @Override
                 public void onSuccess(@Nullable ResultSet result) {
                     if (result != null) {
@@ -133,6 +162,17 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
                     span.captureException(t).end();
                 }
             });
+        }
+
+
+        @Nullable
+        private static String getQuery(Statement statement) {
+            if (statement instanceof SimpleStatement) {
+                return ((SimpleStatement) statement).getQueryString();
+            } else if (statement instanceof BoundStatement) {
+                return ((BoundStatement) statement).preparedStatement().getQueryString();
+            }
+            return null;
         }
     }
 

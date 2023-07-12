@@ -20,7 +20,6 @@ package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
@@ -100,7 +99,7 @@ class ConfigInstrumentationTest {
         return INVALID_TRANSACTION_MAX_SPANS;
     }
 
-    public static class MaxTransInstrumentation extends TracerAwareInstrumentation {
+    public static class MaxTransInstrumentation extends ElasticApmInstrumentation {
         public static class AdviceClass {
             @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(inline = false)

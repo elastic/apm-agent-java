@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.38.1-SNAPSHOT</version>
+    <version>1.39.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -118,7 +118,6 @@
         <version.jackson>2.14.2</version.jackson>
         <version.junit>5.9.1</version.junit>
         <version.junit.vintage>4.13.2</version.junit.vintage>
-        <version.logback>1.2.3</version.logback>
         <version.okhttp>4.9.1</version.okhttp>
         <!-- this is the last version of slf4j that is compatible with Java 7-->
         <version.slf4j>1.7.36</version.slf4j>
@@ -128,11 +127,10 @@
         <version.log4j>2.12.4</version.log4j>
         <version.ecs.logging>1.5.0</version.ecs.logging>
         <version.spring>5.0.15.RELEASE</version.spring>
-        <version.spring-boot>2.2.2.RELEASE</version.spring-boot>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.json-schema-validator>1.0.83</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.14.4</version.byte-buddy>
+        <version.byte-buddy>1.14.5</version.byte-buddy>
         <version.asm>9.5</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 

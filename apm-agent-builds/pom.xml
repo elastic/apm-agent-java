@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.38.1-SNAPSHOT</version>
+        <version>1.39.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -289,12 +289,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-quartz-1-plugin</artifactId>
+            <artifactId>apm-quartz-plugin-1</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-quartz-2-plugin</artifactId>
+            <artifactId>apm-quartz-plugin-2</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

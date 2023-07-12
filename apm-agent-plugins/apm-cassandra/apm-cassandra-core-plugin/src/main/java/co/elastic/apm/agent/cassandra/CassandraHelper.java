@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.cassandra;
 
-import co.elastic.apm.agent.db.signature.SignatureParser;
+import co.elastic.apm.agent.sdk.internal.db.signature.SignatureParser;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -34,13 +34,19 @@ public class CassandraHelper {
         this.tracer = tracer;
     }
 
+    private static final ThreadLocal<Boolean> isSync = new ThreadLocal<Boolean>();
+
+    public static void inSyncExecute(boolean sync) {
+        isSync.set(sync);
+    }
+
+    public static boolean isSyncExecute() {
+        return isSync.get().booleanValue();
+    }
+
     @Nullable
     public Span<?> startCassandraSpan(@Nullable String query, boolean preparedStatement, @Nullable String keyspace) {
-        AbstractSpan<?> active = tracer.getActive();
-        if (active == null) {
-            return null;
-        }
-        Span<?> span = active.createExitSpan();
+        Span<?> span = tracer.currentContext().createExitSpan();
         if (span == null) {
             return null;
         }

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
-import co.elastic.apm.agent.collections.LongList;
+import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.CloudOrigin;
 import co.elastic.apm.agent.impl.context.Db;
@@ -64,9 +64,9 @@ import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import co.elastic.apm.agent.util.HexUtils;
-import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
@@ -134,14 +134,20 @@ public class DslJsonSerializer {
             serializedActivationMethod = supportsActivationMethod;
 
             JsonWriter metadataJW = new DslJson<>(new DslJson.Settings<>()).newWriter(4096);
-            boolean supportsConfiguredAndDetectedHostname = apmServerClient.supportsConfiguredAndDetectedHostname();
 
-            serializeMetadata(meta, metadataJW, supportsConfiguredAndDetectedHostname, supportsActivationMethod);
+            serializeMetadata(meta, metadataJW,
+                apmServerClient.supportsConfiguredAndDetectedHostname(),
+                supportsActivationMethod);
+
             serializedMetaData = metadataJW.toByteArray();
         }
     }
 
-    static void serializeMetadata(MetaData metaData, JsonWriter metadataJW, boolean supportsConfiguredAndDetectedHostname, boolean supportsAgentActivationMethod) {
+    static void serializeMetadata(MetaData metaData,
+                                  JsonWriter metadataJW,
+                                  boolean supportsConfiguredAndDetectedHostname,
+                                  boolean supportsAgentActivationMethod) {
+
         StringBuilder metadataReplaceBuilder = new StringBuilder();
         metadataJW.writeByte(JsonWriter.OBJECT_START);
         serializeService(metaData.getService(), metadataReplaceBuilder, metadataJW, supportsAgentActivationMethod);
@@ -327,8 +333,11 @@ public class DslJsonSerializer {
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    private static void serializeSystem(final SystemInfo system, final StringBuilder replaceBuilder, final JsonWriter jw,
+    private static void serializeSystem(SystemInfo system,
+                                        StringBuilder replaceBuilder,
+                                        JsonWriter jw,
                                         boolean supportsConfiguredAndDetectedHostname) {
+
         writeFieldName("system", jw);
         jw.writeByte(JsonWriter.OBJECT_START);
         serializeContainerInfo(system.getContainerInfo(), replaceBuilder, jw);
@@ -1033,7 +1042,8 @@ public class DslJsonSerializer {
             writeField("name", span.getNameForSerialization());
             writeTimestamp(span.getTimestamp());
             if (!span.isSync()) {
-                writeField("sync", span.isSync());
+                // in java default is blocking, thus we only report when it's async (false)
+                writeField("sync", false);
             }
             writeField("outcome", span.getOutcome().toString());
             serializeTraceContext(traceContext, true);

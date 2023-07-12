@@ -20,7 +20,7 @@ package co.elastic.apm.agent.jdbc;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
-import co.elastic.apm.agent.db.signature.SignatureParser;
+import co.elastic.apm.agent.sdk.internal.db.signature.SignatureParser;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.tracer.Outcome;
@@ -450,9 +450,9 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
             .isEqualTo(expectedAffectedRows);
 
         Destination destination = span.getContext().getDestination();
-        assertThat(destination.getAddress().toString()).isIn("localhost", "127.0.0.1");
+        assertThat(destination).hasLocalAddress();
         if (expectedDbVendor.equals("h2")) {
-            assertThat(destination.getPort()).isEqualTo(-1);
+            assertThat(destination).hasNoPort();
         } else {
             assertThat(destination.getPort()).isGreaterThan(0);
         }

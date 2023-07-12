@@ -18,17 +18,18 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -62,8 +63,8 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
         @SuppressWarnings("unused")
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void pollStart() {
-
-            final AbstractSpan<?> activeSpan = tracer.getActive();
+            final ElasticContext<?> activeContext = tracer.currentContext();
+            final AbstractSpan<?> activeSpan = activeContext.getSpan();
             if (activeSpan == null) {
                 return;
             }
@@ -76,7 +77,7 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
                 }
             }
 
-            Span<?> span = activeSpan.createExitSpan();
+            Span<?> span = activeContext.createExitSpan();
             if (span == null) {
                 return;
             }

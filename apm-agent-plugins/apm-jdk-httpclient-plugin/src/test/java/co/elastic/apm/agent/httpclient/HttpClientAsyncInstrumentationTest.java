@@ -34,6 +34,11 @@ public class HttpClientAsyncInstrumentationTest extends AbstractHttpClientInstru
     }
 
     @Override
+    public boolean isAsync() {
+        return true;
+    }
+
+    @Override
     protected void performGet(String path) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(path))

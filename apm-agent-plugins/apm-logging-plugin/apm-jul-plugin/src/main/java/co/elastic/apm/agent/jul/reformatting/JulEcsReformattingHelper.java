@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.jul.reformatting;
 
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
 import java.io.File;

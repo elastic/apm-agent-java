@@ -59,18 +59,18 @@ public class SystemInfoTest extends CustomEnvVariables {
             // when running on Windows the actual computer name will be the netbios name, thus won't match exactly
             // the entry in the map. It's fine here for testing as it just proves we get the expected value set in map
             customEnvVariables.put("COMPUTERNAME", "Windows_hostname");
-            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(true)).isEqualTo("Windows_hostname"));
+            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(true)).isEqualTo("windows_hostname"));
         } else {
             customEnvVariables.put("HOST", "macOS_hostname");
-            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(false)).isEqualTo("macOS_hostname"));
+            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(false)).isEqualTo("macos_hostname"));
             customEnvVariables.put("HOSTNAME", "Linux_hostname");
-            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(false)).isEqualTo("Linux_hostname"));
+            runWithCustomEnvVariables(customEnvVariables, () -> assertThat(SystemInfo.discoverHostnameThroughEnv(false)).isEqualTo("linux_hostname"));
         }
     }
 
     @Test
     void testHostnameDiscoveryFallbackThroughInetAddress() throws UnknownHostException {
-        String expectedHostname = SystemInfo.removeDomain(InetAddress.getLocalHost().getHostName());
+        String expectedHostname = InetAddress.getLocalHost().getHostName();
 
         Map<String, String> customEnvVariables = new HashMap<>();
         // none of those env variables should be available to trigger the fallback on all platforms
@@ -81,25 +81,19 @@ public class SystemInfoTest extends CustomEnvVariables {
         runWithCustomEnvVariables(customEnvVariables, () -> {
 
             // sanity check for test instrumentation to ensure those are not set
-            checkSystemPropertiesNotSet("HOST","HOSTNAME","COMPUTERNAME");
+            checkSystemPropertiesNotSet("HOST", "HOSTNAME", "COMPUTERNAME");
 
             assertThat(SystemInfo.fallbackHostnameDiscovery(isWindows))
                 .isEqualTo(expectedHostname);
         });
     }
 
-    private static void checkSystemPropertiesNotSet(String... keys){
+    private static void checkSystemPropertiesNotSet(String... keys) {
         Map<String, String> map = System.getenv();
         for (String key : keys) {
             assertThat(System.getenv(key)).isNull();
             assertThat(map.get(key)).isNull();
         }
-    }
-
-    @Test
-    void testDomainRemoval() {
-        assertThat(SystemInfo.removeDomain("hostname")).isEqualTo("hostname");
-        assertThat(SystemInfo.removeDomain("hostname.and.domain")).isEqualTo("hostname");
     }
 
     @Test

@@ -19,12 +19,11 @@
 package co.elastic.apm.agent.java_ldap;
 
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 import com.sun.jndi.ldap.Connection;
 import com.sun.jndi.ldap.LdapResult;
-import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
@@ -36,12 +35,8 @@ public class LdapClientAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnter(@Advice.Origin("#m") String methodName, @Advice.FieldValue(value = "conn", typing = Assigner.Typing.DYNAMIC) Connection connection) {
-        AbstractSpan<?> parent = tracer.getActive();
-        if (parent == null) {
-            return null;
-        }
 
-        Span<?> span = parent.createExitSpan();
+        Span<?> span = tracer.currentContext().createExitSpan();
         if (span == null) {
             return null;
         }

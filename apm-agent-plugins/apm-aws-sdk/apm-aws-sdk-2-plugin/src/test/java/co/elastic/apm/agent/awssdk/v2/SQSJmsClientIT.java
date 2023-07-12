@@ -54,8 +54,8 @@ import javax.jms.TextMessage;
 import java.util.Collections;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 public class SQSJmsClientIT extends AbstractAwsClientIT {
     AmazonSQSMessagingClientWrapper client;
@@ -152,7 +152,7 @@ public class SQSJmsClientIT extends AbstractAwsClientIT {
         Span jmsReceiveSpan = reporter.getSpanByName("JMS RECEIVE from queue " + SQS_QUEUE_NAME);
         assertThat(reporter.getSpanByName("SQS DELETE from " + SQS_QUEUE_NAME).isChildOf(jmsReceiveSpan)).isTrue();
         assertThat(jmsReceiveSpan.isChildOf(receiveTransaction)).isTrue();
-        assertThat(reporter.getSpans()).allMatch(AbstractSpan::isSync);
+        assertThat(reporter.getSpans()).allSatisfy(span -> assertThat(span).isSync());
     }
 
     @Test
@@ -192,7 +192,7 @@ public class SQSJmsClientIT extends AbstractAwsClientIT {
         assertThat(reporter.getSpanByName("SQS GetQueueUrl " + SQS_QUEUE_NAME).isChildOf(sendTransaction)).isTrue();
         assertThat(reporter.getSpanByName("JMS SEND to queue " + SQS_QUEUE_NAME).isChildOf(sendTransaction)).isTrue();
         reporter.getSpanByName("SQS DELETE from " + SQS_QUEUE_NAME);
-        assertThat(reporter.getSpans()).allMatch(AbstractSpan::isSync);
+        assertThat(reporter.getSpans()).allSatisfy(span -> assertThat(span).isSync());
     }
 
     @Test
@@ -231,7 +231,7 @@ public class SQSJmsClientIT extends AbstractAwsClientIT {
         assertThat(reporter.getSpanByName("on-message-child").isChildOf(receivingTransaction)).isTrue();
         reporter.getSpanByName("JMS SEND to queue " + SQS_QUEUE_NAME);
         reporter.getSpanByName("SQS GetQueueUrl " + SQS_QUEUE_NAME);
-        assertThat(reporter.getSpans()).allMatch(AbstractSpan::isSync);
+        assertThat(reporter.getSpans()).allSatisfy(span -> assertThat(span).isSync());
     }
 
     @Test
@@ -268,7 +268,7 @@ public class SQSJmsClientIT extends AbstractAwsClientIT {
         assertThat(reporter.getNumReportedSpans()).isEqualTo(2);
         assertThat(reporter.getSpanByName("on-message-child").isChildOf(receivingTransaction)).isTrue();
         reporter.getSpanByName("SQS SEND to " + SQS_QUEUE_NAME);
-        assertThat(reporter.getSpans()).allMatch(AbstractSpan::isSync);
+        assertThat(reporter.getSpans()).allSatisfy(span -> assertThat(span).isSync());
     }
 
     @Override

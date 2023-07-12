@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.awslambda;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -31,7 +31,7 @@ import java.util.Collections;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 
-public abstract class AbstractAwsLambdaHandlerInstrumentation extends TracerAwareInstrumentation {
+public abstract class AbstractAwsLambdaHandlerInstrumentation extends ElasticApmInstrumentation {
 
     protected final ServerlessConfiguration serverlessConfiguration;
 

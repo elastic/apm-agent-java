@@ -97,7 +97,7 @@ public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, A
 
     public SELF hasOtelAttribute(String key, Object expectedValue) {
         isNotNull();
-        checkObject("Expected span to have value '%s' for attribute '" + key + "' but was '%s'  ",expectedValue, actual.getOtelAttributes().get(key));
+        checkObject("Expected span to have value '%s' for attribute '" + key + "' but was '%s'  ", expectedValue, actual.getOtelAttributes().get(key));
         return thiz();
     }
 
@@ -106,6 +106,21 @@ public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, A
             .anyMatch(ctx -> Objects.equals(ctx.getParentId(), expectedLink.getId())
                 && Objects.equals(ctx.getTraceId(), expectedLink.getTraceId())
             );
+    }
+
+    public SELF isSync() {
+        return isSync(true);
+    }
+
+    public SELF isAsync() {
+        return isSync(false);
+    }
+
+    public SELF isSync(boolean expectedSync) {
+        String expectedString = expectedSync ? "sync" : "async";
+        String actualString = actual.isSync() ? "sync" : "async";
+        checkTrue(String.format("Expected %s span, got %s span: %s", expectedString, actualString, actual), expectedSync == actual.isSync());
+        return thiz();
     }
 
     @SuppressWarnings("unchecked")

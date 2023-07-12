@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.ecs_logging;
 
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.loginstr.AbstractLogIntegrationInstrumentation;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isInternalPluginClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public abstract class EcsLoggingInstrumentation extends AbstractLogIntegrationInstrumentation {
@@ -35,6 +35,6 @@ public abstract class EcsLoggingInstrumentation extends AbstractLogIntegrationIn
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         // ECS formatter that is loaded within the agent should not be instrumented
-        return not(CustomElementMatchers.isInternalPluginClassLoader());
+        return not(isInternalPluginClassLoader());
     }
 }
