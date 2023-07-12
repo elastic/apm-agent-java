@@ -123,14 +123,18 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         // Create an Index
         doPerformRequest("PUT", "/" + SECOND_INDEX);
 
-        validateSpanContentAfterIndexCreateRequest(false);
+        validateSpan()
+            .method("PUT").pathName("/%s", SECOND_INDEX)
+            .check();
 
         // Delete the index
         reporter.reset();
 
         doPerformRequest("DELETE", "/" + SECOND_INDEX);
 
-        validateSpanContentAfterIndexDeleteRequest(false);
+        validateSpan()
+            .method("DELETE").pathName("/%s", SECOND_INDEX)
+            .check();
 
         assertThat(reporter.getFirstSpan().getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
@@ -146,10 +150,10 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         ).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE));
         assertThat(ir.status().getStatus()).isEqualTo(201);
 
-
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 201, "PUT");
+        validateSpan()
+            .method("PUT").pathName("/%s/%s/%s", INDEX, DOC_TYPE, DOC_ID)
+            .statusCode(201)
+            .check();
 
         // Search the index
         reporter.reset();
@@ -164,12 +168,10 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         assertThat(sr.getHits().totalHits).isEqualTo(1L);
         assertThat(sr.getHits().getAt(0).getSourceAsMap().get(FOO)).isEqualTo(BAR);
 
-
-        spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        Span searchSpan = spans.get(0);
-        validateSpanContent(searchSpan, String.format("Elasticsearch: GET /%s/_search", INDEX), 200, "GET");
-        validateDbContextContent(searchSpan, "{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
+        validateSpan()
+            .method("GET").pathName("/%s/_search", INDEX)
+            .expectStatement("{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}")
+            .check();
 
         // Now update and re-search
         reporter.reset();
@@ -183,7 +185,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         assertThat(sr.getHits().getAt(0).getSourceAsMap().get(FOO)).isEqualTo(BAZ);
 
 
-        spans = reporter.getSpans();
+        List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(2);
         boolean updateSpanFound = false;
         for (Span span : spans) {
@@ -197,7 +199,10 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         // Finally - delete the document
         reporter.reset();
         DeleteResponse dr = doDelete(new DeleteRequest(INDEX, DOC_TYPE, DOC_ID));
-        validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
+
+        validateSpan()
+            .method("DELETE").pathName("/%s/%s/%s", INDEX, DOC_TYPE, DOC_ID)
+            .check();
     }
 
     @Test
@@ -211,7 +216,10 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
             ))
             .add(new DeleteRequest(INDEX, DOC_TYPE, "2")));
 
-        validateSpanContentAfterBulkRequest();
+        validateSpan()
+            .method("POST")
+            .pathName("/_bulk")
+            .check();
     }
 
     private <Req, Res> Res invokeAsync(Req request, ClientMethod<Req, Res> method) throws InterruptedException, ExecutionException {

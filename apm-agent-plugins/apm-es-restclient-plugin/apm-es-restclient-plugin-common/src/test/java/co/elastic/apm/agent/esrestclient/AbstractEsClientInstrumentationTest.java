@@ -26,6 +26,9 @@ import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -34,7 +37,7 @@ import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -56,20 +59,8 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     protected static final String FOO = "foo";
     protected static final String BAR = "bar";
     protected static final String BAZ = "baz";
-    protected static final String SEARCH_QUERY_PATH_SUFFIX = "_search";
-    protected static final String MSEARCH_QUERY_PATH_SUFFIX = "_msearch";
-    protected static final String COUNT_QUERY_PATH_SUFFIX = "_count";
 
     protected boolean async;
-
-    private boolean checkHttpUrl = true;
-
-    /**
-     * Disables HTTP URL check for the current test method
-     */
-    public void disableHttpUrlCheck() {
-        checkHttpUrl = false;
-    }
 
     @Parameterized.Parameters(name = "Async={0}")
     public static Iterable<Object[]> data() {
@@ -91,12 +82,6 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     @Before
     public void startTransaction() {
-        // While JUnit does not recycle test class instances between method invocations by default
-        // this test should not be required, but it allows to ensure proper correctness even if that changes
-        assertThat(checkHttpUrl)
-            .describedAs("checking HTTP URLs should be enabled by default")
-            .isTrue();
-
         startTestRootTransaction("ES Transaction");
     }
 
@@ -115,105 +100,185 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(errorCapture.getException()).isNotNull();
     }
 
-    protected void validateSpanContentWithoutContext(Span span, String expectedName) {
-        assertThat(span)
-            .hasType(SPAN_TYPE)
-            .hasSubType(ELASTICSEARCH)
-            .hasAction(SPAN_ACTION)
-            .hasName(expectedName);
-
-        assertThat(span.getContext().getDb().getType()).isEqualTo(ELASTICSEARCH);
-        if (!expectedName.contains(SEARCH_QUERY_PATH_SUFFIX) && !expectedName.contains(MSEARCH_QUERY_PATH_SUFFIX) && !expectedName.contains(COUNT_QUERY_PATH_SUFFIX)) {
-            assertThat((CharSequence) (span.getContext().getDb().getStatementBuffer())).isNull();
-        }
+    protected EsSpanValidationBuilder validateSpan(Span spanToValidate) {
+        return new EsSpanValidationBuilder(spanToValidate);
     }
 
-    protected void validateDbContextContent(Span span, String statement) {
-        validateDbContextContent(span, Collections.singletonList(statement));
-    }
-
-    protected void validateDbContextContent(Span span, List<String> possibleContents) {
-        Db db = span.getContext().getDb();
-        assertThat(db.getType()).isEqualTo(ELASTICSEARCH);
-        assertThat((CharSequence) db.getStatementBuffer()).isNotNull();
-
-        assertThat(db.getStatementBuffer().toString()).isIn(possibleContents);
-    }
-
-
-    protected void validateSpanContent(Span span, String expectedName, int statusCode, String method, Map<String, String> expectedPathParts) {
-        validateSpanContent(span, expectedName, statusCode, method);
-        expectedPathParts.forEach((partName, value) -> {
-            assertThat(span.getOtelAttributes()).containsEntry("db.elasticsearch.path_parts." + partName, value);
-        });
-        List<String> spanPartAttributes = span.getOtelAttributes().keySet().stream()
-            .filter(name -> name.startsWith("db.elasticsearch.path_parts."))
-            .map(name -> name.substring("db.elasticsearch.path_parts.".length()))
-            .collect(Collectors.toList());
-        assertThat(spanPartAttributes).containsExactlyElementsOf(expectedPathParts.keySet());
-    }
-
-    protected void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
-        validateSpanContentWithoutContext(span, expectedName);
-        validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
-        validateDestinationContextContent(span.getContext().getDestination());
-
-        assertThat(span.getContext().getServiceTarget())
-            .hasType(ELASTICSEARCH)
-            .hasNoName() // we can't validate cluster name here as there is no simple way to inject that without reverse-proxy
-            .hasDestinationResource(ELASTICSEARCH);
-    }
-
-    private void validateDestinationContextContent(Destination destination) {
-        assertThat(destination).isNotNull();
-        if (reporter.checkDestinationAddress()) {
-            assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());
-            assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
-        }
-    }
-
-    private void validateHttpContextContent(Http http, int statusCode, String method) {
-        assertThat(http).isNotNull();
-        assertThat(http.getMethod()).isEqualTo(method);
-        assertThat(http.getStatusCode()).isEqualTo(statusCode);
-        if (checkHttpUrl) {
-            assertThat(http.getUrl().toString()).isEqualTo("http://" + container.getHttpHostAddress());
-        }
-    }
-
-    protected void validateSpanContentAfterIndexCreateRequest() {
-        validateSpanContentAfterIndexCreateRequest(true);
-    }
-
-    protected void validateSpanContentAfterIndexCreateRequest(boolean usePathPattern) {
+    protected EsSpanValidationBuilder validateSpan() {
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
-        if(usePathPattern){
-            validateSpanContent(spans.get(0), "Elasticsearch: indices.create", 200, "PUT", Map.of("index", SECOND_INDEX));
-        } else {
-            validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s", SECOND_INDEX), 200, "PUT" );
+        return validateSpan(spans.get(0));
+    }
+
+    protected static class EsSpanValidationBuilder {
+
+        private static final ObjectMapper jackson = new ObjectMapper();
+
+        private final Span span;
+
+        private boolean statementExpectedNonNull = false;
+
+        @Nullable
+        private JsonNode expectedStatement;
+
+        @Nullable
+        private Map<String, String> expectedPathParts;
+
+        private int expectedStatusCode = 200;
+
+        @Nullable
+        private String expectedHttpMethod;
+
+        @Nullable
+        private String expectedNameEndpoint;
+
+        @Nullable
+        private String expectedNamePath;
+
+        @Nullable
+        private String expectedHttpUrl = "http://" + container.getHttpHostAddress();
+
+        public EsSpanValidationBuilder(Span spanToValidate) {
+            this.span = spanToValidate;
         }
-    }
 
-    protected void validateSpanContentAfterIndexDeleteRequest() {
-        validateSpanContentAfterIndexDeleteRequest(true);
-    }
-
-    protected void validateSpanContentAfterIndexDeleteRequest(boolean usePathPattern) {
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        if(usePathPattern){
-            validateSpanContent(spans.get(0), "Elasticsearch: indices.delete", 200, "DELETE", Map.of("index", SECOND_INDEX));
-        } else {
-            validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s", SECOND_INDEX), 200, "DELETE");
+        public EsSpanValidationBuilder expectNoStatement() {
+            statementExpectedNonNull = false;
+            expectedStatement = null;
+            return this;
         }
 
-    }
+        public EsSpanValidationBuilder expectAnyStatement() {
+            statementExpectedNonNull = true;
+            expectedStatement = null;
+            return this;
+        }
 
-    protected void validateSpanContentAfterBulkRequest() {
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        assertThat(spans.get(0).getNameAsString()).isEqualTo("Elasticsearch: POST /_bulk");
+        public EsSpanValidationBuilder expectStatement(String statement) {
+            try {
+                this.expectedStatement = jackson.readTree(statement);
+                statementExpectedNonNull = true;
+            } catch (JsonProcessingException e) {
+                throw new IllegalArgumentException(e);
+            }
+            return this;
+        }
+
+        public EsSpanValidationBuilder expectPathPart(String key, String value) {
+            if (expectedPathParts == null) {
+                expectedPathParts = new HashMap<>();
+            }
+            expectedPathParts.put(key, value);
+            return this;
+        }
+
+        public EsSpanValidationBuilder expectNoPathParts() {
+            expectedPathParts = new HashMap<>();
+            return this;
+        }
+
+        public EsSpanValidationBuilder statusCode(int expectedStatusCode) {
+            this.expectedStatusCode = expectedStatusCode;
+            return this;
+        }
+
+        public EsSpanValidationBuilder method(String httpMethod) {
+            this.expectedHttpMethod = httpMethod;
+            return this;
+        }
+
+        public EsSpanValidationBuilder disableHttpUrlCheck() {
+            expectedHttpUrl = null;
+            return this;
+        }
+
+        public EsSpanValidationBuilder endpointName(String endpoint) {
+            this.expectedNameEndpoint = endpoint;
+            this.expectedNamePath = null;
+            return this;
+        }
+
+        public EsSpanValidationBuilder pathName(String pathFormat, Object... args) {
+            this.expectedNameEndpoint = null;
+            this.expectedNamePath = String.format(pathFormat, args);
+            return this;
+        }
+
+        public void check() {
+            assertThat(span)
+                .hasType(SPAN_TYPE)
+                .hasSubType(ELASTICSEARCH)
+                .hasAction(SPAN_ACTION);
+
+            if (expectedNameEndpoint != null) {
+                assertThat(span.getOtelAttributes()).containsEntry("db.operation", expectedNameEndpoint);
+                assertThat(span).hasName("Elasticsearch: " + expectedNameEndpoint);
+            } else if (expectedNamePath != null) {
+                assertThat(span).hasName("Elasticsearch: " + expectedHttpMethod + " " + expectedNamePath);
+            }
+
+            checkHttpContext();
+            checkDbContext();
+            checkPathPartAttributes();
+            checkDestinationContext();
+        }
+
+
+        private void checkHttpContext() {
+            Http http = span.getContext().getHttp();
+            assertThat(http).isNotNull();
+            if (expectedHttpMethod != null) {
+                assertThat(http.getMethod()).isEqualTo(expectedHttpMethod);
+            }
+            assertThat(http.getStatusCode()).isEqualTo(expectedStatusCode);
+            if (expectedHttpUrl != null) {
+                assertThat(http.getUrl().toString()).isEqualTo(expectedHttpUrl);
+            }
+        }
+
+        private void checkDbContext() {
+            Db db = span.getContext().getDb();
+            assertThat(db.getType()).isEqualTo(ELASTICSEARCH);
+            CharSequence statement = db.getStatementBuffer();
+            if (statementExpectedNonNull) {
+                assertThat(statement).isNotNull();
+                if (expectedStatement != null) {
+                    //Comparing JsonNodes ensures that the child-order within JSON objects does not matter
+                    JsonNode parsedStatement;
+                    try {
+                        parsedStatement = jackson.readTree(statement.toString());
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                    assertThat(parsedStatement).isEqualTo(expectedStatement);
+                }
+            } else {
+                assertThat(statement).isNull();
+            }
+        }
+
+        private void checkPathPartAttributes() {
+            if (expectedPathParts != null) {
+                expectedPathParts.forEach((partName, value) -> {
+                    assertThat(span.getOtelAttributes()).containsEntry("db.elasticsearch.path_parts." + partName, value);
+                });
+                List<String> spanPartAttributes = span.getOtelAttributes().keySet().stream()
+                    .filter(name -> name.startsWith("db.elasticsearch.path_parts."))
+                    .map(name -> name.substring("db.elasticsearch.path_parts.".length()))
+                    .collect(Collectors.toList());
+                assertThat(spanPartAttributes).containsExactlyElementsOf(expectedPathParts.keySet());
+            }
+        }
+
+        private void checkDestinationContext() {
+            Destination destination = span.getContext().getDestination();
+            assertThat(destination).isNotNull();
+            if (reporter.checkDestinationAddress()) {
+                assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());
+                assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
+            }
+        }
+
     }
 
 }
