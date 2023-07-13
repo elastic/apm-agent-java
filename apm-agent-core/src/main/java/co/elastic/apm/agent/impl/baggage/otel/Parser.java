@@ -17,7 +17,7 @@
  * under the License.
  */
 /**
- * This class has been copied from OTel release v1.27.0 and adjusted to use our itnernal baggage builder instead.
+ * This class has been copied from OTel release v1.27.0 and adjusted to use our internal baggage builder instead.
  */
 /*
  * Copyright The OpenTelemetry Authors

@@ -32,7 +32,7 @@ public class Baggage implements co.elastic.apm.agent.tracer.Baggage {
     private final Map<String, String> baggage;
 
     /**
-     * W3C headers allow to add metadata key-value paris to baggage.
+     * W3C headers allow to add metadata key-value pairs to baggage.
      * We do currently not decode these key-value pairs, but propagate them in encoded form
      * to ensure they are not lost.
      * <p>
@@ -72,7 +72,7 @@ public class Baggage implements co.elastic.apm.agent.tracer.Baggage {
     }
 
     /**
-     * @return a builder prepoluated with the contets of this baggage.
+     * @return a builder pre-populated with the contents of this baggage.
      */
     public Builder toBuilder() {
         return new Builder(this);
@@ -94,7 +94,7 @@ public class Baggage implements co.elastic.apm.agent.tracer.Baggage {
             this.baggageMetadata = parent.baggageMetadata;
         }
 
-        private Baggage parent;
+        private final Baggage parent;
         private Map<String, String> baggage;
         private Map<String, String> baggageMetadata;
 
@@ -138,7 +138,7 @@ public class Baggage implements co.elastic.apm.agent.tracer.Baggage {
         }
 
         private void setBaggageValue(String key, @Nullable String value) {
-            if (!Objects.equals(baggage.get(key), key)) {
+            if (!Objects.equals(baggage.get(key), value)) {
                 if (baggage == parent.baggage) {
                     baggage = new LinkedHashMap<>(baggage);
                 }
@@ -151,7 +151,7 @@ public class Baggage implements co.elastic.apm.agent.tracer.Baggage {
         }
 
         private void setBaggageMetadata(String key, @Nullable String metadata) {
-            if (!Objects.equals(baggageMetadata.get(key), key)) {
+            if (!Objects.equals(baggageMetadata.get(key), metadata)) {
                 if (baggageMetadata == parent.baggageMetadata) {
                     baggageMetadata = new LinkedHashMap<>(baggageMetadata);
                 }
