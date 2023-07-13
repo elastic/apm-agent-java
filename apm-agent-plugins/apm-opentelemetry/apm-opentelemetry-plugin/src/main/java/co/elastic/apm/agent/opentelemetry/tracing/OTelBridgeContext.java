@@ -116,13 +116,6 @@ public class OTelBridgeContext extends ElasticContext<OTelBridgeContext> impleme
         return currentSpan != null ? currentSpan.getBaggage() : Baggage.EMPTY;
     }
 
-    @Nullable
-    @Override
-    public co.elastic.apm.agent.impl.transaction.Span createSpan() {
-        AbstractSpan<?> currentSpan = getSpan();
-        return currentSpan == null ? null : currentSpan.createSpan(getBaggage());
-    }
-
 
     // OTel context implementation
 

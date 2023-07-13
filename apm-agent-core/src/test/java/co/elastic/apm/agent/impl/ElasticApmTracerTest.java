@@ -748,12 +748,6 @@ class ElasticApmTracerTest {
             return null;
         }
 
-        @Nullable
-        @Override
-        public Span createSpan() {
-            return null;
-        }
-
         @Override
         public void incrementReferences() {
 

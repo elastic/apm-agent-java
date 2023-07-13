@@ -85,7 +85,10 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
 
     @Nullable
     @Override
-    public abstract co.elastic.apm.agent.impl.transaction.Span createSpan();
+    public co.elastic.apm.agent.impl.transaction.Span createSpan() {
+        AbstractSpan<?> currentSpan = getSpan();
+        return currentSpan == null ? null : currentSpan.createSpan(getBaggage());
+    }
 
     @Nullable
     @Override

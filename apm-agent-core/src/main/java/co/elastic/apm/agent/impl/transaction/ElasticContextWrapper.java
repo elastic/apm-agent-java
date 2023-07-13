@@ -109,12 +109,6 @@ public class ElasticContextWrapper<T extends ElasticContext<T>> extends ElasticC
         throw activationNotSupported();
     }
 
-    @Nullable
-    @Override
-    public Span createSpan() {
-        throw new UnsupportedOperationException("span creation not expected on context wrapper");
-    }
-
     private static UnsupportedOperationException activationNotSupported() {
         // activation is not expected to happen on this wrapper but only on the wrapped context
         return new UnsupportedOperationException("activation not expected on context wrapper");

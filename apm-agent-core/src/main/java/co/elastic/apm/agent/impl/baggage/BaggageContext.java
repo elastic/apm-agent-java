@@ -20,7 +20,6 @@ package co.elastic.apm.agent.impl.baggage;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.tracer.BaggageContextBuilder;
 
 import javax.annotation.Nullable;
@@ -46,15 +45,6 @@ public class BaggageContext extends ElasticContext<BaggageContext> {
     @Override
     public Baggage getBaggage() {
         return baggage;
-    }
-
-    @Nullable
-    @Override
-    public Span createSpan() {
-        if (span != null) {
-            return span.createSpan(baggage);
-        }
-        return null;
     }
 
     @Override
