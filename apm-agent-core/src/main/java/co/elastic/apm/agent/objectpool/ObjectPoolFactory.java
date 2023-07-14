@@ -28,11 +28,24 @@ import co.elastic.apm.agent.tracer.pooling.Allocator;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
+import static co.elastic.apm.agent.objectpool.ObjectHandle.NOOP_RESETTER;
+
 public class ObjectPoolFactory implements co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory {
+
+    private static final int DEFAULT_RESOURCE_POOL_SIZE = Math.max(16, Runtime.getRuntime().availableProcessors() * 2);
+
 
     @Override
     public <T extends Recyclable> ObjectPool<T> createRecyclableObjectPool(int maxCapacity, Allocator<T> allocator) {
         return QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<T>((maxCapacity)), false, allocator);
+    }
+
+    @Override
+    public <T> ObjectPool<ObjectHandle<T>> createHandlePool(Allocator<T> allocator) {
+        ObjectHandle.Allocator<T> handleAlloc = new ObjectHandle.Allocator<T>(allocator);
+        QueueBasedObjectPool<ObjectHandle<T>> result = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<ObjectHandle<T>>((DEFAULT_RESOURCE_POOL_SIZE)), false, handleAlloc, NOOP_RESETTER);
+        handleAlloc.setPool(result);
+        return result;
     }
 
     public ObjectPool<Transaction> createTransactionPool(int maxCapacity, final ElasticApmTracer tracer) {

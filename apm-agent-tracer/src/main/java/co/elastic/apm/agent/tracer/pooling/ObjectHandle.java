@@ -18,28 +18,18 @@
  */
 package co.elastic.apm.agent.tracer.pooling;
 
-/**
- * Object pool
- *
- * @param <T> pooled object type. Does not have to implement {@link Recyclable} in order to allow for dealing with objects
- *            that are outside of elastic apm agent (like standard JDK or third party library classes).
- */
-public interface ObjectPool<T> {
+public interface ObjectHandle<T> extends AutoCloseable {
 
     /**
-     * Tries to reuse any existing instance if pool has any, otherwise creates a new un-pooled instance
+     * Must not be called after {@link #close()} has been called!
      *
-     * @return object instance, either from pool or freshly allocated
+     * @return the obejct to which this handle points.
      */
-    T createInstance();
+    T get();
 
     /**
-     * Recycles an object
-     *
-     * @param obj object to recycle
+     * Returns this handle to the object pool.
      */
-    void recycle(T obj);
-
-    void clear();
-
+    @Override
+    void close();
 }

@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.sdk.internal.util;
+package co.elastic.apm.agent.util;
 
+import co.elastic.apm.agent.sdk.internal.util.IOUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nonnull;
@@ -36,7 +38,7 @@ class IOUtilsTest {
     @Test
     void readUtf8Stream() throws IOException {
         final CharBuffer charBuffer = CharBuffer.allocate(8);
-        assertThat(IOUtils.readUtf8Stream(toInputStream("{foo}", UTF_8), charBuffer)).isTrue();
+        Assertions.assertThat(IOUtils.readUtf8Stream(toInputStream("{foo}", UTF_8), charBuffer)).isTrue();
         assertThat(charBuffer.toString()).isEqualTo("{foo}");
     }
 
@@ -72,8 +74,8 @@ class IOUtilsTest {
 
     @Test
     void testBytesLargerThanByteBuffer() {
-        final CharBuffer charBuffer = CharBuffer.allocate(IOUtils.BYTE_BUFFER_CAPACITY * 2);
-        final String longString = RandomStringUtils.randomAlphanumeric(IOUtils.BYTE_BUFFER_CAPACITY * 2);
+        final CharBuffer charBuffer = CharBuffer.allocate(IOUtilsProviderImpl.BYTE_BUFFER_CAPACITY * 2);
+        final String longString = RandomStringUtils.randomAlphanumeric(IOUtilsProviderImpl.BYTE_BUFFER_CAPACITY * 2);
         assertThat(IOUtils.decodeUtf8Bytes(longString.getBytes(UTF_8), charBuffer).isError()).isFalse();
         charBuffer.flip();
         assertThat(charBuffer.toString()).isEqualTo(longString);
@@ -81,8 +83,8 @@ class IOUtilsTest {
 
     @Test
     void testStreamLargerThanByteBuffer() throws IOException {
-        final CharBuffer charBuffer = CharBuffer.allocate(IOUtils.BYTE_BUFFER_CAPACITY * 2);
-        final String longString = RandomStringUtils.randomAlphanumeric(IOUtils.BYTE_BUFFER_CAPACITY * 2);
+        final CharBuffer charBuffer = CharBuffer.allocate(IOUtilsProviderImpl.BYTE_BUFFER_CAPACITY * 2);
+        final String longString = RandomStringUtils.randomAlphanumeric(IOUtilsProviderImpl.BYTE_BUFFER_CAPACITY * 2);
         assertThat(IOUtils.readUtf8Stream(toInputStream(longString, UTF_8), charBuffer)).isTrue();
         assertThat(charBuffer.toString()).isEqualTo(longString);
     }

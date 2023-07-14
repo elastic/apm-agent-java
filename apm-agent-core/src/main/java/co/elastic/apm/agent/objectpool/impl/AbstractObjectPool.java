@@ -27,11 +27,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractObjectPool<T> implements ObjectPool<T> {
 
-    protected final Allocator<T> allocator;
-    protected final Resetter<T> resetter;
+    protected final Allocator<? extends T> allocator;
+    protected final Resetter<? super T> resetter;
     private final AtomicInteger garbageCreated;
 
-    protected AbstractObjectPool(Allocator<T> allocator, Resetter<T> resetter) {
+    protected AbstractObjectPool(Allocator<? extends T> allocator, Resetter<? super T> resetter) {
         this.allocator = allocator;
         this.resetter = resetter;
         this.garbageCreated = new AtomicInteger();

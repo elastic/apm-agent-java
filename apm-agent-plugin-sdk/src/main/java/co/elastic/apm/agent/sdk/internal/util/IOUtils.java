@@ -19,29 +19,22 @@
 package co.elastic.apm.agent.sdk.internal.util;
 
 
+import co.elastic.apm.agent.sdk.internal.InternalUtil;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
-import java.nio.charset.StandardCharsets;
 
 public class IOUtils {
-    protected static final int BYTE_BUFFER_CAPACITY = 2048;
-    protected static final ThreadLocal<ByteBuffer> threadLocalByteBuffer = new ThreadLocal<ByteBuffer>() {
-        @Override
-        protected ByteBuffer initialValue() {
-            return ByteBuffer.allocate(BYTE_BUFFER_CAPACITY);
-        }
-    };
-    protected static final ThreadLocal<CharsetDecoder> threadLocalCharsetDecoder = new ThreadLocal<CharsetDecoder>() {
-        @Override
-        protected CharsetDecoder initialValue() {
-            return StandardCharsets.UTF_8.newDecoder();
-        }
-    };
+
+
+    private static final IOUtils.IOUtilsProvider supplier;
+
+    static {
+        supplier = InternalUtil.getServiceProvider(IOUtils.IOUtilsProvider.class);
+    }
 
 
     /**
@@ -60,32 +53,17 @@ public class IOUtils {
      * @throws IOException in case of errors reading from the provided {@link InputStream}
      */
     public static boolean readUtf8Stream(final InputStream is, final CharBuffer charBuffer) throws IOException {
-        // to be compatible with Java 8, we have to cast to buffer because of different return types
-        final ByteBuffer buffer = threadLocalByteBuffer.get();
-        final CharsetDecoder charsetDecoder = threadLocalCharsetDecoder.get();
-        try {
-            final byte[] bufferArray = buffer.array();
-            for (int read = is.read(bufferArray); read != -1; read = is.read(bufferArray)) {
-                ((Buffer) buffer).limit(read);
-                final CoderResult coderResult = charsetDecoder.decode(buffer, charBuffer, true);
-                ((Buffer) buffer).clear();
-                if (coderResult.isError()) {
-                    // this is not UTF-8
-                    ((Buffer) charBuffer).clear();
-                    return false;
-                } else if (coderResult.isOverflow()) {
-                    // stream yields more chars than the charBuffer can hold
-                    break;
-                }
-            }
-            charsetDecoder.flush(charBuffer);
-            return true;
-        } finally {
-            ((Buffer) charBuffer).flip();
-            ((Buffer) buffer).clear();
-            charsetDecoder.reset();
-            is.close();
-        }
+        return supplier.readUtf8Stream(is, charBuffer);
+    }
+
+    public static <T> CoderResult decodeUtf8BytesFromSource(ByteSourceReader<T> reader, T src, final CharBuffer dest) {
+        return supplier.decodeUtf8BytesFromSource(reader, src, dest);
+    }
+
+    public interface ByteSourceReader<S> {
+        int availableBytes(S source);
+
+        void readInto(S source, ByteBuffer into);
     }
 
     /**
@@ -109,7 +87,7 @@ public class IOUtils {
      * @return a {@link CoderResult}, indicating the success or failure of the decoding
      */
     public static CoderResult decodeUtf8Bytes(final byte[] bytes, final CharBuffer charBuffer) {
-        return decodeUtf8Bytes(bytes, 0, bytes.length, charBuffer);
+        return supplier.decodeUtf8Bytes(bytes, charBuffer);
     }
 
     /**
@@ -135,18 +113,7 @@ public class IOUtils {
      * @return a {@link CoderResult}, indicating the success or failure of the decoding
      */
     public static CoderResult decodeUtf8Bytes(final byte[] bytes, final int offset, final int length, final CharBuffer charBuffer) {
-        // to be compatible with Java 8, we have to cast to buffer because of different return types
-        final ByteBuffer buffer;
-        if (BYTE_BUFFER_CAPACITY < length) {
-            // allocates a ByteBuffer wrapper object, the underlying byte[] is not copied
-            buffer = ByteBuffer.wrap(bytes, offset, length);
-        } else {
-            buffer = threadLocalByteBuffer.get();
-            buffer.put(bytes, offset, length);
-            ((Buffer) buffer).position(0);
-            ((Buffer) buffer).limit(length);
-        }
-        return decode(charBuffer, buffer);
+        return supplier.decodeUtf8Bytes(bytes, offset, length, charBuffer);
     }
 
     /**
@@ -170,24 +137,19 @@ public class IOUtils {
      * @return a {@link CoderResult}, indicating the success or failure of the decoding
      */
     public static CoderResult decodeUtf8Byte(final byte b, final CharBuffer charBuffer) {
-        // to be compatible with Java 8, we have to cast to buffer because of different return types
-        final ByteBuffer buffer = threadLocalByteBuffer.get();
-        buffer.put(b);
-        ((Buffer) buffer).position(0);
-        ((Buffer) buffer).limit(1);
-        return decode(charBuffer, buffer);
+        return supplier.decodeUtf8Byte(b, charBuffer);
     }
 
-    protected static CoderResult decode(CharBuffer charBuffer, ByteBuffer buffer) {
-        final CharsetDecoder charsetDecoder = threadLocalCharsetDecoder.get();
-        try {
-            final CoderResult coderResult = charsetDecoder.decode(buffer, charBuffer, true);
-            charsetDecoder.flush(charBuffer);
-            return coderResult;
-        } finally {
-            ((Buffer) buffer).clear();
-            charsetDecoder.reset();
-        }
+    public interface IOUtilsProvider {
+        boolean readUtf8Stream(final InputStream is, final CharBuffer charBuffer) throws IOException;
+
+        <T> CoderResult decodeUtf8BytesFromSource(IOUtils.ByteSourceReader<T> reader, T src, final CharBuffer dest);
+
+        CoderResult decodeUtf8Bytes(final byte[] bytes, final CharBuffer charBuffer);
+
+        CoderResult decodeUtf8Bytes(final byte[] bytes, final int offset, final int length, final CharBuffer charBuffer);
+
+        CoderResult decodeUtf8Byte(final byte b, final CharBuffer charBuffer);
     }
 
 }
