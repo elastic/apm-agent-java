@@ -18,42 +18,25 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.sdk.state.GlobalState;
-import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
-
 import javax.annotation.Nullable;
 
-@GlobalState
+
 public class OkHttpClientHelper {
 
     /**
-     * Used to avoid allocations when calculating destination host name.
-     */
-    public static final DetachedThreadLocal<StringBuilder> destinationHostName = WeakConcurrent
-        .<StringBuilder>threadLocalBuilder()
-        .withDefaultValueSupplier(new WeakMap.DefaultValueSupplier<Thread, StringBuilder>() {
-            @Override
-            public StringBuilder getDefaultValue(Thread t) {
-                return new StringBuilder();
-            }
-        })
-        .build();
-
-    /**
-     * NOTE: this method returns a StringBuilder instance that is kept as this class's ThreadLocal. Callers of this
-     * method MAY NOT KEEP A REFERENCE TO THE RETURNED OBJECT, only copy its contents.
+     * If this method needs to perform corrections on the hostname, it has to allocate a new StringBuilder.
+     * We accept this due to the fact that this method is called once per HTTP call, making the allocation neglectable
+     * overhead compared to the allocations performed for the HTTP call itself.
      *
      * @param originalHostName the original host name retrieved from the OkHttp client
-     * @return a StringBuilder instance that is kept as a ThreadLocal
+     * @return the potentially corrected host name
      */
     @Nullable
     public static CharSequence computeHostName(@Nullable String originalHostName) {
         CharSequence hostName = originalHostName;
         // okhttp represents IPv6 addresses without square brackets, as opposed to all others, so we should add them
         if (originalHostName != null && originalHostName.contains(":") && !originalHostName.startsWith("[")) {
-            StringBuilder sb = destinationHostName.get();
+            StringBuilder sb = new StringBuilder(originalHostName.length() + 2);
             sb.setLength(0);
             sb.append("[").append(originalHostName).append("]");
             hostName = sb;
