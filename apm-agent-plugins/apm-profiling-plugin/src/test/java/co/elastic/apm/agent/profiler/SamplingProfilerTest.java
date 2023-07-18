@@ -223,7 +223,7 @@ class SamplingProfilerTest {
             }
         };
 
-        Method startVirtualThread = Thread.class.getMethod("startVirtualThread");
+        Method startVirtualThread = Thread.class.getMethod("startVirtualThread", Runnable.class);
         Thread virtual = (Thread) startVirtualThread.invoke(null, task);
         virtual.join();
 
