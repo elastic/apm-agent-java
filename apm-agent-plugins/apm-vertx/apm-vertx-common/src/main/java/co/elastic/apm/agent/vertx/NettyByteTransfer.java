@@ -21,28 +21,31 @@ package co.elastic.apm.agent.vertx;
 import co.elastic.apm.agent.sdk.internal.util.IOUtils;
 import io.netty.buffer.ByteBuf;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CoderResult;
 
-public class NettyByteTransfer {
-
-    private static IOUtils.ByteSourceReader<ByteBuf> NETTY_BYTE_SOURCE_READER = new IOUtils.ByteSourceReader<ByteBuf>() {
-        @Override
-        public int availableBytes(ByteBuf source) {
-            return source.readableBytes();
-        }
-
-        @Override
-        public void readInto(ByteBuf source, ByteBuffer into) {
-            source.readBytes(into);
-        }
-
-        ;
-    };
+public class NettyByteTransfer extends IOUtils {
 
     public static CoderResult decodeUtf8BytesFromTransfer(final ByteBuf src, final CharBuffer dest) {
-        return IOUtils.decodeUtf8BytesFromSource(NETTY_BYTE_SOURCE_READER, src, dest);
-    }
+        // to be compatible with Java 8, we have to cast to buffer because of different return types
+        final ByteBuffer buffer = threadLocalByteBuffer.get();
+        int readableBytes = src.readableBytes();
+        CoderResult result = null;
+        while (readableBytes > 0) {
+            int length = Math.min(readableBytes, BYTE_BUFFER_CAPACITY);
+            ((Buffer) buffer).limit(length);
+            ((Buffer) buffer).position(0);
+            src.readBytes(buffer);
+            ((Buffer) buffer).position(0);
+            result = decode(dest, buffer);
+            if (result.isError() || result.isOverflow()) {
+                return result;
+            }
+            readableBytes = src.readableBytes();
+        }
 
+        return result == null ? CoderResult.OVERFLOW : result;
+    }
 }
