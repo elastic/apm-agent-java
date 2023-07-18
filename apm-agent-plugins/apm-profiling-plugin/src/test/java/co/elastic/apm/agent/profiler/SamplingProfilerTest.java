@@ -20,29 +20,33 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
 import co.elastic.apm.agent.tracer.Scope;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledForJreRange;
 import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.condition.OS;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -194,6 +198,61 @@ class SamplingProfilerTest {
         assertThat(inferredSpanD).isPresent();
         assertThat(inferredSpanD.get().isChildOf(inferredSpanC.get())).isTrue();
     }
+
+    @Test
+    @DisabledForJreRange(max = JRE.JAVA_20)
+    void testVirtualThreadsExcluded() throws Exception {
+        setupProfiler(true);
+        awaitProfilerStarted(profiler);
+
+        AtomicReference<Transaction> tx = new AtomicReference<>();
+        Runnable task = () -> {
+            Transaction transaction = tracer.startRootTransaction(null).withName("transaction");
+            tx.set(transaction);
+            try (Scope scope = transaction.activateInScope()) {
+                // makes sure that the rest will be captured by another profiling session
+                // this tests that restoring which threads to profile works
+                try {
+                    Thread.sleep(600);
+                    aInferred(transaction);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            } finally {
+                transaction.end();
+            }
+        };
+
+        Method startVirtualThread = Thread.class.getMethod("startVirtualThread");
+        Thread virtual = (Thread) startVirtualThread.invoke(null, task);
+        virtual.join();
+
+        await()
+            .pollDelay(10, TimeUnit.MILLISECONDS)
+            .timeout(5000, TimeUnit.MILLISECONDS)
+            .untilAsserted(() -> assertThat(reporter.getSpans()).hasSize(5));
+
+        Optional<Span> testProfileTransaction = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#testProfileTransaction")).findAny();
+        assertThat(testProfileTransaction).isPresent();
+        assertThat(testProfileTransaction.get().isChildOf(tx.get())).isTrue();
+
+        Optional<Span> inferredSpanA = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#aInferred")).findAny();
+        assertThat(inferredSpanA).isPresent();
+        assertThat(inferredSpanA.get().isChildOf(testProfileTransaction.get())).isTrue();
+
+        Optional<Span> explicitSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("bExplicit")).findAny();
+        assertThat(explicitSpanB).isPresent();
+        assertThat(explicitSpanB.get().isChildOf(inferredSpanA.get())).isTrue();
+
+        Optional<Span> inferredSpanC = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#cInferred")).findAny();
+        assertThat(inferredSpanC).isPresent();
+        assertThat(inferredSpanC.get().isChildOf(explicitSpanB.get())).isTrue();
+
+        Optional<Span> inferredSpanD = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#dInferred")).findAny();
+        assertThat(inferredSpanD).isPresent();
+        assertThat(inferredSpanD.get().isChildOf(inferredSpanC.get())).isTrue();
+    }
+
 
     @Test
     void testPostProcessingDisabled() throws Exception {
