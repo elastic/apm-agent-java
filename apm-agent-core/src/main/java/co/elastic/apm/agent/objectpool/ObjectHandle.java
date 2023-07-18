@@ -20,7 +20,7 @@ package co.elastic.apm.agent.objectpool;
 
 import javax.annotation.Nullable;
 
-public class ObjectHandle<T> implements co.elastic.apm.agent.tracer.pooling.ObjectHandle<T> {
+public class ObjectHandle<T> implements co.elastic.apm.agent.tracer.pooling.ObjectHandle<T>, co.elastic.apm.agent.sdk.internal.pooling.ObjectHandle<T> {
 
     public static class Allocator<T> implements co.elastic.apm.agent.tracer.pooling.Allocator<ObjectHandle<T>> {
 
