@@ -227,7 +227,7 @@ class SamplingProfilerTest {
         Thread virtual = (Thread) startVirtualThread.invoke(null, task);
         virtual.join();
 
-        System.out.println("PROFILING_ACTIVE: " + profilingActive.get());
+        assertThat(profilingActive.get()).isFalse();
 
     }
 
