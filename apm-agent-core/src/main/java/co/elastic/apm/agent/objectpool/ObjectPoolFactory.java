@@ -52,7 +52,7 @@ public class ObjectPoolFactory implements co.elastic.apm.agent.tracer.pooling.Ob
     }
 
     @Override
-    public <T> ObjectPool<ObjectHandle<T>> createHandlePool(Callable<T> allocator) {
+    public <T> ObjectPool<ObjectHandle<T>> createHandlePool(final Callable<T> allocator) {
         return createHandlePool(new Allocator<T>() {
             @Override
             public T createInstance() {
