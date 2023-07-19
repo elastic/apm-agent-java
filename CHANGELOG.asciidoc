@@ -34,13 +34,11 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Capture `container.id` for cgroups v2 - {pull}3199[#3199]
+* Added W3C baggage propagation - {pull}3236[#3236]
 
 [float]
 ===== Bug fixes
 * fix jakarta.jms support (wasn't fully implemented) - {pull}3198[#3198]
-
-[float]
-===== Bug fixes
 * Fixed agent programmatic attach with immutable config - {pull}3170[#3170]
 * Prevent overriding `ELASTIC_APM_AWS_LAMBDA_HANDLER` in AWS lambda execution when explicitly set - {pull}3205[#3205]
 * Ignore gc allocation metrics when unsupported - {pull}3225[#3225]

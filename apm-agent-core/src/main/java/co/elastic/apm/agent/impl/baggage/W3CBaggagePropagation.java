@@ -81,6 +81,8 @@ public class W3CBaggagePropagation {
                 if (metadata != null && !metadata.isEmpty()) {
                     header.append(';').append(metadata);
                 }
+            } else {
+                logger.debug("Skipping encoding of baggage {} because it is not encodeable!", key);
             }
         }
         return header.toString();

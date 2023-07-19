@@ -92,17 +92,23 @@ public class Baggage implements co.elastic.apm.agent.tracer.Baggage {
             this.parent = parent;
             this.baggage = parent.baggage;
             this.baggageMetadata = parent.baggageMetadata;
+            buildCalled = false;
         }
 
         private final Baggage parent;
         private Map<String, String> baggage;
         private Map<String, String> baggageMetadata;
 
+        private boolean buildCalled;
+
         public Builder put(String key, @Nullable String value) {
             return put(key, value, null);
         }
 
         public Builder put(String key, @Nullable String value, @Nullable String metadata) {
+            if (buildCalled) {
+                throw new IllegalStateException("build() was already called!");
+            }
             if (value == null) {
                 setBaggageValue(key, null);
                 setBaggageMetadata(key, null);
@@ -121,6 +127,7 @@ public class Baggage implements co.elastic.apm.agent.tracer.Baggage {
          * @return a baggage resulting from this builder.
          */
         public Baggage build() {
+            buildCalled = true;
             boolean anyModifications = false;
             if (baggage != parent.baggage) {
                 anyModifications = true;
