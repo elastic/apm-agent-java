@@ -31,6 +31,10 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[float]
+===== Features
+* Added W3C baggage propagation - {pull}3236[#3236]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
@@ -40,7 +44,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Capture `container.id` for cgroups v2 - {pull}3199[#3199]
-* Added W3C baggage propagation - {pull}3236[#3236]
 
 [float]
 ===== Bug fixes
