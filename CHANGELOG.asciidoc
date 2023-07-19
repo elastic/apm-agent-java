@@ -33,7 +33,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 [float]
 ===== Features
-* Added W3C baggage propagation - {pull}3236[#3236]
+* Added W3C baggage propagation - {pull}3236[#3236], {pull}3248[#3248]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
