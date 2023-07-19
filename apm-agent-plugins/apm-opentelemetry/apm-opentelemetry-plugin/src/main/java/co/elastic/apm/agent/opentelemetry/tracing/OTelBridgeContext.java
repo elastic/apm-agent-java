@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.opentelemetry.tracing;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import io.opentelemetry.api.trace.Span;
@@ -106,6 +107,13 @@ public class OTelBridgeContext extends ElasticContext<OTelBridgeContext> impleme
             return ((OTelSpan) span).getInternalSpan();
         }
         return null;
+    }
+
+    @Override
+    public Baggage getBaggage() {
+        //TODO: correctly implement baggage
+        AbstractSpan<?> currentSpan = getSpan();
+        return currentSpan != null ? currentSpan.getBaggage() : Baggage.EMPTY;
     }
 
 

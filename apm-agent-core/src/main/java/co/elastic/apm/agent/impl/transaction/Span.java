@@ -20,6 +20,7 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
@@ -87,7 +88,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.a
         super(tracer);
     }
 
-    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
+    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, Baggage parentBaggage, long epochMicros) {
+        this.baggage = parentBaggage;
         childContextCreator.asChildOf(traceContext, parentContext);
         if (parentContext instanceof Transaction) {
             this.transaction = (Transaction) parentContext;

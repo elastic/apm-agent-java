@@ -59,6 +59,11 @@ public class NoopElasticContext implements ElasticContext<NoopElasticContext> {
         return null;
     }
 
+    @Override
+    public Baggage getBaggage() {
+        throw new UnsupportedOperationException();
+    }
+
     @Nullable
     @Override
     public Span<?> createSpan() {
@@ -69,6 +74,11 @@ public class NoopElasticContext implements ElasticContext<NoopElasticContext> {
     @Override
     public Span<?> createExitSpan() {
         return null;
+    }
+
+    @Override
+    public BaggageContextBuilder withUpdatedBaggage() {
+        throw new UnsupportedOperationException();
     }
 
     @Override

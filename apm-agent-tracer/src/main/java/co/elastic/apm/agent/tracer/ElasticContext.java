@@ -39,6 +39,10 @@ public interface ElasticContext<T extends ElasticContext<T>> extends ReferenceCo
     @Nullable
     Transaction<?> getTransaction();
 
+    /**
+     * @return the baggage associated with this context
+     */
+    Baggage getBaggage();
 
     /**
      * Creates a child span of this context, if possible.
@@ -57,6 +61,8 @@ public interface ElasticContext<T extends ElasticContext<T>> extends ReferenceCo
      */
     @Nullable
     Span<?> createExitSpan();
+
+    BaggageContextBuilder withUpdatedBaggage();
 
     /**
      * If a context is empty, it does not need to be propagated (neither within the process, nor via external calls).

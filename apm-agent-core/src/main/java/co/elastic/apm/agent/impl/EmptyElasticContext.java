@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
 
@@ -33,6 +34,11 @@ class EmptyElasticContext extends ElasticContext<EmptyElasticContext> {
     @Override
     public AbstractSpan<?> getSpan() {
         return null;
+    }
+
+    @Override
+    public Baggage getBaggage() {
+        return Baggage.EMPTY;
     }
 
     @Override
