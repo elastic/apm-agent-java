@@ -16,39 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl;
+package co.elastic.apm.agent.testutils.assertions;
 
-import co.elastic.apm.agent.impl.baggage.Baggage;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
 
-import javax.annotation.Nullable;
+public class ElasticContextAssert<SELF extends ElasticContextAssert<SELF, ACTUAL>, ACTUAL extends ElasticContext<?>> extends BaseAssert<SELF, ACTUAL> {
 
-class EmptyElasticContext extends ElasticContext<EmptyElasticContext> {
-
-    EmptyElasticContext(ElasticApmTracer tracer) {
-        super(tracer);
+    protected ElasticContextAssert(ACTUAL actual, Class<SELF> selfType) {
+        super(actual, selfType);
     }
 
-    @Nullable
-    @Override
-    public AbstractSpan<?> getSpan() {
-        return null;
+    public SELF hasBaggageCount(int expectedCount) {
+        isNotNull();
+        new BaggageAssert(actual.getBaggage()).hasSize(expectedCount);
+        return thiz();
     }
 
-    @Override
-    public Baggage getBaggage() {
-        return Baggage.EMPTY;
+    public SELF hasBaggage(String key, String value) {
+        isNotNull();
+        new BaggageAssert(actual.getBaggage()).containsEntry(key, value);
+        return thiz();
     }
 
-    @Override
-    public void incrementReferences() {
-
+    @SuppressWarnings("unchecked")
+    private SELF thiz() {
+        return (SELF) this;
     }
-
-    @Override
-    public void decrementReferences() {
-
-    }
-
 }

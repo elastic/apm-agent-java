@@ -16,39 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl;
-
-import co.elastic.apm.agent.impl.baggage.Baggage;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.ElasticContext;
+package co.elastic.apm.agent.tracer;
 
 import javax.annotation.Nullable;
+import java.util.Set;
 
-class EmptyElasticContext extends ElasticContext<EmptyElasticContext> {
+public interface Baggage {
 
-    EmptyElasticContext(ElasticApmTracer tracer) {
-        super(tracer);
-    }
+    Set<String> keys();
 
     @Nullable
-    @Override
-    public AbstractSpan<?> getSpan() {
-        return null;
-    }
-
-    @Override
-    public Baggage getBaggage() {
-        return Baggage.EMPTY;
-    }
-
-    @Override
-    public void incrementReferences() {
-
-    }
-
-    @Override
-    public void decrementReferences() {
-
-    }
-
+    String get(String key);
 }

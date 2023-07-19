@@ -22,6 +22,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.TransactionUtils;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -106,7 +107,7 @@ public class TransactionTest {
     void normalizeType(String type, String expectedType) {
         Transaction transaction = new Transaction(MockTracer.createRealTracer());
 
-        transaction.startRoot(0, ConstantSampler.of(true));
+        transaction.startRoot(0, ConstantSampler.of(true), Baggage.EMPTY);
         assertThat(transaction.getType())
             .describedAs("transaction type should not be set by default")
             .isNull();

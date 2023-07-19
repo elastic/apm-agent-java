@@ -16,39 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl;
-
-import co.elastic.apm.agent.impl.baggage.Baggage;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.ElasticContext;
+package co.elastic.apm.agent.tracer;
 
 import javax.annotation.Nullable;
 
-class EmptyElasticContext extends ElasticContext<EmptyElasticContext> {
+/**
+ * Builder for creating a context with alteredBaggage.
+ */
+public interface BaggageContextBuilder {
 
-    EmptyElasticContext(ElasticApmTracer tracer) {
-        super(tracer);
-    }
+    /**
+     * @param key   The key of the baggage to store
+     * @param value the updated value. If null, any present value for the given key will be removed.
+     */
+    BaggageContextBuilder put(String key, @Nullable String value);
 
-    @Nullable
-    @Override
-    public AbstractSpan<?> getSpan() {
-        return null;
-    }
+    /**
+     * Same as invoking {@link #put(String, String)} with a null value.
+     *
+     * @param key
+     */
+    BaggageContextBuilder remove(String key);
 
-    @Override
-    public Baggage getBaggage() {
-        return Baggage.EMPTY;
-    }
-
-    @Override
-    public void incrementReferences() {
-
-    }
-
-    @Override
-    public void decrementReferences() {
-
-    }
-
+    /**
+     * @return the created context with the baggage updates applied.
+     */
+    ElasticContext<?> buildContext();
 }

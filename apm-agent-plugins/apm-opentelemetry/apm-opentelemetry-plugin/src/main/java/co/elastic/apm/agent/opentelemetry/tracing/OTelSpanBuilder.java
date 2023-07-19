@@ -155,7 +155,7 @@ class OTelSpanBuilder implements SpanBuilder {
             // when parent is not explicitly set, the currently active parent is used as fallback
             parent = elasticApmTracer.getActive();
         }
-
+        //TODO: correctly implement baggage: we need to use the baggage from the parent context instead of from the parent span
         if (remoteContext != null) {
             PotentiallyMultiValuedMap headers = new PotentiallyMultiValuedMap(2);
             W3CTraceContextPropagator.getInstance().inject(remoteContext, headers, PotentiallyMultiValuedMap::add);
@@ -163,7 +163,7 @@ class OTelSpanBuilder implements SpanBuilder {
         } else if (parent == null) {
             span = elasticApmTracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(getClass()), epochMicros);
         } else {
-            span = elasticApmTracer.startSpan(parent, epochMicros);
+            span = elasticApmTracer.startSpan(parent, parent.getBaggage(), epochMicros);
         }
         if (span == null) {
             return Span.getInvalid();
