@@ -31,6 +31,12 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.40.0]]
+==== 1.40.0 - 2023/07/19
+
 [float]
 ===== Features
 * Capture `container.id` for cgroups v2 - {pull}3199[#3199]
@@ -44,9 +50,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 * Ignore gc allocation metrics when unsupported - {pull}3225[#3225]
 * Avoid warning log message when grpc transactions are cancelled before end - {pull}3223[#3223]
 * Align agent hostname capture to FQDN - {pull}3188[#3188]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.39.0]]
 ==== 1.39.0 - 2023/06/13
