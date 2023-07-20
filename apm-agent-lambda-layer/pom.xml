@@ -18,6 +18,10 @@
     </properties>
 
     <dependencies>
+        <!-- This dependency listing is required so that running
+             ./mvnw dependency:purge-local-repository package -pl apm-agent-lambda-layer
+             in the parent project forces a redownload of the agent artifact from maven central.
+        -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>elastic-apm-agent</artifactId>
@@ -43,7 +47,6 @@
                         <artifactItem>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>elastic-apm-agent</artifactId>
-                            <version>${project.version}</version>
                             <destFileName>elastic-apm-agent.jar</destFileName>
                         </artifactItem>
                     </artifactItems>
