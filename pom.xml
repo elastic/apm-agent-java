@@ -60,6 +60,7 @@
     <modules>
         <module>apm-agent-core</module>
         <module>elastic-apm-agent</module>
+        <module>apm-agent-lambda-layer</module>
         <module>elastic-apm-agent-premain</module>
         <module>elastic-apm-agent-java8</module>
         <module>apm-agent-benchmarks</module>
