@@ -92,6 +92,7 @@ jobs:
       - prepare_release
     steps:
       - id: buildkite
+        continue-on-error: true
         name: Run Deploy
         uses: elastic/apm-pipeline-library/.github/actions/buildkite@current
         with:
