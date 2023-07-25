@@ -2368,7 +2368,7 @@ or if Elasticsearch can't index the logs fast enough.
 
 For better delivery guarantees, it's recommended to ship ECS JSON log files with Filebeat
 See also <<config-log-ecs-reformatting,`log_ecs_reformatting`>>.
-Log sending does currently not support custom MDC fields, `log_ecs_reformatting` and shipping the logs with Filebeat must be used if custom MDC fields are required.
+Log sending does not currently support custom MDC fields, `log_ecs_reformatting` and shipping the logs with Filebeat must be used if custom MDC fields are required.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 

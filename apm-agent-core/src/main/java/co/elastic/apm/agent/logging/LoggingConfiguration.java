@@ -277,7 +277,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider implements
             "\n" +
             "For better delivery guarantees, it's recommended to ship ECS JSON log files with Filebeat\n" +
             "See also <<config-log-ecs-reformatting,`log_ecs_reformatting`>>.\n" +
-            "Log sending does currently not support custom MDC fields," +
+            "Log sending does not currently support custom MDC fields," +
             " `log_ecs_reformatting` and shipping the logs with Filebeat must be used if custom MDC fields are required.")
         .dynamic(true)
         .tags("added[1.36.0]", "experimental")
