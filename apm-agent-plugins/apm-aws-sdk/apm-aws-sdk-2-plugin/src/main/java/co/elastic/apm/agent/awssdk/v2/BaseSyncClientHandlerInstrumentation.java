@@ -54,7 +54,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class BaseSyncClientHandlerInstrumentation extends ElasticApmInstrumentation {
 
     private static final Tracer tracer = GlobalTracer.get();
-    
+
     //Coretto causes sigsegv crashes when you try to access a throwable if it thinks
     //it went out of scope, which it seems to for the instrumented throwable access
     //package access and non-final so that tests can replace this
@@ -90,19 +90,23 @@ public class BaseSyncClientHandlerInstrumentation extends ElasticApmInstrumentat
             SdkRequest sdkRequest = clientExecutionParams.getInput();
             URI uri = clientConfiguration.option(SdkClientOption.ENDPOINT);
             Span<?> span = null;
+            boolean isSqs = false;
             if ("S3".equalsIgnoreCase(awsService)) {
                 span = S3Helper.getInstance().startSpan(sdkRequest, uri, executionContext);
             } else if ("DynamoDb".equalsIgnoreCase(awsService)) {
                 span = DynamoDbHelper.getInstance().startSpan(sdkRequest, uri, executionContext);
             } else if ("Sqs".equalsIgnoreCase(awsService)) {
                 span = SQSHelper.getInstance().startSpan(sdkRequest, uri, executionContext);
+                isSqs = true;
             }
 
             if (span != null) {
                 span.activate();
             }
 
-            SQSHelper.getInstance().modifyRequestObject(tracer.currentContext(), clientExecutionParams, executionContext);
+            if (isSqs) {
+                SQSHelper.getInstance().modifyRequestObject(tracer.currentContext(), clientExecutionParams, executionContext);
+            }
 
             return span;
         }
