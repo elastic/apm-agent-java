@@ -16,6 +16,12 @@
     </properties>
 
     <dependencies>
+        <!-- This plugin requires further refactoring to avoid agent dependencies. -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- log4j 1.x -->
         <dependency>

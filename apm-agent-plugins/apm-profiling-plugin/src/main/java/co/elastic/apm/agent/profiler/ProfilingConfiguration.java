@@ -29,8 +29,8 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import java.util.Arrays;
 import java.util.List;
 
-import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
-import static co.elastic.apm.agent.configuration.validation.RangeValidator.min;
+import static co.elastic.apm.agent.tracer.configuration.RangeValidator.isInRange;
+import static co.elastic.apm.agent.tracer.configuration.RangeValidator.min;
 
 public class ProfilingConfiguration extends ConfigurationOptionProvider {
 

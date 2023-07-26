@@ -146,6 +146,7 @@ public class ElasticApmTracer implements Tracer {
         configs.put(co.elastic.apm.agent.tracer.configuration.MetricsConfiguration.class, MetricsConfiguration.class);
         configs.put(co.elastic.apm.agent.tracer.configuration.ReporterConfiguration.class, ReporterConfiguration.class);
         configs.put(co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration.class, ServerlessConfiguration.class);
+        configs.put(co.elastic.apm.agent.tracer.configuration.StacktraceConfiguration.class, StacktraceConfiguration.class);
     }
 
     private static void checkClassloader() {

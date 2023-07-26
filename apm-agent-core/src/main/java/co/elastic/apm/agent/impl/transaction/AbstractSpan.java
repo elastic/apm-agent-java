@@ -572,6 +572,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
                 try {
                     if (bufferedSpan.compareAndSet(buffered, null)) {
                         this.tracer.endSpan(buffered);
+                        logger.trace("span compression buffer was set to null and {} was ended", buffered);
                     }
                 } finally {
                     buffered.decrementReferences();

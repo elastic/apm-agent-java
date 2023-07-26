@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.reactor;
 
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
@@ -47,7 +47,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
 
     private static final AtomicBoolean isRegistered = GlobalVariables.get(ReactorInstrumentation.class, "reactor-hook-enabled", new AtomicBoolean(false));
 
-    private static final ReferenceCountedMap<TracedSubscriber<?>, AbstractSpan<?>> contextMap = GlobalTracer.get().newReferenceCountedMap();
+    private static final ReferenceCountedMap<TracedSubscriber<?>, ElasticContext<?>> contextMap = GlobalTracer.get().newReferenceCountedMap();
 
     private static final String HOOK_KEY = "elastic-apm";
 
@@ -57,13 +57,13 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
 
     private final Context context;
 
-    TracedSubscriber(CoreSubscriber<? super T> subscriber, Tracer tracer, AbstractSpan<?> context) {
+    TracedSubscriber(CoreSubscriber<? super T> subscriber, Tracer tracer, ElasticContext<?> context) {
         this.subscriber = subscriber;
         this.tracer = tracer;
         contextMap.put(this, context);
 
         // store our span/transaction into reactor context for later lookup without relying on active tracer state
-        this.context = subscriber.currentContext().put(AbstractSpan.class, context);
+        this.context = subscriber.currentContext().put(ElasticContext.class, context);
     }
 
     @Override
@@ -78,7 +78,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
      */
     @Override
     public void onSubscribe(Subscription s) {
-        AbstractSpan<?> context = getContext();
+        ElasticContext<?> context = getContext();
         boolean hasActivated = doEnter("onSubscribe", context);
         Throwable thrown = null;
         try {
@@ -99,7 +99,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
      */
     @Override
     public void onNext(T next) {
-        AbstractSpan<?> context = getContext();
+        ElasticContext<?> context = getContext();
         boolean hasActivated = doEnter("onNext", context);
         Throwable thrown = null;
         try {
@@ -120,7 +120,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
      */
     @Override
     public void onError(Throwable t) {
-        AbstractSpan<?> context = getContext();
+        ElasticContext<?> context = getContext();
         boolean hasActivated = doEnter("onError", context);
         try {
             subscriber.onError(t);
@@ -135,7 +135,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
      */
     @Override
     public void onComplete() {
-        AbstractSpan<?> context = getContext();
+        ElasticContext<?> context = getContext();
         boolean hasActivated = doEnter("onComplete", context);
         try {
             subscriber.onComplete();
@@ -152,10 +152,10 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
      * @param context context
      * @return {@literal true} if context has been activated
      */
-    private boolean doEnter(String method, @Nullable AbstractSpan<?> context) {
+    private boolean doEnter(String method, @Nullable ElasticContext<?> context) {
         debugTrace(true, method, context);
 
-        if (context == null || tracer.getActive() == context) {
+        if (context == null || tracer.currentContext() == context) {
             // already activated or discarded
             return false;
         }
@@ -171,14 +171,14 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
      * @param method     method name (only for debugging)
      * @param context    context
      */
-    private void doExit(boolean deactivate, String method, @Nullable AbstractSpan<?> context) {
+    private void doExit(boolean deactivate, String method, @Nullable ElasticContext<?> context) {
         debugTrace(false, method, context);
 
         if (context == null || !deactivate) {
             return;
         }
 
-        if (context != tracer.getActive()) {
+        if (context != tracer.currentContext()) {
             // don't attempt to deactivate if not the active one
             return;
         }
@@ -194,7 +194,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
         contextMap.remove(this);
     }
 
-    private void debugTrace(boolean isEnter, String method, @Nullable AbstractSpan<?> context) {
+    private void debugTrace(boolean isEnter, String method, @Nullable ElasticContext<?> context) {
         if (!log.isTraceEnabled()) {
             return;
         }
@@ -205,7 +205,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
      * @return context associated with {@literal this}.
      */
     @Nullable
-    private AbstractSpan<?> getContext() {
+    private ElasticContext<?> getContext() {
         return contextMap.get(this);
     }
 
@@ -252,19 +252,19 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
                 }
 
                 // use active span/transaction if directly active
-                AbstractSpan<?> active = tracer.getActive();
+                ElasticContext<?> active = tracer.currentContext();
 
                 // fallback to using context-stored span/transaction if not already active
-                if (active == null) {
-                    active = subscriber.currentContext().getOrDefault(AbstractSpan.class, null);
+                if (active.isEmpty()) {
+                    active = subscriber.currentContext().getOrDefault(ElasticContext.class, null);
                 }
 
-                if (active == null) {
+                if (active == null || active.isEmpty()) {
                     // no active context, we have nothing to wrap
                     return subscriber;
                 }
 
-                if(log.isTraceEnabled()) {
+                if (log.isTraceEnabled()) {
                     log.trace("wrapping subscriber {} publisher {} with active span/transaction {}", safeToString(subscriber), publisher, active);
                 }
 

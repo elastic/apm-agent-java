@@ -62,7 +62,7 @@ public abstract class EventLoopInstrumentation extends Vertx4Instrumentation {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             @Advice.AssignReturned.ToArguments(@ToArgument(value = 1))
             public static Handler<Long> setTimerEnter(@Advice.Argument(value = 1) Handler<Long> handler) {
-                return SetTimerWrapper.wrapTimerIfActiveSpan(handler);
+                return SetTimerWrapper.wrapTimerIfNonEmptyContext(handler);
             }
         }
 
@@ -124,7 +124,7 @@ public abstract class EventLoopInstrumentation extends Vertx4Instrumentation {
         @Advice.AssignReturned.ToArguments(@ToArgument(value = 1))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Handler<?> executeBlockingEnter(@Advice.Argument(value = 1) Handler<?> handler) {
-            return GenericHandlerWrapper.wrapIfActiveSpan(handler);
+            return GenericHandlerWrapper.wrapIfNonEmptyContext(handler);
         }
     }
 }

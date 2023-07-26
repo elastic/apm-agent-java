@@ -18,7 +18,8 @@
  */
 package co.elastic.apm.agent.vertx.v4.webclient;
 
-import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.vertx.AbstractVertxWebClientHelper;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import co.elastic.apm.agent.vertx.v4.Vertx4Instrumentation;
@@ -40,7 +41,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public abstract class HttpContextInstrumentation extends Vertx4Instrumentation {
 
-    protected static final String WEB_CLIENT_PARENT_SPAN_KEY = AbstractVertxWebClientHelper.class.getName() + ".parent";
+    protected static final String WEB_CLIENT_PARENT_CONTEXT_KEY = HttpContextInstrumentation.class.getName() + ".parent";
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -78,13 +79,12 @@ public abstract class HttpContextInstrumentation extends Vertx4Instrumentation {
 
         public static class HttpContextPrepareRequestAdvice extends AdviceBase {
 
-
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void prepareRequest(@Advice.This HttpContext<?> httpContext) {
-                AbstractSpan<?> activeSpan = tracer.getActive();
-                if (null != activeSpan) {
-                    activeSpan.incrementReferences();
-                    httpContext.set(WEB_CLIENT_PARENT_SPAN_KEY, activeSpan);
+                ElasticContext<?> currentContext = tracer.currentContext();
+                if (!currentContext.isEmpty()) {
+                    currentContext.incrementReferences();
+                    httpContext.set(WEB_CLIENT_PARENT_CONTEXT_KEY, currentContext);
                 }
             }
         }
@@ -110,24 +110,26 @@ public abstract class HttpContextInstrumentation extends Vertx4Instrumentation {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void sendRequest(@Advice.This HttpContext<?> httpContext, @Advice.Argument(value = 0) HttpClientRequest request, @Advice.FieldValue(value = "context") Context vertxContext) {
-                Object parentSpan = httpContext.get(WEB_CLIENT_PARENT_SPAN_KEY);
+                ElasticContext<?> parent = httpContext.get(WEB_CLIENT_PARENT_CONTEXT_KEY);
 
-                if (parentSpan != null) {
+                if (parent != null) {
                     // Setting to null removes from the context attributes map
-                    httpContext.set(WEB_CLIENT_PARENT_SPAN_KEY, null);
-                    ((AbstractSpan<?>) parentSpan).decrementReferences();
+                    httpContext.set(WEB_CLIENT_PARENT_CONTEXT_KEY, null);
                 } else {
-                    parentSpan = vertxContext.getLocal(AbstractVertxWebHelper.CONTEXT_TRANSACTION_KEY);
+                    Transaction<?> vertxTransaction = vertxContext.getLocal(AbstractVertxWebHelper.CONTEXT_TRANSACTION_KEY);
+                    if (vertxTransaction != null) {
+                        vertxTransaction.activate();
+                        parent = tracer.currentContext();
+                        parent.incrementReferences();
+                        vertxTransaction.deactivate();
+                    }
                 }
 
-                if (parentSpan != null) {
-                    AbstractSpan<?> parent = (AbstractSpan<?>) parentSpan;
-                    //TODO: do actual context propagation instead of span propagation
-                    parent.activate();
+                if (parent != null) {
                     try {
-                        webClientHelper.startSpan(tracer.currentContext(), httpContext, request);
+                        webClientHelper.startSpanOrFollowRedirect(parent, httpContext, request);
                     } finally {
-                        parent.deactivate();
+                        parent.decrementReferences();
                     }
                 }
             }
@@ -179,17 +181,17 @@ public abstract class HttpContextInstrumentation extends Vertx4Instrumentation {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void fail(@Advice.This HttpContext<?> httpContext, @Advice.Argument(value = 0) Throwable thrown) {
-
-                AbstractSpan<?> parent = null;
-                Object parentFromContext = httpContext.get(WEB_CLIENT_PARENT_SPAN_KEY);
-                if (parentFromContext != null) {
-                    parent = (AbstractSpan<?>) parentFromContext;
-
-                    // Setting to null removes from the context attributes map
-                    httpContext.set(WEB_CLIENT_PARENT_SPAN_KEY, null);
-                    parent.decrementReferences();
+                ElasticContext<?> parent = httpContext.get(WEB_CLIENT_PARENT_CONTEXT_KEY);
+                if (parent != null) {
+                    httpContext.set(WEB_CLIENT_PARENT_CONTEXT_KEY, null);
+                    try {
+                        webClientHelper.failSpan(httpContext, thrown, parent.getSpan());
+                    } finally {
+                        parent.decrementReferences();
+                    }
+                } else {
+                    webClientHelper.failSpan(httpContext, thrown, null);
                 }
-                webClientHelper.failSpan(httpContext, thrown, parent);
             }
         }
     }
