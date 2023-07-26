@@ -35,6 +35,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ===== Features
 * Added W3C baggage propagation - {pull}3236[#3236]
 * Added support for baggage in OpenTelemetry bridge - {pull}3249[#3249]
+* Improved span naming and attribute collection for 7.16+ elasticsearch clients - {pull}3157[#3157]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
@@ -45,7 +46,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Capture `container.id` for cgroups v2 - {pull}3199[#3199]
-* Improved span naming and attribute collection for 7.16+ elasticsearch clients - {pull}3157[#3157]
 
 [float]
 ===== Bug fixes
