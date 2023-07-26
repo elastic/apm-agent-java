@@ -40,6 +40,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Bug fixes
 * Fixed SQS NoClassDefFoundError in AWS SDK instrumentation - {pull}3254[#3254]
+* Fixed reference counting issues in elasticsearch instrumentation - {pull}3256[#3256]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
