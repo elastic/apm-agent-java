@@ -243,11 +243,11 @@ public class TraceState implements Recyclable {
     }
 
     /**
-     * NOT THREAD SAFE! Uses a shared string builder.
+     * Needs to be synchronized because of the use of the instance field StringBuilder.
      *
      * @return the text header generated from {@link #tracestate}.
      */
-    private String generateTracestateHeader() {
+    private synchronized String generateTracestateHeader() {
         String singleEntry = tracestate.size() != 1 ? null : tracestate.get(0);
         if (singleEntry != null && singleEntry.length() <= sizeLimit) {
             return singleEntry;
