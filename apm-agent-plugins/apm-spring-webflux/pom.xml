@@ -29,6 +29,11 @@
     </modules>
 
     <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- required to test integration with servlet instrumentation -->
         <dependency>

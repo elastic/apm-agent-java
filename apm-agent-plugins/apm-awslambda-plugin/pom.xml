@@ -17,6 +17,12 @@
     </properties>
 
     <dependencies>
+        <!-- This plugin requires further refactoring to avoid agent dependencies. -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-lambda-java-core</artifactId>

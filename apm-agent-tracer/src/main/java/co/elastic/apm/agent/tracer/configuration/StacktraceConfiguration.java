@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@NonnullApi
-package co.elastic.apm.agent.configuration.validation;
+package co.elastic.apm.agent.tracer.configuration;
 
-import co.elastic.apm.agent.sdk.NonnullApi;
+import java.util.Collection;
+
+public interface StacktraceConfiguration {
+    Collection<String> getApplicationPackages();
+}

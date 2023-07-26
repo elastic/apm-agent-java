@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.configuration.validation;
+package co.elastic.apm.agent.tracer.configuration;
 
+import co.elastic.apm.agent.tracer.configuration.RegexValidator;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.Test;
 

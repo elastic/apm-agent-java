@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.configuration.validation;
+package co.elastic.apm.agent.tracer.configuration;
 
 import org.stagemonitor.configuration.ConfigurationOption;
 
