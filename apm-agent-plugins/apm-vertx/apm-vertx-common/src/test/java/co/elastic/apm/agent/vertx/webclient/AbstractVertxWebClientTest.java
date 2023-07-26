@@ -97,11 +97,6 @@ public abstract class AbstractVertxWebClientTest extends AbstractHttpClientInstr
         doVerifyFailedRequestHttpSpan("not-existing.com", "/error");
     }
 
-    @Override
-    public void testBaggagePropagatedWithoutTrace() {
-        //TODO: remove this NOOP override when vert-x context propagation (instead of span-propagation) is correctly implemented
-    }
-
     protected void doVerifyFailedRequestHttpSpan(String host, String path) {
         expectSpan(path)
             .withHost(host)

@@ -1,18 +1,16 @@
 package co.elastic.apm.agent.scalaconcurrent
 
-import java.util.concurrent.Executors
-
 import co.elastic.apm.agent.MockReporter
 import co.elastic.apm.agent.bci.ElasticApmAgent
 import co.elastic.apm.agent.configuration.{CoreConfiguration, SpyConfiguration}
-import co.elastic.apm.agent.impl.transaction.Transaction
 import co.elastic.apm.agent.impl.{ElasticApmTracer, ElasticApmTracerBuilder}
 import munit.FunSuite
 import net.bytebuddy.agent.ByteBuddyAgent
 import org.stagemonitor.configuration.ConfigurationRegistry
 
+import java.util.concurrent.Executors
+import scala.concurrent._
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future, Promise}
 import scala.util.{Failure, Success}
 
 class FutureInstrumentationSpec extends FunSuite {
@@ -20,7 +18,6 @@ class FutureInstrumentationSpec extends FunSuite {
   private var reporter: MockReporter = _
   private var tracer: ElasticApmTracer = _
   private var coreConfiguration: CoreConfiguration = _
-  private var transaction: Transaction = _
 
   override def beforeEach(context: BeforeEach): Unit = {
     reporter = new MockReporter
@@ -29,7 +26,6 @@ class FutureInstrumentationSpec extends FunSuite {
     tracer = new ElasticApmTracerBuilder().configurationRegistry(config).reporter(reporter).build
     ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install)
     tracer.start(false)
-    transaction = tracer.startRootTransaction(getClass.getClassLoader).withName("Transaction").activate()
   }
 
   override def afterEach(context: AfterEach): Unit = ElasticApmAgent.reset()
@@ -38,7 +34,8 @@ class FutureInstrumentationSpec extends FunSuite {
     implicit val executionContext: ExecutionContextExecutor =
       ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1))
 
-    val future =  Future("Test")
+    val transaction = tracer.startRootTransaction(getClass.getClassLoader).withName("Transaction").activate()
+    val future = Future("Test")
       .map(_.length)
       .flatMap(l => Future(l * 2))
       .map(_.toString)
@@ -51,7 +48,30 @@ class FutureInstrumentationSpec extends FunSuite {
       reporter.getTransactions.get(0).getContext.getCustom("future").asInstanceOf[Boolean],
       true
     )
+  }
 
+  test("Scala Future should propagate Baggage across different threads") {
+
+    implicit val executionContext: ExecutionContextExecutor =
+      ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1))
+
+    val baggageContext = tracer.currentContext().withUpdatedBaggage()
+      .put("foo", "bar")
+      .buildContext()
+      .activate()
+    val future = Future("Test")
+      .map(_.length)
+      .flatMap(l => Future(l * 2))
+      .map(_.toString)
+      .flatMap(s => Future(s"$s-$s"))
+      .map(_ =>
+        tracer.currentContext()
+      )
+
+    baggageContext.deactivate();
+
+    val activeCtx = Await.result(future, 10.seconds)
+    assertEquals(activeCtx.getBaggage.get("foo"), "bar")
 
   }
 
@@ -59,6 +79,7 @@ class FutureInstrumentationSpec extends FunSuite {
     implicit val executionContext: ExecutionContextExecutor =
       ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1))
 
+    val transaction = tracer.startRootTransaction(getClass.getClassLoader).withName("Transaction").activate()
     new TestFutureTraceMethods().invokeAsync(tracer)
     transaction.deactivate().end()
     assertEquals(reporter.getTransactions.size(), 1)
@@ -74,6 +95,7 @@ class FutureInstrumentationSpec extends FunSuite {
     implicit val multiPoolEc: ExecutionContextExecutor =
       ExecutionContext.fromExecutor(Executors.newFixedThreadPool(3))
 
+    val transaction = tracer.startRootTransaction(getClass.getClassLoader).withName("Transaction").activate()
     val future = Future
       .traverse(1 to 100) { _ =>
         Future.sequence(List(
@@ -114,6 +136,7 @@ class FutureInstrumentationSpec extends FunSuite {
     implicit val multiPoolEc: ExecutionContextExecutor =
       ExecutionContext.fromExecutor(Executors.newFixedThreadPool(3))
 
+    val transaction = tracer.startRootTransaction(getClass.getClassLoader).withName("Transaction").activate()
     val promise = Promise[Int]()
 
     Future { Thread.sleep(100) }
@@ -141,6 +164,7 @@ class FutureInstrumentationSpec extends FunSuite {
     implicit val multiPoolEc: ExecutionContextExecutor =
       ExecutionContext.fromExecutor(Executors.newFixedThreadPool(3))
 
+    val transaction = tracer.startRootTransaction(getClass.getClassLoader).withName("Transaction").activate()
     val future = Future
       .sequence(List(
         Future(Thread.sleep(25))
@@ -161,6 +185,7 @@ class FutureInstrumentationSpec extends FunSuite {
     implicit val multiPoolEc: ExecutionContextExecutor =
       ExecutionContext.fromExecutor(Executors.newFixedThreadPool(3))
 
+    val transaction = tracer.startRootTransaction(getClass.getClassLoader).withName("Transaction").activate()
     val promise = Promise[Int]()
 
       Future
