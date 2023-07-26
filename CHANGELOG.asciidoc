@@ -36,6 +36,10 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 * Added W3C baggage propagation - {pull}3236[#3236]
 * Added support for baggage in OpenTelemetry bridge - {pull}3249[#3249]
 
+[float]
+===== Bug fixes
+* Fixed SQS NoClassDefFoundError in AWS SDK instrumentation - {pull}3254[#3254]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
