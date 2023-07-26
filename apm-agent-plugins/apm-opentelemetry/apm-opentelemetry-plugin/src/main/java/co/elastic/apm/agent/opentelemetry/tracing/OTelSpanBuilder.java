@@ -19,12 +19,14 @@
 package co.elastic.apm.agent.opentelemetry.tracing;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.MultiValueMapAccessor;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.opentelemetry.baggage.OtelBaggage;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
@@ -58,9 +60,7 @@ class OTelSpanBuilder implements SpanBuilder {
     private final Map<AttributeKey<?>, Object> attributes = new HashMap<>();
     private long epochMicros = -1;
     @Nullable
-    private AbstractSpan<?> parent;
-    @Nullable
-    private Context remoteContext;
+    private Context parent;
 
     private List<SpanContext> links = new ArrayList<>();
 
@@ -74,19 +74,13 @@ class OTelSpanBuilder implements SpanBuilder {
 
     @Override
     public SpanBuilder setParent(Context context) {
-        Span span = Span.fromContext(context);
-        if (span.getSpanContext().isRemote()) {
-            remoteContext = context;
-        } else if (span instanceof OTelSpan) {
-            parent = ((OTelSpan) span).getInternalSpan();
-        }
+        parent = context;
         return this;
     }
 
     @Override
     public SpanBuilder setNoParent() {
         parent = null;
-        remoteContext = null;
         return this;
     }
 
@@ -151,19 +145,32 @@ class OTelSpanBuilder implements SpanBuilder {
     public Span startSpan() {
         AbstractSpan<?> span;
 
-        if (parent == null) {
+        Baggage parentBaggage;
+        AbstractSpan<?> parentSpan = null;
+        Context remoteContext = null;
+
+        if (parent != null) {
+            Span parentOtelSpan = Span.fromContext(parent);
+            if (parentOtelSpan.getSpanContext().isRemote()) {
+                remoteContext = parent;
+            } else if (parentOtelSpan instanceof OTelSpan) {
+                parentSpan = ((OTelSpan) parentOtelSpan).getInternalSpan();
+            }
+            parentBaggage = OtelBaggage.toElasticBaggage(io.opentelemetry.api.baggage.Baggage.fromContext(parent));
+        } else {
             // when parent is not explicitly set, the currently active parent is used as fallback
-            parent = elasticApmTracer.getActive();
+            parentSpan = elasticApmTracer.currentContext().getSpan();
+            parentBaggage = elasticApmTracer.currentContext().getBaggage();
         }
 
         if (remoteContext != null) {
             PotentiallyMultiValuedMap headers = new PotentiallyMultiValuedMap(2);
             W3CTraceContextPropagator.getInstance().inject(remoteContext, headers, PotentiallyMultiValuedMap::add);
-            span = elasticApmTracer.startChildTransaction(headers, MultiValueMapAccessor.INSTANCE, PrivilegedActionUtils.getClassLoader(getClass()), epochMicros);
-        } else if (parent == null) {
-            span = elasticApmTracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(getClass()), epochMicros);
+            span = elasticApmTracer.startChildTransaction(headers, MultiValueMapAccessor.INSTANCE, PrivilegedActionUtils.getClassLoader(getClass()), parentBaggage, epochMicros);
+        } else if (parentSpan == null) {
+            span = elasticApmTracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(getClass()), parentBaggage, epochMicros);
         } else {
-            span = elasticApmTracer.startSpan(parent, epochMicros);
+            span = elasticApmTracer.startSpan(parentSpan, parentBaggage, epochMicros);
         }
         if (span == null) {
             return Span.getInvalid();

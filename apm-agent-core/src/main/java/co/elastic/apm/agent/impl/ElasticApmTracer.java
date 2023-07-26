@@ -29,6 +29,7 @@ import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
@@ -107,10 +108,12 @@ public class ElasticApmTracer implements Tracer {
     private final Reporter reporter;
     private final ObjectPoolFactory objectPoolFactory;
 
+    private final EmptyElasticContext emptyContext;
+
     private final ThreadLocal<ActiveStack> activeStack = new ThreadLocal<ActiveStack>() {
         @Override
         protected ActiveStack initialValue() {
-            return new ActiveStack(transactionMaxSpans);
+            return new ActiveStack(transactionMaxSpans, emptyContext);
         }
     };
 
@@ -143,6 +146,7 @@ public class ElasticApmTracer implements Tracer {
         configs.put(co.elastic.apm.agent.tracer.configuration.MetricsConfiguration.class, MetricsConfiguration.class);
         configs.put(co.elastic.apm.agent.tracer.configuration.ReporterConfiguration.class, ReporterConfiguration.class);
         configs.put(co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration.class, ServerlessConfiguration.class);
+        configs.put(co.elastic.apm.agent.tracer.configuration.StacktraceConfiguration.class, StacktraceConfiguration.class);
     }
 
     private static void checkClassloader() {
@@ -186,6 +190,7 @@ public class ElasticApmTracer implements Tracer {
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, MetricRegistry metricRegistry, Reporter reporter, ObjectPoolFactory poolFactory,
                      ApmServerClient apmServerClient, final String ephemeralId, MetaDataFuture metaDataFuture) {
+        this.emptyContext = new EmptyElasticContext(this);
         this.metricRegistry = metricRegistry;
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
@@ -241,21 +246,33 @@ public class ElasticApmTracer implements Tracer {
     @Override
     @Nullable
     public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader) {
-        return startRootTransaction(sampler, -1, initiatingClassLoader);
+        return startRootTransaction(sampler, -1, currentContext().getBaggage(), initiatingClassLoader);
     }
 
     @Override
     @Nullable
     public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader, long epochMicro) {
-        return startRootTransaction(sampler, epochMicro, initiatingClassLoader);
+        return startRootTransaction(sampler, epochMicro, currentContext().getBaggage(), initiatingClassLoader);
+    }
+
+    @Nullable
+    @Override
+    public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader, Baggage baseBaggage, long epochMicro) {
+        return startRootTransaction(sampler, epochMicro, baseBaggage, initiatingClassLoader);
+    }
+
+
+    @Nullable
+    public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+        return startRootTransaction(sampler, epochMicros, currentContext().getBaggage(), initiatingClassLoader);
     }
 
     @Override
     @Nullable
-    public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+    public Transaction startRootTransaction(Sampler sampler, long epochMicros, Baggage baseBaggage, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction = null;
         if (isRunning()) {
-            transaction = createTransaction().startRoot(epochMicros, sampler);
+            transaction = createTransaction().startRoot(epochMicros, sampler, baseBaggage);
             afterTransactionStart(initiatingClassLoader, transaction);
         }
         return transaction;
@@ -269,7 +286,7 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     @Nullable
-    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, long epochMicros) {
+    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, Baggage baseBaggage, long epochMicros) {
         return startChildTransaction(headerCarrier, textHeadersGetter, sampler, epochMicros, initiatingClassLoader);
     }
 
@@ -277,10 +294,15 @@ public class ElasticApmTracer implements Tracer {
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler,
                                                  long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+        return startChildTransaction(headerCarrier, textHeadersGetter, sampler, epochMicros, currentContext().getBaggage(), initiatingClassLoader);
+    }
+
+    private <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler,
+                                                  long epochMicros, Baggage baseBaggage, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction = null;
         if (isRunning()) {
             transaction = createTransaction().start(TraceContext.<C>getFromTraceContextTextHeaders(), headerCarrier,
-                textHeadersGetter, epochMicros, sampler);
+                textHeadersGetter, epochMicros, sampler, baseBaggage);
             afterTransactionStart(initiatingClassLoader, transaction);
         }
         return transaction;
@@ -298,8 +320,9 @@ public class ElasticApmTracer implements Tracer {
                                                  Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction = null;
         if (isRunning()) {
+            Baggage baseBaggage = currentContext().getBaggage();
             transaction = createTransaction().start(TraceContext.<C>getFromTraceContextBinaryHeaders(), headerCarrier,
-                binaryHeadersGetter, epochMicros, sampler);
+                binaryHeadersGetter, epochMicros, sampler, baseBaggage);
             afterTransactionStart(initiatingClassLoader, transaction);
         }
         return transaction;
@@ -347,22 +370,33 @@ public class ElasticApmTracer implements Tracer {
      * @param parentContext the trace context of the parent
      * @return a new started span
      */
-    public <T> Span startSpan(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext) {
-        return startSpan(childContextCreator, parentContext, -1);
+    /**
+     * Starts a span with a given parent context.
+     * <p>
+     * This method makes it possible to start a span after the parent has already ended.
+     * </p>
+     *
+     * @param childContextCreator extracts the trace context to generate based on the provided parent
+     * @param parentContext       the trace context of the parent
+     * @param baggage             the baggage to use for the newly created span
+     * @param <T>                 the type of the parent context
+     * @return a new started span
+     */
+    public <T> Span startSpan(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, Baggage baggage) {
+        return startSpan(childContextCreator, parentContext, baggage, -1);
     }
 
-    public Span startSpan(AbstractSpan<?> parent, long epochMicros) {
-        return startSpan(TraceContext.fromParent(), parent, epochMicros);
+    public Span startSpan(AbstractSpan<?> parent, Baggage baggage, long epochMicros) {
+        return startSpan(TraceContext.fromParent(), parent, baggage, epochMicros);
     }
 
     /**
      * @param parentContext the trace context of the parent
      * @param epochMicros   the start timestamp of the span in microseconds after epoch
      * @return a new started span
-     * @see #startSpan(ChildContextCreator, Object)
      */
-    public <T> Span startSpan(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
-        return createSpan().start(childContextCreator, parentContext, epochMicros);
+    public <T> Span startSpan(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, Baggage baggage, long epochMicros) {
+        return createSpan().start(childContextCreator, parentContext, baggage, epochMicros);
     }
 
     private Span createSpan() {

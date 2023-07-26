@@ -18,10 +18,12 @@
  */
 package co.elastic.apm.agent.testutils.assertions;
 
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.testutils.assertions.metrics.MetricSetsAssert;
 
@@ -52,7 +54,15 @@ public class Assertions extends org.assertj.core.api.Assertions {
         return new AbstractSpanAssert<>(span, AbstractSpanAssert.class);
     }
 
+    public static ElasticContextAssert<?, ?> assertThat(ElasticContext<?> span) {
+        return new ElasticContextAssert<>(span, ElasticContextAssert.class);
+    }
+
     public static MetricSetsAssert assertThatMetricSets(Collection<byte[]> metricsetsJson) {
         return new MetricSetsAssert(metricsetsJson);
+    }
+
+    public static BaggageAssert assertThat(Baggage baggage) {
+        return new BaggageAssert(baggage);
     }
 }
