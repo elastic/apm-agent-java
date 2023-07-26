@@ -81,6 +81,11 @@ public class BaggageContext extends ElasticContext<BaggageContext> {
             return this;
         }
 
+        public Builder put(String key, @Nullable String value, @Nullable String metadata) {
+            baggageBuilder.put(key, value, metadata);
+            return this;
+        }
+
         @Override
         public Builder remove(String key) {
             baggageBuilder.put(key, null);

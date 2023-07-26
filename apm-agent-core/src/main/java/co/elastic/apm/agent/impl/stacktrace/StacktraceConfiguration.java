@@ -50,7 +50,10 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
             "`-Delastic.apm.application_packages=com.myproject`\n" +
             "\n" +
             "If you are only interested in specific subpackages, you can separate them with commas:\n" +
-            "`-Delastic.apm.application_packages=com.myproject.api,com.myproject.impl`")
+            "`-Delastic.apm.application_packages=com.myproject.api,com.myproject.impl`\n\n" +
+            "NOTE: the instrumentation aspect of this configuration option - specifying which classes to scan" +
+            " - only applies at startup of the agent and changing the value later won't affect which classes" +
+            "got scanned. The UI aspect, showing where stack frames can be collapsed, can be changed at any time.")
         .dynamic(true)
         .buildWithDefault(Collections.<String>emptyList());
 

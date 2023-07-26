@@ -23,6 +23,8 @@ import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.tracer.Outcome;
+import io.opentelemetry.api.baggage.Baggage;
+import io.opentelemetry.api.baggage.BaggageEntryMetadata;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
@@ -59,12 +61,19 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
     @Test
     public void testTransaction() {
-        otelTracer.spanBuilder("transaction")
-            .startSpan()
-            .end();
+
+        try (Scope sc = Baggage.builder().put("foo", "bar").build().makeCurrent()) {
+            otelTracer.spanBuilder("transaction")
+                .startSpan()
+                .end();
+        }
+
         assertThat(reporter.getTransactions()).hasSize(1);
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo("transaction");
+        assertThat(transaction.getBaggage())
+            .hasSize(1)
+            .containsEntry("foo", "bar");
 
         assertThat(transaction.getOtelKind())
             .describedAs("default span kind should be internal when not set explicitly")
@@ -90,12 +99,43 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         assertThat(transaction.getOtelAttributes().get("string")).isEqualTo("hello");
     }
 
+
+    @Test
+    public void testBaggageInteroperability() {
+        ElasticContext<?> elasticContext = tracer.currentContext().withUpdatedBaggage()
+            .put("foo", "elastic")
+            .put("bar", "el2", "metadata")
+            .buildContext()
+            .activate();
+
+        assertThat(Baggage.current().size()).isEqualTo(2);
+        assertThat(Baggage.current().getEntryValue("foo")).isEqualTo("elastic");
+        assertThat(Baggage.current().asMap().get("foo").getMetadata().getValue()).isEqualTo("");
+        assertThat(Baggage.current().getEntryValue("bar")).isEqualTo("el2");
+        assertThat(Baggage.current().asMap().get("bar").getMetadata().getValue()).isEqualTo("metadata");
+
+        elasticContext.deactivate();
+
+        Baggage otelBaggage = Baggage.builder()
+            .put("foo", "otel")
+            .put("bar", "otel2", BaggageEntryMetadata.create("otel-meta"))
+            .build();
+        try (Scope scope = otelBaggage.makeCurrent()) {
+            assertThat(tracer.currentContext().getBaggage())
+                .hasSize(2)
+                .containsEntry("foo", "otel", null)
+                .containsEntry("bar", "otel2", "otel-meta");
+        }
+
+    }
+
     @Test
     public void testTransactionWithSpanManualPropagation() {
         Span transaction = otelTracer.spanBuilder("transaction")
             .startSpan();
+        Baggage baggage = Baggage.builder().put("foo", "bar").build();
         otelTracer.spanBuilder("span")
-            .setParent(Context.root().with(transaction))
+            .setParent(Context.root().with(transaction).with(baggage))
             .startSpan()
             .end();
         transaction.end();
@@ -106,6 +146,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         assertThat(reportedTransaction.getNameAsString()).isEqualTo("transaction");
 
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("span");
+        assertThat(reporter.getFirstSpan()).hasBaggage("foo", "bar");
         assertThat(reporter.getFirstSpan().isChildOf(reporter.getFirstTransaction())).isTrue();
     }
 
@@ -126,6 +167,25 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("transaction");
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("span");
         assertThat(reporter.getFirstSpan().isChildOf(reporter.getFirstTransaction())).isTrue();
+    }
+
+
+    @Test
+    public void testOtelBaggageOnElasticSpan() {
+
+        Baggage baggage = Baggage.builder().put("foo", "bar").build();
+        try (Scope scope = baggage.makeCurrent()) {
+            Transaction tr = tracer.startRootTransaction(null).activate();
+            assertThat(tr).hasBaggage("foo", "bar");
+            Baggage baggage2 = Baggage.builder().put("foo2", "bar2").build();
+            try (Scope scope2 = baggage2.makeCurrent()) {
+                co.elastic.apm.agent.impl.transaction.Span elasticSpan = tracer.currentContext().createSpan();
+                assertThat(elasticSpan)
+                    .hasBaggage("foo2", "bar2")
+                    .hasBaggageCount(1);
+            }
+            tr.deactivate();
+        }
     }
 
     @Test
