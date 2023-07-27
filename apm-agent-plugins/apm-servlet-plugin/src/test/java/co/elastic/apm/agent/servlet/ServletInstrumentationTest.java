@@ -22,6 +22,8 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import okhttp3.Response;
 import org.eclipse.jetty.servlet.ErrorPageErrorHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -77,6 +79,7 @@ class ServletInstrumentationTest extends AbstractServletTest {
         handler.addFilter(TestFilter.class, "/filter/*", EnumSet.of(DispatcherType.REQUEST));
         handler.addServlet(ErrorServlet.class, "/error");
         handler.addServlet(ServletWithRuntimeException.class, "/throw-error");
+        handler.addServlet(ServletWithCustomTransactionType.class, "/custom-type");
         ErrorPageErrorHandler errorHandler = new ErrorPageErrorHandler();
         errorHandler.addErrorPage(404, "/error");
         errorHandler.addErrorPage(500, "/error");
@@ -189,6 +192,12 @@ class ServletInstrumentationTest extends AbstractServletTest {
         assertThat(span.getSubtype()).isEqualTo(SPAN_SUBTYPE);
         assertThat(span.getAction()).isEqualTo(INCLUDE.getAction());
         assertThat(span.getNameAsString()).isEqualTo("INCLUDE /test/path/include-path-info");
+    }
+
+    @Test
+    void testTransactionTypeOverridable() throws Exception {
+        callServlet(1, "/custom-type", "", 200);
+        assertThat(reporter.getFirstTransaction().getType()).isEqualTo("custom-type");
     }
 
     private void callServlet(int expectedTransactions, String path) throws IOException, InterruptedException {
@@ -315,6 +324,18 @@ class ServletInstrumentationTest extends AbstractServletTest {
         public void destroy() {
 
         }
+    }
+
+
+    public static class ServletWithCustomTransactionType extends HttpServlet {
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            Transaction<?> transaction = GlobalTracer.get().currentTransaction();
+            if (transaction != null) {
+                transaction.withType("custom-type");
+            }
+        }
+
     }
 
     public static class TestFilter implements Filter {
