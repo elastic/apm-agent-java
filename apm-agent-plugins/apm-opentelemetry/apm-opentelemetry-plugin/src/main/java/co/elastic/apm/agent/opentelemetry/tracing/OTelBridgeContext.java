@@ -19,9 +19,10 @@
 package co.elastic.apm.agent.opentelemetry.tracing;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.opentelemetry.baggage.OtelBaggage;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.ContextKey;
@@ -33,7 +34,7 @@ import java.util.Objects;
 /**
  * Bridge implementation of OpenTelemetry {@link Context} that allows to provide compatibility with {@link ElasticContext}.
  */
-public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Context, Scope {
+public class OTelBridgeContext extends ElasticContext<OTelBridgeContext> implements Context, Scope {
 
     /**
      * Original root context as returned by {@link Context#root()} before instrumentation.
@@ -52,10 +53,8 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
      */
     private final Context otelContext;
 
-    private final ElasticApmTracer tracer;
-
     private OTelBridgeContext(ElasticApmTracer tracer, Context otelContext) {
-        this.tracer = tracer;
+        super(tracer);
         this.otelContext = otelContext;
     }
 
@@ -83,11 +82,11 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
     /**
      * Bridges an active elastic span to an active OTel span context
      *
-     * @param tracer tracer
-     * @param span   elastic (currently active) span
+     * @param tracer         tracer
+     * @param currentContext elastic (currently active) context
      * @return bridged context with span as active
      */
-    public static OTelBridgeContext wrapElasticActiveSpan(ElasticApmTracer tracer, AbstractSpan<?> span) {
+    public static OTelBridgeContext wrapElasticActiveSpan(ElasticApmTracer tracer, ElasticContext<?> currentContext) {
         if (root == null) {
             // Ensure that root context is being accessed at least once to capture the original root
             // OTel 1.0 directly calls ArrayBasedContext.root() which is not publicly accessible, later versions delegate
@@ -96,25 +95,15 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
         }
         Objects.requireNonNull(originalRootContext, "OTel original context must be set through bridgeRootContext first");
 
-        OTelSpan otelSpan = new OTelSpan(span);
-        return new OTelBridgeContext(tracer, originalRootContext.with(otelSpan));
-    }
+        Context result = originalRootContext;
+        if (currentContext.getSpan() != null) {
+            result = result.with(new OTelSpan(currentContext.getSpan()));
+        }
+        if (!currentContext.getBaggage().isEmpty()) {
+            result = result.with(OtelBaggage.fromElasticBaggage(currentContext.getBaggage()));
+        }
 
-    @Override
-    public OTelBridgeContext activate() {
-        tracer.activate(this);
-        return this;
-    }
-
-    @Override
-    public co.elastic.apm.agent.tracer.Scope activateInScope() {
-        return tracer.activateInScope(this);
-    }
-
-    @Override
-    public OTelBridgeContext deactivate() {
-        tracer.deactivate(this);
-        return this;
+        return new OTelBridgeContext(tracer, result);
     }
 
     @Nullable
@@ -128,12 +117,16 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
         return null;
     }
 
-    @Nullable
     @Override
-    public Transaction getTransaction() {
-        AbstractSpan<?> span = getSpan();
-        return span != null ? span.getTransaction() : null;
+    public Baggage getBaggage() {
+        io.opentelemetry.api.baggage.Baggage otelBaggage = io.opentelemetry.api.baggage.Baggage.fromContext(otelContext);
+
+        if (otelBaggage == null || otelBaggage.isEmpty()) {
+            return Baggage.EMPTY;
+        }
+        return OtelBaggage.toElasticBaggage(otelBaggage);
     }
+
 
     // OTel context implementation
 
@@ -158,5 +151,20 @@ public class OTelBridgeContext implements ElasticContext<OTelBridgeContext>, Con
     @Override
     public String toString() {
         return "OTelBridgeContext[" + otelContext + "]";
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return this == root; //we only know that the root context is empty, other contexts could have any kind of keys
+    }
+
+    @Override
+    public void incrementReferences() {
+        //No need for reference counting: the contained span is always kept alive by the wrapping OTelSpan
+    }
+
+    @Override
+    public void decrementReferences() {
+        //No need for reference counting: the contained span is always kept alive by the wrapping OTelSpan
     }
 }

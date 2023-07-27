@@ -35,11 +35,7 @@ public abstract class AbstractS3InstrumentationHelper<R, C> extends AbstractAwsS
 
     @Nullable
     public Span<?> startSpan(R request, URI httpURI, C context) {
-        AbstractSpan<?> active = tracer.getActive();
-        if (active == null) {
-            return null;
-        }
-        Span<?> span = active.createExitSpan();
+        Span<?> span = tracer.currentContext().createExitSpan();
         if (span == null) {
             return null;
         }

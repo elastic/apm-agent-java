@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.39.1-SNAPSHOT</version>
+        <version>1.40.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -99,6 +99,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-es-restclient-plugin-8_x</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-grails-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -164,7 +169,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jms-plugin-base</artifactId>
+            <artifactId>apm-jms-javax</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jms-jakarta</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

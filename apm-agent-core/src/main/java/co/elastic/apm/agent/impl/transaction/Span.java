@@ -20,17 +20,18 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.context.Url;
-import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.util.CharSequenceUtils;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
+import co.elastic.apm.agent.util.CharSequenceUtils;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -87,7 +88,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.a
         super(tracer);
     }
 
-    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
+    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, Baggage parentBaggage, long epochMicros) {
+        this.baggage = parentBaggage;
         childContextCreator.asChildOf(traceContext, parentContext);
         if (parentContext instanceof Transaction) {
             this.transaction = (Transaction) parentContext;
@@ -280,6 +282,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.a
                         if (parentBuffered != null) {
                             if (parent.bufferedSpan.compareAndSet(parentBuffered, null)) {
                                 this.tracer.endSpan(parentBuffered);
+                                logger.trace("parent span compression buffer was set to null and {} was ended", parentBuffered);
                             }
                         }
                         this.tracer.endSpan(this);
@@ -292,6 +295,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.a
                             // but we're dropping the compression attempt to keep things simple and avoid looping so this stays wait-free
                             // this doesn't exactly diverge from the spec, but it can lead to non-optimal compression under high load
                             this.tracer.endSpan(this);
+                        } else {
+                            logger.trace("parent span compression buffer was set to {}", this);
                         }
                         return;
                     }
@@ -300,6 +305,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.a
                         // we couldn't compress so replace the buffer with this
                         if (parent.bufferedSpan.compareAndSet(parentBuffered, this)) {
                             this.tracer.endSpan(parentBuffered);
+                            logger.trace("parent span compression buffer was set to {} and {} was ended", this, parentBuffered);
                         } else {
                             // the failed update would ideally lead to a compression attempt with the new buffer,
                             // but we're dropping the compression attempt to keep things simple and avoid looping so this stays wait-free
@@ -497,11 +503,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.a
     }
 
     @Override
-    public boolean shouldSkipChildSpanCreation() {
-        return transaction != null && transaction.shouldSkipChildSpanCreation();
-    }
-
-    @Override
     protected void recycle() {
         tracer.recycle(this);
     }
@@ -520,9 +521,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.a
         return stackFrames;
     }
 
-    @Nullable
+
     @Override
-    public Transaction getTransaction() {
+    public Transaction getParentTransaction() {
         return transaction;
     }
 

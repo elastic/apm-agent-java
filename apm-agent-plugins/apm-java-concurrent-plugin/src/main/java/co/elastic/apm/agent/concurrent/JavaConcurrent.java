@@ -19,10 +19,11 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.common.ThreadUtils;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.state.GlobalState;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
@@ -42,7 +43,7 @@ import java.util.concurrent.ForkJoinTask;
 @GlobalState
 public class JavaConcurrent {
 
-    private static final ReferenceCountedMap<Object, AbstractSpan<?>> contextMap = GlobalTracer.get().newReferenceCountedMap();
+    private static final ReferenceCountedMap<Object, ElasticContext<?>> contextMap = GlobalTracer.get().newReferenceCountedMap();
 
     private static final List<Class<? extends ElasticApmInstrumentation>> RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION = Collections.
         <Class<? extends ElasticApmInstrumentation>>singletonList(RunnableCallableForkJoinTaskInstrumentation.class);
@@ -75,24 +76,25 @@ public class JavaConcurrent {
      * Retrieves the context mapped to the provided task and activates it on the current thread.
      * It is the responsibility of the caller to deactivate the returned context at the right time.
      * If the mapped context is already the active span of this thread, this method returns {@code null}.
-     * @param o a task for which running there may be a context to activate
+     *
+     * @param o      a task for which running there may be a context to activate
      * @param tracer the tracer
      * @return the context mapped to the provided task or {@code null} if such does not exist or if the mapped context
      * is already the active one on the current thread.
      */
     @Nullable
-    public static AbstractSpan<?> restoreContext(Object o, Tracer tracer) {
+    public static ElasticContext<?> restoreContext(Object o, Tracer tracer) {
         // When an Executor executes directly on the current thread we need to enable this thread for context propagation again
         needsContext.set(Boolean.TRUE);
 
         // we cannot remove yet, as this decrements the reference count, which may cause already ended spans to be recycled ahead of time
-        AbstractSpan<?> context = contextMap.get(o);
+        ElasticContext<?> context = contextMap.get(o);
         if (context == null) {
             return null;
         }
 
         try {
-            if (tracer.getActive() != context) {
+            if (tracer.currentContext() != context) {
                 return context.activate();
             } else {
                 return null;
@@ -111,8 +113,8 @@ public class JavaConcurrent {
             return runnable;
         }
         needsContext.set(Boolean.FALSE);
-        AbstractSpan<?> active = tracer.getActive();
-        if (active == null) {
+        ElasticContext<?> active = tracer.currentContext();
+        if (active.isEmpty()) {
             return runnable;
         }
         if (isLambda(runnable)) {
@@ -122,11 +124,13 @@ public class JavaConcurrent {
         return runnable;
     }
 
-    private static void captureContext(Object task, AbstractSpan<?> active) {
+    private static void captureContext(Object task, ElasticContext<?> active) {
         DynamicTransformer.ensureInstrumented(task.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
         contextMap.put(task, active);
         // Do no discard branches leading to async operations so not to break span references
-        active.setNonDiscardable();
+        if (active.getSpan() != null) {
+            active.getSpan().setNonDiscardable();
+        }
     }
 
     /**
@@ -138,8 +142,8 @@ public class JavaConcurrent {
             return callable;
         }
         needsContext.set(Boolean.FALSE);
-        AbstractSpan<?> active = tracer.getActive();
-        if (active == null) {
+        ElasticContext<?> active = tracer.currentContext();
+        if (active.isEmpty()) {
             return callable;
         }
         if (isLambda(callable)) {
@@ -155,8 +159,8 @@ public class JavaConcurrent {
             return task;
         }
         needsContext.set(Boolean.FALSE);
-        AbstractSpan<?> active = tracer.getActive();
-        if (active == null) {
+        ElasticContext<?> active = tracer.currentContext();
+        if (active.isEmpty()) {
             return task;
         }
         captureContext(task, active);

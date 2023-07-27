@@ -18,14 +18,15 @@
  */
 package co.elastic.apm.agent.resttemplate;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.tracer.Span;
-import net.bytebuddy.asm.Advice;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
+import net.bytebuddy.asm.Advice;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 
@@ -36,6 +37,8 @@ import java.util.Objects;
 
 public class SpringRestTemplateAdvice {
 
+    private static final Tracer tracer = GlobalTracer.get();
+
     private static final Logger logger = LoggerFactory.getLogger(SpringRestTemplateAdvice.class);
 
     @Nullable
@@ -43,18 +46,13 @@ public class SpringRestTemplateAdvice {
     public static Object beforeExecute(@Advice.This ClientHttpRequest request) {
         logger.trace("Enter advice for method {}#execute()", request.getClass().getName());
 
-        final AbstractSpan<?> parent = TracerAwareInstrumentation.tracer.getActive();
-        if (parent == null) {
-            return null;
-        }
         URI uri = request.getURI();
-        Span<?> span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), uri, uri.getHost());
+        Span<?> span = HttpClientHelper.startHttpClientSpan(tracer.currentContext(), Objects.toString(request.getMethod()), uri, uri.getHost());
         if (span != null) {
             span.activate();
-            span.propagateTraceContext(request, SpringRestRequestHeaderSetter.INSTANCE);
-        } else {
-            parent.propagateTraceContext(request, SpringRestRequestHeaderSetter.INSTANCE);
         }
+        tracer.currentContext().propagateContext(request, SpringRestRequestHeaderSetter.INSTANCE, null);
+
         return span;
     }
 

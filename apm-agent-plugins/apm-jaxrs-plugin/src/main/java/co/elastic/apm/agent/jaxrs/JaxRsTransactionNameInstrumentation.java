@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.jaxrs;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.configuration.StacktraceConfiguration;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -34,10 +34,10 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isProxy;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
 import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
@@ -47,14 +47,14 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public abstract class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentation {
+public abstract class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     private final Collection<String> applicationPackages;
     private final JaxRsConfiguration configuration;
-    private final Tracer tracer;
 
     public JaxRsTransactionNameInstrumentation(Tracer tracer) {
-        this.tracer = tracer;
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
         configuration = tracer.getConfig(JaxRsConfiguration.class);
     }
@@ -125,7 +125,7 @@ public abstract class JaxRsTransactionNameInstrumentation extends TracerAwareIns
             .isUseJaxRsPathForTransactionName();
 
         protected static void setTransactionName(String signature, @Nullable String pathAnnotationValue, @Nullable String frameworkVersion) {
-            final Transaction<?> transaction = TracerAwareInstrumentation.tracer.currentTransaction();
+            final Transaction<?> transaction = tracer.currentTransaction();
             if (transaction != null) {
                 String transactionName = signature;
                 if (useAnnotationValueForTransactionName) {

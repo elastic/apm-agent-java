@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.39.1-SNAPSHOT</version>
+        <version>1.40.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-jdbc-plugin</artifactId>
@@ -16,6 +16,14 @@
     </properties>
 
     <dependencies>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-plugin-sdk</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
 
         <!--Databases-->
         <dependency>

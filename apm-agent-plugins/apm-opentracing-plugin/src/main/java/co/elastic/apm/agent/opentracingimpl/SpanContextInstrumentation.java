@@ -19,13 +19,14 @@
 package co.elastic.apm.agent.opentracingimpl;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -65,17 +66,17 @@ public abstract class SpanContextInstrumentation extends OpenTracingBridgeInstru
             @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static Iterable<Map.Entry<String, String>> baggageItems(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
-                if (context instanceof AbstractSpan<?>) {
-                    return doGetBaggage((AbstractSpan<?>) context);
+                if (context instanceof ElasticContext<?>) {
+                    return doGetBaggage((ElasticContext<?>) context);
                 } else {
                     logger.info("The traceContext is null");
                     return null;
                 }
             }
 
-            public static Iterable<Map.Entry<String, String>> doGetBaggage(AbstractSpan<?> traceContext) {
+            public static Iterable<Map.Entry<String, String>> doGetBaggage(ElasticContext<?> traceContext) {
                 Map<String, String> baggage = new HashMap<String, String>();
-                traceContext.propagateTraceContext(baggage, OpenTracingTextMapBridge.instance());
+                traceContext.propagateContext(baggage, OpenTracingTextMapBridge.instance(), null);
                 return baggage.entrySet();
             }
         }

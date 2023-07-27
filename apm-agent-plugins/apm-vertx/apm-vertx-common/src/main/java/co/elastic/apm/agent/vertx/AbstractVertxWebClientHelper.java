@@ -20,8 +20,11 @@ package co.elastic.apm.agent.vertx;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.ext.web.client.HttpResponse;
@@ -34,6 +37,9 @@ import java.net.URI;
 public abstract class AbstractVertxWebClientHelper {
 
     private static final String WEB_CLIENT_SPAN_KEY = AbstractVertxWebClientHelper.class.getName() + ".span";
+    private static final String PROPAGATION_CONTEXT_KEY = AbstractVertxWebClientHelper.class.getName() + ".propCtx";
+
+    private final Tracer tracer = GlobalTracer.get();
 
     static class HeaderSetter implements TextHeaderSetter<HttpClientRequest> {
 
@@ -45,31 +51,38 @@ public abstract class AbstractVertxWebClientHelper {
         }
     }
 
-    public void startSpan(AbstractSpan<?> parent, HttpContext<?> httpContext, HttpClientRequest httpRequest) {
-        Object existingSpanObj = httpContext.get(WEB_CLIENT_SPAN_KEY);
-        if (existingSpanObj != null) {
-            // there is already an active span for this HTTP request,
-            // don't create a new span but propagate tracing headers
-            ((Span<?>) existingSpanObj).propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
-        } else {
-            URI requestUri = URI.create(httpRequest.absoluteURI());
-            Span<?> span = HttpClientHelper.startHttpClientSpan(parent, getMethod(httpRequest), requestUri, null);
+    public void startSpanOrFollowRedirect(ElasticContext<?> activeContext, HttpContext<?> httpContext, HttpClientRequest httpRequest) {
+        ElasticContext<?> existingPropagationCtx = httpContext.get(PROPAGATION_CONTEXT_KEY);
 
-            if (span != null) {
-                span.propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
-                span.incrementReferences();
-                httpContext.set(WEB_CLIENT_SPAN_KEY, span);
-            } else {
-                parent.propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
-            }
+        if (existingPropagationCtx != null) {
+            // Repropagate headers in case of redirects
+            existingPropagationCtx.propagateContext(httpRequest, HeaderSetter.INSTANCE, null);
+            return;
         }
+        if (activeContext.isEmpty()) {
+            return; //Nothing to propagate and we'll never start an exit span due to missing transaction
+        }
+
+        URI requestUri = URI.create(httpRequest.absoluteURI());
+        Span<?> span = HttpClientHelper.startHttpClientSpan(activeContext, getMethod(httpRequest), requestUri, null);
+        ElasticContext<?> toPropagate = activeContext;
+        if (span != null) {
+            //no need to increment references of the span, the span will be kept alive by the incrementReferences() on the context below
+            httpContext.set(WEB_CLIENT_SPAN_KEY, span);
+            span.activate();
+            toPropagate = tracer.currentContext();
+            span.deactivate();
+        }
+
+        toPropagate.incrementReferences();
+        httpContext.set(PROPAGATION_CONTEXT_KEY, toPropagate);
+        toPropagate.propagateContext(httpRequest, HeaderSetter.INSTANCE, null);
     }
 
     public void followRedirect(HttpContext<?> httpContext, HttpClientRequest httpRequest) {
-        Object existingSpanObj = httpContext.get(WEB_CLIENT_SPAN_KEY);
-        if (existingSpanObj != null) {
-            Span<?> existingSpan = (Span<?>) existingSpanObj;
-            existingSpan.propagateTraceContext(httpRequest, HeaderSetter.INSTANCE);
+        ElasticContext<?> existingPropagationCtx = httpContext.get(PROPAGATION_CONTEXT_KEY);
+        if (existingPropagationCtx != null) {
+            existingPropagationCtx.propagateContext(httpRequest, HeaderSetter.INSTANCE, null);
         }
     }
 
@@ -82,24 +95,25 @@ public abstract class AbstractVertxWebClientHelper {
     }
 
     private void finalizeSpan(HttpContext<?> httpContext, int statusCode, @Nullable Throwable thrown, @Nullable AbstractSpan<?> parent) {
-        Object spanObj = httpContext.get(WEB_CLIENT_SPAN_KEY);
-
-        if (spanObj != null) {
+        Span<?> span = httpContext.get(WEB_CLIENT_SPAN_KEY);
+        ElasticContext<?> propagationCtx = httpContext.get(PROPAGATION_CONTEXT_KEY);
+        if (propagationCtx != null) {
             // Setting to null removes from the attributes map
             httpContext.set(WEB_CLIENT_SPAN_KEY, null);
-
-            Span<?> span = (Span<?>) spanObj;
-            span.decrementReferences();
-
-            if (thrown != null) {
-                span.captureException(thrown).withOutcome(Outcome.FAILURE);
+            httpContext.set(PROPAGATION_CONTEXT_KEY, null);
+            try {
+                if (span != null) {
+                    if (thrown != null) {
+                        span.captureException(thrown).withOutcome(Outcome.FAILURE);
+                    }
+                    if (statusCode > 0) {
+                        span.getContext().getHttp().withStatusCode(statusCode);
+                    }
+                    span.end();
+                }
+            } finally {
+                propagationCtx.decrementReferences();
             }
-
-            if (statusCode > 0) {
-                span.getContext().getHttp().withStatusCode(statusCode);
-            }
-
-            span.end();
         } else if (parent != null) {
             parent.captureException(thrown);
         }

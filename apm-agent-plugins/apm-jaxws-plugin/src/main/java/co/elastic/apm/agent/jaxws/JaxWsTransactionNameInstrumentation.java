@@ -18,11 +18,12 @@
  */
 package co.elastic.apm.agent.jaxws;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.configuration.StacktraceConfiguration;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -33,10 +34,10 @@ import net.bytebuddy.matcher.ElementMatchers;
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isProxy;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
 import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
@@ -46,7 +47,9 @@ import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentation {
+public class JaxWsTransactionNameInstrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     private static final String FRAMEWORK_NAME = "JAX-WS";
 

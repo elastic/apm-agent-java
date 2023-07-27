@@ -18,13 +18,16 @@
  */
 package co.elastic.apm.agent.urlconnection;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import net.bytebuddy.asm.Advice;
@@ -47,7 +50,9 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 @GlobalState
-public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstrumentation {
+public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrumentation {
+
+    public static final Tracer tracer = GlobalTracer.get(); // must be public!
 
     public static final ReferenceCountedMap<HttpURLConnection, Span<?>> inFlightSpans = tracer.newReferenceCountedMap();
     public static final CallDepth callDepth = CallDepth.get(HttpUrlConnectionInstrumentation.class);
@@ -77,27 +82,27 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                                        @Advice.Origin String signature) {
 
                 boolean isNestedCall = callDepth.isNestedCallAndIncrement();
-                AbstractSpan<?> parent = tracer.getActive();
-                if (parent == null) {
-                    return null;
-                }
-                Span<?> span = inFlightSpans.get(thiz);
-                if (span == null && !connected) {
-                    final URL url = thiz.getURL();
-                    span = HttpClientHelper.startHttpClientSpan(parent, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
-                    if (!HeaderUtils.containsAny(tracer.getTraceHeaderNames(), thiz, UrlConnectionPropertyAccessor.instance())) {
-                        if (span != null) {
-                            span.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
-                        } else {
-                            parent.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());
-                        }
+                ElasticContext<?> activeContext = tracer.currentContext();
+                AbstractSpan<?> parentSpan = activeContext.getSpan();
+                Span<?> span = null;
+                if (parentSpan != null) {
+                    span = inFlightSpans.get(thiz);
+                    if (span == null && !connected) {
+                        final URL url = thiz.getURL();
+                        span = HttpClientHelper.startHttpClientSpan(activeContext, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
+                    }
+                    if (!isNestedCall && span != null) {
+                        span.activate();
+                    } else {
+                        span = null; //do not deactivate this span on exit
                     }
                 }
-                if (!isNestedCall && span != null) {
-                    span.activate();
-                    return span;
+
+                if (!isNestedCall && !connected) {
+                    tracer.currentContext().propagateContext(thiz, UrlConnectionPropertyAccessor.instance(), UrlConnectionPropertyAccessor.instance());
                 }
-                return null;
+
+                return span;
             }
 
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

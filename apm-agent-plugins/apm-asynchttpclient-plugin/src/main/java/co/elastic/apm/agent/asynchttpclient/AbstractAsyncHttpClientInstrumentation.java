@@ -18,13 +18,15 @@
  */
 package co.elastic.apm.agent.asynchttpclient;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -41,7 +43,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -49,7 +51,9 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAwareInstrumentation {
+public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     public static class Helper {
 
@@ -99,23 +103,22 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object onBeforeExecute(@Advice.Argument(value = 0) Request request,
                                                  @Advice.Argument(value = 1) AsyncHandler<?> asyncHandler) {
-                final AbstractSpan<?> parent = tracer.getActive();
-                if (parent == null) {
-                    return null;
+                final ElasticContext<?> activeContext = tracer.currentContext();
+                final AbstractSpan<?> parentSpan = tracer.getActive();
+                Span<?> span = null;
+                if (parentSpan != null) {
+                    DynamicTransformer.ensureInstrumented(asyncHandler.getClass(), Helper.ASYNC_HANDLER_INSTRUMENTATIONS);
+                    Uri uri = request.getUri();
+                    span = HttpClientHelper.startHttpClientSpan(activeContext, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
+                    if (span != null) {
+                        span.withSync(false);
+                        span.activate();
+                        Helper.handlerSpanMap.put(asyncHandler, span);
+                    }
                 }
-                DynamicTransformer.ensureInstrumented(asyncHandler.getClass(), Helper.ASYNC_HANDLER_INSTRUMENTATIONS);
 
-                Uri uri = request.getUri();
-                Span<?> span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
+                tracer.currentContext().propagateContext(request, RequestHeaderSetter.INSTANCE, null);
 
-                if (span != null) {
-                    span.withSync(false);
-                    span.activate();
-                    span.propagateTraceContext(request, RequestHeaderSetter.INSTANCE);
-                    Helper.handlerSpanMap.put(asyncHandler, span);
-                } else {
-                    parent.propagateTraceContext(request, RequestHeaderSetter.INSTANCE);
-                }
                 return span;
             }
 

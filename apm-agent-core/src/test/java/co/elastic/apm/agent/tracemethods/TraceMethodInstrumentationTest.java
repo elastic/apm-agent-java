@@ -21,15 +21,15 @@ package co.elastic.apm.agent.tracemethods;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.MethodMatcher;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -352,7 +352,7 @@ class TraceMethodInstrumentationTest {
             AbstractSpan<?> active = tracer.getActive();
             if (active != null) {
                 Span span = active.createSpan();
-                span.propagateTraceContext(new HashMap<>(), (k, v, m) -> m.put(k, v));
+                span.propagateContext(new HashMap<>(), (k, v, m) -> m.put(k, v), null);
                 span.end();
             }
         }

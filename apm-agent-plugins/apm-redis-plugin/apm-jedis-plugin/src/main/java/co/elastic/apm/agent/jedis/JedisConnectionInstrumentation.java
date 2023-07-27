@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.jedis;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -26,14 +26,14 @@ import net.bytebuddy.matcher.ElementMatcher;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class JedisConnectionInstrumentation extends TracerAwareInstrumentation {
+public class JedisConnectionInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {

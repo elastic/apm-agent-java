@@ -20,10 +20,11 @@ package co.elastic.apm.agent.awssdk.v1.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractSQSInstrumentationHelper;
 import co.elastic.apm.agent.awssdk.v1.helper.sqs.wrapper.ReceiveMessageResultWrapper;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
@@ -57,14 +58,14 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<Request<?>, Exec
     }
 
 
-    public void propagateContext(Span<?> span, AmazonWebServiceRequest request) {
+    public void propagateContext(ElasticContext<?> toPropagate, AmazonWebServiceRequest request) {
         if (request instanceof SendMessageRequest) {
             SendMessageRequest sendMessageRequest = (SendMessageRequest) request;
-            span.propagateTraceContext(sendMessageRequest.getMessageAttributes(), this);
+            toPropagate.propagateContext(sendMessageRequest.getMessageAttributes(), this, null);
         } else if (request instanceof SendMessageBatchRequest) {
             SendMessageBatchRequest sendMessageBatchRequest = (SendMessageBatchRequest) request;
             for (SendMessageBatchRequestEntry entry : sendMessageBatchRequest.getEntries()) {
-                span.propagateTraceContext(entry.getMessageAttributes(), this);
+                toPropagate.propagateContext(entry.getMessageAttributes(), this, null);
             }
         }
     }

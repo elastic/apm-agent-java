@@ -20,7 +20,7 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.collections.LongList;
+import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.BinaryHeaderMapAccessor;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Headers;
@@ -56,7 +57,7 @@ import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
-import co.elastic.apm.agent.util.IOUtils;
+import co.elastic.apm.agent.sdk.internal.util.IOUtils;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -169,7 +170,7 @@ class DslJsonSerializerTest {
     @Test
     void testErrorSerialization() {
         Transaction transaction = new Transaction(tracer);
-        transaction.startRoot(-1, ConstantSampler.of(true));
+        transaction.startRoot(-1, ConstantSampler.of(true), Baggage.EMPTY);
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
@@ -217,7 +218,7 @@ class DslJsonSerializerTest {
     @Test
     void testErrorSerializationWithEmptyTraceId() {
         Transaction transaction = new Transaction(tracer);
-        transaction.startRoot(-1, ConstantSampler.of(true));
+        transaction.startRoot(-1, ConstantSampler.of(true), Baggage.EMPTY);
         transaction.getTraceContext().getTraceId().resetState();
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
 
@@ -1088,12 +1089,12 @@ class DslJsonSerializerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
+    @ValueSource(booleans = {false,true})
     void testSystemInfo_detectedHostname(boolean supportsConfiguredAndDetectedHostname) throws Exception {
         String arc = "test-arc";
         String platform = "test-platform";
 
-        MetaData metaData = createMetaData(new SystemInfo(arc, null, "detected", platform));
+        MetaData metaData = createMetaData(new SystemInfo(arc, null, "detected.fqdn", platform));
         DslJsonSerializer.serializeMetadata(metaData, writer.getJsonWriter(), supportsConfiguredAndDetectedHostname, true);
         writer.appendMetadataToStream();
 
@@ -1103,12 +1104,12 @@ class DslJsonSerializerTest {
         assertThat(platform).isEqualTo(system.get("platform").asText());
         if (supportsConfiguredAndDetectedHostname) {
             assertThat(system.get("configured_hostname")).isNull();
-            assertThat(system.get("detected_hostname").asText()).isEqualTo("detected");
+            assertThat(system.get("detected_hostname").asText()).isEqualTo("detected.fqdn");
             assertThat(system.get("hostname")).isNull();
         } else {
             assertThat(system.get("configured_hostname")).isNull();
             assertThat(system.get("detected_hostname")).isNull();
-            assertThat(system.get("hostname").asText()).isEqualTo("detected");
+            assertThat(system.get("hostname").asText()).isEqualTo("detected.fqdn");
         }
     }
 
@@ -1348,7 +1349,7 @@ class DslJsonSerializerTest {
 
     private Transaction createRootTransaction(Sampler sampler) {
         Transaction t = new Transaction(tracer);
-        t.startRoot(0, sampler);
+        t.startRoot(0, sampler, Baggage.EMPTY);
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().withFull("http://localhost:8080/foo/bar");
@@ -1559,11 +1560,11 @@ class DslJsonSerializerTest {
         Transaction transaction = tracer.startRootTransaction(null);
         Span parent1 = Objects.requireNonNull(transaction).createSpan();
         Map<String, String> textTraceContextCarrier = new HashMap<>();
-        parent1.propagateTraceContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE);
+        parent1.propagateContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE, null);
         transaction.addSpanLink(TraceContext.getFromTraceContextTextHeaders(), TextHeaderMapAccessor.INSTANCE, textTraceContextCarrier);
         Span parent2 = transaction.createSpan();
         Map<String, byte[]> binaryTraceContextCarrier = new HashMap<>();
-        parent2.propagateTraceContext(binaryTraceContextCarrier, BinaryHeaderMapAccessor.INSTANCE);
+        parent2.propagateContext(binaryTraceContextCarrier, BinaryHeaderMapAccessor.INSTANCE);
         transaction.addSpanLink(TraceContext.getFromTraceContextBinaryHeaders(), BinaryHeaderMapAccessor.INSTANCE, binaryTraceContextCarrier);
         JsonNode transactionJson = readJsonString(writer.toJsonString(transaction));
         JsonNode spanLinks = transactionJson.get("links");

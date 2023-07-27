@@ -18,10 +18,11 @@
  */
 package co.elastic.apm.agent.bbwarmup;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
-import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -31,13 +32,20 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isSameClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isStatic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;
 
-public class WarmupInstrumentation extends TracerAwareInstrumentation {
+public class WarmupInstrumentation extends ElasticApmInstrumentation {
+
+    static {
+        // assure initialization of tracer
+        @SuppressWarnings("unused")
+        Tracer tracer = GlobalTracer.get();
+    }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
@@ -46,7 +54,7 @@ public class WarmupInstrumentation extends TracerAwareInstrumentation {
         // (caused by java.lang.ClassFormatError) on OpenJDK 7.
         // By allowing instrumentation only when the test class is loaded by the same class loader that loads this
         // instrumentation class, we avoid this problem and still allow it to work both on production and unit tests
-        return CustomElementMatchers.isSameClassLoader(PrivilegedActionUtils.getClassLoader(getClass()));
+        return isSameClassLoader(PrivilegedActionUtils.getClassLoader(getClass()));
     }
 
     @Override

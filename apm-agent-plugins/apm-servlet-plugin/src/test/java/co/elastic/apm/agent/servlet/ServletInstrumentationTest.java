@@ -20,7 +20,7 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
-import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Transaction;

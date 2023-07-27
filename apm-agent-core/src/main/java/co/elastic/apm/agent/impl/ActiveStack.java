@@ -58,8 +58,11 @@ class ActiveStack {
      */
     private final Deque<ElasticContext<?>> activeContextStack = new ArrayDeque<ElasticContext<?>>();
 
-    ActiveStack(int stackMaxDepth) {
+    private final EmptyElasticContext emptyContext;
+
+    ActiveStack(int stackMaxDepth, EmptyElasticContext emptyContextForTracer) {
         this.stackMaxDepth = stackMaxDepth;
+        this.emptyContext = emptyContextForTracer;
     }
 
     @Nullable
@@ -69,9 +72,9 @@ class ActiveStack {
     }
 
     /**
-     * @return the currently active context, {@literal null} if there is none.
+     * @return the current context, potentially empty when no span, transaction or baggage is currently active.
      */
-    @Nullable
+
     public ElasticContext<?> currentContext() {
         ElasticContext<?> current = activeContextStack.peek();
 
@@ -80,7 +83,7 @@ class ActiveStack {
         if (current instanceof ElasticContextWrapper) {
             return ((ElasticContextWrapper<?>) current).getWrappedContext();
         }
-        return current;
+        return current != null ? current : emptyContext;
     }
 
     boolean activate(ElasticContext<?> context, List<ActivationListener> activationListeners) {
@@ -99,9 +102,9 @@ class ActiveStack {
             return false;
         }
 
+        context.incrementReferences();
         AbstractSpan<?> span = context.getSpan();
         if (span != null) {
-            span.incrementReferences();
             triggerActivationListeners(span, true, activationListeners);
         }
 
@@ -122,22 +125,15 @@ class ActiveStack {
         ElasticContext<?> activeContext = currentContext();
         activeContextStack.remove();
 
-        AbstractSpan<?> span = context.getSpan();
-
-        if (activeContext != context && activeContext instanceof ElasticContextWrapper) {
-            // when context has been wrapped, we need to get the underlying context
-            activeContext = ((ElasticContextWrapper<?>) activeContext).getWrappedContext();
-        }
-
         try {
             assertIsActive(context, activeContext, assertionsEnabled);
+
+            AbstractSpan<?> span = context.getSpan();
             if (null != span) {
                 triggerActivationListeners(span, false, activationListeners);
             }
         } finally {
-            if (null != span) {
-                span.decrementReferences();
-            }
+            context.decrementReferences();
         }
         return true;
     }

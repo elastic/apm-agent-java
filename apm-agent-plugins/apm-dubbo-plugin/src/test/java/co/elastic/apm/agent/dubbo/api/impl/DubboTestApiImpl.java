@@ -33,7 +33,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
 public class DubboTestApiImpl implements DubboTestApi {
 
@@ -135,7 +137,7 @@ public class DubboTestApiImpl implements DubboTestApi {
     private void doSomething() {
         try {
             Thread.sleep(10);
-            GlobalTracer.get().getActive().createSpan()
+            GlobalTracer.get().currentContext().createSpan()
                 .withName("doSomething")
                 .withOutcome(Outcome.SUCCESS)
                 .end();

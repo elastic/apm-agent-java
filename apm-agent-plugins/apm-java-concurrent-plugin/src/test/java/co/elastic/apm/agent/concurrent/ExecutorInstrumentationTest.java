@@ -19,10 +19,11 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.baggage.BaggageContext;
+import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -30,17 +31,18 @@ import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.SyncTaskExecutor;
 
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 @RunWith(Parameterized.class)
 public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
 
     private final Executor executor;
-    private Transaction transaction;
 
     public ExecutorInstrumentationTest(Supplier<ExecutorService> supplier) {
         executor = supplier.get();
@@ -51,10 +53,6 @@ public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
         return Arrays.asList(SimpleAsyncTaskExecutor::new, SyncTaskExecutor::new);
     }
 
-    @Before
-    public void setUp() {
-        transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
-    }
 
     @After
     public void tearDown() {
@@ -63,14 +61,70 @@ public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     public void testExecutorExecute_Transaction() {
-        executor.execute(this::createAsyncSpan);
-        assertOnlySpanIsChildOfOnlyTransaction();
+        Transaction transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
+        executor.execute(() -> createAsyncSpan(transaction));
+        try {
+            // wait for the async operation to end
+            assertThat(reporter.getFirstSpan(1000)).isNotNull();
+        } finally {
+            transaction.deactivate().end();
+        }
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstSpan().isChildOf(reporter.getFirstTransaction())).isTrue();
+    }
+
+    @Test
+    public void testBaggagePropagationWithTransaction() throws InterruptedException {
+        Transaction transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
+        BaggageContext transactionWithBaggage = tracer.currentContext().withUpdatedBaggage()
+            .put("foo", "bar")
+            .buildContext()
+            .activate();
+
+        AtomicReference<ElasticContext<?>> propagatedContext = new AtomicReference<>();
+        CountDownLatch doneLatch = new CountDownLatch(1);
+        executor.execute(() -> {
+            propagatedContext.set(tracer.currentContext());
+            doneLatch.countDown();
+        });
+        transactionWithBaggage.deactivate();
+        transaction.deactivate().end();
+        doneLatch.await();
+
+        assertThat(propagatedContext.get().getBaggage())
+            .hasSize(1)
+            .containsEntry("foo", "bar");
+        assertThat(propagatedContext.get().getTransaction()).isSameAs(transaction);
+    }
+
+    @Test
+    public void testBaggagePropagationWithoutTransaction() throws InterruptedException {
+        BaggageContext transactionWithBaggage = tracer.currentContext().withUpdatedBaggage()
+            .put("foo", "bar")
+            .buildContext()
+            .activate();
+
+        AtomicReference<ElasticContext<?>> propagatedContext = new AtomicReference<>();
+        CountDownLatch doneLatch = new CountDownLatch(1);
+        executor.execute(() -> {
+            propagatedContext.set(tracer.currentContext());
+            doneLatch.countDown();
+        });
+        transactionWithBaggage.deactivate();
+        doneLatch.await();
+
+        assertThat(propagatedContext.get().getBaggage())
+            .hasSize(1)
+            .containsEntry("foo", "bar");
+        assertThat(propagatedContext.get().getTransaction()).isNull();
     }
 
     @Test
     public void testExecutorExecute_Span() {
+        Transaction transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
         Span nonAsyncSpan = transaction.createSpan().withName("NonAsync").activate();
-        executor.execute(this::createAsyncSpan);
+        executor.execute(() -> createAsyncSpan(transaction));
         try {
             // wait for the async operation to end
             assertThat(reporter.getFirstSpan(1000)).isNotNull();
@@ -84,20 +138,9 @@ public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstSpan().isChildOf(nonAsyncSpan)).isTrue();
     }
 
-    private void assertOnlySpanIsChildOfOnlyTransaction() {
-        try {
-            // wait for the async operation to end
-            assertThat(reporter.getFirstSpan(1000)).isNotNull();
-        } finally {
-            transaction.deactivate().end();
-        }
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().isChildOf(reporter.getFirstTransaction())).isTrue();
-    }
 
-    private void createAsyncSpan() {
-        assertThat(tracer.currentTransaction()).isEqualTo(transaction);
+    private void createAsyncSpan(Transaction expectedCurrent) {
+        assertThat(tracer.currentTransaction()).isEqualTo(expectedCurrent);
         tracer.getActive().createSpan().withName("Async").end();
     }
 }

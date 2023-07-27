@@ -37,7 +37,7 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         .key(MESSAGE_POLLING_TRANSACTION_STRATEGY)
         .configurationCategory(MESSAGING_CATEGORY)
         .tags("internal")
-        .description("Determines whether the agent should create transactions for the polling action itself (e.g. `javax.jms.MessageConsumer#receive`), \n" +
+        .description("Determines whether the agent should create transactions for the polling action itself (e.g. `javax.jms.MessageConsumer#receive`/`jakarta.jms.MessageConsumer#receive`), \n" +
             "attempt to create a transaction for the message handling code occurring if the polling method returns a message, \n" +
             "or both. Valid options are: `POLLING`, `HANDLING` and `BOTH`. \n" +
             "\n" +

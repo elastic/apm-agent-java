@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.tracer.Scope;
 
 import javax.annotation.Nullable;
@@ -46,7 +47,7 @@ import java.util.concurrent.Callable;
  *
  * @param <T>
  */
-public class ElasticContextWrapper<T extends ElasticContext<T>> implements ElasticContext<T> {
+public class ElasticContextWrapper<T extends ElasticContext<T>> extends ElasticContext<T> {
 
     /**
      * Original wrapped context
@@ -59,6 +60,7 @@ public class ElasticContextWrapper<T extends ElasticContext<T>> implements Elast
     private final Map<Class<?>, ElasticContext<?>> contextWrappers;
 
     public ElasticContextWrapper(int initialSize, ElasticContext<T> context) {
+        super(context.tracer);
         this.contextWrappers = new HashMap<>(initialSize, 1.0f);
         this.context = context;
     }
@@ -119,9 +121,23 @@ public class ElasticContextWrapper<T extends ElasticContext<T>> implements Elast
     }
 
     @Override
-    @Nullable
-    public Transaction getTransaction() {
-        return context.getTransaction();
+    public Baggage getBaggage() {
+        throw new UnsupportedOperationException("Baggage should not be accessed on context wrapper");
     }
 
+
+    @Override
+    public boolean isEmpty() {
+        throw new UnsupportedOperationException("Context wrapper should not be checked for emptyness");
+    }
+
+    @Override
+    public void incrementReferences() {
+        throw new UnsupportedOperationException("Context wrapper should not be involved in reference counting");
+    }
+
+    @Override
+    public void decrementReferences() {
+        throw new UnsupportedOperationException("Context wrapper should not be involved in reference counting");
+    }
 }

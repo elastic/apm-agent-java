@@ -45,6 +45,9 @@ public interface Tracer {
 
     Set<String> getTraceHeaderNames();
 
+
+    ElasticContext<?> currentContext();
+
     @Nullable
     AbstractSpan<?> getActive();
 

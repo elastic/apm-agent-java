@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.opentelemetry.context;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.opentelemetry.tracing.OTelBridgeContext;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -68,19 +67,13 @@ public class OTelContextStorage implements ContextStorage {
     @Override
     public Context current() {
         ElasticContext<?> current = tracer.currentContext();
-        if (current == null) {
+        if (current.isEmpty()) {
             return null;
         }
 
         if (current instanceof OTelBridgeContext) {
             // current context has been created with this OTel, no need to wrap it
             return (Context) current;
-        }
-
-        AbstractSpan<?> currentSpan = current.getSpan();
-        if (currentSpan == null) {
-            // OTel context without an active span is not supported yet
-            return null;
         }
 
         // Ensure that root context is being accessed at least once to capture the original root
@@ -91,6 +84,6 @@ public class OTelContextStorage implements ContextStorage {
         // Current context hasn't been created with this OTel instance, but with another OTel plugin instance
         // (one per external plugin) or is an Elastic context (span or transaction), thus needs wrapping to make it visible
         // to this OTel context.
-        return tracer.wrapActiveContextIfRequired(OTelBridgeContext.class, () -> OTelBridgeContext.wrapElasticActiveSpan(tracer, currentSpan));
+        return tracer.wrapActiveContextIfRequired(OTelBridgeContext.class, () -> OTelBridgeContext.wrapElasticActiveSpan(tracer, current));
     }
 }

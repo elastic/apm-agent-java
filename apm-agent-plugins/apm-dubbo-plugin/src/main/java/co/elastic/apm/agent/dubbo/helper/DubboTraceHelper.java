@@ -36,11 +36,7 @@ public class DubboTraceHelper {
 
     @Nullable
     public static Span<?> createConsumerSpan(Tracer tracer, Class<?> apiClass, String methodName, InetSocketAddress remoteAddress) {
-        AbstractSpan<?> traceContext = tracer.getActive();
-        if (traceContext == null) {
-            return null;
-        }
-        Span<?> span = traceContext.createExitSpan();
+        Span<?> span = tracer.currentContext().createExitSpan();
         if (span == null) {
             return null;
         }

@@ -18,35 +18,28 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
-import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 
 import javax.annotation.Nullable;
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageListener;
-import javax.jms.Queue;
-import javax.jms.TemporaryQueue;
-import javax.jms.TemporaryTopic;
-import javax.jms.TextMessage;
-import javax.jms.Topic;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class JmsInstrumentationHelper {
+public abstract class JmsInstrumentationHelper<DESTINATION, MESSAGE, MESSAGELISTENER, JMSEXCEPTION extends Exception> {
 
     /**
      * When the agent computes a destination name instead of using the default queue name- it should be passed as a
@@ -54,37 +47,35 @@ public class JmsInstrumentationHelper {
      * identified based on the queue type and all receive the same generic name. In Artemis Active MQ, the queue
      * generated at the receiver side is not of the temporary type, so this name computation cannot be made.
      */
-    protected static String JMS_DESTINATION_NAME_PROPERTY = "elastic_apm_dest_name";
+    public static final String JMS_DESTINATION_NAME_PROPERTY = "elastic_apm_dest_name";
 
     /**
      * Indicates a transaction is created for the message handling flow, but should not be used as the actual type of
      * reported transactions.
      */
-    protected static String MESSAGE_HANDLING = "message-handling";
+    public static final String MESSAGE_HANDLING = "message-handling";
 
     /**
      * Indicates a transaction is created for a message polling method, but should not be used as the actual type of
      * reported transactions.
      */
-    protected static String MESSAGE_POLLING = "message-polling";
+    public static final String MESSAGE_POLLING = "message-polling";
 
-    protected static String MESSAGING_TYPE = "messaging";
+    public static final String MESSAGING_TYPE = "messaging";
 
-    protected static String RECEIVE_NAME_PREFIX = "JMS RECEIVE";
+    public static final String RECEIVE_NAME_PREFIX = "JMS RECEIVE";
 
     // JMS known headers
     //----------------------
-    protected static String JMS_MESSAGE_ID_HEADER = "JMSMessageID";
-    protected static String JMS_EXPIRATION_HEADER = "JMSExpiration";
-    protected static String JMS_TIMESTAMP_HEADER = "JMSTimestamp";
+    public static final String JMS_MESSAGE_ID_HEADER = "JMSMessageID";
+    public static final String JMS_EXPIRATION_HEADER = "JMSExpiration";
+    public static final String JMS_TIMESTAMP_HEADER = "JMSTimestamp";
 
-    static final String TIBCO_TMP_QUEUE_PREFIX = "$TMP$";
-    static final String TEMP = "<temporary>";
+    public static final String TIBCO_TMP_QUEUE_PREFIX = "$TMP$";
+    public static final String TEMP = "<temporary>";
     static final String FRAMEWORK_NAME = "JMS";
 
     private static final Logger logger = LoggerFactory.getLogger(JmsInstrumentationHelper.class);
-
-    private static final JmsInstrumentationHelper INSTANCE = new JmsInstrumentationHelper(GlobalTracer.get());
 
     private final Tracer tracer;
     private final CoreConfiguration coreConfiguration;
@@ -92,11 +83,7 @@ public class JmsInstrumentationHelper {
     private final Set<String> jmsTraceHeaders = new HashSet<>();
     private final Map<String, String> translatedTraceHeaders = new HashMap<>();
 
-    public static JmsInstrumentationHelper get() {
-        return INSTANCE;
-    }
-
-    private JmsInstrumentationHelper(Tracer tracer) {
+    protected JmsInstrumentationHelper(Tracer tracer) {
         this.tracer = tracer;
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
@@ -117,15 +104,9 @@ public class JmsInstrumentationHelper {
 
     @SuppressWarnings("Duplicates")
     @Nullable
-    public Span<?> startJmsSendSpan(Destination destination, Message message) {
-
-        final AbstractSpan<?> activeSpan = tracer.getActive();
-        if (activeSpan == null) {
-            return null;
-        }
-
-        boolean isDestinationNameComputed = false;
+    public Span<?> startJmsSendSpan(DESTINATION destination, MESSAGE message) {
         String destinationName = extractDestinationName(null, destination);
+        boolean isDestinationNameComputed = false;
         if (isTempDestination(destination, destinationName)) {
             destinationName = TEMP;
             isDestinationNameComputed = true;
@@ -134,19 +115,17 @@ public class JmsInstrumentationHelper {
             return null;
         }
 
-        Span<?> span = activeSpan.createExitSpan();
-
-        if (span == null) {
-            return null;
+        Span<?> span = tracer.currentContext().createExitSpan();
+        if (span != null) {
+            span.withType(MESSAGING_TYPE)
+                .withSubtype("jms")
+                .withAction("send")
+                .activate();
         }
 
-        span.withType(MESSAGING_TYPE)
-            .withSubtype("jms")
-            .withAction("send")
-            .activate();
+        tracer.currentContext().propagateContext(message, propertyAccessorSetter(), null);
 
-        span.propagateTraceContext(message, JmsMessagePropertyAccessor.instance());
-        if (span.isSampled()) {
+        if (span != null && span.isSampled()) {
 
             span.getContext().getServiceTarget()
                 .withType("jms")
@@ -156,7 +135,7 @@ public class JmsInstrumentationHelper {
                 span.withName("JMS SEND to ");
                 addDestinationDetails(destination, destinationName, span);
                 if (isDestinationNameComputed) {
-                    JmsMessagePropertyAccessor.instance().setHeader(JMS_DESTINATION_NAME_PROPERTY, destinationName, message);
+                    propertyAccessorSetter().setHeader(JMS_DESTINATION_NAME_PROPERTY, destinationName, message);
                 }
             }
         }
@@ -164,8 +143,8 @@ public class JmsInstrumentationHelper {
     }
 
     @Nullable
-    public Transaction<?> startJmsTransaction(Message parentMessage, Class<?> instrumentedClass) {
-        Transaction<?> transaction = tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), PrivilegedActionUtils.getClassLoader(instrumentedClass));
+    public Transaction<?> startJmsTransaction(MESSAGE parentMessage, Class<?> instrumentedClass) {
+        Transaction<?> transaction = tracer.startChildTransaction(parentMessage, propertyAccessorGetter(), PrivilegedActionUtils.getClassLoader(instrumentedClass));
         if (transaction != null) {
             transaction.setFrameworkName(FRAMEWORK_NAME);
         }
@@ -173,80 +152,23 @@ public class JmsInstrumentationHelper {
     }
 
     @Nullable
-    public MessageListener wrapLambda(@Nullable MessageListener listener) {
+    public MESSAGELISTENER wrapLambda(@Nullable MESSAGELISTENER listener) {
         // the name check also prevents from wrapping twice
         if (listener != null && listener.getClass().getName().contains("/")) {
-            return new JmsInstrumentationHelper.MessageListenerWrapper(listener);
+            return newMessageListener(listener);
         }
         return listener;
-    }
-
-    public static class MessageListenerWrapper implements MessageListener {
-
-        private final MessageListener delegate;
-
-        MessageListenerWrapper(MessageListener delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public void onMessage(Message message) {
-            delegate.onMessage(message);
-        }
-    }
-
-    @Nullable
-    public String extractDestinationName(@Nullable Message message, Destination destination) {
-        String destinationName = null;
-        if (message != null) {
-            destinationName = JmsMessagePropertyAccessor.instance().getFirstHeader(JMS_DESTINATION_NAME_PROPERTY, message);
-        }
-        if (destinationName == null) {
-            try {
-                if (destination instanceof Queue) {
-                    destinationName = ((Queue) destination).getQueueName();
-                } else if (destination instanceof Topic) {
-                    destinationName = ((Topic) destination).getTopicName();
-                }
-            } catch (JMSException e) {
-                logger.error("Failed to obtain destination name", e);
-            }
-        }
-        return destinationName;
-    }
-
-    private boolean isTempDestination(Destination destination, @Nullable String extractedDestinationName) {
-        return destination instanceof TemporaryQueue
-            || destination instanceof TemporaryTopic
-            || (extractedDestinationName != null && extractedDestinationName.startsWith(TIBCO_TMP_QUEUE_PREFIX));
     }
 
     public boolean ignoreDestination(@Nullable String destinationName) {
         return WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), destinationName);
     }
 
-    public void addDestinationDetails(Destination destination,
-                                      String destinationName,
-                                      AbstractSpan<?> span) {
-
-        String prefix = null;
-        if (destination instanceof Queue) {
-            prefix = "queue ";
-        } else if (destination instanceof Topic) {
-            prefix = "topic ";
-        }
-
-        if (prefix != null) {
-            span.appendToName(prefix).appendToName(destinationName)
-                .getContext().getMessage().withQueue(destinationName);
-        }
-    }
-
-    public void setMessageAge(Message message, AbstractSpan<?> span) {
+    public void setMessageAge(MESSAGE message, AbstractSpan<?> span) {
         long messageTimestamp = -1L;
         try {
-            messageTimestamp = message.getJMSTimestamp();
-        } catch (JMSException e) {
+            messageTimestamp = getJMSTimestamp(message);
+        } catch (Exception e) {
             logger.warn("Failed to get message timestamp", e);
         }
         if (messageTimestamp > 0) {
@@ -256,39 +178,253 @@ public class JmsInstrumentationHelper {
         }
     }
 
-    public void addMessageDetails(@Nullable Message message, AbstractSpan<?> span) {
+    public void addMessageDetails(@Nullable MESSAGE message, AbstractSpan<?> span) {
         if (message == null) {
             return;
         }
         try {
             co.elastic.apm.agent.tracer.metadata.Message messageContext = span.getContext().getMessage();
 
-            // Currently only capturing body of TextMessages. The javax.jms.Message#getBody() API is since 2.0, so,
+            // Currently only capturing body of TextMessages. The jakarta.jms.Message#getBody() API is since 2.0, so,
             // if we are supporting JMS 1.1, it makes no sense to rely on isAssignableFrom.
-            if (coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF && message instanceof TextMessage) {
-                messageContext.withBody(((TextMessage) message).getText());
+            if (coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF && isTextMessage(message)) {
+                messageContext.withBody(getText(message));
             }
 
             // Addition of non-String headers/properties will cause String instance allocations
             if (coreConfiguration.isCaptureHeaders()) {
-                messageContext.addHeader(JMS_MESSAGE_ID_HEADER, message.getJMSMessageID());
-                messageContext.addHeader(JMS_EXPIRATION_HEADER, String.valueOf(message.getJMSExpiration()));
-                messageContext.addHeader(JMS_TIMESTAMP_HEADER, String.valueOf(message.getJMSTimestamp()));
+                messageContext.addHeader(JMS_MESSAGE_ID_HEADER, getJMSMessageID(message));
+                messageContext.addHeader(JMS_EXPIRATION_HEADER, String.valueOf(getJMSExpiration(message)));
+                messageContext.addHeader(JMS_TIMESTAMP_HEADER, String.valueOf(getJMSTimestamp(message)));
 
-                Enumeration<?> properties = message.getPropertyNames();
+                Enumeration<?> properties = getPropertyNames(message);
                 if (properties != null) {
                     while (properties.hasMoreElements()) {
                         String propertyName = String.valueOf(properties.nextElement());
                         if (!propertyName.equals(JMS_DESTINATION_NAME_PROPERTY) &&
                             !jmsTraceHeaders.contains(propertyName) &&
                             WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), propertyName) == null) {
-                            messageContext.addHeader(propertyName, String.valueOf(message.getObjectProperty(propertyName)));
+                            messageContext.addHeader(propertyName, String.valueOf(getObjectProperty(message, propertyName)));
                         }
                     }
                 }
             }
-        } catch (JMSException e) {
+        } catch (Exception e) {
             logger.warn("Failed to retrieve message details", e);
         }
     }
+
+    @Nullable
+    public Object baseBeforeReceive(Class<?> clazz, String methodName) {
+        AbstractSpan<?> createdSpan = null;
+        boolean createPollingTransaction = false;
+        boolean createPollingSpan = false;
+        final ElasticContext<?> activeContext = tracer.currentContext();
+        final AbstractSpan<?> parentSpan = activeContext.getSpan();
+        if (parentSpan == null) {
+            createPollingTransaction = true;
+        } else {
+            if (parentSpan instanceof Transaction<?>) {
+                Transaction<?> transaction = (Transaction<?>) parentSpan;
+                if (MESSAGE_POLLING.equals(transaction.getType())) {
+                    // Avoid duplications for nested calls
+                    return null;
+                } else if (MESSAGE_HANDLING.equals(transaction.getType())) {
+                    // A transaction created in the OnMethodExit of the poll- end it here
+                    // Type must be changed to "messaging"
+                    transaction.withType(MESSAGING_TYPE);
+                    transaction.deactivate().end();
+                    createPollingTransaction = true;
+                } else {
+                    createPollingSpan = true;
+                }
+            } else if (parentSpan instanceof Span<?>) {
+                Span<?> parSpan = (Span<?>) parentSpan;
+                if (MESSAGING_TYPE.equals(parSpan.getType()) && "receive".equals(parSpan.getAction())) {
+                    // Avoid duplication for nested calls
+                    return null;
+                }
+                createPollingSpan = true;
+            }
+        }
+
+        createPollingTransaction &= messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.JmsStrategy.HANDLING;
+        createPollingTransaction |= "receiveNoWait".equals(methodName);
+
+        if (createPollingSpan) {
+            createdSpan = activeContext.createSpan()
+                .withType(MESSAGING_TYPE)
+                .withSubtype("jms")
+                .withAction("receive");
+        } else if (createPollingTransaction) {
+            createdSpan = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
+            if (createdSpan != null) {
+                ((Transaction<?>) createdSpan).withType(MESSAGE_POLLING);
+            }
+        }
+
+        if (createdSpan != null) {
+            createdSpan.withName(RECEIVE_NAME_PREFIX);
+            createdSpan.activate();
+        }
+        return createdSpan;
+    }
+
+    public void baseAfterReceive(Class<?> clazz, String methodName,
+                                 @Nullable final Object abstractSpanObj,
+                                 @Nullable final MESSAGE message,
+                                 @Nullable final Throwable throwable) {
+        AbstractSpan<?> abstractSpan = null;
+        if (abstractSpanObj instanceof AbstractSpan<?>) {
+            abstractSpan = (AbstractSpan<?>) abstractSpanObj;
+        }
+        DESTINATION destination = null;
+        String destinationName = null;
+        boolean discard = false;
+        boolean addDetails = true;
+        if (message != null) {
+            try {
+                destination = getJMSDestination(message);
+                destinationName = extractDestinationName(message, destination);
+                discard = ignoreDestination(destinationName);
+            } catch (Exception e) {
+                logger.error("Failed to retrieve meta info from Message", e);
+            }
+
+            if (abstractSpan instanceof Transaction<?>) {
+                Transaction<?> transaction = (Transaction<?>) abstractSpan;
+                if (discard) {
+                    transaction.ignoreTransaction();
+                } else {
+                    transaction
+                        .withType(MESSAGING_TYPE)
+                        .addLink(propertyAccessorGetter(), message);
+                    addMessageDetails(message, abstractSpan);
+                }
+            } else if (abstractSpan != null) {
+                abstractSpan.addLink(propertyAccessorGetter(), message);
+            }
+        } else if (abstractSpan instanceof Transaction) {
+            // Do not report polling transactions if not yielding messages
+            ((Transaction<?>) abstractSpan).ignoreTransaction();
+            addDetails = false;
+        }
+
+        if (abstractSpan != null) {
+            try {
+                if (discard) {
+                    abstractSpan.requestDiscarding();
+                } else if (addDetails) {
+                    if (message != null && destinationName != null) {
+                        abstractSpan.appendToName(" from ");
+                        addDestinationDetails(destination, destinationName, abstractSpan);
+                        setMessageAge(message, abstractSpan);
+                    }
+                    abstractSpan.captureException(throwable);
+                }
+            } finally {
+                abstractSpan.deactivate().end();
+            }
+        }
+
+        if (!discard && tracer.currentTransaction() == null
+            && message != null
+            && messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.JmsStrategy.POLLING
+            && !"receiveNoWait".equals(methodName)) {
+
+            Transaction<?> messageHandlingTransaction = startJmsTransaction(message, clazz);
+            if (messageHandlingTransaction != null) {
+                messageHandlingTransaction.withType(MESSAGE_HANDLING)
+                    .withName(RECEIVE_NAME_PREFIX);
+
+                if (destinationName != null) {
+                    messageHandlingTransaction.appendToName(" from ");
+                    addDestinationDetails(destination, destinationName, messageHandlingTransaction);
+                    addMessageDetails(message, messageHandlingTransaction);
+                    setMessageAge(message, messageHandlingTransaction);
+                }
+
+                messageHandlingTransaction.activate();
+            }
+        }
+    }
+
+    @Nullable
+    public Object baseBeforeOnMessage(@Nullable final MESSAGE message, Class<?> clazz) {
+        if (message == null || tracer.currentTransaction() != null) {
+            return null;
+        }
+
+        DESTINATION destination = null;
+        String destinationName = null;
+        long timestamp = 0;
+        try {
+            destination = getJMSDestination(message);
+            timestamp = getJMSTimestamp(message);
+        } catch (Exception e) {
+            logger.warn("Failed to retrieve message's destination", e);
+        }
+
+        if (destination != null) {
+            destinationName = extractDestinationName(message, destination);
+            if (ignoreDestination(destinationName)) {
+                return null;
+            }
+        }
+
+        // Create a transaction - even if running on same JVM as the sender
+        Transaction<?> transaction = startJmsTransaction(message, clazz);
+        if (transaction != null) {
+            transaction.withType(MESSAGING_TYPE)
+                .withName(RECEIVE_NAME_PREFIX);
+
+            if (destinationName != null) {
+                addDestinationDetails(destination, destinationName, transaction.appendToName(" from "));
+            }
+            addMessageDetails(message, transaction);
+            setMessageAge(message, transaction);
+            transaction.activate();
+        }
+
+        return transaction;
+    }
+
+    public void deactivateTransaction(@Nullable final Object transactionObj, final Throwable throwable) {
+        if (transactionObj instanceof Transaction<?>) {
+            Transaction<?> transaction = (Transaction<?>) transactionObj;
+            transaction.captureException(throwable);
+            transaction.deactivate().end();
+        }
+    }
+
+    protected abstract String extractDestinationName(@Nullable MESSAGE message, DESTINATION destination);
+
+    protected abstract boolean isTempDestination(DESTINATION destination, @Nullable String extractedDestinationName);
+
+    protected abstract TextHeaderGetter<MESSAGE> propertyAccessorGetter();
+
+    protected abstract TextHeaderSetter<MESSAGE> propertyAccessorSetter();
+
+    protected abstract void addDestinationDetails(DESTINATION destination, String destinationName, AbstractSpan<?> span);
+
+    protected abstract MESSAGELISTENER newMessageListener(MESSAGELISTENER listener);
+
+    protected abstract long getJMSTimestamp(MESSAGE message) throws JMSEXCEPTION;
+
+    protected abstract boolean isTextMessage(MESSAGE message);
+
+    protected abstract String getText(MESSAGE message) throws JMSEXCEPTION;
+
+    protected abstract String getJMSMessageID(MESSAGE message) throws JMSEXCEPTION;
+
+    protected abstract long getJMSExpiration(MESSAGE message) throws JMSEXCEPTION;
+
+    protected abstract Enumeration getPropertyNames(MESSAGE message) throws JMSEXCEPTION;
+
+    protected abstract Object getObjectProperty(MESSAGE message, String propertyName) throws JMSEXCEPTION;
+
+    public abstract void setStringProperty(MESSAGE message, String propertyName, String value) throws JMSEXCEPTION;
+
+    protected abstract DESTINATION getJMSDestination(MESSAGE message) throws JMSEXCEPTION;
+
 }

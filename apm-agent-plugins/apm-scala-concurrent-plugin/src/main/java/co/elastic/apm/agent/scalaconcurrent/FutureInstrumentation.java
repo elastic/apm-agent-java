@@ -18,8 +18,11 @@
  */
 package co.elastic.apm.agent.scalaconcurrent;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -35,10 +38,12 @@ import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
-public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
+public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
+
+    private static final Tracer tracer = GlobalTracer.get();
 
     @SuppressWarnings("WeakerAccess")
-    public static final ReferenceCountedMap<Object, AbstractSpan<?>> promisesToContext = tracer.newReferenceCountedMap();
+    public static final ReferenceCountedMap<Object, ElasticContext<?>> promisesToContext = tracer.newReferenceCountedMap();
 
     @Nonnull
     @Override
@@ -61,8 +66,8 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
         public static class AdviceClass {
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void onExit(@Advice.This Object thiz) {
-                final AbstractSpan<?> context = tracer.getActive();
-                if (context != null) {
+                final ElasticContext<?> context = tracer.currentContext();
+                if (!context.isEmpty()) {
                     promisesToContext.put(thiz, context);
                 }
             }
@@ -88,7 +93,7 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
             public static Object onEnter(@Advice.This Object thiz) {
                 // We cannot remove yet, as this may decrement the ref count of the span to 0 if it has already ended,
                 // thus causing it to be recycled just before we activate it on the current thread. So we first get().
-                AbstractSpan<?> context = promisesToContext.get(thiz);
+                ElasticContext<?> context = promisesToContext.get(thiz);
                 if (context != null) {
                     context.activate();
                     // Now it's safe to remove, as ref count is at least 2
@@ -98,9 +103,9 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
             }
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-            public static void onExit(@Advice.Enter @Nullable Object abstractSpanObj) {
-                if (abstractSpanObj instanceof AbstractSpan<?>) {
-                    AbstractSpan<?> context = (AbstractSpan<?>) abstractSpanObj;
+            public static void onExit(@Advice.Enter @Nullable Object contextObj) {
+                if (contextObj != null) {
+                    ElasticContext<?> context = (ElasticContext<?>) contextObj;
                     context.deactivate();
                 }
             }

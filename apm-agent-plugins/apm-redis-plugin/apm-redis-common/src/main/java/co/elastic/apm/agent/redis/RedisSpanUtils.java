@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.redis;
 
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
 
 import javax.annotation.Nullable;
@@ -27,12 +26,7 @@ import javax.annotation.Nullable;
 public class RedisSpanUtils {
     @Nullable
     public static Span<?> createRedisSpan(String command) {
-        AbstractSpan<?> activeSpan = GlobalTracer.get().getActive();
-        if (activeSpan == null) {
-            return null;
-        }
-
-        Span<?> span = activeSpan.createExitSpan();
+        Span<?> span = GlobalTracer.get().currentContext().createExitSpan();
         if (span == null) {
             return null;
         }

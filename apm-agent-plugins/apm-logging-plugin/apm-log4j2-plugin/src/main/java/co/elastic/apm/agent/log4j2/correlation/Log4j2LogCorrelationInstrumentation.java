@@ -18,8 +18,6 @@
  */
 package co.elastic.apm.agent.log4j2.correlation;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.loginstr.AbstractLogIntegrationInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -28,11 +26,8 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.security.ProtectionDomain;
-import java.util.Collection;
-import java.util.Collections;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionGte;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.*;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
@@ -53,7 +48,7 @@ public abstract class Log4j2LogCorrelationInstrumentation extends AbstractLogInt
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
             // Do not instrument the agent log4j2 lib
-            .and(not(CustomElementMatchers.isAgentClassLoader()))
+            .and(not(isAgentClassLoader()))
             .and(classLoaderCanLoadClass("org.apache.logging.log4j.core.impl.LogEventFactory"));
     }
 

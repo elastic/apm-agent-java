@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.39.1-SNAPSHOT</version>
+        <version>1.40.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -20,6 +20,12 @@
     </properties>
 
     <dependencies>
+        <!-- This plugin requires further refactoring to avoid agent dependencies. -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>

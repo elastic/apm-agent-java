@@ -18,21 +18,36 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
-import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
+import net.bytebuddy.description.NamedElement;
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.matcher.ElementMatchers;
 
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
+import static net.bytebuddy.matcher.ElementMatchers.isPublic;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public abstract class BaseJmsInstrumentation extends TracerAwareInstrumentation {
+public abstract class BaseJmsInstrumentation extends ElasticApmInstrumentation {
+
+    protected final MessagingConfiguration messagingConfiguration;
+
+    protected BaseJmsInstrumentation() {
+        Tracer tracer = GlobalTracer.get();
+        messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
+    }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -41,24 +56,52 @@ public abstract class BaseJmsInstrumentation extends TracerAwareInstrumentation 
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("javax.jms.Message"));
+        return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass(rootClassNameThatClassloaderCanLoad()));
     }
+
+    public ElementMatcher<? super NamedElement> getConsumerPreFilterTypeMatcher() {
+        return nameContains("Message")
+            .or(nameContains("Consumer"))
+            .or(nameContains("Receiver"))
+            .or(nameContains("Subscriber"));
+    }
+
+    public ElementMatcher<? super NamedElement> getProducerPreFilterTypeMatcher() {
+        return nameContains("Message")
+            .or(nameContains("Producer"))
+            .or(nameContains("Sender"))
+            .or(nameContains("Publisher"));
+    }
+
+    public ElementMatcher<? super MethodDescription> getReceiverMethodMatcher() {
+        return named("receive").and(takesArguments(0).or(takesArguments(1))).and(isPublic())
+            .or(named("receiveNoWait").and(takesArguments(0).and(isPublic())));
+    }
+
+    public ElementMatcher<? super NamedElement> getMessageListenerTypeMatcherPreFilter() {
+        ElementMatcher.Junction<NamedElement> nameHeuristic =
+            nameContains("$") // inner classes
+                .or(nameContains("Message"))
+                .or(nameContains("Listener"));
+
+        Collection<String> listenerPackages = messagingConfiguration.getJmsListenerPackages();
+        if (listenerPackages.isEmpty()) {
+            // default heuristic
+            return nameHeuristic;
+        } else {
+            // expand the default heuristic with the provided listener package list
+            return nameHeuristic.or(isInAnyPackage(listenerPackages, ElementMatchers.<NamedElement>none()));
+        }
+    }
+
+    public abstract String rootClassNameThatClassloaderCanLoad();
 
     protected static class BaseAdvice {
 
-        protected static final JmsInstrumentationHelper helper;
-        protected static final MessagingConfiguration messagingConfiguration;
         protected static final CoreConfiguration coreConfiguration;
 
         static {
             Tracer tracer = GlobalTracer.get();
-
-            // loading helper class will load JMS-related classes if loaded from Instrumentation static init
-            // that fails when trying to load instrumentation classes without JMS dependencies, for example when generating
-            // documentation that relies on instrumentation group names
-            helper = JmsInstrumentationHelper.get();
-
-            messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
             coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         }
     }

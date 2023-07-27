@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.java_ldap;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -28,7 +28,7 @@ import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class LdapClientInstrumentation extends TracerAwareInstrumentation {
+public class LdapClientInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
