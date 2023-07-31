@@ -76,13 +76,17 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         // Create an Index
         doCreateIndex(new CreateIndexRequest(SECOND_INDEX));
 
-        validateSpanContentAfterIndexCreateRequest();
+        validateSpan()
+            .method("PUT").pathName("/%s", SECOND_INDEX)
+            .check();
         // Delete the index
         reporter.reset();
 
         doDeleteIndex(new DeleteIndexRequest(SECOND_INDEX));
 
-        validateSpanContentAfterIndexDeleteRequest();
+        validateSpan()
+            .method("DELETE").pathName("/%s", SECOND_INDEX)
+            .check();
     }
 
     @Test
@@ -108,9 +112,10 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         // Index a document
         createDocument();
 
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 201, "PUT");
+        validateSpan()
+            .method("PUT").pathName("/%s/%s/%s", INDEX, DOC_TYPE, DOC_ID)
+            .statusCode(201)
+            .check();
         reporter.reset();
 
         // do search request
@@ -119,11 +124,11 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         SearchResponse response = doSearch(searchRequest);
 
         verifyTotalHits(response.getHits());
-        spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        Span searchSpan = spans.get(0);
-        validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), 200, "POST");
-        validateDbContextContent(searchSpan, "{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
+
+        validateSpan()
+            .method("POST").pathName("/%s/_search", INDEX)
+            .expectStatement("{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}")
+            .check();
         reporter.reset();
 
         Map<String, Object> jsonMap = new HashMap<>();
@@ -134,7 +139,7 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         SearchResponse sr = doSearch(new SearchRequest(INDEX));
         assertThat(sr.getHits().getAt(0).getSourceAsMap().get(FOO)).isEqualTo(BAZ);
 
-        spans = reporter.getSpans();
+        List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(2);
         boolean updateSpanFound = false;
         for (Span span : spans) {
@@ -149,7 +154,10 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         reporter.reset();
         DeleteResponse dr = deleteDocument();
         assertThat(dr.status().getStatus()).isEqualTo(200);
-        validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
+
+        validateSpan()
+            .method("DELETE").pathName("/%s/%s/%s", INDEX, DOC_TYPE, DOC_ID)
+            .check();
     }
 
     @Test
@@ -165,11 +173,11 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         CountResponse responses = doCount(countRequest);
 
         assertThat(responses.getCount()).isEqualTo(1);
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        Span span = spans.get(0);
-        validateSpanContent(span, String.format("Elasticsearch: POST /%s/_count", INDEX), 200, "POST");
-        validateDbContextContent(span, "{\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
+
+        validateSpan()
+            .method("POST").pathName("/%s/_count", INDEX)
+            .expectStatement("{\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}")
+            .check();
 
         deleteDocument();
     }
@@ -188,11 +196,10 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
 
         MultiSearchResponse response = doMultiSearch(multiSearchRequest);
 
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        Span span = spans.get(0);
-        validateSpanContent(span, "Elasticsearch: POST /_msearch", 200, "POST");
-        verifyMultiSearchSpanContent(span);
+        validateSpan()
+            .method("POST").pathName("/_msearch")
+            .expectStatement(getExpectedMultisearchStatement())
+            .check();
 
         deleteDocument();
     }
@@ -212,11 +219,11 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         SearchResponse response = doRollupSearch(rollupSearchRequest);
 
         verifyTotalHits(response.getHits());
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        Span span = spans.get(0);
-        validateSpanContent(span, String.format("Elasticsearch: POST /%s/_rollup_search", INDEX), 200, "POST");
-        validateDbContextContent(span, "{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
+
+        validateSpan()
+            .method("POST").pathName("/%s/_rollup_search", INDEX)
+            .expectStatement("{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}")
+            .check();
 
         deleteDocument();
     }
@@ -231,12 +238,12 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         SearchTemplateResponse response = doSearchTemplate(searchTemplateRequest);
 
         verifyTotalHits(response.getResponse().getHits());
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        Span span = spans.get(0);
         String httpMethod = getSearchTemplateHttpMethod();
-        validateSpanContent(span, String.format("Elasticsearch: %s /%s/_search/template", httpMethod, INDEX), 200, httpMethod);
-        validateDbContextContent(span, "{\"source\":\"{  \\\"query\\\": { \\\"term\\\" : { \\\"{{field}}\\\" : \\\"{{value}}\\\" } },  \\\"size\\\" : \\\"{{size}}\\\"}\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"},\"explain\":false,\"profile\":false}");
+
+        validateSpan()
+            .method(httpMethod).pathName("/%s/_search/template", INDEX)
+            .expectStatement("{\"source\":\"{  \\\"query\\\": { \\\"term\\\" : { \\\"{{field}}\\\" : \\\"{{value}}\\\" } },  \\\"size\\\" : \\\"{{size}}\\\"}\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"},\"explain\":false,\"profile\":false}")
+            .check();
 
         deleteDocument();
     }
@@ -259,11 +266,11 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         MultiSearchTemplateResponse.Item[] items = response.getResponses();
         assertThat(items.length).isEqualTo(1);
         verifyTotalHits(items[0].getResponse().getResponse().getHits());
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        Span span = spans.get(0);
-        validateSpanContent(span, String.format("Elasticsearch: POST /_msearch/template", INDEX), 200, "POST");
-        verifyMultiSearchTemplateSpanContent(span);
+
+        validateSpan()
+            .method("POST").pathName("/_msearch/template")
+            .expectStatement(getMultiSearchTemplateStatement())
+            .check();
 
         deleteDocument();
     }
@@ -304,13 +311,9 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         return searchTemplateRequest;
     }
 
-    protected void verifyMultiSearchTemplateSpanContent(Span span) {
+    protected abstract String getMultiSearchTemplateStatement();
 
-    }
-
-    protected void verifyMultiSearchSpanContent(Span span) {
-
-    }
+    protected abstract String getExpectedMultisearchStatement();
 
     protected void verifyTotalHits(SearchHits searchHits) {
 
@@ -322,7 +325,10 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
             .add(createIndexRequest("2"))
             .add(new DeleteRequest(INDEX, DOC_TYPE, "2")));
 
-        validateSpanContentAfterBulkRequest();
+        validateSpan()
+            .method("POST")
+            .pathName("/_bulk")
+            .check();
     }
 
 

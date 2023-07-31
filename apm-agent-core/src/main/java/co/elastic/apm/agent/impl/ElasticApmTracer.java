@@ -146,6 +146,7 @@ public class ElasticApmTracer implements Tracer {
         configs.put(co.elastic.apm.agent.tracer.configuration.MetricsConfiguration.class, MetricsConfiguration.class);
         configs.put(co.elastic.apm.agent.tracer.configuration.ReporterConfiguration.class, ReporterConfiguration.class);
         configs.put(co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration.class, ServerlessConfiguration.class);
+        configs.put(co.elastic.apm.agent.tracer.configuration.StacktraceConfiguration.class, StacktraceConfiguration.class);
     }
 
     private static void checkClassloader() {
@@ -245,21 +246,32 @@ public class ElasticApmTracer implements Tracer {
     @Override
     @Nullable
     public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader) {
-        return startRootTransaction(sampler, -1, initiatingClassLoader);
+        return startRootTransaction(sampler, -1, currentContext().getBaggage(), initiatingClassLoader);
     }
 
     @Override
     @Nullable
     public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader, long epochMicro) {
-        return startRootTransaction(sampler, epochMicro, initiatingClassLoader);
+        return startRootTransaction(sampler, epochMicro, currentContext().getBaggage(), initiatingClassLoader);
+    }
+
+    @Nullable
+    @Override
+    public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader, Baggage baseBaggage, long epochMicro) {
+        return startRootTransaction(sampler, epochMicro, baseBaggage, initiatingClassLoader);
+    }
+
+
+    @Nullable
+    public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+        return startRootTransaction(sampler, epochMicros, currentContext().getBaggage(), initiatingClassLoader);
     }
 
     @Override
     @Nullable
-    public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+    public Transaction startRootTransaction(Sampler sampler, long epochMicros, Baggage baseBaggage, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction = null;
         if (isRunning()) {
-            Baggage baseBaggage = currentContext().getBaggage();
             transaction = createTransaction().startRoot(epochMicros, sampler, baseBaggage);
             afterTransactionStart(initiatingClassLoader, transaction);
         }
@@ -274,7 +286,7 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     @Nullable
-    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, long epochMicros) {
+    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, Baggage baseBaggage, long epochMicros) {
         return startChildTransaction(headerCarrier, textHeadersGetter, sampler, epochMicros, initiatingClassLoader);
     }
 
@@ -282,9 +294,13 @@ public class ElasticApmTracer implements Tracer {
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler,
                                                  long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+        return startChildTransaction(headerCarrier, textHeadersGetter, sampler, epochMicros, currentContext().getBaggage(), initiatingClassLoader);
+    }
+
+    private <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler,
+                                                  long epochMicros, Baggage baseBaggage, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction = null;
         if (isRunning()) {
-            Baggage baseBaggage = currentContext().getBaggage();
             transaction = createTransaction().start(TraceContext.<C>getFromTraceContextTextHeaders(), headerCarrier,
                 textHeadersGetter, epochMicros, sampler, baseBaggage);
             afterTransactionStart(initiatingClassLoader, transaction);

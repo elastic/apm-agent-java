@@ -28,6 +28,10 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import test.CurrentThreadExecutor;
 
+import javax.annotation.Nullable;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -55,10 +59,33 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
 
     @Parameterized.Parameters()
     public static Iterable<Supplier<ExecutorService>> data() {
-        return Arrays.asList(Executors::newSingleThreadExecutor,
-            Executors::newSingleThreadScheduledExecutor,
-            ForkJoinPool::new
-        );
+        List<Supplier<ExecutorService>> executors = new ArrayList<>();
+        executors.add(Executors::newSingleThreadExecutor);
+        executors.add(ForkJoinPool::new);
+        Supplier<ExecutorService> virtualThreadExecSupplier = getVirtualThreadExecutorSupplier();
+        if (virtualThreadExecSupplier != null) {
+            executors.add(virtualThreadExecSupplier);
+        }
+        return executors;
+    }
+
+    @Nullable
+    private static Supplier<ExecutorService> getVirtualThreadExecutorSupplier() {
+        Method newVirtualThreadPerTaskExecutor;
+        try {
+            newVirtualThreadPerTaskExecutor = Executors.class.getMethod("newVirtualThreadPerTaskExecutor");
+            //invoke the method to ensure it does not throw UnsupportedOperationException
+            newVirtualThreadPerTaskExecutor.invoke(null);
+        } catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
+            return null;
+        }
+        return () -> {
+            try {
+                return (ExecutorService) newVirtualThreadPerTaskExecutor.invoke(null);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
     }
 
     @Before

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>apm-agent-parent</artifactId>
+        <groupId>co.elastic.apm</groupId>
+        <version>1.41.1-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>apm-agent-lambda-layer</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
+        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+    </properties>
+
+    <dependencies>
+        <!-- This dependency listing is required so that running
+             ./mvnw dependency:purge-local-repository package -pl apm-agent-lambda-layer
+             in the parent project forces a redownload of the agent artifact from maven central.
+        -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>elastic-apm-agent</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <artifactItems>
+                        <artifactItem>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>elastic-apm-agent</artifactId>
+                            <destFileName>elastic-apm-agent.jar</destFileName>
+                        </artifactItem>
+                    </artifactItems>
+                    <outputDirectory>${project.build.directory}</outputDirectory>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/aws-lambda</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/assembly</directory>
+                                    <filtering>true</filtering>
+                                    <includes>
+                                        <include>elastic-apm-handler</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                            <delimiters>
+                                <delimiter>[[*]]</delimiter>
+                            </delimiters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <descriptors>
+                                <descriptor>src/main/assembly/aws-lambda-layer.xml</descriptor>
+                            </descriptors>
+                            <finalName>elastic-apm-java-aws-lambda-layer-${project.version}</finalName>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

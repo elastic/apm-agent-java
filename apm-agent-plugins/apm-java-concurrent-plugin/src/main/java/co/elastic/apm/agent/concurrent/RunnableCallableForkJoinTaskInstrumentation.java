@@ -23,6 +23,7 @@ import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -80,8 +81,8 @@ public class RunnableCallableForkJoinTaskInstrumentation extends ElasticApmInstr
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Advice.Thrown Throwable thrown,
                                   @Nullable @Advice.Enter Object context) {
-            if (context instanceof AbstractSpan) {
-                ((AbstractSpan<?>) context).deactivate();
+            if (context != null) {
+                ((ElasticContext<?>) context).deactivate();
             }
         }
     }
