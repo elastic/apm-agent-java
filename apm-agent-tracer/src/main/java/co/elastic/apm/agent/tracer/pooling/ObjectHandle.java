@@ -16,17 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.objectpool;
+package co.elastic.apm.agent.tracer.pooling;
 
-public interface ObjectPool<T> extends co.elastic.apm.agent.tracer.pooling.ObjectPool<T>, co.elastic.apm.agent.sdk.internal.pooling.ObjectPool<T> {
-
-    /**
-     * @return number of available objects in pool
-     */
-    int getObjectsInPool();
+public interface ObjectHandle<T> extends AutoCloseable {
 
     /**
-     * @return number of times that objects could not be returned to the pool because the pool was already full
+     * Must not be called after {@link #close()} has been called!
+     *
+     * @return the obejct to which this handle points.
      */
-    long getGarbageCreated();
+    T get();
+
+    /**
+     * Returns this handle to the object pool.
+     */
+    @Override
+    void close();
 }

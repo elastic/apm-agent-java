@@ -52,11 +52,11 @@ public class QueueBasedObjectPool<T> extends AbstractObjectPool<T> {
      *                    there are no objects in the queue and to preallocate the queue
      * @param resetter    a reset strategy class
      */
-    public static <T> QueueBasedObjectPool<T> of(Queue<T> queue, boolean preAllocate, Allocator<T> allocator, Resetter<T> resetter) {
+    public static <T> QueueBasedObjectPool<T> of(Queue<T> queue, boolean preAllocate, Allocator<? extends T> allocator, Resetter<? super T> resetter) {
         return new QueueBasedObjectPool<>(queue, preAllocate, allocator, resetter);
     }
 
-    private QueueBasedObjectPool(Queue<T> queue, boolean preAllocate, Allocator<T> allocator, Resetter<T> resetter) {
+    private QueueBasedObjectPool(Queue<T> queue, boolean preAllocate, Allocator<? extends T> allocator, Resetter<? super T> resetter) {
         super(allocator, resetter);
         this.queue = queue;
         if (preAllocate) {

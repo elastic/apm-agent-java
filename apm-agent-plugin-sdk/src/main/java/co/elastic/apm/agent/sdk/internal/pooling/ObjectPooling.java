@@ -16,17 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.objectpool;
+package co.elastic.apm.agent.sdk.internal.pooling;
 
-public interface ObjectPool<T> extends co.elastic.apm.agent.tracer.pooling.ObjectPool<T>, co.elastic.apm.agent.sdk.internal.pooling.ObjectPool<T> {
+import co.elastic.apm.agent.sdk.internal.InternalUtil;
 
-    /**
-     * @return number of available objects in pool
-     */
-    int getObjectsInPool();
+import java.util.concurrent.Callable;
 
-    /**
-     * @return number of times that objects could not be returned to the pool because the pool was already full
-     */
-    long getGarbageCreated();
+public class ObjectPooling {
+
+    private static final ObjectPoolFactory factory;
+
+    static {
+        factory = InternalUtil.getServiceProvider(ObjectPoolFactory.class);
+    }
+
+    public static <T> ObjectPool<? extends ObjectHandle<T>> createWithDefaultFactory(Callable<T> allocator) {
+        return factory.createHandlePool(allocator);
+    }
+
+    public interface ObjectPoolFactory {
+        <T> ObjectPool<? extends ObjectHandle<T>> createHandlePool(Callable<T> allocator);
+    }
 }

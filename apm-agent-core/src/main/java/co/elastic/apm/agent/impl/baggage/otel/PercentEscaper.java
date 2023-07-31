@@ -45,10 +45,12 @@
 
 package co.elastic.apm.agent.impl.baggage.otel;
 
-
-import co.elastic.apm.agent.impl.baggage.RecyclableCharArray;
+import co.elastic.apm.agent.sdk.internal.pooling.ObjectHandle;
+import co.elastic.apm.agent.sdk.internal.pooling.ObjectPool;
+import co.elastic.apm.agent.sdk.internal.pooling.ObjectPooling;
 
 import javax.annotation.CheckForNull;
+import java.util.concurrent.Callable;
 
 /**
  * Note: This class is based on code from guava. It is comprised of code from three classes:
@@ -93,6 +95,14 @@ import javax.annotation.CheckForNull;
  * @since 15.0
  */
 public final class PercentEscaper {
+
+    private static final ObjectPool<? extends ObjectHandle<char[]>> CHAR_POOL = ObjectPooling.createWithDefaultFactory(new Callable<char[]>() {
+
+        @Override
+        public char[] call() throws Exception {
+            return new char[1024];
+        }
+    });
 
     /**
      * The amount of padding (chars) to use when growing the escape buffer.
@@ -177,10 +187,10 @@ public final class PercentEscaper {
      * @throws IllegalArgumentException if invalid surrogate characters are encountered
      */
     private static String escapeSlow(String s, int index) {
-        try (RecyclableCharArray recyclabe = RecyclableCharArray.acquire()) {
+        try (ObjectHandle<char[]> pooled = CHAR_POOL.createInstance()) {
             int end = s.length();
             // Get a destination buffer and setup some loop variables.
-            char[] dest = recyclabe.get(); // 1024 from the original guava source
+            char[] dest = pooled.get(); // 1024 from the original guava source
             int destIndex = 0;
             int unescapedChunkStart = 0;
 

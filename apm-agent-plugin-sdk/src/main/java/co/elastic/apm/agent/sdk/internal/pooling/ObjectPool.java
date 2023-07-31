@@ -16,17 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.objectpool;
+package co.elastic.apm.agent.sdk.internal.pooling;
 
-public interface ObjectPool<T> extends co.elastic.apm.agent.tracer.pooling.ObjectPool<T>, co.elastic.apm.agent.sdk.internal.pooling.ObjectPool<T> {
+public interface ObjectPool<T> {
 
-    /**
-     * @return number of available objects in pool
-     */
-    int getObjectsInPool();
+    T createInstance();
 
-    /**
-     * @return number of times that objects could not be returned to the pool because the pool was already full
-     */
-    long getGarbageCreated();
 }
