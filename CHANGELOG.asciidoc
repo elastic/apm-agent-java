@@ -31,6 +31,12 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.41.0]]
+==== 1.41.0 - 2023/07/31
+
 [float]
 ===== Features
 * Added W3C baggage propagation - {pull}3236[#3236], {pull}3248[#3248]
@@ -41,9 +47,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ===== Bug fixes
 * Fixed SQS NoClassDefFoundError in AWS SDK instrumentation - {pull}3254[#3254]
 * Fixed reference counting issues in elasticsearch instrumentation - {pull}3256[#3256]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.40.0]]
 ==== 1.40.0 - 2023/07/19
