@@ -258,7 +258,8 @@ public class MicrometerMeterRegistrySerializer {
         jw.writeByte(JsonWriter.QUOTE);
         jw.writeByte(JsonWriter.SEMI);
         jw.writeByte(JsonWriter.ARRAY_START);
-        // Microemter bucket counts are cumulative: E.g. the count at bucket with upper boundary X is the total number of observations smaller than X
+        // Micrometer bucket counts are cumulative: E.g. the count at bucket with upper
+        // boundary X is the total number of observations smaller than X
         // including values which have already been counted for smaller buckets.
         // Elastic however expects non-cumulative bucket counts
         if (bucket.length > 0) {
