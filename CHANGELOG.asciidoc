@@ -35,6 +35,10 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ===== Features
 * Added virtual thread support - {pull}#3239[#3239]
 
+[float]
+===== Bug fixes
+* Fixed Micrometer histograms to be correctly exported with non-cumulative bucket counts - {pull}3264[#3264]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
