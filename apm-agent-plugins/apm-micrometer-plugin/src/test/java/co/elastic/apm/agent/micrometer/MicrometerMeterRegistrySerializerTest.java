@@ -264,8 +264,8 @@ public class MicrometerMeterRegistrySerializerTest {
         int sum = 0;
         int count = 0;
         int under5Count = 0;
-        int under50Count = 0;
-        int under95Count = 0;
+        int from5To50Count = 0;
+        int from50to95Count = 0;
         int[] values = new int[]{22, 55, 66, 98};
 
         @Override
@@ -290,12 +290,10 @@ public class MicrometerMeterRegistrySerializerTest {
                 sum += val;
                 if (val < 5) {
                     under5Count++;
-                }
-                if (val < 50) {
-                    under50Count++;
-                }
-                if (val < 95) {
-                    under95Count++;
+                } else if (val < 50) {
+                    from5To50Count++;
+                } else if (val < 95) {
+                    from50to95Count++;
                 }
             }
         }
@@ -317,8 +315,8 @@ public class MicrometerMeterRegistrySerializerTest {
             assertThat(histoNode2.isArray()).isTrue();
             assertThat(histoNode2.size()).isEqualTo(3); //the 3 counts of samples under boundaries of the SLOs 5,50,95
             assertThat(histoNode2.get(0).asInt()).isEqualTo(under5Count);
-            assertThat(histoNode2.get(1).asInt()).isEqualTo(under50Count);
-            assertThat(histoNode2.get(2).asInt()).isEqualTo(under95Count);
+            assertThat(histoNode2.get(1).asInt()).isEqualTo(from5To50Count);
+            assertThat(histoNode2.get(2).asInt()).isEqualTo(from50to95Count);
         }
     }
 
