@@ -32,12 +32,14 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 === Unreleased
 
 [float]
-===== Features
-* Added virtual thread support - {pull}#3239[#3239]
-
-[float]
 ===== Bug fixes
 * Fixed Micrometer histograms to be correctly exported with non-cumulative bucket counts - {pull}3264[#3264]
+* Fixed SQS NoClassDefFoundError in AWS SDK instrumentation for async clients - {pull}3266[#3266]
+
+[float]
+===== Refactorings
+* Replaced thread-local IO buffers with pooled ones for virtual thread friendliness - {pull}#3239[#3239]
+
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
