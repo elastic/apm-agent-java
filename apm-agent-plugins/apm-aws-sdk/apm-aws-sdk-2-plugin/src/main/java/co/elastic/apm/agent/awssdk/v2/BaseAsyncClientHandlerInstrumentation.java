@@ -80,11 +80,13 @@ public class BaseAsyncClientHandlerInstrumentation extends ElasticApmInstrumenta
             SdkRequest sdkRequest = clientExecutionParams.getInput();
             URI uri = clientConfiguration.option(SdkClientOption.ENDPOINT);
             Span<?> span = null;
+            boolean isSqs = false;
             if ("S3".equalsIgnoreCase(awsService)) {
                 span = S3Helper.getInstance().startSpan(sdkRequest, uri, executionContext);
             } else if ("DynamoDb".equalsIgnoreCase(awsService)) {
                 span = DynamoDbHelper.getInstance().startSpan(sdkRequest, uri, executionContext);
             } else if ("Sqs".equalsIgnoreCase(awsService)) {
+                isSqs = true;
                 span = SQSHelper.getInstance().startSpan(sdkRequest, uri, executionContext);
             }
 
@@ -92,7 +94,9 @@ public class BaseAsyncClientHandlerInstrumentation extends ElasticApmInstrumenta
                 span.withSync(false).activate();
             }
             try {
-                SQSHelper.getInstance().modifyRequestObject(tracer.currentContext(), clientExecutionParams, executionContext);
+                if (isSqs) {
+                    SQSHelper.getInstance().modifyRequestObject(tracer.currentContext(), clientExecutionParams, executionContext);
+                }
             } finally {
                 if (span != null) {
                     span.deactivate();
