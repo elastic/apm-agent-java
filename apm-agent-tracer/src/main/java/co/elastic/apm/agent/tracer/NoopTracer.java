@@ -90,6 +90,12 @@ class NoopTracer implements Tracer {
 
     @Nullable
     @Override
+    public ErrorCapture getActiveError() {
+        return null;
+    }
+
+    @Nullable
+    @Override
     public Transaction<?> startRootTransaction(@Nullable ClassLoader initiatingClassLoader) {
         return null;
     }
@@ -103,6 +109,12 @@ class NoopTracer implements Tracer {
     @Nullable
     @Override
     public <C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader) {
         return null;
     }
 }

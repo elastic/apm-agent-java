@@ -24,7 +24,7 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 
 import javax.annotation.Nullable;
 
-public interface AbstractSpan<T extends AbstractSpan<T>> extends Activateable<T>, ReferenceCounted {
+public interface AbstractSpan<T extends AbstractSpan<T>> extends ActivateableInScope<T>, ReferenceCounted {
 
     int PRIORITY_DEFAULT = 0;
     int PRIORITY_LOW_LEVEL_FRAMEWORK = 10;

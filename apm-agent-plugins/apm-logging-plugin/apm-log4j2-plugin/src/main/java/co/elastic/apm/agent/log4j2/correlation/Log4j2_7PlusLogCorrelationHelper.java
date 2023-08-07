@@ -36,7 +36,7 @@ public class Log4j2_7PlusLogCorrelationHelper extends AbstractLogCorrelationHelp
 
     @Override
     protected boolean addToMdc() {
-        if (tracer.currentTransaction() == null && ErrorCapture.getActive() == null) {
+        if (tracer.currentTransaction() == null && tracer.getActiveError() == null) {
             return false;
         }
         ThreadContext.putAll(CorrelationIdMapAdapter.get());

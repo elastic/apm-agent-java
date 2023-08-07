@@ -113,6 +113,12 @@ public class GlobalTracer implements Tracer {
 
     @Nullable
     @Override
+    public ErrorCapture getActiveError() {
+        return tracer.getActiveError();
+    }
+
+    @Nullable
+    @Override
     public Transaction<?> startRootTransaction(@Nullable ClassLoader initiatingClassLoader) {
         return tracer.startRootTransaction(initiatingClassLoader);
     }
@@ -127,5 +133,11 @@ public class GlobalTracer implements Tracer {
     @Override
     public <C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return tracer.startChildTransaction(headerCarrier, binaryHeadersGetter, initiatingClassLoader);
+    }
+
+    @Nullable
+    @Override
+    public ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader) {
+        return tracer.captureException(e, initiatingClassLoader);
     }
 }

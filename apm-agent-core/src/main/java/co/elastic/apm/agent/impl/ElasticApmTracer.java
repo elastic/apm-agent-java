@@ -361,6 +361,12 @@ public class ElasticApmTracer implements Tracer {
         return activeStack.get().currentTransaction();
     }
 
+    @Nullable
+    @Override
+    public co.elastic.apm.agent.tracer.ErrorCapture getActiveError() {
+        return ErrorCapture.getActive();
+    }
+
     /**
      * Starts a span with a given parent context.
      * <p>
@@ -432,6 +438,12 @@ public class ElasticApmTracer implements Tracer {
     @Nullable
     public ErrorCapture captureException(@Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
         return captureException(System.currentTimeMillis() * 1000, e, parent, initiatingClassLoader);
+    }
+
+    @Nullable
+    @Override
+    public ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader) {
+        return captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
     }
 
     @Nullable

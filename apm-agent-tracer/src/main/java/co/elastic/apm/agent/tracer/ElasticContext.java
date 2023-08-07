@@ -25,7 +25,7 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 
 import javax.annotation.Nullable;
 
-public interface ElasticContext<T extends ElasticContext<T>> extends ReferenceCounted, Activateable<T> {
+public interface ElasticContext<T extends ElasticContext<T>> extends ActivateableInScope<T>, ReferenceCounted {
 
     /**
      * @return the span/transaction that is associated to this context, {@literal null} if there is none

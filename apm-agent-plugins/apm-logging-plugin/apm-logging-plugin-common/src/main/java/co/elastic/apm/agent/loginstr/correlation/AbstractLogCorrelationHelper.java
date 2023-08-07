@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.loginstr.correlation;
 
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ErrorCapture;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -80,7 +80,7 @@ public abstract class AbstractLogCorrelationHelper {
                 addToMdc(TRANSACTION_ID_MDC_KEY, activeSpan.getTraceContext().getTransactionId().toString());
                 addedToMdc = true;
             }
-            ErrorCapture activeError = ErrorCapture.getActive();
+            ErrorCapture activeError = tracer.getActiveError();
             if (activeError != null) {
                 addToMdc(ERROR_ID_MDC_KEY, activeError.getTraceContext().getId().toString());
                 addedToMdc = true;

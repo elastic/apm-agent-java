@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.loginstr.correlation;
 
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.ErrorCapture;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.tracer.Tracer;
 
 import javax.annotation.Nullable;
@@ -71,7 +71,7 @@ public class CorrelationIdMapAdapter extends AbstractMap<String, String> {
             @Override
             @Nullable
             public String call() {
-                ErrorCapture error = ErrorCapture.getActive();
+                ErrorCapture error = tracer.getActiveError();
                 if (error == null) {
                     return null;
                 }
