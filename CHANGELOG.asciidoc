@@ -31,6 +31,12 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.41.1]]
+==== 1.41.1 - 2023/08/07
+
 [float]
 ===== Bug fixes
 * Fixed Micrometer histograms to be correctly exported with non-cumulative bucket counts - {pull}3264[#3264]
@@ -39,10 +45,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Refactorings
 * Replaced thread-local IO buffers with pooled ones for virtual thread friendliness - {pull}#3239[#3239]
-
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.41.0]]
 ==== 1.41.0 - 2023/07/31
