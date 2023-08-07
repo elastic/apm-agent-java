@@ -5,7 +5,7 @@
     <parent>
         <artifactId>quarkus</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.41.1</version>
+        <version>1.41.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>quarkus-jaxrs-vertx</artifactId>
