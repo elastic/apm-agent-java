@@ -10,7 +10,7 @@ AWS_FOLDER=${AWS_FOLDER?:No aws folder provided}
 ARN_FILE=".ci/.arn-file.md"
 
 {
-	echo "### ARNs of the APM Java Agent's AWS Lambda Layer"
+	echo "### ARNs of the APM Java Agent AWS Lambda Layer"
 	echo ''
 	echo '|Region|ARN|'
 	echo '|------|---|'
