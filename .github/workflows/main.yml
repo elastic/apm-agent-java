@@ -38,8 +38,8 @@ on:
     branches:
       - main
     paths-ignore:
-      - '**.md'
-      - '**.asciidoc'
+      - "**/*.asciidoc"
+      - "**/*.md"
   pull_request:
     types:
       - opened
@@ -48,8 +48,8 @@ on:
       - labeled
       - ready_for_review
     paths-ignore:
-      - '**.md'
-      - '**.asciidoc'
+      - "**/*.asciidoc"
+      - "**/*.md"
 
 # limit the access of the generated GITHUB_TOKEN
 permissions:
