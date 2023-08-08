@@ -5,6 +5,7 @@ name: main # The name must be the same as in main.yml
 on:
   pull_request:
     paths-ignore: # This expression needs to match the paths ignored on main.yml.
+      - '**'
       - '!**/*.md'
       - '!**/*.asciidoc'
 
