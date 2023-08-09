@@ -13,10 +13,6 @@ permissions:
   contents: read
 
 jobs:
-  all:
-    runs-on: ubuntu-latest
-    steps:
-      - run: 'echo "Not required for docs"'
 
   # dummy steps that allow to bypass those mandatory checks for tests
   non-app-server-integration-tests:
