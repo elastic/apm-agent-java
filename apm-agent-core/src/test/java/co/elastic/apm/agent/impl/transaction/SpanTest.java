@@ -22,6 +22,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.BinaryHeaderMapAccessor;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.tracer.Outcome;
@@ -101,10 +102,10 @@ public class SpanTest {
     void normalizeType(String type, String expectedType) {
 
         Transaction transaction = new Transaction(tracer);
-        transaction.startRoot(0, ConstantSampler.of(true));
+        transaction.startRoot(0, ConstantSampler.of(true), Baggage.EMPTY);
         try {
             Span span = new Span(tracer);
-            span.start(TraceContext.fromParent(), transaction, -1L);
+            span.start(TraceContext.fromParent(), transaction, Baggage.EMPTY, -1L);
             assertThat(span.getType())
                 .describedAs("span type should not be set by default")
                 .isNull();

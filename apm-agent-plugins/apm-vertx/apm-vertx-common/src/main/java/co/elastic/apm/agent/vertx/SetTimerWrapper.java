@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.vertx;
 
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import io.vertx.core.Handler;
 
 public class SetTimerWrapper extends GenericHandlerWrapper<Long> {
@@ -39,16 +39,16 @@ public class SetTimerWrapper extends GenericHandlerWrapper<Long> {
         }
     }
 
-    public SetTimerWrapper(AbstractSpan<?> parentSpan, Handler<Long> actualHandler) {
-        super(parentSpan, actualHandler);
+    public SetTimerWrapper(ElasticContext<?> parentContext, Handler<Long> actualHandler) {
+        super(parentContext, actualHandler);
     }
 
-    public static Handler<Long> wrapTimerIfActiveSpan(Handler<Long> handler) {
-        AbstractSpan<?> currentSpan = GlobalTracer.get().getActive();
+    public static Handler<Long> wrapTimerIfNonEmptyContext(Handler<Long> handler) {
+        ElasticContext<?> current = GlobalTracer.get().currentContext();
 
         // do not wrap if there is no parent span or if we are in the recursive context of the same type of timer
-        if (currentSpan != null && !handler.getClass().getName().equals(activeTimerHandlerPerThread.get())) {
-            handler = new SetTimerWrapper(currentSpan, handler);
+        if (!current.isEmpty() && !handler.getClass().getName().equals(activeTimerHandlerPerThread.get())) {
+            handler = new SetTimerWrapper(current, handler);
         }
 
         return handler;

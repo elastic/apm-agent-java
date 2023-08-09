@@ -60,7 +60,7 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(0) Request request) {
-            return helper.createClientSpan(request.getMethod(), request.getEndpoint(), request.getEntity());
+            return helper.createClientSpan(request, request.getMethod(), request.getEndpoint(), request.getEntity());
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

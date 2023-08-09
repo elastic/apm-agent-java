@@ -21,6 +21,7 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -711,12 +712,15 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
         return serviceVersion;
     }
 
-    public Span createSpan() {
-        return tracer.startSpan(fromParentContext(), this);
-    }
 
+    /**
+     * Creates a child span from this trace context. The span will not have any baggage assigned.
+     *
+     * @param epochMicros the span start time
+     * @return the newly started span
+     */
     public Span createSpan(long epochMicros) {
-        return tracer.startSpan(fromParentContext(), this, epochMicros);
+        return tracer.startSpan(fromParentContext(), this, Baggage.EMPTY, epochMicros);
     }
 
     @Override

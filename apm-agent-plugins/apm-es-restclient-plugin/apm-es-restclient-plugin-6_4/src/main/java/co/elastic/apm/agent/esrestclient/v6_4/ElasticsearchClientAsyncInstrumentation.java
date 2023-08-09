@@ -66,7 +66,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] onBeforeExecute(@Advice.Argument(0) Request request,
                                                @Advice.Argument(1) ResponseListener responseListener) {
-            Span<?> span = helper.createClientSpan(request.getMethod(), request.getEndpoint(), request.getEntity());
+            Span<?> span = helper.createClientSpan(request, request.getMethod(), request.getEndpoint(), request.getEntity());
             if (span != null) {
                 Object[] ret = new Object[2];
                 ret[0] = span;

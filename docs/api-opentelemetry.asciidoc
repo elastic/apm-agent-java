@@ -250,8 +250,7 @@ Spans can only have a single parent (`SpanBuilder#setParent`)
 [float]
 [[otel-baggage]]
 ===== Baggage
-Propagating baggage within or outside the process is not supported.
-Baggage items are silently dropped.
+Baggage support has been added in version `1.41.0`.
 
 [float]
 [[otel-events]]

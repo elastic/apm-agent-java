@@ -51,7 +51,7 @@ public class AgentFileAccessor {
     }
 
     public static Path getPathToAwsLambdaLayer() {
-        return getArtifactPath(Path.of("elastic-apm-agent"), "elastic-apm-java-aws-lambda-layer", "", ".zip");
+        return getArtifactPath(Path.of("apm-agent-lambda-layer"), "elastic-apm-java-aws-lambda-layer", "", ".zip");
     }
 
 

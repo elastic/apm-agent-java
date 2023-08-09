@@ -24,6 +24,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.source.ConfigSources;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -513,7 +514,7 @@ class ElasticApmTracerTest {
 
         try (Scope transactionScope = transaction.activateInScope()) {
             assertThat(tracerImpl.getActive()).isEqualTo(transaction);
-            final Span span = tracerImpl.startSpan(TraceContext.fromActive(), tracerImpl);
+            final Span span = tracerImpl.startSpan(TraceContext.fromActive(), tracerImpl, Baggage.EMPTY);
             assertThat(span).isNotNull();
             try (Scope scope = span.activateInScope()) {
                 assertThat(tracerImpl.currentTransaction()).isNotNull();
@@ -541,6 +542,24 @@ class ElasticApmTracerTest {
         tracerImpl.deactivate(transaction);
         assertThat(tracerImpl.getActive()).isNull();
         assertThat(tracerImpl.currentTransaction()).isNull();
+        transaction.end();
+    }
+
+    @Test
+    void testEmptyContextActivation() {
+        final Transaction transaction = startTestRootTransaction();
+        assertThat(tracerImpl.currentContext().getTransaction()).isNull();
+        tracerImpl.activate(transaction);
+        assertThat(tracerImpl.currentContext().getTransaction()).isEqualTo(transaction);
+
+        EmptyElasticContext empty = new EmptyElasticContext(tracerImpl);
+        empty.activate();
+        assertThat(tracerImpl.currentContext().getTransaction()).isNull();
+
+        empty.deactivate();
+        assertThat(tracerImpl.currentContext().getTransaction()).isEqualTo(transaction);
+        tracerImpl.deactivate(transaction);
+        assertThat(tracerImpl.currentContext().getTransaction()).isNull();
         transaction.end();
     }
 
@@ -714,24 +733,18 @@ class ElasticApmTracerTest {
 
     private static final class TestContext extends ElasticContext<TestContext> {
 
-        @Override
-        public TestContext activate() {
-            return null;
-        }
-
-        @Override
-        public TestContext deactivate() {
-            return null;
-        }
-
-        @Override
-        public Scope activateInScope() {
-            return null;
+        private TestContext() {
+            super(null);
         }
 
         @Nullable
         @Override
         public AbstractSpan<?> getSpan() {
+            return null;
+        }
+
+        @Override
+        public Baggage getBaggage() {
             return null;
         }
 

@@ -23,7 +23,7 @@ import co.elastic.apm.agent.tracer.configuration.ListValueConverter;
 import co.elastic.apm.agent.tracer.configuration.RoundedDoubleConverter;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
-import co.elastic.apm.agent.configuration.validation.RegexValidator;
+import co.elastic.apm.agent.tracer.configuration.RegexValidator;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
@@ -56,7 +56,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
+import static co.elastic.apm.agent.tracer.configuration.RangeValidator.isInRange;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACEHOLDER;
 
 public class CoreConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.CoreConfiguration {

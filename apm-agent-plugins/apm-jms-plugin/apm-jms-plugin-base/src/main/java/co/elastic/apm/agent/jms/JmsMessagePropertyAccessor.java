@@ -25,52 +25,44 @@ import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 
 import javax.annotation.Nullable;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageNotWriteableException;
 
-public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Message> implements TextHeaderGetter<Message>, TextHeaderSetter<Message> {
+abstract public class JmsMessagePropertyAccessor<MESSAGE> extends AbstractHeaderGetter<String, MESSAGE> implements TextHeaderGetter<MESSAGE>, TextHeaderSetter<MESSAGE> {
 
     private static final Logger logger = LoggerFactory.getLogger(JmsMessagePropertyAccessor.class);
 
-    private static final JmsMessagePropertyAccessor INSTANCE = new JmsMessagePropertyAccessor();
+    protected final JmsInstrumentationHelper helper;
 
-    public static JmsMessagePropertyAccessor instance() {
-        return INSTANCE;
-    }
-
-    private final JmsInstrumentationHelper helper;
-
-    private JmsMessagePropertyAccessor() {
-        helper = JmsInstrumentationHelper.get();
+    protected JmsMessagePropertyAccessor(JmsInstrumentationHelper helper) {
+        this.helper = helper;
     }
 
     @Nullable
     @Override
-    public String getFirstHeader(String headerName, Message message) {
+    public String getFirstHeader(String headerName, MESSAGE message) {
         headerName = helper.resolvePossibleTraceHeader(headerName);
         String value = null;
         try {
-            value = message.getStringProperty(headerName);
-        } catch (JMSException e) {
+            value = (String) helper.getObjectProperty(message, headerName);
+        } catch (Exception e) {
             logger.error("Failed to extract JMS message property {}", headerName, e);
         }
         return value;
     }
 
     @Override
-    public void setHeader(String headerName, String headerValue, Message message) {
+    public void setHeader(String headerName, String headerValue, MESSAGE message) {
         headerName = helper.resolvePossibleTraceHeader(headerName);
         if (getFirstHeader(headerName, message) != null) {
             return;
         }
         try {
-            message.setStringProperty(headerName, headerValue);
-        } catch (MessageNotWriteableException e) {
-            logger.debug("Failed to set JMS message property {} due to read-only message", headerName, e);
-        } catch (JMSException e) {
+            trySetProperty(headerName, headerValue, message);
+        } catch (Exception e) {
             logger.warn("Failed to set JMS message property {}. Distributed tracing may not work.", headerName);
             logger.debug("Detailed error: ", e);
         }
     }
+
+    protected abstract void trySetProperty(String headerName, String headerValue, MESSAGE message) throws Exception;
+
 }

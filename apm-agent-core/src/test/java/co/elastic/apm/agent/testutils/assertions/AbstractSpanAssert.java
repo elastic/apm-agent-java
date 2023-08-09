@@ -25,7 +25,7 @@ import co.elastic.apm.agent.tracer.Outcome;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, ACTUAL extends AbstractSpan<?>> extends BaseAssert<SELF, ACTUAL> {
+public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, ACTUAL extends AbstractSpan<?>> extends ElasticContextAssert<SELF, ACTUAL> {
 
     protected AbstractSpanAssert(ACTUAL actual, Class<SELF> selfType) {
         super(actual, selfType);

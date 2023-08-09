@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.objectpool;
 
-public interface ObjectPool<T> extends co.elastic.apm.agent.tracer.pooling.ObjectPool<T> {
+public interface ObjectPool<T> extends co.elastic.apm.agent.tracer.pooling.ObjectPool<T>, co.elastic.apm.agent.sdk.internal.pooling.ObjectPool<T> {
 
     /**
      * @return number of available objects in pool

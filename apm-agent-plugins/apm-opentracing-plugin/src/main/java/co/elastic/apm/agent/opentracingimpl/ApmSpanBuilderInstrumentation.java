@@ -95,9 +95,9 @@ public abstract class ApmSpanBuilderInstrumentation extends OpenTracingBridgeIns
                         result = createTransaction(tags, operationName, microseconds, baggage, tracer, applicationClassLoader);
                     } else {
                         if (microseconds >= 0) {
-                            result = tracer.startSpan(TraceContext.fromParent(), parentContext, microseconds);
+                            result = tracer.startSpan(TraceContext.fromParent(), parentContext, parentContext.getBaggage(), microseconds);
                         } else {
-                            result = tracer.startSpan(TraceContext.fromParent(), parentContext);
+                            result = tracer.startSpan(TraceContext.fromParent(), parentContext, parentContext.getBaggage());
                         }
                     }
                 }

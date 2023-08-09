@@ -92,6 +92,7 @@ jobs:
       - prepare_release
     steps:
       - id: buildkite
+        continue-on-error: true
         name: Run Deploy
         uses: elastic/apm-pipeline-library/.github/actions/buildkite@current
         with:
@@ -102,9 +103,6 @@ jobs:
           pipelineVersion: ${{ env.TAG_NAME }}
           waitFor: true
           printBuildLogs: false
-          artifactName: lambda-zip
-          artifactPath: "elastic-apm-agent/target/elastic-apm-java-aws-lambda-layer-*.zip"
-          artifactIfNoFilesFound: error
           # The action fails with .github/actions/buildkite/run.sh: line 24: 3: parameter missing.
           # Which is an unexpected bug.
           # Adding a random buildEnvVar to circumvent the behaviour.
@@ -220,10 +218,14 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: ${{ env.TAG_NAME }}
-      - uses: actions/download-artifact@v3
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v3
         with:
-          name: lambda-zip
-          path: elastic-apm-agent/target
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DIST }}
+          cache: 'maven'
+      - name: Build Lambda-layer zip using agent from maven-central
+        run: ./mvnw dependency:purge-local-repository package -pl apm-agent-lambda-layer
       - uses: hashicorp/vault-action@v2.4.2
         with:
           url: ${{ secrets.VAULT_ADDR }}

@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.cassandra3;
 
 import co.elastic.apm.agent.cassandra.CassandraHelper;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.tracer.GlobalTracer;
@@ -204,7 +203,7 @@ public abstract class Cassandra3Instrumentation extends ElasticApmInstrumentatio
         }
 
         /**
-         * References the method {@link Destination#withSocketAddress(java.net.SocketAddress)} that has been introduced in 2.0.2
+         * References the method {@link co.elastic.apm.agent.tracer.metadata.Destination#withSocketAddress(java.net.SocketAddress)} that has been introduced in 2.0.2
          * We must not reference this class directly to avoid it being loaded which may cause a linkage error.
          */
         enum WithSocketAddress implements DestinationAddressSetter {

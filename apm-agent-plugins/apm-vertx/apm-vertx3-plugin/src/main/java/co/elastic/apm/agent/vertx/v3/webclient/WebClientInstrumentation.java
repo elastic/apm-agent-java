@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.vertx.v3.webclient;
 
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.vertx.AbstractVertxWebClientHelper;
 import co.elastic.apm.agent.vertx.v3.Vertx3Instrumentation;
 import io.vertx.core.Context;
@@ -83,13 +82,7 @@ public abstract class WebClientInstrumentation extends Vertx3Instrumentation {
             public static void sendRequest(@Advice.This HttpContext<?> httpContext,
                                            @Advice.Argument(value = 0) HttpClientRequest request,
                                            @Advice.FieldValue(value = "context") Context vertxContext) {
-                AbstractSpan<?> parent = tracer.getActive();
-
-                if (null != parent) {
-                    webClientHelper.startSpan(tracer.currentContext(), httpContext, request);
-                } else {
-                    webClientHelper.followRedirect(httpContext, request);
-                }
+                webClientHelper.startSpanOrFollowRedirect(tracer.currentContext(), httpContext, request);
             }
         }
     }
