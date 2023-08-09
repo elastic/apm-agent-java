@@ -17,11 +17,13 @@ jobs:
   # dummy steps that allow to bypass those mandatory checks for tests
   non-app-server-integration-tests:
     name: Non-Application Server integration tests
+    runs-on: ubuntu-latest
     steps:
       - run: 'echo "Not required for docs"'
 
   # dummy steps that allow to bypass those mandatory checks for tests
   app-server-integration-tests:
     name: Application Server integration tests
+    runs-on: ubuntu-latest
     steps:
       - run: 'echo "Not required for docs"'
