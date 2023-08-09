@@ -2368,6 +2368,7 @@ or if Elasticsearch can't index the logs fast enough.
 
 For better delivery guarantees, it's recommended to ship ECS JSON log files with Filebeat
 See also <<config-log-ecs-reformatting,`log_ecs_reformatting`>>.
+Log sending does not currently support custom MDC fields, `log_ecs_reformatting` and shipping the logs with Filebeat must be used if custom MDC fields are required.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -3252,6 +3253,8 @@ Most Java projects have a root package, e.g. `com.myproject`. You can set the ap
 
 If you are only interested in specific subpackages, you can separate them with commas:
 `-Delastic.apm.application_packages=com.myproject.api,com.myproject.impl`
+
+NOTE: the instrumentation aspect of this configuration option - specifying which classes to scan - only applies at startup of the agent and changing the value later won't affect which classesgot scanned. The UI aspect, showing where stack frames can be collapsed, can be changed at any time.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -4480,6 +4483,7 @@ Example: `5ms`.
 # 
 # For better delivery guarantees, it's recommended to ship ECS JSON log files with Filebeat
 # See also <<config-log-ecs-reformatting,`log_ecs_reformatting`>>.
+# Log sending does not currently support custom MDC fields, `log_ecs_reformatting` and shipping the logs with Filebeat must be used if custom MDC fields are required.
 #
 # This setting can be changed at runtime
 # Type: Boolean
@@ -4889,6 +4893,8 @@ Example: `5ms`.
 # 
 # If you are only interested in specific subpackages, you can separate them with commas:
 # `-Delastic.apm.application_packages=com.myproject.api,com.myproject.impl`
+# 
+# NOTE: the instrumentation aspect of this configuration option - specifying which classes to scan - only applies at startup of the agent and changing the value later won't affect which classesgot scanned. The UI aspect, showing where stack frames can be collapsed, can be changed at any time.
 #
 # This setting can be changed at runtime
 # Type: comma separated list

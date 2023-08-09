@@ -21,7 +21,9 @@ ALL_AWS_REGIONS=$(aws ec2 describe-regions --output json --no-cli-pager | jq -r 
 rm -rf "${AWS_FOLDER}"
 mkdir -p "${AWS_FOLDER}"
 
-zip_file="./elastic-apm-agent/target/elastic-apm-java-ver-1-39-0.zip"
+zip_file="./apm-agent-lambda-layer/target/${FULL_LAYER_NAME}.zip"
+
+mv ./apm-agent-lambda-layer/target/elastic-apm-java-aws-lambda-layer-*.zip "${zip_file}"
 
 for region in $ALL_AWS_REGIONS; do
   echo "Publish ${FULL_LAYER_NAME} in ${region}"

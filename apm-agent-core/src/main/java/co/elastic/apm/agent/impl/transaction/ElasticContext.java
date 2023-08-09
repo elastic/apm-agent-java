@@ -22,7 +22,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.baggage.BaggageContext;
 import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
-import co.elastic.apm.agent.tracer.BaggageContextBuilder;
 import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
@@ -79,7 +78,7 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
     }
 
     @Override
-    public BaggageContextBuilder withUpdatedBaggage() {
+    public BaggageContext.Builder withUpdatedBaggage() {
         return BaggageContext.createBuilder(this);
     }
 

@@ -24,15 +24,45 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.sdk.internal.pooling.ObjectPooling;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
-public class ObjectPoolFactory implements co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory {
+import java.util.concurrent.Callable;
+
+import static co.elastic.apm.agent.objectpool.ObjectHandle.NOOP_RESETTER;
+
+public class ObjectPoolFactory implements co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory, ObjectPooling.ObjectPoolFactory {
+
+    private static final int DEFAULT_RESOURCE_POOL_SIZE = Math.max(16, Runtime.getRuntime().availableProcessors() * 2);
+
 
     @Override
     public <T extends Recyclable> ObjectPool<T> createRecyclableObjectPool(int maxCapacity, Allocator<T> allocator) {
         return QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<T>((maxCapacity)), false, allocator);
+    }
+
+    @Override
+    public <T> ObjectPool<ObjectHandle<T>> createHandlePool(Allocator<T> allocator) {
+        ObjectHandle.Allocator<T> handleAlloc = new ObjectHandle.Allocator<T>(allocator);
+        QueueBasedObjectPool<ObjectHandle<T>> result = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<ObjectHandle<T>>((DEFAULT_RESOURCE_POOL_SIZE)), false, handleAlloc, NOOP_RESETTER);
+        handleAlloc.setPool(result);
+        return result;
+    }
+
+    @Override
+    public <T> ObjectPool<ObjectHandle<T>> createHandlePool(final Callable<T> allocator) {
+        return createHandlePool(new Allocator<T>() {
+            @Override
+            public T createInstance() {
+                try {
+                    return allocator.call();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
     }
 
     public ObjectPool<Transaction> createTransactionPool(int maxCapacity, final ElasticApmTracer tracer) {
@@ -70,4 +100,5 @@ public class ObjectPoolFactory implements co.elastic.apm.agent.tracer.pooling.Ob
             }
         });
     }
+
 }

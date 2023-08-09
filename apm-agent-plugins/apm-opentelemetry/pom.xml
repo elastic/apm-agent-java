@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-plugins</artifactId>
-        <version>1.40.1-SNAPSHOT</version>
+        <version>1.41.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-opentelemetry</artifactId>
@@ -33,5 +33,14 @@
         <module>apm-opentelemetry-embedded-metrics-sdk</module>
         <module>apm-opentelemetry-metrics-bridge-parent</module>
     </modules>
+
+    <dependencies>
+        <!-- This plugin requires further refactoring to avoid agent dependencies. -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 
 </project>

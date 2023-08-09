@@ -20,9 +20,9 @@ package co.elastic.apm.agent.esrestclient.v7_x;
 
 import co.elastic.apm.agent.esrestclient.v6_4.AbstractEs6_4ClientInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Outcome;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -117,7 +117,6 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
         // When spans are cancelled, we can't know the actual address, because there is no response, and we set the outcome as UNKNOWN
         reporter.disableCheckDestinationAddress();
         reporter.disableCheckUnknownOutcome();
-        disableHttpUrlCheck();
 
         createDocument();
         reporter.reset();
@@ -139,7 +138,12 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
         cancellable.cancel();
 
         Span searchSpan = reporter.getFirstSpan(500);
-        validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), -1, "POST");
+        validateSpan(searchSpan)
+            .method("POST").pathName("/%s/_search", INDEX)
+            .statusCode(-1)
+            .disableHttpUrlCheck()
+            .expectAnyStatement()
+            .check();
 
         assertThat(searchSpan.getOutcome())
             .describedAs("span outcome should be unknown when cancelled")
@@ -188,15 +192,15 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
     }
 
     @Override
-    protected void verifyMultiSearchTemplateSpanContent(Span span) {
-        validateDbContextContent(span, "{\"index\":[\"my-index\"],\"types\":[],\"search_type\":\"query_then_fetch\",\"ccs_minimize_roundtrips\":true}\n" +
-            "{\"source\":\"{  \\\"query\\\": { \\\"term\\\" : { \\\"{{field}}\\\" : \\\"{{value}}\\\" } },  \\\"size\\\" : \\\"{{size}}\\\"}\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"},\"explain\":false,\"profile\":false}\n");
+    protected String getMultiSearchTemplateStatement() {
+        return "{\"index\":[\"my-index\"],\"types\":[],\"search_type\":\"query_then_fetch\",\"ccs_minimize_roundtrips\":true}\n" +
+            "{\"source\":\"{  \\\"query\\\": { \\\"term\\\" : { \\\"{{field}}\\\" : \\\"{{value}}\\\" } },  \\\"size\\\" : \\\"{{size}}\\\"}\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"},\"explain\":false,\"profile\":false}\n";
     }
 
     @Override
-    protected void verifyMultiSearchSpanContent(Span span) {
-        validateDbContextContent(span, "{\"index\":[\"my-index\"],\"types\":[],\"search_type\":\"query_then_fetch\",\"ccs_minimize_roundtrips\":true}\n" +
-            "{\"query\":{\"match\":{\"foo\":{\"query\":\"bar\",\"operator\":\"OR\",\"prefix_length\":0,\"max_expansions\":50,\"fuzzy_transpositions\":true,\"lenient\":false,\"zero_terms_query\":\"NONE\",\"auto_generate_synonyms_phrase_query\":true,\"boost\":1.0}}}}\n");
+    protected String getExpectedMultisearchStatement() {
+        return "{\"index\":[\"my-index\"],\"types\":[],\"search_type\":\"query_then_fetch\",\"ccs_minimize_roundtrips\":true}\n" +
+            "{\"query\":{\"match\":{\"foo\":{\"query\":\"bar\",\"operator\":\"OR\",\"prefix_length\":0,\"max_expansions\":50,\"fuzzy_transpositions\":true,\"lenient\":false,\"zero_terms_query\":\"NONE\",\"auto_generate_synonyms_phrase_query\":true,\"boost\":1.0}}}}\n";
     }
 
     @Override

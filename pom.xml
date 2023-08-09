@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.40.1-SNAPSHOT</version>
+    <version>1.41.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -60,6 +60,7 @@
     <modules>
         <module>apm-agent-core</module>
         <module>elastic-apm-agent</module>
+        <module>apm-agent-lambda-layer</module>
         <module>elastic-apm-agent-premain</module>
         <module>elastic-apm-agent-java8</module>
         <module>apm-agent-benchmarks</module>

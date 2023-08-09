@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-spring-webmvc</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.40.1-SNAPSHOT</version>
+        <version>1.41.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-spring-webmvc-spring5</artifactId>
@@ -33,6 +33,12 @@
 
 
     <dependencies>
+        <!-- This plugin requires further refactoring to avoid agent dependencies. -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>

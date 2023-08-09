@@ -19,13 +19,12 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
@@ -39,34 +38,39 @@ public class ForkJoinPoolTest extends AbstractInstrumentationTest {
 
     private ForkJoinPool pool;
     private Transaction transaction;
+    private ElasticContext<?> txWithBaggage;
 
     @BeforeEach
     void setUp() {
         pool = new ForkJoinPool();
         transaction = tracer.startRootTransaction(null).withName("transaction").activate();
+        txWithBaggage = tracer.currentContext().withUpdatedBaggage().put("foo", "bar").buildContext().activate();
     }
 
     @AfterEach
     void tearDown() {
         assertThat(tracer.getActive()).isEqualTo(transaction);
+        assertThat(tracer.currentContext()).isSameAs(txWithBaggage);
+        txWithBaggage.deactivate();
         transaction.deactivate().end();
+
     }
 
     @Test
     void testExecute() throws Exception {
-        final ForkJoinTask<? extends AbstractSpan<?>> task = newTask(() -> tracer.getActive());
+        final ForkJoinTask<ElasticContext<?>> task = newTask(() -> tracer.currentContext());
         pool.execute(task);
-        assertThat(task.get()).isEqualTo(transaction);
+        assertThat(task.get()).isSameAs(txWithBaggage);
     }
 
     @Test
     void testSubmit() throws Exception {
-        assertThat(pool.submit(newTask(() -> tracer.getActive())).get()).isEqualTo(transaction);
+        assertThat(pool.submit(newTask(() -> tracer.currentContext())).get()).isSameAs(txWithBaggage);
     }
 
     @Test
     void testInvoke() throws Exception {
-        assertThat(pool.invoke(newTask(() -> tracer.getActive()))).isEqualTo(transaction);
+        assertThat(pool.invoke(newTask(() -> tracer.currentContext()))).isSameAs(txWithBaggage);
     }
 
     @Test
@@ -76,19 +80,19 @@ public class ForkJoinPoolTest extends AbstractInstrumentationTest {
         // Preferences | Build, Execution, Deployment | Debugger | Async Stack Traces
         // and uncheck the Instrumenting Agent checkbox
         assertThat(CompletableFuture
-            .supplyAsync(() -> Objects.requireNonNull(tracer.getActive()))
-            .thenApplyAsync(active -> tracer.getActive())
+            .supplyAsync(() -> tracer.currentContext())
+            .thenApplyAsync(active -> tracer.currentContext())
             .get())
-            .isEqualTo(transaction);
+            .isSameAs(txWithBaggage);
     }
 
     @Test
     void testParallelStream() {
         assertThat(Stream.of("foo", "bar", "baz")
             .parallel()
-            .<AbstractSpan<?>>map(s -> tracer.getActive())
+            .<ElasticContext<?>>map(s -> tracer.currentContext())
             .distinct())
-            .containsExactly(transaction);
+            .containsExactly(txWithBaggage);
     }
 
     public static class AdaptedSupplier<V> extends ForkJoinTask<V> implements Runnable {
