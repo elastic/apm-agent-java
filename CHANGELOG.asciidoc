@@ -31,6 +31,10 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[float]
+===== Bug fixes
+* Fix JVM memory usage capture - {pull}3279[#3279]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
