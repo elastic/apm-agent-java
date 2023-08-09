@@ -1,4 +1,0 @@
-FROM quay.io/wildfly/wildfly:27.0.0.Final-jdk17
-# This is a dummy dockerfile which is just there to receive dependabot updates
-# The FROM clause at the top is parsed by our integration tests to use the latest but fixed version
-# This has the benefit over using docker :latest tags in tests that the tests should remain stable

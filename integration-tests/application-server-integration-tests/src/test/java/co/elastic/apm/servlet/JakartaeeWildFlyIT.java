@@ -19,7 +19,6 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.agent.test.AgentTestContainer;
-import co.elastic.apm.agent.test.DockerfileReader;
 import co.elastic.apm.servlet.tests.CdiJakartaeeApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.JBossJakartaServletApiTestApp;
 import co.elastic.apm.servlet.tests.JakartaExternalPluginTestApp;
@@ -48,7 +47,8 @@ public class JakartaeeWildFlyIT extends AbstractServletContainerIntegrationTest 
     @Parameterized.Parameters(name = "Wildfly {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {DockerfileReader.getFrom("/Dockerfile-wildfly-latest")},
+            {"quay.io/wildfly/wildfly:27.0.0.Final-jdk17"},
+            {"quay.io/wildfly/wildfly:29.0.0.Final-jdk17"},
         });
     }
 
