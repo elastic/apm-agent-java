@@ -286,7 +286,9 @@ This provides support for `org.mongodb:mongodb-driver-sync`
 
 |Cassandra
 |2.x+
-|
+|The agent creates spans for interactions with the Cassandra Datastax drivers.
+This provides support for `com.datastax.cassandra:cassandra-driver-core` and
+`com.datastax.oss:java-driver-core`
 |1.23.0
 
 |AWS DynamoDB
