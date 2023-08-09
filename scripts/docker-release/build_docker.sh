@@ -52,7 +52,7 @@ echo "INFO: Starting Docker build for version $GIT_TAG"
 
 docker build -t docker.elastic.co/$NAMESPACE/apm-agent-java:$GIT_TAG \
   --build-arg JAR_FILE=apm-agent-java.jar \
-  --build-arg HANDLER_FILE=elastic-apm-agent/src/main/assembly/elastic-apm-handler .
+  --build-arg HANDLER_FILE=apm-agent-lambda-layer/src/main/assembly/elastic-apm-handler .
 
 if [ $? -eq 0 ]
 then

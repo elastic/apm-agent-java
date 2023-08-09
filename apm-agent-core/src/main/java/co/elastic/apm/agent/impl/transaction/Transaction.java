@@ -22,6 +22,8 @@ import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.baggage.Baggage;
+import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
@@ -31,6 +33,7 @@ import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import org.HdrHistogram.WriterReaderPhaser;
 
@@ -123,7 +126,8 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         spanConfig = tracer.getConfig(SpanConfiguration.class);
     }
 
-    public <T> Transaction startRoot(long epochMicros, Sampler sampler) {
+    public <T> Transaction startRoot(long epochMicros, Sampler sampler, Baggage baggage) {
+        this.baggage = baggage;
         traceContext.asRootSpan(sampler);
         onTransactionStart(epochMicros);
         return this;
@@ -134,10 +138,18 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         @Nullable C parent,
         HeaderGetter<H, C> headerGetter,
         long epochMicros,
-        Sampler sampler
+        Sampler sampler,
+        Baggage baseBaggage
     ) {
         if (parent == null) {
-            return startRoot(epochMicros, sampler);
+            return startRoot(epochMicros, sampler, baseBaggage);
+        }
+        if (headerGetter instanceof TextHeaderGetter) {
+            Baggage.Builder baggageBuilder = baseBaggage.toBuilder();
+            W3CBaggagePropagation.parse(parent, (TextHeaderGetter<C>) headerGetter, baggageBuilder);
+            this.baggage = baggageBuilder.build();
+        } else {
+            this.baggage = baseBaggage;
         }
         CoreConfiguration.TraceContinuationStrategy traceContinuationStrategy = coreConfig.getTraceContinuationStrategy();
         boolean restartTrace = false;

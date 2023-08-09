@@ -53,7 +53,7 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
         // Order is important due to visibility - write to span last on this (initiating) thread
         this.delegate = delegate;
         this.isClientSpan = true;
-        this.context = span;
+        setContext(span);
         return this;
     }
 
@@ -61,7 +61,7 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
         // Order is important due to visibility - write to span last on this (initiating) thread
         this.delegate = delegate;
         this.isClientSpan = false;
-        this.context = context;
+        setContext(context);
         return this;
     }
 
@@ -149,10 +149,20 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
         }
     }
 
+    private void setContext(@Nullable AbstractSpan<?> newContext) {
+        if (newContext != null) {
+            newContext.incrementReferences();
+        }
+        if (context != null) {
+            context.decrementReferences();
+        }
+        context = newContext;
+    }
+
     @Override
     public void resetState() {
         delegate = null;
-        context = null;
+        setContext(null);
         isClientSpan = false;
     }
 }

@@ -19,6 +19,9 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.baggage.Baggage;
+import co.elastic.apm.agent.impl.baggage.BaggageContext;
+import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
 import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
@@ -36,7 +39,15 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
     }
 
     @Nullable
+    @Override
     public abstract AbstractSpan<?> getSpan();
+
+    @Override
+    public abstract Baggage getBaggage();
+
+    public final ElasticApmTracer getTracer() {
+        return tracer;
+    }
 
     /**
      * @return transaction associated to this context, {@literal null} if there is none
@@ -66,28 +77,32 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
         return tracer.activateInScope(this);
     }
 
+    @Override
+    public BaggageContext.Builder withUpdatedBaggage() {
+        return BaggageContext.createBuilder(this);
+    }
+
     @Nullable
     @Override
     public co.elastic.apm.agent.impl.transaction.Span createSpan() {
-        AbstractSpan<?> contextSpan = getSpan();
-        return contextSpan != null ? contextSpan.createSpan() : null;
+        AbstractSpan<?> currentSpan = getSpan();
+        return currentSpan == null ? null : currentSpan.createSpan(getBaggage());
     }
 
     @Nullable
     @Override
-    public co.elastic.apm.agent.impl.transaction.Span createExitSpan() {
+    public final co.elastic.apm.agent.impl.transaction.Span createExitSpan() {
         AbstractSpan<?> contextSpan = getSpan();
-        return contextSpan != null ? contextSpan.createExitSpan() : null;
+        if (contextSpan == null || contextSpan.isExit()) {
+            return null;
+        }
+        return createSpan().asExit();
     }
 
     public boolean isEmpty() {
-        return getSpan() == null && !containsBaggage();
+        return getSpan() == null && getBaggage().isEmpty();
     }
 
-    //TODO: make abstract and implement correctly in subclasses
-    protected final boolean containsBaggage() {
-        return false;
-    }
 
     @Override
     public final <C> boolean propagateContext(C carrier, BinaryHeaderSetter<C> headerSetter) {
@@ -113,12 +128,20 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
                 contextSpan.getTraceContext().propagateTraceContext(carrier, headerSetter);
             }
         }
+        Baggage baggage = getBaggage();
+        if (!baggage.isEmpty()) {
+            if (headerGetter == null || carrier2 == null || headerGetter.getFirstHeader(W3CBaggagePropagation.BAGGAGE_HEADER_NAME, carrier2) == null) {
+                W3CBaggagePropagation.propagate(baggage, carrier, headerSetter);
+            }
+        }
     }
 
     @Override
     public <C> boolean isPropagationRequired(C carrier, TextHeaderGetter<C> headerGetter) {
         AbstractSpan<?> contextSpan = getSpan();
-        return contextSpan != null && !HeaderUtils.containsAny(TraceContext.TRACE_TEXTUAL_HEADERS, carrier, headerGetter);
+        boolean traceContextPropagationRequired = contextSpan != null && !HeaderUtils.containsAny(TraceContext.TRACE_TEXTUAL_HEADERS, carrier, headerGetter);
+        boolean baggagePropagationRequired = !getBaggage().isEmpty() && headerGetter.getFirstHeader(W3CBaggagePropagation.BAGGAGE_HEADER_NAME, carrier) == null;
+        return traceContextPropagationRequired || baggagePropagationRequired;
     }
 
     @Override

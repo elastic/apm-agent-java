@@ -50,7 +50,7 @@ class Jedis4InstrumentationIT extends Jedis1InstrumentationIT {
         shardedJedis.set("foo", "bar");
         assertThat(shardedJedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
 
-        assertTransactionWithRedisSpans("SET", "GET");
+        assertTransactionWithRedisSpans("CLIENT", "CLIENT", "SET", "GET");
     }
 
     @Test
@@ -58,6 +58,6 @@ class Jedis4InstrumentationIT extends Jedis1InstrumentationIT {
         binaryJedis.set("foo".getBytes(), "bar".getBytes());
         assertThat(binaryJedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
 
-        assertTransactionWithRedisSpans("SET", "GET");
+        assertTransactionWithRedisSpans("CLIENT", "CLIENT", "SET", "GET");
     }
 }

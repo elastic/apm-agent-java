@@ -21,6 +21,7 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.internal.collections.LongList;
@@ -48,6 +49,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
 
     protected static final double MS_IN_MICROS = TimeUnit.MILLISECONDS.toMicros(1);
     protected final TraceContext traceContext;
+
+    protected Baggage baggage = Baggage.EMPTY;
 
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
@@ -442,6 +445,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
         timestamp.set(0L);
         endTimestamp.set(0L);
         traceContext.resetState();
+        baggage = Baggage.EMPTY;
         childDurations.resetState();
         references.set(0);
         namePriority = PRIORITY_DEFAULT;
@@ -467,20 +471,19 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
 
     @Override
     public Span createSpan() {
-        return createSpan(traceContext.getClock().getEpochMicros());
+        return createSpan(getBaggage());
     }
 
     public Span createSpan(long epochMicros) {
-        return tracer.startSpan(this, epochMicros);
+        return createSpan(getBaggage(), epochMicros);
     }
 
-    @Override
-    @Nullable
-    public Span createExitSpan() {
-        if (isExit()) {
-            return null;
-        }
-        return createSpan().asExit();
+    public Span createSpan(Baggage newBaggage) {
+        return createSpan(newBaggage, traceContext.getClock().getEpochMicros());
+    }
+
+    private Span createSpan(Baggage baggage, long epochMicros) {
+        return tracer.startSpan(this, baggage, epochMicros);
     }
 
 
@@ -569,6 +572,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
                 try {
                     if (bufferedSpan.compareAndSet(buffered, null)) {
                         this.tracer.endSpan(buffered);
+                        logger.trace("span compression buffer was set to null and {} was ended", buffered);
                     }
                 } finally {
                     buffered.decrementReferences();
@@ -613,6 +617,11 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
             return childIds.contains(spanId.readLong(0));
         }
         return false;
+    }
+
+    @Override
+    public Baggage getBaggage() {
+        return baggage;
     }
 
     /**

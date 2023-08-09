@@ -35,7 +35,7 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.List;
 
-import static co.elastic.apm.agent.configuration.validation.RangeValidator.isNotInRange;
+import static co.elastic.apm.agent.tracer.configuration.RangeValidator.isNotInRange;
 
 public class ReporterConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.ReporterConfiguration {
 

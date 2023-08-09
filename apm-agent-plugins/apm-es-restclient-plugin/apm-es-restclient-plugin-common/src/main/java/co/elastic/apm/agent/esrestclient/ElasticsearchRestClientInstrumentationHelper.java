@@ -19,12 +19,14 @@
 package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.pooling.ObjectPool;
 import co.elastic.apm.agent.sdk.internal.util.IOUtils;
@@ -41,6 +43,7 @@ import java.util.concurrent.CancellationException;
 
 public class ElasticsearchRestClientInstrumentationHelper {
 
+    private static final WeakMap<Object, ElasticsearchEndpointDefinition> requestEndpointMap = WeakConcurrent.buildMap();
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelper.class);
 
     private static final Logger unsupportedOperationOnceLogger = LoggerUtils.logOnce(logger);
@@ -73,9 +76,29 @@ public class ElasticsearchRestClientInstrumentationHelper {
         }
     }
 
-    @Nullable
-    public Span<?> createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity) {
+    public void registerEndpointId(Object requestObj, String endpointId) {
+        if (endpointId.startsWith("es/") && endpointId.length() > 3) {
+            endpointId = endpointId.substring(3);
+        }
+        ElasticsearchEndpointDefinition endpoint = ElasticsearchEndpointMap.get(endpointId);
+        if (endpoint != null) {
+            requestEndpointMap.put(requestObj, endpoint);
+        }
+    }
 
+    @Nullable
+    public Span<?> createClientSpan(Object requestObj, String method, String httpPath, @Nullable HttpEntity httpEntity) {
+        ElasticsearchEndpointDefinition endpoint = requestEndpointMap.remove(requestObj);
+        return createClientSpan(method, httpPath, httpEntity, endpoint);
+    }
+
+    @Nullable
+    public Span<?> createClientSpan(String method, String httpPath, @Nullable HttpEntity httpEntity) {
+        return createClientSpan(method, httpPath, httpEntity, null);
+    }
+
+    @Nullable
+    private Span<?> createClientSpan(String method, String httpPath, @Nullable HttpEntity httpEntity, @Nullable ElasticsearchEndpointDefinition endpoint) {
         Span<?> span = tracer.currentContext().createExitSpan();
 
         // Don't record nested spans. In 5.x clients the instrumented sync method is calling the instrumented async method
@@ -85,14 +108,27 @@ public class ElasticsearchRestClientInstrumentationHelper {
 
         span.withType(SPAN_TYPE)
             .withSubtype(ELASTICSEARCH)
-            .withAction(SPAN_ACTION)
-            .appendToName("Elasticsearch: ").appendToName(method).appendToName(" ").appendToName(endpoint);
+            .withAction(SPAN_ACTION);
+
+        StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK);
+        if (endpoint != null) {
+            if (name != null) {
+                name.append("Elasticsearch: ").append(endpoint.getEndpointName());
+            }
+            span.withOtelAttribute("db.operation", endpoint.getEndpointName());
+            endpoint.addPathPartAttributes(httpPath, span);
+        } else {
+            if (name != null) {
+                name.append("Elasticsearch: ").append(method).append(" ").append(httpPath);
+            }
+        }
+
         span.getContext().getDb().withType(ELASTICSEARCH);
         span.getContext().getServiceTarget().withType(ELASTICSEARCH);
         span.activate();
         if (span.isSampled()) {
             span.getContext().getHttp().withMethod(method);
-            if (WildcardMatcher.isAnyMatch(config.getCaptureBodyUrls(), endpoint)) {
+            if (WildcardMatcher.isAnyMatch(config.getCaptureBodyUrls(), httpPath)) {
                 if (httpEntity != null && httpEntity.isRepeatable()) {
                     try {
                         IOUtils.readUtf8Stream(httpEntity.getContent(), span.getContext().getDb().withStatementBuffer());
