@@ -32,6 +32,10 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 === Unreleased
 
 [float]
+===== Features
+* Virtual thread support - {pull}3244[#3244]
+
+[float]
 ===== Bug fixes
 * Fix JVM memory usage capture - {pull}3279[#3279]
 
