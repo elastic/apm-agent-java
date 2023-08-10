@@ -19,18 +19,18 @@
 package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.tracer.configuration.ListValueConverter;
-import co.elastic.apm.agent.tracer.configuration.RoundedDoubleConverter;
-import co.elastic.apm.agent.tracer.configuration.TimeDuration;
-import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
-import co.elastic.apm.agent.tracer.configuration.RegexValidator;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.tracer.configuration.WildcardMatcherValueConverter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.ListValueConverter;
+import co.elastic.apm.agent.tracer.configuration.RegexValidator;
+import co.elastic.apm.agent.tracer.configuration.RoundedDoubleConverter;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
+import co.elastic.apm.agent.tracer.configuration.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.AbstractValueConverter;
@@ -56,8 +56,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static co.elastic.apm.agent.tracer.configuration.RangeValidator.isInRange;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACEHOLDER;
+import static co.elastic.apm.agent.tracer.configuration.RangeValidator.isInRange;
 
 public class CoreConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.CoreConfiguration {
 
@@ -842,6 +842,15 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
         .dynamic(true)
         .buildWithDefault(ActivationMethod.UNKNOWN);
 
+
+    private final ConfigurationOption<List<WildcardMatcher>> baggateToAttach = ConfigurationOption
+        .builder(new org.stagemonitor.configuration.converter.ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("baggage_to_attach")
+        .configurationCategory(CORE_CATEGORY)
+        .description("telling the agent what activated it, used for telemetry and should not be set unless supported by ActivationMethod")
+        .dynamic(true)
+        .buildWithDefault(Arrays.asList(WildcardMatcher.valueOf("*")));
+
     public boolean isEnabled() {
         return enabled.get();
     }
@@ -1129,6 +1138,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
     @Override
     public ActivationMethod getActivationMethod() {
         return activationMethod.get();
+    }
+
+    public List<WildcardMatcher> getBaggageToAttach() {
+        return baggateToAttach.get();
     }
 
     public enum CloudProvider {
