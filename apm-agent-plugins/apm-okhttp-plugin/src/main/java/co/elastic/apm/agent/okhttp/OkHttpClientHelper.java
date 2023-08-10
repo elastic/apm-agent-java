@@ -37,7 +37,6 @@ public class OkHttpClientHelper {
         // okhttp represents IPv6 addresses without square brackets, as opposed to all others, so we should add them
         if (originalHostName != null && originalHostName.contains(":") && !originalHostName.startsWith("[")) {
             StringBuilder sb = new StringBuilder(originalHostName.length() + 2);
-            sb.setLength(0);
             sb.append("[").append(originalHostName).append("]");
             hostName = sb;
         }
