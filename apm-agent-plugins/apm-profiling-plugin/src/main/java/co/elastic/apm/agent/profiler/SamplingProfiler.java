@@ -18,18 +18,20 @@
  */
 package co.elastic.apm.agent.profiler;
 
-import co.elastic.apm.agent.sdk.internal.util.ExecutorUtils;
-import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
-import co.elastic.apm.agent.tracer.configuration.TimeDuration;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.profiler.asyncprofiler.AsyncProfiler;
 import co.elastic.apm.agent.profiler.asyncprofiler.JfrParser;
 import co.elastic.apm.agent.profiler.collections.Long2ObjectHashMap;
+import co.elastic.apm.agent.sdk.internal.util.ExecutorUtils;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
 import co.elastic.apm.agent.tracer.pooling.ObjectPool;
 import com.lmax.disruptor.EventFactory;
@@ -39,8 +41,6 @@ import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.Sequence;
 import com.lmax.disruptor.SequenceBarrier;
 import com.lmax.disruptor.WaitStrategy;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -224,6 +224,17 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         this.jfrFile = jfrFile;
         activationEventsBuffer = ByteBuffer.allocateDirect(ACTIVATION_EVENTS_BUFFER_SIZE);
         this.activationEventsFile = activationEventsFile;
+    }
+
+    /**
+     * For testing only!
+     * This method must only be called in tests and some period after activation / deactivation events, as otherwise it is racy.
+     *
+     * @param thread the Thread to check.
+     * @return true, if profiling is active for the given thread.
+     */
+    boolean isProfilingActiveOnThread(Thread thread) {
+        return profiledThreads.containsKey(thread.getId());
     }
 
     private synchronized void createFilesIfRequired() throws IOException {

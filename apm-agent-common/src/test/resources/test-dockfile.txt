@@ -1,5 +1,0 @@
-#this is a dummy dockerfile to text the image extraction from the "FROM" clause
-
-FROM foobar
-
-

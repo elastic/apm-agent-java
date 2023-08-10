@@ -19,12 +19,12 @@
 package co.elastic.apm.agent.micrometer;
 
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 import co.elastic.apm.agent.tracer.configuration.MetricsConfiguration;
-import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
@@ -258,11 +258,17 @@ public class MicrometerMeterRegistrySerializer {
         jw.writeByte(JsonWriter.QUOTE);
         jw.writeByte(JsonWriter.SEMI);
         jw.writeByte(JsonWriter.ARRAY_START);
+        // Micrometer bucket counts are cumulative: E.g. the count at bucket with upper
+        // boundary X is the total number of observations smaller than X
+        // including values which have already been counted for smaller buckets.
+        // Elastic however expects non-cumulative bucket counts
         if (bucket.length > 0) {
             NumberConverter.serialize((long) bucket[0].count(), jw);
+            double prevBucketCount = bucket[0].count();
             for (int i = 1; i < bucket.length; i++) {
                 jw.writeByte(JsonWriter.COMMA);
-                NumberConverter.serialize((long) bucket[i].count(), jw);
+                NumberConverter.serialize((long) (bucket[i].count() - prevBucketCount), jw);
+                prevBucketCount = bucket[i].count();
             }
         }
         jw.writeByte(JsonWriter.ARRAY_END);
