@@ -875,14 +875,16 @@ public final class ElasticsearchEndpointMap {
     private ElasticsearchEndpointMap() {
     }
 
-    private static void initEndpoint(
-        Map<String, ElasticsearchEndpointDefinition> map,
-        String endpointId,
-        boolean isSearchEndpoint,
-        String... routes) {
-        ElasticsearchEndpointDefinition endpointDef =
-            new ElasticsearchEndpointDefinition(endpointId, routes, isSearchEndpoint);
+    private static void initEndpoint(Map<String, ElasticsearchEndpointDefinition> map,
+                                     String endpointId,
+                                     boolean isSearchEndpoint,
+                                     String... routes) {
+
+        ElasticsearchEndpointDefinition endpointDef = new ElasticsearchEndpointDefinition(endpointId, routes, isSearchEndpoint);
         map.put(endpointId, endpointDef);
+
+        // duplicate entries for allocation-free lookup with 'es/' prefix.
+        map.put("es/" + endpointId, endpointDef);
     }
 
     @Nullable
