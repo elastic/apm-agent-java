@@ -68,7 +68,7 @@ class ErrorCaptureTest {
     @Test
     void testUnnestNestedException() {
         final NestedException nestedException = new NestedException(new CustomException());
-        ErrorCapture errorCapture = tracer.captureException(nestedException, null, null);
+        ErrorCapture errorCapture = tracer.captureException(nestedException, tracer.currentContext(), null);
         assertThat(errorCapture).isNotNull();
         assertThat(errorCapture.getException()).isNotInstanceOf(NestedException.class);
         assertThat(errorCapture.getException()).isInstanceOf(CustomException.class);
@@ -77,7 +77,7 @@ class ErrorCaptureTest {
     @Test
     void testUnnestDoublyNestedException() {
         final NestedException nestedException = new NestedException(new NestedException(new CustomException()));
-        ErrorCapture errorCapture = tracer.captureException(nestedException, null, null);
+        ErrorCapture errorCapture = tracer.captureException(nestedException, tracer.currentContext(), null);
         assertThat(errorCapture).isNotNull();
         assertThat(errorCapture.getException()).isNotInstanceOf(NestedException.class);
         assertThat(errorCapture.getException()).isInstanceOf(CustomException.class);
@@ -87,14 +87,14 @@ class ErrorCaptureTest {
     void testIgnoredNestedException() {
         doReturn(List.of(WildcardMatcher.valueOf("*CustomException"))).when(coreConfiguration).getIgnoreExceptions();
         final NestedException nestedException = new NestedException(new CustomException());
-        ErrorCapture errorCapture = tracer.captureException(nestedException, null, null);
+        ErrorCapture errorCapture = tracer.captureException(nestedException, tracer.currentContext(), null);
         assertThat(errorCapture).isNull();
     }
 
     @Test
     void testNonConfiguredNestingException() {
         final WrapperException wrapperException = new WrapperException(new CustomException());
-        ErrorCapture errorCapture = tracer.captureException(wrapperException, null, null);
+        ErrorCapture errorCapture = tracer.captureException(wrapperException, tracer.currentContext(), null);
         assertThat(errorCapture).isNotNull();
         assertThat(errorCapture.getException()).isInstanceOf(WrapperException.class);
     }
@@ -102,7 +102,7 @@ class ErrorCaptureTest {
     @Test
     void testNonConfiguredWrappingConfigured() {
         final NestedException nestedException = new NestedException(new WrapperException(new NestedException(new Exception())));
-        ErrorCapture errorCapture = tracer.captureException(nestedException, null, null);
+        ErrorCapture errorCapture = tracer.captureException(nestedException, tracer.currentContext(), null);
         assertThat(errorCapture).isNotNull();
         assertThat(errorCapture.getException()).isInstanceOf(WrapperException.class);
     }
