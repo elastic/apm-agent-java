@@ -846,6 +846,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
     private final ConfigurationOption<List<WildcardMatcher>> baggateToAttach = ConfigurationOption
         .builder(new org.stagemonitor.configuration.converter.ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("baggage_to_attach")
+        .tags("added[1.43.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("If any baggage key matches any of the patterns provided via this config option," +
             " the corresponding baggage key and value will be automaticalyl stored on the corresponding transactions and spans." +

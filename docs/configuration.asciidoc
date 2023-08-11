@@ -136,6 +136,7 @@ Click on a key to get more information.
 ** <<config-enable-public-api-annotation-inheritance>>
 ** <<config-transaction-name-groups>>
 ** <<config-trace-continuation-strategy>>
+** <<config-baggage-to-attach>>
 * <<config-datastore>>
 ** <<config-elasticsearch-capture-body-urls>>
 ** <<config-mongodb-capture-statement-commands>>
@@ -1546,6 +1547,29 @@ Valid options: `continue`, `restart`, `restart_external`
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.trace_continuation_strategy` | `trace_continuation_strategy` | `ELASTIC_APM_TRACE_CONTINUATION_STRATEGY`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-baggage-to-attach]]
+==== `baggage_to_attach` (added[1.43.0])
+
+If any baggage key matches any of the patterns provided via this config option, the corresponding baggage key and value will be automaticalyl stored on the corresponding transactions and spans. The baggage keys will be prefixed with "baggage." on storage.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `*` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.baggage_to_attach` | `baggage_to_attach` | `ELASTIC_APM_BAGGAGE_TO_ATTACH`
 |============
 
 [[config-datastore]]
@@ -4039,6 +4063,14 @@ Example: `5ms`.
 # Default value: CONTINUE
 #
 # trace_continuation_strategy=CONTINUE
+
+# If any baggage key matches any of the patterns provided via this config option, the corresponding baggage key and value will be automaticalyl stored on the corresponding transactions and spans. The baggage keys will be prefixed with "baggage." on storage.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: *
+#
+# baggage_to_attach=*
 
 ############################################
 # Datastore                                #
