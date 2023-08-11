@@ -31,9 +31,11 @@ import static net.bytebuddy.matcher.ElementMatchers.*;
 /**
  * Instruments:
  * <ul>
- *     <li>{@link co.elastic.clients.transport.rest_client.RestClientTransport#performRequest}</li>
- *     <li>{@link co.elastic.clients.transport.rest_client.RestClientTransport#performRequestAsync} </li>
- * </ul>
+ *     <li>{@link co.elastic.clients.transport.rest_client.RestClientTransport#performRequest} (before 8.9.0)</li>
+ *     <li>{@link co.elastic.clients.transport.rest_client.RestClientTransport#performRequestAsync} (before 8.9.0)</li>
+ *     <li>{@link co.elastic.clients.transport.ElasticsearchTransportBase#performRequest} (8.9.0 and later)</li>
+ *     <li>{@link co.elastic.clients.transport.ElasticsearchTransportBase#performRequestAsync} (8.9.0 and later)</li>
+ * </ul>}
  * To store the current endpoint ID in a thread-local storage
  */
 public class RestClientTransportInstrumentation extends ElasticsearchRestClientInstrumentation {
@@ -41,7 +43,7 @@ public class RestClientTransportInstrumentation extends ElasticsearchRestClientI
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("co.elastic.clients.transport.rest_client.RestClientTransport") // 8.x up to 8.8.x
-            .or(named("co.elastic.clients.transport.ElasticsearchTransportBase")); // 8.9.0+
+            .or(named("co.elastic.clients.transport.ElasticsearchTransportBase")); // in 8.9.0+ we have to instrument superclass
     }
 
     @Override
