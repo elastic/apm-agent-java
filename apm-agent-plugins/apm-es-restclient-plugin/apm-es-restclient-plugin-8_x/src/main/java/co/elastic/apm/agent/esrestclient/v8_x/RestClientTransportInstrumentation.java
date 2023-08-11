@@ -34,7 +34,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
- * Instruments {@link co.elastic.clients.transport.rest_client.RestClientTransport#prepareLowLevelRequest(Object, Endpoint, TransportOptions)}.
+ * Instruments {@code co.elastic.clients.transport.rest_client.RestClientTransport#prepareLowLevelRequest(Object, Endpoint, TransportOptions)}.
+ * This method is only available until 8.8.x, with 8.9.0 and later using ElasticsearchTransportBaseInstrumentation
  */
 @SuppressWarnings("JavadocReference")
 public class RestClientTransportInstrumentation extends ElasticsearchRestClientInstrumentation {
