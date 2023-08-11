@@ -847,7 +847,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
         .builder(new org.stagemonitor.configuration.converter.ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("baggage_to_attach")
         .configurationCategory(CORE_CATEGORY)
-        .description("telling the agent what activated it, used for telemetry and should not be set unless supported by ActivationMethod")
+        .description("If any baggage key matches any of the patterns provided via this config option," +
+            " the corresponding baggage key and value will be automaticalyl stored on the corresponding transactions and spans." +
+            " The baggage keys will be prefixed with \"baggage.\" on storage.")
         .dynamic(true)
         .buildWithDefault(Arrays.asList(WildcardMatcher.valueOf("*")));
 
