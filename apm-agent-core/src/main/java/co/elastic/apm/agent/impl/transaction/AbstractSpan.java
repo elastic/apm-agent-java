@@ -552,7 +552,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
         // or even after its reported and the last child span is ended
         incrementReferences();
 
-        List<WildcardMatcher> baggageToAttach = getParentTransaction().coreConfig.getBaggageToAttach();
+        List<WildcardMatcher> baggageToAttach = tracer.getConfig(CoreConfiguration.class).getBaggageToAttach();
         baggage.storeBaggageInAttributes(this, baggageToAttach);
     }
 
@@ -633,7 +633,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
      *
      * @return the transaction.
      */
-    public abstract co.elastic.apm.agent.impl.transaction.Transaction getParentTransaction();
+    public abstract Transaction getParentTransaction();
 
     /**
      * Set start timestamp

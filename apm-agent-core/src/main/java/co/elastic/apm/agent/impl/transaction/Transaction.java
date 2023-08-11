@@ -74,7 +74,7 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
      */
     private final KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> timerBySpanTypeAndSubtype = new KeyListConcurrentHashMap<>();
     private final WriterReaderPhaser phaser = new WriterReaderPhaser();
-    final CoreConfiguration coreConfig;
+    private final CoreConfiguration coreConfig;
     private final SpanConfiguration spanConfig;
 
     /**
