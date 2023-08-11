@@ -31,12 +31,19 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.42.0]]
+==== 1.42.0 - 2023/08/11
+
+[float]
+===== Features
+* Virtual thread support - {pull}3244[#3244], {pull}3286[#3286]
+
 [float]
 ===== Bug fixes
 * Fix JVM memory usage capture - {pull}3279[#3279]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.41.1]]
 ==== 1.41.1 - 2023/08/07
