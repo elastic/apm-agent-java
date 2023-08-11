@@ -107,26 +107,25 @@ public class Baggage implements co.elastic.apm.agent.tracer.Baggage {
             return;
         }
         for (String key : baggage.keySet()) {
-            boolean matches = false;
-            for (int i = 0; i < keyFilter.size(); i++) {
-                if (keyFilter.get(i).matches(key)) {
-                    matches = true;
-                    break;
-                }
-            }
-            if (matches) {
-                if (cachedKeysWithPrefix == null) {
-                    cachedKeysWithPrefix = new ConcurrentHashMap<>();
-                }
-                String keyWithPrefix = cachedKeysWithPrefix.get(key);
-                if (keyWithPrefix == null) {
-                    keyWithPrefix = LIFTED_BAGGAGE_ATTRIBUTE_PREFIX + key;
-                    cachedKeysWithPrefix.put(key, keyWithPrefix);
-                }
+            if (WildcardMatcher.anyMatch(keyFilter, key) != null) {
+                String keyWithPrefix = getKeyWithAttributePrefix(key);
                 String value = baggage.get(key);
                 span.withOtelAttribute(keyWithPrefix, value);
             }
         }
+    }
+
+    private String getKeyWithAttributePrefix(String key) {
+        if (cachedKeysWithPrefix == null) {
+            //we don't mind the race condition here, at worst we loose a few cached entries which are then recomputed
+            cachedKeysWithPrefix = new ConcurrentHashMap<>();
+        }
+        String keyWithPrefix = cachedKeysWithPrefix.get(key);
+        if (keyWithPrefix == null) {
+            keyWithPrefix = LIFTED_BAGGAGE_ATTRIBUTE_PREFIX + key;
+            cachedKeysWithPrefix.put(key, keyWithPrefix);
+        }
+        return keyWithPrefix;
     }
 
     public static class Builder {
