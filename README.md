@@ -1,4 +1,4 @@
-[![Build Status](https://apm-ci.elastic.co/buildStatus/icon?job=apm-agent-java%2Fapm-agent-java-mbp%2Fmain)](https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/main/)
+[![main](https://github.com/elastic/apm-agent-java/actions/workflows/main.yml/badge.svg)](https://github.com/elastic/apm-agent-java/actions/workflows/main.yml)
 [![codecov](https://codecov.io/gh/elastic/apm-agent-java/branch/main/graph/badge.svg)](https://codecov.io/gh/elastic/apm-agent-java)
 [![Maven Central](https://img.shields.io/maven-central/v/co.elastic.apm/apm-agent-api.svg)](https://mvnrepository.com/artifact/co.elastic.apm/elastic-apm-agent/latest)
 

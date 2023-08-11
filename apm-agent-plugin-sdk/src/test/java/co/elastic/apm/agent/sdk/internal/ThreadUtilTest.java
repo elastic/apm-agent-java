@@ -16,24 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.test;
+package co.elastic.apm.agent.sdk.internal;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-public class DockerfileReaderTest {
+public class ThreadUtilTest {
 
     @Test
-    public void checkValidDockerfile() {
-        assertThat(DockerfileReader.getFrom("/test-dockfile.txt")).isEqualTo("foobar");
+    public void checkPlatformThreadVirtual() {
+        Thread t1 = new Thread();
+        assertThat(ThreadUtil.isVirtual(t1)).isFalse();
     }
 
     @Test
-    public void checkInvalidDockerfile() {
-        assertThatThrownBy(() -> DockerfileReader.getFrom("/test-dockfile-invalid.txt"))
-            .isInstanceOf(IllegalArgumentException.class);
+    @DisabledForJreRange(max = JRE.JAVA_20)
+    public void checkVirtualThreadVirtual() throws Exception {
+        Runnable task = () -> {
+        };
+        Thread thread = (Thread) Thread.class.getMethod("startVirtualThread", Runnable.class).invoke(null, task);
+        assertThat(ThreadUtil.isVirtual(thread)).isTrue();
     }
-
 }

@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.profiler;
 
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.tracer.configuration.ListValueConverter;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.tracer.configuration.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -48,6 +48,8 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "The inferred spans are created after a profiling session has ended.\n" +
             "This means there is a delay between the regular and the inferred spans being visible in the UI.\n" +
+            "\n" +
+            "Only platform threads are supported. Virtual threads are not supported and will not be profiled.\n" +
             "\n" +
             "NOTE: This feature is not available on Windows and on OpenJ9")
         .dynamic(true)

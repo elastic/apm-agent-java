@@ -38,8 +38,8 @@ on:
     branches:
       - main
     paths-ignore:
-      - '**.md'
-      - '**.asciidoc'
+      - "**/*.asciidoc"
+      - "**/*.md"
   pull_request:
     types:
       - opened
@@ -48,8 +48,8 @@ on:
       - labeled
       - ready_for_review
     paths-ignore:
-      - '**.md'
-      - '**.asciidoc'
+      - "**/*.asciidoc"
+      - "**/*.md"
 
 # limit the access of the generated GITHUB_TOKEN
 permissions:
@@ -203,6 +203,17 @@ jobs:
         with:
           name: build
           path: ${{ github.workspace }}
+      # As long as there are some space issues with the CI runners.
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@0add001504c51b93b35ac8e81d252bdd47e4ef07
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+          tool-cache: false
       - uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw -q -P ci-application-server-integration-tests verify

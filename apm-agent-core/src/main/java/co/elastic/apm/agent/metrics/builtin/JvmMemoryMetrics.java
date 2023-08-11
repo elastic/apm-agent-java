@@ -41,9 +41,20 @@ public class JvmMemoryMetrics extends AbstractLifecycleListener {
     }
 
     void bindTo(final MetricRegistry registry) {
-        MemoryMXBean platformMXBean = ManagementFactory.getPlatformMXBean(MemoryMXBean.class);
-        registerMemoryUsage(registry, "jvm.memory.heap", Labels.EMPTY, platformMXBean.getHeapMemoryUsage());
-        registerMemoryUsage(registry, "jvm.memory.non_heap", Labels.EMPTY, platformMXBean.getNonHeapMemoryUsage());
+        final MemoryMXBean platformMXBean = ManagementFactory.getPlatformMXBean(MemoryMXBean.class);
+        registerMemoryUsage(registry, "jvm.memory.heap", Labels.EMPTY, new MemoryUsageGetter() {
+            @Override
+            public MemoryUsage get() {
+                return platformMXBean.getHeapMemoryUsage();
+            }
+        });
+        registerMemoryUsage(registry, "jvm.memory.non_heap", Labels.EMPTY, new MemoryUsageGetter() {
+            @Override
+            public MemoryUsage get() {
+                return platformMXBean.getNonHeapMemoryUsage();
+            }
+        });
+
 
         List<MemoryPoolMXBean> memoryPoolMXBeans = ManagementFactory.getMemoryPoolMXBeans();
 
@@ -52,30 +63,39 @@ public class JvmMemoryMetrics extends AbstractLifecycleListener {
 
             final Labels labels = Labels.Mutable.of("name", memoryPoolMXBean.getName());
             try {
-                registerMemoryUsage(registry, String.format("jvm.memory.%s.pool", type), labels, memoryPoolMXBean.getUsage());
+                registerMemoryUsage(registry, String.format("jvm.memory.%s.pool", type), labels, new MemoryUsageGetter() {
+                    @Override
+                    public MemoryUsage get() {
+                        return memoryPoolMXBean.getUsage();
+                    }
+                });
             } catch (Exception e) {
                 logger.error("Cannot fetch memory metrics of memory pool " + memoryPoolMXBean.getName(), e);
             }
         }
     }
 
-    private static void registerMemoryUsage(MetricRegistry registry, String prefix, Labels labels, final MemoryUsage memoryUsage) {
+    private interface MemoryUsageGetter {
+        MemoryUsage get();
+    }
+
+    private static void registerMemoryUsage(MetricRegistry registry, String prefix, Labels labels, final MemoryUsageGetter memoryUsageGetter) {
         registry.add(prefix + ".used", labels, new DoubleSupplier() {
             @Override
             public double get() {
-                return memoryUsage.getUsed();
+                return memoryUsageGetter.get().getUsed();
             }
         });
         registry.add(prefix + ".committed", labels, new DoubleSupplier() {
             @Override
             public double get() {
-                return memoryUsage.getCommitted();
+                return memoryUsageGetter.get().getCommitted();
             }
         });
         registry.addUnlessNegative(prefix + ".max", labels, new DoubleSupplier() {
             @Override
             public double get() {
-                return memoryUsage.getMax();
+                return memoryUsageGetter.get().getMax();
             }
         });
     }

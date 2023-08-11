@@ -83,7 +83,7 @@ public class ReleaseChangelog {
 
         f.insert(changes, sectionStart.getAsInt() + 1);
 
-        Files.writeString(fileName, f.toString(), StandardCharsets.UTF_8);
+        Files.writeString(fileName, f.toString() + "\n", StandardCharsets.UTF_8);
     }
 
     static class Lines {

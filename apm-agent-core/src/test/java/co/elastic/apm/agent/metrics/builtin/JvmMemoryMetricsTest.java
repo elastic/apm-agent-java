@@ -66,7 +66,8 @@ class JvmMemoryMetricsTest {
                     .isNotNaN()
                     .isNotNegative());
         }
-    }
+
+     }
 
     private AbstractDoubleAssert<?> assertMetric(MetricRegistry registry, String name, Labels labels) {
         return assertThat(registry.getGaugeValue(name, labels))

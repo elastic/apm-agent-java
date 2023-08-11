@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.agent.tracer.configuration.RoundedDoubleConverter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.RoundedDoubleConverter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
@@ -48,6 +48,9 @@ public class TraceState implements Recyclable {
 
     private final List<String> tracestate;
 
+    @Nullable
+    private String cachedResultHeader;
+
     /**
      * sample rate, {@link Double#NaN} if unknown or not set
      */
@@ -58,6 +61,7 @@ public class TraceState implements Recyclable {
         sizeLimit = DEFAULT_SIZE_LIMIT;
         tracestate = new ArrayList<>(1);
         rewriteBuffer = new StringBuilder();
+        cachedResultHeader = null;
     }
 
     public void copyFrom(TraceState other) {
@@ -69,6 +73,7 @@ public class TraceState implements Recyclable {
             tracestate.add(other.tracestate.get(i));
         }
         rewriteBuffer.setLength(0);
+        cachedResultHeader = other.cachedResultHeader;
     }
 
     public List<String> getTracestate() {
@@ -76,6 +81,7 @@ public class TraceState implements Recyclable {
     }
 
     public void addTextHeader(String headerValue) {
+        cachedResultHeader = null;
         int vendorStart = headerValue.indexOf(VENDOR_PREFIX);
 
         if (vendorStart < 0) {
@@ -179,7 +185,7 @@ public class TraceState implements Recyclable {
         if (!Double.isNaN(sampleRate)) {
             throw new IllegalStateException(String.format("sample rate already set to %f, trying to set it to %f", sampleRate, rate));
         }
-
+        cachedResultHeader = null;
         sampleRate = rate;
         tracestate.add(headerValue);
     }
@@ -209,8 +215,15 @@ public class TraceState implements Recyclable {
     public String toTextHeader() {
         if (tracestate.isEmpty()) {
             return null;
-        } else {
-            return TextTracestateAppender.INSTANCE.join(tracestate, sizeLimit);
+        }
+        if (cachedResultHeader != null) {
+            return cachedResultHeader.equals("") ? null : cachedResultHeader;
+        }
+        synchronized (this) {
+            if (cachedResultHeader == null) {
+                cachedResultHeader = generateTracestateHeader();
+            }
+            return cachedResultHeader.equals("") ? null : cachedResultHeader;
         }
     }
 
@@ -230,81 +243,62 @@ public class TraceState implements Recyclable {
     }
 
     /**
-     * Internal appender uses a per-thread StringBuilder instance to concatenate the tracestate header.
-     * This allows ot limit actual memory usage to be linear to the number of active threads which
-     * is assumed to be far less than the number of active in-flight transactions.
+     * Needs to be synchronized because of the use of the instance field StringBuilder.
+     *
+     * @return the text header generated from {@link #tracestate}.
      */
-    private static class TextTracestateAppender {
-
-        private static final TextTracestateAppender INSTANCE = new TextTracestateAppender();
-        private final ThreadLocal<StringBuilder> tracestateBuffer = new ThreadLocal<StringBuilder>();
-
-        private TextTracestateAppender() {
+    private synchronized String generateTracestateHeader() {
+        String singleEntry = tracestate.size() != 1 ? null : tracestate.get(0);
+        if (singleEntry != null && singleEntry.length() <= sizeLimit) {
+            return singleEntry;
         }
 
-        @Nullable
-        public String join(List<String> tracestate, int tracestateSizeLimit) {
-            String singleEntry = tracestate.size() != 1 ? null : tracestate.get(0);
-            if (singleEntry != null && singleEntry.length() <= tracestateSizeLimit) {
-                return singleEntry;
+        StringBuilder buffer = rewriteBuffer;
+        buffer.setLength(0);
+        //noinspection ForLoopReplaceableByForEach
+        for (int i = 0, size = tracestate.size(); i < size; i++) {
+            String value = tracestate.get(i);
+            if (value != null) { // ignore null entries to allow removing entries without resizing collection
+                appendTracestateHeaderValue(value, buffer);
             }
+        }
+        return buffer.length() == 0 ? "" : buffer.toString();
+    }
 
-            StringBuilder buffer = getTracestateBuffer();
-            //noinspection ForLoopReplaceableByForEach
-            for (int i = 0, size = tracestate.size(); i < size; i++) {
-                String value = tracestate.get(i);
-                if (value != null) { // ignore null entries to allow removing entries without resizing collection
-                    appendTracestateHeaderValue(value, buffer, tracestateSizeLimit);
+    void appendTracestateHeaderValue(String headerValue, StringBuilder tracestateBuffer) {
+        int requiredLength = headerValue.length();
+        boolean needsComma = tracestateBuffer.length() > 0;
+        if (needsComma) {
+            requiredLength++;
+        }
+
+        if (tracestateBuffer.length() + requiredLength <= sizeLimit) {
+            // header fits completely
+            if (needsComma) {
+                tracestateBuffer.append(',');
+            }
+            tracestateBuffer.append(headerValue);
+        } else {
+            // only part of header might be included
+            //
+            // When trimming due to size limit, we must include complete entries
+            int endIndex = 0;
+            for (int i = headerValue.length() - 1; i >= 0; i--) {
+                if (headerValue.charAt(i) == ',' && tracestateBuffer.length() + i < sizeLimit) {
+                    endIndex = i;
+                    break;
                 }
             }
-            return buffer.length() == 0 ? null : buffer.toString();
-        }
-
-        void appendTracestateHeaderValue(String headerValue, StringBuilder tracestateBuffer, int tracestateSizeLimit) {
-            int requiredLength = headerValue.length();
-            boolean needsComma = tracestateBuffer.length() > 0;
-            if (needsComma) {
-                requiredLength++;
-            }
-
-            if (tracestateBuffer.length() + requiredLength <= tracestateSizeLimit) {
-                // header fits completely
-                if (needsComma) {
+            if (endIndex > 0) {
+                if (tracestateBuffer.length() > 0) {
                     tracestateBuffer.append(',');
                 }
-                tracestateBuffer.append(headerValue);
-            } else {
-                // only part of header might be included
-                //
-                // When trimming due to size limit, we must include complete entries
-                int endIndex = 0;
-                for (int i = headerValue.length() - 1; i >= 0; i--) {
-                    if (headerValue.charAt(i) == ',' && tracestateBuffer.length() + i < tracestateSizeLimit) {
-                        endIndex = i;
-                        break;
-                    }
-                }
-                if (endIndex > 0) {
-                    if (tracestateBuffer.length() > 0) {
-                        tracestateBuffer.append(',');
-                    }
-                    tracestateBuffer.append(headerValue, 0, endIndex);
-                }
+                tracestateBuffer.append(headerValue, 0, endIndex);
             }
-
         }
 
-        private StringBuilder getTracestateBuffer() {
-            StringBuilder buffer = tracestateBuffer.get();
-            if (buffer == null) {
-                buffer = new StringBuilder();
-                tracestateBuffer.set(buffer);
-            } else {
-                buffer.setLength(0);
-            }
-            return buffer;
-        }
     }
+
 
     public static <C> boolean includesElasticVendor(HeaderGetter<?, C> headers, C parent){
         boolean[] tracestateIncludesElasticVendor = new boolean[1];
