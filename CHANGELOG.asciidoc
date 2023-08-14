@@ -33,7 +33,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 [float]
 ===== Features
-* Added `baggage_to_attach` config option to allow autmatic lifting of baggage into transaction and span attributes - {pull}3288[#3288]
+* Added `baggage_to_attach` config option to allow automatic lifting of baggage into transaction and span attributes - {pull}3288[#3288]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

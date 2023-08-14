@@ -849,7 +849,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
         .tags("added[1.43.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("If any baggage key matches any of the patterns provided via this config option," +
-            " the corresponding baggage key and value will be automaticalyl stored on the corresponding transactions and spans." +
+            " the corresponding baggage key and value will be automatically stored on the corresponding transactions and spans." +
             " The baggage keys will be prefixed with \"baggage.\" on storage.")
         .dynamic(true)
         .buildWithDefault(Arrays.asList(WildcardMatcher.valueOf("*")));
