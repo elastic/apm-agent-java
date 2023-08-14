@@ -25,9 +25,9 @@ import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.internal.collections.LongList;
+import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
@@ -551,6 +551,9 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
         // this final reference is decremented when the span is reported
         // or even after its reported and the last child span is ended
         incrementReferences();
+
+        List<WildcardMatcher> baggageToAttach = tracer.getConfig(CoreConfiguration.class).getBaggageToAttach();
+        baggage.storeBaggageInAttributes(this, baggageToAttach);
     }
 
     @Override

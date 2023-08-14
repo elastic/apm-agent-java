@@ -18,14 +18,21 @@
  */
 package co.elastic.apm.agent.impl.baggage;
 
+import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Baggage implements co.elastic.apm.agent.tracer.Baggage {
+
+    private static final String LIFTED_BAGGAGE_ATTRIBUTE_PREFIX = "baggage.";
 
     public static final Baggage EMPTY = new Baggage(Collections.<String, String>emptyMap(), Collections.<String, String>emptyMap());
 
@@ -39,6 +46,14 @@ public class Baggage implements co.elastic.apm.agent.tracer.Baggage {
      * Keys of this map are guaranteed to also be present as keys in #baggage
      */
     private final Map<String, String> baggageMetadata;
+
+    /**
+     * When automatically lifting baggage entries to be stored as span attributes we add the {@link #LIFTED_BAGGAGE_ATTRIBUTE_PREFIX}
+     * to the key.
+     * Because baggage is usually updated rarely but the lifting can happen for very many spans we cache the prefixed string in this map.
+     * See {@link #storeBaggageInAttributes(AbstractSpan, List)} for the implementation details.
+     */
+    private volatile ConcurrentHashMap<String, String> cachedKeysWithPrefix;
 
     /**
      * Baggage instances are immutable, therefore we can safely cache the serialized form.
@@ -84,6 +99,33 @@ public class Baggage implements co.elastic.apm.agent.tracer.Baggage {
 
     String getCachedSerializedW3CHeader() {
         return this.cachedSerializedW3CHeader;
+    }
+
+    public void storeBaggageInAttributes(AbstractSpan<?> span, List<WildcardMatcher> keyFilter) {
+        if (baggage.isEmpty() || keyFilter.isEmpty()) {
+            // early out to prevent unnecessarily allocating an iterator
+            return;
+        }
+        for (String key : baggage.keySet()) {
+            if (WildcardMatcher.anyMatch(keyFilter, key) != null) {
+                String keyWithPrefix = getKeyWithAttributePrefix(key);
+                String value = baggage.get(key);
+                span.withOtelAttribute(keyWithPrefix, value);
+            }
+        }
+    }
+
+    private String getKeyWithAttributePrefix(String key) {
+        if (cachedKeysWithPrefix == null) {
+            //we don't mind the race condition here, at worst we loose a few cached entries which are then recomputed
+            cachedKeysWithPrefix = new ConcurrentHashMap<>();
+        }
+        String keyWithPrefix = cachedKeysWithPrefix.get(key);
+        if (keyWithPrefix == null) {
+            keyWithPrefix = LIFTED_BAGGAGE_ATTRIBUTE_PREFIX + key;
+            cachedKeysWithPrefix.put(key, keyWithPrefix);
+        }
+        return keyWithPrefix;
     }
 
     public static class Builder {

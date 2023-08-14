@@ -19,6 +19,8 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
@@ -32,9 +34,11 @@ import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 
 public class BaggageTest {
 
@@ -247,6 +251,41 @@ public class BaggageTest {
         assertThat(headers)
             .containsEntry("baggage", "key=val")
             .containsKey("traceparent");
+
+    }
+
+
+    @Test
+    public void checkBaggageLiftingToAttributes() {
+
+        doReturn(List.of(WildcardMatcher.valueOf("foo*"), WildcardMatcher.valueOf("bar*")))
+            .when(config.getConfig(CoreConfiguration.class)).getBaggageToAttach();
+
+        ElasticContext<?> baggage = tracer.currentContext().withUpdatedBaggage()
+            .put("foo.key", "foo_val")
+            .put("ignore", "ignore")
+            .buildContext()
+            .activate();
+
+        Transaction transaction = tracer.startRootTransaction(null);
+
+        Span span = transaction
+            .withUpdatedBaggage()
+            .put("foo.key", "foo_updated_val")
+            .put("bar.key", "bar_val")
+            .buildContext()
+            .createSpan();
+
+        baggage.deactivate();
+
+        assertThat(transaction.getOtelAttributes())
+            .containsEntry("baggage.foo.key", "foo_val")
+            .doesNotContainKey("baggage.ignore");
+
+        assertThat(span.getOtelAttributes())
+            .containsEntry("baggage.foo.key", "foo_updated_val")
+            .containsEntry("baggage.bar.key", "bar_val")
+            .doesNotContainKey("baggage.ignore");
 
     }
 
