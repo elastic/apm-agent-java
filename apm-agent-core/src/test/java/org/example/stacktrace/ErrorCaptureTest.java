@@ -161,4 +161,6 @@ class ErrorCaptureTest {
         errorCapture.deactivate().end();
         assertThat(ErrorCapture.getActive()).isNull();
     }
+
+
 }

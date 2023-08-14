@@ -470,6 +470,8 @@ public class ElasticApmTracer implements Tracer {
                     error.getTraceContext().setServiceInfo(serviceInfo.getServiceName(), serviceInfo.getServiceVersion());
                 }
             }
+            parentContext.getBaggage()
+                .storeBaggageInContext(error.getContext(), getConfig(CoreConfiguration.class).getBaggageToAttach());
             return error;
         }
         return null;

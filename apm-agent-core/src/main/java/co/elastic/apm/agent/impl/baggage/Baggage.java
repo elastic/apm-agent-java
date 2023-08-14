@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.impl.baggage;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 
 import javax.annotation.Nullable;
@@ -111,6 +112,20 @@ public class Baggage implements co.elastic.apm.agent.tracer.Baggage {
                 String keyWithPrefix = getKeyWithAttributePrefix(key);
                 String value = baggage.get(key);
                 span.withOtelAttribute(keyWithPrefix, value);
+            }
+        }
+    }
+
+    public void storeBaggageInContext(AbstractContext context, List<WildcardMatcher> keyFilter) {
+        if (baggage.isEmpty() || keyFilter.isEmpty()) {
+            // early out to prevent unnecessarily allocating an iterator
+            return;
+        }
+        for (String key : baggage.keySet()) {
+            if (WildcardMatcher.anyMatch(keyFilter, key) != null) {
+                String keyWithPrefix = getKeyWithAttributePrefix(key);
+                String value = baggage.get(key);
+                context.addLabel(keyWithPrefix, value);
             }
         }
     }
