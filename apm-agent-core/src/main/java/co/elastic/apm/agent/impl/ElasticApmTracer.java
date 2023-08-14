@@ -427,7 +427,7 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     @Nullable
-    public ErrorCapture captureException(@Nullable Throwable e, @Nullable ElasticContext<?> parentContext, @Nullable ClassLoader initiatingClassLoader) {
+    public ErrorCapture captureException(@Nullable Throwable e, ElasticContext<?> parentContext, @Nullable ClassLoader initiatingClassLoader) {
         return captureException(System.currentTimeMillis() * 1000, e, parentContext, initiatingClassLoader);
     }
 

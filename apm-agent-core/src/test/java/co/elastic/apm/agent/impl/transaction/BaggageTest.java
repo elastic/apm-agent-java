@@ -308,8 +308,8 @@ public class BaggageTest {
         ErrorCapture errorCapture = tracer.captureException(new RuntimeException(), parentCtx, null);
 
         TransactionContext ctx = errorCapture.getContext();
-        Assertions.assertThat(ctx.getLabel("baggage.foo.bar")).isEqualTo("foo_val");
-        Assertions.assertThat(ctx.getLabel("baggage.ignoreme")).isNull();
+        assertThat(ctx.getLabel("baggage.foo.bar")).isEqualTo("foo_val");
+        assertThat(ctx.getLabel("baggage.ignoreme")).isNull();
     }
 
 
@@ -331,8 +331,8 @@ public class BaggageTest {
         ErrorCapture errorCapture = mockReporter.getErrors().get(0);
 
         TransactionContext ctx = errorCapture.getContext();
-        Assertions.assertThat(ctx.getLabel("baggage.foo.bar")).isEqualTo("foo_val");
-        Assertions.assertThat(ctx.getLabel("baggage.ignoreme")).isNull();
+        assertThat(ctx.getLabel("baggage.foo.bar")).isEqualTo("foo_val");
+        assertThat(ctx.getLabel("baggage.ignoreme")).isNull();
     }
 
 }
