@@ -1554,7 +1554,7 @@ Valid options: `continue`, `restart`, `restart_external`
 [[config-baggage-to-attach]]
 ==== `baggage_to_attach` (added[1.43.0])
 
-If any baggage key matches any of the patterns provided via this config option, the corresponding baggage key and value will be automaticalyl stored on the corresponding transactions and spans. The baggage keys will be prefixed with "baggage." on storage.
+If any baggage key matches any of the patterns provided via this config option, the corresponding baggage key and value will be automatically stored on the corresponding transactions and spans. The baggage keys will be prefixed with "baggage." on storage.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -4064,7 +4064,7 @@ Example: `5ms`.
 #
 # trace_continuation_strategy=CONTINUE
 
-# If any baggage key matches any of the patterns provided via this config option, the corresponding baggage key and value will be automaticalyl stored on the corresponding transactions and spans. The baggage keys will be prefixed with "baggage." on storage.
+# If any baggage key matches any of the patterns provided via this config option, the corresponding baggage key and value will be automatically stored on the corresponding transactions and spans. The baggage keys will be prefixed with "baggage." on storage.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
