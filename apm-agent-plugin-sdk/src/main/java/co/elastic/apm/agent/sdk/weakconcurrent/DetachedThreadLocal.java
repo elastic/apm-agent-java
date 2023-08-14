@@ -38,7 +38,7 @@ public interface DetachedThreadLocal<T> {
     @Nullable
     T getAndRemove();
 
-    void set(T value);
+    void set(@Nullable T value);
 
     void remove();
 
