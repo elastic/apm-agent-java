@@ -20,7 +20,6 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
@@ -57,6 +56,7 @@ import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
+import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.sdk.internal.util.IOUtils;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -1550,7 +1550,11 @@ class DslJsonSerializerTest {
         span.getComposite().init(1234, "exact_match");
 
         JsonNode jsonSpan = readJsonString(writer.toJsonString(span));
-        assertThat(jsonSpan.get("composite").get("count").asInt()).isEqualTo(1);
+        assertThat(jsonSpan.get("composite")).isNull();
+
+        span.getComposite().increaseCount();
+        jsonSpan = readJsonString(writer.toJsonString(span));
+        assertThat(jsonSpan.get("composite").get("count").asInt()).isEqualTo(2);
         assertThat(jsonSpan.get("composite").get("sum").asDouble()).isEqualTo(1.234);
         assertThat(jsonSpan.get("composite").get("compression_strategy").asText()).isEqualTo("exact_match");
     }
