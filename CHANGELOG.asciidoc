@@ -34,6 +34,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Bug fixes
 * Prevent bad serialization in edge cases for span compression - {pull}3293[#3293]
+* Allow overriding of transaction type for Servlet-API transactions - {pull}3226[#3226]
 
 [float]
 ===== Features
