@@ -19,10 +19,15 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
+import co.elastic.apm.agent.impl.baggage.BaggageContext;
+import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Scope;
@@ -32,21 +37,26 @@ import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 
 public class BaggageTest {
 
     private ElasticApmTracer tracer;
     private ConfigurationRegistry config;
 
+    private MockReporter mockReporter;
+
     @BeforeEach
     public void setup() {
+        mockReporter = new MockReporter();
         config = SpyConfiguration.createSpyConfig();
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
-            .reporter(new MockReporter())
+            .reporter(mockReporter)
             .withObjectPoolFactory(new TestObjectPoolFactory())
             .buildAndStart();
     }
@@ -248,6 +258,81 @@ public class BaggageTest {
             .containsEntry("baggage", "key=val")
             .containsKey("traceparent");
 
+    }
+
+
+    @Test
+    public void checkBaggageLiftingToAttributes() {
+
+        doReturn(List.of(WildcardMatcher.valueOf("foo*"), WildcardMatcher.valueOf("bar*")))
+            .when(config.getConfig(CoreConfiguration.class)).getBaggageToAttach();
+
+        ElasticContext<?> baggage = tracer.currentContext().withUpdatedBaggage()
+            .put("foo.key", "foo_val")
+            .put("ignore", "ignore")
+            .buildContext()
+            .activate();
+
+        Transaction transaction = tracer.startRootTransaction(null);
+
+        Span span = transaction
+            .withUpdatedBaggage()
+            .put("foo.key", "foo_updated_val")
+            .put("bar.key", "bar_val")
+            .buildContext()
+            .createSpan();
+
+        baggage.deactivate();
+
+        assertThat(transaction.getOtelAttributes())
+            .containsEntry("baggage.foo.key", "foo_val")
+            .doesNotContainKey("baggage.ignore");
+
+        assertThat(span.getOtelAttributes())
+            .containsEntry("baggage.foo.key", "foo_updated_val")
+            .containsEntry("baggage.bar.key", "bar_val")
+            .doesNotContainKey("baggage.ignore");
+
+    }
+
+    @Test
+    void testStandaloneExceptionCapturesBaggage() {
+        doReturn(List.of(WildcardMatcher.valueOf("foo*"), WildcardMatcher.valueOf("bar*")))
+            .when(config.getConfig(CoreConfiguration.class)).getBaggageToAttach();
+
+        BaggageContext parentCtx = tracer.currentContext().withUpdatedBaggage()
+            .put("foo.bar", "foo_val")
+            .put("ignoreme", "ignore")
+            .buildContext();
+
+        ErrorCapture errorCapture = tracer.captureException(new RuntimeException(), parentCtx, null);
+
+        TransactionContext ctx = errorCapture.getContext();
+        assertThat(ctx.getLabel("baggage.foo.bar")).isEqualTo("foo_val");
+        assertThat(ctx.getLabel("baggage.ignoreme")).isNull();
+    }
+
+
+    @Test
+    void testExceptionInheritsBaggageFromParentSpan() {
+        doReturn(List.of(WildcardMatcher.valueOf("foo*"), WildcardMatcher.valueOf("bar*")))
+            .when(config.getConfig(CoreConfiguration.class)).getBaggageToAttach();
+
+        Span parentSpan = tracer.startRootTransaction(null)
+            .withUpdatedBaggage()
+            .put("foo.bar", "foo_val")
+            .put("ignoreme", "ignore")
+            .buildContext()
+            .createSpan();
+
+        parentSpan.captureException(new RuntimeException());
+
+        assertThat(mockReporter.getErrors()).hasSize(1);
+        ErrorCapture errorCapture = mockReporter.getErrors().get(0);
+
+        TransactionContext ctx = errorCapture.getContext();
+        assertThat(ctx.getLabel("baggage.foo.bar")).isEqualTo("foo_val");
+        assertThat(ctx.getLabel("baggage.ignoreme")).isNull();
     }
 
 }

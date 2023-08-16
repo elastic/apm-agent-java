@@ -32,6 +32,44 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 === Unreleased
 
 [float]
+===== Bug fixes
+* Prevent bad serialization in edge cases for span compression - {pull}3293[#3293]
+
+[float]
+===== Features
+* Add support for Elasticsearch client 8.9 - {pull}3283[#3283]
+* Added `baggage_to_attach` config option to allow automatic lifting of baggage into transaction, span and error attributes - {pull}3288[#3288], {pull}3289[#3289]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.42.0]]
+==== 1.42.0 - 2023/08/11
+
+[float]
+===== Features
+* Virtual thread support - {pull}3244[#3244], {pull}3286[#3286]
+
+[float]
+===== Bug fixes
+* Fix JVM memory usage capture - {pull}3279[#3279]
+
+[[release-notes-1.41.1]]
+==== 1.41.1 - 2023/08/07
+
+[float]
+===== Bug fixes
+* Fixed Micrometer histograms to be correctly exported with non-cumulative bucket counts - {pull}3264[#3264]
+* Fixed SQS NoClassDefFoundError in AWS SDK instrumentation for async clients - {pull}3266[#3266]
+
+[float]
+===== Refactorings
+* Replaced thread-local IO buffers with pooled ones for virtual thread friendliness - {pull}#3239[#3239]
+
+[[release-notes-1.41.0]]
+==== 1.41.0 - 2023/07/31
+
+[float]
 ===== Features
 * Added W3C baggage propagation - {pull}3236[#3236], {pull}3248[#3248]
 * Added support for baggage in OpenTelemetry bridge - {pull}3249[#3249]
@@ -42,9 +80,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ===== Bug fixes
 * Fixed SQS NoClassDefFoundError in AWS SDK instrumentation - {pull}3254[#3254]
 * Fixed reference counting issues in elasticsearch instrumentation - {pull}3256[#3256]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.40.0]]
 ==== 1.40.0 - 2023/07/19

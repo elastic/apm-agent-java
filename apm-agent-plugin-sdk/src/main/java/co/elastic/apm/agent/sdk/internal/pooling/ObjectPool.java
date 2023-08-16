@@ -16,24 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.test;
+package co.elastic.apm.agent.sdk.internal.pooling;
 
-import org.junit.jupiter.api.Test;
+public interface ObjectPool<T> {
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-public class DockerfileReaderTest {
-
-    @Test
-    public void checkValidDockerfile() {
-        assertThat(DockerfileReader.getFrom("/test-dockfile.txt")).isEqualTo("foobar");
-    }
-
-    @Test
-    public void checkInvalidDockerfile() {
-        assertThatThrownBy(() -> DockerfileReader.getFrom("/test-dockfile-invalid.txt"))
-            .isInstanceOf(IllegalArgumentException.class);
-    }
+    T createInstance();
 
 }

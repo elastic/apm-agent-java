@@ -21,4 +21,13 @@ package co.elastic.apm.agent.tracer.pooling;
 public interface ObjectPoolFactory {
 
     <T extends Recyclable> ObjectPool<T> createRecyclableObjectPool(int maxCapacity, Allocator<T> allocator);
+
+    /**
+     * Creates an object pool with a reasonable capacity based on the CPU core count.
+     *
+     * @param allocator the allocator for allocating new instances
+     * @param <T>       the type of objects to pool
+     * @return object pool for acquiring pooled instances
+     */
+    <T> ObjectPool<? extends ObjectHandle<T>> createHandlePool(Allocator<T> allocator);
 }

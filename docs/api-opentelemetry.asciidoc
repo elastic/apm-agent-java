@@ -251,6 +251,7 @@ Spans can only have a single parent (`SpanBuilder#setParent`)
 [[otel-baggage]]
 ===== Baggage
 Baggage support has been added in version `1.41.0`.
+Since `1.43.0` you can automatically attach baggage as span, transaction and error attributes via the <<config-baggage-to-attach, `baggage_to_attach`>> configuration option.
 
 [float]
 [[otel-events]]

@@ -20,29 +20,33 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
 import co.elastic.apm.agent.tracer.Scope;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledForJreRange;
 import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.condition.OS;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -164,6 +168,7 @@ class SamplingProfilerTest {
             // makes sure that the rest will be captured by another profiling session
             // this tests that restoring which threads to profile works
             Thread.sleep(600);
+            assertThat(profiler.isProfilingActiveOnThread(Thread.currentThread())).isTrue();
             aInferred(transaction);
         } finally {
             transaction.end();
@@ -194,6 +199,38 @@ class SamplingProfilerTest {
         assertThat(inferredSpanD).isPresent();
         assertThat(inferredSpanD.get().isChildOf(inferredSpanC.get())).isTrue();
     }
+
+    @Test
+    @DisabledForJreRange(max = JRE.JAVA_20)
+    void testVirtualThreadsExcluded() throws Exception {
+        setupProfiler(true);
+        awaitProfilerStarted(profiler);
+
+        AtomicReference<Boolean> profilingActive = new AtomicReference<>();
+        Runnable task = () -> {
+            Transaction transaction = tracer.startRootTransaction(null).withName("transaction");
+            try (Scope scope = transaction.activateInScope()) {
+                // makes sure that the rest will be captured by another profiling session
+                // this tests that restoring which threads to profile works
+                try {
+                    Thread.sleep(600);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                profilingActive.set(profiler.isProfilingActiveOnThread(Thread.currentThread()));
+            } finally {
+                transaction.end();
+            }
+        };
+
+        Method startVirtualThread = Thread.class.getMethod("startVirtualThread", Runnable.class);
+        Thread virtual = (Thread) startVirtualThread.invoke(null, task);
+        virtual.join();
+
+        assertThat(profilingActive.get()).isFalse();
+
+    }
+
 
     @Test
     void testPostProcessingDisabled() throws Exception {

@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.sdk.internal.db.signature;
 
-import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.sdk.internal.pooling.ObjectHandle;
+import co.elastic.apm.agent.sdk.internal.pooling.ObjectPool;
+import co.elastic.apm.agent.sdk.internal.pooling.ObjectPooling;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
@@ -44,7 +44,7 @@ public class SignatureParser {
      */
     private static final int QUERY_LENGTH_CACHE_UPPER_THRESHOLD = 10_000;
 
-    private final DetachedThreadLocal<Scanner> scanner;
+    private final ObjectPool<? extends ObjectHandle<Scanner>> scannerPool;
 
     /**
      * Not using weak keys because ORMs like Hibernate generate equal SQL strings for the same query but don't reuse the same string instance.
@@ -64,20 +64,7 @@ public class SignatureParser {
     }
 
     public SignatureParser(final Callable<Scanner> scannerAllocator) {
-        scanner = WeakConcurrent
-            .<Scanner>threadLocalBuilder()
-            .withDefaultValueSupplier(new WeakMap.DefaultValueSupplier<Thread, Scanner>() {
-                @Nullable
-                @Override
-                public Scanner getDefaultValue(Thread key) {
-                    try {
-                        return scannerAllocator.call();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            })
-            .build();
+        scannerPool = ObjectPooling.createWithDefaultFactory(scannerAllocator);
     }
 
     public void querySignature(String query, StringBuilder signature, boolean preparedStatement) {
@@ -98,13 +85,15 @@ public class SignatureParser {
                 return;
             }
         }
-        Scanner scanner = this.scanner.get();
-        scanner.setQuery(query);
-        parse(scanner, query, signature, dbLink);
+        try (ObjectHandle<Scanner> pooledScanner = scannerPool.createInstance()) {
+            Scanner scanner = pooledScanner.get();
+            scanner.setQuery(query);
+            parse(scanner, query, signature, dbLink);
 
-        if (cacheable && signatureCache.size() <= DISABLE_CACHE_THRESHOLD) {
-            // we don't mind a small overshoot due to race conditions
-            signatureCache.put(query, new String[]{signature.toString(), dbLink != null ? dbLink.toString() : ""});
+            if (cacheable && signatureCache.size() <= DISABLE_CACHE_THRESHOLD) {
+                // we don't mind a small overshoot due to race conditions
+                signatureCache.put(query, new String[]{signature.toString(), dbLink != null ? dbLink.toString() : ""});
+            }
         }
     }
 

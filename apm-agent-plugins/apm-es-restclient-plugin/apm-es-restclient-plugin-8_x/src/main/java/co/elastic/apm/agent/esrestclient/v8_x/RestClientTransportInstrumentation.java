@@ -21,35 +21,37 @@ package co.elastic.apm.agent.esrestclient.v8_x;
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
 import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.clients.transport.Endpoint;
-import co.elastic.clients.transport.TransportOptions;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.elasticsearch.client.Request;
 
-import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.returns;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
-import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
+import static net.bytebuddy.matcher.ElementMatchers.*;
 
 /**
- * Instruments {@link co.elastic.clients.transport.rest_client.RestClientTransport#prepareLowLevelRequest(Object, Endpoint, TransportOptions)}.
+ * Instruments:
+ * <ul>
+ *     <li>{@link co.elastic.clients.transport.rest_client.RestClientTransport#performRequest} (before 8.9.0)</li>
+ *     <li>{@link co.elastic.clients.transport.rest_client.RestClientTransport#performRequestAsync} (before 8.9.0)</li>
+ *     <li>{@link co.elastic.clients.transport.ElasticsearchTransportBase#performRequest} (8.9.0 and later)</li>
+ *     <li>{@link co.elastic.clients.transport.ElasticsearchTransportBase#performRequestAsync} (8.9.0 and later)</li>
+ * </ul>}
+ * To store the current endpoint ID in a thread-local storage
  */
-@SuppressWarnings("JavadocReference")
 public class RestClientTransportInstrumentation extends ElasticsearchRestClientInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.clients.transport.rest_client.RestClientTransport");
+        return named("co.elastic.clients.transport.rest_client.RestClientTransport") // 8.x up to 8.8.x
+            .or(named("co.elastic.clients.transport.ElasticsearchTransportBase")); // in 8.9.0+ we have to instrument superclass
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("prepareLowLevelRequest")
+        return named("performRequest")
+            .or(named("performRequestAsync"))
             .and(takesArguments(3))
-            .and(takesArgument(1, named("co.elastic.clients.transport.Endpoint")))
-            .and(returns(named("org.elasticsearch.client.Request")));
+            .and(takesArgument(1, named("co.elastic.clients.transport.Endpoint")));
     }
 
     @Override
@@ -61,10 +63,14 @@ public class RestClientTransportInstrumentation extends ElasticsearchRestClientI
 
         private static final ElasticsearchRestClientInstrumentationHelper helper = ElasticsearchRestClientInstrumentationHelper.get();
 
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onEnter(@Advice.Argument(1) Endpoint<?, ?, ?> endpoint) {
+            helper.setCurrentEndpoint(endpoint.id());
+        }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void onPrepareLowLevelRequest(@Advice.Argument(1) Endpoint<?, ?, ?> endpoint, @Advice.Return Request request) {
-            helper.registerEndpointId(request, endpoint.id());
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit() {
+            helper.clearCurrentEndpoint();
         }
 
     }

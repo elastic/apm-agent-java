@@ -19,6 +19,10 @@
 package co.elastic.apm.agent.sdk.internal.util;
 
 
+import co.elastic.apm.agent.sdk.internal.pooling.ObjectHandle;
+import co.elastic.apm.agent.sdk.internal.pooling.ObjectPool;
+import co.elastic.apm.agent.sdk.internal.pooling.ObjectPooling;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.Buffer;
@@ -27,21 +31,23 @@ import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Callable;
 
 public class IOUtils {
+
     protected static final int BYTE_BUFFER_CAPACITY = 2048;
-    protected static final ThreadLocal<ByteBuffer> threadLocalByteBuffer = new ThreadLocal<ByteBuffer>() {
+
+    private static class DecoderWithBuffer {
+        final ByteBuffer byteBuffer = java.nio.ByteBuffer.allocate(BYTE_BUFFER_CAPACITY);
+        final CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
+    }
+
+    private static final ObjectPool<? extends ObjectHandle<DecoderWithBuffer>> POOL = ObjectPooling.createWithDefaultFactory(new Callable<DecoderWithBuffer>() {
         @Override
-        protected ByteBuffer initialValue() {
-            return ByteBuffer.allocate(BYTE_BUFFER_CAPACITY);
+        public DecoderWithBuffer call() throws Exception {
+            return new DecoderWithBuffer();
         }
-    };
-    protected static final ThreadLocal<CharsetDecoder> threadLocalCharsetDecoder = new ThreadLocal<CharsetDecoder>() {
-        @Override
-        protected CharsetDecoder initialValue() {
-            return StandardCharsets.UTF_8.newDecoder();
-        }
-    };
+    });
 
 
     /**
@@ -61,30 +67,32 @@ public class IOUtils {
      */
     public static boolean readUtf8Stream(final InputStream is, final CharBuffer charBuffer) throws IOException {
         // to be compatible with Java 8, we have to cast to buffer because of different return types
-        final ByteBuffer buffer = threadLocalByteBuffer.get();
-        final CharsetDecoder charsetDecoder = threadLocalCharsetDecoder.get();
-        try {
-            final byte[] bufferArray = buffer.array();
-            for (int read = is.read(bufferArray); read != -1; read = is.read(bufferArray)) {
-                ((Buffer) buffer).limit(read);
-                final CoderResult coderResult = charsetDecoder.decode(buffer, charBuffer, true);
-                ((Buffer) buffer).clear();
-                if (coderResult.isError()) {
-                    // this is not UTF-8
-                    ((Buffer) charBuffer).clear();
-                    return false;
-                } else if (coderResult.isOverflow()) {
-                    // stream yields more chars than the charBuffer can hold
-                    break;
+        try (ObjectHandle<DecoderWithBuffer> pooled = POOL.createInstance()) {
+            final ByteBuffer buffer = pooled.get().byteBuffer;
+            final CharsetDecoder charsetDecoder = pooled.get().decoder;
+            try {
+                final byte[] bufferArray = buffer.array();
+                for (int read = is.read(bufferArray); read != -1; read = is.read(bufferArray)) {
+                    ((Buffer) buffer).limit(read);
+                    final CoderResult coderResult = charsetDecoder.decode(buffer, charBuffer, true);
+                    ((Buffer) buffer).clear();
+                    if (coderResult.isError()) {
+                        // this is not UTF-8
+                        ((Buffer) charBuffer).clear();
+                        return false;
+                    } else if (coderResult.isOverflow()) {
+                        // stream yields more chars than the charBuffer can hold
+                        break;
+                    }
                 }
+                charsetDecoder.flush(charBuffer);
+                return true;
+            } finally {
+                ((Buffer) charBuffer).flip();
+                ((Buffer) buffer).clear();
+                charsetDecoder.reset();
+                is.close();
             }
-            charsetDecoder.flush(charBuffer);
-            return true;
-        } finally {
-            ((Buffer) charBuffer).flip();
-            ((Buffer) buffer).clear();
-            charsetDecoder.reset();
-            is.close();
         }
     }
 
@@ -135,18 +143,22 @@ public class IOUtils {
      * @return a {@link CoderResult}, indicating the success or failure of the decoding
      */
     public static CoderResult decodeUtf8Bytes(final byte[] bytes, final int offset, final int length, final CharBuffer charBuffer) {
-        // to be compatible with Java 8, we have to cast to buffer because of different return types
-        final ByteBuffer buffer;
-        if (BYTE_BUFFER_CAPACITY < length) {
-            // allocates a ByteBuffer wrapper object, the underlying byte[] is not copied
-            buffer = ByteBuffer.wrap(bytes, offset, length);
-        } else {
-            buffer = threadLocalByteBuffer.get();
-            buffer.put(bytes, offset, length);
-            ((Buffer) buffer).position(0);
-            ((Buffer) buffer).limit(length);
+        try (ObjectHandle<DecoderWithBuffer> pooled = POOL.createInstance()) {
+            final ByteBuffer pooledBuffer = pooled.get().byteBuffer;
+            final CharsetDecoder charsetDecoder = pooled.get().decoder;
+            // to be compatible with Java 8, we have to cast to buffer because of different return types
+            final ByteBuffer buffer;
+            if (pooledBuffer.capacity() < length) {
+                // allocates a ByteBuffer wrapper object, the underlying byte[] is not copied
+                buffer = ByteBuffer.wrap(bytes, offset, length);
+            } else {
+                buffer = pooledBuffer;
+                buffer.put(bytes, offset, length);
+                ((Buffer) buffer).position(0);
+                ((Buffer) buffer).limit(length);
+            }
+            return decode(charBuffer, buffer, charsetDecoder);
         }
-        return decode(charBuffer, buffer);
     }
 
     /**
@@ -171,15 +183,48 @@ public class IOUtils {
      */
     public static CoderResult decodeUtf8Byte(final byte b, final CharBuffer charBuffer) {
         // to be compatible with Java 8, we have to cast to buffer because of different return types
-        final ByteBuffer buffer = threadLocalByteBuffer.get();
-        buffer.put(b);
-        ((Buffer) buffer).position(0);
-        ((Buffer) buffer).limit(1);
-        return decode(charBuffer, buffer);
+        try (ObjectHandle<DecoderWithBuffer> pooled = POOL.createInstance()) {
+            final ByteBuffer buffer = pooled.get().byteBuffer;
+            final CharsetDecoder charsetDecoder = pooled.get().decoder;
+            buffer.put(b);
+            ((Buffer) buffer).position(0);
+            ((Buffer) buffer).limit(1);
+            return decode(charBuffer, buffer, charsetDecoder);
+        }
     }
 
-    protected static CoderResult decode(CharBuffer charBuffer, ByteBuffer buffer) {
-        final CharsetDecoder charsetDecoder = threadLocalCharsetDecoder.get();
+    public static <T> CoderResult decodeUtf8BytesFromSource(ByteSourceReader<T> reader, T src, final CharBuffer dest) {
+        // to be compatible with Java 8, we have to cast to buffer because of different return types
+        try (ObjectHandle<DecoderWithBuffer> pooled = POOL.createInstance()) {
+            final ByteBuffer buffer = pooled.get().byteBuffer;
+            final CharsetDecoder charsetDecoder = pooled.get().decoder;
+            int readableBytes = reader.availableBytes(src);
+            CoderResult result = null;
+            while (readableBytes > 0) {
+                int length = Math.min(readableBytes, BYTE_BUFFER_CAPACITY);
+                ((Buffer) buffer).limit(length);
+                ((Buffer) buffer).position(0);
+                reader.readInto(src, buffer);
+                ((Buffer) buffer).position(0);
+                result = decode(dest, buffer, charsetDecoder);
+                if (result.isError() || result.isOverflow()) {
+                    return result;
+                }
+                readableBytes = reader.availableBytes(src);
+            }
+
+            return result == null ? CoderResult.OVERFLOW : result;
+        }
+    }
+
+    public interface ByteSourceReader<S> {
+        int availableBytes(S source);
+
+        void readInto(S source, ByteBuffer into);
+    }
+
+
+    private static CoderResult decode(CharBuffer charBuffer, ByteBuffer buffer, CharsetDecoder charsetDecoder) {
         try {
             final CoderResult coderResult = charsetDecoder.decode(buffer, charBuffer, true);
             charsetDecoder.flush(charBuffer);
