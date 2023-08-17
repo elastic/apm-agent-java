@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.util;
-
-import com.dslplatform.json.JsonWriter;
+package co.elastic.apm.agent.tracer.util;
 
 public class HexUtils {
 
-    private final static char[] hexArray = "0123456789abcdef".toCharArray();
+    public static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
 
     private HexUtils() {
         // only static utility methods, don't instantiate
@@ -43,18 +41,6 @@ public class HexUtils {
         return sb.toString();
     }
 
-    public static void writeBytesAsHex(byte[] bytes, JsonWriter jw) {
-        for (int i = 0; i < bytes.length; i++) {
-            writeHexByte(jw, bytes[i]);
-        }
-    }
-
-    private static void writeHexByte(JsonWriter jw, byte b) {
-        int v = b & 0xFF;
-        jw.writeByte((byte) hexArray[v >>> 4]);
-        jw.writeByte((byte) hexArray[v & 0x0F]);
-    }
-
     public static void writeBytesAsHex(byte[] bytes, StringBuilder sb) {
         writeBytesAsHex(bytes, 0, bytes.length, sb);
     }
@@ -67,8 +53,8 @@ public class HexUtils {
 
     public static void writeByteAsHex(byte b, StringBuilder sb) {
         int v = b & 0xFF;
-        sb.append(hexArray[v >>> 4]);
-        sb.append(hexArray[v & 0x0F]);
+        sb.append(HEX_CHARS[v >>> 4]);
+        sb.append(HEX_CHARS[v & 0x0F]);
     }
 
     public static byte getNextByte(String hexEncodedString, int offset) {
@@ -112,14 +98,4 @@ public class HexUtils {
         }
     }
 
-    public static void writeAsHex(long l, JsonWriter jw) {
-        writeHexByte(jw, (byte) (l >> 56));
-        writeHexByte(jw, (byte) (l >> 48));
-        writeHexByte(jw, (byte) (l >> 40));
-        writeHexByte(jw, (byte) (l >> 32));
-        writeHexByte(jw, (byte) (l >> 24));
-        writeHexByte(jw, (byte) (l >> 16));
-        writeHexByte(jw, (byte) (l >> 8));
-        writeHexByte(jw, (byte) l);
-    }
 }

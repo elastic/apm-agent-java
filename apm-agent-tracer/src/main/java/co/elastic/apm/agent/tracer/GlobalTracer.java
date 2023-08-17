@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.tracer;
 
-import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
@@ -123,9 +122,4 @@ public class GlobalTracer implements Tracer {
         return tracer.startChildTransaction(headerCarrier, textHeadersGetter, initiatingClassLoader);
     }
 
-    @Nullable
-    @Override
-    public <C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
-        return tracer.startChildTransaction(headerCarrier, binaryHeadersGetter, initiatingClassLoader);
-    }
 }

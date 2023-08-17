@@ -29,7 +29,6 @@ import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
@@ -790,13 +789,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
             return "custom";
         }
         return type;
-    }
-
-    @Override
-    public <C> boolean addLink(BinaryHeaderGetter<C> headerGetter, @Nullable C carrier) {
-        return addSpanLink(TraceContext.<C>getFromTraceContextBinaryHeaders(),
-            headerGetter,
-            carrier);
     }
 
     @Override

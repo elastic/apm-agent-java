@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.impl.BinaryHeaderMapAccessor;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.baggage.Baggage;
@@ -146,12 +145,12 @@ public class SpanTest {
         assertThat(objectPoolFactory.getSpanLinksPool().getRequestedObjectCount()).isEqualTo(1);
         assertThat(testSpan.getSpanLinks()).hasSize(1);
         Span parent2 = transaction.createSpan();
-        Map<String, byte[]> binaryTraceContextCarrier = new HashMap<>();
-        parent2.propagateContext(binaryTraceContextCarrier, BinaryHeaderMapAccessor.INSTANCE);
+        Map<String, String> textTraceContextCarrier2 = new HashMap<>();
+        parent2.propagateContext(textTraceContextCarrier2, TextHeaderMapAccessor.INSTANCE, null);
         assertThat(testSpan.addSpanLink(
-            TraceContext.getFromTraceContextBinaryHeaders(),
-            BinaryHeaderMapAccessor.INSTANCE,
-            binaryTraceContextCarrier)
+            TraceContext.getFromTraceContextTextHeaders(),
+            TextHeaderMapAccessor.INSTANCE,
+            textTraceContextCarrier2)
         ).isTrue();
         assertThat(objectPoolFactory.getSpanLinksPool().getObjectsInPool()).isEqualTo(0);
         assertThat(objectPoolFactory.getSpanLinksPool().getRequestedObjectCount()).isEqualTo(2);

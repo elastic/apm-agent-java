@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.tracer;
 
-import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 
@@ -75,8 +74,6 @@ public interface AbstractSpan<T extends AbstractSpan<T>> extends Activateable<T>
     boolean isFinished();
 
     boolean isSampled();
-
-    <C> boolean addLink(BinaryHeaderGetter<C> headerGetter, @Nullable C carrier);
 
     <C> boolean addLink(TextHeaderGetter<C> headerGetter, @Nullable C carrier);
 

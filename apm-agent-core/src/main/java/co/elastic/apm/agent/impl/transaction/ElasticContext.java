@@ -23,7 +23,6 @@ import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.baggage.BaggageContext;
 import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
 import co.elastic.apm.agent.tracer.Scope;
-import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
@@ -101,17 +100,6 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
 
     public boolean isEmpty() {
         return getSpan() == null && getBaggage().isEmpty();
-    }
-
-
-    @Override
-    public final <C> boolean propagateContext(C carrier, BinaryHeaderSetter<C> headerSetter) {
-        AbstractSpan<?> contextSpan = getSpan();
-        if (contextSpan != null) {
-            contextSpan.setNonDiscardable();
-            return contextSpan.getTraceContext().propagateTraceContext(carrier, headerSetter);
-        }
-        return false;
     }
 
     @Override

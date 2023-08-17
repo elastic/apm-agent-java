@@ -26,7 +26,6 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 
@@ -82,27 +81,6 @@ public interface Tracer extends co.elastic.apm.agent.tracer.Tracer {
     <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler,
                                           long epochMicros, @Nullable ClassLoader initiatingClassLoader);
 
-    @Override
-    @Nullable
-    <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader);
-
-    /**
-     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
-     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
-     * available), then it will be started as the root transaction of the trace.
-     *
-     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
-     * @param binaryHeadersGetter   provides the trace context headers required in order to create a child transaction
-     * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
-     * @param epochMicros           the start timestamp
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
-     *                              for log correlation.
-     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
-     */
-    @Nullable
-    <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter,
-                                          Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader);
 
     @Override
     ElasticContext<?> currentContext();

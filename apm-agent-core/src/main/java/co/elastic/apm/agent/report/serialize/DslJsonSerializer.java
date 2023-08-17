@@ -66,7 +66,6 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
-import co.elastic.apm.agent.util.HexUtils;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
@@ -1867,7 +1866,7 @@ public class DslJsonSerializer {
                         jw.writeByte(COMMA);
                     }
                     jw.writeByte(QUOTE);
-                    HexUtils.writeAsHex(longList.get(i), jw);
+                    HexSerializationUtils.writeAsHex(longList.get(i), jw);
                     jw.writeByte(QUOTE);
                 }
                 jw.writeByte(ARRAY_END);

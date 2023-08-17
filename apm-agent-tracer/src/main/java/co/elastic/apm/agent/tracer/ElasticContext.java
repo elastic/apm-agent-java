@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.tracer;
 
-import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
@@ -70,16 +69,6 @@ public interface ElasticContext<T extends ElasticContext<T>> extends ReferenceCo
      * @return true, if this context contains nothing (neither a span, nor baggage nor anything else for wrapped contexts).
      */
     boolean isEmpty();
-
-    /**
-     * Propagates this context onto the given carrier. This includes both trace context and baggage.
-     *
-     * @param carrier      the binary headers carrier
-     * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
-     * @param <C>          the header carrier type, for example - a Kafka record
-     * @return true if Trace Context headers were set; false otherwise
-     */
-    <C> boolean propagateContext(C carrier, BinaryHeaderSetter<C> headerSetter);
 
     /**
      * Propagates this context onto the given carrier. This includes both trace context and baggage.

@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.tracer;
 
-import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 
@@ -83,11 +82,6 @@ public class NoopElasticContext implements ElasticContext<NoopElasticContext> {
 
     @Override
     public boolean isEmpty() {
-        return false;
-    }
-
-    @Override
-    public <C> boolean propagateContext(C carrier, BinaryHeaderSetter<C> headerSetter) {
         return false;
     }
 

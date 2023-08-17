@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.util;
+package co.elastic.apm.agent.tracer.util;
 
-import com.dslplatform.json.DslJson;
-import com.dslplatform.json.JsonWriter;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -58,13 +56,4 @@ class HexUtilsTest {
         assertThat(bytes).isEqualTo(new byte[]{10});
     }
 
-    @Test
-    void testLongToHex() {
-        byte[] bytes = new byte[8];
-        HexUtils.nextBytes("09c2572177fdae24", 0, bytes);
-        long l = ByteUtils.getLong(bytes, 0);
-        JsonWriter jw = new DslJson<>().newWriter();
-        HexUtils.writeAsHex(l, jw);
-        assertThat(jw.toString()).isEqualTo("09c2572177fdae24");
-    }
 }
