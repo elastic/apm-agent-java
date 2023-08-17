@@ -514,7 +514,7 @@ class ElasticApmTracerTest {
 
         try (Scope transactionScope = transaction.activateInScope()) {
             assertThat(tracerImpl.getActive()).isEqualTo(transaction);
-            final Span span = tracerImpl.startSpan(TraceContext.fromActive(), tracerImpl, Baggage.EMPTY);
+            final Span span = tracerImpl.startSpan(transaction, Baggage.EMPTY, -1);
             assertThat(span).isNotNull();
             try (Scope scope = span.activateInScope()) {
                 assertThat(tracerImpl.currentTransaction()).isNotNull();

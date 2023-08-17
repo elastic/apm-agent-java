@@ -20,7 +20,6 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -177,17 +176,7 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
                 return false;
             }
         };
-    private static final ChildContextCreator<Tracer> FROM_ACTIVE = new ChildContextCreator<Tracer>() {
-        @Override
-        public boolean asChildOf(TraceContext child, Tracer tracer) {
-            final AbstractSpan<?> active = tracer.getActive();
-            if (active != null) {
-                return fromParent().asChildOf(child, active);
 
-            }
-            return false;
-        }
-    };
     private static final ChildContextCreator<Object> AS_ROOT = new ChildContextCreator<Object>() {
         @Override
         public boolean asChildOf(TraceContext child, Object ignore) {
@@ -290,10 +279,6 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
     @SuppressWarnings("unchecked")
     public static <C> HeaderChildContextCreator<byte[], C> getFromTraceContextBinaryHeaders() {
         return (HeaderChildContextCreator<byte[], C>) FROM_TRACE_CONTEXT_BINARY_HEADERS;
-    }
-
-    public static ChildContextCreator<Tracer> fromActive() {
-        return FROM_ACTIVE;
     }
 
     public static ChildContextCreator<TraceContext> fromParentContext() {

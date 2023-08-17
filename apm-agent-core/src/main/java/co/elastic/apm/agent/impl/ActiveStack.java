@@ -21,7 +21,6 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.ElasticContextWrapper;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
@@ -65,12 +64,6 @@ class ActiveStack {
         this.emptyContext = emptyContextForTracer;
     }
 
-    @Nullable
-    Transaction currentTransaction() {
-        final ElasticContext<?> bottomOfStack = activeContextStack.peekLast();
-        return bottomOfStack != null ? bottomOfStack.getTransaction() : null;
-    }
-
     /**
      * @return the current context, potentially empty when no span, transaction or baggage is currently active.
      */
@@ -94,7 +87,7 @@ class ActiveStack {
         if (activeContextStack.size() == stackMaxDepth) {
             if (overflowCounter == 0) {
                 logger.error(String.format("Activation stack depth reached its maximum - %s. This is likely related to activation" +
-                        " leak. Current transaction: %s", stackMaxDepth, currentTransaction()),
+                        " leak. Current transaction: %s", stackMaxDepth, currentContext().getTransaction()),
                     new Throwable("Stack of threshold-crossing activation: ")
                 );
             }
