@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
-import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.CloudOrigin;
 import co.elastic.apm.agent.impl.context.Db;
@@ -62,6 +61,7 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.report.ApmServerClient;
+import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
@@ -1061,7 +1061,7 @@ public class DslJsonSerializer {
                 writeField("sample_rate", sampleRate);
             }
             serializeOTel(span);
-            if (span.isComposite()) {
+            if (span.isComposite() && span.getComposite().getCount() > 1) {
                 serializeComposite(span.getComposite());
             }
             serializeSpanType(span);

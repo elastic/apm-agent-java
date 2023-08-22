@@ -47,6 +47,8 @@ import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
@@ -59,11 +61,6 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.tracer.Scope;
-import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
-import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
-import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -410,7 +407,7 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     public void captureAndReportException(@Nullable Throwable e, ClassLoader initiatingClassLoader) {
-        ErrorCapture errorCapture = captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
+        ErrorCapture errorCapture = captureException(System.currentTimeMillis() * 1000, e, currentContext(), initiatingClassLoader);
         if (errorCapture != null) {
             errorCapture.end();
         }
@@ -418,9 +415,9 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     @Nullable
-    public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent) {
+    public String captureAndReportException(long epochMicros, @Nullable Throwable e, ElasticContext<?> parentContext) {
         String id = null;
-        ErrorCapture errorCapture = captureException(epochMicros, e, parent, null);
+        ErrorCapture errorCapture = captureException(epochMicros, e, parentContext, null);
         if (errorCapture != null) {
             id = errorCapture.getTraceContext().getId().toString();
             errorCapture.end();
@@ -430,12 +427,12 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     @Nullable
-    public ErrorCapture captureException(@Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
-        return captureException(System.currentTimeMillis() * 1000, e, parent, initiatingClassLoader);
+    public ErrorCapture captureException(@Nullable Throwable e, ElasticContext<?> parentContext, @Nullable ClassLoader initiatingClassLoader) {
+        return captureException(System.currentTimeMillis() * 1000, e, parentContext, initiatingClassLoader);
     }
 
     @Nullable
-    private ErrorCapture captureException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+    private ErrorCapture captureException(long epochMicros, @Nullable Throwable e, ElasticContext<?> parentContext, @Nullable ClassLoader initiatingClassLoader) {
         if (!isRunning() || e == null) {
             return null;
         }
@@ -461,6 +458,7 @@ public class ElasticApmTracer implements Tracer {
                 error.setTransactionType(currentTransaction.getType());
                 error.setTransactionSampled(currentTransaction.isSampled());
             }
+            AbstractSpan<?> parent = parentContext.getSpan();
             if (parent != null) {
                 error.asChildOf(parent);
                 // don't discard spans leading up to an error, otherwise they'd point to an invalid parent
@@ -472,6 +470,8 @@ public class ElasticApmTracer implements Tracer {
                     error.getTraceContext().setServiceInfo(serviceInfo.getServiceName(), serviceInfo.getServiceVersion());
                 }
             }
+            parentContext.getBaggage()
+                .storeBaggageInContext(error.getContext(), getConfig(CoreConfiguration.class).getBaggageToAttach());
             return error;
         }
         return null;

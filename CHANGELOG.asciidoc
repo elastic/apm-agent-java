@@ -32,9 +32,14 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 === Unreleased
 
 [float]
+===== Bug fixes
+* Prevent bad serialization in edge cases for span compression - {pull}3293[#3293]
+* Allow overriding of transaction type for Servlet-API transactions - {pull}3226[#3226]
+
+[float]
 ===== Features
 * Add support for Elasticsearch client 8.9 - {pull}3283[#3283]
-* Added `baggage_to_attach` config option to allow automatic lifting of baggage into transaction and span attributes - {pull}3288[#3288]
+* Added `baggage_to_attach` config option to allow automatic lifting of baggage into transaction, span and error attributes - {pull}3288[#3288], {pull}3289[#3289]
 
 [float]
 ===== Bug fixes

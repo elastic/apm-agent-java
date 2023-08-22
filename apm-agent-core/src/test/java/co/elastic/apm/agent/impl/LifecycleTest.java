@@ -132,7 +132,7 @@ public class LifecycleTest {
             .buildAndStart();
         assertThat(tracer.isRunning()).isFalse();
         assertThat(tracer.startRootTransaction(null)).isNull();
-        assertThat(tracer.captureException(new Exception(), null, null)).isNull();
+        assertThat(tracer.captureException(new Exception(), tracer.currentContext(), null)).isNull();
     }
 
     @Test

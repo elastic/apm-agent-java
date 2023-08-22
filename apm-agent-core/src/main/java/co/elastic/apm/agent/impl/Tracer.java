@@ -125,10 +125,10 @@ public interface Tracer extends co.elastic.apm.agent.tracer.Tracer {
     void captureAndReportException(@Nullable Throwable e, ClassLoader initiatingClassLoader);
 
     @Nullable
-    String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent);
+    String captureAndReportException(long epochMicros, @Nullable Throwable e, ElasticContext<?> parentContext);
 
     @Nullable
-    ErrorCapture captureException(@Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader);
+    ErrorCapture captureException(@Nullable Throwable e, ElasticContext<?> parentContext, @Nullable ClassLoader initiatingClassLoader);
 
     TracerState getState();
 
