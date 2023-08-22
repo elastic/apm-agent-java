@@ -272,6 +272,10 @@ public class MicrometerMeterRegistrySerializer {
             }
         }
         jw.writeByte(JsonWriter.ARRAY_END);
+
+        jw.writeByte(JsonWriter.COMMA);
+        jw.writeAscii("\"type\":\"histogram\"");
+
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
