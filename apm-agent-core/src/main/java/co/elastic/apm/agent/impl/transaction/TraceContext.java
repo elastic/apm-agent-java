@@ -121,7 +121,7 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
             headerValueAccessor = (CharAccessor<T>) CharAccessor.forCharSequence();
             traceStateConsumer = (HeaderGetter.HeaderConsumer<T, TraceContext>) STRING_TRACESTATE_HEADER_CONSUMER;
         } else if (headerGetter instanceof UTF8ByteHeaderGetter) {
-            headerValueAccessor = (CharAccessor<T>) CharAccessor.forCharSequence();
+            headerValueAccessor = (CharAccessor<T>) CharAccessor.forAsciiBytes();
             traceStateConsumer = (HeaderGetter.HeaderConsumer<T, TraceContext>) UTF8_BYTES_TRACESTATE_HEADER_CONSUMER;
         } else {
             throw new IllegalArgumentException("HeaderGetter must be either a TextHeaderGetter or UTF8ByteHeaderGetter: " + headerGetter.getClass().getName());

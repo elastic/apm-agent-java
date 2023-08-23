@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.tracer.util;
 
+import java.nio.charset.StandardCharsets;
+
 public class HexUtils {
 
     public static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
@@ -49,6 +51,22 @@ public class HexUtils {
         for (int i = offset; i < offset + length; i++) {
             writeByteAsHex(bytes[i], sb);
         }
+    }
+
+
+    public static void writeBytesAsHexAscii(byte[] input, int inputOffset, int inputLength, byte[] outputAscii, int outputOffset) {
+        if (outputAscii.length - outputOffset < inputLength * 2) {
+            throw new IllegalArgumentException("Output buffer is not big enough!");
+        }
+        for (int i = 0; i < inputLength; i++) {
+            writeBytesAsHexAscii(input[inputOffset + i], outputAscii, outputOffset + i * 2);
+        }
+    }
+
+    public static void writeBytesAsHexAscii(byte input, byte[] outputAscii, int outputOffset) {
+        int v = input & 0xFF;
+        outputAscii[outputOffset] = (byte) HEX_CHARS[v >>> 4];
+        outputAscii[outputOffset + 1] = (byte) HEX_CHARS[v & 0x0F];
     }
 
     public static void writeByteAsHex(byte b, StringBuilder sb) {
@@ -105,6 +123,15 @@ public class HexUtils {
         }
         for (int i = 0; i < charsToRead; i += 2) {
             bytes[i / 2] = getNextByteAscii(asciiText, offset + i);
+        }
+    }
+
+    public static void decodeAscii(byte[] asciiHexEncodedString, int srcOffset, int srcLength, byte[] bytes, int destOffset) {
+        if (asciiHexEncodedString.length < srcOffset + srcLength) {
+            throw new IllegalArgumentException(String.format("Can't read %d chars from string %s with offset %d", srcLength, new String(asciiHexEncodedString, StandardCharsets.UTF_8), srcOffset));
+        }
+        for (int i = 0; i < srcLength; i += 2) {
+            bytes[destOffset + (i / 2)] = getNextByteAscii(asciiHexEncodedString, srcOffset + i);
         }
     }
 

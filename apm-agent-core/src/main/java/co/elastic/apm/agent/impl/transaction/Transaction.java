@@ -32,7 +32,6 @@ import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import org.HdrHistogram.WriterReaderPhaser;
@@ -142,13 +141,9 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         if (parent == null) {
             return startRoot(epochMicros, sampler, baseBaggage);
         }
-        if (headerGetter instanceof TextHeaderGetter) {
-            Baggage.Builder baggageBuilder = baseBaggage.toBuilder();
-            W3CBaggagePropagation.parse(parent, (TextHeaderGetter<C>) headerGetter, baggageBuilder);
-            this.baggage = baggageBuilder.build();
-        } else {
-            this.baggage = baseBaggage;
-        }
+        Baggage.Builder baggageBuilder = baseBaggage.toBuilder();
+        W3CBaggagePropagation.parse(parent, headerGetter, baggageBuilder);
+        this.baggage = baggageBuilder.build();
         CoreConfiguration.TraceContinuationStrategy traceContinuationStrategy = coreConfig.getTraceContinuationStrategy();
         boolean restartTrace = false;
         if (traceContinuationStrategy.equals(RESTART)) {

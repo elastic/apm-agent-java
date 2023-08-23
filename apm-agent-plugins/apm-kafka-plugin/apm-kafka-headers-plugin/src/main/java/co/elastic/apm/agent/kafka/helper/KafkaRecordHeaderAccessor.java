@@ -21,8 +21,8 @@ package co.elastic.apm.agent.kafka.helper;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.UTF8ByteHeaderGetter;
 import co.elastic.apm.agent.tracer.util.HexUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -33,7 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @SuppressWarnings("rawtypes")
-public class KafkaRecordHeaderAccessor implements TextHeaderGetter<ConsumerRecord>, TextHeaderSetter<ProducerRecord>,
+public class KafkaRecordHeaderAccessor implements UTF8ByteHeaderGetter<ConsumerRecord>, TextHeaderSetter<ProducerRecord>,
     HeaderRemover<ProducerRecord> {
 
     public static final Logger logger = LoggerFactory.getLogger(KafkaRecordHeaderAccessor.class);
@@ -52,7 +52,7 @@ public class KafkaRecordHeaderAccessor implements TextHeaderGetter<ConsumerRecor
 
     @Nullable
     @Override
-    public String getFirstHeader(String headerName, ConsumerRecord record) {
+    public byte[] getFirstHeader(String headerName, ConsumerRecord record) {
         if (headerName.equals(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)) {
             Header header = record.headers().lastHeader(LEGACY_BINARY_TRACEPARENT);
             if (header != null) {
@@ -61,7 +61,7 @@ public class KafkaRecordHeaderAccessor implements TextHeaderGetter<ConsumerRecor
         } else {
             Header header = record.headers().lastHeader(headerName);
             if (header != null) {
-                return decodeUtf8(header.value());
+                return header.value();
             }
         }
         return null;
@@ -69,17 +69,17 @@ public class KafkaRecordHeaderAccessor implements TextHeaderGetter<ConsumerRecor
 
 
     @Override
-    public <S> void forEach(String headerName, ConsumerRecord carrier, S state, HeaderConsumer<String, S> consumer) {
+    public <S> void forEach(String headerName, ConsumerRecord carrier, S state, HeaderConsumer<byte[], S> consumer) {
         if (headerName.equals(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)) {
             for (Header header : carrier.headers().headers(LEGACY_BINARY_TRACEPARENT)) {
-                String convertedHeader = convertLegacyBinaryTraceparentToTextHeader(header.value());
+                byte[] convertedHeader = convertLegacyBinaryTraceparentToTextHeader(header.value());
                 if (convertedHeader != null) {
                     consumer.accept(convertedHeader, state);
                 }
             }
         } else {
             for (Header header : carrier.headers().headers(headerName)) {
-                consumer.accept(decodeUtf8(header.value()), state);
+                consumer.accept(header.value(), state);
             }
         }
     }
@@ -89,7 +89,7 @@ public class KafkaRecordHeaderAccessor implements TextHeaderGetter<ConsumerRecor
     public void setHeader(String headerName, String headerValue, ProducerRecord record) {
         remove(headerName, record);
         if (headerName.equals(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)) {
-            record.headers().add(LEGACY_BINARY_TRACEPARENT, convertTextHeaderToLegacyBinaryTraceparent(headerValue));
+            record.headers().add(LEGACY_BINARY_TRACEPARENT, convertTextHeaderToLegacyBinaryTraceparent(headerValue.getBytes(StandardCharsets.UTF_8)));
         } else {
             record.headers().add(headerName, encodeUtf8(headerValue));
         }
@@ -113,34 +113,39 @@ public class KafkaRecordHeaderAccessor implements TextHeaderGetter<ConsumerRecor
     }
 
 
-    private byte[] convertTextHeaderToLegacyBinaryTraceparent(String headerValue) {
+    private byte[] convertTextHeaderToLegacyBinaryTraceparent(byte[] asciiTextHeaderValue) {
         //input is guaranteed to be a valid w3c header, no need to validate
         byte[] buffer = new byte[29];
         buffer[0] = 0; //version
         buffer[1] = 0; //trace-id field-id
-        HexUtils.decode(headerValue, 3, 32, buffer, 2); //read 16 byte traceid
+        HexUtils.decodeAscii(asciiTextHeaderValue, 3, 32, buffer, 2); //read 16 byte traceid
         buffer[18] = 1; //parent-id field-id
-        HexUtils.decode(headerValue, 36, 16, buffer, 19); //read 16 byte parentid
+        HexUtils.decodeAscii(asciiTextHeaderValue, 36, 16, buffer, 19); //read 16 byte parentid
         buffer[27] = 2; //flags field-id
-        buffer[28] = HexUtils.getNextByte(headerValue, 53); //flags
+        buffer[28] = HexUtils.getNextByteAscii(asciiTextHeaderValue, 53); //flags
         return buffer;
     }
 
     @Nullable
-    private String convertLegacyBinaryTraceparentToTextHeader(byte[] value) {
-        if (value.length < 29) {
+    private byte[] convertLegacyBinaryTraceparentToTextHeader(byte[] binaryHeader) {
+        if (binaryHeader.length < 29) {
             logger.warn("The elasticapmtraceparent header has to be at least 29 bytes long, but is not");
             return null;
         }
         try {
-            StringBuilder sb = new StringBuilder();
-            sb.append("00-");
-            HexUtils.writeBytesAsHex(value, 2, 16, sb);
-            sb.append('-');
-            HexUtils.writeBytesAsHex(value, 19, 8, sb);
-            sb.append('-');
-            HexUtils.writeByteAsHex(value[28], sb);
-            return sb.toString();
+            byte[] asciiTextHeader = {
+                '0', '0', '-',
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //traceId
+                '-',
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //parentId
+                '-',
+                '0', '0' //flags
+            };
+            HexUtils.writeBytesAsHexAscii(binaryHeader, 2, 16, asciiTextHeader, 3);
+            HexUtils.writeBytesAsHexAscii(binaryHeader, 19, 8, asciiTextHeader, 36);
+            byte flags = binaryHeader[28];
+            HexUtils.writeBytesAsHexAscii(flags, asciiTextHeader, 53);
+            return asciiTextHeader;
         } catch (Exception e) {
             logger.warn("Failed to parse legacy elasticapmtraceparent header", e);
         }

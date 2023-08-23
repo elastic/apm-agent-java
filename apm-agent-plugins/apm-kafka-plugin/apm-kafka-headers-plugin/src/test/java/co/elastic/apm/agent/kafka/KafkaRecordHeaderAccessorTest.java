@@ -78,11 +78,12 @@ public class KafkaRecordHeaderAccessorTest {
         Headers headers = new RecordHeaders().add("elasticapmtraceparent", binary_header);
         ConsumerRecord<String, String> dummyRecord = new ConsumerRecord<String, String>("", 0, 0, -1L, TimestampType.NO_TIMESTAMP_TYPE, -1, -1, "", "", headers, Optional.empty());
 
-        String headerText = KafkaRecordHeaderAccessor.instance().getFirstHeader("elastic-apm-traceparent", dummyRecord);
-        assertThat(headerText).isEqualTo(W3C_HEADER);
+        byte[] headerText = KafkaRecordHeaderAccessor.instance().getFirstHeader("elastic-apm-traceparent", dummyRecord);
+        assertThat(new String(headerText, StandardCharsets.UTF_8)).isEqualTo(W3C_HEADER);
 
         List<String> allHeaders = new ArrayList<>();
-        KafkaRecordHeaderAccessor.instance().forEach("elastic-apm-traceparent", dummyRecord, null, (val, state) -> allHeaders.add(val));
+        KafkaRecordHeaderAccessor.instance().forEach("elastic-apm-traceparent", dummyRecord, null,
+            (val, state) -> allHeaders.add(new String(val, StandardCharsets.UTF_8)));
         assertThat(allHeaders).containsExactly(W3C_HEADER);
     }
 
@@ -93,11 +94,12 @@ public class KafkaRecordHeaderAccessorTest {
         Headers headers = new RecordHeaders().add("elasticapmtraceparent", binary_header);
         ConsumerRecord<String, String> dummyRecord = new ConsumerRecord<String, String>("", 0, 0, -1L, TimestampType.NO_TIMESTAMP_TYPE, -1, -1, "", "", headers, Optional.empty());
 
-        String headerText = KafkaRecordHeaderAccessor.instance().getFirstHeader("elastic-apm-traceparent", dummyRecord);
+        byte[] headerText = KafkaRecordHeaderAccessor.instance().getFirstHeader("elastic-apm-traceparent", dummyRecord);
         assertThat(headerText).isNull();
 
         List<String> allHeaders = new ArrayList<>();
-        KafkaRecordHeaderAccessor.instance().forEach("elastic-apm-traceparent", dummyRecord, null, (val, state) -> allHeaders.add(val));
+        KafkaRecordHeaderAccessor.instance().forEach("elastic-apm-traceparent", dummyRecord, null,
+            (val, state) -> allHeaders.add(new String(val, StandardCharsets.UTF_8)));
         assertThat(allHeaders).isEmpty();
     }
 
@@ -125,11 +127,12 @@ public class KafkaRecordHeaderAccessorTest {
         Headers headers = new RecordHeaders().add("traceparent", W3C_HEADER.getBytes(StandardCharsets.UTF_8));
         ConsumerRecord<String, String> dummyRecord = new ConsumerRecord<String, String>("", 0, 0, -1L, TimestampType.NO_TIMESTAMP_TYPE, -1, -1, "", "", headers, Optional.empty());
 
-        String headerText = KafkaRecordHeaderAccessor.instance().getFirstHeader("traceparent", dummyRecord);
-        assertThat(headerText).isEqualTo(W3C_HEADER);
+        byte[] headerText = KafkaRecordHeaderAccessor.instance().getFirstHeader("traceparent", dummyRecord);
+        assertThat(new String(headerText, StandardCharsets.UTF_8)).isEqualTo(W3C_HEADER);
 
         List<String> allHeaders = new ArrayList<>();
-        KafkaRecordHeaderAccessor.instance().forEach("traceparent", dummyRecord, null, (val, state) -> allHeaders.add(val));
+        KafkaRecordHeaderAccessor.instance().forEach("traceparent", dummyRecord, null,
+            (val, state) -> allHeaders.add(new String(val, StandardCharsets.UTF_8)));
         assertThat(allHeaders).containsExactly(W3C_HEADER);
     }
 

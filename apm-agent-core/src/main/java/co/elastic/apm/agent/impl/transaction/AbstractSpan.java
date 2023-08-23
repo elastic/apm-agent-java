@@ -30,7 +30,6 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
@@ -790,7 +789,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
     }
 
     @Override
-    public <C> boolean addLink(TextHeaderGetter<C> headerGetter, @Nullable C carrier) {
+    public <T, C> boolean addLink(HeaderGetter<T, C> headerGetter, @Nullable C carrier) {
         return addSpanLink(headerGetter, carrier);
     }
 }
