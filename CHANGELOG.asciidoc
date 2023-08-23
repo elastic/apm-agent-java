@@ -34,6 +34,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Virtual thread support - {pull}3244[#3244], {pull}3286[#3286]
+* Include `application_packages` in JMS listener naming heuristic - {pull}3299[#3299]
 
 [float]
 ===== Bug fixes
