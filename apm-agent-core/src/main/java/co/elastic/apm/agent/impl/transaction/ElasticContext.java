@@ -23,9 +23,9 @@ import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.baggage.BaggageContext;
 import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
 import co.elastic.apm.agent.tracer.Scope;
+import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 
 import javax.annotation.Nullable;
 
@@ -103,12 +103,12 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
     }
 
     @Override
-    public final <C> void propagateContext(C carrier, TextHeaderSetter<C> headerSetter, @Nullable TextHeaderGetter<C> headerGetter) {
+    public final <C> void propagateContext(C carrier, HeaderSetter<?, C> headerSetter, @Nullable HeaderGetter<?, C> headerGetter) {
         propagateContext(carrier, headerSetter, carrier, headerGetter);
     }
 
     @Override
-    public <C1, C2> void propagateContext(C1 carrier, TextHeaderSetter<C1> headerSetter, @Nullable C2 carrier2, @Nullable TextHeaderGetter<C2> headerGetter) {
+    public <C1, C2> void propagateContext(C1 carrier, HeaderSetter<?, C1> headerSetter, @Nullable C2 carrier2, @Nullable HeaderGetter<?, C2> headerGetter) {
         AbstractSpan<?> contextSpan = getSpan();
         if (contextSpan != null) {
             if (headerGetter == null || carrier2 == null || !HeaderUtils.containsAny(TraceContext.TRACE_TEXTUAL_HEADERS, carrier2, headerGetter)) {
@@ -125,7 +125,7 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
     }
 
     @Override
-    public <C> boolean isPropagationRequired(C carrier, TextHeaderGetter<C> headerGetter) {
+    public <C> boolean isPropagationRequired(C carrier, HeaderGetter<?, C> headerGetter) {
         AbstractSpan<?> contextSpan = getSpan();
         boolean traceContextPropagationRequired = contextSpan != null && !HeaderUtils.containsAny(TraceContext.TRACE_TEXTUAL_HEADERS, carrier, headerGetter);
         boolean baggagePropagationRequired = !getBaggage().isEmpty() && headerGetter.getFirstHeader(W3CBaggagePropagation.BAGGAGE_HEADER_NAME, carrier) == null;

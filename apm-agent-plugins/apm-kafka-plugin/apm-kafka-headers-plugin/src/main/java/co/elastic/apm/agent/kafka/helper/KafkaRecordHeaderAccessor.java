@@ -21,19 +21,18 @@ package co.elastic.apm.agent.kafka.helper;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.UTF8ByteHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.UTF8ByteHeaderSetter;
 import co.elastic.apm.agent.tracer.util.HexUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
 
 import javax.annotation.Nullable;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @SuppressWarnings("rawtypes")
-public class KafkaRecordHeaderAccessor implements UTF8ByteHeaderGetter<ConsumerRecord>, TextHeaderSetter<ProducerRecord>,
+public class KafkaRecordHeaderAccessor implements UTF8ByteHeaderGetter<ConsumerRecord>, UTF8ByteHeaderSetter<ProducerRecord>,
     HeaderRemover<ProducerRecord> {
 
     public static final Logger logger = LoggerFactory.getLogger(KafkaRecordHeaderAccessor.class);
@@ -86,12 +85,12 @@ public class KafkaRecordHeaderAccessor implements UTF8ByteHeaderGetter<ConsumerR
 
 
     @Override
-    public void setHeader(String headerName, String headerValue, ProducerRecord record) {
+    public void setHeader(String headerName, byte[] headerValue, ProducerRecord record) {
         remove(headerName, record);
         if (headerName.equals(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)) {
-            record.headers().add(LEGACY_BINARY_TRACEPARENT, convertTextHeaderToLegacyBinaryTraceparent(headerValue.getBytes(StandardCharsets.UTF_8)));
+            record.headers().add(LEGACY_BINARY_TRACEPARENT, convertTextHeaderToLegacyBinaryTraceparent(headerValue));
         } else {
-            record.headers().add(headerName, encodeUtf8(headerValue));
+            record.headers().add(headerName, headerValue);
         }
     }
 
@@ -102,14 +101,6 @@ public class KafkaRecordHeaderAccessor implements UTF8ByteHeaderGetter<ConsumerR
         } else {
             carrier.headers().remove(headerName);
         }
-    }
-
-    private byte[] encodeUtf8(String headerValue) {
-        return headerValue.getBytes(StandardCharsets.UTF_8);
-    }
-
-    private String decodeUtf8(byte[] value) {
-        return new String(value, StandardCharsets.UTF_8);
     }
 
 

@@ -23,6 +23,7 @@ import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 
 import javax.annotation.Nullable;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -60,6 +61,11 @@ public class Baggage implements co.elastic.apm.agent.tracer.Baggage {
      * Baggage instances are immutable, therefore we can safely cache the serialized form.
      */
     private volatile String cachedSerializedW3CHeader = null;
+
+    /**
+     * Cached UTF8-representation of {@link #cachedSerializedW3CHeader}.
+     */
+    byte[] cachedSerializedW3CHeaderUtf8 = null;
 
     private Baggage(Map<String, String> baggage, Map<String, String> baggageMetadata) {
         this.baggage = baggage;
@@ -100,6 +106,20 @@ public class Baggage implements co.elastic.apm.agent.tracer.Baggage {
 
     String getCachedSerializedW3CHeader() {
         return this.cachedSerializedW3CHeader;
+    }
+
+
+    byte[] getCachedSerializedW3CHeaderUtf8() {
+        if (cachedSerializedW3CHeader == null) {
+            throw new IllegalStateException("cached string header must be set first");
+        }
+        if (cachedSerializedW3CHeader.isEmpty()) {
+            return null;
+        }
+        if (cachedSerializedW3CHeaderUtf8 == null) {
+            cachedSerializedW3CHeaderUtf8 = cachedSerializedW3CHeader.getBytes(StandardCharsets.UTF_8);
+        }
+        return this.cachedSerializedW3CHeaderUtf8;
     }
 
     public void storeBaggageInAttributes(AbstractSpan<?> span, List<WildcardMatcher> keyFilter) {

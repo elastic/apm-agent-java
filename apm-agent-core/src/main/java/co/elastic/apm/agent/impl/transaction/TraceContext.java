@@ -26,14 +26,17 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
+import co.elastic.apm.agent.tracer.dispatch.HeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.UTF8ByteHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.UTF8ByteHeaderSetter;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import co.elastic.apm.agent.tracer.util.HexUtils;
 import co.elastic.apm.agent.util.ByteUtils;
 
 import javax.annotation.Nullable;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -481,28 +484,63 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
      * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
      * @param <C>          the header carrier type, for example - an HTTP request
      */
-    <C> void propagateTraceContext(C carrier, TextHeaderSetter<C> headerSetter) {
+    <T, C> void propagateTraceContext(C carrier, HeaderSetter<T, C> headerSetter) {
         if (coreConfiguration.isOutgoingTraceContextHeadersInjectionDisabled()) {
             logger.debug("Outgoing TraceContext header injection is disabled");
             return;
         }
 
-        String outgoingTraceParent = getOutgoingTraceParentTextHeader().toString();
+        T outgoingTraceParent = getOutgoingTraceParentTextHeader(headerSetter);
 
         headerSetter.setHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, outgoingTraceParent, carrier);
         if (coreConfiguration.isElasticTraceparentHeaderEnabled()) {
             headerSetter.setHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, outgoingTraceParent, carrier);
         }
 
-        String outgoingTraceState = traceState.toTextHeader();
+        T outgoingTraceState = getOutgoingTraceStateHeader(headerSetter);
         if (outgoingTraceState != null) {
             headerSetter.setHeader(TRACESTATE_HEADER_NAME, outgoingTraceState, carrier);
         }
         logger.trace("Trace context headers added to {}", carrier);
     }
 
+    <T> T getOutgoingTraceParentTextHeader(HeaderSetter<T, ?> headerSetter) {
+        StringBuilder outgoingTraceParentTextHeader = getOutgoingTraceParentTextHeader();
+        if (headerSetter instanceof TextHeaderSetter) {
+            return (T) outgoingTraceParentTextHeader.toString();
+        } else if (headerSetter instanceof UTF8ByteHeaderSetter) {
+            int length = outgoingTraceParentTextHeader.length();
+            byte[] result = new byte[length];
+            for (int i = 0; i < length; i++) {
+                char c = outgoingTraceParentTextHeader.charAt(i);
+                if (c > 127) {
+                    throw new IllegalStateException("Expected traceparent header to be ascii only");
+                }
+                result[i] = (byte) c;
+            }
+            return (T) result;
+        } else {
+            throw new IllegalArgumentException("HeaderSetter must be either a TextHeaderSetter or UTF8ByteHeaderSetter: " + headerSetter.getClass().getName());
+        }
+    }
+
+    @Nullable
+    <T> T getOutgoingTraceStateHeader(HeaderSetter<T, ?> headerSetter) {
+        String outgoingTraceState = traceState.toTextHeader();
+        if (outgoingTraceState == null) {
+            return null;
+        }
+        if (headerSetter instanceof TextHeaderSetter) {
+            return (T) outgoingTraceState;
+        } else if (headerSetter instanceof UTF8ByteHeaderSetter) {
+            return (T) outgoingTraceState.getBytes(StandardCharsets.UTF_8);
+        } else {
+            throw new IllegalArgumentException("HeaderSetter must be either a TextHeaderSetter or UTF8ByteHeaderSetter: " + headerSetter.getClass().getName());
+        }
+    }
+
     /**
-     * @return  the value of the {@code traceparent} header for downstream services.
+     * @return the value of the {@code traceparent} header for downstream services.
      */
     StringBuilder getOutgoingTraceParentTextHeader() {
         if (outgoingTextHeader.length() == 0) {

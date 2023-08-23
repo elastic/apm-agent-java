@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.tracer;
 
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderSetter;
 
 import javax.annotation.Nullable;
 
@@ -86,17 +86,17 @@ public class NoopElasticContext implements ElasticContext<NoopElasticContext> {
     }
 
     @Override
-    public <C> void propagateContext(C carrier, TextHeaderSetter<C> headerSetter, TextHeaderGetter<C> headerGetter) {
+    public <C> void propagateContext(C carrier, HeaderSetter<?, C> headerSetter, HeaderGetter<?, C> headerGetter) {
 
     }
 
     @Override
-    public <C1, C2> void propagateContext(C1 carrier, TextHeaderSetter<C1> headerSetter, @Nullable C2 carrier2, @Nullable TextHeaderGetter<C2> headerGetter) {
+    public <C1, C2> void propagateContext(C1 carrier, HeaderSetter<?, C1> headerSetter, @Nullable C2 carrier2, @Nullable HeaderGetter<?, C2> headerGetter) {
 
     }
 
     @Override
-    public <C> boolean isPropagationRequired(C carrier, TextHeaderGetter<C> headerGetter) {
+    public <C> boolean isPropagationRequired(C carrier, HeaderGetter<?, C> headerGetter) {
         return false;
     }
 

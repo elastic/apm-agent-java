@@ -21,9 +21,11 @@ package co.elastic.apm.agent.impl.baggage;
 import co.elastic.apm.agent.impl.baggage.otel.Parser;
 import co.elastic.apm.agent.impl.baggage.otel.PercentEscaper;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import co.elastic.apm.agent.tracer.dispatch.UTF8ByteHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.UTF8ByteHeaderSetter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,18 +80,44 @@ public class W3CBaggagePropagation {
         headerGetter.forEach(BAGGAGE_HEADER_NAME, carrier, into, consumer);
     }
 
-    public static <C> void propagate(Baggage baggage, C carrier, TextHeaderSetter<C> setter) {
+    public static <T, C> void propagate(Baggage baggage, C carrier, HeaderSetter<T, C> setter) {
         if (baggage.isEmpty()) {
             return;
         }
+        T header = getTextHeader(baggage, setter);
+        if (header != null) {
+            setter.setHeader(BAGGAGE_HEADER_NAME, header, carrier);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T getTextHeader(Baggage baggage, HeaderSetter<T, ?> setter) {
+        if (setter instanceof TextHeaderSetter) {
+            return (T) getTextHeaderString(baggage);
+        } else if (setter instanceof UTF8ByteHeaderSetter) {
+            return (T) getTextHeaderUtf8Bytes(baggage);
+        } else {
+            throw new IllegalArgumentException("HeaderSetter must be either a TextHeaderSetter or UTF8ByteHeaderSetter: " + setter.getClass().getName());
+        }
+    }
+
+    @Nullable
+    private static byte[] getTextHeaderUtf8Bytes(Baggage baggage) {
+        getTextHeaderString(baggage); //ensures that the string-header is computed and cached
+        return baggage.getCachedSerializedW3CHeaderUtf8();
+    }
+
+    @Nullable
+    private static String getTextHeaderString(Baggage baggage) {
         String header = baggage.getCachedSerializedW3CHeader();
         if (header == null) {
             header = encodeToHeader(baggage);
             baggage.setCachedSerializedW3CHeader(header);
         }
-        if (!header.isEmpty()) {
-            setter.setHeader(BAGGAGE_HEADER_NAME, encodeToHeader(baggage), carrier);
+        if (header.isEmpty()) {
+            return null;
         }
+        return header;
     }
 
 

@@ -38,6 +38,7 @@ public class KafkaRecordHeaderAccessorTest {
     @Test
     public void testLegacyHeaderSetterTranslation() {
         String W3C_HEADER = "00-0af7651916cd43dd8448eb211c80319c-00f067aa0ba902b7-01";
+        byte[] W3C_HEADER_BYTES = W3C_HEADER.getBytes(StandardCharsets.UTF_8);
         byte[] binary_header = {
             0, //version
             0, //trace-id field-id
@@ -50,8 +51,8 @@ public class KafkaRecordHeaderAccessorTest {
         };
         ProducerRecord<String, String> dummyRecord = new ProducerRecord<String, String>("", 0, "", "");
         //set twice to ensure it is not added twice
-        KafkaRecordHeaderAccessor.instance().setHeader("elastic-apm-traceparent", W3C_HEADER, dummyRecord);
-        KafkaRecordHeaderAccessor.instance().setHeader("elastic-apm-traceparent", W3C_HEADER, dummyRecord);
+        KafkaRecordHeaderAccessor.instance().setHeader("elastic-apm-traceparent", W3C_HEADER_BYTES, dummyRecord);
+        KafkaRecordHeaderAccessor.instance().setHeader("elastic-apm-traceparent", W3C_HEADER_BYTES, dummyRecord);
 
         assertThat(dummyRecord.headers()).hasSize(1);
         assertThat(dummyRecord.headers().lastHeader("elasticapmtraceparent").value())
@@ -107,10 +108,11 @@ public class KafkaRecordHeaderAccessorTest {
     @Test
     public void testW3cHeaderSetter() {
         String W3C_HEADER = "00-0af7651916cd43dd8448eb211c80319c-00f067aa0ba902b7-01";
+        byte[] W3C_HEADER_BYTES = W3C_HEADER.getBytes(StandardCharsets.UTF_8);
         ProducerRecord<String, String> dummyRecord = new ProducerRecord<String, String>("", 0, "", "");
         //set twice to ensure it is not added twice
-        KafkaRecordHeaderAccessor.instance().setHeader("traceparent", W3C_HEADER, dummyRecord);
-        KafkaRecordHeaderAccessor.instance().setHeader("traceparent", W3C_HEADER, dummyRecord);
+        KafkaRecordHeaderAccessor.instance().setHeader("traceparent", W3C_HEADER_BYTES, dummyRecord);
+        KafkaRecordHeaderAccessor.instance().setHeader("traceparent", W3C_HEADER_BYTES, dummyRecord);
 
         assertThat(dummyRecord.headers()).hasSize(1);
         assertThat(dummyRecord.headers().lastHeader("traceparent").value())
