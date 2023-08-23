@@ -28,6 +28,7 @@ import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderRemover;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.UTF8ByteHeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import co.elastic.apm.agent.tracer.util.HexUtils;
 import co.elastic.apm.agent.util.ByteUtils;
@@ -93,44 +94,67 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
             return true;
         }
     };
-    private static final HeaderGetter.HeaderConsumer<String, TraceContext> TRACESTATE_HEADER_CONSUMER = new HeaderGetter.HeaderConsumer<String, TraceContext>() {
+
+    private static final HeaderGetter.HeaderConsumer<String, TraceContext> STRING_TRACESTATE_HEADER_CONSUMER = new HeaderGetter.HeaderConsumer<String, TraceContext>() {
         @Override
         public void accept(@Nullable String tracestateHeaderValue, TraceContext state) {
-            if (tracestateHeaderValue != null) {
-                state.traceState.addTextHeader(tracestateHeaderValue);
-            }
+            state.addTraceStateHeader(tracestateHeaderValue, CharAccessor.forCharSequence());
         }
     };
-    private static final HeaderChildContextCreator FROM_TRACE_CONTEXT_TEXT_HEADERS =
-        new HeaderChildContextCreator<String, Object>() {
-            @Override
-            public boolean asChildOf(TraceContext child, @Nullable Object carrier, HeaderGetter<String, Object> traceContextHeaderGetter) {
-                if (carrier == null) {
-                    return false;
-                }
 
-                boolean isValid = false;
-                String traceparent = traceContextHeaderGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
-                if (traceparent != null) {
-                    isValid = child.asChildOf(traceparent);
-                }
+    private static final HeaderGetter.HeaderConsumer<byte[], TraceContext> UTF8_BYTES_TRACESTATE_HEADER_CONSUMER = new HeaderGetter.HeaderConsumer<byte[], TraceContext>() {
+        @Override
+        public void accept(@Nullable byte[] tracestateHeaderValue, TraceContext state) {
+            state.addTraceStateHeader(tracestateHeaderValue, CharAccessor.forAsciiBytes());
+        }
+    };
 
-                if (!isValid) {
-                    // Look for the legacy Elastic traceparent header (in case this comes from an older agent)
-                    traceparent = traceContextHeaderGetter.getFirstHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
-                    if (traceparent != null) {
-                        isValid = child.asChildOf(traceparent);
-                    }
-                }
+    public <T, C> boolean asChildOf(@Nullable C carrier, HeaderGetter<T, C> headerGetter) {
+        return asChildOf(carrier, headerGetter, true);
+    }
 
-                if (isValid) {
-                    // as per spec, the tracestate header can be multi-valued
-                    traceContextHeaderGetter.forEach(TRACESTATE_HEADER_NAME, carrier, child, TRACESTATE_HEADER_CONSUMER);
-                }
+    @SuppressWarnings("unchecked")
+    public <T, C> boolean asChildOf(@Nullable C carrier, HeaderGetter<T, C> headerGetter, boolean parseTraceState) {
+        CharAccessor<T> headerValueAccessor;
+        HeaderGetter.HeaderConsumer<T, TraceContext> traceStateConsumer;
+        if (headerGetter instanceof TextHeaderGetter) {
+            headerValueAccessor = (CharAccessor<T>) CharAccessor.forCharSequence();
+            traceStateConsumer = (HeaderGetter.HeaderConsumer<T, TraceContext>) STRING_TRACESTATE_HEADER_CONSUMER;
+        } else if (headerGetter instanceof UTF8ByteHeaderGetter) {
+            headerValueAccessor = (CharAccessor<T>) CharAccessor.forCharSequence();
+            traceStateConsumer = (HeaderGetter.HeaderConsumer<T, TraceContext>) UTF8_BYTES_TRACESTATE_HEADER_CONSUMER;
+        } else {
+            throw new IllegalArgumentException("HeaderGetter must be either a TextHeaderGetter or UTF8ByteHeaderGetter: " + headerGetter.getClass().getName());
+        }
+        boolean valid = extractTraceParentFromHeaders(carrier, headerGetter, headerValueAccessor);
+        if (valid && parseTraceState) {
+            headerGetter.forEach(TRACESTATE_HEADER_NAME, carrier, this, traceStateConsumer);
+        }
+        return valid;
+    }
 
-                return isValid;
+    private <T, C> boolean extractTraceParentFromHeaders(@Nullable C carrier, HeaderGetter<T, C> traceContextHeaderGetter, CharAccessor<? super T> charAccessor) {
+        if (carrier == null) {
+            return false;
+        }
+
+        boolean isValid = false;
+        T traceparent = traceContextHeaderGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+        if (traceparent != null) {
+            isValid = asChildOf(traceparent, charAccessor);
+        }
+
+        if (!isValid) {
+            // Look for the legacy Elastic traceparent header (in case this comes from an older agent)
+            traceparent = traceContextHeaderGetter.getFirstHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+            if (traceparent != null) {
+                isValid = asChildOf(traceparent, charAccessor);
             }
-        };
+        }
+
+        return isValid;
+    }
+
 
     private static final ChildContextCreator<Tracer> FROM_ACTIVE = new ChildContextCreator<Tracer>() {
         @Override
@@ -237,11 +261,6 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
         return new TraceContext(tracer, Id.new128BitId());
     }
 
-    @SuppressWarnings("unchecked")
-    public static <C> HeaderChildContextCreator<String, C> getFromTraceContextTextHeaders() {
-        return (HeaderChildContextCreator<String, C>) FROM_TRACE_CONTEXT_TEXT_HEADERS;
-    }
-
     public static ChildContextCreator<TraceContext> fromParentContext() {
         return FROM_PARENT_CONTEXT;
     }
@@ -250,44 +269,60 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
         return FROM_PARENT;
     }
 
+    boolean asChildOf(String traceParentHeader) {
+        return asChildOf(traceParentHeader, CharAccessor.forCharSequence());
+    }
+
     /**
      * Tries to set trace context identifiers (Id, parent, ...) from traceparent text header value
      *
      * @param traceParentHeader traceparent text header value
      * @return {@literal true} if header value is valid, {@literal false} otherwise
      */
-    boolean asChildOf(String traceParentHeader) {
-        traceParentHeader = traceParentHeader.trim();
+    <T> boolean asChildOf(T traceParentHeader, CharAccessor<T> charAccessor) {
+
+        int leadingWs = charAccessor.getLeadingWhitespaceCount(traceParentHeader);
+        int trailingWs = charAccessor.getTrailingWhitespaceCount(traceParentHeader);
+
         try {
-            if (traceParentHeader.length() < TEXT_HEADER_EXPECTED_LENGTH) {
-                logger.warn("The traceparent header has to be at least 55 chars long, but was '{}'", traceParentHeader);
+            int trimmedLen = Math.max(0, charAccessor.length(traceParentHeader) - leadingWs - trailingWs);
+            if (trimmedLen < TEXT_HEADER_EXPECTED_LENGTH) {
+                logger.warn("The traceparent header has to be at least 55 chars long, but was '{}'", trimmedLen);
                 return false;
             }
-            if (noDashAtPosition(traceParentHeader, TEXT_HEADER_TRACE_ID_OFFSET - 1)
-                || noDashAtPosition(traceParentHeader, TEXT_HEADER_PARENT_ID_OFFSET - 1)
-                || noDashAtPosition(traceParentHeader, TEXT_HEADER_FLAGS_OFFSET - 1)) {
-                logger.warn("The traceparent header has an invalid format: '{}'", traceParentHeader);
+            if (noDashAtPosition(traceParentHeader, leadingWs + TEXT_HEADER_TRACE_ID_OFFSET - 1, charAccessor)
+                || noDashAtPosition(traceParentHeader, leadingWs + TEXT_HEADER_PARENT_ID_OFFSET - 1, charAccessor)
+                || noDashAtPosition(traceParentHeader, leadingWs + TEXT_HEADER_FLAGS_OFFSET - 1, charAccessor)) {
+                if (logger.isWarnEnabled()) {
+                    logger.warn("The traceparent header has an invalid format: '{}'", charAccessor.asString(traceParentHeader));
+                }
                 return false;
             }
-            if (traceParentHeader.length() > TEXT_HEADER_EXPECTED_LENGTH
-                && noDashAtPosition(traceParentHeader, TEXT_HEADER_EXPECTED_LENGTH)) {
-                logger.warn("The traceparent header has an invalid format: '{}'", traceParentHeader);
+            if (trimmedLen > TEXT_HEADER_EXPECTED_LENGTH
+                && noDashAtPosition(traceParentHeader, leadingWs + TEXT_HEADER_EXPECTED_LENGTH, charAccessor)) {
+                if (logger.isWarnEnabled()) {
+                    logger.warn("The traceparent header has an invalid format: '{}'", charAccessor.asString(traceParentHeader));
+                }
                 return false;
             }
-            if (traceParentHeader.startsWith("ff")) {
-                logger.warn("Version ff is not supported");
+            if (charAccessor.equalsAtOffset(leadingWs, "ff", traceParentHeader)) {
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Version ff is not supported");
+                }
                 return false;
             }
-            byte version = HexUtils.getNextByte(traceParentHeader, 0);
-            if (version == 0 && traceParentHeader.length() > TEXT_HEADER_EXPECTED_LENGTH) {
-                logger.warn("The traceparent header has to be exactly 55 chars long for version 00, but was '{}'", traceParentHeader);
+            byte version = charAccessor.readHexByte(leadingWs, traceParentHeader);
+            if (version == 0 && trimmedLen > TEXT_HEADER_EXPECTED_LENGTH) {
+                if (logger.isWarnEnabled()) {
+                    logger.warn("The traceparent header has to be exactly 55 chars long for version 00, but was '{}'", charAccessor.asString(traceParentHeader));
+                }
                 return false;
             }
-            traceId.fromHexString(traceParentHeader, TEXT_HEADER_TRACE_ID_OFFSET);
+            traceId.fromHexString(traceParentHeader, leadingWs + TEXT_HEADER_TRACE_ID_OFFSET, charAccessor);
             if (traceId.isEmpty()) {
                 return false;
             }
-            parentId.fromHexString(traceParentHeader, TEXT_HEADER_PARENT_ID_OFFSET);
+            parentId.fromHexString(traceParentHeader, leadingWs + TEXT_HEADER_PARENT_ID_OFFSET, charAccessor);
             if (parentId.isEmpty()) {
                 return false;
             }
@@ -296,7 +331,7 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
             // TODO don't blindly trust the flags from the caller
             // consider implement rate limiting and/or having a list of trusted sources
             // trace the request if it's either requested or if the parent has recorded it
-            flags = HexUtils.getNextByte(traceParentHeader, TEXT_HEADER_FLAGS_OFFSET);
+            flags = charAccessor.readHexByte(TEXT_HEADER_FLAGS_OFFSET + leadingWs, traceParentHeader);
             clock.init();
             return true;
         } catch (IllegalArgumentException e) {
@@ -307,8 +342,14 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
         }
     }
 
-    private boolean noDashAtPosition(String traceParentHeader, int index) {
-        return traceParentHeader.charAt(index) != '-';
+    private <T> boolean noDashAtPosition(T traceParentHeader, int index, CharAccessor<T> accessor) {
+        return accessor.charAt(index, traceParentHeader) != '-';
+    }
+
+    private <T> void addTraceStateHeader(@Nullable T tracestateHeaderValue, CharAccessor<T> charAccessor) {
+        if (tracestateHeaderValue != null) {
+            traceState.addTextHeader(charAccessor.asString(tracestateHeaderValue));
+        }
     }
 
     public void asRootSpan(Sampler sampler) {
@@ -623,10 +664,6 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
 
     public interface ChildContextCreator<T> {
         boolean asChildOf(TraceContext child, T parent);
-    }
-
-    public interface HeaderChildContextCreator<H, C> {
-        boolean asChildOf(TraceContext child, @Nullable C carrier, HeaderGetter<H, C> headerGetter);
     }
 
     public TraceContext copy() {

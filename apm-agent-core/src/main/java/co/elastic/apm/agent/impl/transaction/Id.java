@@ -66,10 +66,15 @@ public class Id implements Recyclable, co.elastic.apm.agent.tracer.Id {
         onMutation();
     }
 
+    public <T> void fromHexString(T hexEncodedString, int offset, CharAccessor<T> accessor) {
+        accessor.readHex(offset, data, hexEncodedString);
+        onMutation();
+    }
+
     /**
      * Sets the id based on a byte array
      *
-     * @param bytes the byte array used to fill this id's {@link #data}
+     * @param bytes  the byte array used to fill this id's {@link #data}
      * @param offset the offset in the byte array
      * @return the number of read bytes which is equivalent to {@link #getLength()}
      */

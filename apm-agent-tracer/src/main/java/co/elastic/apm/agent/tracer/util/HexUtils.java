@@ -57,11 +57,20 @@ public class HexUtils {
         sb.append(HEX_CHARS[v & 0x0F]);
     }
 
-    public static byte getNextByte(String hexEncodedString, int offset) {
+    public static byte getNextByte(CharSequence hexEncodedString, int offset) {
         final int hi = hexCharToBinary(hexEncodedString.charAt(offset));
         final int lo = hexCharToBinary(hexEncodedString.charAt(offset + 1));
         if (hi == -1 || lo == -1) {
             throw new IllegalArgumentException("Not a hex encoded string: " + hexEncodedString + " at offset " + offset);
+        }
+        return (byte) ((hi << 4) + lo);
+    }
+
+    public static byte getNextByteAscii(byte[] asciiText, int offset) {
+        final int hi = hexCharToBinary((char) asciiText[offset]);
+        final int lo = hexCharToBinary((char) asciiText[offset + 1]);
+        if (hi == -1 || lo == -1) {
+            throw new IllegalArgumentException("Not a hex encoded string");
         }
         return (byte) ((hi << 4) + lo);
     }
@@ -79,13 +88,23 @@ public class HexUtils {
         return -1;
     }
 
-    public static void nextBytes(String hexEncodedString, int offset, byte[] bytes) {
+    public static void nextBytes(CharSequence hexEncodedString, int offset, byte[] bytes) {
         final int charsToRead = bytes.length * 2;
         if (hexEncodedString.length() < offset + charsToRead) {
             throw new IllegalArgumentException(String.format("Can't read %d bytes from string %s with offset %d", bytes.length, hexEncodedString, offset));
         }
         for (int i = 0; i < charsToRead; i += 2) {
             bytes[i / 2] = getNextByte(hexEncodedString, offset + i);
+        }
+    }
+
+    public static void nextBytesAscii(byte[] asciiText, int offset, byte[] bytes) {
+        final int charsToRead = bytes.length * 2;
+        if (asciiText.length < offset + charsToRead) {
+            throw new IllegalArgumentException(String.format("Can't read %d bytes from byte array with length %d with offset %d", bytes.length, asciiText.length, offset));
+        }
+        for (int i = 0; i < charsToRead; i += 2) {
+            bytes[i / 2] = getNextByteAscii(asciiText, offset + i);
         }
     }
 

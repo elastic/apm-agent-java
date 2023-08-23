@@ -366,7 +366,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
      * Adds a span link based on the tracecontext header retrieved from the provided {@code carrier} through the provided {@code
      * headerGetter}.
      *
-     * @param childContextCreator the proper tracecontext inference implementation, corresponding on the header and types
      * @param headerGetter        the proper header extractor, corresponding the header and carrier types
      * @param carrier             the object from which the tracecontext header is to be retrieved
      * @param <H>                 the tracecontext header type - either binary ({@code byte[]}) or textual ({@code String})
@@ -374,7 +373,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
      * @return {@code true} if added, {@code false} otherwise
      */
     public <H, C> boolean addSpanLink(
-        TraceContext.HeaderChildContextCreator<H, C> childContextCreator,
         HeaderGetter<H, C> headerGetter,
         @Nullable C carrier
     ) {
@@ -384,7 +382,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
         boolean added = false;
         try {
             TraceContext childTraceContext = tracer.createSpanLink();
-            if (childContextCreator.asChildOf(childTraceContext, carrier, headerGetter)) {
+            if (childTraceContext.asChildOf(carrier, headerGetter, false)) {
                 added = spanLinks.add(childTraceContext);
             }
             if (!added) {
@@ -793,8 +791,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
 
     @Override
     public <C> boolean addLink(TextHeaderGetter<C> headerGetter, @Nullable C carrier) {
-        return addSpanLink(TraceContext.<C>getFromTraceContextTextHeaders(),
-            headerGetter,
-            carrier);
+        return addSpanLink(headerGetter, carrier);
     }
 }

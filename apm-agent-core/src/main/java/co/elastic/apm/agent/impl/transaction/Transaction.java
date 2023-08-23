@@ -133,7 +133,6 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
     }
 
     public <H, C> Transaction start(
-        TraceContext.HeaderChildContextCreator<H, C> childContextCreator,
         @Nullable C parent,
         HeaderGetter<H, C> headerGetter,
         long epochMicros,
@@ -159,10 +158,10 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         }
         if (restartTrace) {
             // need to add a span link
-            addSpanLink(childContextCreator, headerGetter, parent);
+            addSpanLink(headerGetter, parent);
             traceContext.asRootSpan(sampler);
         } else {
-            boolean valid = childContextCreator.asChildOf(traceContext, parent, headerGetter);
+            boolean valid = traceContext.asChildOf(parent, headerGetter);
             if (!valid) {
                 traceContext.asRootSpan(sampler);
             }

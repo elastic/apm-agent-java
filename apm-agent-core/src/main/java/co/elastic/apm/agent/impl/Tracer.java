@@ -27,7 +27,6 @@ import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 
 import javax.annotation.Nullable;
 
@@ -58,10 +57,10 @@ public interface Tracer extends co.elastic.apm.agent.tracer.Tracer {
 
     @Override
     @Nullable
-    <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader);
+    <T, C> Transaction startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, @Nullable ClassLoader initiatingClassLoader);
 
     @Nullable
-    <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, Baggage baseBaggage, long epochMicros);
+    <T, C> Transaction startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, @Nullable ClassLoader initiatingClassLoader, Baggage baseBaggage, long epochMicros);
 
     /**
      * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
@@ -69,7 +68,7 @@ public interface Tracer extends co.elastic.apm.agent.tracer.Tracer {
      * available), then it will be started as the root transaction of the trace.
      *
      * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
-     * @param textHeadersGetter     provides the trace context headers required in order to create a child transaction
+     * @param headersGetter         provides the trace context headers required in order to create a child transaction
      * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
      * @param epochMicros           the start timestamp
      * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
@@ -78,8 +77,8 @@ public interface Tracer extends co.elastic.apm.agent.tracer.Tracer {
      * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
      */
     @Nullable
-    <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler,
-                                          long epochMicros, @Nullable ClassLoader initiatingClassLoader);
+    <T, C> Transaction startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, Sampler sampler,
+                                             long epochMicros, @Nullable ClassLoader initiatingClassLoader);
 
 
     @Override

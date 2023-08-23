@@ -1564,11 +1564,11 @@ class DslJsonSerializerTest {
         Span parent1 = Objects.requireNonNull(transaction).createSpan();
         Map<String, String> textTraceContextCarrier = new HashMap<>();
         parent1.propagateContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE, null);
-        transaction.addSpanLink(TraceContext.getFromTraceContextTextHeaders(), TextHeaderMapAccessor.INSTANCE, textTraceContextCarrier);
+        transaction.addSpanLink(TextHeaderMapAccessor.INSTANCE, textTraceContextCarrier);
         Span parent2 = transaction.createSpan();
         Map<String, String> binaryTraceContextCarrier = new HashMap<>();
         parent2.propagateContext(binaryTraceContextCarrier, TextHeaderMapAccessor.INSTANCE, null);
-        transaction.addSpanLink(TraceContext.getFromTraceContextTextHeaders(), TextHeaderMapAccessor.INSTANCE, binaryTraceContextCarrier);
+        transaction.addSpanLink(TextHeaderMapAccessor.INSTANCE, binaryTraceContextCarrier);
         JsonNode transactionJson = readJsonString(writer.toJsonString(transaction));
         JsonNode spanLinks = transactionJson.get("links");
         assertThat(spanLinks).isNotNull();

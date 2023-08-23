@@ -137,7 +137,6 @@ public class SpanTest {
         Map<String, String> textTraceContextCarrier = new HashMap<>();
         parent1.propagateContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE, null);
         assertThat(testSpan.addSpanLink(
-            TraceContext.getFromTraceContextTextHeaders(),
             TextHeaderMapAccessor.INSTANCE,
             textTraceContextCarrier)
         ).isTrue();
@@ -148,7 +147,6 @@ public class SpanTest {
         Map<String, String> textTraceContextCarrier2 = new HashMap<>();
         parent2.propagateContext(textTraceContextCarrier2, TextHeaderMapAccessor.INSTANCE, null);
         assertThat(testSpan.addSpanLink(
-            TraceContext.getFromTraceContextTextHeaders(),
             TextHeaderMapAccessor.INSTANCE,
             textTraceContextCarrier2)
         ).isTrue();
@@ -174,13 +172,11 @@ public class SpanTest {
         Map<String, String> textTraceContextCarrier = new HashMap<>();
         parent1.propagateContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE, null);
         assertThat(testSpan.addSpanLink(
-            TraceContext.getFromTraceContextTextHeaders(),
             TextHeaderMapAccessor.INSTANCE,
             textTraceContextCarrier)
         ).isTrue();
         assertThat(testSpan.getSpanLinks()).hasSize(1);
         assertThat(testSpan.addSpanLink(
-            TraceContext.getFromTraceContextTextHeaders(),
             TextHeaderMapAccessor.INSTANCE,
             textTraceContextCarrier)
         ).isFalse();
@@ -191,7 +187,6 @@ public class SpanTest {
 
         // verifying that uniqueness cache is cleared properly as well
         assertThat(testSpan.addSpanLink(
-            TraceContext.getFromTraceContextTextHeaders(),
             TextHeaderMapAccessor.INSTANCE,
             textTraceContextCarrier)
         ).isTrue();
