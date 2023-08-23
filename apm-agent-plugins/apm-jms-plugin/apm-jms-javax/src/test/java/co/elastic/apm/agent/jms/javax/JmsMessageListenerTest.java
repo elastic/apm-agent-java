@@ -86,7 +86,7 @@ public class JmsMessageListenerTest {
     @Test
     public void testJmsMessageListenerPackage_customValue() throws Exception {
         doReturn(Collections.emptyList()).when(config.getConfig(StacktraceConfiguration.class)).getApplicationPackages();
-        doReturn(Arrays.asList("co.elastic.apm.agent.jms.jakarta.test")).when(config.getConfig(MessagingConfiguration.class)).getJmsListenerPackages();
+        doReturn(Arrays.asList("co.elastic.apm.agent.jms.javax.test")).when(config.getConfig(MessagingConfiguration.class)).getJmsListenerPackages();
 
         startAgent();
 
@@ -98,7 +98,7 @@ public class JmsMessageListenerTest {
 
     @Test
     public void testJmsMessageListenerPackage_applicationPackages() throws Exception {
-        doReturn(Arrays.asList("co.elastic.apm.agent.jms.jakarta.test")).when(config.getConfig(StacktraceConfiguration.class)).getApplicationPackages();
+        doReturn(Arrays.asList("co.elastic.apm.agent.jms.javax.test")).when(config.getConfig(StacktraceConfiguration.class)).getApplicationPackages();
 
         startAgent();
 
