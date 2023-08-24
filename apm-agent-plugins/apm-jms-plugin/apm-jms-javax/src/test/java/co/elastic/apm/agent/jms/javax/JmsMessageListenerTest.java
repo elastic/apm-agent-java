@@ -26,9 +26,9 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.jms.javax.test.TestMessageConsumer;
-import co.elastic.apm.agent.jms.javax.test.TestMessageListener;
-import co.elastic.apm.agent.jms.javax.test.TestMsgHandler;
+import testapp.TestMessageConsumer;
+import testapp.TestMessageListener;
+import testapp.TestMsgHandler;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,7 +86,7 @@ public class JmsMessageListenerTest {
     @Test
     public void testJmsMessageListenerPackage_customValue() throws Exception {
         doReturn(Collections.emptyList()).when(config.getConfig(StacktraceConfiguration.class)).getApplicationPackages();
-        doReturn(Arrays.asList("co.elastic.apm.agent.jms.javax.test")).when(config.getConfig(MessagingConfiguration.class)).getJmsListenerPackages();
+        doReturn(Arrays.asList("testapp")).when(config.getConfig(MessagingConfiguration.class)).getJmsListenerPackages();
 
         startAgent();
 
@@ -98,7 +98,7 @@ public class JmsMessageListenerTest {
 
     @Test
     public void testJmsMessageListenerPackage_applicationPackages() throws Exception {
-        doReturn(Arrays.asList("co.elastic.apm.agent.jms.javax.test")).when(config.getConfig(StacktraceConfiguration.class)).getApplicationPackages();
+        doReturn(Arrays.asList("testapp")).when(config.getConfig(StacktraceConfiguration.class)).getApplicationPackages();
 
         startAgent();
 
