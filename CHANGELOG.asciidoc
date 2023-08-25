@@ -42,6 +42,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ===== Features
 * Add support for Elasticsearch client 8.9 - {pull}3283[#3283]
 * Added `baggage_to_attach` config option to allow automatic lifting of baggage into transaction, span and error attributes - {pull}3288[#3288], {pull}3289[#3289]
+* Switched to OpenTelemetry compatible context propagation for Kafka - {pull}3300[#3300]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
