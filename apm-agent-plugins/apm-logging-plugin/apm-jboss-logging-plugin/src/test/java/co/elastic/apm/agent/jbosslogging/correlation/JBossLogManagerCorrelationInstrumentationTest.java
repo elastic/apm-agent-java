@@ -116,7 +116,7 @@ public class JBossLogManagerCorrelationInstrumentationTest extends AbstractInstr
                 assertThat(traceParent).isNotNull();
                 Map<String, String> textHeaderMap = Map.of(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, traceParent);
                 TraceContext childTraceContext = TraceContext.with64BitId(tracer);
-                TraceContext.<Map<String, String>>getFromTraceContextTextHeaders().asChildOf(childTraceContext, textHeaderMap, TextHeaderMapAccessor.INSTANCE);
+                childTraceContext.asChildOf(textHeaderMap, TextHeaderMapAccessor.INSTANCE);
                 System.out.println("childTraceContext = " + childTraceContext);
                 assertThat(childTraceContext.getTraceId().toString()).isEqualTo(traceId.toString());
                 assertThat(childTraceContext.getParentId().toString()).isEqualTo(transactionId.toString());
