@@ -355,7 +355,7 @@ public class ElasticApmTracer implements Tracer {
     @Override
     @Nullable
     public Transaction currentTransaction() {
-        return activeStack.get().currentTransaction();
+        return currentContext().getTransaction();
     }
 
     /**
