@@ -19,11 +19,15 @@
 package co.elastic.apm.agent.impl.baggage;
 
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
+import co.elastic.apm.agent.impl.Utf8HeaderMapAccessor;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.UTF8ByteHeaderGetter;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,20 +47,30 @@ public class W3CBaggagePropagationTest {
                 .put("my_key!", "hello, world!?%ä=", "metadata=blub")
                 .build();
 
-            Map<String, String> resultHeaders = new HashMap<>();
-            W3CBaggagePropagation.propagate(baggage, resultHeaders, TextHeaderMapAccessor.INSTANCE);
+            Map<String, String> resultHeaders = doPropagate(baggage);
 
             assertThat(resultHeaders)
                 .hasSize(1)
                 .containsEntry("baggage", "foo=bar,my_key!=hello%2C%20world!%3F%25%C3%A4%3D;metadata=blub");
         }
 
+        @NotNull
+        private Map<String, String> doPropagate(Baggage baggage) {
+            Map<String, String> resultHeaders = new HashMap<>();
+            W3CBaggagePropagation.propagate(baggage, resultHeaders, TextHeaderMapAccessor.INSTANCE);
+
+            Map<String, String> utf8Headers = new HashMap<>();
+            W3CBaggagePropagation.propagate(baggage, utf8Headers, Utf8HeaderMapAccessor.INSTANCE);
+            assertThat(resultHeaders).isEqualTo(utf8Headers);
+
+            return resultHeaders;
+        }
+
         @Test
         public void testEmptyBaggage() {
             Baggage baggage = Baggage.builder().build();
 
-            Map<String, String> resultHeaders = new HashMap<>();
-            W3CBaggagePropagation.propagate(baggage, resultHeaders, TextHeaderMapAccessor.INSTANCE);
+            Map<String, String> resultHeaders = doPropagate(baggage);
 
             assertThat(resultHeaders).hasSize(0);
         }
@@ -68,8 +82,7 @@ public class W3CBaggagePropagationTest {
                 .put("bad,key", "42")
                 .build();
 
-            Map<String, String> resultHeaders = new HashMap<>();
-            W3CBaggagePropagation.propagate(baggage, resultHeaders, TextHeaderMapAccessor.INSTANCE);
+            Map<String, String> resultHeaders = doPropagate(baggage);
 
             assertThat(resultHeaders)
                 .hasSize(1)
@@ -83,8 +96,7 @@ public class W3CBaggagePropagationTest {
                 .put("bad,key", "42")
                 .build();
 
-            Map<String, String> resultHeaders = new HashMap<>();
-            W3CBaggagePropagation.propagate(baggage, resultHeaders, TextHeaderMapAccessor.INSTANCE);
+            Map<String, String> resultHeaders = doPropagate(baggage);
 
             assertThat(resultHeaders).hasSize(0);
         }
@@ -95,49 +107,79 @@ public class W3CBaggagePropagationTest {
     public class Parsing {
 
         @Test
-        public void testComplexValue() {
+        public void testComplexValueString() {
             String[] baggageHeaders = {
                 "foo=bar,my_key!=hello%2C%20world!%3F%25%C3%A4%3D;metadata=blub,,bar=baz;override=me,foo=bar2;overridden=meta",
                 "bar=baz2"
             };
-            TextHeaderGetter<String[]> headerGetter = new TextHeaderGetter<String[]>() {
-                @Nullable
-                @Override
-                public String getFirstHeader(String headerName, String[] baggageHeaders) {
-                    if (headerName.equals("baggage")) {
-                        return baggageHeaders[0];
-                    }
-                    return null;
-                }
-
-                @Override
-                public <S> void forEach(String headerName, String[] baggageHeaders, S state, HeaderConsumer<String, S> consumer) {
-                    if (headerName.equals("baggage")) {
-                        for (String val : baggageHeaders) {
-                            consumer.accept(val, state);
-                        }
-                    }
-                }
-            };
 
             Baggage.Builder resultBuilder = Baggage.builder();
-            W3CBaggagePropagation.parse(baggageHeaders, headerGetter, resultBuilder);
+            W3CBaggagePropagation.parse(baggageHeaders, new TextBaggageheaderGetter(), resultBuilder);
 
             assertThat(resultBuilder.build())
                 .hasSize(3)
                 .containsEntry("my_key!", "hello, world!?%ä=", "metadata=blub")
                 .containsEntry("bar", "baz2", null)
                 .containsEntry("foo", "bar2", "overridden=meta");
+
+            Baggage.Builder utf8ResultBuilder = Baggage.builder();
+            W3CBaggagePropagation.parse(baggageHeaders, new UTF8BaggageheaderGetter(), utf8ResultBuilder);
+            assertThat(utf8ResultBuilder.build()).isEqualTo(resultBuilder.build());
         }
+
 
         @Test
         public void testNoValue() {
-            Baggage.Builder resultBuilder = Baggage.builder();
-            W3CBaggagePropagation.parse(Collections.emptyMap(), TextHeaderMapAccessor.INSTANCE, resultBuilder);
+            Baggage.Builder textResultBuilder = Baggage.builder();
+            W3CBaggagePropagation.parse(Collections.emptyMap(), TextHeaderMapAccessor.INSTANCE, textResultBuilder);
+            assertThat(textResultBuilder.build()).hasSize(0);
 
-            assertThat(resultBuilder.build()).hasSize(0);
+            Baggage.Builder utf8ResultBuilder = Baggage.builder();
+            W3CBaggagePropagation.parse(Collections.emptyMap(), Utf8HeaderMapAccessor.INSTANCE, utf8ResultBuilder);
+            assertThat(textResultBuilder.build()).hasSize(0);
         }
 
+    }
+
+    private static class TextBaggageheaderGetter implements TextHeaderGetter<String[]> {
+        @Nullable
+        @Override
+        public String getFirstHeader(String headerName, String[] baggageHeaders) {
+            if (headerName.equals("baggage")) {
+                return baggageHeaders[0];
+            }
+            return null;
+        }
+
+        @Override
+        public <S> void forEach(String headerName, String[] baggageHeaders, S state, HeaderConsumer<String, S> consumer) {
+            if (headerName.equals("baggage")) {
+                for (String val : baggageHeaders) {
+                    consumer.accept(val, state);
+                }
+            }
+        }
+    }
+
+
+    private static class UTF8BaggageheaderGetter implements UTF8ByteHeaderGetter<String[]> {
+        @Nullable
+        @Override
+        public byte[] getFirstHeader(String headerName, String[] baggageHeaders) {
+            if (headerName.equals("baggage")) {
+                return baggageHeaders[0].getBytes(StandardCharsets.UTF_8);
+            }
+            return null;
+        }
+
+        @Override
+        public <S> void forEach(String headerName, String[] baggageHeaders, S state, HeaderConsumer<byte[], S> consumer) {
+            if (headerName.equals("baggage")) {
+                for (String val : baggageHeaders) {
+                    consumer.accept(val.getBytes(StandardCharsets.UTF_8), state);
+                }
+            }
+        }
     }
 
 }

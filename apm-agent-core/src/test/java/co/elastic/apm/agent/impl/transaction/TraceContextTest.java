@@ -25,11 +25,13 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
+import co.elastic.apm.agent.impl.Utf8HeaderMapAccessor;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderSetter;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
-import co.elastic.apm.agent.tracer.util.HexUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -37,6 +39,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -64,13 +67,15 @@ class TraceContextTest {
      * Test flow:
      * 1.  create a parent context from a fixed string
      * 2.  create a child based on the string header - test {@link TraceContext#asChildOf(String)}
-     * 3.  create a grandchild based on text header - test both {@link TraceContext#getOutgoingTraceParentTextHeader()}
+     * 3.  create a grandchild based on byte[] utf8 header - test {@link TraceContext#propagateTraceContext(Object, HeaderSetter)}
+     * and {@link TraceContext#asChildOf(Object, HeaderGetter, boolean)} with utf8 encoded byte[]s
+     * 4.  create a second grandchild based on text header - test both {@link TraceContext#getOutgoingTraceParentTextHeader()}
      * and {@link TraceContext#asChildOf(String)}
      *
      * @param flagsValue tested flags
      * @param isSampled  whether to test context propagation of sampled trace or not
      */
-    private void parseHeaderAndVerifyContext(String flagsValue, boolean isSampled) {
+    private void mixTextAndBinaryParsingAndContextPropagation(String flagsValue, boolean isSampled) {
         Map<String, String> textHeaderMap = Map.of(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-" + flagsValue);
         final TraceContext child = TraceContext.with64BitId(tracer);
         assertThat(child.asChildOf(textHeaderMap, TextHeaderMapAccessor.INSTANCE)).isTrue();
@@ -80,6 +85,15 @@ class TraceContextTest {
         assertThat(child.isSampled()).isEqualTo(isSampled);
 
         // create a grandchild to ensure proper regenerated trace context
+        final TraceContext grandchild1 = TraceContext.with64BitId(tracer);
+        final Map<String, String> binaryHeaderMap = new HashMap<>();
+        child.propagateTraceContext(binaryHeaderMap, Utf8HeaderMapAccessor.INSTANCE);
+        assertThat(grandchild1.asChildOf(binaryHeaderMap, Utf8HeaderMapAccessor.INSTANCE)).isTrue();
+        assertThat(grandchild1.getTraceId().toString()).isEqualTo("0af7651916cd43dd8448eb211c80319c");
+        assertThat(grandchild1.getParentId().toString()).isEqualTo(child.getId().toString());
+        assertThat(grandchild1.getId()).isNotEqualTo(child.getId());
+        assertThat(grandchild1.isSampled()).isEqualTo(isSampled);
+
         String childHeader = child.getOutgoingTraceParentTextHeader().toString();
         assertThat(childHeader).endsWith("-" + flagsValue);
         final TraceContext grandchild2 = TraceContext.with64BitId(tracer);
@@ -92,17 +106,17 @@ class TraceContextTest {
 
     @Test
     void parseFromTraceParentHeaderNotRecorded() {
-        parseHeaderAndVerifyContext("00", false);
+        mixTextAndBinaryParsingAndContextPropagation("00", false);
     }
 
     @Test
     void parseFromTraceParentHeaderRecorded() {
-        parseHeaderAndVerifyContext("01", true);
+        mixTextAndBinaryParsingAndContextPropagation("01", true);
     }
 
     @Test
     void parseFromTraceParentHeaderUnsupportedFlag() {
-        parseHeaderAndVerifyContext("03", true);
+        mixTextAndBinaryParsingAndContextPropagation("03", true);
     }
 
     @Test
@@ -246,21 +260,6 @@ class TraceContextTest {
         assertThat(parts[3]).isEqualTo(expectedFlags);
     }
 
-    private void verifyTraceContextContents(byte[] traceContext, String expectedTraceId, String expectedParentId,
-                                            byte expectedVersion, byte expectedFlags) {
-        assertThat(traceContext[0]).isEqualTo(expectedVersion);
-        assertThat(traceContext[1]).isEqualTo((byte) 0b0000_0000);
-        StringBuilder sb = new StringBuilder();
-        HexUtils.writeBytesAsHex(traceContext, 2, 16, sb);
-        assertThat(sb.toString()).isEqualTo(expectedTraceId);
-        assertThat(traceContext[18]).isEqualTo((byte) 0b0000_0001);
-        sb.setLength(0);
-        HexUtils.writeBytesAsHex(traceContext, 19, 8, sb);
-        assertThat(sb.toString()).isEqualTo(expectedParentId);
-        assertThat(traceContext[27]).isEqualTo((byte) 0b0000_0010);
-        assertThat(traceContext[28]).isEqualTo(expectedFlags);
-    }
-
     @Test
     void outgoingHeader() {
         final TraceContext traceContext = TraceContext.with64BitId(tracer);
@@ -268,6 +267,10 @@ class TraceContextTest {
         assertThat(traceContext.asChildOf(header)).isTrue();
         String parentId = traceContext.getId().toString();
         verifyTraceContextContents(traceContext.getOutgoingTraceParentTextHeader().toString(),
+            "0af7651916cd43dd8448eb211c80319c", parentId, "00", "03");
+        Map<String, String> headerMap = new HashMap<>();
+        traceContext.propagateTraceContext(headerMap, Utf8HeaderMapAccessor.INSTANCE);
+        verifyTraceContextContents(headerMap.get(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME),
             "0af7651916cd43dd8448eb211c80319c", parentId, "00", "03");
     }
 
@@ -279,6 +282,10 @@ class TraceContextTest {
         String outgoingStringHeader = traceContext.getOutgoingTraceParentTextHeader().toString();
         assertThat(outgoingStringHeader).hasSize(55);
         verifyTraceContextContents(outgoingStringHeader, traceContext.getTraceId().toString(),
+            traceContext.getId().toString(), "00", "01");
+        Map<String, String> headerMap = new HashMap<>();
+        traceContext.propagateTraceContext(headerMap, Utf8HeaderMapAccessor.INSTANCE);
+        verifyTraceContextContents(headerMap.get(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME), traceContext.getTraceId().toString(),
             traceContext.getId().toString(), "00", "01");
     }
 
@@ -324,12 +331,19 @@ class TraceContextTest {
         assertThat(first.getParentId()).isNotEqualTo(second.getParentId());
         assertThat(first.isSampled()).isNotEqualTo(second.isSampled());
         assertThat(first.getOutgoingTraceParentTextHeader()).isNotEqualTo(second.getOutgoingTraceParentTextHeader());
+        Map<String, String> binaryHeaderMap = new HashMap<>();
+        first.propagateTraceContext(binaryHeaderMap, Utf8HeaderMapAccessor.INSTANCE);
+        String firstOutgoingHeader = binaryHeaderMap.get(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME);
+        second.propagateTraceContext(binaryHeaderMap, Utf8HeaderMapAccessor.INSTANCE);
+        assertThat(binaryHeaderMap.get(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)).isNotEqualTo(firstOutgoingHeader);
 
         second.copyFrom(first);
         assertThat(first.getTraceId()).isEqualTo(second.getTraceId());
         assertThat(first.getParentId()).isEqualTo(second.getParentId());
         assertThat(first.isSampled()).isEqualTo(second.isSampled());
         assertThat(first.getOutgoingTraceParentTextHeader().toString()).isEqualTo(second.getOutgoingTraceParentTextHeader().toString());
+        second.propagateTraceContext(binaryHeaderMap, Utf8HeaderMapAccessor.INSTANCE);
+        assertThat(binaryHeaderMap.get(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)).isEqualTo(firstOutgoingHeader);
     }
 
     @Test
@@ -348,6 +362,15 @@ class TraceContextTest {
         second.propagateTraceContext(textHeaders, TextHeaderMapAccessor.INSTANCE);
         assertThat(textHeaders.get(TraceContext.TRACESTATE_HEADER_NAME)).isEqualTo("foo=bar,baz=qux");
         assertThat(textHeaders.get(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME)).startsWith("00-0af7651916cd43dd8448eb211c80319c-");
+
+
+        final TraceContext firstUtf8 = TraceContext.with64BitId(tracer);
+        assertThat(firstUtf8.asChildOf(textHeaderMap, Utf8HeaderMapAccessor.INSTANCE)).isTrue();
+
+        HashMap<String, String> utf8Headers = new HashMap<>();
+        firstUtf8.propagateTraceContext(utf8Headers, Utf8HeaderMapAccessor.INSTANCE);
+        assertThat(utf8Headers.get(TraceContext.TRACESTATE_HEADER_NAME)).isEqualTo("foo=bar,baz=qux");
+        assertThat(utf8Headers.get(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME)).startsWith("00-0af7651916cd43dd8448eb211c80319c-");
     }
 
     @Test
@@ -478,6 +501,10 @@ class TraceContextTest {
 
         verifyTraceContextContents(childContext.getOutgoingTraceParentTextHeader().toString(),
             childContext.getTraceId().toString(), rootContext.getId().toString(), "00", "00");
+        Map<String, String> binaryHeaderMap = new HashMap<>();
+        childContext.propagateTraceContext(binaryHeaderMap, Utf8HeaderMapAccessor.INSTANCE);
+        verifyTraceContextContents(binaryHeaderMap.get(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME),
+            childContext.getTraceId().toString(), rootContext.getId().toString(), "00", "00");
     }
 
     @Test
@@ -489,6 +516,10 @@ class TraceContextTest {
         childContext.asChildOf(rootContext);
 
         verifyTraceContextContents(childContext.getOutgoingTraceParentTextHeader().toString(),
+            childContext.getTraceId().toString(), childContext.getId().toString(), "00", "01");
+        Map<String, String> binaryHeaderMap = new HashMap<>();
+        childContext.propagateTraceContext(binaryHeaderMap, Utf8HeaderMapAccessor.INSTANCE);
+        verifyTraceContextContents(binaryHeaderMap.get(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME),
             childContext.getTraceId().toString(), childContext.getId().toString(), "00", "01");
     }
 
@@ -511,6 +542,11 @@ class TraceContextTest {
         assertValid(testTextHeader);
     }
 
+    @Test
+    void testUnknownExtraStuff() {
+        String testTextHeader = "42-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01-unknown-extra-stuff";
+        assertValid(testTextHeader);
+    }
 
     // If a traceparent header is invalid, ignore it and create a new root context
 
@@ -549,13 +585,19 @@ class TraceContextTest {
     private void assertInvalid(String s) {
         final TraceContext traceContext = TraceContext.with64BitId(tracer);
         assertThat(traceContext.asChildOf(s)).isFalse();
+        assertThat(traceContext.asChildOf(s.getBytes(StandardCharsets.UTF_8), CharAccessor.forAsciiBytes())).isFalse();
     }
 
     private void assertValid(String s) {
-        final TraceContext traceContext = TraceContext.with64BitId(tracer);
-        assertThat(traceContext.asChildOf(s)).isTrue();
-        verifyTraceContextContents(traceContext.getOutgoingTraceParentTextHeader().toString(),
-            traceContext.getTraceId().toString(), traceContext.getId().toString(), "00", s.substring(53, 55));
+        TraceContext textTraceContext = TraceContext.with64BitId(tracer);
+        assertThat(textTraceContext.asChildOf(s)).isTrue();
+        verifyTraceContextContents(textTraceContext.getOutgoingTraceParentTextHeader().toString(),
+            textTraceContext.getTraceId().toString(), textTraceContext.getId().toString(), "00", s.substring(53, 55));
+
+        TraceContext utf8TraceContext = TraceContext.with64BitId(tracer);
+        assertThat(utf8TraceContext.asChildOf(s.getBytes(StandardCharsets.UTF_8), CharAccessor.forAsciiBytes())).isTrue();
+        verifyTraceContextContents(utf8TraceContext.getOutgoingTraceParentTextHeader().toString(),
+            utf8TraceContext.getTraceId().toString(), utf8TraceContext.getId().toString(), "00", s.substring(53, 55));
     }
 
     @Test

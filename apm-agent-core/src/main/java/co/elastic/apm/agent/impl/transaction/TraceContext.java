@@ -158,26 +158,6 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
         return isValid;
     }
 
-
-    private static final ChildContextCreator<Tracer> FROM_ACTIVE = new ChildContextCreator<Tracer>() {
-        @Override
-        public boolean asChildOf(TraceContext child, Tracer tracer) {
-            final AbstractSpan<?> active = tracer.getActive();
-            if (active != null) {
-                return fromParent().asChildOf(child, active);
-
-            }
-            return false;
-        }
-    };
-    private static final ChildContextCreator<Object> AS_ROOT = new ChildContextCreator<Object>() {
-        @Override
-        public boolean asChildOf(TraceContext child, Object ignore) {
-            return false;
-        }
-    };
-
-
     public static <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter) {
         // We assume that this header is always present if we found any of the other headers.
         return headerGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier) != null;
@@ -308,13 +288,13 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
                 }
                 return false;
             }
-            if (charAccessor.equalsAtOffset(leadingWs, "ff", traceParentHeader)) {
+            if (charAccessor.containsAtOffset(traceParentHeader, leadingWs, "ff")) {
                 if (logger.isWarnEnabled()) {
                     logger.warn("Version ff is not supported");
                 }
                 return false;
             }
-            byte version = charAccessor.readHexByte(leadingWs, traceParentHeader);
+            byte version = charAccessor.readHexByte(traceParentHeader, leadingWs);
             if (version == 0 && trimmedLen > TEXT_HEADER_EXPECTED_LENGTH) {
                 if (logger.isWarnEnabled()) {
                     logger.warn("The traceparent header has to be exactly 55 chars long for version 00, but was '{}'", charAccessor.asString(traceParentHeader));
@@ -334,7 +314,7 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
             // TODO don't blindly trust the flags from the caller
             // consider implement rate limiting and/or having a list of trusted sources
             // trace the request if it's either requested or if the parent has recorded it
-            flags = charAccessor.readHexByte(TEXT_HEADER_FLAGS_OFFSET + leadingWs, traceParentHeader);
+            flags = charAccessor.readHexByte(traceParentHeader, TEXT_HEADER_FLAGS_OFFSET + leadingWs);
             clock.init();
             return true;
         } catch (IllegalArgumentException e) {
@@ -346,7 +326,7 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
     }
 
     private <T> boolean noDashAtPosition(T traceParentHeader, int index, CharAccessor<T> accessor) {
-        return accessor.charAt(index, traceParentHeader) != '-';
+        return accessor.charAt(traceParentHeader, index) != '-';
     }
 
     private <T> void addTraceStateHeader(@Nullable T tracestateHeaderValue, CharAccessor<T> charAccessor) {

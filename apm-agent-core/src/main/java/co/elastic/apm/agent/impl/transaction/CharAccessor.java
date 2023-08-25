@@ -8,18 +8,18 @@ abstract class CharAccessor<T> {
 
     abstract int length(T text);
 
-    abstract char charAt(int index, T text);
+    abstract char charAt(T text, int index);
 
-    abstract void readHex(int offset, byte[] into, T text);
+    abstract void readHex(T text, int offset, byte[] into);
 
-    abstract byte readHexByte(int offset, T text);
+    abstract byte readHexByte(T text, int offset);
 
     abstract String asString(T text);
 
     int getLeadingWhitespaceCount(T text) {
         int count = 0;
         int len = length(text);
-        while (count < len && Character.isWhitespace(charAt(count, text))) {
+        while (count < len && Character.isWhitespace(charAt(text, count))) {
             count++;
         }
         return count;
@@ -28,21 +28,24 @@ abstract class CharAccessor<T> {
     int getTrailingWhitespaceCount(T text) {
         int count = 0;
         int len = length(text);
-        while (count < len && Character.isWhitespace(charAt(len - 1 - count, text))) {
+        while (count < len && Character.isWhitespace(charAt(text, len - 1 - count))) {
             count++;
         }
         return count;
     }
 
-    public boolean equalsAtOffset(int offset, CharSequence substringToCheck, T text) {
+    public boolean containsAtOffset(T text, int offset, CharSequence substringToCheck) {
         int len = length(text);
+        if (offset < 0 || offset > len) {
+            throw new IllegalArgumentException("Bad offset: " + offset);
+        }
         int subStrLen = substringToCheck.length();
         if (offset + subStrLen > len) {
             return false;
         }
 
         for (int i = 0; i < subStrLen; i++) {
-            if (charAt(i + offset, text) != substringToCheck.charAt(i)) {
+            if (charAt(text, i + offset) != substringToCheck.charAt(i)) {
                 return false;
             }
         }
@@ -68,17 +71,17 @@ abstract class CharAccessor<T> {
         }
 
         @Override
-        char charAt(int index, CharSequence text) {
+        char charAt(CharSequence text, int index) {
             return text.charAt(index);
         }
 
         @Override
-        void readHex(int offset, byte[] into, CharSequence text) {
+        void readHex(CharSequence text, int offset, byte[] into) {
             HexUtils.nextBytes(text, offset, into);
         }
 
         @Override
-        byte readHexByte(int offset, CharSequence text) {
+        byte readHexByte(CharSequence text, int offset) {
             return HexUtils.getNextByte(text, offset);
         }
 
@@ -98,17 +101,17 @@ abstract class CharAccessor<T> {
         }
 
         @Override
-        char charAt(int index, byte[] text) {
+        char charAt(byte[] text, int index) {
             return (char) text[index];
         }
 
         @Override
-        void readHex(int offset, byte[] into, byte[] text) {
+        void readHex(byte[] text, int offset, byte[] into) {
             HexUtils.nextBytesAscii(text, offset, into);
         }
 
         @Override
-        byte readHexByte(int offset, byte[] text) {
+        byte readHexByte(byte[] text, int offset) {
             return HexUtils.getNextByteAscii(text, offset);
         }
 

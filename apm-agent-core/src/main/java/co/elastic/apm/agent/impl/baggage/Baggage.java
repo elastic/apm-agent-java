@@ -163,6 +163,24 @@ public class Baggage implements co.elastic.apm.agent.tracer.Baggage {
         return keyWithPrefix;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Baggage baggage1 = (Baggage) o;
+
+        if (!baggage.equals(baggage1.baggage)) return false;
+        return baggageMetadata.equals(baggage1.baggageMetadata);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = baggage.hashCode();
+        result = 31 * result + baggageMetadata.hashCode();
+        return result;
+    }
+
     public static class Builder {
 
         public Builder(Baggage parent) {
