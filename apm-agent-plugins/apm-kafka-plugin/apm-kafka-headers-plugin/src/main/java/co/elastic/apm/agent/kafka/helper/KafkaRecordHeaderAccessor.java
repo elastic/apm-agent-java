@@ -29,7 +29,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
 
 import javax.annotation.Nullable;
-import java.util.Map;
 
 @SuppressWarnings("rawtypes")
 public class KafkaRecordHeaderAccessor implements UTF8ByteHeaderGetter<ConsumerRecord>, UTF8ByteHeaderSetter<ProducerRecord>,
@@ -38,10 +37,6 @@ public class KafkaRecordHeaderAccessor implements UTF8ByteHeaderGetter<ConsumerR
     public static final Logger logger = LoggerFactory.getLogger(KafkaRecordHeaderAccessor.class);
 
     private static final KafkaRecordHeaderAccessor INSTANCE = new KafkaRecordHeaderAccessor();
-
-    //TODO: can we somehow make this loom friendly?
-    private static final ThreadLocal<Map<String, ElasticHeaderImpl>> threadLocalHeaderMap = new ThreadLocal<>();
-
     public static final String ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME = "elastic-apm-traceparent";
     public static final String LEGACY_BINARY_TRACEPARENT = "elasticapmtraceparent";
 
@@ -86,6 +81,9 @@ public class KafkaRecordHeaderAccessor implements UTF8ByteHeaderGetter<ConsumerR
 
     @Override
     public void setHeader(String headerName, byte[] headerValue, ProducerRecord record) {
+        // TODO: this currently allocates! Prior to the removal of binary propagation,
+        // custom thread-local cached headers instances with cached byte arrays were used.
+        // we can't use ThreadLocals due to loom, but we could use a bounded LRU cache instead
         remove(headerName, record);
         if (headerName.equals(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)) {
             record.headers().add(LEGACY_BINARY_TRACEPARENT, convertTextHeaderToLegacyBinaryTraceparent(headerValue));
