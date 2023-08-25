@@ -318,6 +318,10 @@ public class MicrometerMeterRegistrySerializerTest {
             assertThat(histoNode2.get(0).asInt()).isEqualTo(under5Count);
             assertThat(histoNode2.get(1).asInt()).isEqualTo(from5To50Count);
             assertThat(histoNode2.get(2).asInt()).isEqualTo(from50to95Count);
+            path[3] = "type";
+            JsonNode histoType = getPathNode(jsonNode, path);
+            assertThat(histoType.isTextual()).isTrue();
+            assertThat(histoType.asText()).isEqualTo("histogram");
         }
     }
 
