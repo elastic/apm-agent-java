@@ -104,7 +104,7 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "This configuration option helps to make MessageListener type matching faster and improve application startup performance.\n" +
             "\n" +
-            "Starting from version 1.43.0, the classes that are part of the 'application_packages' option are also included."
+            "Starting from version 1.43.0, the classes that are part of the 'application_packages' option are also included in the list of classes considered."
         )
         .dynamic(false)
         .buildWithDefault(Collections.<String>emptyList());
