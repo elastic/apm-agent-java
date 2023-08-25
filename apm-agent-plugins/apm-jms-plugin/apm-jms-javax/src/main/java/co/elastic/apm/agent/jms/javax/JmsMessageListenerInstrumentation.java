@@ -39,9 +39,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
 
-    @SuppressWarnings("WeakerAccess")
-    public static final Logger logger = LoggerFactory.getLogger(JmsMessageListenerInstrumentation.class);
-
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return getMessageListenerTypeMatcherPreFilter();

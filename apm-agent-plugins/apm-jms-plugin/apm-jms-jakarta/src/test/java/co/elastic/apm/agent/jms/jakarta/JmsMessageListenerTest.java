@@ -22,21 +22,21 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.jms.jakarta.test.TestMessageConsumer;
-import co.elastic.apm.agent.jms.jakarta.test.TestMessageListener;
-import co.elastic.apm.agent.jms.jakarta.test.TestMsgHandler;
+import testapp.TestMessageConsumer;
+import testapp.TestMessageListener;
+import testapp.TestMsgHandler;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import net.bytebuddy.agent.ByteBuddyAgent;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import jakarta.jms.Message;
 import jakarta.jms.MessageListener;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
@@ -70,9 +70,11 @@ public class JmsMessageListenerTest {
 
     @Test
     public void testJmsMessageListenerPackage_defaultConfig() throws Exception {
+        // default configuration
+        doReturn(Collections.emptyList()).when(config.getConfig(StacktraceConfiguration.class)).getApplicationPackages();
+
         startAgent();
 
-        // default configuration
         testJmsMessageListenerPackage(true, JmsMessageListenerVariant.MATCHING_NAME_CONVENTION);
         testJmsMessageListenerPackage(true, JmsMessageListenerVariant.INNER_CLASS);
         testJmsMessageListenerPackage(true, JmsMessageListenerVariant.LAMBDA);
@@ -81,7 +83,20 @@ public class JmsMessageListenerTest {
 
     @Test
     public void testJmsMessageListenerPackage_customValue() throws Exception {
-        doReturn(Arrays.asList("co.elastic.apm.agent.jms.jakarta.test")).when(config.getConfig(MessagingConfiguration.class)).getJmsListenerPackages();
+        doReturn(Collections.emptyList()).when(config.getConfig(StacktraceConfiguration.class)).getApplicationPackages();
+        doReturn(Arrays.asList("testapp")).when(config.getConfig(MessagingConfiguration.class)).getJmsListenerPackages();
+
+        startAgent();
+
+        testJmsMessageListenerPackage(true, JmsMessageListenerVariant.MATCHING_NAME_CONVENTION);
+        testJmsMessageListenerPackage(true, JmsMessageListenerVariant.INNER_CLASS);
+        testJmsMessageListenerPackage(true, JmsMessageListenerVariant.LAMBDA);
+        testJmsMessageListenerPackage(true, JmsMessageListenerVariant.NOT_MATCHING_NAME_CONVENTION);
+    }
+
+    @Test
+    public void testJmsMessageListenerPackage_applicationPackages() throws Exception {
+        doReturn(Arrays.asList("testapp")).when(config.getConfig(StacktraceConfiguration.class)).getApplicationPackages();
 
         startAgent();
 

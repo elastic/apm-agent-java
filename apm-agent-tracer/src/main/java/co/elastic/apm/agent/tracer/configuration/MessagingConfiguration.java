@@ -100,8 +100,11 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(MESSAGING_CATEGORY)
         .description("Defines which packages contain JMS MessageListener implementations for instrumentation." +
             "\n" +
-            "When set to a non-empty value, only the classes matching configuration will be instrumented.\n" +
-            "This configuration option helps to make MessageListener type matching faster and improve application startup performance."
+            "When empty (default), all inner-classes or any classes that have 'Listener' or 'Message' in their names are considered.\n"+
+            "\n" +
+            "This configuration option helps to make MessageListener type matching faster and improve application startup performance.\n" +
+            "\n" +
+            "Starting from version 1.43.0, the classes that are part of the 'application_packages' option are also included in the list of classes considered."
         )
         .dynamic(false)
         .buildWithDefault(Collections.<String>emptyList());
