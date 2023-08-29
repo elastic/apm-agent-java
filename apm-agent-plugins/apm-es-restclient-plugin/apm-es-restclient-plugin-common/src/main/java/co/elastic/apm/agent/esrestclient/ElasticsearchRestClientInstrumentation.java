@@ -21,6 +21,10 @@ package co.elastic.apm.agent.esrestclient;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
+import net.bytebuddy.matcher.ElementMatcher;
+
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -33,6 +37,12 @@ public abstract class ElasticsearchRestClientInstrumentation extends ElasticApmI
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singleton("elasticsearch-restclient");
+    }
+
+    @Override
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        // ensure only ES client versions without native instrumentation are instrumented
+        return not(classLoaderCanLoadClass("co.elastic.clients.transport.instrumentation.Instrumentation"));
     }
 
 }
