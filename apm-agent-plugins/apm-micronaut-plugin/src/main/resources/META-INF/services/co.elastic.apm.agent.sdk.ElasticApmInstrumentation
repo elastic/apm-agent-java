@@ -1,0 +1,2 @@
+co.elastic.apm.agent.micronaut.PropagatedContextInstrumentation
+co.elastic.apm.agent.micronaut.RequestLifecycleInstrumentation
