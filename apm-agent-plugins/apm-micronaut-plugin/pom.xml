@@ -12,6 +12,7 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
+        <maven.compiler.target>8</maven.compiler.target>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
         <animal.sniffer.skip>true</animal.sniffer.skip>
     </properties>
@@ -26,11 +27,13 @@
             <groupId>io.micronaut</groupId>
             <artifactId>micronaut-core</artifactId>
             <version>4.0.2</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.micronaut</groupId>
             <artifactId>micronaut-http</artifactId>
             <version>4.0.2</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

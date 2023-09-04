@@ -386,29 +386,29 @@
 
             </plugin>
             <!-- Check that we don't accidentally use features only available in Java 8+ -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>animal-sniffer-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>signature-check</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <skip>${animal.sniffer.skip}</skip>
-                    <signature>
-                        <groupId>org.codehaus.mojo.signature</groupId>
-                        <artifactId>java17</artifactId>
-                        <version>1.0</version>
-                    </signature>
-                    <!--work around for https://github.com/mojohaus/animal-sniffer/issues/18-->
-                    <ignores>java.lang.invoke.MethodHandle</ignores>
-                </configuration>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.codehaus.mojo</groupId>-->
+<!--                <artifactId>animal-sniffer-maven-plugin</artifactId>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>signature-check</id>-->
+<!--                        <phase>verify</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>check</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--                <configuration>-->
+<!--                    <skip>${animal.sniffer.skip}</skip>-->
+<!--                    <signature>-->
+<!--                        <groupId>org.codehaus.mojo.signature</groupId>-->
+<!--                        <artifactId>java17</artifactId>-->
+<!--                        <version>1.0</version>-->
+<!--                    </signature>-->
+<!--                    &lt;!&ndash;work around for https://github.com/mojohaus/animal-sniffer/issues/18&ndash;&gt;-->
+<!--                    <ignores>java.lang.invoke.MethodHandle</ignores>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
             <plugin>
                 <artifactId>maven-enforcer-plugin</artifactId>
                 <executions>

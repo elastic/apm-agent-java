@@ -1,70 +1,113 @@
+/*
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package co.elastic.apm.agent.micronaut;
 
-import co.elastic.apm.agent.tracer.Activateable;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import com.sun.net.httpserver.Headers;
 import io.micronaut.core.execution.ExecutionFlow;
 import io.micronaut.core.propagation.PropagatedContext;
+import io.micronaut.http.HttpHeaders;
+import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MutableHttpResponse;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 
 public class RequestLifecycleAdvice {
+    private static final Logger log = LoggerFactory.getLogger(RequestLifecycleAdvice.class);
+
+    public static class HeaderGetter extends AbstractHeaderGetter<String, HttpHeaders> implements TextHeaderGetter<HttpHeaders> {
+
+        @Nullable
+        @Override
+        public String getFirstHeader(String headerName, HttpHeaders carrier) {
+            return carrier.get(headerName);
+        }
+    }
 
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnter(
-            @Advice.This Object untypedThis,
             @Advice.FieldValue("request") @Nullable Object requestUntyped
         ) {
-        if(!(untypedThis instanceof PropagatedContext)) {
+        if(requestUntyped == null) {
             return null;
         }
 
-        PropagatedContext typedThis = (PropagatedContext) untypedThis;
+        HttpRequest<?> typedRequest = (HttpRequest<?>) requestUntyped;
 
-        PropagatedContextElement elasticContext = typedThis.get(PropagatedContextElement.class);
+        Transaction<?> trx = GlobalTracer.get().startChildTransaction(typedRequest.getHeaders(), new HeaderGetter(), Thread.currentThread().getContextClassLoader());
 
-        if(elasticContext == null) {
-            return null;
-        }
+        PropagatedContextElement elasticContextElement = new PropagatedContextElement(trx);
 
-        return elasticContext.getTransaction().activate();
+        PropagatedContext ctx = PropagatedContext.getOrEmpty().plus(elasticContextElement);
+
+        return ctx.propagate();
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static void onExit(
         @Advice.Enter @Nullable Object scopeUntyped,
-        @Advice.Return(readOnly = false) @Nullable ExecutionFlow<MutableHttpResponse<?>> returnFlow,
+        @Advice.Return @Nullable ExecutionFlow<MutableHttpResponse<?>> returnFlow,
         @Advice.Thrown @Nullable Throwable t) {
 
         PropagatedContext.Scope scope = (PropagatedContext.Scope) scopeUntyped;
 
-        if(scope == null) {
+        if (scope == null) {
             return;
         }
 
         scope.close();
 
-        if(returnFlow == null) {
+        if(t != null) {
+            finishTransaction(null, t);
             return;
         }
 
-        returnFlow.onComplete( (response, exception) -> {
-            PropagatedContextElement context = PropagatedContext.get().get(PropagatedContextElement.class);
+        if (returnFlow == null) {
+            return;
+        }
 
-            if(context == null) {
-                return;
-            }
+        returnFlow.onComplete(RequestLifecycleAdvice::finishTransaction);
+    }
 
-            Transaction<?> trx = context.getTransaction();
+    private static void finishTransaction(
+        @Nullable MutableHttpResponse<?> response,
+        @Nullable Throwable exception)
+    {
+        PropagatedContextElement context = PropagatedContext.getOrEmpty().get(PropagatedContextElement.class);
 
-            if(exception != null) {
-                trx.captureException(exception);
-            }
+        if (context == null) {
+            return;
+        }
 
-            trx.end();
-        });
+        Transaction<?> trx = context.getTransaction();
 
+        if (exception != null) {
+            trx.captureException(exception);
+        }
+
+        trx.end();
     }
 }
