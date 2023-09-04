@@ -35,7 +35,7 @@ Every time there is a merge to main or any release branches the whole workflow w
 
 ### Release process
 
-This process has been fully automated and it gets triggered manually when running the [release](https://github.com/elastic/apm-agent-java/actions/workflows/release.yml) workflow. It runs then a Buildkite pipeline in charge o generating and publishing the artifacts,
+This process has been fully automated and it gets triggered manually when running the [release](https://github.com/elastic/apm-agent-java/actions/workflows/release.yml) workflow. It runs then a Buildkite pipeline in charge of generating and publishing the artifacts,
 for further details please go to [the buildkite folder](../../.buildkite/README.md).
 
 The tag release follows the naming convention: `v.<major>.<minor>.<patch>`, where `<major>`, `<minor>` and `<patch>`.
