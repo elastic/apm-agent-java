@@ -109,8 +109,8 @@ public class RequestLifecycleAdvice {
             .withMethod(typedRequest.getMethodName());
 
         request.getUrl()
-            .withProtocol(typedRequest.getUri().getScheme())
-            .withHostname(typedRequest.getUri().getHost())
+            .withProtocol("http")
+            .withHostname(typedRequest.getRemoteAddress().getAddress().getHostAddress())
             .withPort(typedRequest.getServerAddress().getPort())
             .withPathname(typedRequest.getUri().getPath())
             .withSearch(typedRequest.getUri().getQuery());
