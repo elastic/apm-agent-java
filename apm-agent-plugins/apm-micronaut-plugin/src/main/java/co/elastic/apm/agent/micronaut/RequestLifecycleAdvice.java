@@ -20,11 +20,17 @@ package co.elastic.apm.agent.micronaut;
 
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.metadata.Request;
+import co.elastic.apm.agent.tracer.metadata.Response;
+import co.elastic.apm.agent.tracer.util.ResultUtil;
 import com.sun.net.httpserver.Headers;
+import com.sun.net.httpserver.HttpsExchange;
 import io.micronaut.core.execution.ExecutionFlow;
 import io.micronaut.core.propagation.PropagatedContext;
 import io.micronaut.http.HttpHeaders;
@@ -77,6 +83,38 @@ public class RequestLifecycleAdvice {
 
         Transaction<?> trx = GlobalTracer.get().startChildTransaction(typedRequest.getHeaders(), new HeaderGetter(), Thread.currentThread().getContextClassLoader());
 
+        if(trx == null) {
+            return null;
+        }
+
+        trx.setFrameworkName("micronaut");
+
+        StringBuilder nameBuilder = trx.getAndOverrideName(AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEWORK);
+
+        if(nameBuilder == null) {
+            trx.end();
+            return null;
+        }
+
+        nameBuilder.append(typedRequest.getMethodName());
+        nameBuilder.append(" ");
+        nameBuilder.append(typedRequest.getUri().getPath());
+
+        Request request = trx.getContext().getRequest();
+
+        request.getSocket()
+            .withRemoteAddress(typedRequest.getRemoteAddress().getAddress().getHostAddress());
+
+        request.withHttpVersion(typedRequest.getHttpVersion().name())
+            .withMethod(typedRequest.getMethodName());
+
+        request.getUrl()
+            .withProtocol(typedRequest.getUri().getScheme())
+            .withHostname(typedRequest.getUri().getHost())
+            .withPort(typedRequest.getServerAddress().getPort())
+            .withPathname(typedRequest.getUri().getPath())
+            .withSearch(typedRequest.getUri().getQuery());
+
         PropagatedContextElement elasticContextElement = new PropagatedContextElement(trx);
 
         PropagatedContext ctx = PropagatedContext.getOrEmpty().plus(elasticContextElement);
@@ -119,8 +157,16 @@ public class RequestLifecycleAdvice {
         @Nullable MutableHttpResponse<?> response,
         @Nullable Throwable exception)
     {
-        if (exception != null) {
-            trx.captureException(exception);
+        if(response != null) {
+            trx
+                .withResultIfUnset(ResultUtil.getResultByHttpStatus(response.code()))
+                .captureException(exception);
+
+            Response trxResponse = trx.getContext().getResponse();
+
+            trxResponse
+                .withFinished(true)
+                .withStatusCode(response.code());
         }
 
         trx.end();
