@@ -1,6 +1,6 @@
 ## CI/CD
 
-There are 5 main stages that run on GitHub actions:
+There are 4 main stages that run on GitHub actions:
 
 * Build
 * Unit Test
