@@ -37,6 +37,24 @@ import javax.annotation.Nullable;
 public class RequestLifecycleAdvice {
     private static final Logger log = LoggerFactory.getLogger(RequestLifecycleAdvice.class);
 
+    private static class ScopeWrapper {
+        private final PropagatedContext.Scope propagatedScope;
+        private final Transaction<?> transaction;
+
+        public ScopeWrapper(PropagatedContext.Scope propagatedScope, Transaction<?> transaction) {
+            this.propagatedScope = propagatedScope;
+            this.transaction = transaction;
+        }
+
+        public PropagatedContext.Scope getPropagatedScope() {
+            return propagatedScope;
+        }
+
+        public Transaction<?> getTransaction() {
+            return transaction;
+        }
+    }
+
     public static class HeaderGetter extends AbstractHeaderGetter<String, HttpHeaders> implements TextHeaderGetter<HttpHeaders> {
 
         @Nullable
@@ -63,7 +81,7 @@ public class RequestLifecycleAdvice {
 
         PropagatedContext ctx = PropagatedContext.getOrEmpty().plus(elasticContextElement);
 
-        return ctx.propagate();
+        return new ScopeWrapper(ctx.propagate(), trx);
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -72,16 +90,20 @@ public class RequestLifecycleAdvice {
         @Advice.Return @Nullable ExecutionFlow<MutableHttpResponse<?>> returnFlow,
         @Advice.Thrown @Nullable Throwable t) {
 
-        PropagatedContext.Scope scope = (PropagatedContext.Scope) scopeUntyped;
-
-        if (scope == null) {
+        if(scopeUntyped == null) {
             return;
         }
 
+        ScopeWrapper wrapper = (ScopeWrapper) scopeUntyped;
+
+        PropagatedContext.Scope scope = wrapper.propagatedScope;
+
         scope.close();
 
+        Transaction<?> trx = wrapper.getTransaction();
+
         if(t != null) {
-            finishTransaction(null, t);
+            finishTransaction(trx, null, t);
             return;
         }
 
@@ -89,21 +111,14 @@ public class RequestLifecycleAdvice {
             return;
         }
 
-        returnFlow.onComplete(RequestLifecycleAdvice::finishTransaction);
+        returnFlow.onComplete((res, ex) -> finishTransaction(trx, res, ex));
     }
 
     private static void finishTransaction(
+        Transaction<?> trx,
         @Nullable MutableHttpResponse<?> response,
         @Nullable Throwable exception)
     {
-        PropagatedContextElement context = PropagatedContext.getOrEmpty().get(PropagatedContextElement.class);
-
-        if (context == null) {
-            return;
-        }
-
-        Transaction<?> trx = context.getTransaction();
-
         if (exception != null) {
             trx.captureException(exception);
         }
