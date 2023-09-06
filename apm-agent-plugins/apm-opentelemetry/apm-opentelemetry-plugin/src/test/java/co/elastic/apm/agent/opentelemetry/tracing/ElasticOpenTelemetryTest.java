@@ -23,6 +23,7 @@ import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import io.opentelemetry.api.baggage.Baggage;
 import io.opentelemetry.api.baggage.BaggageEntryMetadata;
 import io.opentelemetry.api.trace.Span;
@@ -231,7 +232,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         HashMap<String, String> elasticApmHeaders = new HashMap<>();
         try (Scope scope = transaction.makeCurrent()) {
             openTelemetry.getPropagators().getTextMapPropagator().inject(Context.current(), otelHeaders, HashMap::put);
-            tracer.currentContext().propagateContext(elasticApmHeaders, (k, v, m) -> m.put(k, v), null);
+            tracer.currentContext().propagateContext(elasticApmHeaders, (TextHeaderSetter<HashMap<String, String>>) (k, v, m) -> m.put(k, v), null);
         } finally {
             transaction.end();
         }

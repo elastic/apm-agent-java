@@ -25,7 +25,7 @@ public class HeaderUtils {
     private HeaderUtils() {
     }
 
-    public static <C> boolean containsAny(Set<String> headerNames, C carrier, TextHeaderGetter<C> headerGetter) {
+    public static <T, C> boolean containsAny(Set<String> headerNames, C carrier, HeaderGetter<T, C> headerGetter) {
         for (String headerName : headerNames) {
             if (headerGetter.getFirstHeader(headerName, carrier) != null) {
                 return true;
