@@ -30,6 +30,26 @@ import org.apache.kafka.common.header.Header;
 
 import javax.annotation.Nullable;
 
+/**
+ * This header accessor implements backwards compatibility for the legacy binary "elasticapmtraceparent" header.
+ * This is done by translating the textual "elastic-apm-traceparent" representation on the fly to the legacy binary representation.
+ * The legacy binary header format is as follows:
+ * <pre>
+ *      traceparent     = version version_format
+ *      version         = 1BYTE                   ; version is 0 in the current spec
+ *      version_format  = "{ 0x0 }" trace-id "{ 0x1 }" parent-id "{ 0x2 }" trace-flags
+ *      trace-id        = 16BYTES
+ *      parent-id       = 8BYTES
+ *      trace-flags     = 1BYTE  ; only the least significant bit is used
+ * </pre>
+ * For example:
+ * <pre>
+ * elasticapmtraceparent:   [0,
+ *                           0, 75, 249, 47, 53, 119, 179, 77, 166, 163, 206, 146, 157, 0, 14, 71, 54,
+ *                           1, 52, 240, 103, 170, 11, 169, 2, 183,
+ *                           2, 1]
+ * </pre>
+ */
 @SuppressWarnings("rawtypes")
 public class KafkaRecordHeaderAccessor implements UTF8ByteHeaderGetter<ConsumerRecord>, UTF8ByteHeaderSetter<ProducerRecord>,
     HeaderRemover<ProducerRecord> {
@@ -109,7 +129,7 @@ public class KafkaRecordHeaderAccessor implements UTF8ByteHeaderGetter<ConsumerR
         buffer[1] = 0; //trace-id field-id
         HexUtils.decodeAscii(asciiTextHeaderValue, 3, 32, buffer, 2); //read 16 byte traceid
         buffer[18] = 1; //parent-id field-id
-        HexUtils.decodeAscii(asciiTextHeaderValue, 36, 16, buffer, 19); //read 16 byte parentid
+        HexUtils.decodeAscii(asciiTextHeaderValue, 36, 16, buffer, 19); //read 8 byte parentid
         buffer[27] = 2; //flags field-id
         buffer[28] = HexUtils.getNextByteAscii(asciiTextHeaderValue, 53); //flags
         return buffer;
