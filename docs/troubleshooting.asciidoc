@@ -134,6 +134,22 @@ Here, we will refer to the agent log file as `/tmp/agent.log`, but any other loc
 . copy the `/tmp/agent.log` file and send it back for investigation
 
 [float]
+[[trouble-shooting-matching-heuristics]]
+=== Agent matching heuristics
+
+The agent relies on heuristics to define which classes needs to be instrumented or not efficiently to prevent instrumentation
+overhead.
+
+Those heuristics are based on the packages and class names and are influenced by `application_packages` and
+`jms_listener_packages` configurations. However, if instrumentation is not applied as expected or if you want to investigate creating configurations
+without proper knowledge of the application internals, it could be relevant to disable those heuristics for investigation:
+
+1. disable name heuristics by setting `enable_type_matching_name_pre_filtering=false` and enable the <<trouble-shooting-logging-procedure, agent logs>>.
+2. restart the application, which will be slower than usual due to the extra overhead
+3. analyze the agent logs to identify which classes/methods are instrumented by filtering lines with `Method match` string.
+4. properly configure `application_packages` or `jms_listener_packages` with values that apply
+
+[float]
 [[trouble-shooting-debugging]]
 === Debugging
 Sometimes reading the logs is just not enough to debug a problem.

@@ -2454,8 +2454,11 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 ==== `jms_listener_packages` (performance added[1.36.0])
 
 Defines which packages contain JMS MessageListener implementations for instrumentation.
-When set to a non-empty value, only the classes matching configuration will be instrumented.
+When empty (default), all inner-classes or any classes that have 'Listener' or 'Message' in their names are considered.
+
 This configuration option helps to make MessageListener type matching faster and improve application startup performance.
+
+Starting from version 1.43.0, the classes that are part of the 'application_packages' option are also included in the list of classes considered.
 
 
 
@@ -4546,8 +4549,11 @@ Example: `5ms`.
 # ignore_message_queues=
 
 # Defines which packages contain JMS MessageListener implementations for instrumentation.
-# When set to a non-empty value, only the classes matching configuration will be instrumented.
+# When empty (default), all inner-classes or any classes that have 'Listener' or 'Message' in their names are considered.
+# 
 # This configuration option helps to make MessageListener type matching faster and improve application startup performance.
+# 
+# Starting from version 1.43.0, the classes that are part of the 'application_packages' option are also included in the list of classes considered.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: comma separated list

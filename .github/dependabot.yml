@@ -33,8 +33,6 @@ updates:
       - dependency-name: "com.datastax.oss:java-driver-core"
       - dependency-name: "io.micrometer:*"
       - dependency-name: "redis.clients:*"
-      - dependency-name: "org.elasticsearch.client:*"
-      - dependency-name: "co.elastic.clients:*"
       - dependency-name: "io.vertx:*"
       - dependency-name: "org.apache.logging.log4j:*"
       - dependency-name: "org.springframework.boot:*"
