@@ -25,18 +25,15 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Set;
 
 class ConsumerRecordsListWrapper implements List<ConsumerRecord<?, ?>> {
 
     private final List<ConsumerRecord<?, ?>> delegate;
     private final Tracer tracer;
-    private final Set<String> binaryTraceHeaders;
 
-    public ConsumerRecordsListWrapper(List<ConsumerRecord<?, ?>> delegate, Tracer tracer, Set<String> binaryTraceHeaders) {
+    public ConsumerRecordsListWrapper(List<ConsumerRecord<?, ?>> delegate, Tracer tracer) {
         this.delegate = delegate;
         this.tracer = tracer;
-        this.binaryTraceHeaders = binaryTraceHeaders;
     }
 
     @Override
@@ -56,7 +53,7 @@ class ConsumerRecordsListWrapper implements List<ConsumerRecord<?, ?>> {
 
     @Override
     public Iterator<ConsumerRecord<?, ?>> iterator() {
-        return new ConsumerRecordsIteratorWrapper(delegate.iterator(), tracer, binaryTraceHeaders);
+        return new ConsumerRecordsIteratorWrapper(delegate.iterator(), tracer);
     }
 
     @Override
@@ -161,6 +158,6 @@ class ConsumerRecordsListWrapper implements List<ConsumerRecord<?, ?>> {
 
     @Override
     public List<ConsumerRecord<?, ?>> subList(int fromIndex, int toIndex) {
-        return new ConsumerRecordsListWrapper(delegate.subList(fromIndex, toIndex), tracer, binaryTraceHeaders);
+        return new ConsumerRecordsListWrapper(delegate.subList(fromIndex, toIndex), tracer);
     }
 }

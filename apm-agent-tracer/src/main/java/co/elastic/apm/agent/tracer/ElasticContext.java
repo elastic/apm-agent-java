@@ -18,9 +18,8 @@
  */
 package co.elastic.apm.agent.tracer;
 
-import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderSetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderSetter;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 
 import javax.annotation.Nullable;
@@ -73,16 +72,6 @@ public interface ElasticContext<T extends ElasticContext<T>> extends ReferenceCo
 
     /**
      * Propagates this context onto the given carrier. This includes both trace context and baggage.
-     *
-     * @param carrier      the binary headers carrier
-     * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
-     * @param <C>          the header carrier type, for example - a Kafka record
-     * @return true if Trace Context headers were set; false otherwise
-     */
-    <C> boolean propagateContext(C carrier, BinaryHeaderSetter<C> headerSetter);
-
-    /**
-     * Propagates this context onto the given carrier. This includes both trace context and baggage.
      * This method ensures that if trace-context headers are already present, they will not be overridden.
      *
      * @param carrier      the text headers carrier
@@ -91,10 +80,10 @@ public interface ElasticContext<T extends ElasticContext<T>> extends ReferenceCo
      *                     If not provided, no such check will be performed.
      * @param <C>          the header carrier type, for example - an HTTP request
      */
-    <C> void propagateContext(C carrier, TextHeaderSetter<C> headerSetter, @Nullable TextHeaderGetter<C> headerGetter);
+    <C> void propagateContext(C carrier, HeaderSetter<?, C> headerSetter, @Nullable HeaderGetter<?, C> headerGetter);
 
     /**
-     * Same as {@link #propagateContext(Object, TextHeaderSetter, TextHeaderGetter)}, except that different types can be used
+     * Same as {@link #propagateContext(Object, HeaderSetter, HeaderGetter)}, except that different types can be used
      * for the getter and setter carriers (e.g. builder vs request).
      *
      * @param carrier      the text headers carrier for setting header
@@ -105,10 +94,10 @@ public interface ElasticContext<T extends ElasticContext<T>> extends ReferenceCo
      * @param <C1>         the header carrier type for writing headers
      * @param <C2>         the header carrier type for reading headers
      */
-    <C1, C2> void propagateContext(C1 carrier, TextHeaderSetter<C1> headerSetter, @Nullable C2 carrier2, @Nullable TextHeaderGetter<C2> headerGetter);
+    <C1, C2> void propagateContext(C1 carrier, HeaderSetter<?, C1> headerSetter, @Nullable C2 carrier2, @Nullable HeaderGetter<?, C2> headerGetter);
 
     /**
-     * Checks if a call to {@link #propagateContext(Object, TextHeaderSetter, TextHeaderGetter)} would modify the headers of this carrier.
+     * Checks if a call to {@link #propagateContext(Object, HeaderSetter, HeaderGetter)} would modify the headers of this carrier.
      * In other words, this method can be used as a precheck to see whether a propagation is required.
      * <p>
      * This allows the delay and avoidance of creating costly resources, e.g. builder.
@@ -118,7 +107,7 @@ public interface ElasticContext<T extends ElasticContext<T>> extends ReferenceCo
      * @param <C>          the carrier type
      * @return true, if a call to propagateContext would modify the headers of the carrier
      */
-    <C> boolean isPropagationRequired(C carrier, TextHeaderGetter<C> headerGetter);
+    <C> boolean isPropagationRequired(C carrier, HeaderGetter<?, C> headerGetter);
 
     /**
      * @return {@literal true} when span limit is reached and the caller can optimize and not create a span. The caller

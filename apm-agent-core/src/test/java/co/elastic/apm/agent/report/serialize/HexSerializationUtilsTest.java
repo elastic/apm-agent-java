@@ -16,25 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.kafka.helper;
+package co.elastic.apm.agent.report.serialize;
 
-import co.elastic.apm.agent.tracer.Tracer;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
+import co.elastic.apm.agent.tracer.util.HexUtils;
+import co.elastic.apm.agent.util.ByteUtils;
+import com.dslplatform.json.DslJson;
+import com.dslplatform.json.JsonWriter;
+import org.junit.jupiter.api.Test;
 
-import java.util.Iterator;
+import static org.assertj.core.api.Assertions.assertThat;
 
-class ConsumerRecordsIterableWrapper implements Iterable<ConsumerRecord<?, ?>> {
+public class HexSerializationUtilsTest {
 
-    private final Iterable<ConsumerRecord<?, ?>> delegate;
-    private final Tracer tracer;
-
-    public ConsumerRecordsIterableWrapper(Iterable<ConsumerRecord<?, ?>> delegate, Tracer tracer) {
-        this.delegate = delegate;
-        this.tracer = tracer;
-    }
-
-    @Override
-    public Iterator<ConsumerRecord<?, ?>> iterator() {
-        return new ConsumerRecordsIteratorWrapper(delegate.iterator(), tracer);
+    @Test
+    void testLongToHex() {
+        byte[] bytes = new byte[8];
+        HexUtils.nextBytes("09c2572177fdae24", 0, bytes);
+        long l = ByteUtils.getLong(bytes, 0);
+        JsonWriter jw = new DslJson<>().newWriter();
+        HexSerializationUtils.writeAsHex(l, jw);
+        assertThat(jw.toString()).isEqualTo("09c2572177fdae24");
     }
 }

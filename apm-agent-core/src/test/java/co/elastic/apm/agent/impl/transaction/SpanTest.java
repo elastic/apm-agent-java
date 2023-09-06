@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.impl.BinaryHeaderMapAccessor;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
+import co.elastic.apm.agent.impl.Utf8HeaderMapAccessor;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
@@ -138,7 +138,6 @@ public class SpanTest {
         Map<String, String> textTraceContextCarrier = new HashMap<>();
         parent1.propagateContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE, null);
         assertThat(testSpan.addSpanLink(
-            TraceContext.getFromTraceContextTextHeaders(),
             TextHeaderMapAccessor.INSTANCE,
             textTraceContextCarrier)
         ).isTrue();
@@ -146,12 +145,11 @@ public class SpanTest {
         assertThat(objectPoolFactory.getSpanLinksPool().getRequestedObjectCount()).isEqualTo(1);
         assertThat(testSpan.getSpanLinks()).hasSize(1);
         Span parent2 = transaction.createSpan();
-        Map<String, byte[]> binaryTraceContextCarrier = new HashMap<>();
-        parent2.propagateContext(binaryTraceContextCarrier, BinaryHeaderMapAccessor.INSTANCE);
+        Map<String, String> utfTraceContextCarrier = new HashMap<>();
+        parent2.propagateContext(utfTraceContextCarrier, Utf8HeaderMapAccessor.INSTANCE, null);
         assertThat(testSpan.addSpanLink(
-            TraceContext.getFromTraceContextBinaryHeaders(),
-            BinaryHeaderMapAccessor.INSTANCE,
-            binaryTraceContextCarrier)
+            TextHeaderMapAccessor.INSTANCE,
+            utfTraceContextCarrier)
         ).isTrue();
         assertThat(objectPoolFactory.getSpanLinksPool().getObjectsInPool()).isEqualTo(0);
         assertThat(objectPoolFactory.getSpanLinksPool().getRequestedObjectCount()).isEqualTo(2);
@@ -175,13 +173,11 @@ public class SpanTest {
         Map<String, String> textTraceContextCarrier = new HashMap<>();
         parent1.propagateContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE, null);
         assertThat(testSpan.addSpanLink(
-            TraceContext.getFromTraceContextTextHeaders(),
             TextHeaderMapAccessor.INSTANCE,
             textTraceContextCarrier)
         ).isTrue();
         assertThat(testSpan.getSpanLinks()).hasSize(1);
         assertThat(testSpan.addSpanLink(
-            TraceContext.getFromTraceContextTextHeaders(),
             TextHeaderMapAccessor.INSTANCE,
             textTraceContextCarrier)
         ).isFalse();
@@ -192,7 +188,6 @@ public class SpanTest {
 
         // verifying that uniqueness cache is cleared properly as well
         assertThat(testSpan.addSpanLink(
-            TraceContext.getFromTraceContextTextHeaders(),
             TextHeaderMapAccessor.INSTANCE,
             textTraceContextCarrier)
         ).isTrue();

@@ -32,7 +32,6 @@ import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import org.HdrHistogram.WriterReaderPhaser;
@@ -133,7 +132,6 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
     }
 
     public <H, C> Transaction start(
-        TraceContext.HeaderChildContextCreator<H, C> childContextCreator,
         @Nullable C parent,
         HeaderGetter<H, C> headerGetter,
         long epochMicros,
@@ -143,13 +141,9 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         if (parent == null) {
             return startRoot(epochMicros, sampler, baseBaggage);
         }
-        if (headerGetter instanceof TextHeaderGetter) {
-            Baggage.Builder baggageBuilder = baseBaggage.toBuilder();
-            W3CBaggagePropagation.parse(parent, (TextHeaderGetter<C>) headerGetter, baggageBuilder);
-            this.baggage = baggageBuilder.build();
-        } else {
-            this.baggage = baseBaggage;
-        }
+        Baggage.Builder baggageBuilder = baseBaggage.toBuilder();
+        W3CBaggagePropagation.parse(parent, headerGetter, baggageBuilder);
+        this.baggage = baggageBuilder.build();
         CoreConfiguration.TraceContinuationStrategy traceContinuationStrategy = coreConfig.getTraceContinuationStrategy();
         boolean restartTrace = false;
         if (traceContinuationStrategy.equals(RESTART)) {
@@ -159,10 +153,10 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         }
         if (restartTrace) {
             // need to add a span link
-            addSpanLink(childContextCreator, headerGetter, parent);
+            addSpanLink(headerGetter, parent);
             traceContext.asRootSpan(sampler);
         } else {
-            boolean valid = childContextCreator.asChildOf(traceContext, parent, headerGetter);
+            boolean valid = traceContext.asChildOf(parent, headerGetter);
             if (!valid) {
                 traceContext.asRootSpan(sampler);
             }
