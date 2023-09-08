@@ -18,19 +18,9 @@
  */
 package co.elastic.apm.agent.tracer;
 
-public interface Activateable<T extends Activateable<T>> {
+public interface ErrorCapture extends Activateable<ErrorCapture> {
 
-    /**
-     * Makes this the active context.
-     *
-     * @return this
-     */
-    T activate();
+    TraceContext getTraceContext();
 
-    /**
-     * Deactivates the context previously activated via {@link #activate()}
-     *
-     * @return this
-     */
-    T deactivate();
+    void end();
 }

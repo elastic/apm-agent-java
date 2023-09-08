@@ -43,7 +43,6 @@ public interface Tracer {
 
     Set<String> getTraceHeaderNames();
 
-
     ElasticContext<?> currentContext();
 
     @Nullable
@@ -51,6 +50,9 @@ public interface Tracer {
 
     @Nullable
     Transaction<?> currentTransaction();
+
+    @Nullable
+    ErrorCapture getActiveError();
 
     /**
      * Starts a trace-root transaction
@@ -76,4 +78,6 @@ public interface Tracer {
     @Nullable
     <T, C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader);
 
+    @Nullable
+    ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader);
 }
