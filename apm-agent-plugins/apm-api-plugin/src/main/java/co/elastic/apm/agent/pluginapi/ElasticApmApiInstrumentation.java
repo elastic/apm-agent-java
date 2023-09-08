@@ -18,7 +18,8 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.tracer.service.ServiceAwareTracer;
+import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.tracer.ErrorCapture;
@@ -166,7 +167,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         public static class AdviceClass {
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void setServiceInfoForClassLoader(@Advice.Argument(0) @Nullable ClassLoader classLoader, @Advice.Argument(1) String serviceName, @Advice.Argument(2) @Nullable String serviceVersion) {
-                tracer.require(Tracer.class).setServiceInfoForClassLoader(classLoader, ServiceInfo.of(serviceName, serviceVersion));
+                tracer.require(ServiceAwareTracer.class).setServiceInfoForClassLoader(classLoader, ServiceInfo.of(serviceName, serviceVersion));
             }
         }
     }

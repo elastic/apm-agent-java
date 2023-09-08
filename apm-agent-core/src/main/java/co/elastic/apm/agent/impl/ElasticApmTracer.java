@@ -25,7 +25,7 @@ import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
-import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
@@ -74,11 +74,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.jar.JarFile;
 
 
 /**
@@ -93,6 +95,7 @@ public class ElasticApmTracer implements Tracer {
     private static final WeakMap<ClassLoader, ServiceInfo> serviceInfoByClassLoader = WeakConcurrent.buildMap();
 
     private static final Map<Class<?>, Class<? extends ConfigurationOptionProvider>> configs = new HashMap<>();
+
     public static final Set<String> TRACE_HEADER_NAMES;
 
     static {
@@ -350,7 +353,7 @@ public class ElasticApmTracer implements Tracer {
 
     @Nullable
     @Override
-    public co.elastic.apm.agent.tracer.ErrorCapture getActiveError() {
+    public ErrorCapture getActiveError() {
         return ErrorCapture.getActive();
     }
 
@@ -972,5 +975,10 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public Set<String> getTraceHeaderNames() {
         return TRACE_HEADER_NAMES;
+    }
+
+    @Override
+    public ServiceInfo autoDetectedServiceInfo() {
+        return AutoDetectedServiceInfo.autoDetected();
     }
 }

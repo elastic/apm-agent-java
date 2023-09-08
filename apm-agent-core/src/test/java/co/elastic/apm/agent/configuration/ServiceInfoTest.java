@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.configuration;
 
+import co.elastic.apm.agent.impl.AutoDetectedServiceInfo;
+import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.util.CustomEnvVariables;
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +41,7 @@ class ServiceInfoTest extends CustomEnvVariables {
             properties.setProperty("sun.java.command", sunJavaCommand);
         }
 
-        return ServiceInfo.autoDetect(properties, Map.of()).getServiceName();
+        return AutoDetectedServiceInfo.autoDetect(properties, Map.of()).getServiceName();
     }
 
     @Test
@@ -81,7 +83,7 @@ class ServiceInfoTest extends CustomEnvVariables {
         final Map<String, String> awsLambdaEnvVariables = new HashMap<>();
         awsLambdaEnvVariables.put("AWS_LAMBDA_FUNCTION_NAME", "my-lambda-function");
         awsLambdaEnvVariables.put("AWS_LAMBDA_FUNCTION_VERSION", "24");
-        ServiceInfo serviceInfo = callWithCustomEnvVariables(awsLambdaEnvVariables, () -> ServiceInfo.autoDetect(System.getProperties(), System.getenv()));
+        ServiceInfo serviceInfo = callWithCustomEnvVariables(awsLambdaEnvVariables, () -> AutoDetectedServiceInfo.autoDetect(System.getProperties(), System.getenv()));
         assertSoftly(softly -> {
             softly.assertThat(serviceInfo.getServiceName()).isEqualTo("my-lambda-function");
             softly.assertThat(serviceInfo.getServiceVersion()).isEqualTo("24");
