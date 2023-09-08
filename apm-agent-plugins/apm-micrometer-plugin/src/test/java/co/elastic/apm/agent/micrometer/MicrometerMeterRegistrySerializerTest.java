@@ -81,6 +81,11 @@ public class MicrometerMeterRegistrySerializerTest {
     }
 
     @Test
+    void serializeDistributionSummaryWithNoValues() {
+        serializeOneMeter(new TestSummary(false));
+    }
+
+    @Test
     void serializeGauge() {
         serializeOneMeter(new TestGauge());
     }
@@ -201,9 +206,18 @@ public class MicrometerMeterRegistrySerializerTest {
         }
 
         protected static JsonNode getPathNode(JsonNode jsonNode, String[] path) {
+            return getPathNode(jsonNode, path, false);
+        }
+        protected static JsonNode getPathNode(JsonNode jsonNode, String[] path, boolean isNull) {
             assertThat(jsonNode).isNotNull();
-            for (String element: path) {
-                jsonNode = jsonNode.get(element);
+            for (int i = 0; i < path.length-1; i++) {
+                jsonNode = jsonNode.get(path[i]);
+                assertThat(jsonNode).isNotNull();
+            }
+            jsonNode = jsonNode.get(path[path.length-1]);
+            if (isNull) {
+                assertThat(jsonNode).isNull();
+            } else {
                 assertThat(jsonNode).isNotNull();
             }
             return jsonNode;
@@ -261,6 +275,7 @@ public class MicrometerMeterRegistrySerializerTest {
     }
 
     static class TestSummary extends TestMeter {
+        private final boolean setSLOs;
         int sum = 0;
         int count = 0;
         int under5Count = 0;
@@ -268,6 +283,13 @@ public class MicrometerMeterRegistrySerializerTest {
         int from50to95Count = 0;
         int[] values = new int[]{22, 55, 66, 98};
 
+        public TestSummary () {
+            this(true);
+        }
+        public TestSummary (boolean setSLOs) {
+            super();
+            this.setSLOs = setSLOs;
+        }
         @Override
         String meternameExtension() {
             return ".count";
@@ -275,12 +297,20 @@ public class MicrometerMeterRegistrySerializerTest {
 
         @Override
         public void addToMeterRegistry(MeterRegistry registry) {
-            meter = DistributionSummary
-                .builder(metername())
-                .distributionStatisticBufferLength(20)
-                .serviceLevelObjectives(5, 50, 95)
-                .publishPercentileHistogram()
-                .register(registry);
+            if (setSLOs) {
+                meter = DistributionSummary
+                    .builder(metername())
+                    .distributionStatisticBufferLength(20)
+                    .serviceLevelObjectives(5, 50, 95)
+                    .publishPercentileHistogram()
+                    .register(registry);
+            } else {
+                meter = DistributionSummary
+                    .builder(metername())
+                    .distributionStatisticBufferLength(20)
+                    .publishPercentileHistogram()
+                    .register(registry);
+            }
         }
 
         @Override
@@ -303,9 +333,20 @@ public class MicrometerMeterRegistrySerializerTest {
         public void checkSerialization(JsonNode jsonNode) {
             checkPathHasValue(jsonNode, path(), count);
             checkPathHasValue(jsonNode, path(".sum"), sum);
-            String[] path = path(".histogram");
-            path[3] = "values";
-            JsonNode histoNode1 = getPathNode(jsonNode, path);
+            String[] temppath = path(".histogram");
+            String[] path;
+            if (!setSLOs) {
+                path = new String[temppath.length-1];
+                System.arraycopy(temppath, 0, path, 0, path.length);
+            } else {
+                path = temppath;
+                path[3] = "values";
+            }
+            JsonNode histoNode1 = getPathNode(jsonNode, path, !setSLOs);
+            if(!setSLOs) {
+                assertThat(histoNode1).isNull();
+                return;
+            }
             assertThat(histoNode1.isArray()).isTrue();
             assertThat(histoNode1.size()).isEqualTo(3); //the 3 bucket boundaries of the SLOs 5,50,95
             assertThat(histoNode1.get(0).asDouble()).isEqualTo(5.0);
@@ -318,6 +359,10 @@ public class MicrometerMeterRegistrySerializerTest {
             assertThat(histoNode2.get(0).asInt()).isEqualTo(under5Count);
             assertThat(histoNode2.get(1).asInt()).isEqualTo(from5To50Count);
             assertThat(histoNode2.get(2).asInt()).isEqualTo(from50to95Count);
+            path[3] = "type";
+            JsonNode histoType = getPathNode(jsonNode, path);
+            assertThat(histoType.isTextual()).isTrue();
+            assertThat(histoType.asText()).isEqualTo("histogram");
         }
     }
 

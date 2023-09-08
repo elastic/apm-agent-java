@@ -201,7 +201,7 @@ public class MicrometerMeterRegistrySerializer {
             serializeValue(id, ".count", count, jw, replaceBuilder, dedotMetricName);
             jw.writeByte(JsonWriter.COMMA);
             serializeValue(id, ".sum.us", totalTime, jw, replaceBuilder, dedotMetricName);
-            if (histogramSnapshot != null) {
+            if (histogramSnapshot != null && histogramSnapshot.histogramCounts().length > 0) {
                 jw.writeByte(JsonWriter.COMMA);
                 serializeHistogram(id, histogramSnapshot, jw, replaceBuilder, dedotMetricName);
             }
@@ -229,8 +229,10 @@ public class MicrometerMeterRegistrySerializer {
             serializeValue(id, ".count", count, jw, replaceBuilder, dedotMetricName);
             jw.writeByte(JsonWriter.COMMA);
             serializeValue(id, ".sum", totalAmount, jw, replaceBuilder, dedotMetricName);
-            jw.writeByte(JsonWriter.COMMA);
-            serializeHistogram(id, histogramSnapshot, jw, replaceBuilder, dedotMetricName);
+            if (histogramSnapshot != null && histogramSnapshot.histogramCounts().length > 0) {
+                jw.writeByte(JsonWriter.COMMA);
+                serializeHistogram(id, histogramSnapshot, jw, replaceBuilder, dedotMetricName);
+            }
             return true;
         }
         return hasValue;
@@ -272,6 +274,10 @@ public class MicrometerMeterRegistrySerializer {
             }
         }
         jw.writeByte(JsonWriter.ARRAY_END);
+
+        jw.writeByte(JsonWriter.COMMA);
+        jw.writeAscii("\"type\":\"histogram\"");
+
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 

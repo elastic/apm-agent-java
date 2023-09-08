@@ -119,7 +119,7 @@ public abstract class ExternalSpanContextInstrumentation extends OpenTracingBrid
         ElasticApmTracer tracer = OpenTracingBridgeInstrumentation.tracer.require(ElasticApmTracer.class);
         if (tracer != null) {
             TraceContext childTraceContext = TraceContext.with64BitId(tracer);
-            if (TraceContext.<Iterable<Map.Entry<String, String>>>getFromTraceContextTextHeaders().asChildOf(childTraceContext, textMap, OpenTracingTextMapBridge.instance())) {
+            if (childTraceContext.asChildOf(textMap, OpenTracingTextMapBridge.instance())) {
                 return childTraceContext;
             }
         }

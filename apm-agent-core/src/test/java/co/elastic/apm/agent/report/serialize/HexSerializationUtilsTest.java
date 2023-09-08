@@ -16,26 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jms.jakarta.test;
+package co.elastic.apm.agent.report.serialize;
 
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.util.HexUtils;
+import co.elastic.apm.agent.util.ByteUtils;
+import com.dslplatform.json.DslJson;
+import com.dslplatform.json.JsonWriter;
+import org.junit.jupiter.api.Test;
 
-import jakarta.jms.Message;
-import jakarta.jms.MessageListener;
-import java.util.concurrent.atomic.AtomicReference;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class TestMessageListener implements MessageListener {
+public class HexSerializationUtilsTest {
 
-    private final AtomicReference<Transaction> transaction;
-
-    public TestMessageListener(AtomicReference<Transaction> transaction) {
-        this.transaction = transaction;
-    }
-
-    @Override
-    public void onMessage(Message message) {
-        transaction.set(GlobalTracer.get().require(Tracer.class).currentTransaction());
+    @Test
+    void testLongToHex() {
+        byte[] bytes = new byte[8];
+        HexUtils.nextBytes("09c2572177fdae24", 0, bytes);
+        long l = ByteUtils.getLong(bytes, 0);
+        JsonWriter jw = new DslJson<>().newWriter();
+        HexSerializationUtils.writeAsHex(l, jw);
+        assertThat(jw.toString()).isEqualTo("09c2572177fdae24");
     }
 }

@@ -16,26 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.jms.javax.test;
+package co.elastic.apm.agent.sdk.internal;
 
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 
-import javax.jms.Message;
-import javax.jms.MessageListener;
-import java.util.concurrent.atomic.AtomicReference;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-public class TestMessageListener implements MessageListener {
+public class ThreadUtilTest {
 
-    private final AtomicReference<Transaction> transaction;
-
-    public TestMessageListener(AtomicReference<Transaction> transaction) {
-        this.transaction = transaction;
+    @Test
+    public void checkPlatformThreadVirtual() {
+        Thread t1 = new Thread();
+        assertThat(ThreadUtil.isVirtual(t1)).isFalse();
     }
 
-    @Override
-    public void onMessage(Message message) {
-        transaction.set(GlobalTracer.get().require(Tracer.class).currentTransaction());
+    @Test
+    @DisabledForJreRange(max = JRE.JAVA_20)
+    public void checkVirtualThreadVirtual() throws Exception {
+        Runnable task = () -> {
+        };
+        Thread thread = (Thread) Thread.class.getMethod("startVirtualThread", Runnable.class).invoke(null, task);
+        assertThat(ThreadUtil.isVirtual(thread)).isTrue();
     }
 }

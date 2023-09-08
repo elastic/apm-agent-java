@@ -136,6 +136,7 @@ Click on a key to get more information.
 ** <<config-enable-public-api-annotation-inheritance>>
 ** <<config-transaction-name-groups>>
 ** <<config-trace-continuation-strategy>>
+** <<config-baggage-to-attach>>
 * <<config-datastore>>
 ** <<config-elasticsearch-capture-body-urls>>
 ** <<config-mongodb-capture-statement-commands>>
@@ -1548,6 +1549,29 @@ Valid options: `continue`, `restart`, `restart_external`
 | `elastic.apm.trace_continuation_strategy` | `trace_continuation_strategy` | `ELASTIC_APM_TRACE_CONTINUATION_STRATEGY`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-baggage-to-attach]]
+==== `baggage_to_attach` (added[1.43.0])
+
+If any baggage key matches any of the patterns provided via this config option, the corresponding baggage key and value will be automatically stored on the corresponding transactions, spans and errors. The baggage keys will be prefixed with "baggage." on storage.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `*` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.baggage_to_attach` | `baggage_to_attach` | `ELASTIC_APM_BAGGAGE_TO_ATTACH`
+|============
+
 [[config-datastore]]
 === Datastore configuration options
 
@@ -2430,8 +2454,11 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 ==== `jms_listener_packages` (performance added[1.36.0])
 
 Defines which packages contain JMS MessageListener implementations for instrumentation.
-When set to a non-empty value, only the classes matching configuration will be instrumented.
+When empty (default), all inner-classes or any classes that have 'Listener' or 'Message' in their names are considered.
+
 This configuration option helps to make MessageListener type matching faster and improve application startup performance.
+
+Starting from version 1.43.0, the classes that are part of the 'application_packages' option are also included in the list of classes considered.
 
 
 
@@ -2607,6 +2634,8 @@ The <<config-profiling-inferred-spans-sampling-interval, `profiling_inferred_spa
 
 The inferred spans are created after a profiling session has ended.
 This means there is a delay between the regular and the inferred spans being visible in the UI.
+
+Only platform threads are supported. Virtual threads are not supported and will not be profiled.
 
 NOTE: This feature is not available on Windows and on OpenJ9
 
@@ -4038,6 +4067,14 @@ Example: `5ms`.
 #
 # trace_continuation_strategy=CONTINUE
 
+# If any baggage key matches any of the patterns provided via this config option, the corresponding baggage key and value will be automatically stored on the corresponding transactions, spans and errors. The baggage keys will be prefixed with "baggage." on storage.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: *
+#
+# baggage_to_attach=*
+
 ############################################
 # Datastore                                #
 ############################################
@@ -4512,8 +4549,11 @@ Example: `5ms`.
 # ignore_message_queues=
 
 # Defines which packages contain JMS MessageListener implementations for instrumentation.
-# When set to a non-empty value, only the classes matching configuration will be instrumented.
+# When empty (default), all inner-classes or any classes that have 'Listener' or 'Message' in their names are considered.
+# 
 # This configuration option helps to make MessageListener type matching faster and improve application startup performance.
+# 
+# Starting from version 1.43.0, the classes that are part of the 'application_packages' option are also included in the list of classes considered.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: comma separated list
@@ -4585,6 +4625,8 @@ Example: `5ms`.
 # 
 # The inferred spans are created after a profiling session has ended.
 # This means there is a delay between the regular and the inferred spans being visible in the UI.
+# 
+# Only platform threads are supported. Virtual threads are not supported and will not be profiled.
 # 
 # NOTE: This feature is not available on Windows and on OpenJ9
 #

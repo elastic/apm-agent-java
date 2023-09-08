@@ -19,9 +19,10 @@
 package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import co.elastic.apm.agent.impl.baggage.BaggageContext;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Message;
@@ -29,12 +30,12 @@ import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
-import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
+import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -297,14 +298,19 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
     @Test
     public void testTransactionCreationWithoutContext() {
-        testScenario = TestScenario.NO_CONTEXT_PROPAGATION;
+        testScenario = TestScenario.NO_TRACE_CONTEXT_PROPAGATION;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         //noinspection ConstantConditions
         tracer.currentTransaction().deactivate().end();
         reporter.reset();
 
-        // Send without context
+        // Send without trace context, but verify baggage is still propagated
+        BaggageContext baggageContext = tracer.currentContext().withUpdatedBaggage()
+            .put("test_baggage", "baggage_val")
+            .buildContext()
+            .activate();
         sendTwoRecordsAndConsumeReplies();
+        baggageContext.deactivate();
 
         // We expect two transactions from records read from the request topic, each creating a send span as well.
         // In addition, we expect two transactions from the main test thread, iterating over reply messages.
@@ -320,6 +326,10 @@ public class KafkaIT extends AbstractInstrumentationTest {
         verifyKafkaTransactionContents(transactions.get(1), null, null, REQUEST_TOPIC);
         verifyKafkaTransactionContents(transactions.get(2), sendSpan1, null, REPLY_TOPIC);
         verifyKafkaTransactionContents(transactions.get(3), sendSpan2, null, REPLY_TOPIC);
+        assertThat(transactions).allSatisfy(tx -> assertThat(tx.getBaggage())
+            .hasSize(1)
+            .containsEntry("test_baggage", "baggage_val")
+        );
     }
 
     @Test
@@ -355,7 +365,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         if (testScenario != TestScenario.IGNORE_REQUEST_TOPIC && testScenario != TestScenario.AGENT_PAUSED && testScenario != TestScenario.BATCH_PROCESSING) {
             await().atMost(2000, MILLISECONDS).until(() -> reporter.getTransactions().size() == 2);
             if (testScenario != TestScenario.NON_SAMPLED_TRANSACTION) {
-                int expectedSpans = (testScenario == TestScenario.NO_CONTEXT_PROPAGATION) ? 2 : 4;
+                int expectedSpans = (testScenario == TestScenario.NO_TRACE_CONTEXT_PROPAGATION) ? 2 : 4;
                 await().atMost(500, MILLISECONDS).until(() -> reporter.getSpans().size() == expectedSpans);
             }
         }
@@ -610,7 +620,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         SANITIZED_HEADER,
         IGNORE_REQUEST_TOPIC,
         AGENT_PAUSED,
-        NO_CONTEXT_PROPAGATION,
+        NO_TRACE_CONTEXT_PROPAGATION,
         TOPIC_ADDRESS_COLLECTION_DISABLED,
         NON_SAMPLED_TRANSACTION,
         BATCH_PROCESSING

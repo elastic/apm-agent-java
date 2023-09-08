@@ -23,6 +23,7 @@ When multiple JVMs are running on the same host and report data for the same ser
 * <<metrics-system>>
 * <<metrics-cgroup, cgroup metrics>>
 * <<metrics-jvm>>
+* <<metrics-jmx>>
 * <<metrics-application>>
 * <<metrics-only-mode>>
 * <<metrics-otel>>

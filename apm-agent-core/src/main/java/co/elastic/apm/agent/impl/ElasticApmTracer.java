@@ -30,6 +30,7 @@ import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.baggage.Baggage;
+import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
@@ -47,23 +48,19 @@ import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Scope;
-import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.tracer.Scope;
-import co.elastic.apm.agent.tracer.dispatch.BinaryHeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
-import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
-import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -72,7 +69,9 @@ import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -94,6 +93,14 @@ public class ElasticApmTracer implements Tracer {
     private static final WeakMap<ClassLoader, ServiceInfo> serviceInfoByClassLoader = WeakConcurrent.buildMap();
 
     private static final Map<Class<?>, Class<? extends ConfigurationOptionProvider>> configs = new HashMap<>();
+    public static final Set<String> TRACE_HEADER_NAMES;
+
+    static {
+        Set<String> headerNames = new HashSet<>();
+        headerNames.addAll(TraceContext.TRACE_TEXTUAL_HEADERS);
+        headerNames.add(W3CBaggagePropagation.BAGGAGE_HEADER_NAME);
+        TRACE_HEADER_NAMES = Collections.unmodifiableSet(headerNames);
+    }
 
     private static volatile boolean classloaderCheckOk = false;
 
@@ -280,49 +287,29 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     @Nullable
-    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
-        return startChildTransaction(headerCarrier, textHeadersGetter, sampler, -1, initiatingClassLoader);
+    public <T, C> Transaction startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, @Nullable ClassLoader initiatingClassLoader) {
+        return startChildTransaction(headerCarrier, headersGetter, sampler, -1, initiatingClassLoader);
     }
 
     @Override
     @Nullable
-    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader, Baggage baseBaggage, long epochMicros) {
-        return startChildTransaction(headerCarrier, textHeadersGetter, sampler, epochMicros, initiatingClassLoader);
+    public <T, C> Transaction startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, @Nullable ClassLoader initiatingClassLoader, Baggage baseBaggage, long epochMicros) {
+        return startChildTransaction(headerCarrier, headersGetter, sampler, epochMicros, initiatingClassLoader);
     }
 
     @Override
     @Nullable
-    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler,
-                                                 long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
-        return startChildTransaction(headerCarrier, textHeadersGetter, sampler, epochMicros, currentContext().getBaggage(), initiatingClassLoader);
+    public <T, C> Transaction startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, Sampler sampler,
+                                                    long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+        return startChildTransaction(headerCarrier, headersGetter, sampler, epochMicros, currentContext().getBaggage(), initiatingClassLoader);
     }
 
-    private <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler,
-                                                  long epochMicros, Baggage baseBaggage, @Nullable ClassLoader initiatingClassLoader) {
+    private <T, C> Transaction startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, Sampler sampler,
+                                                     long epochMicros, Baggage baseBaggage, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction = null;
         if (isRunning()) {
-            transaction = createTransaction().start(TraceContext.<C>getFromTraceContextTextHeaders(), headerCarrier,
-                textHeadersGetter, epochMicros, sampler, baseBaggage);
-            afterTransactionStart(initiatingClassLoader, transaction);
-        }
-        return transaction;
-    }
-
-    @Override
-    @Nullable
-    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
-        return startChildTransaction(headerCarrier, binaryHeadersGetter, sampler, -1, initiatingClassLoader);
-    }
-
-    @Override
-    @Nullable
-    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter,
-                                                 Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
-        Transaction transaction = null;
-        if (isRunning()) {
-            Baggage baseBaggage = currentContext().getBaggage();
-            transaction = createTransaction().start(TraceContext.<C>getFromTraceContextBinaryHeaders(), headerCarrier,
-                binaryHeadersGetter, epochMicros, sampler, baseBaggage);
+            transaction = createTransaction().start(headerCarrier,
+                headersGetter, epochMicros, sampler, baseBaggage);
             afterTransactionStart(initiatingClassLoader, transaction);
         }
         return transaction;
@@ -358,7 +345,7 @@ public class ElasticApmTracer implements Tracer {
     @Override
     @Nullable
     public Transaction currentTransaction() {
-        return activeStack.get().currentTransaction();
+        return currentContext().getTransaction();
     }
 
     @Nullable
@@ -416,7 +403,7 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     public void captureAndReportException(@Nullable Throwable e, ClassLoader initiatingClassLoader) {
-        ErrorCapture errorCapture = captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
+        ErrorCapture errorCapture = captureException(System.currentTimeMillis() * 1000, e, currentContext(), initiatingClassLoader);
         if (errorCapture != null) {
             errorCapture.end();
         }
@@ -424,9 +411,9 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     @Nullable
-    public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent) {
+    public String captureAndReportException(long epochMicros, @Nullable Throwable e, ElasticContext<?> parentContext) {
         String id = null;
-        ErrorCapture errorCapture = captureException(epochMicros, e, parent, null);
+        ErrorCapture errorCapture = captureException(epochMicros, e, parentContext, null);
         if (errorCapture != null) {
             id = errorCapture.getTraceContext().getId().toString();
             errorCapture.end();
@@ -436,18 +423,18 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     @Nullable
-    public ErrorCapture captureException(@Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
-        return captureException(System.currentTimeMillis() * 1000, e, parent, initiatingClassLoader);
+    public ErrorCapture captureException(@Nullable Throwable e, ElasticContext<?> parentContext, @Nullable ClassLoader initiatingClassLoader) {
+        return captureException(System.currentTimeMillis() * 1000, e, parentContext, initiatingClassLoader);
     }
 
     @Nullable
     @Override
     public ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader) {
-        return captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
+        return captureException(System.currentTimeMillis() * 1000, e, currentContext(), initiatingClassLoader);
     }
 
     @Nullable
-    private ErrorCapture captureException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+    private ErrorCapture captureException(long epochMicros, @Nullable Throwable e, ElasticContext<?> parentContext, @Nullable ClassLoader initiatingClassLoader) {
         if (!isRunning() || e == null) {
             return null;
         }
@@ -473,6 +460,7 @@ public class ElasticApmTracer implements Tracer {
                 error.setTransactionType(currentTransaction.getType());
                 error.setTransactionSampled(currentTransaction.isSampled());
             }
+            AbstractSpan<?> parent = parentContext.getSpan();
             if (parent != null) {
                 error.asChildOf(parent);
                 // don't discard spans leading up to an error, otherwise they'd point to an invalid parent
@@ -484,6 +472,8 @@ public class ElasticApmTracer implements Tracer {
                     error.getTraceContext().setServiceInfo(serviceInfo.getServiceName(), serviceInfo.getServiceVersion());
                 }
             }
+            parentContext.getBaggage()
+                .storeBaggageInContext(error.getContext(), getConfig(CoreConfiguration.class).getBaggageToAttach());
             return error;
         }
         return null;
@@ -981,6 +971,6 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     public Set<String> getTraceHeaderNames() {
-        return TraceContext.TRACE_TEXTUAL_HEADERS;
+        return TRACE_HEADER_NAMES;
     }
 }

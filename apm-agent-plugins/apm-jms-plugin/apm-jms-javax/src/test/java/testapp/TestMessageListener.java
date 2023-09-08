@@ -16,24 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.test;
+package testapp;
 
-import org.junit.jupiter.api.Test;
+import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import javax.jms.Message;
+import javax.jms.MessageListener;
+import java.util.concurrent.atomic.AtomicReference;
 
-public class DockerfileReaderTest {
+public class TestMessageListener implements MessageListener {
 
-    @Test
-    public void checkValidDockerfile() {
-        assertThat(DockerfileReader.getFrom("/test-dockfile.txt")).isEqualTo("foobar");
+    private final AtomicReference<Transaction> transaction;
+
+    public TestMessageListener(AtomicReference<Transaction> transaction) {
+        this.transaction = transaction;
     }
 
-    @Test
-    public void checkInvalidDockerfile() {
-        assertThatThrownBy(() -> DockerfileReader.getFrom("/test-dockfile-invalid.txt"))
-            .isInstanceOf(IllegalArgumentException.class);
+    @Override
+    public void onMessage(Message message) {
+        transaction.set(GlobalTracer.get().require(Tracer.class).currentTransaction());
     }
-
 }

@@ -18,10 +18,5 @@
  */
 package co.elastic.apm.agent.tracer.dispatch;
 
-import javax.annotation.Nullable;
-
-public interface BinaryHeaderSetter<C> extends HeaderSetter<byte[], C> {
-
-    @Nullable
-    byte[] getFixedLengthByteArray(String headerName, int length);
+public interface UTF8ByteHeaderGetter<C> extends HeaderGetter<byte[], C> {
 }

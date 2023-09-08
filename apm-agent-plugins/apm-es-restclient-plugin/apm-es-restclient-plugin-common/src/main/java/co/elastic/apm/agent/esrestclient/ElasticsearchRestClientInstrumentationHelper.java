@@ -19,19 +19,19 @@
 package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.sdk.internal.util.IOUtils;
+import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.sdk.weakconcurrent.DetachedThreadLocal;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.pooling.ObjectPool;
-import co.elastic.apm.agent.sdk.internal.util.IOUtils;
-import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
+import co.elastic.apm.agent.tracer.pooling.ObjectPool;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;
@@ -43,7 +43,8 @@ import java.util.concurrent.CancellationException;
 
 public class ElasticsearchRestClientInstrumentationHelper {
 
-    private static final WeakMap<Object, ElasticsearchEndpointDefinition> requestEndpointMap = WeakConcurrent.buildMap();
+    private static final DetachedThreadLocal<ElasticsearchEndpointDefinition> currentRequestEndpoint = WeakConcurrent.buildThreadLocal();
+
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelper.class);
 
     private static final Logger unsupportedOperationOnceLogger = LoggerUtils.logOnce(logger);
@@ -76,29 +77,18 @@ public class ElasticsearchRestClientInstrumentationHelper {
         }
     }
 
-    public void registerEndpointId(Object requestObj, String endpointId) {
-        if (endpointId.startsWith("es/") && endpointId.length() > 3) {
-            endpointId = endpointId.substring(3);
-        }
-        ElasticsearchEndpointDefinition endpoint = ElasticsearchEndpointMap.get(endpointId);
-        if (endpoint != null) {
-            requestEndpointMap.put(requestObj, endpoint);
-        }
+    public void setCurrentEndpoint(String endpointId) {
+        currentRequestEndpoint.set(ElasticsearchEndpointMap.get(endpointId));
     }
 
-    @Nullable
-    public Span<?> createClientSpan(Object requestObj, String method, String httpPath, @Nullable HttpEntity httpEntity) {
-        ElasticsearchEndpointDefinition endpoint = requestEndpointMap.remove(requestObj);
-        return createClientSpan(method, httpPath, httpEntity, endpoint);
+    public void clearCurrentEndpoint() {
+        currentRequestEndpoint.remove();
     }
 
     @Nullable
     public Span<?> createClientSpan(String method, String httpPath, @Nullable HttpEntity httpEntity) {
-        return createClientSpan(method, httpPath, httpEntity, null);
-    }
+        ElasticsearchEndpointDefinition endpoint = currentRequestEndpoint.getAndRemove();
 
-    @Nullable
-    private Span<?> createClientSpan(String method, String httpPath, @Nullable HttpEntity httpEntity, @Nullable ElasticsearchEndpointDefinition endpoint) {
         Span<?> span = tracer.currentContext().createExitSpan();
 
         // Don't record nested spans. In 5.x clients the instrumented sync method is calling the instrumented async method

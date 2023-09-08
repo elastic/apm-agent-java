@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.loginstr.error;
 
-import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.tracer.ErrorCapture;
-import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.sdk.state.CallDepth;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import javax.annotation.Nullable;
 

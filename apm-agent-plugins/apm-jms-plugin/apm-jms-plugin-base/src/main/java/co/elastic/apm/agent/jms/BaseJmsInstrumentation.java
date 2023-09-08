@@ -23,6 +23,7 @@ import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.tracer.configuration.StacktraceConfiguration;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -33,20 +34,17 @@ import java.util.Collections;
 
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isInAnyPackage;
-import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
-import static net.bytebuddy.matcher.ElementMatchers.isPublic;
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
-import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
-import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
+import static net.bytebuddy.matcher.ElementMatchers.*;
 
 public abstract class BaseJmsInstrumentation extends ElasticApmInstrumentation {
 
     protected final MessagingConfiguration messagingConfiguration;
+    private final StacktraceConfiguration stacktraceConfiguration;
 
     protected BaseJmsInstrumentation() {
         Tracer tracer = GlobalTracer.get();
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
+        stacktraceConfiguration = tracer.getConfig(StacktraceConfiguration.class);
     }
 
     @Override
@@ -83,6 +81,11 @@ public abstract class BaseJmsInstrumentation extends ElasticApmInstrumentation {
             nameContains("$") // inner classes
                 .or(nameContains("Message"))
                 .or(nameContains("Listener"));
+
+        Collection<String> applicationPackages = stacktraceConfiguration.getApplicationPackages();
+        if (!applicationPackages.isEmpty()) {
+            nameHeuristic = nameHeuristic.or(isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>none()));
+        }
 
         Collection<String> listenerPackages = messagingConfiguration.getJmsListenerPackages();
         if (listenerPackages.isEmpty()) {

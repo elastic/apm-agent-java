@@ -26,14 +26,13 @@ import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import org.HdrHistogram.WriterReaderPhaser;
 
@@ -49,12 +48,11 @@ import static co.elastic.apm.agent.configuration.CoreConfiguration.TraceContinua
  */
 public class Transaction extends AbstractSpan<Transaction> implements co.elastic.apm.agent.tracer.Transaction<Transaction> {
 
-    private static final ThreadLocal<Labels.Mutable> labelsThreadLocal = new ThreadLocal<Labels.Mutable>() {
-        @Override
-        protected Labels.Mutable initialValue() {
-            return Labels.Mutable.of();
-        }
-    };
+    /**
+     * Mutable labels instance used when reporting transaction metrics.
+     * This is a field to prevent allocations.
+     */
+    private final Labels.Mutable labelsMutable = Labels.Mutable.of();
 
     /**
      * Context
@@ -134,7 +132,6 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
     }
 
     public <H, C> Transaction start(
-        TraceContext.HeaderChildContextCreator<H, C> childContextCreator,
         @Nullable C parent,
         HeaderGetter<H, C> headerGetter,
         long epochMicros,
@@ -144,13 +141,9 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         if (parent == null) {
             return startRoot(epochMicros, sampler, baseBaggage);
         }
-        if (headerGetter instanceof TextHeaderGetter) {
-            Baggage.Builder baggageBuilder = baseBaggage.toBuilder();
-            W3CBaggagePropagation.parse(parent, (TextHeaderGetter<C>) headerGetter, baggageBuilder);
-            this.baggage = baggageBuilder.build();
-        } else {
-            this.baggage = baseBaggage;
-        }
+        Baggage.Builder baggageBuilder = baseBaggage.toBuilder();
+        W3CBaggagePropagation.parse(parent, headerGetter, baggageBuilder);
+        this.baggage = baggageBuilder.build();
         CoreConfiguration.TraceContinuationStrategy traceContinuationStrategy = coreConfig.getTraceContinuationStrategy();
         boolean restartTrace = false;
         if (traceContinuationStrategy.equals(RESTART)) {
@@ -160,10 +153,10 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         }
         if (restartTrace) {
             // need to add a span link
-            addSpanLink(childContextCreator, headerGetter, parent);
+            addSpanLink(headerGetter, parent);
             traceContext.asRootSpan(sampler);
         } else {
-            boolean valid = childContextCreator.asChildOf(traceContext, parent, headerGetter);
+            boolean valid = traceContext.asChildOf(parent, headerGetter);
             if (!valid) {
                 traceContext.asRootSpan(sampler);
             }
@@ -507,9 +500,8 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
             if (type == null) {
                 return;
             }
-            final Labels.Mutable labels = labelsThreadLocal.get();
-            labels.resetState();
-            labels.serviceName(getTraceContext().getServiceName())
+            labelsMutable.resetState();
+            labelsMutable.serviceName(getTraceContext().getServiceName())
                 .serviceVersion(getTraceContext().getServiceVersion())
                 .transactionName(name)
                 .transactionType(type);
@@ -529,8 +521,8 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
                                 if (subtype.equals("")) {
                                     subtype = null;
                                 }
-                                labels.spanType(spanType).spanSubType(subtype);
-                                metricRegistry.updateTimer("span.self_time", labels, timer.getTotalTimeUs(), timer.getCount());
+                                labelsMutable.spanType(spanType).spanSubType(subtype);
+                                metricRegistry.updateTimer("span.self_time", labelsMutable, timer.getTotalTimeUs(), timer.getCount());
                                 timer.resetState();
                             }
                         }
