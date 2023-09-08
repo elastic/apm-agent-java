@@ -21,7 +21,7 @@ package co.elastic.apm.agent.logging;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.AutoDetectedServiceInfo;
+import co.elastic.apm.agent.configuration.AutoDetectedServiceInfo;
 import co.elastic.apm.agent.tracer.configuration.ByteValue;
 import co.elastic.apm.agent.report.ApmServerReporter;
 import org.apache.logging.log4j.Level;

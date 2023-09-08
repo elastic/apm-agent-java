@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.agent.impl.AutoDetectedServiceInfo;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.util.CustomEnvVariables;
 import org.junit.jupiter.api.Test;
@@ -33,7 +32,7 @@ import java.util.jar.Manifest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
-class ServiceInfoTest extends CustomEnvVariables {
+class AutoDetectedServiceInfoTest extends CustomEnvVariables {
 
     private static String getDefaultServiceName(@Nullable String sunJavaCommand) {
         Properties properties = new Properties();

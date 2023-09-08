@@ -20,8 +20,6 @@ package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.impl.AutoDetectedServiceInfo;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
@@ -33,7 +31,6 @@ import co.elastic.apm.agent.tracer.configuration.RoundedDoubleConverter;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
 import co.elastic.apm.agent.tracer.configuration.WildcardMatcherValueConverter;
-import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.AbstractValueConverter;
