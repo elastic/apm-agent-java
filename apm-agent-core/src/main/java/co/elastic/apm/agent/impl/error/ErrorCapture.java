@@ -147,6 +147,7 @@ public class ErrorCapture implements Recyclable, co.elastic.apm.agent.tracer.Err
         return this;
     }
 
+    @Override
     public TraceContext getTraceContext() {
         return traceContext;
     }
@@ -269,6 +270,7 @@ public class ErrorCapture implements Recyclable, co.elastic.apm.agent.tracer.Err
         transactionInfo.type = type;
     }
 
+    @Override
     public void end() {
         tracer.endError(this);
     }
