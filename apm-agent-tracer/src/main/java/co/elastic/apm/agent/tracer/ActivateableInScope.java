@@ -18,19 +18,12 @@
  */
 package co.elastic.apm.agent.tracer;
 
-public interface Activateable<T extends Activateable<T>> {
+public interface ActivateableInScope<T extends ActivateableInScope<T>> extends Activateable<T> {
 
     /**
-     * Makes this the active context.
+     * Activates context in a scope
      *
-     * @return this
+     * @return active scope that will deactivate context when closed
      */
-    T activate();
-
-    /**
-     * Deactivates the context previously activated via {@link #activate()}
-     *
-     * @return this
-     */
-    T deactivate();
+    Scope activateInScope();
 }
