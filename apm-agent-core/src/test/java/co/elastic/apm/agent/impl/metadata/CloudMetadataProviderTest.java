@@ -41,8 +41,8 @@ class CloudMetadataProviderTest {
         assertThat(gcpMetadata.getInstance().getId()).isEqualTo("4306570268266786072");
         assertThat(gcpMetadata.getInstance().getName()).isEqualTo("basepi-test");
         assertThat(gcpMetadata.getAccount()).isNull();
-        assertThat(gcpMetadata.getProject().getId()).isEqualTo("513326162531");
-        assertThat(gcpMetadata.getProject().getName()).isEqualTo("elastic-apm");
+        assertThat(gcpMetadata.getProject().getId()).isEqualTo("elastic-apm");
+        assertThat(gcpMetadata.getProject().getName()).isNull();
         assertThat(gcpMetadata.getMachine().getType()).isEqualTo("n1-standard-1");
     }
 

@@ -32,19 +32,20 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 === Unreleased
 
 [float]
-===== Bug fixes
-* Prevent bad serialization in edge cases for span compression - {pull}3293[#3293]
-* Allow overriding of transaction type for Servlet-API transactions - {pull}3226[#3226]
-* Fix micrometer histogram serialization - {pull}3290[#3290], {pull}3304[#3304]
-* Fix transactions not being correctly handled in certain edge cases - {pull}3294[#3294]
-
-[float]
 ===== Features
 * Add support for Elasticsearch client 8.9 - {pull}3283[#3283]
 * Added `baggage_to_attach` config option to allow automatic lifting of baggage into transaction, span and error attributes - {pull}3288[#3288], {pull}3289[#3289]
 * Exclude elasticsearch 8.10 and newer clients from instrumentation because they natively support OpenTelemetry  - {pull}3303[#3303]
 * Switched to OpenTelemetry compatible context propagation for Kafka - {pull}3300[#3300]
+* Changed `cloud.project.id` collected in Google Cloud (GCP) to be the `project-id` - {issues}3311[#3311]
 * Allow running the IntelliJ debug agent in parallel - {pull}3315[#3315]
+
+[float]
+===== Bug fixes
+* Prevent bad serialization in edge cases for span compression - {pull}3293[#3293]
+* Allow overriding of transaction type for Servlet-API transactions - {pull}3226[#3226]
+* Fix micrometer histogram serialization - {pull}3290[#3290], {pull}3304[#3304]
+* Fix transactions not being correctly handled in certain edge cases - {pull}3294[#3294]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
