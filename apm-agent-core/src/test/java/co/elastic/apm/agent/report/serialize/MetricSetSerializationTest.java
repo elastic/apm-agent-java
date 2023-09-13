@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
-import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricCollector;
 import co.elastic.apm.agent.metrics.MetricRegistry;

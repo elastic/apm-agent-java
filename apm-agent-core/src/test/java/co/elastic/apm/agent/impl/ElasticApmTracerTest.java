@@ -20,8 +20,9 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.AutoDetectedServiceInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.source.ConfigSources;
 import co.elastic.apm.agent.impl.baggage.Baggage;
@@ -619,7 +620,7 @@ class ElasticApmTracerTest {
 
         CoreConfiguration coreConfig = localConfig.getConfig(CoreConfiguration.class);
 
-        assertThat(ServiceInfo.autoDetect(System.getProperties(), System.getenv()))
+        assertThat(AutoDetectedServiceInfo.autoDetect(System.getProperties(), System.getenv()))
             .isEqualTo(ServiceInfo.of(coreConfig.getServiceName()));
 
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isNull();

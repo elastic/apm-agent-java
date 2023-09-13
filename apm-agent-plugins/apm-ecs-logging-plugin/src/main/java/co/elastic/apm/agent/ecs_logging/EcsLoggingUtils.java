@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.ecs_logging;
 
-import co.elastic.apm.agent.configuration.ServiceInfo;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.service.ServiceAwareTracer;
+import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
@@ -38,7 +38,7 @@ public class EcsLoggingUtils {
     private static final WeakSet<Object> versionChecked = WeakConcurrent.buildSet();
     private static final WeakSet<Object> environmentChecked = WeakConcurrent.buildSet();
 
-    private static final ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
+    private static final ServiceAwareTracer tracer = GlobalTracer.get().require(ServiceAwareTracer.class);
 
     @Nullable
     public static String getServiceName() {

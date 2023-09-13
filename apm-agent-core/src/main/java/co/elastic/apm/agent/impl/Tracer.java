@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.Sampler;
@@ -30,7 +30,7 @@ import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 
 import javax.annotation.Nullable;
 
-public interface Tracer extends co.elastic.apm.agent.tracer.Tracer {
+public interface Tracer extends co.elastic.apm.agent.tracer.service.ServiceAwareTracer, co.elastic.apm.agent.tracer.Tracer {
 
     @Nullable
     @Override
