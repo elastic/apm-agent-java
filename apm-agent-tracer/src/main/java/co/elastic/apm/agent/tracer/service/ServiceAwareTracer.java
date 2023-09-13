@@ -16,21 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.tracer;
+package co.elastic.apm.agent.tracer.service;
 
-public interface Activateable<T extends Activateable<T>> {
+import co.elastic.apm.agent.tracer.Tracer;
 
-    /**
-     * Makes this the active context.
-     *
-     * @return this
-     */
-    T activate();
+import javax.annotation.Nullable;
 
-    /**
-     * Deactivates the context previously activated via {@link #activate()}
-     *
-     * @return this
-     */
-    T deactivate();
+public interface ServiceAwareTracer extends Tracer {
+
+    @Nullable
+    ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader initiatingClassLoader);
+
+    void setServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo);
+
+    ServiceInfo autoDetectedServiceInfo();
 }

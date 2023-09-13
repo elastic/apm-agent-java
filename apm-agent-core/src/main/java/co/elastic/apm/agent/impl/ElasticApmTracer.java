@@ -22,10 +22,11 @@ import co.elastic.apm.agent.bci.IndyBootstrap;
 import co.elastic.apm.agent.collections.WeakReferenceCountedMap;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.AutoDetectedServiceInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
-import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
@@ -93,6 +94,7 @@ public class ElasticApmTracer implements Tracer {
     private static final WeakMap<ClassLoader, ServiceInfo> serviceInfoByClassLoader = WeakConcurrent.buildMap();
 
     private static final Map<Class<?>, Class<? extends ConfigurationOptionProvider>> configs = new HashMap<>();
+
     public static final Set<String> TRACE_HEADER_NAMES;
 
     static {
@@ -348,6 +350,12 @@ public class ElasticApmTracer implements Tracer {
         return currentContext().getTransaction();
     }
 
+    @Nullable
+    @Override
+    public ErrorCapture getActiveError() {
+        return ErrorCapture.getActive();
+    }
+
     /**
      * Starts a span with a given parent context.
      * <p>
@@ -419,6 +427,12 @@ public class ElasticApmTracer implements Tracer {
     @Nullable
     public ErrorCapture captureException(@Nullable Throwable e, ElasticContext<?> parentContext, @Nullable ClassLoader initiatingClassLoader) {
         return captureException(System.currentTimeMillis() * 1000, e, parentContext, initiatingClassLoader);
+    }
+
+    @Nullable
+    @Override
+    public ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader) {
+        return captureException(System.currentTimeMillis() * 1000, e, currentContext(), initiatingClassLoader);
     }
 
     @Nullable
@@ -960,5 +974,10 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public Set<String> getTraceHeaderNames() {
         return TRACE_HEADER_NAMES;
+    }
+
+    @Override
+    public ServiceInfo autoDetectedServiceInfo() {
+        return AutoDetectedServiceInfo.autoDetected();
     }
 }

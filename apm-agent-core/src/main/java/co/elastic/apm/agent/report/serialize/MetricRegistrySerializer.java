@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
-import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.metrics.Timer;

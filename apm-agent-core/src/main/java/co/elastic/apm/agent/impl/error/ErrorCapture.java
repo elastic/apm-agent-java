@@ -37,7 +37,7 @@ import java.util.Collection;
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
-public class ErrorCapture implements Recyclable {
+public class ErrorCapture implements Recyclable, co.elastic.apm.agent.tracer.ErrorCapture {
 
     private static final Logger logger = LoggerFactory.getLogger(ErrorCapture.class);
 
@@ -147,6 +147,7 @@ public class ErrorCapture implements Recyclable {
         return this;
     }
 
+    @Override
     public TraceContext getTraceContext() {
         return traceContext;
     }
@@ -199,11 +200,13 @@ public class ErrorCapture implements Recyclable {
         culprit.append(')');
     }
 
+    @Override
     public ErrorCapture activate() {
         activeError.set(this);
         return this;
     }
 
+    @Override
     public ErrorCapture deactivate() {
         activeError.remove();
         return this;
@@ -267,6 +270,7 @@ public class ErrorCapture implements Recyclable {
         transactionInfo.type = type;
     }
 
+    @Override
     public void end() {
         tracer.endError(this);
     }
