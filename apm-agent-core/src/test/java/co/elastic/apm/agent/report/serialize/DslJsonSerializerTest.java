@@ -41,6 +41,7 @@ import co.elastic.apm.agent.impl.metadata.Language;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
+import co.elastic.apm.agent.impl.metadata.Node;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
 import co.elastic.apm.agent.impl.metadata.Service;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
@@ -1313,6 +1314,45 @@ class DslJsonSerializerTest {
             assertThat(activationMethod.isTextual()).isTrue();
             assertThat(activationMethod.asText()).isEqualTo(expectedValue);
         }
+    }
+
+    @Test
+    void testMetaDataRefresh() throws Exception {
+        DslJsonSerializer serializer = new DslJsonSerializer(
+            mock(StacktraceConfiguration.class),
+            apmServerClient,
+            MetaDataMock.create(
+                mock(ProcessInfo.class),
+                new Service(),
+                mock(SystemInfo.class),
+                createCloudProviderInfo(),
+                Collections.emptyMap(),
+                createFaaSMetaDataExtension())
+        );
+
+        writer = serializer.newWriter();
+
+        writer.blockUntilReady();
+        writer.appendMetaDataNdJsonToStream();
+        JsonNode metaDataJson = readJsonString(writer.toString()).get("metadata");
+
+        assertThat(metaDataJson.get("service").get("node")).isNull();
+
+        serializer.onMetaDataRefresh(MetaDataMock.create(
+            mock(ProcessInfo.class),
+            new Service().withNode(new Node("test-service-name")),
+            mock(SystemInfo.class),
+            createCloudProviderInfo(),
+            Collections.emptyMap(),
+            createFaaSMetaDataExtension()));
+
+        writer.jw.reset();
+        writer.blockUntilReady();
+        writer.appendMetaDataNdJsonToStream();
+        metaDataJson = readJsonString(writer.toString()).get("metadata");
+
+        assertThat(metaDataJson.get("service").get("node").get("configured_name").asText())
+            .isEqualTo("test-service-name");
     }
 
     private MetaData createMetaData() throws Exception {
