@@ -580,6 +580,10 @@ Although there is no upper limit, note that a high number of distinct values per
 higher index sizes, and slower queries.
 Also, make sure the number of distinct tag keys is limited to avoid {ref}/mapping.html#mapping-limit-settings[mapping explosions].
 
+Depending on the meter type, some meters might be exported as multiple metrics to elasticsearch. The resulting fields are shown below for each meter type.
+Note that the <<config-disable-metrics, `disable_metrics`>> option operates on the original name of the metric, not on the generated fields.
+For that reason it is only possible to disable all fields of a given metric, not individual ones.
+
 *`Timer`*::
 +
 --
