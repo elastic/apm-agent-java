@@ -19,7 +19,7 @@ as the API could end up twice on the classpath.
 
 The consequence is that neither the API nor the agent can access each other's classes.
 
-That's why yhe API module (`apm-agent-api`) users declare a dependency on is implemented as a noop.
+That's why the API module (`apm-agent-api`) users declare a dependency on is implemented as a noop.
 
 
 If the agent is active (`-javaagent` JVM flag set),
