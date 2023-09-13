@@ -163,7 +163,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
             "NOTE: Service name auto discovery mechanisms require APM Server 7.0+.")
         .addValidator(RegexValidator.of("^[a-zA-Z0-9 _-]+$", "Your service name \"{0}\" must only contain characters " +
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
-        .buildWithDefault(ServiceInfo.autoDetected().getServiceName());
+        .buildWithDefault(AutoDetectedServiceInfo.autoDetected().getServiceName());
 
     private final ConfigurationOption<String> serviceNodeName = ConfigurationOption.stringOption()
         .key(SERVICE_NODE_NAME)
@@ -203,7 +203,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
             "the agent can auto-detect the service version based on the `Implementation-Title` attribute in `META-INF/MANIFEST.MF`.\n" +
             "See <<config-service-name>> on how to set this attribute.\n" +
             "\n")
-        .defaultValue(ServiceInfo.autoDetected().getServiceVersion())
+        .defaultValue(AutoDetectedServiceInfo.autoDetected().getServiceVersion())
         .build();
 
     private final ConfigurationOption<String> hostname = ConfigurationOption.stringOption()

@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.AbstractApiTest;
-import co.elastic.apm.agent.configuration.ServiceInfo;
+import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.api.AbstractSpanImplAccessor;
 import co.elastic.apm.api.ElasticApm;
