@@ -343,8 +343,7 @@ public class CloudMetadataProvider {
         if (projectData instanceof Map) {
             @SuppressWarnings("unchecked") Map<String, Object> projectMap = (Map<String, Object>) projectData;
             String projectId = projectMap.get("projectId") instanceof String ? (String) projectMap.get("projectId") : null;
-            Long numericProjectId = projectMap.get("numericProjectId") instanceof Long ? (Long) projectMap.get("numericProjectId") : null;
-            cloudProviderInfo.setProject(new NameAndIdField(projectId, numericProjectId));
+            cloudProviderInfo.setProject(new NameAndIdField(null, projectId));
         } else {
             logger.warn("Error while parsing GCP metadata - expecting the value of the 'project' entry to be a map but it is not");
         }
