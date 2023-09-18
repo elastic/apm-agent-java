@@ -39,7 +39,7 @@ export VAULT_TOKEN
 
 if [[ "${BUILDKITE_PIPELINE_NAME:?}" == "apm-agent-java-load-testing" ]]; then
   APP_TOKEN_TYPE=$(vault read -field=user secret/apm-team/ci/bandstand)
-  export APP_TOKEN
+  export APP_TOKEN_TYPE
   export APP_TOKEN_TYPE_SECRET="${APP_TOKEN_TYPE}" # This will mask the value in the logs
   APP_TOKEN=$(vault read -field=password secret/apm-team/ci/bandstand)
   export APP_TOKEN
