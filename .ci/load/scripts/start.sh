@@ -17,7 +17,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-set -euo pipefail
+set -euxo pipefail
 
 curl -s -X POST -H "Content-Type: application/json" -d \
 "{\"app_token\": \"${APP_TOKEN}\", \
