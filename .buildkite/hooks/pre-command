@@ -8,9 +8,8 @@
 
 set -eo pipefail
 
-echo "$BUILDKITE_COMMAND"
 if [[ "$BUILDKITE_COMMAND" =~ .*"upload".* ]]; then
-  echo "Skipped pre-command when running the Upload pipeline: ${BUILDKITE_COMMAND}"
+  echo "Skipped pre-command when running the pipeline upload command."
   exit 0
 fi
 
@@ -18,16 +17,12 @@ case ${BUILDKITE_PIPELINE_NAME} in
   "apm-agent-java-release" | "apm-agent-java-snapshot")
     . .buildkite/scripts/setup-release-snapshot-vault-secrets.sh
     . .buildkite/scripts/install-java.sh
+    .buildkite/script/setup-git.sh
   ;;
   "apm-agent-java-load-testing")
     . .buildkite/scripts/setup-load-testing-vault-secrets.sh
   ;;
   *)
-    echo "No vault setup required for ${BUILDKITE_PIPELINE_NAME}"
+    echo "Unhandled pipeline: ${BUILDKITE_PIPELINE_NAME}"
+    exit 1
 esac
-
-echo "--- Configure git context :git:"
-# Configure the committer since the maven release requires to push changes to GitHub
-# This will help with the SLSA requirements.
-git config --global user.email "infra-root+apmmachine@elastic.co"
-git config --global user.name "apmmachine"
