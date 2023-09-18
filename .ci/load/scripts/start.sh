@@ -19,10 +19,14 @@
 
 set -euxo pipefail
 
-curl -s -X POST -H "Content-Type: application/json" -d \
+response=$(curl -sS -X POST -H "Content-Type: application/json" -d \
 "{\"app_token\": \"${APP_TOKEN}\", \
 \"service\": \"application\", \
 \"hostname\": \"test_app\", \
 \"port\": \"999\"}" \
-"${ORCH_URL}/api/register" | jq -Mr '.session_created.session'
+"${ORCH_URL}/api/register")
+
+echo "${response}" >&2
+
+echo "${response}" | jq -Mr '.session_created.session'
 
