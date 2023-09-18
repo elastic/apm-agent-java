@@ -11,4 +11,4 @@ steps:
   - label: test
     command: |
       buildkite-agent env get SESSION_TOKEN
-      echo "${SESSION_TOKEN}"
+      echo "$${SESSION_TOKEN}"
