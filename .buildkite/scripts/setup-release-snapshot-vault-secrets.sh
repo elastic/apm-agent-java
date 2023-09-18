@@ -4,6 +4,8 @@
 #
 set -euo pipefail
 
+echo "--- Prepare vault context :vault:"
+
 VAULT_ROLE_ID_SECRET=$(vault read -field=role-id secret/ci/elastic-apm-agent-java/internal-ci-approle)
 export VAULT_ROLE_ID_SECRET
 

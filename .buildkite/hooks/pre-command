@@ -8,11 +8,10 @@
 
 set -eo pipefail
 
-echo "--- Prepare vault context :vault:"
-
 case ${BUILDKITE_PIPELINE_NAME} in
   "apm-agent-java-release" | "apm-agent-java-snapshot")
     . .buildkite/scripts/setup-release-snapshot-vault-secrets.sh
+    . .buildkite/scripts/install-java.sh
   ;;
   "apm-agent-java-load-testing")
     . .buildkite/scripts/setup-load-testing-vault-secrets.sh
@@ -26,18 +25,3 @@ echo "--- Configure git context :git:"
 # This will help with the SLSA requirements.
 git config --global user.email "infra-root+apmmachine@elastic.co"
 git config --global user.name "apmmachine"
-
-echo "--- Install JDK17 :java:"
-# JDK version is defined in two different locations, here and .github/workflows/maven-goal/action.yml
-JAVA_URL=https://jvm-catalog.elastic.co/jdk
-JAVA_HOME=$(pwd)/.openjdk17
-JAVA_PKG="$JAVA_URL/latest_openjdk_17_linux.tar.gz"
-curl -L --output /tmp/jdk.tar.gz "$JAVA_PKG"
-mkdir -p "$JAVA_HOME"
-tar --extract --file /tmp/jdk.tar.gz --directory "$JAVA_HOME" --strip-components 1
-
-export JAVA_HOME
-PATH=$JAVA_HOME/bin:$PATH
-export PATH
-
-java -version || true

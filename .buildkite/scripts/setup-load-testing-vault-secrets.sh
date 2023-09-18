@@ -4,6 +4,8 @@
 #
 set -euo pipefail
 
+echo "--- Prepare vault context :vault:"
+
 VAULT_ROLE_ID_SECRET=$(vault kv get -field=vault_role_id kv/ci-shared/observability-ci/apm-ci-approle)
 export VAULT_ROLE_ID_SECRET
 
