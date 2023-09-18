@@ -2,7 +2,7 @@ steps:
   - label: Pre-flight
     # https://badge.buildkite.com/docs/agent/v3/cli-env
     command: |
-      result=$$(.ci/load/scripts/start.sh)
+      session_token=$$(.ci/load/scripts/start.sh)
       buildkite-agent env set "SESSION_TOKEN=$${session_token}"
     env:
       ORCH_URL: "https://obs-load-orch.app.elstc.co"
