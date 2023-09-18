@@ -16,12 +16,16 @@ fi
 case ${BUILDKITE_PIPELINE_NAME} in
   "apm-agent-java-release" | "apm-agent-java-snapshot")
     . .buildkite/scripts/setup-release-snapshot-vault-secrets.sh
-    . .buildkite/scripts/install-java.sh
+    . .buildkite/scripts/setup-java.sh
     .buildkite/script/setup-git.sh
   ;;
   "apm-agent-java-load-testing")
     . .buildkite/scripts/setup-load-testing-vault-secrets.sh
-    . .buildkite/scripts/install-java.sh
+
+    if [[ ${BUILDKITE_STEP_KEY} == "build-agent" ]]; then
+      . .buildkite/scripts/setup-java.sh
+    fi
+
   ;;
   *)
     echo "Unhandled pipeline: ${BUILDKITE_PIPELINE_NAME}"
