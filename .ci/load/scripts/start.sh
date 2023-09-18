@@ -25,3 +25,4 @@ curl -s -X POST -H "Content-Type: application/json" -d \
 \"hostname\": \"test_app\", \
 \"port\": \"999\"}" \
 $ORCH_URL/api/register | jq -Mr '.session_created.session'
+

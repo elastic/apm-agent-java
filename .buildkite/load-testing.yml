@@ -5,6 +5,6 @@ steps:
       result=$(.ci/load/scripts/start.sh)
       buildkite-agent env set "SESSION_TOKEN=${result}"
     env:
-      ORCH_URL: "https://obs-load-orch.app.elstc.co'"
+      ORCH_URL: "https://obs-load-orch.app.elstc.co"
     artifact_paths:
       - ".ci/load/**"
