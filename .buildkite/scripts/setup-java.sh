@@ -9,7 +9,7 @@ echo "--- Install JDK17 :java:"
 JAVA_URL=https://jvm-catalog.elastic.co/jdk
 JAVA_HOME=$(pwd)/.openjdk17
 JAVA_PKG="$JAVA_URL/latest_openjdk_17_linux.tar.gz"
-curl -L --output /tmp/jdk.tar.gz "$JAVA_PKG"
+curl -sSL --output /tmp/jdk.tar.gz "$JAVA_PKG"
 mkdir -p "$JAVA_HOME"
 tar --extract --file /tmp/jdk.tar.gz --directory "$JAVA_HOME" --strip-components 1
 
