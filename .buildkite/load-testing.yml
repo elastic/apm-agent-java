@@ -3,7 +3,8 @@ steps:
     # https://badge.buildkite.com/docs/agent/v3/cli-env
     command: |            
       result=$(.ci/load/scripts/start.sh)
-      echo $result
-    #      buildkite-agent env set "SESSION_TOKEN=${result}"
+      buildkite-agent env set "SESSION_TOKEN=${result:?}"
+    env:
+      ORCH_URL: "https://obs-load-orch.app.elstc.co'"
     artifact_paths:
       - ".ci/load/**"
