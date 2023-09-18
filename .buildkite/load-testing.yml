@@ -22,9 +22,9 @@ steps:
       queue: observability-microbenchmarks
     command: .buildkite/scripts/build-agent.sh
 
-  - wait
-
   - label: Download agent
+    depends_on:
+      - build-agent
     agents:
       queue: observability-microbenchmarks
     command: |
