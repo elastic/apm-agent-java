@@ -21,3 +21,12 @@ steps:
     agents:
       queue: observability-microbenchmarks
     command: .buildkite/scripts/build-agent.sh
+
+  - wait
+
+  - label: Download agent
+    agents:
+      queue: observability-microbenchmarks
+    command: |
+      buildkite-agent artifact download "elastic-apm-agent.jar" .
+      ls -al
