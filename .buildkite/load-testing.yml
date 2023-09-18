@@ -24,7 +24,7 @@ steps:
       current_dir=$$(pwd)
       git clone "https://github.com/elastic/$${REPO}.git" "$${AGENT_BASE_DIR}"
       cd "$${AGENT_BASE_DIR}"
-      git checkout $${APM_VERSION}
+#      git checkout $${APM_VERSION}
       ./mvnw --batch-mode clean package -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.sources.skip=true
       cp -v $$(find ./elastic-apm-agent/target -name '*.jar' | grep -v sources | grep -v original | grep -v javadoc) "$${current_dir}/elastic-apm-agent.jar"
       buildkite-agent artifact upload "elastic-apm-agent.jar"
