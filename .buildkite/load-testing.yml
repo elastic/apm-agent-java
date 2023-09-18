@@ -1,7 +1,7 @@
 env:
   REPO: "apm-agent-java"
   AGENT_BASE_DIR: "src/apm-agent-java"
-  APM_VERSION: ${APM_VERSION:-"main"}
+  APM_VERSION: ${APM_VERSION:-main}
 
 steps:
   - label: Pre-flight
