@@ -61,13 +61,13 @@ fi
 if [[ "${BUILDKITE_PIPELINE_NAME:?}" == "apm-agent-java-load-testing" ]]; then
 
 
-  VAULT_ROLE_ID_SECRET=$(vault kv get -field=role-id kv/ci-shared/observability-ci/apm-ci-approle)
+  VAULT_ROLE_ID_SECRET=$(vault kv get -field=vault_role_id kv/ci-shared/observability-ci/apm-ci-approle)
   export VAULT_ROLE_ID_SECRET
 
-  VAULT_SECRET_ID_SECRET=$(vault kv get -field=secret-id kv/ci-shared/observability-ci/apm-ci-approle)
+  VAULT_SECRET_ID_SECRET=$(vault kv get -field=vault_secret_id kv/ci-shared/observability-ci/apm-ci-approle)
   export VAULT_SECRET_ID_SECRET
 
-  VAULT_ADDR=$(vault kv get -field=vault-url kv/ci-shared/observability-ci/apm-ci-approle)
+  VAULT_ADDR=$(vault kv get -field=vault_addr kv/ci-shared/observability-ci/apm-ci-approle)
   export VAULT_ADDR
 
   # Delete the vault specific accessing the ci vault
