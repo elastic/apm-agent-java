@@ -29,5 +29,5 @@ steps:
       queue: observability-microbenchmarks
     command: |
       buildkite-agent artifact search "*" -format "%p\n"
-      # buildkite-agent artifact download "elastic-apm-agent.jar" .
+      buildkite-agent artifact download "elastic-apm-agent.jar" .
       ls -al
