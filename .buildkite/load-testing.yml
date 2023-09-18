@@ -6,11 +6,12 @@ steps:
       buildkite-agent meta-data set "session-token" "$${session_token}"
     env:
       ORCH_URL: "https://obs-load-orch.app.elstc.co"
-    artifact_paths:
-      - ".ci/load/**"
+
   - wait
 
   - label: test
+    agents:
+      queue: observability-microbenchmarks
     command: |
       SESSION_TOKEN=$$(buildkite-agent meta-data get "session-token")
-      echo "$${SESSION_TOKEN}"
+      git checkout main
