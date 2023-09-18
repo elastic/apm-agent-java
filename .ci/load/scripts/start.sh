@@ -19,15 +19,9 @@
 
 set -euo pipefail
 
-response=$(curl -sS -X POST -H "Content-Type: application/json" -d \
+curl -sS -X POST -H "Content-Type: application/json" -d \
 "{\"app_token\": \"${APP_TOKEN}\", \
 \"service\": \"application\", \
 \"hostname\": \"test_app\", \
 \"port\": \"999\"}" \
-"${ORCH_URL}/api/register")
-session_token=$(echo "${response}" | jq -Mr '.session_created.session')
-if [[ -z "${BUILDKITE}" ]]; then
-  buildkite-agent env set "SESSION_TOKEN=${session_token}"
-fi
-echo "${session_token}"
-
+"${ORCH_URL}/api/register" | jq -Mr '.session_created.session'
