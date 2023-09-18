@@ -21,6 +21,8 @@ steps:
     agents:
       queue: observability-microbenchmarks
     command: .buildkite/scripts/build-agent.sh
+    artifact_paths:
+      - elastic-apm-agent.jar
 
   - label: Download agent
     depends_on:
