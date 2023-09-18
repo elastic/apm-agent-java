@@ -1,13 +1,4 @@
 steps:
-  - label: Setup env
-    command: |
-      APP_TOKEN_TYPE=$(vault read -field=user secret/apm-team/ci/bandstand)
-      APP_TOKEN_TYPE_SECRET="${APP_TOKEN_TYPE}" # This will mask the value in the logs
-      APP_TOKEN=$(vault read -field=password secret/apm-team/ci/bandstand)
-      buildkite-agent env set "APP_TOKEN_TYPE=${APP_TOKEN_TYPE}" "APP_TOKEN=${APP_TOKEN}"
-
-  - wait
-
   - label: Pre-flight
     # https://badge.buildkite.com/docs/agent/v3/cli-env
     command: |
