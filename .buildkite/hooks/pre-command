@@ -21,6 +21,7 @@ case ${BUILDKITE_PIPELINE_NAME} in
   ;;
   "apm-agent-java-load-testing")
     . .buildkite/scripts/setup-load-testing-vault-secrets.sh
+    . .buildkite/scripts/install-java.sh
   ;;
   *)
     echo "Unhandled pipeline: ${BUILDKITE_PIPELINE_NAME}"
