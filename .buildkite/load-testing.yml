@@ -1,11 +1,9 @@
 steps:
   - label: Pre-flight
     # https://badge.buildkite.com/docs/agent/v3/cli-env
-    command: |
-      
-      env | grep APP_TOKEN
-            
+    command: |            
       result=$(.ci/load/scripts/start.sh)
-      buildkite-agent env set "SESSION_TOKEN=${result}"
+      echo $result
+    #      buildkite-agent env set "SESSION_TOKEN=${result}"
     artifact_paths:
       - ".ci/load/**"
