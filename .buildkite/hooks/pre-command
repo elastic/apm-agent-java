@@ -8,10 +8,10 @@
 
 set -eo pipefail
 
-if [[ "$BUILDKITE_COMMAND" =~ .*"upload".* ]]; then
-  echo "Skipped pre-command when running the pipeline upload command."
-  exit 0
-fi
+#if [[ "$BUILDKITE_COMMAND" =~ .*"upload".* ]]; then
+#  echo "Skipped pre-command when running the pipeline upload command."
+#  exit 0
+#fi
 
 case ${BUILDKITE_PIPELINE_NAME} in
   "apm-agent-java-release" | "apm-agent-java-snapshot")
