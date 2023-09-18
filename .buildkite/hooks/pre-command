@@ -10,7 +10,7 @@ set -eo pipefail
 
 echo "$BUILDKITE_COMMAND"
 if [[ "$BUILDKITE_COMMAND" =~ .*"upload".* ]]; then
-  echo "Skipped pre-command when running the Upload pipeline"
+  echo "Skipped pre-command when running the Upload pipeline: ${BUILDKITE_COMMAND}"
   exit 0
 fi
 
