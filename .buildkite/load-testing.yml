@@ -6,3 +6,7 @@ steps:
       ORCH_URL: "https://obs-load-orch.app.elstc.co"
     artifact_paths:
       - ".ci/load/**"
+  - wait
+
+  - label: test
+    command: echo "${SESSION_TOKEN}"
