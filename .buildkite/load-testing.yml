@@ -12,14 +12,14 @@ steps:
     env:
       ORCH_URL: "https://obs-load-orch.app.elstc.co"
 
-  - wait
+#      SESSION_TOKEN=$$(buildkite-agent meta-data get "session-token")
 
+  - wait
   - label: Build agent
     agents:
       queue: observability-microbenchmarks
     command: |
       current_dir=$$(pwd)
-#      SESSION_TOKEN=$$(buildkite-agent meta-data get "session-token")
       git clone "https://github.com/elastic/$${REPO}.git" "$${AGENT_BASE_DIR}"
       cd "$${AGENT_BASE_DIR}"
       git checkout "$${APM_VERSION}"
