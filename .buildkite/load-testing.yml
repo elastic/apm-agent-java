@@ -1,10 +1,7 @@
 steps:
   - label: Pre-flight
     # https://badge.buildkite.com/docs/agent/v3/cli-env
-    command: |            
-      result=$(.ci/load/scripts/start.sh)
-      echo "${result}" | awk '{ print length }'
-      buildkite-agent env set "SESSION_TOKEN=${result}"
+    command: .ci/load/scripts/start.sh
     env:
       ORCH_URL: "https://obs-load-orch.app.elstc.co"
     artifact_paths:

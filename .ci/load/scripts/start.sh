@@ -17,7 +17,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-set -euxo pipefail
+set -euo pipefail
 
 response=$(curl -sS -X POST -H "Content-Type: application/json" -d \
 "{\"app_token\": \"${APP_TOKEN}\", \
@@ -25,8 +25,9 @@ response=$(curl -sS -X POST -H "Content-Type: application/json" -d \
 \"hostname\": \"test_app\", \
 \"port\": \"999\"}" \
 "${ORCH_URL}/api/register")
-
-echo "${response}" >&2
-
-echo "${response}" | jq -Mr '.session_created.session'
+session_token=$("${response}" | jq -Mr '.session_created.session')
+if [[ -z "${BUILDKITE}" ]]; then
+  buildkite-agent env set "SESSION_TOKEN=${session_token}"
+fi
+echo "${session_token}"
 
