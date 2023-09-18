@@ -3,7 +3,7 @@ steps:
     # https://badge.buildkite.com/docs/agent/v3/cli-env
     command: |
       session_token=$$(.ci/load/scripts/start.sh)
-      buildkite-agent env set "SESSION_TOKEN=$${session_token}"
+      buildkite-agent meta-data set "session-token" "$${session_token}"
     env:
       ORCH_URL: "https://obs-load-orch.app.elstc.co"
     artifact_paths:
@@ -12,5 +12,5 @@ steps:
 
   - label: test
     command: |
-      buildkite-agent env get SESSION_TOKEN
+      SESSION_TOKEN=$$(buildkite-agent meta-data get "session-token")
       echo "$${SESSION_TOKEN}"
