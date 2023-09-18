@@ -20,4 +20,4 @@ steps:
     key: build-agent
     agents:
       queue: observability-microbenchmarks
-    command: .ci/load/scripts/build-agent.sh
+    command: .buildkite/scripts/build-agent.sh
