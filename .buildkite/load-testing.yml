@@ -1,8 +1,10 @@
 env:
   REPO: "apm-agent-java"
   AGENT_BASE_DIR: "src/apm-agent-java"
+  APP: "spring-petclinic"
+  APP_BASE_DIR: "src/spring-petclinic"
   APM_VERSION: ${APM_VERSION:-main}
-
+  JVM_VERSION: ${JVM_VERSION:-adoptopenjdk-8u275-linux}
 steps:
   - label: Pre-flight
     # https://badge.buildkite.com/docs/agent/v3/cli-env
@@ -33,3 +35,8 @@ steps:
       buildkite-agent artifact search "*" -format "%p\n"
       buildkite-agent artifact download "elastic-apm-agent.jar" .
       ls -al
+
+  - label: Build test application
+    agents:
+      queue: observability-microbenchmarks
+    command: .buildkite/scripts/build-test-application.sh
