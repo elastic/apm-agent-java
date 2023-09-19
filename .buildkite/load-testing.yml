@@ -6,13 +6,14 @@ env:
   APM_VERSION: ${APM_VERSION:-main}
   JVM_VERSION: ${JVM_VERSION:-zulu-17.0.8.1-linux} # This needs to at least JDK 17, otherwise building the petclinic app will fail
 steps:
-  - label: Pre-flight
-    # https://badge.buildkite.com/docs/agent/v3/cli-env
-    command: |
-      session_token=$$(.ci/load/scripts/start.sh)
-      buildkite-agent meta-data set "session-token" "$${session_token}"
-    env:
-      ORCH_URL: "https://obs-load-orch.app.elstc.co"
+
+#  - label: Pre-flight
+#    # https://badge.buildkite.com/docs/agent/v3/cli-env
+#    command: |
+#      session_token=$$(.ci/load/scripts/start.sh)
+#      buildkite-agent meta-data set "session-token" "$${session_token}"
+#    env:
+#      ORCH_URL: "https://obs-load-orch.app.elstc.co"
 
 #      SESSION_TOKEN=$$(buildkite-agent meta-data get "session-token")
 
@@ -27,7 +28,7 @@ steps:
       - elastic-apm-agent.jar
     agents:
       cpu: "2"
-      memory: "2G"
+      memory: "4G"
 
   - label: Download agent
     depends_on:
