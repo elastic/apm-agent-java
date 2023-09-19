@@ -4,7 +4,7 @@ env:
   APP: "spring-petclinic"
   APP_BASE_DIR: "src/spring-petclinic"
   APM_VERSION: ${APM_VERSION:-main}
-  JVM_VERSION: ${JVM_VERSION:-adoptopenjdk-8u275-linux}
+  JVM_VERSION: ${JVM_VERSION:-zulu-17.0.8.1-linux}
 steps:
   - label: Pre-flight
     # https://badge.buildkite.com/docs/agent/v3/cli-env
