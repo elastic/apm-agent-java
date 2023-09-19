@@ -25,6 +25,8 @@ steps:
     command: .buildkite/scripts/build-agent.sh
     artifact_paths:
       - elastic-apm-agent.jar
+    agents:
+      memory: "2G"
 
   - label: Download agent
     depends_on:
