@@ -26,6 +26,7 @@ steps:
     artifact_paths:
       - elastic-apm-agent.jar
     agents:
+      cpu: "2"
       memory: "2G"
 
   - label: Download agent
