@@ -22,8 +22,8 @@ cd "${APP_BASE_DIR}"
 echo JAVA_HOME="${build_jdk_path}" java -version
 
 JAVA_HOME="${build_jdk_path}" ./mvnw --batch-mode clean package -DskipTests=true -Dcheckstyle.skip
-cp -v target/*."${binary_ext}" "${current_working_dir}"/app."${binary_ext}"
+cp -v target/*."${binary_ext}" "${current_working_dir}/app.${binary_ext}"
 
 cd -
 
-buildkite-agent artifact upload app."${binary_ext}"
+buildkite-agent artifact upload "app.${binary_ext}"
