@@ -47,6 +47,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 * Fix micrometer histogram serialization - {pull}3290[#3290], {pull}3304[#3304]
 * Fix transactions not being correctly handled in certain edge cases - {pull}3294[#3294]
 * Fixed JDBC instrumentation for DB2 - {pull}3313[#3313]
+* Fixed OpenTelemetry metrics export breaking when `instrument=false` is configured - {pull}3326[#3326]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
