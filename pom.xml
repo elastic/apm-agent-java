@@ -652,6 +652,11 @@
             <!-- ensures that we always rely on a single bytebuddy version -->
             <dependency>
                 <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy</artifactId>
+                <version>${version.byte-buddy}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy-agent</artifactId>
                 <version>${version.byte-buddy}</version>
             </dependency>
@@ -734,13 +739,6 @@
                     <artifactId>byte-buddy</artifactId> <!-- conflicts with byte-buddy-dep -->
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <!-- explicitly include byte-buddy-dep to replace byte-buddy dependency in tests for mockito and assertj-->
-            <groupId>net.bytebuddy</groupId>
-            <artifactId>byte-buddy-dep</artifactId>
-            <version>${version.byte-buddy}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <!-- adding this to classpath allows to keep default behavior of mockito 4.x where mock subclassing is used.  -->
