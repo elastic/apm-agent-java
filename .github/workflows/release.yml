@@ -79,6 +79,7 @@ jobs:
           git commit -m "Prepare changelog for release ${{ inputs.version }}" CHANGELOG.asciidoc
       - name: Bump version and add git tag
         run: ./mvnw release:prepare -B -DpushChanges=false "-Darguments=-DskipTests -Dmaven.javadoc.skip=true" -DreleaseVersion=${{ inputs.version }}
+      - run: git --no-pager log -n 1
       - run: git push --atomic origin ${{ inputs.branch }} ${{ env.TAG_NAME }}
 
 
@@ -144,6 +145,7 @@ jobs:
           ref: ${{ env.TAG_NAME }}
           token: ${{ env.GITHUB_TOKEN }}
       - run: .ci/release/update_major_branch.sh ${{ inputs.version }}
+      - run: git --no-pager log -n 1
       - run: git push -f origin "$(echo '${{ inputs.version }}' | sed -E 's/\..+/.x/')"
 
   update_cloudfoundry:
@@ -169,6 +171,7 @@ jobs:
       - name: "Update Cloudfoundry index.yml file"
         shell: bash
         run: .ci/release/update_cloudfoundry.sh ${{ inputs.version }}
+      - run: git --no-pager log -n 1
       - run: git push origin ${{ inputs.branch }}
 
 
