@@ -28,6 +28,12 @@
             <artifactId>hibernate-search-mapper-orm</artifactId>
             <version>${version.hibernate.search}</version>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>net.bytebuddy</groupId>
+                    <artifactId>byte-buddy</artifactId> <!-- conflicts with byte-buddy-dep -->
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
