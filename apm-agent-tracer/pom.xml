@@ -24,6 +24,13 @@
             <artifactId>apm-agent-common</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <!-- required for the inherited assertJ and Mockito dependencies-->
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy-dep</artifactId>
+            <version>${version.byte-buddy}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

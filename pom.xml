@@ -721,12 +721,24 @@
             <artifactId>assertj-core</artifactId>
             <version>3.24.2</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>net.bytebuddy</groupId>
+                    <artifactId>byte-buddy</artifactId> <!-- conflicts with byte-buddy-dep -->
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${version.mockito}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>net.bytebuddy</groupId>
+                    <artifactId>byte-buddy</artifactId> <!-- conflicts with byte-buddy-dep -->
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <!-- adding this to classpath allows to keep default behavior of mockito 4.x where mock subclassing is used.  -->
@@ -756,7 +768,7 @@
         <dependency>
             <groupId>net.javacrumbs.json-unit</groupId>
             <artifactId>json-unit-assertj</artifactId>
-            <version>2.37.0</version>
+            <version>3.2.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
