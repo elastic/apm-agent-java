@@ -86,7 +86,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
     }
 
     @Nullable
-    public Span<?> createClientSpan(String method, String httpPath, @Nullable HttpEntity httpEntity) {
+    public Span<?> createClientSpan(String method, String httpPath, @Nullable HttpEntity httpEntity, boolean isSync) {
         ElasticsearchEndpointDefinition endpoint = currentRequestEndpoint.getAndRemove();
 
         Span<?> span = tracer.currentContext().createExitSpan();
@@ -98,7 +98,8 @@ public class ElasticsearchRestClientInstrumentationHelper {
 
         span.withType(SPAN_TYPE)
             .withSubtype(ELASTICSEARCH)
-            .withAction(SPAN_ACTION);
+            .withAction(SPAN_ACTION)
+            .withSync(isSync);
 
         StringBuilder name = span.getAndOverrideName(AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK);
         if (endpoint != null) {

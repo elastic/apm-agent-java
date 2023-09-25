@@ -101,7 +101,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     protected EsSpanValidationBuilder validateSpan(Span spanToValidate) {
-        return new EsSpanValidationBuilder(spanToValidate);
+        return new EsSpanValidationBuilder(spanToValidate, async);
     }
 
     protected EsSpanValidationBuilder validateSpan() {
@@ -138,8 +138,11 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         @Nullable
         private String expectedHttpUrl = "http://" + container.getHttpHostAddress();
 
-        public EsSpanValidationBuilder(Span spanToValidate) {
+        private boolean isAsyncRequest;
+
+        public EsSpanValidationBuilder(Span spanToValidate, boolean isAsyncRequest) {
             this.span = spanToValidate;
+            this.isAsyncRequest = isAsyncRequest;
         }
 
         public EsSpanValidationBuilder expectNoStatement() {
@@ -221,6 +224,9 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
             checkDbContext();
             checkPathPartAttributes();
             checkDestinationContext();
+            if (isAsyncRequest) {
+                assertThat(span).isAsync();
+            }
         }
 
 
