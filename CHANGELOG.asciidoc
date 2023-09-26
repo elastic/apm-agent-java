@@ -31,6 +31,12 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.43.0]]
+==== 1.43.0 - 2023/09/26
+
 [float]
 ===== Features
 * Add support for Elasticsearch client 8.9 - {pull}3283[#3283]
@@ -48,9 +54,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 * Fix transactions not being correctly handled in certain edge cases - {pull}3294[#3294]
 * Fixed JDBC instrumentation for DB2 - {pull}3313[#3313]
 * Fixed OpenTelemetry metrics export breaking when `instrument=false` is configured - {pull}3326[#3326]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.42.0]]
 ==== 1.42.0 - 2023/08/11
