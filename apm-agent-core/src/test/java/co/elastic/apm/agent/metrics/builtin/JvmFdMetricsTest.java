@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.metrics.builtin;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -34,8 +35,7 @@ import static org.mockito.Mockito.spy;
 
 class JvmFdMetricsTest {
 
-    private final JvmFdMetrics jvmFdMetrics = new JvmFdMetrics();
-
+    private final JvmFdMetrics jvmFdMetrics = new JvmFdMetrics(mock(ElasticApmTracer.class));
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {

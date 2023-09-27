@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.context.InitializableLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ApmServerConfigurationSource extends AbstractConfigurationSource implements LifecycleListener {
+public class ApmServerConfigurationSource extends AbstractConfigurationSource implements InitializableLifecycleListener {
 
     // log correlation is enabled by default in Java agent, thus removing it from warnings
     private static final Set<String> IGNORED_REMOTE_KEYS = Collections.singleton("enable_log_correlation");
@@ -62,6 +62,9 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     private final byte[] buffer = new byte[4096];
     private final DslJsonSerializer.Writer payloadSerializer;
     private final ApmServerClient apmServerClient;
+
+    @Nullable
+    private ElasticApmTracer tracer;
     @Nullable
     private String etag;
     private volatile Map<String, String> config = Collections.emptyMap();
@@ -111,12 +114,12 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     }
 
     @Override
-    public void init(ElasticApmTracer tracer) throws Exception {
-        // noop
+    public void init(ElasticApmTracer tracer) {
+        this.tracer = tracer;
     }
 
     @Override
-    public void start(final ElasticApmTracer tracer) {
+    public void start() {
         threadPool = ExecutorUtils.createSingleThreadDaemonPool("remote-config-poller", 1);
         threadPool.execute(new Runnable() {
             @Override

@@ -16,27 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.context;
+package co.elastic.apm.agent.tracer.reporting;
 
-import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
-import co.elastic.apm.agent.tracer.LifecycleListener;
+import co.elastic.apm.agent.tracer.Tracer;
 
-import java.io.Closeable;
+import java.util.concurrent.ScheduledExecutorService;
 
-public class ClosableLifecycleListenerAdapter extends AbstractLifecycleListener {
+public interface ReportingTracer extends Tracer {
 
-    private final Closeable closeable;
-
-    public static LifecycleListener of(Closeable closeable) {
-        return new ClosableLifecycleListenerAdapter(closeable);
-    }
-
-    private ClosableLifecycleListenerAdapter(Closeable closeable) {
-        this.closeable = closeable;
-    }
-
-    @Override
-    public void stop() throws Exception {
-        closeable.close();
-    }
+    ScheduledExecutorService getSharedSingleThreadedPool();
 }

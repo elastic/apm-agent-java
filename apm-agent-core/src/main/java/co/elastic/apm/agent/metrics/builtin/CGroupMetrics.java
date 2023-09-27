@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
@@ -60,15 +60,17 @@ public class CGroupMetrics extends AbstractLifecycleListener {
 
     private static final Logger logger = LoggerFactory.getLogger(CGroupMetrics.class);
 
+    private final ElasticApmTracer tracer;
 
     @Nullable
     private final CgroupFiles cgroupFiles;
 
-    public CGroupMetrics() {
-        this(new File(PROC_SELF_CGROUP), new File(PROC_SELF_MOUNTINFO));
+    public CGroupMetrics(ElasticApmTracer tracer) {
+        this(tracer, new File(PROC_SELF_CGROUP), new File(PROC_SELF_MOUNTINFO));
     }
 
-    CGroupMetrics(File procSelfCgroup, File mountInfo) {
+    CGroupMetrics(ElasticApmTracer tracer, File procSelfCgroup, File mountInfo) {
+        this.tracer = tracer;
         cgroupFiles = findCgroupFiles(procSelfCgroup, mountInfo);
     }
 
@@ -213,7 +215,7 @@ public class CGroupMetrics extends AbstractLifecycleListener {
     }
 
     @Override
-    public void start(ElasticApmTracer tracer) {
+    public void start() {
         bindTo(tracer.getMetricRegistry());
     }
 

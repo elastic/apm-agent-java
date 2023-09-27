@@ -18,8 +18,9 @@
  */
 package co.elastic.apm.agent.configuration;
 
+import co.elastic.apm.agent.context.InitializableLifecycleListener;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.util.VersionUtils;
@@ -38,7 +39,7 @@ import java.util.List;
  * under Apache license 2.0.
  * </p>
  */
-public class StartupInfo extends AbstractLifecycleListener {
+public class StartupInfo extends AbstractLifecycleListener implements InitializableLifecycleListener {
 
     private static final Logger logger = LoggerFactory.getLogger(StartupInfo.class);
     private final String elasticApmVersion;

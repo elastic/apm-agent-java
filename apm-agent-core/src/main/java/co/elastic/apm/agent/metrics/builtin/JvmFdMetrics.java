@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
@@ -39,8 +39,14 @@ public class JvmFdMetrics extends AbstractLifecycleListener {
     private static final MethodHandle getOpenFileDescriptorCount = getMethodHandle("getOpenFileDescriptorCount");
     private static final MethodHandle getMaxFileDescriptorCount = getMethodHandle("getMaxFileDescriptorCount");
 
+    private final ElasticApmTracer tracer;
+
+    public JvmFdMetrics(ElasticApmTracer tracer) {
+        this.tracer = tracer;
+    }
+
     @Override
-    public void start(ElasticApmTracer tracer) {
+    public void start() {
         bindTo(tracer.getMetricRegistry());
     }
 

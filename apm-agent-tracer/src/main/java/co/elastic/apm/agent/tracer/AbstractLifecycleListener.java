@@ -16,27 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.context;
+package co.elastic.apm.agent.tracer;
 
-import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
-import co.elastic.apm.agent.tracer.LifecycleListener;
+public abstract class AbstractLifecycleListener implements LifecycleListener {
 
-import java.io.Closeable;
-
-public class ClosableLifecycleListenerAdapter extends AbstractLifecycleListener {
-
-    private final Closeable closeable;
-
-    public static LifecycleListener of(Closeable closeable) {
-        return new ClosableLifecycleListenerAdapter(closeable);
+    @Override
+    public void start() throws Exception {
     }
 
-    private ClosableLifecycleListenerAdapter(Closeable closeable) {
-        this.closeable = closeable;
+    @Override
+    public void pause() throws Exception {
+    }
+
+    @Override
+    public void resume() throws Exception {
     }
 
     @Override
     public void stop() throws Exception {
-        closeable.close();
     }
 }

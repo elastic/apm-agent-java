@@ -20,6 +20,7 @@ package co.elastic.apm.agent.metrics.builtin;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
@@ -49,6 +50,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 public class AgentOverheadMetricsTest {
@@ -65,7 +67,7 @@ public class AgentOverheadMetricsTest {
         spyReporterConfig = spy(ReporterConfiguration.class);
         spyMetricsConfig = spy(MetricsConfiguration.class);
 
-        overheadMetrics = new AgentOverheadMetrics();
+        overheadMetrics = new AgentOverheadMetrics(mock(ElasticApmTracer.class));
         metricRegistry = new MetricRegistry(spyReporterConfig, spyMetricsConfig);
     }
 
@@ -384,10 +386,11 @@ public class AgentOverheadMetricsTest {
     }
 
     private static void awaitNonZeroProcessCpuLoad() {
+        ElasticApmTracer tracer = mock(ElasticApmTracer.class);
         long start = System.nanoTime();
         Double load = null;
         while ((System.nanoTime() - start) < 5_000_000_000L) {
-            load = new AgentOverheadMetrics().getProcessCpuLoad();
+            load = new AgentOverheadMetrics(tracer).getProcessCpuLoad();
             if (load != null && load > 0.0) break;
         }
         assertThat(load).isGreaterThan(0.0);

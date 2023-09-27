@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import org.junit.jupiter.api.Test;
 
@@ -30,7 +31,7 @@ import static org.mockito.Mockito.verify;
 
 class JvmGcMetricsTest {
 
-    private final JvmGcMetrics jvmGcMetrics = new JvmGcMetrics();
+    private final JvmGcMetrics jvmGcMetrics = new JvmGcMetrics(mock(ElasticApmTracer.class));
     private MetricRegistry registry = mock(MetricRegistry.class);
 
     @Test

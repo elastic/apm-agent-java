@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.metrics.builtin;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -38,7 +39,7 @@ import static org.mockito.Mockito.spy;
 
 class JvmMemoryMetricsTest {
 
-    private final JvmMemoryMetrics jvmMemoryMetrics = new JvmMemoryMetrics();
+    private final JvmMemoryMetrics jvmMemoryMetrics = new JvmMemoryMetrics(mock(ElasticApmTracer.class));
 
     @Test
     void testMetrics() {

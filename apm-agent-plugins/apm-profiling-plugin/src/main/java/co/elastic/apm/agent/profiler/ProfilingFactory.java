@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.profiler;
 
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 
 public class ProfilingFactory extends AbstractLifecycleListener {
@@ -26,7 +26,10 @@ public class ProfilingFactory extends AbstractLifecycleListener {
     private final SamplingProfiler profiler;
     private final NanoClock nanoClock;
 
+    private final ElasticApmTracer tracer;
+
     public ProfilingFactory(ElasticApmTracer tracer) {
+        this.tracer = tracer;
         boolean envTest = false;
         // in unit tests, where assertions are enabled, this envTest is true
         assert envTest = true;
@@ -35,8 +38,8 @@ public class ProfilingFactory extends AbstractLifecycleListener {
     }
 
     @Override
-    public void start(ElasticApmTracer tracer) {
-        profiler.start(tracer);
+    public void start() {
+        profiler.start();
         tracer.registerSpanListener(new ProfilingActivationListener(tracer, profiler));
     }
 

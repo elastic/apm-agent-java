@@ -139,7 +139,7 @@ class SamplingProfilerTest {
 
         SamplingProfiler otherProfiler = new SamplingProfiler(tracer, new FixedNanoClock(), tempFile1.toFile(), tempFile2.toFile());
 
-        otherProfiler.start(tracer);
+        otherProfiler.start();
         awaitProfilerStarted(otherProfiler);
         otherProfiler.stop();
 

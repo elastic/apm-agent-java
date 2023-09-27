@@ -18,8 +18,9 @@
  */
 package co.elastic.apm.agent.logging;
 
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.context.InitializableLifecycleListener;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.logging.log4j2.EcsLayout;
@@ -100,13 +101,14 @@ public class ApmServerLogAppender extends AbstractAppender {
         sendLogEvent(event);
     }
 
-    public LifecycleListener getInitListener() {
-        return new AbstractLifecycleListener() {
+    public InitializableLifecycleListener getInitListener() {
+        class InitListener extends AbstractLifecycleListener implements InitializableLifecycleListener {
             @Override
-            public void init(ElasticApmTracer tracer) throws Exception {
+            public void init(ElasticApmTracer tracer) {
                 initStreaming(tracer.getConfig(LoggingConfiguration.class), tracer.getReporter());
             }
-        };
+        }
+        return new InitListener();
     }
 
     private void initStreaming(LoggingConfiguration config, Reporter reporter) {

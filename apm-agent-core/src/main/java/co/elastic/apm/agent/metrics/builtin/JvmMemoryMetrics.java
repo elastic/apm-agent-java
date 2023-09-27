@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
@@ -35,8 +35,14 @@ import java.util.List;
 public class JvmMemoryMetrics extends AbstractLifecycleListener {
     private static final Logger logger = LoggerFactory.getLogger(JvmMemoryMetrics.class);
 
+    private final ElasticApmTracer tracer;
+
+    public JvmMemoryMetrics(ElasticApmTracer tracer) {
+        this.tracer = tracer;
+    }
+
     @Override
-    public void start(ElasticApmTracer tracer) {
+    public void start() {
         bindTo(tracer.getMetricRegistry());
     }
 

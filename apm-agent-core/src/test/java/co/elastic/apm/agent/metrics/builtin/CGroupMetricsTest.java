@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.metrics.builtin;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -48,7 +49,9 @@ class CGroupMetricsTest {
         fw.write("39 30 0:35 / " + mountInfo.getAbsolutePath() + " rw,nosuid,nodev,noexec,relatime shared:10 - cgroup cgroup rw,seclabel,memory\n");
         fw.close();
 
-        return new CGroupMetrics(new File(getClass().getResource("/proc/cgroup").toURI()),
+        return new CGroupMetrics(
+            mock(ElasticApmTracer.class),
+            new File(getClass().getResource("/proc/cgroup").toURI()),
             fileTmp
         );
     }
@@ -73,7 +76,9 @@ class CGroupMetricsTest {
         }
         fw.close();
 
-        CGroupMetrics cgroupMetrics = new CGroupMetrics(new File(getClass().getResource(selfCGroup).toURI()),
+        CGroupMetrics cgroupMetrics = new CGroupMetrics(
+            mock(ElasticApmTracer.class),
+            new File(getClass().getResource(selfCGroup).toURI()),
             fileTmp
         );
         cgroupMetrics.bindTo(metricRegistry);

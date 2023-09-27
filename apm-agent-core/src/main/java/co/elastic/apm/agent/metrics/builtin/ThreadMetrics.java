@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
@@ -29,8 +29,14 @@ import java.lang.management.ThreadMXBean;
 
 public class ThreadMetrics extends AbstractLifecycleListener {
 
+    private final ElasticApmTracer tracer;
+
+    public ThreadMetrics(ElasticApmTracer tracer) {
+        this.tracer = tracer;
+    }
+
     @Override
-    public void start(ElasticApmTracer tracer) {
+    public void start() {
         bindTo(tracer.getMetricRegistry());
     }
 

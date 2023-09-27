@@ -26,7 +26,7 @@ import co.elastic.apm.agent.configuration.PrefixingConfigurationSourceWrapper;
 import co.elastic.apm.agent.configuration.source.ConfigSources;
 import co.elastic.apm.agent.configuration.source.SystemPropertyConfigurationSource;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.tracer.LifecycleListener;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;

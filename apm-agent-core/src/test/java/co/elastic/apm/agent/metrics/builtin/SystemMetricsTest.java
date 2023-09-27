@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.metrics.builtin;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -37,7 +38,7 @@ import static org.mockito.Mockito.spy;
 class SystemMetricsTest {
 
     private MetricRegistry metricRegistry = new MetricRegistry(mock(ReporterConfiguration.class), spy(MetricsConfiguration.class));
-    private SystemMetrics systemMetrics = new SystemMetrics();
+    private SystemMetrics systemMetrics = new SystemMetrics(mock(ElasticApmTracer.class));
 
     @Test
     @DisabledOnOs(OS.MAC)
@@ -59,7 +60,9 @@ class SystemMetricsTest {
         "/proc/meminfo-3.14, 556630016"
     })
     void testFreeMemoryMeminfo(String file, long value) throws Exception {
-        SystemMetrics systemMetrics = new SystemMetrics(new File(getClass().getResource(file).toURI()));
+        SystemMetrics systemMetrics = new SystemMetrics(
+            mock(ElasticApmTracer.class),
+            new File(getClass().getResource(file).toURI()));
         systemMetrics.bindTo(metricRegistry);
         assertThat(metricRegistry.getGaugeValue("system.memory.actual.free", Labels.EMPTY)).isEqualTo(value);
         assertThat(metricRegistry.getGaugeValue("system.memory.total", Labels.EMPTY)).isEqualTo(7964778496L);

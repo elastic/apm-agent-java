@@ -19,12 +19,13 @@
 package co.elastic.apm.agent.metrics.builtin;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricCollector;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricsProvider;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.util.ElasticThreadStateListener;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.JmxUtils;
@@ -77,6 +78,7 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
         }
     }
 
+    private final ElasticApmTracer tracer;
     private final ThreadMXBean threadBean;
     private final OperatingSystemMXBean osBean;
 
@@ -93,7 +95,8 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
 
     private final long processCpuTimeScalingFactor;
 
-    public AgentOverheadMetrics() {
+    public AgentOverheadMetrics(ElasticApmTracer tracer) {
+        this.tracer = tracer;
         osBean = ManagementFactory.getOperatingSystemMXBean();
         getProcessCpuLoad = JmxUtils.getOperatingSystemMBeanMethod(osBean, "getProcessCpuLoad");
         getProcessCpuTime = JmxUtils.getOperatingSystemMBeanMethod(osBean, "getProcessCpuTime");
@@ -113,7 +116,7 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
     }
 
     @Override
-    public void start(ElasticApmTracer tracer) throws Exception {
+    public void start() throws Exception {
         MetricRegistry metricRegistry = tracer.getMetricRegistry();
         MetricsConfiguration config = tracer.getConfig(MetricsConfiguration.class);
         bindTo(metricRegistry, config);

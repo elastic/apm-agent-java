@@ -18,12 +18,13 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.util.JmxUtils;
 import org.stagemonitor.util.StringUtils;
 
@@ -55,6 +56,8 @@ import static co.elastic.apm.agent.common.util.WildcardMatcher.caseSensitiveMatc
  */
 public class SystemMetrics extends AbstractLifecycleListener {
 
+    private final ElasticApmTracer tracer;
+
     private final OperatingSystemMXBean operatingSystemBean;
 
     @Nullable
@@ -73,11 +76,12 @@ public class SystemMetrics extends AbstractLifecycleListener {
     private final Method virtualProcessMemory;
     private final File memInfoFile;
 
-    public SystemMetrics() {
-        this(new File("/proc/meminfo"));
+    public SystemMetrics(ElasticApmTracer tracer) {
+        this(tracer, new File("/proc/meminfo"));
     }
 
-    SystemMetrics(File memInfoFile) {
+    SystemMetrics(ElasticApmTracer tracer, File memInfoFile) {
+        this.tracer = tracer;
         this.operatingSystemBean = ManagementFactory.getOperatingSystemMXBean();
         this.systemCpuUsage = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getSystemCpuLoad");
         this.processCpuUsage = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getProcessCpuLoad");
@@ -88,7 +92,7 @@ public class SystemMetrics extends AbstractLifecycleListener {
     }
 
     @Override
-    public void start(ElasticApmTracer tracer) {
+    public void start() {
         bindTo(tracer.getMetricRegistry());
     }
 

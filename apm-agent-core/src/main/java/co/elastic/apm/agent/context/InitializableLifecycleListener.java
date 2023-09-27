@@ -19,25 +19,15 @@
 package co.elastic.apm.agent.context;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.LifecycleListener;
 
-public abstract class AbstractLifecycleListener implements LifecycleListener {
-    @Override
-    public void init(ElasticApmTracer tracer) throws Exception {
-    }
+public interface InitializableLifecycleListener extends LifecycleListener {
 
-    @Override
-    public void start(ElasticApmTracer tracer) throws Exception {
-    }
-
-    @Override
-    public void pause() throws Exception {
-    }
-
-    @Override
-    public void resume() throws Exception {
-    }
-
-    @Override
-    public void stop() throws Exception {
-    }
+    /**
+     * Callback for tracer initialization. As opposed to {@link LifecycleListener#start()}, which may
+     * be called in a delay, this callback is called at the bootstrap of the JVM, before anything else start.
+     * This may be useful for listeners that need to operate very early on, for example such that setup class loading
+     * requirement to support OSGi systems.
+     */
+    void init(ElasticApmTracer tracer) throws Exception;
 }

@@ -30,7 +30,9 @@ import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 
 import javax.annotation.Nullable;
 
-public interface Tracer extends co.elastic.apm.agent.tracer.service.ServiceAwareTracer, co.elastic.apm.agent.tracer.Tracer {
+public interface Tracer extends co.elastic.apm.agent.tracer.Tracer,
+    co.elastic.apm.agent.tracer.reporting.ReportingTracer,
+    co.elastic.apm.agent.tracer.service.ServiceAwareTracer {
 
     @Nullable
     @Override

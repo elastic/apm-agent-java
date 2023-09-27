@@ -26,10 +26,11 @@ import co.elastic.apm.agent.configuration.AutoDetectedServiceInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.context.InitializableLifecycleListener;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.tracer.LifecycleListener;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -672,10 +673,12 @@ public class ElasticApmTracer implements Tracer {
     void init(List<LifecycleListener> lifecycleListeners) {
         this.lifecycleListeners.addAll(lifecycleListeners);
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
-            try {
-                lifecycleListener.init(this);
-            } catch (Exception e) {
-                logger.error("Failed to init " + lifecycleListener.getClass().getName(), e);
+            if (lifecycleListener instanceof InitializableLifecycleListener) {
+                try {
+                    ((InitializableLifecycleListener) lifecycleListener).init(this);
+                } catch (Exception e) {
+                    logger.error("Failed to init " + lifecycleListener.getClass().getName(), e);
+                }
             }
         }
     }
@@ -732,7 +735,7 @@ public class ElasticApmTracer implements Tracer {
         reporter.start();
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             try {
-                lifecycleListener.start(this);
+                lifecycleListener.start();
             } catch (Exception e) {
                 logger.error("Failed to start " + lifecycleListener.getClass().getName(), e);
             }
@@ -944,6 +947,7 @@ public class ElasticApmTracer implements Tracer {
         return metaDataFuture;
     }
 
+    @Override
     public ScheduledThreadPoolExecutor getSharedSingleThreadedPool() {
         return sharedPool;
     }
