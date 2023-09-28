@@ -86,13 +86,8 @@ public class DslJsonDataWriter implements DataWriter {
     }
 
     @Override
-    public void writeAscii(String value) {
-        jw.writeAscii(value);
-    }
-
-    @Override
-    public void writeString(CharSequence replaceBuilder) {
-        jw.writeString(replaceBuilder);
+    public void writeString(CharSequence value) {
+        jw.writeString(value);
     }
 
     @Override

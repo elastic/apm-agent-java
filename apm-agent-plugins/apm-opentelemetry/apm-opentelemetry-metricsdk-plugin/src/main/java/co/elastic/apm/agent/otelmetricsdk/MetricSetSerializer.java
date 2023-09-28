@@ -107,7 +107,8 @@ class MetricSetSerializer {
             serializeFieldKeyAscii("counts");
             convertAndSerializeHistogramBucketCounts(counts);
             writer.write(COMMA);
-            writer.writeAscii("\"type\":\"histogram\"");
+            writer.writeFieldName("type");
+            writer.writeString("histogram");
         }
         writer.write(OBJECT_END);
         anySamplesWritten = true;
@@ -172,10 +173,7 @@ class MetricSetSerializer {
     }
 
     private void serializeFieldKeyAscii(String fieldName) {
-        writer.write(QUOTE);
-        writer.writeAscii(fieldName);
-        writer.write(QUOTE);
-        writer.write(SEMI);
+        writer.writeFieldName(fieldName);
     }
 
     private void serializeAttributes(CharSequence instrumentationScopeName, Attributes attributes) {
@@ -187,7 +185,7 @@ class MetricSetSerializer {
         writer.write(OBJECT_START);
         boolean anyWritten = false;
         if (instrumentationScopeName.length() > 0) {
-            writer.writeAscii("\"otel_instrumentation_scope_name\":");
+            writer.writeFieldName("otel_instrumentation_scope_name");
             writer.writeString(instrumentationScopeName);
             anyWritten = true;
         }

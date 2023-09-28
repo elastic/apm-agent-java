@@ -30,9 +30,7 @@ public interface DataWriter {
 
     void serialize(double value);
 
-    void writeAscii(String value);
-
-    void writeString(CharSequence replaceBuilder);
+    void writeString(CharSequence value);
 
     void writeStringValue(CharSequence value, StringBuilder replaceBuilder);
 

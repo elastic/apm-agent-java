@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.micrometer;
 
+import co.elastic.apm.agent.report.serialize.DslJsonDataWriter;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -26,6 +27,8 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 import co.elastic.apm.agent.tracer.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.tracer.reporting.DataWriter;
 import co.elastic.apm.agent.tracer.reporting.ReportingTracer;
+import com.dslplatform.json.DslJson;
+import com.dslplatform.json.JsonWriter;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.FunctionCounter;
@@ -256,9 +259,7 @@ public class MicrometerMeterRegistrySerializer {
         }
         writer.write(ARRAY_END);
         writer.write(COMMA);
-        writer.write(QUOTE);
-        writer.writeAscii("counts");
-        writer.write(QUOTE);
+        writer.writeString("counts");
         writer.write(SEMI);
         writer.write(ARRAY_START);
         // Micrometer bucket counts are cumulative: E.g. the count at bucket with upper
@@ -277,7 +278,8 @@ public class MicrometerMeterRegistrySerializer {
         writer.write(ARRAY_END);
 
         writer.write(COMMA);
-        writer.writeAscii("\"type\":\"histogram\"");
+        writer.writeFieldName("type");
+        writer.writeString("histogram");
 
         writer.write(OBJECT_END);
     }
@@ -335,13 +337,20 @@ public class MicrometerMeterRegistrySerializer {
 
         writer.write(SEMI);
         writer.write(OBJECT_START);
-        writer.write(QUOTE);
-        writer.writeAscii(objectName);
-        writer.write(QUOTE);
-        writer.write(SEMI);
+        writer.writeFieldName(objectName);
     }
 
     private static boolean isValidValue(double value) {
         return !Double.isNaN(value) && !Double.isInfinite(value);
+    }
+
+    public static void main(String[] args) {
+        DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
+        JsonWriter jw = dslJson.newWriter(512);
+        jw.writeAscii("\"foo\"");
+        //jw.writeString("foo");
+        String string = jw.toString();
+        System.out.println(string);
+
     }
 }
