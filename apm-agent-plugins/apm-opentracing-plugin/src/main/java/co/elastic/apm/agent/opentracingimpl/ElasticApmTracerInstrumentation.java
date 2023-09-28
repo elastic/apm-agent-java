@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.opentracingimpl;
 
-import co.elastic.apm.agent.impl.Tracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -30,7 +29,7 @@ public class ElasticApmTracerInstrumentation extends OpenTracingBridgeInstrument
     public static class AdviceClass {
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void close() {
-            tracer.require(Tracer.class).stop();
+            tracer.stop();
         }
     }
 

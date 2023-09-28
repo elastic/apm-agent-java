@@ -39,8 +39,8 @@ import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
-import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
-import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.tracer.direct.ProbabilitySampler;
+import co.elastic.apm.agent.tracer.direct.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
@@ -305,6 +305,16 @@ public class ElasticApmTracer implements Tracer {
     @Nullable
     public <T, C> Transaction startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, @Nullable ClassLoader initiatingClassLoader, Baggage baseBaggage, long epochMicros) {
         return startChildTransaction(headerCarrier, headersGetter, sampler, epochMicros, initiatingClassLoader);
+    }
+
+    @Nullable
+    @Override
+    public <T, C> co.elastic.apm.agent.tracer.TraceContext startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> textHeadersGetter) {
+        TraceContext childTraceContext = TraceContext.with64BitId(this);
+        if (childTraceContext.asChildOf(headerCarrier, textHeadersGetter)) {
+            return childTraceContext;
+        }
+        return null;
     }
 
     @Override

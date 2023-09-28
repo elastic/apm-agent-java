@@ -37,4 +37,8 @@ public interface User {
      * The username of the logged in user
      */
     User withUsername(String userName);
+
+    User withId(String id);
+
+    User withEmail(String email);
 }

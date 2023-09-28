@@ -22,4 +22,6 @@ public interface Id {
     boolean isEmpty();
 
     void setToRandomValue();
+
+    long getLeastSignificantBits();
 }

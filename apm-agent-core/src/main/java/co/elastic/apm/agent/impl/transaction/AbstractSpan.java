@@ -29,6 +29,7 @@ import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.direct.AbstractDirectSpan;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
@@ -40,7 +41,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<T> implements Recyclable, co.elastic.apm.agent.tracer.AbstractSpan<T> {
+public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<T> implements Recyclable,
+    co.elastic.apm.agent.tracer.direct.AbstractDirectSpan<T>,
+    co.elastic.apm.agent.tracer.AbstractSpan<T> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
     private static final Logger oneTimeDuplicatedEndLogger = LoggerUtils.logOnce(logger);
     private static final Logger oneTimeMaxSpanLinksLogger = LoggerUtils.logOnce(logger);
@@ -518,18 +521,21 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
         return captureExceptionAndGetErrorId(getTraceContext().getClock().getEpochMicros(), t);
     }
 
+    @Override
     public void addLabel(String key, String value) {
         if (isSampled()) {
             getContext().addLabel(key, value);
         }
     }
 
+    @Override
     public void addLabel(String key, Number value) {
         if (isSampled()) {
             getContext().addLabel(key, value);
         }
     }
 
+    @Override
     public void addLabel(String key, Boolean value) {
         if (isSampled()) {
             getContext().addLabel(key, value);
@@ -557,6 +563,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
         end(traceContext.getClock().getEpochMicros());
     }
 
+    @Override
     public final void end(long epochMicros) {
         if (!finished) {
             this.endTimestamp.set(epochMicros);
@@ -791,5 +798,15 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
     @Override
     public <T, C> boolean addLink(HeaderGetter<T, C> headerGetter, @Nullable C carrier) {
         return addSpanLink(headerGetter, carrier);
+    }
+
+    @Override
+    public Span spanChild() {
+        return tracer.startSpan(TraceContext.fromParent(), this, baggage);
+    }
+
+    @Override
+    public Span spanChild(long microseconds) {
+        return tracer.startSpan(TraceContext.fromParent(), this, baggage, microseconds);
     }
 }

@@ -23,7 +23,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.Utf8HeaderMapAccessor;
 import co.elastic.apm.agent.impl.baggage.Baggage;
-import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.tracer.direct.ConstantSampler;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.tracer.Outcome;
 import org.junit.jupiter.api.BeforeEach;

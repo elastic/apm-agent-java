@@ -26,8 +26,8 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.Utf8HeaderMapAccessor;
-import co.elastic.apm.agent.impl.sampling.ConstantSampler;
-import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.tracer.direct.ConstantSampler;
+import co.elastic.apm.agent.tracer.direct.Sampler;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderSetter;
@@ -422,7 +422,6 @@ class TraceContextTest {
         Sampler sampler = mock(Sampler.class);
         doReturn(true).when(sampler).isSampled(any(Id.class));
         doReturn(sampleRate).when(sampler).getSampleRate();
-        doReturn(TraceState.getHeaderValue(sampleRate)).when(sampler).getTraceStateHeader();
 
         traceContext.asRootSpan(sampler);
         return traceContext;

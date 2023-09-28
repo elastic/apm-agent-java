@@ -151,6 +151,4 @@ public interface AbstractSpan<T extends AbstractSpan<T>> extends ActivateableInS
     void incrementReferences();
 
     void decrementReferences();
-
-
 }

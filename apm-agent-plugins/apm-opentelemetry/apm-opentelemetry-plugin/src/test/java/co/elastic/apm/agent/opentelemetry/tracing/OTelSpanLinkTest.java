@@ -20,7 +20,7 @@ package co.elastic.apm.agent.opentelemetry.tracing;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.tracer.direct.ConstantSampler;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.opentelemetry.global.ElasticOpenTelemetry;
 import io.opentelemetry.api.common.Attributes;

@@ -26,6 +26,7 @@ import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.context.Url;
+import co.elastic.apm.agent.tracer.direct.DirectSpan;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -38,7 +39,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.apm.agent.tracer.Span<Span> {
+public class Span extends AbstractSpan<Span> implements Recyclable,
+    co.elastic.apm.agent.tracer.Span<Span>,
+    co.elastic.apm.agent.tracer.direct.DirectSpan<Span> {
 
     private static final Logger logger = LoggerFactory.getLogger(Span.class);
     public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
@@ -177,6 +180,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.a
      * TODO: remove in 2.0 - no need for that once we decide to drop support for old agent usages
      */
     @Deprecated
+    @Override
     public void setType(@Nullable String type, @Nullable String subtype, @Nullable String action) {
         if (type != null && (subtype == null || subtype.isEmpty()) && (action == null || action.isEmpty())) {
             // hierarchical typing - pre 1.4; we need to split

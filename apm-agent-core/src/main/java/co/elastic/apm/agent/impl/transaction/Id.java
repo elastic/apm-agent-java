@@ -187,6 +187,7 @@ public class Id implements Recyclable, co.elastic.apm.agent.tracer.Id {
      * @see <a href="https://github.com/w3c/distributed-tracing/blob/master/trace_context/HTTP_HEADER_FORMAT.md#trace-id">W3C trace context spec</a>
      * @return the last 8 bytes of this id as a {@code long}
      */
+    @Override
     public long getLeastSignificantBits() {
         return readLong(data.length - 8);
     }

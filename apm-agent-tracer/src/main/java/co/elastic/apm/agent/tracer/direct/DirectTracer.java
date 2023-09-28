@@ -16,28 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.opentracingimpl;
+package co.elastic.apm.agent.tracer.direct;
 
-import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.TraceContext;
 import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.direct.DirectTracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 
-import java.util.Collection;
-import java.util.Collections;
+import javax.annotation.Nullable;
+import java.util.Map;
 
-public abstract class OpenTracingBridgeInstrumentation extends ElasticApmInstrumentation {
+public interface DirectTracer extends Tracer {
 
-    static final DirectTracer tracer = GlobalTracer.get().require(DirectTracer.class);
+    @Nullable
+    <T, C> TraceContext startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> textHeadersGetter);
 
-    @Override
-    public boolean includeWhenInstrumentationIsDisabled() {
-        return true;
-    }
+    @Nullable
+    <T, C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> textHeadersGetter, Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader);
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("opentracing");
-    }
+    AbstractSpan<?> noopTransaction();
 
+    Sampler getSampler();
+
+    void stop();
 }

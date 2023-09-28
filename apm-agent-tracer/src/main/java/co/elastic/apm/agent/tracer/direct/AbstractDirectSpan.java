@@ -16,28 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.opentracingimpl;
+package co.elastic.apm.agent.tracer.direct;
 
-import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.direct.DirectTracer;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 
-import java.util.Collection;
-import java.util.Collections;
+public interface AbstractDirectSpan<T extends AbstractDirectSpan<T>> extends AbstractSpan<T> {
 
-public abstract class OpenTracingBridgeInstrumentation extends ElasticApmInstrumentation {
+    DirectSpan<?> spanChild();
 
-    static final DirectTracer tracer = GlobalTracer.get().require(DirectTracer.class);
+    DirectSpan<?> spanChild(long epochMicros);
 
-    @Override
-    public boolean includeWhenInstrumentationIsDisabled() {
-        return true;
-    }
+    void end(long epochMicros);
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("opentracing");
-    }
+    void addLabel(String key, Number value);
 
+    void addLabel(String key, Boolean value);
+
+    void addLabel(String key, String value);
 }

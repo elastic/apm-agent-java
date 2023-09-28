@@ -16,14 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.sampling;
+package co.elastic.apm.agent.tracer.direct;
 
-import co.elastic.apm.agent.impl.transaction.Id;
-import co.elastic.apm.agent.impl.transaction.TraceState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -40,25 +36,10 @@ class ProbabilitySamplerTest {
         assertThat(sampler.getSampleRate()).isEqualTo(SAMPLING_RATE);
     }
 
-    @ParameterizedTest
-    @CsvSource({"0.0","1.0","0.5"})
-    void headerCaching(double rate) {
-
-        // will indirectly test ConstantSampler as we delegate to it for 0 and 1 values
-        sampler = ProbabilitySampler.of(rate);
-
-        String rateHeader = sampler.getTraceStateHeader();
-        assertThat(rateHeader).isEqualTo(TraceState.getHeaderValue(rate));
-
-        assertThat(rateHeader)
-            .describedAs("sample rate header should return same instance on each call")
-            .isSameAs(sampler.getTraceStateHeader());
-    }
-
     @Test
     void isSampledEmpiricalTest() {
         int sampledTransactions = 0;
-        Id id = Id.new128BitId();
+        TestId id = TestId.new128BitId();
         for (int i = 0; i < ITERATIONS; i++) {
             id.setToRandomValue();
             if (sampler.isSampled(id)) {
@@ -71,7 +52,7 @@ class ProbabilitySamplerTest {
     @Test
     void testSamplingUpperBoundary() {
         long upperBound = Long.MAX_VALUE / 2;
-        final Id transactionId = Id.new128BitId();
+        final TestId transactionId = TestId.new128BitId();
 
         transactionId.fromLongs((long) 0, upperBound - 1);
         assertThat(ProbabilitySampler.of(0.5).isSampled(transactionId)).isTrue();
@@ -86,7 +67,7 @@ class ProbabilitySamplerTest {
     @Test
     void testSamplingLowerBoundary() {
         long lowerBound = -Long.MAX_VALUE / 2;
-        final Id transactionId = Id.new128BitId();
+        final TestId transactionId = TestId.new128BitId();
 
         transactionId.fromLongs((long) 0, lowerBound + 1);
         assertThat(ProbabilitySampler.of(0.5).isSampled(transactionId)).isTrue();

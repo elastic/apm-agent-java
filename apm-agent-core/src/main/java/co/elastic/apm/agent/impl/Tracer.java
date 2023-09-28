@@ -21,7 +21,7 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.tracer.direct.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 
 public interface Tracer extends co.elastic.apm.agent.tracer.Tracer,
     co.elastic.apm.agent.tracer.reporting.ReportingTracer,
+    co.elastic.apm.agent.tracer.direct.DirectTracer,
     co.elastic.apm.agent.tracer.service.ServiceAwareTracer {
 
     @Nullable

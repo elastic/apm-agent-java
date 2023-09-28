@@ -21,7 +21,7 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.baggage.Baggage;
-import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.tracer.direct.Sampler;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
@@ -335,13 +335,22 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
         }
     }
 
+    private double cachedSampleRate = 0;
+    @Nullable
+    private String cachedHeader;
+
     public void asRootSpan(Sampler sampler) {
         traceId.setToRandomValue();
         id.setToRandomValue();
         transactionId.copyFrom(id);
         if (sampler.isSampled(traceId)) {
             flags = FLAG_RECORDED;
-            traceState.set(sampler.getSampleRate(), sampler.getTraceStateHeader());
+            double rate = sampler.getSampleRate();
+            if (cachedHeader == null || cachedSampleRate != rate) {
+                cachedSampleRate = rate;
+                cachedHeader = TraceState.getHeaderValue(rate);
+            }
+            traceState.set(rate, cachedHeader);
         }
         clock.init();
         onMutation();

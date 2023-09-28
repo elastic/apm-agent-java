@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.sampling;
+package co.elastic.apm.agent.tracer.direct;
 
-import co.elastic.apm.agent.impl.transaction.Id;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Id;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.Transaction;
 
 /**
  * A sampler is responsible for determining whether a {@link Transaction} should be sampled.
@@ -50,15 +50,4 @@ public interface Sampler {
      * @return current sample rate
      */
     double getSampleRate();
-
-
-    /**
-     * @return sample rate as (constant) header for context propagation
-     *
-     * <p>
-     * While the {@code tracestate} header is not related to sampler itself, putting this here allows to reuse the same
-     * {@link String} instance as long as the sample rate does not change to minimize allocation
-     * </p>
-     */
-    String getTraceStateHeader();
 }
