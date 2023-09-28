@@ -316,7 +316,11 @@ public class MicrometerMeterRegistrySerializer {
         } else {
             name = key + suffix;
         }
-        writer.writeKey(name, dedotMetricName);
+        if (suffix == null) {
+            writer.writeKey(name, dedotMetricName);
+        } else {
+            writer.writeKey(name, suffix, dedotMetricName);
+        }
         writer.writeStructure(OBJECT_START);
         writer.writeKey(objectName);
     }

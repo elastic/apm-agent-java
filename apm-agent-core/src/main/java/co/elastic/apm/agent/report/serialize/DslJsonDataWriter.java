@@ -24,6 +24,8 @@ import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
 
+import javax.annotation.Nullable;
+
 public class DslJsonDataWriter implements DataWriter {
 
     private final JsonWriter jw;
@@ -77,6 +79,24 @@ public class DslJsonDataWriter implements DataWriter {
         } else {
             writeKey(name);
         }
+    }
+
+    @Override
+    public void writeKey(CharSequence name, @Nullable String suffix, boolean sanitized) {
+        replaceBuilder.setLength(0);
+        if (sanitized) {
+            DslJsonSerializer.sanitizePropertyName(name.toString(), replaceBuilder);
+        } else {
+            replaceBuilder.append(name);
+        }
+        if (suffix != null) {
+            if (replaceBuilder.length() == 0) {
+                replaceBuilder.append(name);
+            }
+            replaceBuilder.append(suffix);
+        }
+        jw.writeString(replaceBuilder);
+        jw.writeByte(JsonWriter.SEMI);
     }
 
     @Override

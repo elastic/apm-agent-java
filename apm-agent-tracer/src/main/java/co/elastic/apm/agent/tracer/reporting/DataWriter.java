@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.tracer.reporting;
 
+import javax.annotation.Nullable;
+
 public interface DataWriter {
 
     void writeStructure(StructureType type);
@@ -25,6 +27,8 @@ public interface DataWriter {
     void writeKey(CharSequence name);
 
     void writeKey(CharSequence name, boolean sanitized);
+
+    void writeKey(CharSequence name, @Nullable String suffix, boolean sanitized);
 
     void writeValue(boolean value);
 
