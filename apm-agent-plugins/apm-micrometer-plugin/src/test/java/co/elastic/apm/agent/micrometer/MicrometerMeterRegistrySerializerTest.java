@@ -65,8 +65,8 @@ public class MicrometerMeterRegistrySerializerTest {
         when(tracer.newWriter(anyInt())).thenAnswer(new Answer<DataWriter>() {
             @Override
             public DataWriter answer(InvocationOnMock invocationOnMock) {
-                int size = invocationOnMock.getArgument(0);
-                return new DslJsonDataWriter(dslJson.newWriter(size), reporter);
+                int maxSerializedSize = invocationOnMock.getArgument(0);
+                return new DslJsonDataWriter(dslJson.newWriter(maxSerializedSize), reporter);
             }
         });
         serializer = new MicrometerMeterRegistrySerializer(config, tracer);

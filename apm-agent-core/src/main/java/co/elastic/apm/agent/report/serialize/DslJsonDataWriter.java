@@ -117,4 +117,9 @@ public class DslJsonDataWriter implements DataWriter {
     public void report() {
         reporter.reportMetrics(jw);
     }
+
+    @Override
+    public String toString() {
+        return jw.toString();
+    }
 }
