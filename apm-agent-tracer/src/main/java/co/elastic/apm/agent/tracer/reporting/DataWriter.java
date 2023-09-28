@@ -20,25 +20,23 @@ package co.elastic.apm.agent.tracer.reporting;
 
 public interface DataWriter {
 
-    void writeFieldName(String name);
+    void writeStructure(StructureType type);
 
-    void writeFieldName(String name, boolean sanitized);
+    void writeKey(CharSequence name);
 
-    void write(StructureType type);
+    void writeKey(CharSequence name, boolean sanitized);
 
-    void serialize(boolean value);
+    void writeValue(boolean value);
 
-    void serialize(long value);
+    void writeValue(long value);
 
-    void serialize(double value);
+    void writeValue(double value);
 
-    void writeString(CharSequence value);
+    void writeValue(CharSequence value);
 
-    void writeString(CharSequence value, boolean trimmed);
+    void writeValue(CharSequence value, boolean trimmed);
 
     int size();
-
-    String sanitizePropertyName(String key);
 
     void report();
 
@@ -47,9 +45,7 @@ public interface DataWriter {
         OBJECT_END,
         ARRAY_START,
         ARRAY_END,
-        COMMA,
-        SEMI,
-        QUOTE,
-        NEW_LINE
+        NEXT,
+        NEW
     }
 }

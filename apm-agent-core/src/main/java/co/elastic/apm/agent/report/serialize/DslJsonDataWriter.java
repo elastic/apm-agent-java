@@ -38,7 +38,7 @@ public class DslJsonDataWriter implements DataWriter {
     }
 
     @Override
-    public void write(StructureType type) {
+    public void writeStructure(StructureType type) {
         switch (type) {
             case OBJECT_START:
                 jw.writeByte(JsonWriter.OBJECT_START);
@@ -52,16 +52,10 @@ public class DslJsonDataWriter implements DataWriter {
             case ARRAY_END:
                 jw.writeByte(JsonWriter.ARRAY_END);
                 break;
-            case COMMA:
+            case NEXT:
                 jw.writeByte(JsonWriter.COMMA);
                 break;
-            case SEMI:
-                jw.writeByte(JsonWriter.SEMI);
-                break;
-            case QUOTE:
-                jw.writeByte(JsonWriter.QUOTE);
-                break;
-            case NEW_LINE:
+            case NEW:
                 jw.writeByte((byte) '\n');
                 break;
             default:
@@ -70,52 +64,48 @@ public class DslJsonDataWriter implements DataWriter {
     }
 
     @Override
-    public void writeFieldName(String name) {
-        DslJsonSerializer.writeFieldName(name, jw);
+    public void writeKey(CharSequence name) {
+        jw.writeString(name);
+        jw.writeByte(JsonWriter.SEMI);
     }
 
     @Override
-    public void writeFieldName(String name, boolean sanitized) {
+    public void writeKey(CharSequence name, boolean sanitized) {
         if (sanitized) {
-            DslJsonSerializer.writeStringValue(DslJsonSerializer.sanitizePropertyName(name, replaceBuilder), replaceBuilder, jw);
+            DslJsonSerializer.writeStringValue(DslJsonSerializer.sanitizePropertyName(name.toString(), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
         } else {
-            writeFieldName(name);
+            writeKey(name);
         }
     }
 
     @Override
-    public void serialize(boolean value) {
+    public void writeValue(boolean value) {
         BoolConverter.serialize(value, jw);
     }
 
     @Override
-    public void serialize(long value) {
+    public void writeValue(long value) {
         NumberConverter.serialize(value, jw);
     }
 
     @Override
-    public void serialize(double value) {
+    public void writeValue(double value) {
         NumberConverter.serialize(value, jw);
     }
 
     @Override
-    public void writeString(CharSequence value) {
+    public void writeValue(CharSequence value) {
         jw.writeString(value);
     }
 
     @Override
-    public void writeString(CharSequence value, boolean trimmed) {
+    public void writeValue(CharSequence value, boolean trimmed) {
         if (trimmed) {
             DslJsonSerializer.writeStringValue(value, replaceBuilder, jw);
         } else {
-            writeString(value);
+            writeValue(value);
         }
-    }
-
-    @Override
-    public String sanitizePropertyName(String key) {
-        return DslJsonSerializer.sanitizePropertyName(key, replaceBuilder).toString();
     }
 
     @Override

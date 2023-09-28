@@ -30,12 +30,10 @@ import java.util.Map;
 
 import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.ARRAY_END;
 import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.ARRAY_START;
-import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.COMMA;
-import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.NEW_LINE;
+import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.NEXT;
+import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.NEW;
 import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.OBJECT_END;
 import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.OBJECT_START;
-import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.QUOTE;
-import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.SEMI;
 
 class MetricSetSerializer {
 
@@ -47,17 +45,17 @@ class MetricSetSerializer {
     public MetricSetSerializer(ReportingTracer tracer, Attributes attributes, CharSequence instrumentationScopeName, long epochMicros) {
         anySamplesWritten = false;
         writer = tracer.newWriter(INITIAL_BUFFER_SIZE);
-        writer.write(OBJECT_START);
+        writer.writeStructure(OBJECT_START);
         {
-            writer.writeFieldName("metricset");
-            writer.write(OBJECT_START);
+            writer.writeKey("metricset");
+            writer.writeStructure(OBJECT_START);
             {
-                writer.writeFieldName("timestamp");
-                writer.serialize(epochMicros);
-                writer.write(COMMA);
+                writer.writeKey("timestamp");
+                writer.writeValue(epochMicros);
+                writer.writeStructure(NEXT);
                 serializeAttributes(instrumentationScopeName, attributes);
-                writer.writeFieldName("samples");
-                writer.write(OBJECT_START);
+                writer.writeKey("samples");
+                writer.writeStructure(OBJECT_START);
             }
         }
     }
@@ -72,19 +70,19 @@ class MetricSetSerializer {
 
     private void addValue(CharSequence metricName, boolean isDouble, long longVal, double doubleVal) {
         if (anySamplesWritten) {
-            writer.write(COMMA);
+            writer.writeStructure(NEXT);
         }
-        serializeFieldKey(metricName);
-        writer.write(OBJECT_START);
+        writer.writeKey(metricName);
+        writer.writeStructure(OBJECT_START);
         {
-            serializeFieldKeyAscii("value");
+            writer.writeKey("value");
             if (isDouble) {
-                writer.serialize(doubleVal);
+                writer.writeValue(doubleVal);
             } else {
-                writer.serialize(longVal);
+                writer.writeValue(longVal);
             }
         }
-        writer.write(OBJECT_END);
+        writer.writeStructure(OBJECT_END);
         anySamplesWritten = true;
     }
 
@@ -94,21 +92,21 @@ class MetricSetSerializer {
             return;
         }
         if (anySamplesWritten) {
-            writer.write(COMMA);
+            writer.writeStructure(NEXT);
         }
-        serializeFieldKey(metricName);
-        writer.write(OBJECT_START);
+        writer.writeKey(metricName);
+        writer.writeStructure(OBJECT_START);
         {
-            serializeFieldKeyAscii("values");
+            writer.writeKey("values");
             convertAndSerializeHistogramBucketBoundaries(boundaries, counts);
-            writer.write(COMMA);
-            serializeFieldKeyAscii("counts");
+            writer.writeStructure(NEXT);
+            writer.writeKey("counts");
             convertAndSerializeHistogramBucketCounts(counts);
-            writer.write(COMMA);
-            writer.writeFieldName("type");
-            writer.writeString("histogram");
+            writer.writeStructure(NEXT);
+            writer.writeKey("type");
+            writer.writeValue("histogram");
         }
-        writer.write(OBJECT_END);
+        writer.writeStructure(OBJECT_END);
         anySamplesWritten = true;
     }
 
@@ -122,29 +120,29 @@ class MetricSetSerializer {
     }
 
     private void convertAndSerializeHistogramBucketCounts(List<Long> counts) {
-        writer.write(ARRAY_START);
+        writer.writeStructure(ARRAY_START);
         boolean firstElement = true;
         for (long count : counts) {
             if (count != 0) {
                 if (!firstElement) {
-                    writer.write(COMMA);
+                    writer.writeStructure(NEXT);
                 }
                 firstElement = false;
-                writer.serialize(count);
+                writer.writeValue(count);
             }
         }
-        writer.write(ARRAY_END);
+        writer.writeStructure(ARRAY_END);
     }
 
     private void convertAndSerializeHistogramBucketBoundaries(List<Double> boundaries, List<Long> counts) {
-        writer.write(ARRAY_START);
+        writer.writeStructure(ARRAY_START);
         boolean firstElement = true;
         //Bucket boundary conversion algorithm is copied from APM server
         int bucketCount = counts.size();
         for (int i = 0; i < bucketCount; i++) {
             if (counts.get(i) != 0) {
                 if (!firstElement) {
-                    writer.write(COMMA);
+                    writer.writeStructure(NEXT);
                 }
                 firstElement = false;
                 if (i == 0) {
@@ -152,26 +150,17 @@ class MetricSetSerializer {
                     if (bounds > 0) {
                         bounds /= 2;
                     }
-                    writer.serialize(bounds);
+                    writer.writeValue(bounds);
                 } else if (i == bucketCount - 1) {
-                    writer.serialize(boundaries.get(bucketCount - 2));
+                    writer.writeValue(boundaries.get(bucketCount - 2));
                 } else {
                     double lower = boundaries.get(i - 1);
                     double upper = boundaries.get(i);
-                    writer.serialize(lower + (upper - lower) / 2);
+                    writer.writeValue(lower + (upper - lower) / 2);
                 }
             }
         }
-        writer.write(ARRAY_END);
-    }
-
-    private void serializeFieldKey(CharSequence fieldName) {
-        writer.writeString(fieldName);
-        writer.write(SEMI);
-    }
-
-    private void serializeFieldKeyAscii(String fieldName) {
-        writer.writeFieldName(fieldName);
+        writer.writeStructure(ARRAY_END);
     }
 
     private void serializeAttributes(CharSequence instrumentationScopeName, Attributes attributes) {
@@ -179,12 +168,12 @@ class MetricSetSerializer {
         if (attributeMap.isEmpty() && instrumentationScopeName.length() == 0) {
             return;
         }
-        writer.writeFieldName("tags");
-        writer.write(OBJECT_START);
+        writer.writeKey("tags");
+        writer.writeStructure(OBJECT_START);
         boolean anyWritten = false;
         if (instrumentationScopeName.length() > 0) {
-            writer.writeFieldName("otel_instrumentation_scope_name");
-            writer.writeString(instrumentationScopeName);
+            writer.writeKey("otel_instrumentation_scope_name");
+            writer.writeValue(instrumentationScopeName);
             anyWritten = true;
         }
         for (Map.Entry<AttributeKey<?>, Object> entry : attributeMap.entrySet()) {
@@ -192,30 +181,30 @@ class MetricSetSerializer {
             Object value = entry.getValue();
             anyWritten |= serializeAttribute(key, value, anyWritten);
         }
-        writer.write(OBJECT_END);
-        writer.write(COMMA);
+        writer.writeStructure(OBJECT_END);
+        writer.writeStructure(NEXT);
     }
 
     private boolean serializeAttribute(AttributeKey<?> key, @Nullable Object value, boolean prependComma) {
         if (isValidAttributeValue(key, value)) {
             if (prependComma) {
-                writer.write(COMMA);
+                writer.writeStructure(NEXT);
             }
-            writer.writeFieldName(key.getKey(), true);
+            writer.writeKey(key.getKey(), true);
 
             AttributeType type = key.getType();
             switch (type) {
                 case STRING:
-                    writer.writeString((CharSequence) value);
+                    writer.writeValue((CharSequence) value);
                     return true;
                 case BOOLEAN:
-                    writer.serialize((Boolean) value);
+                    writer.writeValue((Boolean) value);
                     return true;
                 case LONG:
-                    writer.serialize(((Number) value).longValue());
+                    writer.writeValue(((Number) value).longValue());
                     return true;
                 case DOUBLE:
-                    writer.serialize(((Number) value).doubleValue());
+                    writer.writeValue(((Number) value).doubleValue());
                     return true;
                 case STRING_ARRAY:
                 case BOOLEAN_ARRAY:
@@ -256,13 +245,13 @@ class MetricSetSerializer {
             {
                 /*"samples":*/
                 {
-                    writer.write(OBJECT_END);
+                    writer.writeStructure(OBJECT_END);
                 }
             }
-            writer.write(OBJECT_END);
+            writer.writeStructure(OBJECT_END);
         }
-        writer.write(OBJECT_END);
-        writer.write(NEW_LINE);
+        writer.writeStructure(OBJECT_END);
+        writer.writeStructure(NEW);
     }
 
     public void finishAndReport() {
