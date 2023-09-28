@@ -18,13 +18,14 @@
  */
 package co.elastic.apm.agent.otelmetricsdk;
 
-import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.reporting.ReportingTracer;
 import io.opentelemetry.sdk.metrics.SdkMeterProviderBuilder;
 import io.opentelemetry.sdk.metrics.export.MetricExporter;
@@ -53,6 +54,11 @@ public class SdkMeterProviderBuilderInstrumentation extends ElasticApmInstrument
     public Collection<String> getInstrumentationGroupNames() {
         //These groups need to be kept in sync with the if-condition in ElasticOpenTelemetryWithMetrics
         return Arrays.asList("opentelemetry", "opentelemetry-metrics", "experimental");
+    }
+
+    @Override
+    public final boolean includeWhenInstrumentationIsDisabled() {
+        return true;
     }
 
     @Override

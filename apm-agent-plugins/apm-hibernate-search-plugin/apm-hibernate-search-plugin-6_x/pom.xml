@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-hibernate-search-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.42.1-SNAPSHOT</version>
+        <version>1.43.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-hibernate-search-plugin-6_x</artifactId>
@@ -28,6 +28,12 @@
             <artifactId>hibernate-search-mapper-orm</artifactId>
             <version>${version.hibernate.search}</version>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>net.bytebuddy</groupId>
+                    <artifactId>byte-buddy</artifactId> <!-- conflicts with byte-buddy-dep -->
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>

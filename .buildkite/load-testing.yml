@@ -1,0 +1,4 @@
+# @reakaleek: This is a place holder to create the pipeline in Buildkite. I will work on it, in a follow-up.
+steps:
+  - label: ":wave: Greetings"            # Label (with rich emojis https://ela.st/bk-emoji).
+    command: "echo 'My first pipeline!'" # Command to run (evaluated by Bash).

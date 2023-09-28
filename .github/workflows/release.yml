@@ -86,7 +86,7 @@ jobs:
 
   maven_central_deploy:
     name: "Deploy to Maven Central (Buildkite)"
-    if: ${{ ! inputs.skip_maven_deploy }}
+    if: ${{ ! inputs.skip_maven_deploy && ( inputs.skip_preparation || success() ) }}
     runs-on: ubuntu-latest
     needs:
       - prepare_release

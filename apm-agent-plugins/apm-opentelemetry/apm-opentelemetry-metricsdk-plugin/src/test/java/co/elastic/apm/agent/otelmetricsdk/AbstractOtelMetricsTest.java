@@ -18,9 +18,14 @@
  */
 package co.elastic.apm.agent.otelmetricsdk;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.util.AtomicDouble;
 import io.opentelemetry.api.common.Attributes;
@@ -41,8 +46,13 @@ import io.opentelemetry.api.metrics.ObservableLongCounter;
 import io.opentelemetry.api.metrics.ObservableLongGauge;
 import io.opentelemetry.api.metrics.ObservableLongMeasurement;
 import io.opentelemetry.api.metrics.ObservableLongUpDownCounter;
+import net.bytebuddy.agent.ByteBuddyAgent;
+import org.junit.AfterClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.time.Instant;
@@ -63,7 +73,12 @@ import static io.opentelemetry.api.common.AttributeKey.stringArrayKey;
 import static io.opentelemetry.api.common.AttributeKey.stringKey;
 import static org.mockito.Mockito.doReturn;
 
-public abstract class AbstractOtelMetricsTest extends AbstractInstrumentationTest {
+public abstract class AbstractOtelMetricsTest {
+
+    protected static ElasticApmTracer tracer;
+    protected static MockReporter reporter;
+    protected static ConfigurationRegistry config;
+
 
     private ReporterConfiguration reporterConfig;
 
@@ -74,9 +89,32 @@ public abstract class AbstractOtelMetricsTest extends AbstractInstrumentationTes
     @Nullable
     private MeterProvider meterProvider;
 
+
+    @BeforeAll
+    public static synchronized void beforeAll() {
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
+        config = mockInstrumentationSetup.getConfig();
+        tracer = mockInstrumentationSetup.getTracer();
+        reporter = mockInstrumentationSetup.getReporter();
+
+        //Metrics export should work even with instrument=false
+        CoreConfiguration coreConfig = config.getConfig(CoreConfiguration.class);
+        doReturn(false).when(coreConfig).isInstrument();
+
+        assertThat(tracer.isRunning()).isTrue();
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+    }
+
+    @AfterAll
+    @AfterClass
+    public static synchronized void afterAll() {
+        ElasticApmAgent.reset();
+    }
+
     @BeforeEach
     public void setup() {
-        reporterConfig = tracer.getConfig(ReporterConfiguration.class);
+        SpyConfiguration.reset(config);
+        reporterConfig = config.getConfig(ReporterConfiguration.class);
         // we use explicit flush in tests instead of periodic reporting to prevent flakyness
         doReturn(1_000_000L).when(reporterConfig).getMetricsIntervalMs();
         meterProvider = null;

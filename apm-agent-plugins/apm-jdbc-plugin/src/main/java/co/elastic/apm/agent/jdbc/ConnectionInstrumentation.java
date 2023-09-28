@@ -57,7 +57,7 @@ public class ConnectionInstrumentation extends JdbcInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Connection");
+        return nameContains("Connection").or(nameStartsWith("com.ibm.db2.jcc")); //db2 doesn't have Connection in the name
     }
 
     @Override
