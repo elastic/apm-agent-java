@@ -26,8 +26,6 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 import co.elastic.apm.agent.tracer.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.tracer.reporting.DataWriter;
 import co.elastic.apm.agent.tracer.reporting.ReportingTracer;
-import com.dslplatform.json.DslJson;
-import com.dslplatform.json.JsonWriter;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.FunctionCounter;
@@ -325,15 +323,5 @@ public class MicrometerMeterRegistrySerializer {
 
     private static boolean isValidValue(double value) {
         return !Double.isNaN(value) && !Double.isInfinite(value);
-    }
-
-    public static void main(String[] args) {
-        DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
-        JsonWriter jw = dslJson.newWriter(512);
-        jw.writeAscii("\"foo\"");
-        //jw.writeString("foo");
-        String string = jw.toString();
-        System.out.println(string);
-
     }
 }
