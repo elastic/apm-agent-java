@@ -23,6 +23,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.reporting.ReportingTracer;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
@@ -88,7 +89,7 @@ class ConfigurationExporterTest {
     void setUp() {
         renderedDocumentationPath = Paths.get("../../docs/configuration.asciidoc");
         ElasticApmTracer tracer = mock(ElasticApmTracer.class);
-        doReturn(tracer).when(tracer).require(ElasticApmTracer.class);
+        doReturn(tracer).when(tracer).require(ReportingTracer.class);
         doReturn(Tracer.TracerState.UNINITIALIZED).when(tracer).getState();
         GlobalTracer.init(tracer);
         configurationRegistry = ConfigurationRegistry.builder()

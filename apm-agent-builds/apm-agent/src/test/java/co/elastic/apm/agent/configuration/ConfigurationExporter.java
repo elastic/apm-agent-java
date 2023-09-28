@@ -21,6 +21,7 @@ package co.elastic.apm.agent.configuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.tracer.reporting.ReportingTracer;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -38,7 +39,7 @@ public class ConfigurationExporter {
 
     public static void main(String[] args) throws Exception {
         ElasticApmTracer tracer = mock(ElasticApmTracer.class);
-        doReturn(tracer).when(tracer).require(ElasticApmTracer.class);
+        doReturn(tracer).when(tracer).require(ReportingTracer.class);
         doReturn(Tracer.TracerState.UNINITIALIZED).when(tracer).getState();
         GlobalTracer.init(tracer);
         try {
