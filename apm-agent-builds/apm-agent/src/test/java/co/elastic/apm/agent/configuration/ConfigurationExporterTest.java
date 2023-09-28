@@ -90,8 +90,7 @@ class ConfigurationExporterTest {
     void setUp() {
         renderedDocumentationPath = Paths.get("../../docs/configuration.asciidoc");
         ElasticApmTracer tracer = mock(ElasticApmTracer.class);
-        when(tracer.require(ReportingTracer.class)).thenReturn(tracer);
-        doReturn(tracer).when(tracer).require(ElasticApmTracer.class);
+        doReturn(tracer).when(tracer).require(ReportingTracer.class);
         doReturn(Tracer.TracerState.UNINITIALIZED).when(tracer).getState();
         GlobalTracer.init(tracer);
         configurationRegistry = ConfigurationRegistry.builder()
