@@ -876,6 +876,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
     }
 
     @Nullable
+    @Override
     public String getServiceNodeName() {
         String nodeName = serviceNodeName.get();
         if (nodeName == null || nodeName.trim().isEmpty()) {
@@ -889,6 +890,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
     }
 
     @Nullable
+    @Override
     public String getServiceVersion() {
         return serviceVersion.get();
     }
@@ -899,6 +901,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
     }
 
     @Nullable
+    @Override
     public String getEnvironment() {
         return environment.get();
     }

@@ -21,6 +21,8 @@ package co.elastic.apm.agent.metrics;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.tracer.reporting.DoubleSupplier;
+import co.elastic.apm.agent.tracer.reporting.Labels;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

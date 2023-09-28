@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
-import co.elastic.apm.agent.metrics.DoubleSupplier;
+import co.elastic.apm.agent.tracer.reporting.DoubleSupplier;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.metrics.Timer;
 import com.dslplatform.json.DslJson;

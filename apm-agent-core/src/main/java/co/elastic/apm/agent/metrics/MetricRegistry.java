@@ -23,6 +23,8 @@ import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.reporting.DoubleSupplier;
+import co.elastic.apm.agent.tracer.reporting.Labels;
 import org.HdrHistogram.WriterReaderPhaser;
 
 import javax.annotation.Nonnull;

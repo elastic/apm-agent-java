@@ -147,7 +147,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
 
     //run split up to have this available for testing
     void run(final long now) {
-        if (tracer.getState() != Tracer.TracerState.RUNNING) {
+        if (!tracer.isRunning()) {
             return;
         }
         long metricsIntervalMs = tracer.getConfig(ReporterConfiguration.class).getMetricsIntervalMs();

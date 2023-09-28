@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.tracer.configuration;
 
+import javax.annotation.Nullable;
+
 public interface ServerlessConfiguration {
 
     String getAwsLambdaHandler();
@@ -25,4 +27,7 @@ public interface ServerlessConfiguration {
     long getDataFlushTimeout();
 
     boolean runsOnAwsLambda();
+
+    @Nullable
+    String awsLambdaLogStreamName();
 }

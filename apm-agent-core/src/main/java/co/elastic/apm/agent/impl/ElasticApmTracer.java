@@ -27,6 +27,8 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.context.InitializableLifecycleListener;
+import co.elastic.apm.agent.tracer.reporting.DoubleSupplier;
+import co.elastic.apm.agent.tracer.reporting.Labels;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
@@ -948,10 +950,31 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @Override
+    public void addMetric(String name, Labels labels, DoubleSupplier metric) {
+        metricRegistry.add(name, labels, metric);
+    }
+
+    @Override
+    public void removeMetric(String name, Labels labels) {
+        metricRegistry.removeGauge(name, labels);
+    }
+
+    @Override
+    public void reportLog(String log) {
+        reporter.reportLog(log);
+    }
+
+    @Override
+    public void reportLog(byte[] log) {
+        reporter.reportLog(log);
+    }
+
+    @Override
     public ScheduledThreadPoolExecutor getSharedSingleThreadedPool() {
         return sharedPool;
     }
 
+    @Override
     public void addShutdownHook(Closeable closeable) {
         lifecycleListeners.add(ClosableLifecycleListenerAdapter.of(closeable));
     }

@@ -21,6 +21,7 @@ package co.elastic.apm.agent.tracer.configuration;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.ActivationMethod;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 
@@ -40,10 +41,13 @@ public interface CoreConfiguration {
 
     String getServiceName();
 
+    @Nullable
     String getServiceVersion();
 
+    @Nullable
     String getServiceNodeName();
 
+    @Nullable
     String getEnvironment();
 
     ActivationMethod getActivationMethod();

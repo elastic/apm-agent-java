@@ -22,10 +22,15 @@ import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
+import javax.annotation.Nullable;
+
 public class ServerlessConfiguration extends ConfigurationOptionProvider implements co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration {
     public static final String SERVERLESS_CATEGORY = "Serverless";
 
     private final boolean runsOnAwsLambda;
+
+    @Nullable
+    private final String awsLambdaLogStreamName = PrivilegedActionUtils.getEnv("AWS_LAMBDA_LOG_STREAM_NAME");
 
     public ServerlessConfiguration() {
         String lambdaName = PrivilegedActionUtils.getEnv("AWS_LAMBDA_FUNCTION_NAME");
@@ -65,4 +70,9 @@ public class ServerlessConfiguration extends ConfigurationOptionProvider impleme
         return runsOnAwsLambda;
     }
 
+    @Override
+    @Nullable
+    public String awsLambdaLogStreamName() {
+        return awsLambdaLogStreamName;
+    }
 }
