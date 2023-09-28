@@ -18,53 +18,48 @@
  */
 package co.elastic.apm.agent.otelmetricsdk;
 
-import co.elastic.apm.agent.report.Reporter;
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
-import com.dslplatform.json.BoolConverter;
-import com.dslplatform.json.DslJson;
-import com.dslplatform.json.JsonWriter;
-import com.dslplatform.json.Nullable;
-import com.dslplatform.json.NumberConverter;
+import co.elastic.apm.agent.tracer.reporting.DataWriter;
+import co.elastic.apm.agent.tracer.reporting.ReportingTracer;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.AttributeType;
 import io.opentelemetry.api.common.Attributes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
-import static com.dslplatform.json.JsonWriter.ARRAY_END;
-import static com.dslplatform.json.JsonWriter.ARRAY_START;
-import static com.dslplatform.json.JsonWriter.COMMA;
-import static com.dslplatform.json.JsonWriter.OBJECT_END;
-import static com.dslplatform.json.JsonWriter.OBJECT_START;
+import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.ARRAY_END;
+import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.ARRAY_START;
+import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.COMMA;
+import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.NEW_LINE;
+import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.OBJECT_END;
+import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.OBJECT_START;
+import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.QUOTE;
+import static co.elastic.apm.agent.tracer.reporting.DataWriter.StructureType.SEMI;
 
 class MetricSetSerializer {
 
-    private static final byte NEW_LINE = '\n';
-
     private static final int INITIAL_BUFFER_SIZE = 2048;
 
-    private static final DslJson<Object> DSL_JSON = new DslJson<>(new DslJson.Settings<>());
-
     private final StringBuilder replaceBuilder;
-    private final JsonWriter jw;
+    private final DataWriter writer;
     private boolean anySamplesWritten;
 
-    public MetricSetSerializer(Attributes attributes, CharSequence instrumentationScopeName, long epochMicros, StringBuilder replaceBuilder) {
+    public MetricSetSerializer(ReportingTracer tracer, Attributes attributes, CharSequence instrumentationScopeName, long epochMicros, StringBuilder replaceBuilder) {
         this.replaceBuilder = replaceBuilder;
         anySamplesWritten = false;
-        jw = DSL_JSON.newWriter(INITIAL_BUFFER_SIZE);
-        jw.writeByte(JsonWriter.OBJECT_START);
+        writer = tracer.newWriter(INITIAL_BUFFER_SIZE);
+        writer.write(OBJECT_START);
         {
-            DslJsonSerializer.writeFieldName("metricset", jw);
-            jw.writeByte(JsonWriter.OBJECT_START);
+            writer.writeFieldName("metricset");
+            writer.write(OBJECT_START);
             {
-                DslJsonSerializer.writeFieldName("timestamp", jw);
-                NumberConverter.serialize(epochMicros, jw);
-                jw.writeByte(JsonWriter.COMMA);
+                writer.writeFieldName("timestamp");
+                writer.serialize(epochMicros);
+                writer.write(COMMA);
                 serializeAttributes(instrumentationScopeName, attributes);
-                DslJsonSerializer.writeFieldName("samples", jw);
-                jw.writeByte(JsonWriter.OBJECT_START);
+                writer.writeFieldName("samples");
+                writer.write(OBJECT_START);
             }
         }
     }
@@ -79,19 +74,19 @@ class MetricSetSerializer {
 
     private void addValue(CharSequence metricName, boolean isDouble, long longVal, double doubleVal) {
         if (anySamplesWritten) {
-            jw.writeByte(COMMA);
+            writer.write(COMMA);
         }
         serializeFieldKey(metricName);
-        jw.writeByte(JsonWriter.OBJECT_START);
+        writer.write(OBJECT_START);
         {
             serializeFieldKeyAscii("value");
             if (isDouble) {
-                NumberConverter.serialize(doubleVal, jw);
+                writer.serialize(doubleVal);
             } else {
-                NumberConverter.serialize(longVal, jw);
+                writer.serialize(longVal);
             }
         }
-        jw.writeByte(JsonWriter.OBJECT_END);
+        writer.write(OBJECT_END);
         anySamplesWritten = true;
     }
 
@@ -101,20 +96,20 @@ class MetricSetSerializer {
             return;
         }
         if (anySamplesWritten) {
-            jw.writeByte(COMMA);
+            writer.write(COMMA);
         }
         serializeFieldKey(metricName);
-        jw.writeByte(JsonWriter.OBJECT_START);
+        writer.write(OBJECT_START);
         {
             serializeFieldKeyAscii("values");
             convertAndSerializeHistogramBucketBoundaries(boundaries, counts);
-            jw.writeByte(COMMA);
+            writer.write(COMMA);
             serializeFieldKeyAscii("counts");
             convertAndSerializeHistogramBucketCounts(counts);
-            jw.writeByte(COMMA);
-            jw.writeAscii("\"type\":\"histogram\"");
+            writer.write(COMMA);
+            writer.writeAscii("\"type\":\"histogram\"");
         }
-        jw.writeByte(JsonWriter.OBJECT_END);
+        writer.write(OBJECT_END);
         anySamplesWritten = true;
     }
 
@@ -128,29 +123,29 @@ class MetricSetSerializer {
     }
 
     private void convertAndSerializeHistogramBucketCounts(List<Long> counts) {
-        jw.writeByte(ARRAY_START);
+        writer.write(ARRAY_START);
         boolean firstElement = true;
         for (long count : counts) {
             if (count != 0) {
                 if (!firstElement) {
-                    jw.writeByte(COMMA);
+                    writer.write(COMMA);
                 }
                 firstElement = false;
-                NumberConverter.serialize(count, jw);
+                writer.serialize(count);
             }
         }
-        jw.writeByte(ARRAY_END);
+        writer.write(ARRAY_END);
     }
 
     private void convertAndSerializeHistogramBucketBoundaries(List<Double> boundaries, List<Long> counts) {
-        jw.writeByte(ARRAY_START);
+        writer.write(ARRAY_START);
         boolean firstElement = true;
         //Bucket boundary conversion algorithm is copied from APM server
         int bucketCount = counts.size();
         for (int i = 0; i < bucketCount; i++) {
             if (counts.get(i) != 0) {
                 if (!firstElement) {
-                    jw.writeByte(COMMA);
+                    writer.write(COMMA);
                 }
                 firstElement = false;
                 if (i == 0) {
@@ -158,29 +153,29 @@ class MetricSetSerializer {
                     if (bounds > 0) {
                         bounds /= 2;
                     }
-                    NumberConverter.serialize(bounds, jw);
+                    writer.serialize(bounds);
                 } else if (i == bucketCount - 1) {
-                    NumberConverter.serialize(boundaries.get(bucketCount - 2), jw);
+                    writer.serialize(boundaries.get(bucketCount - 2));
                 } else {
                     double lower = boundaries.get(i - 1);
                     double upper = boundaries.get(i);
-                    NumberConverter.serialize(lower + (upper - lower) / 2, jw);
+                    writer.serialize(lower + (upper - lower) / 2);
                 }
             }
         }
-        jw.writeByte(ARRAY_END);
+        writer.write(ARRAY_END);
     }
 
     private void serializeFieldKey(CharSequence fieldName) {
-        jw.writeString(fieldName);
-        jw.writeByte(JsonWriter.SEMI);
+        writer.writeString(fieldName);
+        writer.write(SEMI);
     }
 
     private void serializeFieldKeyAscii(String fieldName) {
-        jw.writeByte(JsonWriter.QUOTE);
-        jw.writeAscii(fieldName);
-        jw.writeByte(JsonWriter.QUOTE);
-        jw.writeByte(JsonWriter.SEMI);
+        writer.write(QUOTE);
+        writer.writeAscii(fieldName);
+        writer.write(QUOTE);
+        writer.write(SEMI);
     }
 
     private void serializeAttributes(CharSequence instrumentationScopeName, Attributes attributes) {
@@ -188,12 +183,12 @@ class MetricSetSerializer {
         if (attributeMap.isEmpty() && instrumentationScopeName.length() == 0) {
             return;
         }
-        DslJsonSerializer.writeFieldName("tags", jw);
-        jw.writeByte(OBJECT_START);
+        writer.writeFieldName("tags");
+        writer.write(OBJECT_START);
         boolean anyWritten = false;
         if (instrumentationScopeName.length() > 0) {
-            jw.writeAscii("\"otel_instrumentation_scope_name\":");
-            jw.writeString(instrumentationScopeName);
+            writer.writeAscii("\"otel_instrumentation_scope_name\":");
+            writer.writeString(instrumentationScopeName);
             anyWritten = true;
         }
         for (Map.Entry<AttributeKey<?>, Object> entry : attributeMap.entrySet()) {
@@ -201,31 +196,31 @@ class MetricSetSerializer {
             Object value = entry.getValue();
             anyWritten |= serializeAttribute(key, value, anyWritten);
         }
-        jw.writeByte(OBJECT_END);
-        jw.writeByte(COMMA);
+        writer.write(OBJECT_END);
+        writer.write(COMMA);
     }
 
     private boolean serializeAttribute(AttributeKey<?> key, @Nullable Object value, boolean prependComma) {
         if (isValidAttributeValue(key, value)) {
             if (prependComma) {
-                jw.writeByte(COMMA);
+                writer.write(COMMA);
             }
-            DslJsonSerializer.writeStringValue(DslJsonSerializer.sanitizePropertyName(key.getKey(), replaceBuilder), replaceBuilder, jw);
-            jw.writeByte(JsonWriter.SEMI);
+            writer.writeStringValue(writer.sanitizePropertyName(key.getKey(), replaceBuilder), replaceBuilder);
+            writer.write(SEMI);
 
             AttributeType type = key.getType();
             switch (type) {
                 case STRING:
-                    jw.writeString((CharSequence) value);
+                    writer.writeString((CharSequence) value);
                     return true;
                 case BOOLEAN:
-                    BoolConverter.serialize((Boolean) value, jw);
+                    writer.serialize((Boolean) value);
                     return true;
                 case LONG:
-                    NumberConverter.serialize(((Number) value).longValue(), jw);
+                    writer.serialize(((Number) value).longValue());
                     return true;
                 case DOUBLE:
-                    NumberConverter.serialize(((Number) value).doubleValue(), jw);
+                    writer.serialize(((Number) value).doubleValue());
                     return true;
                 case STRING_ARRAY:
                 case BOOLEAN_ARRAY:
@@ -266,19 +261,19 @@ class MetricSetSerializer {
             {
                 /*"samples":*/
                 {
-                    jw.writeByte(JsonWriter.OBJECT_END);
+                    writer.write(OBJECT_END);
                 }
             }
-            jw.writeByte(JsonWriter.OBJECT_END);
+            writer.write(OBJECT_END);
         }
-        jw.writeByte(JsonWriter.OBJECT_END);
-        jw.writeByte(NEW_LINE);
+        writer.write(OBJECT_END);
+        writer.write(NEW_LINE);
     }
 
-    public void finishAndReport(Reporter reporter) {
+    public void finishAndReport() {
         if (anySamplesWritten) {
             serializeMetricSetEnd();
-            reporter.reportMetrics(jw);
+            writer.report();
         }
     }
 }

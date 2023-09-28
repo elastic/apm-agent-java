@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.otelmetricsdk;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.configuration.ReporterConfiguration;
+import co.elastic.apm.agent.tracer.reporting.ReportingTracer;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.data.Data;
@@ -43,6 +43,7 @@ public class OtelMetricSerializer {
 
     private static final Logger logger = LoggerFactory.getLogger(OtelMetricSerializer.class);
     private final ReporterConfiguration reporterConfig;
+    private final ReportingTracer tracer;
     private final StringBuilder serializationTempBuilder;
 
     private final Set<String> metricsWithBadAggregations = Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -52,8 +53,9 @@ public class OtelMetricSerializer {
     @Nullable
     private InstrumentationScopeAndTimestamp lastCreatedInstrScopeAndTimestamp;
 
-    public OtelMetricSerializer(ReporterConfiguration reporterConfig) {
+    public OtelMetricSerializer(ReporterConfiguration reporterConfig, ReportingTracer tracer) {
         this.reporterConfig = reporterConfig;
+        this.tracer = tracer;
         metricSets = new HashMap<>();
         serializationTempBuilder = new StringBuilder();
     }
@@ -150,16 +152,16 @@ public class OtelMetricSerializer {
 
         MetricSetSerializer ms = timestampMetricSets.get(attributes);
         if (ms == null) {
-            ms = new MetricSetSerializer(attributes, key.instrumentationScopeName, key.timestamp, serializationTempBuilder);
+            ms = new MetricSetSerializer(tracer, attributes, key.instrumentationScopeName, key.timestamp, serializationTempBuilder);
             timestampMetricSets.put(attributes, ms);
         }
         return ms;
     }
 
-    public void flushAndReset(Reporter reporter) {
+    public void flushAndReset() {
         for (Map<?, MetricSetSerializer> map : metricSets.values()) {
             for (MetricSetSerializer metricSet : map.values()) {
-                metricSet.finishAndReport(reporter);
+                metricSet.finishAndReport();
             }
         }
         metricSets.clear();

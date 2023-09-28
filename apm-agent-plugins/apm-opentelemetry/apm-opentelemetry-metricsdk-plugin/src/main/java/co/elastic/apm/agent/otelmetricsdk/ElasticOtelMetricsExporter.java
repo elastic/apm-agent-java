@@ -18,13 +18,12 @@
  */
 package co.elastic.apm.agent.otelmetricsdk;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.internal.util.ExecutorUtils;
 import co.elastic.apm.agent.tracer.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.tracer.configuration.ReporterConfiguration;
+import co.elastic.apm.agent.tracer.reporting.ReportingTracer;
 import io.opentelemetry.sdk.common.CompletableResultCode;
 import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentType;
@@ -48,13 +47,11 @@ public class ElasticOtelMetricsExporter implements MetricExporter {
 
     private final OtelMetricSerializer serializer;
 
-    private final Reporter reporter;
-
-    public static void createAndRegisterOn(SdkMeterProviderBuilder builder, ElasticApmTracer tracer) {
+    public static void createAndRegisterOn(SdkMeterProviderBuilder builder, ReportingTracer tracer) {
         MetricsConfiguration metricsConfig = tracer.getConfig(MetricsConfiguration.class);
         ReporterConfiguration reporterConfig = tracer.getConfig(ReporterConfiguration.class);
 
-        ElasticOtelMetricsExporter exporter = new ElasticOtelMetricsExporter(tracer.getReporter(), metricsConfig, reporterConfig);
+        ElasticOtelMetricsExporter exporter = new ElasticOtelMetricsExporter(tracer, metricsConfig, reporterConfig);
 
         PeriodicMetricReader metricReader = PeriodicMetricReader.builder(exporter)
             .setExecutor(ExecutorUtils.createSingleThreadSchedulingDaemonPool("otel-metrics-exporter"))
@@ -64,9 +61,8 @@ public class ElasticOtelMetricsExporter implements MetricExporter {
         builder.registerMetricReader(metricReader);
     }
 
-    private ElasticOtelMetricsExporter(Reporter reporter, MetricsConfiguration metricsConfig, ReporterConfiguration reporterConfig) {
-        serializer = new OtelMetricSerializer(reporterConfig);
-        this.reporter = reporter;
+    private ElasticOtelMetricsExporter(ReportingTracer tracer, MetricsConfiguration metricsConfig, ReporterConfiguration reporterConfig) {
+        serializer = new OtelMetricSerializer(reporterConfig, tracer);
         this.defaultHistogramAggregation = Aggregation.explicitBucketHistogram(metricsConfig.getCustomMetricsHistogramBoundaries());
     }
 
@@ -79,7 +75,7 @@ public class ElasticOtelMetricsExporter implements MetricExporter {
             serializer.addValues(metric);
         }
 
-        serializer.flushAndReset(reporter);
+        serializer.flushAndReset();
         return CompletableResultCode.ofSuccess();
     }
 

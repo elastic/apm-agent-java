@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.otelmetricsdk;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -26,6 +25,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
+import co.elastic.apm.agent.tracer.reporting.ReportingTracer;
 import io.opentelemetry.sdk.metrics.SdkMeterProviderBuilder;
 import io.opentelemetry.sdk.metrics.export.MetricExporter;
 import net.bytebuddy.asm.Advice;
@@ -69,7 +69,7 @@ public class SdkMeterProviderBuilderInstrumentation extends ElasticApmInstrument
         private static final Logger unsupportedVersionLogger = LoggerUtils.logOnce(logger);
 
         private static final WeakSet<SdkMeterProviderBuilder> ALREADY_REGISTERED_BUILDERS = WeakConcurrent.buildSet();
-        private static final ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
+        private static final ReportingTracer tracer = GlobalTracer.get().require(ReportingTracer.class);
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onEnter(@Advice.This SdkMeterProviderBuilder thiz) {

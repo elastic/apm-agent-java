@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.micrometer;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.reporting.ReportingTracer;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -30,7 +30,7 @@ public abstract class AbstractMicrometerInstrumentation extends ElasticApmInstru
 
     private static final Tracer tracer = GlobalTracer.get();
 
-    static final MicrometerMetricsReporter reporter = new MicrometerMetricsReporter(tracer.require(ElasticApmTracer.class));
+    static final MicrometerMetricsReporter reporter = new MicrometerMetricsReporter(tracer.require(ReportingTracer.class));
 
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("micrometer");

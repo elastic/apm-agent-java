@@ -27,6 +27,8 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.context.InitializableLifecycleListener;
+import co.elastic.apm.agent.report.serialize.DslJsonDataWriter;
+import co.elastic.apm.agent.tracer.reporting.DataWriter;
 import co.elastic.apm.agent.tracer.reporting.DoubleSupplier;
 import co.elastic.apm.agent.tracer.reporting.Labels;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
@@ -65,6 +67,7 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import com.dslplatform.json.DslJson;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -108,6 +111,8 @@ public class ElasticApmTracer implements Tracer {
     }
 
     private static volatile boolean classloaderCheckOk = false;
+
+    private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
 
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
@@ -967,6 +972,11 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public void reportLog(byte[] log) {
         reporter.reportLog(log);
+    }
+
+    @Override
+    public DataWriter newWriter(int maxSerializedSize) {
+        return new DslJsonDataWriter(dslJson.newWriter(maxSerializedSize), reporter);
     }
 
     @Override
