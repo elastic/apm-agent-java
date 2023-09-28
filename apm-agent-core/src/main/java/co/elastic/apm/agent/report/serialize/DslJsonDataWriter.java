@@ -30,6 +30,8 @@ public class DslJsonDataWriter implements DataWriter {
 
     private final Reporter reporter;
 
+    private final StringBuilder replaceBuilder = new StringBuilder();
+
     public DslJsonDataWriter(JsonWriter jw, Reporter reporter) {
         this.jw = jw;
         this.reporter = reporter;
@@ -62,12 +64,24 @@ public class DslJsonDataWriter implements DataWriter {
             case NEW_LINE:
                 jw.writeByte((byte) '\n');
                 break;
+            default:
+                throw new IllegalArgumentException();
         }
     }
 
     @Override
     public void writeFieldName(String name) {
         DslJsonSerializer.writeFieldName(name, jw);
+    }
+
+    @Override
+    public void writeFieldName(String name, boolean sanitized) {
+        if (sanitized) {
+            DslJsonSerializer.writeStringValue(DslJsonSerializer.sanitizePropertyName(name, replaceBuilder), replaceBuilder, jw);
+            jw.writeByte(JsonWriter.SEMI);
+        } else {
+            writeFieldName(name);
+        }
     }
 
     @Override
@@ -91,13 +105,17 @@ public class DslJsonDataWriter implements DataWriter {
     }
 
     @Override
-    public void writeStringValue(CharSequence value, StringBuilder replaceBuilder) {
-        DslJsonSerializer.writeStringValue(value, replaceBuilder, jw);
+    public void writeString(CharSequence value, boolean trimmed) {
+        if (trimmed) {
+            DslJsonSerializer.writeStringValue(value, replaceBuilder, jw);
+        } else {
+            writeString(value);
+        }
     }
 
     @Override
-    public CharSequence sanitizePropertyName(String key, StringBuilder replaceBuilder) {
-        return DslJsonSerializer.sanitizePropertyName(key, replaceBuilder);
+    public String sanitizePropertyName(String key) {
+        return DslJsonSerializer.sanitizePropertyName(key, replaceBuilder).toString();
     }
 
     @Override

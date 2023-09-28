@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.micrometer;
 
-import co.elastic.apm.agent.report.serialize.DslJsonDataWriter;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -61,7 +60,6 @@ public class MicrometerMeterRegistrySerializer {
     private static final int BUFFER_SIZE_LIMIT = 2048;
 
     private static final Logger logger = LoggerFactory.getLogger(MicrometerMeterRegistrySerializer.class);
-    private final StringBuilder replaceBuilder = new StringBuilder();
     private final MetricsConfiguration config;
     private final ReportingTracer tracer;
     private final WeakSet<Meter> internallyDisabledMeters = WeakConcurrent.buildSet();
@@ -91,7 +89,7 @@ public class MicrometerMeterRegistrySerializer {
         }
         for (Map.Entry<List<Tag>, List<Meter>> entry : metersGroupedByTags.entrySet()) {
             DataWriter writer = tracer.newWriter(maxSerializedSize);
-            if (serializeMetricSet(entry.getKey(), entry.getValue(), epochMicros, replaceBuilder, writer)) {
+            if (serializeMetricSet(entry.getKey(), entry.getValue(), epochMicros, writer)) {
                 serializedMeters.add(writer);
                 maxSerializedSize = Math.max(Math.min(writer.size(), BUFFER_SIZE_LIMIT), maxSerializedSize);
             }
@@ -99,7 +97,7 @@ public class MicrometerMeterRegistrySerializer {
         return serializedMeters;
     }
 
-    boolean serializeMetricSet(List<Tag> tags, List<Meter> meters, long epochMicros, StringBuilder replaceBuilder, DataWriter writer) {
+    boolean serializeMetricSet(List<Tag> tags, List<Meter> meters, long epochMicros, DataWriter writer) {
         boolean hasSamples = false;
         boolean dedotMetricName = config.isDedotCustomMetrics();
         writer.write(OBJECT_START);
@@ -110,7 +108,7 @@ public class MicrometerMeterRegistrySerializer {
                 writer.writeFieldName("timestamp");
                 writer.serialize(epochMicros);
                 writer.write(COMMA);
-                serializeTags(tags, replaceBuilder, writer);
+                serializeTags(tags, writer);
                 writer.writeFieldName("samples");
                 writer.write(OBJECT_START);
 
@@ -126,25 +124,25 @@ public class MicrometerMeterRegistrySerializer {
                             PrivilegedActionUtils.setContextClassLoader(Thread.currentThread(), PrivilegedActionUtils.getClassLoader(meter.getClass()));
                             if (meter instanceof Timer) {
                                 Timer timer = (Timer) meter;
-                                hasSamples = serializeTimer(writer, timer.takeSnapshot(), timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasSamples, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeTimer(writer, timer.takeSnapshot(), timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasSamples, dedotMetricName);
                             } else if (meter instanceof FunctionTimer) {
                                 FunctionTimer timer = (FunctionTimer) meter;
-                                hasSamples = serializeTimer(writer, null, timer.getId(), (long) timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasSamples, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeTimer(writer, null, timer.getId(), (long) timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasSamples, dedotMetricName);
                             } else if (meter instanceof LongTaskTimer) {
                                 LongTaskTimer timer = (LongTaskTimer) meter;
-                                hasSamples = serializeTimer(writer, timer.takeSnapshot(), timer.getId(), timer.activeTasks(), timer.duration(TimeUnit.MICROSECONDS), hasSamples, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeTimer(writer, timer.takeSnapshot(), timer.getId(), timer.activeTasks(), timer.duration(TimeUnit.MICROSECONDS), hasSamples, dedotMetricName);
                             } else if (meter instanceof DistributionSummary) {
                                 DistributionSummary summary = (DistributionSummary) meter;
-                                hasSamples = serializeDistributionSummary(writer, summary.takeSnapshot(), summary.getId(), summary.count(), summary.totalAmount(), hasSamples, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeDistributionSummary(writer, summary.takeSnapshot(), summary.getId(), summary.count(), summary.totalAmount(), hasSamples, dedotMetricName);
                             } else if (meter instanceof Gauge) {
                                 Gauge gauge = (Gauge) meter;
-                                hasSamples = serializeValue(gauge.getId(), gauge.value(), hasSamples, writer, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeValue(gauge.getId(), gauge.value(), hasSamples, writer, dedotMetricName);
                             } else if (meter instanceof Counter) {
                                 Counter counter = (Counter) meter;
-                                hasSamples = serializeValue(counter.getId(), counter.count(), hasSamples, writer, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeValue(counter.getId(), counter.count(), hasSamples, writer, dedotMetricName);
                             } else if (meter instanceof FunctionCounter) {
                                 FunctionCounter counter = (FunctionCounter) meter;
-                                hasSamples = serializeValue(counter.getId(), counter.count(), hasSamples, writer, replaceBuilder, dedotMetricName);
+                                hasSamples = serializeValue(counter.getId(), counter.count(), hasSamples, writer, dedotMetricName);
                             }
                         } catch (Throwable throwable) {
                             String meterName = meter.getId().getName();
@@ -167,7 +165,7 @@ public class MicrometerMeterRegistrySerializer {
         return hasSamples;
     }
 
-    private static void serializeTags(List<Tag> tags, StringBuilder replaceBuilder, DataWriter writer) {
+    private static void serializeTags(List<Tag> tags, DataWriter writer) {
         if (tags.isEmpty()) {
             return;
         }
@@ -178,9 +176,8 @@ public class MicrometerMeterRegistrySerializer {
             if (i > 0) {
                 writer.write(COMMA);
             }
-            writer.writeStringValue(writer.sanitizePropertyName(tag.getKey(), replaceBuilder), replaceBuilder);
-            writer.write(SEMI);
-            writer.writeStringValue(tag.getValue(), replaceBuilder);
+            writer.writeFieldName(tag.getKey(), true);
+            writer.writeString(tag.getValue(), true);
         }
         writer.write(OBJECT_END);
         writer.write(COMMA);
@@ -195,19 +192,18 @@ public class MicrometerMeterRegistrySerializer {
      * @param count     count
      * @param totalTime total time
      * @param hasValue  whether a value has already been written
-     * @param replaceBuilder
      * @param dedotMetricName
      * @return true if a value has been written before, including this one; false otherwise
      */
-    private static boolean serializeTimer(DataWriter writer, HistogramSnapshot histogramSnapshot, Meter.Id id, long count, double totalTime, boolean hasValue, StringBuilder replaceBuilder, boolean dedotMetricName) {
+    private static boolean serializeTimer(DataWriter writer, HistogramSnapshot histogramSnapshot, Meter.Id id, long count, double totalTime, boolean hasValue, boolean dedotMetricName) {
         if (isValidValue(totalTime)) {
             if (hasValue) writer.write(COMMA);
-            serializeValue(id, ".count", count, writer, replaceBuilder, dedotMetricName);
+            serializeValue(id, ".count", count, writer, dedotMetricName);
             writer.write(COMMA);
-            serializeValue(id, ".sum.us", totalTime, writer, replaceBuilder, dedotMetricName);
+            serializeValue(id, ".sum.us", totalTime, writer, dedotMetricName);
             if (histogramSnapshot != null && histogramSnapshot.histogramCounts().length > 0) {
                 writer.write(COMMA);
-                serializeHistogram(id, histogramSnapshot, writer, replaceBuilder, dedotMetricName);
+                serializeHistogram(id, histogramSnapshot, writer, dedotMetricName);
             }
             return true;
         }
@@ -223,32 +219,31 @@ public class MicrometerMeterRegistrySerializer {
      * @param count       count
      * @param totalAmount total amount of recorded events
      * @param hasValue    whether a value has already been written
-     * @param replaceBuilder
      * @param dedotMetricName
      * @return true if a value has been written before, including this one; false otherwise
      */
-    private static boolean serializeDistributionSummary(DataWriter writer, HistogramSnapshot histogramSnapshot, Meter.Id id, long count, double totalAmount, boolean hasValue, StringBuilder replaceBuilder, boolean dedotMetricName) {
+    private static boolean serializeDistributionSummary(DataWriter writer, HistogramSnapshot histogramSnapshot, Meter.Id id, long count, double totalAmount, boolean hasValue, boolean dedotMetricName) {
         if (isValidValue(totalAmount)) {
             if (hasValue) writer.write(COMMA);
-            serializeValue(id, ".count", count, writer, replaceBuilder, dedotMetricName);
+            serializeValue(id, ".count", count, writer, dedotMetricName);
             writer.write(COMMA);
-            serializeValue(id, ".sum", totalAmount, writer, replaceBuilder, dedotMetricName);
+            serializeValue(id, ".sum", totalAmount, writer, dedotMetricName);
             if (histogramSnapshot != null && histogramSnapshot.histogramCounts().length > 0) {
                 writer.write(COMMA);
-                serializeHistogram(id, histogramSnapshot, writer, replaceBuilder, dedotMetricName);
+                serializeHistogram(id, histogramSnapshot, writer, dedotMetricName);
             }
             return true;
         }
         return hasValue;
     }
 
-    private static void serializeHistogram(Meter.Id id, HistogramSnapshot histogramSnapshot, DataWriter writer, StringBuilder replaceBuilder, boolean dedotMetricName) {
+    private static void serializeHistogram(Meter.Id id, HistogramSnapshot histogramSnapshot, DataWriter writer, boolean dedotMetricName) {
         if (histogramSnapshot == null) {
             return;
         }
         String suffix = ".histogram";
         CountAtBucket[] bucket = histogramSnapshot.histogramCounts();
-        serializeObjectStart(id.getName(), "values", suffix, writer, replaceBuilder, dedotMetricName);
+        serializeObjectStart(id.getName(), "values", suffix, writer, dedotMetricName);
         writer.write(ARRAY_START);
         if (bucket.length > 0) {
             writer.serialize(bucket[0].bucket());
@@ -284,8 +279,8 @@ public class MicrometerMeterRegistrySerializer {
         writer.write(OBJECT_END);
     }
 
-    private static void serializeValue(Meter.Id id, String suffix, long value, DataWriter writer, StringBuilder replaceBuilder, boolean dedotMetricName) {
-        serializeValueStart(id.getName(), suffix, writer, replaceBuilder, dedotMetricName);
+    private static void serializeValue(Meter.Id id, String suffix, long value, DataWriter writer, boolean dedotMetricName) {
+        serializeValueStart(id.getName(), suffix, writer, dedotMetricName);
         writer.serialize(value);
         writer.write(OBJECT_END);
     }
@@ -297,45 +292,36 @@ public class MicrometerMeterRegistrySerializer {
      * @param value    meter value
      * @param hasValue whether a value has already been written
      * @param writer   writer
-     * @param replaceBuilder
      * @param dedotMetricName
      * @return true if a value has been written before, including this one; false otherwise
      */
-    private static boolean serializeValue(Meter.Id id, double value, boolean hasValue, DataWriter writer, StringBuilder replaceBuilder, boolean dedotMetricName) {
+    private static boolean serializeValue(Meter.Id id, double value, boolean hasValue, DataWriter writer, boolean dedotMetricName) {
         if (isValidValue(value)) {
             if (hasValue) writer.write(COMMA);
-            serializeValue(id, "", value, writer, replaceBuilder, dedotMetricName);
+            serializeValue(id, "", value, writer, dedotMetricName);
             return true;
         }
         return hasValue;
     }
 
-    private static void serializeValue(Meter.Id id, String suffix, double value, DataWriter writer, StringBuilder replaceBuilder, boolean dedotMetricName) {
-        serializeValueStart(id.getName(), suffix, writer, replaceBuilder, dedotMetricName);
+    private static void serializeValue(Meter.Id id, String suffix, double value, DataWriter writer, boolean dedotMetricName) {
+        serializeValueStart(id.getName(), suffix, writer, dedotMetricName);
         writer.serialize(value);
         writer.write(OBJECT_END);
     }
 
-    private static void serializeValueStart(String key, String suffix, DataWriter writer, StringBuilder replaceBuilder, boolean dedotMetricName) {
-        serializeObjectStart(key, "value",  suffix, writer, replaceBuilder, dedotMetricName);
+    private static void serializeValueStart(String key, String suffix, DataWriter writer, boolean dedotMetricName) {
+        serializeObjectStart(key, "value",  suffix, writer, dedotMetricName);
     }
 
-    private static void serializeObjectStart(String key, String objectName, String suffix, DataWriter writer, StringBuilder replaceBuilder, boolean dedotMetricName) {
-        replaceBuilder.setLength(0);
-        if (dedotMetricName) {
-            writer.sanitizePropertyName(key, replaceBuilder);
+    private static void serializeObjectStart(String key, String objectName, String suffix, DataWriter writer, boolean dedotMetricName) {
+        String name;
+        if (suffix == null) {
+            name = key;
         } else {
-            replaceBuilder.append(key);
+            name = key + suffix;
         }
-        if (suffix != null) {
-            if (replaceBuilder.length() == 0) {
-                replaceBuilder.append(key);
-            }
-            replaceBuilder.append(suffix);
-        }
-        writer.writeString(replaceBuilder);
-
-        writer.write(SEMI);
+        writer.writeFieldName(name, dedotMetricName);
         writer.write(OBJECT_START);
         writer.writeFieldName(objectName);
     }

@@ -44,8 +44,6 @@ public class OtelMetricSerializer {
     private static final Logger logger = LoggerFactory.getLogger(OtelMetricSerializer.class);
     private final ReporterConfiguration reporterConfig;
     private final ReportingTracer tracer;
-    private final StringBuilder serializationTempBuilder;
-
     private final Set<String> metricsWithBadAggregations = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     private final Map<InstrumentationScopeAndTimestamp, Map<Attributes, MetricSetSerializer>> metricSets;
@@ -57,7 +55,6 @@ public class OtelMetricSerializer {
         this.reporterConfig = reporterConfig;
         this.tracer = tracer;
         metricSets = new HashMap<>();
-        serializationTempBuilder = new StringBuilder();
     }
 
     public void addValues(MetricData metric) {
@@ -152,7 +149,7 @@ public class OtelMetricSerializer {
 
         MetricSetSerializer ms = timestampMetricSets.get(attributes);
         if (ms == null) {
-            ms = new MetricSetSerializer(tracer, attributes, key.instrumentationScopeName, key.timestamp, serializationTempBuilder);
+            ms = new MetricSetSerializer(tracer, attributes, key.instrumentationScopeName, key.timestamp);
             timestampMetricSets.put(attributes, ms);
         }
         return ms;

@@ -41,12 +41,10 @@ class MetricSetSerializer {
 
     private static final int INITIAL_BUFFER_SIZE = 2048;
 
-    private final StringBuilder replaceBuilder;
     private final DataWriter writer;
     private boolean anySamplesWritten;
 
-    public MetricSetSerializer(ReportingTracer tracer, Attributes attributes, CharSequence instrumentationScopeName, long epochMicros, StringBuilder replaceBuilder) {
-        this.replaceBuilder = replaceBuilder;
+    public MetricSetSerializer(ReportingTracer tracer, Attributes attributes, CharSequence instrumentationScopeName, long epochMicros) {
         anySamplesWritten = false;
         writer = tracer.newWriter(INITIAL_BUFFER_SIZE);
         writer.write(OBJECT_START);
@@ -203,8 +201,7 @@ class MetricSetSerializer {
             if (prependComma) {
                 writer.write(COMMA);
             }
-            writer.writeStringValue(writer.sanitizePropertyName(key.getKey(), replaceBuilder), replaceBuilder);
-            writer.write(SEMI);
+            writer.writeFieldName(key.getKey(), true);
 
             AttributeType type = key.getType();
             switch (type) {

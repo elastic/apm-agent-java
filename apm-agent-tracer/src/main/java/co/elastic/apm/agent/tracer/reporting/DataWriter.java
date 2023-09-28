@@ -22,6 +22,8 @@ public interface DataWriter {
 
     void writeFieldName(String name);
 
+    void writeFieldName(String name, boolean sanitized);
+
     void write(StructureType type);
 
     void serialize(boolean value);
@@ -32,11 +34,11 @@ public interface DataWriter {
 
     void writeString(CharSequence value);
 
-    void writeStringValue(CharSequence value, StringBuilder replaceBuilder);
+    void writeString(CharSequence value, boolean trimmed);
 
     int size();
 
-    CharSequence sanitizePropertyName(String key, StringBuilder replaceBuilder);
+    String sanitizePropertyName(String key);
 
     void report();
 
