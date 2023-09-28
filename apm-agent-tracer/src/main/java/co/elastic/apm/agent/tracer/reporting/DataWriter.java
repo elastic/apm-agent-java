@@ -28,7 +28,7 @@ public interface DataWriter {
 
     void writeKey(CharSequence name, boolean sanitized);
 
-    void writeKey(CharSequence name, @Nullable String suffix, boolean sanitized);
+    void writeKey(CharSequence name, boolean sanitized, @Nullable String suffix);
 
     void writeValue(boolean value);
 

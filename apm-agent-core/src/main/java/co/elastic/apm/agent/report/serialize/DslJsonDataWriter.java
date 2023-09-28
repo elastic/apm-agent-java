@@ -82,7 +82,7 @@ public class DslJsonDataWriter implements DataWriter {
     }
 
     @Override
-    public void writeKey(CharSequence name, @Nullable String suffix, boolean sanitized) {
+    public void writeKey(CharSequence name, boolean sanitized, @Nullable String suffix) {
         replaceBuilder.setLength(0);
         if (sanitized) {
             DslJsonSerializer.sanitizePropertyName(name.toString(), replaceBuilder);

@@ -310,17 +310,7 @@ public class MicrometerMeterRegistrySerializer {
     }
 
     private static void serializeObjectStart(String key, String objectName, String suffix, DataWriter writer, boolean dedotMetricName) {
-        String name;
-        if (suffix == null) {
-            name = key;
-        } else {
-            name = key + suffix;
-        }
-        if (suffix == null) {
-            writer.writeKey(name, dedotMetricName);
-        } else {
-            writer.writeKey(name, suffix, dedotMetricName);
-        }
+        writer.writeKey(key, dedotMetricName, suffix);
         writer.writeStructure(OBJECT_START);
         writer.writeKey(objectName);
     }
