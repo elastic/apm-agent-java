@@ -157,6 +157,11 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
             return this;
         }
 
+        public EsSpanValidationBuilder expectAsync(boolean async) {
+            isAsyncRequest = async;
+            return this;
+        }
+
         public EsSpanValidationBuilder expectStatement(String statement) {
             try {
                 this.expectedStatement = jackson.readTree(statement);
