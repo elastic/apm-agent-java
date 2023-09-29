@@ -512,6 +512,15 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
         return thiz();
     }
 
+    @Override
+    public T captureException(@Nullable Throwable t, long epochMicros) {
+        if (t != null) {
+            captureExceptionAndGetErrorId(epochMicros, t);
+        }
+        return thiz();
+
+    }
+
     public void endExceptionally(@Nullable Throwable t) {
         captureException(t).end();
     }
@@ -521,8 +530,9 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
         return captureExceptionAndGetErrorId(getTraceContext().getClock().getEpochMicros(), t);
     }
 
+
     @Override
-    public void addLabel(String key, String value) {
+    public void addLabel(String key, Boolean value) {
         if (isSampled()) {
             getContext().addLabel(key, value);
         }
@@ -534,9 +544,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
             getContext().addLabel(key, value);
         }
     }
-
     @Override
-    public void addLabel(String key, Boolean value) {
+    public void addLabel(String key, String value) {
         if (isSampled()) {
             getContext().addLabel(key, value);
         }

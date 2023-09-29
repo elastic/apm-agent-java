@@ -20,17 +20,21 @@ package co.elastic.apm.agent.tracer.direct;
 
 import co.elastic.apm.agent.tracer.AbstractSpan;
 
+import javax.annotation.Nullable;
+
 public interface AbstractDirectSpan<T extends AbstractDirectSpan<T>> extends AbstractSpan<T> {
 
     DirectSpan<?> spanChild();
 
     DirectSpan<?> spanChild(long epochMicros);
 
+    T captureException(@Nullable Throwable t, long epochMicros);
+
     void end(long epochMicros);
 
-    void addLabel(String key, Number value);
-
     void addLabel(String key, Boolean value);
+
+    void addLabel(String key, Number value);
 
     void addLabel(String key, String value);
 }
