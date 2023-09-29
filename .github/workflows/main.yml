@@ -86,7 +86,7 @@ jobs:
           with open("maven.modules") as fp:
             lines = fp.readlines()
             for line in lines:
-              matrix['include'].append({"project": line})
+              matrix['include'].append({"project": line.strip()})
           with open(os.environ.get('GITHUB_OUTPUT'), "a") as f:
             f.write("maven-matrix={}\n".format(json.dumps(matrix)))
           print(json.dumps(matrix))
