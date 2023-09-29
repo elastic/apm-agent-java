@@ -63,11 +63,28 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    outputs:
+      maven-modules-matrix: ${{ steps.generate.outputs.maven-modules-matrix }}
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
+
+      - id: generate
+        name: List maven submodules
+        uses: ./.github/workflows/maven-goal
+        with:
+          command: |-
+            ./mvnw --also-make dependency:tree | grep maven-dependency-plugin | awk '{ print $(NF-1) }' > maven.modules &&
+            echo "maven-modules-matrix='{include:[{module:apm-opentracing},{module:aws-lambda-test}]}'" >> $GITHUB_OUTPUT
+
+      - name: Upload maven modules
+        uses: actions/upload-artifact@v3
+        with:
+          name: maven-modules
+          path: maven.modules
+
       - uses: ./.github/workflows/stash
         with:
           name: build
@@ -170,6 +187,11 @@ jobs:
       || inputs.agent_integration_tests_ci == true
     runs-on: ubuntu-latest
     needs: build
+    strategy:
+      fail-fast: false
+      max-parallel: 30
+      matrix:
+        include: ${{ fromJSON(needs.build.outputs.maven-modules-matrix) }}
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/unstash
@@ -178,7 +200,7 @@ jobs:
           path: ${{ github.workspace }}
       - uses: ./.github/workflows/maven-goal
         with:
-          command: ./mvnw -q -P ci-non-application-server-integration-tests verify
+          command: ./mvnw -q -P ci-non-application-server-integration-tests -pl verify -pl ${{ matrix.project }}
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v3
@@ -197,6 +219,11 @@ jobs:
     # Pinned to ubuntu 20.04 until https://github.com/elastic/apm-agent-java/issues/3035 is solved.
     runs-on: ubuntu-20.04
     needs: build
+    strategy:
+      fail-fast: false
+      max-parallel: 30
+      matrix:
+        include: ${{ fromJSON(needs.build.outputs.maven-modules-matrix) }}
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/unstash
@@ -216,7 +243,7 @@ jobs:
           tool-cache: false
       - uses: ./.github/workflows/maven-goal
         with:
-          command: ./mvnw -q -P ci-application-server-integration-tests verify
+          command: ./mvnw -q -P ci-application-server-integration-tests verify -pl ${{ matrix.project }}
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v3
