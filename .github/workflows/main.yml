@@ -176,6 +176,18 @@ jobs:
         with:
           name: build
           path: ${{ github.workspace }}
+      # As long as there are some space issues with the CI runners.
+      - name: Free Disk Space
+        continue-on-error: true
+        uses: jlumbroso/free-disk-space@f68fdb76e2ea636224182cfb7377ff9a1708f9b8
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+          tool-cache: false
       - uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw -q -P ci-non-application-server-integration-tests verify
