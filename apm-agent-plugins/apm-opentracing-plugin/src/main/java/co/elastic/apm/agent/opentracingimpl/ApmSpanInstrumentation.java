@@ -22,6 +22,7 @@ import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.tracer.direct.AbstractDirectSpan;
 import co.elastic.apm.agent.tracer.direct.DirectSpan;
+import co.elastic.apm.agent.tracer.direct.DirectTransaction;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -155,20 +156,18 @@ public abstract class ApmSpanInstrumentation extends OpenTracingBridgeInstrument
                 if (value == null) {
                     return;
                 }
-                if (abstractSpanObj instanceof AbstractDirectSpan<?>) {
-                    if (abstractSpanObj instanceof Transaction<?>) {
-                        handleTransactionTag((Transaction<?>) abstractSpanObj, (AbstractDirectSpan<?>) abstractSpanObj, key, value);
-                    } else if (abstractSpanObj instanceof DirectSpan<?>) {
-                        handleSpanTag((DirectSpan<?>) abstractSpanObj, key, value);
-                    }
+                if (abstractSpanObj instanceof DirectTransaction<?>) {
+                    handleTransactionTag((DirectTransaction<?>) abstractSpanObj, key, value);
+                } else if (abstractSpanObj instanceof DirectSpan<?>) {
+                    handleSpanTag((DirectSpan<?>) abstractSpanObj, key, value);
                 } else {
                     logger.warn("Calling setTag on an already finished span");
                 }
             }
 
-            private static void handleTransactionTag(Transaction<?> transaction, AbstractDirectSpan<?> span, String key, Object value) {
+            private static void handleTransactionTag(DirectTransaction<?> transaction, String key, Object value) {
                 if (!handleSpecialTransactionTag(transaction, key, value)) {
-                    addTag(span, key, value);
+                    addTag(transaction, key, value);
                 }
             }
 

@@ -35,7 +35,6 @@ public interface AbstractSpan<T extends AbstractSpan<T>> extends ActivateableInS
 
     TraceContext getTraceContext();
 
-
     void end();
 
     T captureException(@Nullable Throwable t);

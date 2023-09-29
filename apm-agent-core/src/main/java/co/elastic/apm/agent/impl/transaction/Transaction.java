@@ -27,6 +27,7 @@ import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.tracer.direct.Sampler;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import co.elastic.apm.agent.tracer.reporting.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
@@ -46,7 +47,9 @@ import static co.elastic.apm.agent.configuration.CoreConfiguration.TraceContinua
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
-public class Transaction extends AbstractSpan<Transaction> implements co.elastic.apm.agent.tracer.Transaction<Transaction> {
+public class Transaction extends AbstractSpan<Transaction> implements Recyclable,
+    co.elastic.apm.agent.tracer.Transaction<Transaction>,
+    co.elastic.apm.agent.tracer.direct.DirectTransaction<Transaction> {
 
     /**
      * Mutable labels instance used when reporting transaction metrics.
