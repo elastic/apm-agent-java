@@ -74,7 +74,7 @@ jobs:
       - name: List maven submodules
         uses: ./.github/workflows/maven-goal
         with:
-          command: ./mvnw --also-make dependency:tree | grep maven-dependency-plugin | awk '{ print $(NF-1) }' > maven.modules &&
+          command: ./mvnw --also-make dependency:tree | grep maven-dependency-plugin | awk '{ print $(NF-1) }' > maven.modules
 
       - name: Generate matrix with the maven submodules
         id: generator
