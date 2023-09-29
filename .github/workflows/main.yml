@@ -64,26 +64,32 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     outputs:
-      maven-modules-matrix: ${{ steps.generate.outputs.maven-modules-matrix }}
+      maven-matrix: ${{ steps.generator.outputs.maven-matrix }}
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
 
-      - id: generate
-        name: List maven submodules
+      - name: List maven submodules
         uses: ./.github/workflows/maven-goal
         with:
-          command: |-
-            ./mvnw --also-make dependency:tree | grep maven-dependency-plugin | awk '{ print $(NF-1) }' > maven.modules &&
-            echo "maven-modules-matrix='{include:[{module:apm-opentracing},{module:aws-lambda-test}]}'" >> $GITHUB_OUTPUT
+          command: ./mvnw --also-make dependency:tree | grep maven-dependency-plugin | awk '{ print $(NF-1) }' > maven.modules &&
 
-      - name: Upload maven modules
-        uses: actions/upload-artifact@v3
-        with:
-          name: maven-modules
-          path: maven.modules
+      - name: Generate matrix with the maven submodules
+        id: generator
+        shell: python
+        run: |
+          import json
+          import os
+          matrix = {'include': []}
+          with open("maven.modules") as fp:
+            lines = fp.readlines()
+            for line in lines:
+              matrix['include'].append({"project": line})
+          with open(os.environ.get('GITHUB_OUTPUT'), "a") as f:
+            f.write("maven-matrix={}\n".format(json.dumps(matrix)))
+          print(json.dumps(matrix))
 
       - uses: ./.github/workflows/stash
         with:
@@ -191,7 +197,7 @@ jobs:
       fail-fast: false
       max-parallel: 30
       matrix:
-        include: ${{ fromJSON(needs.build.outputs.maven-modules-matrix) }}
+        include: ${{ fromJSON(needs.build.outputs.maven-matrix) }}
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/unstash
@@ -223,7 +229,7 @@ jobs:
       fail-fast: false
       max-parallel: 30
       matrix:
-        include: ${{ fromJSON(needs.build.outputs.maven-modules-matrix) }}
+        include: ${{ fromJSON(needs.build.outputs.maven-matrix) }}
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/unstash
