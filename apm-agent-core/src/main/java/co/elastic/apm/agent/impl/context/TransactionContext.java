@@ -118,6 +118,7 @@ public class TransactionContext extends AbstractContext implements co.elastic.ap
         return cloudOrigin;
     }
 
+    @Override
     public ServiceOrigin getServiceOrigin() {
         return serviceOrigin;
     }

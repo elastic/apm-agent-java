@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.awslambda.helper;
 
 import co.elastic.apm.agent.awslambda.MapTextHeaderGetter;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
@@ -35,13 +35,13 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
     @Nullable
     private static APIGatewayProxyV1TransactionHelper INSTANCE;
 
-    private APIGatewayProxyV1TransactionHelper(ElasticApmTracer tracer) {
+    private APIGatewayProxyV1TransactionHelper(Tracer tracer) {
         super(tracer);
     }
 
     public static APIGatewayProxyV1TransactionHelper getInstance() {
         if (INSTANCE == null) {
-            INSTANCE = new APIGatewayProxyV1TransactionHelper(GlobalTracer.get().require(ElasticApmTracer.class));
+            INSTANCE = new APIGatewayProxyV1TransactionHelper(GlobalTracer.get());
         }
         return INSTANCE;
     }
@@ -92,7 +92,7 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
     }
 
     @Override
-    public void captureOutputForTransaction(Transaction transaction, APIGatewayProxyResponseEvent responseEvent) {
+    public void captureOutputForTransaction(Transaction<?> transaction, APIGatewayProxyResponseEvent responseEvent) {
         Integer statusCode = responseEvent.getStatusCode();
         if (statusCode == null) {
             statusCode = 0;
@@ -101,7 +101,7 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
     }
 
     @Override
-    protected void setTransactionTriggerData(Transaction transaction, APIGatewayProxyRequestEvent apiGatewayRequest) {
+    protected void setTransactionTriggerData(Transaction<?> transaction, APIGatewayProxyRequestEvent apiGatewayRequest) {
         super.setTransactionTriggerData(transaction, apiGatewayRequest);
         APIGatewayProxyRequestEvent.ProxyRequestContext rContext = apiGatewayRequest.getRequestContext();
 

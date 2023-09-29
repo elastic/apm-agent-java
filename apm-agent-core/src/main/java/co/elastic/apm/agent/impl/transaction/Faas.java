@@ -22,7 +22,7 @@ import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 
-public class Faas implements Recyclable {
+public class Faas implements Recyclable, co.elastic.apm.agent.tracer.metadata.Faas {
 
     @Nullable
     private String execution;
@@ -68,6 +68,7 @@ public class Faas implements Recyclable {
         return version;
     }
 
+    @Override
     public Faas withExecution(@Nullable String execution) {
         this.execution = execution;
         return this;
@@ -90,6 +91,18 @@ public class Faas implements Recyclable {
 
     public Faas withVersion(@Nullable String version) {
         this.version = version;
+        return this;
+    }
+
+    @Override
+    public Faas withTriggerType(@Nullable String type) {
+        getTrigger().withType(type);
+        return this;
+    }
+
+    @Override
+    public Faas withTriggerRequestId(@Nullable String requestId) {
+        getTrigger().withRequestId(requestId);
         return this;
     }
 

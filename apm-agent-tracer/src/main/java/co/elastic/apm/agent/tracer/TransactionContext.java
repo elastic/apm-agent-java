@@ -21,6 +21,7 @@ package co.elastic.apm.agent.tracer;
 import co.elastic.apm.agent.tracer.metadata.CloudOrigin;
 import co.elastic.apm.agent.tracer.metadata.Request;
 import co.elastic.apm.agent.tracer.metadata.Response;
+import co.elastic.apm.agent.tracer.metadata.ServiceOrigin;
 import co.elastic.apm.agent.tracer.metadata.User;
 
 public interface TransactionContext extends AbstractContext {
@@ -43,4 +44,6 @@ public interface TransactionContext extends AbstractContext {
     User getUser();
 
     CloudOrigin getCloudOrigin();
+
+    ServiceOrigin getServiceOrigin();
 }

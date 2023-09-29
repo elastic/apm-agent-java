@@ -25,6 +25,7 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 
 import javax.annotation.Nullable;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class GlobalTracer implements Tracer {
 
@@ -132,5 +133,15 @@ public class GlobalTracer implements Tracer {
     @Override
     public ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader) {
         return tracer.captureException(e, initiatingClassLoader);
+    }
+
+    @Override
+    public boolean flush(long timeout, TimeUnit timeUnit) {
+        return tracer.flush(timeout, timeUnit);
+    }
+
+    @Override
+    public void notifyFaasMetaData(String frameworkName, String frameworkVersion, @Nullable String accountName, @Nullable String accountId, @Nullable String region) {
+        tracer.notifyFaasMetaData(frameworkName, frameworkVersion, accountName, accountId, region);
     }
 }

@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.tracer;
 
+import co.elastic.apm.agent.tracer.metadata.Faas;
+
 import javax.annotation.Nullable;
 
 public interface Transaction<T extends Transaction<T>> extends AbstractSpan<T> {
@@ -31,6 +33,8 @@ public interface Transaction<T extends Transaction<T>> extends AbstractSpan<T> {
      */
     @Override
     TransactionContext getContext();
+
+    Faas getFaas();
 
     boolean isNoop();
 

@@ -75,6 +75,8 @@ public interface Request {
 
     Request addFormUrlEncodedParameters(String key, String[] values);
 
+    Request addHeader(String headerName, String headerValue);
+
     Request addHeader(String headerName, @Nullable Enumeration<String> headerValues);
 
     Request addCookie(String cookieName, String cookieValue);

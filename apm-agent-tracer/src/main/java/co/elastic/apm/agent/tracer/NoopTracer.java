@@ -26,6 +26,7 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 class NoopTracer implements Tracer {
 
@@ -109,5 +110,14 @@ class NoopTracer implements Tracer {
     @Override
     public ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader) {
         return null;
+    }
+
+    @Override
+    public boolean flush(long timeout, TimeUnit timeUnit) {
+        return true;
+    }
+
+    @Override
+    public void notifyFaasMetaData(String frameworkName, String frameworkVersion, @Nullable String accountName, @Nullable String accountId, @Nullable String region) {
     }
 }

@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.awslambda;
 
 import co.elastic.apm.agent.awslambda.helper.PlainTransactionHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import com.amazonaws.services.lambda.runtime.Context;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -35,7 +35,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class RequestStreamHandlerInstrumentation extends AbstractAwsLambdaHandlerInstrumentation {
 
-    public RequestStreamHandlerInstrumentation(ElasticApmTracer tracer) {
+    public RequestStreamHandlerInstrumentation(Tracer tracer) {
         super(tracer);
     }
 
@@ -65,8 +65,8 @@ public class RequestStreamHandlerInstrumentation extends AbstractAwsLambdaHandle
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
         public static void handlerExit(@Nullable @Advice.Enter Object transactionObj,
                                        @Nullable @Advice.Thrown Throwable thrown) {
-            if (transactionObj instanceof Transaction) {
-                Transaction transaction = (Transaction) transactionObj;
+            if (transactionObj instanceof Transaction<?>) {
+                Transaction<?> transaction = (Transaction<?>) transactionObj;
                 PlainTransactionHelper.getInstance().finalizeTransaction(transaction, null, thrown);
             }
         }

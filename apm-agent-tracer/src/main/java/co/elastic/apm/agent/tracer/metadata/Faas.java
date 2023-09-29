@@ -19,28 +19,19 @@
 package co.elastic.apm.agent.tracer.metadata;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
 
-public interface Response {
+public interface Faas {
+    Faas withTriggerType(@Nullable String type);
 
-    /**
-     * A mapping of HTTP headers of the response object
-     */
-    PotentiallyMultiValuedMap getHeaders();
+    Faas withTriggerRequestId(@Nullable String requestId);
 
-    /**
-     * A boolean indicating whether the response was finished or not
-     */
-    Response withFinished(boolean finished);
+    Faas withId(@Nullable String id);
 
-    /**
-     * The HTTP status code of the response.
-     */
-    Response withStatusCode(int statusCode);
+    Faas withName(@Nullable String name);
 
-    Response withHeadersSent(boolean headersSent);
+    Faas withVersion(@Nullable String version);
 
-    Response addHeader(String headerName, String headerValue);
+    Faas withColdStart(boolean coldStart);
 
-    Response addHeader(String headerName, @Nullable Collection<String> headerValues);
+    Faas withExecution(@Nullable String execution);
 }

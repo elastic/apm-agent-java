@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.awslambda.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.context.CloudOrigin;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.context.ServiceOrigin;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.metadata.CloudOrigin;
+import co.elastic.apm.agent.tracer.metadata.Request;
+import co.elastic.apm.agent.tracer.metadata.Response;
+import co.elastic.apm.agent.tracer.metadata.ServiceOrigin;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -47,13 +47,13 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
     private static final Set<String> METHODS_WITH_BODY = new HashSet<>(Arrays.asList("POST", "PUT", "PATCH", "DELETE"));
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
 
-    protected AbstractAPIGatewayTransactionHelper(ElasticApmTracer tracer) {
+    protected AbstractAPIGatewayTransactionHelper(Tracer tracer) {
         super(tracer);
     }
 
     protected abstract String getApiGatewayVersion();
 
-    protected void fillHttpRequestData(Transaction transaction, @Nullable String httpMethod, @Nullable Map<String, String> headers, @Nullable String serverName, @Nullable String path, @Nullable String queryString, @Nullable String body) {
+    protected void fillHttpRequestData(Transaction<?> transaction, @Nullable String httpMethod, @Nullable Map<String, String> headers, @Nullable String serverName, @Nullable String path, @Nullable String queryString, @Nullable String body) {
         Request request = transaction.getContext().getRequest();
         request.withMethod(httpMethod);
         fillUrlRelatedFields(request, serverName, path, queryString);
@@ -67,7 +67,7 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
         }
     }
 
-    protected void fillHttpResponseData(Transaction transaction, @Nullable Map<String, String> headers, int statusCode) {
+    protected void fillHttpResponseData(Transaction<?> transaction, @Nullable Map<String, String> headers, int statusCode) {
         Response response = transaction.getContext().getResponse();
         response.withFinished(true);
         if (transaction.isSampled() && null != headers && isCaptureHeaders()) {
@@ -82,17 +82,11 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
 
     private void fillUrlRelatedFields(Request request, @Nullable String serverName, @Nullable String path, @Nullable String queryString) {
         String qString = queryString == null || queryString.trim().isEmpty() ? null: queryString;
-        request.getUrl().resetState();
-        request.getUrl()
-            .withProtocol("https")
-            .withHostname(serverName)
-            .withPort(443)
-            .withPathname(path)
-            .withSearch(qString);
+        request.getUrl().fillFrom("https", serverName, 443, path, qString);
     }
 
     @Nullable
-    private CharBuffer startCaptureBody(Transaction transaction, @Nullable String method, @Nullable String contentTypeHeader) {
+    private CharBuffer startCaptureBody(Transaction<?> transaction, @Nullable String method, @Nullable String contentTypeHeader) {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
             if (coreConfiguration.getCaptureBody() != OFF
@@ -127,18 +121,18 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
     }
 
     @Override
-    protected void setTransactionTriggerData(Transaction transaction, I apiGatewayRequest) {
+    protected void setTransactionTriggerData(Transaction<?> transaction, I apiGatewayRequest) {
         transaction.withType(TRANSACTION_TYPE);
         CloudOrigin cloudOrigin = transaction.getContext().getCloudOrigin();
         cloudOrigin.withServiceName("api gateway");
         cloudOrigin.withProvider("aws");
-        transaction.getFaas().getTrigger().withType("http");
+        transaction.getFaas().withTriggerType("http");
         transaction.getContext().getServiceOrigin().withVersion(getApiGatewayVersion());
     }
 
-    protected void setApiGatewayContextData(Transaction transaction, @Nullable String requestId, @Nullable String apiId,
+    protected void setApiGatewayContextData(Transaction<?> transaction, @Nullable String requestId, @Nullable String apiId,
                                             @Nullable String domainName, @Nullable String accountId) {
-        transaction.getFaas().getTrigger().withRequestId(requestId);
+        transaction.getFaas().withTriggerRequestId(requestId);
         ServiceOrigin serviceOrigin = transaction.getContext().getServiceOrigin();
         serviceOrigin.withName(domainName);
         serviceOrigin.withId(apiId);
@@ -146,7 +140,7 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
         transaction.getContext().getCloudOrigin().withAccountId(accountId);
     }
 
-    private void setRequestHeaders(Transaction transaction, Map<String, String> headers) {
+    private void setRequestHeaders(Transaction<?> transaction, Map<String, String> headers) {
         final Request req = transaction.getContext().getRequest();
         if (transaction.isSampled() && isCaptureHeaders()) {
             for (Map.Entry<String, String> headerEntry : headers.entrySet()) {
@@ -156,7 +150,7 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
     }
 
     @Override
-    protected void setTransactionName(Transaction transaction, I event, Context lambdaContext) {
+    protected void setTransactionName(Transaction<?> transaction, I event, Context lambdaContext) {
         StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK);
         if (transactionName != null) {
             String httpMethod = getHttpMethod(event);

@@ -27,6 +27,9 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.context.InitializableLifecycleListener;
+import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
+import co.elastic.apm.agent.impl.metadata.Framework;
+import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.report.serialize.DslJsonDataWriter;
 import co.elastic.apm.agent.tracer.reporting.DataWriter;
 import co.elastic.apm.agent.tracer.reporting.DoubleSupplier;
@@ -86,6 +89,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -1026,5 +1030,19 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public ServiceInfo autoDetectedServiceInfo() {
         return AutoDetectedServiceInfo.autoDetected();
+    }
+
+    @Override
+    public boolean flush(long timeout, TimeUnit timeUnit) {
+        return reporter.flush(timeout, timeUnit, true);
+    }
+
+    @Override
+    public void notifyFaasMetaData(String frameworkName, String frameworkVersion, @Nullable String accountName, @Nullable String accountId, @Nullable String region) {
+        metaDataFuture.getFaaSMetaDataExtensionFuture().complete(new FaaSMetaDataExtension(
+            new Framework(frameworkName, frameworkVersion),
+            new NameAndIdField(accountName, accountId),
+            region
+        ));
     }
 }

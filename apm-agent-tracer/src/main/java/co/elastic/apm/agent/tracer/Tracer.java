@@ -25,6 +25,7 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 
 import javax.annotation.Nullable;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public interface Tracer {
 
@@ -80,4 +81,8 @@ public interface Tracer {
 
     @Nullable
     ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader);
+
+    boolean flush(long timeout, TimeUnit timeUnit);
+
+    void notifyFaasMetaData(String frameworkName, String frameworkVersion, @Nullable String accountName, @Nullable String accountId, @Nullable String region);
 }
