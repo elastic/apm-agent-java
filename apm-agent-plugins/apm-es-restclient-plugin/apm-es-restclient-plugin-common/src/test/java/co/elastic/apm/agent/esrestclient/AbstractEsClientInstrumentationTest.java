@@ -226,6 +226,8 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
             checkDestinationContext();
             if (isAsyncRequest) {
                 assertThat(span).isAsync();
+            } else {
+                assertThat(span).isSync();
             }
         }
 
