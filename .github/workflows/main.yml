@@ -64,7 +64,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     outputs:
-      maven-matrix: ${{ steps.generator.outputs.maven-matrix }}
+      maven-modules: ${{ steps.generator.outputs.maven-modules }}
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/maven-goal
@@ -78,18 +78,7 @@ jobs:
 
       - name: Generate matrix with the maven submodules
         id: generator
-        shell: python
-        run: |
-          import json
-          import os
-          matrix = {'include': []}
-          with open("maven.modules") as fp:
-            lines = fp.readlines()
-            for line in lines:
-              matrix['include'].append({"project": line.strip()})
-          with open(os.environ.get('GITHUB_OUTPUT'), "a") as f:
-            f.write("maven-matrix={}\n".format(json.dumps(matrix)))
-          print(json.dumps(matrix))
+        run: echo "::set-output name=maven-modules::$(cat maven.modules|jq -cnR '[inputs]')"
 
       - uses: ./.github/workflows/stash
         with:
@@ -197,7 +186,7 @@ jobs:
       fail-fast: false
       max-parallel: 30
       matrix:
-        include: ${{ fromJSON(needs.build.outputs.maven-matrix) }}
+        module: ${{ fromJson(needs.build.outputs.maven-modules) }}
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/unstash
@@ -206,7 +195,7 @@ jobs:
           path: ${{ github.workspace }}
       - uses: ./.github/workflows/maven-goal
         with:
-          command: ./mvnw -q -P ci-non-application-server-integration-tests -pl verify -pl ${{ matrix.project }}
+          command: ./mvnw -q -P ci-non-application-server-integration-tests -pl verify -pl ${{ matrix.module }}
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v3
@@ -229,7 +218,7 @@ jobs:
       fail-fast: false
       max-parallel: 30
       matrix:
-        include: ${{ fromJSON(needs.build.outputs.maven-matrix) }}
+        module: ${{ fromJson(needs.build.outputs.maven-modules) }}
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/unstash
@@ -249,7 +238,7 @@ jobs:
           tool-cache: false
       - uses: ./.github/workflows/maven-goal
         with:
-          command: ./mvnw -q -P ci-application-server-integration-tests verify -pl ${{ matrix.project }}
+          command: ./mvnw -q -P ci-application-server-integration-tests verify -pl ${{ matrix.module }}
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v3
