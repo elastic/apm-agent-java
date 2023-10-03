@@ -30,6 +30,8 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ////
 
 === Unreleased
+===== Features
+* Add support for deploying the API in OSGi containers - {pull}3345[#3345]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
