@@ -53,11 +53,32 @@
                 <artifactId>maven-jar-plugin</artifactId>
                 <configuration>
                     <archive>
-                        <manifestEntries>
-                            <Automatic-Module-Name>${project.groupId}.api</Automatic-Module-Name>
-                        </manifestEntries>
+                        <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
                     </archive>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>biz.aQute.bnd</groupId>
+                <artifactId>bnd-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>bnd-process</id>
+                        <goals>
+                            <goal>bnd-process</goal>
+                        </goals>
+                        <configuration>
+                            <bnd><![CDATA[
+                        Automatic-Module-Name: ${project.groupId}.api
+
+                        Import-Package: javax.annotation;version=0.0.0,*
+
+                        <!-- Export all non-internal packages by default -->
+                        Export-Package: !*.impl.*,!*.internal.*
+                            ]]>
+                            </bnd>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
