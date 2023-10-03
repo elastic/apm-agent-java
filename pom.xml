@@ -142,6 +142,9 @@
 
         <version.testcontainers>1.16.3</version.testcontainers>
 
+        <!-- latest version compiled for java 11 -->
+        <version.jsonunit>2.38.0</version.jsonunit>
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
@@ -768,7 +771,7 @@
         <dependency>
             <groupId>net.javacrumbs.json-unit</groupId>
             <artifactId>json-unit-assertj</artifactId>
-            <version>3.2.2</version>
+            <version>${version.jsonunit}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
