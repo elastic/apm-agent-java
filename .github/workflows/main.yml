@@ -296,7 +296,7 @@ jobs:
             distribution: 'temurin'
           - version: 20
             distribution: 'temurin'
-          - version: 21-ea
+          - version: 21
             distribution: 'zulu'
     steps:
       - uses: actions/checkout@v3
