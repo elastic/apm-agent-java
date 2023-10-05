@@ -143,6 +143,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
             .statusCode(-1)
             .disableHttpUrlCheck()
             .expectAnyStatement()
+            .expectAsync(true)
             .check();
 
         assertThat(searchSpan.getOutcome())

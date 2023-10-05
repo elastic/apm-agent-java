@@ -276,6 +276,7 @@ public class Elasticsearch8JavaIT extends AbstractEsClientInstrumentationTest {
                 .endpointName("delete")
                 .expectPathPart("index", INDEX)
                 .expectPathPart("id", DOC_ID)
+                .expectAsync(false) // delete is a sync operation
                 .check();
         }
     }
