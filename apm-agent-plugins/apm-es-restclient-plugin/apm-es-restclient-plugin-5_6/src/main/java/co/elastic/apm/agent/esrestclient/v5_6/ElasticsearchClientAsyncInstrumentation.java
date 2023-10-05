@@ -75,7 +75,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
                                                @Advice.Argument(3) @Nullable HttpEntity entity,
                                                @Advice.Argument(5) ResponseListener responseListener) {
 
-            Span<?> span = helper.createClientSpan(method, endpoint, entity);
+            Span<?> span = helper.createClientSpan(method, endpoint, entity, false);
             if (span != null) {
                 Object[] ret = new Object[2];
                 ret[0] = span;
