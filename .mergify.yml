@@ -1,6 +1,7 @@
 queue_rules:
   - name: default
   # branch protection rules are automatically included, no extra rule needed for now
+    merge_method: squash
 
 pull_request_rules:
   - name: Automatic squash and merge on approval with success checks and ready-to-merge label
@@ -9,5 +10,3 @@ pull_request_rules:
       - base=main
     actions:
       queue:
-        merge_method: squash
-        name: default
