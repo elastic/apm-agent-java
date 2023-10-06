@@ -73,7 +73,7 @@
                         Import-Package: javax.annotation;version=0.0.0,*
 
                         <!-- Export all non-internal packages by default -->
-                        Export-Package: !*.impl.*,!*.internal.*
+                        Export-Package: *,!*.impl.*,!*.internal.*
                             ]]>
                             </bnd>
                         </configuration>
