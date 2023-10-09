@@ -43,7 +43,7 @@ public interface LifecycleListener {
     void start() throws Exception;
 
     /**
-     * Callback for when {@link co.elastic.apm.agent.tracer.Tracer} has been paused.
+     * Callback for when {@link Tracer} has been paused.
      * <p>
      * Typically, this method is used to reduce overhead on the application to a minimum. This can be done by cleaning
      * up resources like object pools, as well as by avoiding tracing-related overhead.
