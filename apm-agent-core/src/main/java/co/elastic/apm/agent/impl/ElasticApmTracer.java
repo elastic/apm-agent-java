@@ -26,7 +26,7 @@ import co.elastic.apm.agent.configuration.AutoDetectedServiceInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
-import co.elastic.apm.agent.context.InitializableLifecycleListener;
+import co.elastic.apm.agent.context.InitLifecycleListener;
 import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
 import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
@@ -694,9 +694,9 @@ public class ElasticApmTracer implements Tracer {
     void init(List<LifecycleListener> lifecycleListeners) {
         this.lifecycleListeners.addAll(lifecycleListeners);
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
-            if (lifecycleListener instanceof InitializableLifecycleListener) {
+            if (lifecycleListener instanceof InitLifecycleListener) {
                 try {
-                    ((InitializableLifecycleListener) lifecycleListener).init(this);
+                    ((InitLifecycleListener) lifecycleListener).init(this);
                 } catch (Exception e) {
                     logger.error("Failed to init " + lifecycleListener.getClass().getName(), e);
                 }

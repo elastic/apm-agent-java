@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
-import co.elastic.apm.agent.context.InitializableLifecycleListener;
+import co.elastic.apm.agent.context.InitLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -28,7 +28,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 
-public class InstrumentationStatsLifecycleListener extends AbstractLifecycleListener implements InitializableLifecycleListener {
+public class InstrumentationStatsLifecycleListener extends AbstractLifecycleListener implements InitLifecycleListener {
     private static final Logger logger = LoggerFactory.getLogger(InstrumentationStatsLifecycleListener.class);
 
     @Override

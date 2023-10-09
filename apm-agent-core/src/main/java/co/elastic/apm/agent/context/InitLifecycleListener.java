@@ -21,7 +21,7 @@ package co.elastic.apm.agent.context;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.LifecycleListener;
 
-public interface InitializableLifecycleListener extends LifecycleListener {
+public interface InitLifecycleListener extends LifecycleListener {
 
     /**
      * Callback for tracer initialization. As opposed to {@link LifecycleListener#start()}, which may
