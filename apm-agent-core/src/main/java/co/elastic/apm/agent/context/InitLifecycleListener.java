@@ -21,11 +21,11 @@ package co.elastic.apm.agent.context;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.LifecycleListener;
 
-public interface InitializableLifecycleListener extends LifecycleListener {
+public interface InitLifecycleListener extends LifecycleListener {
 
     /**
      * Callback for tracer initialization. As opposed to {@link LifecycleListener#start()}, which may
-     * be called in a delay, this callback is called at the bootstrap of the JVM, before anything else start.
+     * be called in a delay, this callback is called at the bootstrap of the JVM, before anything else starts.
      * This may be useful for listeners that need to operate very early on, for example such that setup class loading
      * requirement to support OSGi systems.
      */

@@ -27,7 +27,7 @@ import co.elastic.apm.agent.tracer.reporting.ReportingTracer;
  * {@code src/main/resources/META-INF/services/co.elastic.apm.agent.tracer.LifecycleListener}.
  * </p>
  * <p>
- * Implementations may have a constructor with a {@link co.elastic.apm.agent.tracer.Tracer} argument
+ * Implementations may have a constructor with a {@link Tracer} argument
  * </p>
  * <p>
  * Listeners are instantiated before the {@link GlobalTracer} is initiated. To get hold of an instance,
@@ -38,12 +38,12 @@ import co.elastic.apm.agent.tracer.reporting.ReportingTracer;
 public interface LifecycleListener {
 
     /**
-     * Callback for when the {@link co.elastic.apm.agent.tracer.Tracer} starts.
+     * Callback for when the {@link Tracer} starts.
      */
     void start() throws Exception;
 
     /**
-     * Callback for when {@link co.elastic.apm.agent.tracer.Tracer} has been paused.
+     * Callback for when {@link Tracer} has been paused.
      * <p>
      * Typically, this method is used to reduce overhead on the application to a minimum. This can be done by cleaning
      * up resources like object pools, as well as by avoiding tracing-related overhead.
