@@ -350,10 +350,18 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
                 cachedSampleRate = rate;
                 cachedHeader = TraceState.getHeaderValue(rate);
             }
-            traceState.set(rate, cachedHeader);
+            traceState.set(rate, getHeader(rate));
         }
         clock.init();
         onMutation();
+    }
+
+    String getHeader(double rate) {
+        if (cachedHeader == null || cachedSampleRate != rate) {
+            cachedSampleRate = rate;
+            cachedHeader = TraceState.getHeaderValue(rate);
+        }
+        return cachedHeader;
     }
 
     public void asChildOf(TraceContext parent) {

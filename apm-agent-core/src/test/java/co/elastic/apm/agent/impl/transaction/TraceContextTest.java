@@ -646,4 +646,12 @@ class TraceContextTest {
         assertThat(traceContext.getServiceName()).isEqualTo("My Service");
         assertThat(traceContext.getServiceVersion()).isEqualTo("My Version");
     }
+
+    @Test
+    void testCachedTraceHeader() {
+        TraceContext traceContext = TraceContext.with64BitId(tracer);
+        String header = traceContext.getHeader(0.5);
+        assertThat(header).isNotNull().isSameAs(traceContext.getHeader(0.5));
+        assertThat(header).isNotEqualTo(traceContext.getHeader(1));
+    }
 }
