@@ -64,7 +64,7 @@ public class ApmServerHealthChecker implements Callable<Version> {
     @Nullable
     @Override
     public Version call() {
-        List<Version> versions = apmServerClient.executeForAllUrls("/", new ApmServerClient.ConnectionHandler<Version>() {
+        List<Version> versions = apmServerClient.forceExecuteForAllUrls("/", new ApmServerClient.ConnectionHandler<Version>() {
             @Override
             public Version withConnection(HttpURLConnection connection) {
                 try {

@@ -204,7 +204,7 @@ public class ApmServerClientTest {
     public void testInitialCurrentUrlIsFirstUrl() throws Exception {
         assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer1.port());
 
-        apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
+        apmServerClient.forceExecute("/test", HttpURLConnection::getResponseCode);
 
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/test")));
         apmServer2.verify(0, getRequestedFor(urlEqualTo("/test")));
@@ -215,7 +215,7 @@ public class ApmServerClientTest {
         apmServerClient.incrementAndGetErrorCount(0);
         assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer2.port());
 
-        apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
+        apmServerClient.forceExecute("/test", HttpURLConnection::getResponseCode);
 
         apmServer1.verify(0, getRequestedFor(urlEqualTo("/test")));
         apmServer2.verify(1, getRequestedFor(urlEqualTo("/proxy/test")));
@@ -233,7 +233,7 @@ public class ApmServerClientTest {
 
     @Test
     public void testRetry() throws Exception {
-        assertThat(apmServerClient.<String>execute("/test", conn -> new String(conn.getInputStream().readAllBytes()))).isEqualTo("hello from server 2");
+        assertThat(apmServerClient.<String>forceExecute("/test", conn -> new String(conn.getInputStream().readAllBytes()))).isEqualTo("hello from server 2");
         assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer2.port());
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/test")));
         apmServer2.verify(1, getRequestedFor(urlEqualTo("/proxy/test")));
@@ -242,7 +242,7 @@ public class ApmServerClientTest {
 
     @Test
     public void testRetryFailure() {
-        assertThatThrownBy(() -> apmServerClient.execute("/not-found", URLConnection::getInputStream))
+        assertThatThrownBy(() -> apmServerClient.forceExecute("/not-found", URLConnection::getInputStream))
             .isInstanceOf(FileNotFoundException.class)
             .matches(t -> t.getSuppressed().length == 1, "should have a suppressed exception");
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/not-found")));
@@ -254,7 +254,7 @@ public class ApmServerClientTest {
 
     @Test
     public void testExecuteSuccessfullyForAllUrls() {
-        apmServerClient.executeForAllUrls("/not-found", connection -> {
+        apmServerClient.forceExecuteForAllUrls("/not-found", connection -> {
             connection.getResponseCode();
             return null;
         });
@@ -268,7 +268,7 @@ public class ApmServerClientTest {
     @Test
     public void testExecuteFailureForAllUrls() {
         // exception will only be logged, not thrown
-        apmServerClient.executeForAllUrls("/not-found", connection -> {
+        apmServerClient.forceExecuteForAllUrls("/not-found", connection -> {
             connection.getInputStream();
             return null;
         });
@@ -320,17 +320,20 @@ public class ApmServerClientTest {
     }
 
     @Test
-    public void testDisableSend() {
-        // We have to go through that because the disable_send config is non-dynamic
-        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(
-            Objects.requireNonNull(ConfigSources.fromClasspath("test.elasticapm.disable-send.properties", ClassLoader.getSystemClassLoader()))
-        );
-        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
-            .reporter(new MockReporter())
-            .configurationRegistry(localConfig)
-            .buildAndStart();
-        List<URL> updatedServerUrls = tracer.getApmServerClient().getServerUrls();
-        assertThat(updatedServerUrls).isEmpty();
+    public void testDisableSend() throws Exception {
+        doReturn(true).when(reporterConfiguration).isSendDisabled();
+
+        apmServerClient.forceExecute("/test", HttpURLConnection::getResponseCode);
+        assertThat(apmServerClient.startRequest("/test")).isNull();
+        apmServer1.verify(1, getRequestedFor(urlEqualTo("/test")));
+
+        doReturn(false).when(reporterConfiguration).isSendDisabled();
+
+        apmServerClient.forceExecute("/test", HttpURLConnection::getResponseCode);
+        HttpURLConnection request = apmServerClient.startRequest("/test");
+        assertThat(request).isNotNull();
+        request.getResponseCode();
+        apmServer1.verify(3, getRequestedFor(urlEqualTo("/test")));
     }
 
     @Test
@@ -351,7 +354,7 @@ public class ApmServerClientTest {
         client.start(Collections.emptyList());
         Exception exception = null;
         try {
-            client.execute("/irrelevant", connection -> null);
+            client.forceExecute("/irrelevant", connection -> null);
         } catch (Exception e) {
             exception = e;
         }
@@ -376,13 +379,13 @@ public class ApmServerClientTest {
     public void testApiKeyRotation() throws Exception {
         doReturn("token1").when(reporterConfiguration).getApiKey();
 
-        apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
+        apmServerClient.forceExecute("/test", HttpURLConnection::getResponseCode);
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/test"))
             .withHeader("Authorization", equalTo("ApiKey token1")));
 
         doReturn("token2").when(reporterConfiguration).getApiKey();
 
-        apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
+        apmServerClient.forceExecute("/test", HttpURLConnection::getResponseCode);
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/test"))
             .withHeader("Authorization", equalTo("ApiKey token2")));
     }
@@ -392,13 +395,13 @@ public class ApmServerClientTest {
     public void testSecretTokenRotation() throws Exception {
         doReturn("token1").when(reporterConfiguration).getSecretToken();
 
-        apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
+        apmServerClient.forceExecute("/test", HttpURLConnection::getResponseCode);
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/test"))
             .withHeader("Authorization", equalTo("Bearer token1")));
 
         doReturn("token2").when(reporterConfiguration).getSecretToken();
 
-        apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
+        apmServerClient.forceExecute("/test", HttpURLConnection::getResponseCode);
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/test"))
             .withHeader("Authorization", equalTo("Bearer token2")));
     }

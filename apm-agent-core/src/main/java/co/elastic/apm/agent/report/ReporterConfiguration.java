@@ -240,9 +240,6 @@ public class ReporterConfiguration extends ConfigurationOptionProvider implement
      * @return a list of APM Server URLs resulting from the combination of {@code server_url} and {@code server_urls}
      */
     public List<URL> getServerUrls() {
-        if (disableSend.get()) {
-            return Collections.emptyList();
-        }
         List<URL> calculatedUrlList;
         URL singleUrl = serverUrl.get();
         List<URL> urlList = serverUrls.get();
@@ -265,6 +262,10 @@ public class ReporterConfiguration extends ConfigurationOptionProvider implement
             calculatedUrlList = urlList;
         }
         return calculatedUrlList;
+    }
+
+    public boolean isSendDisabled() {
+        return disableSend.get();
     }
 
     public TimeDuration getServerTimeout() {

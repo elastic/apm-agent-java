@@ -145,6 +145,9 @@ public class ApmServerClient {
 
     @Nullable
     HttpURLConnection startRequest(String relativePath) throws IOException {
+        if(reporterConfiguration.isSendDisabled()) {
+            return null;
+        }
         URL url = appendPathToCurrentUrl(relativePath);
         if (url == null) {
             return null;
@@ -247,6 +250,7 @@ public class ApmServerClient {
      * If there's a connection error executing the request,
      * the request is retried with the next APM Server url.
      * The maximum amount of retries is the number of configured APM Server URLs.
+     * This method ignores the disable_send configuration.
      *
      * @param path              the APM Server path
      * @param connectionHandler receives the {@link HttpURLConnection} and returns the result
@@ -255,7 +259,7 @@ public class ApmServerClient {
      * @throws Exception in case all retries yield an exception, the last will be thrown
      */
     @Nullable
-    public <V> V execute(String path, ConnectionHandler<V> connectionHandler) throws Exception {
+    public <V> V forceExecute(String path, ConnectionHandler<V> connectionHandler) throws Exception {
         final List<URL> prioritizedUrlList = getPrioritizedUrlList();
         if (prioritizedUrlList.isEmpty()) {
             return null;
@@ -285,7 +289,10 @@ public class ApmServerClient {
         throw previousException;
     }
 
-    public <T> List<T> executeForAllUrls(String path, ConnectionHandler<T> connectionHandler) {
+    /**
+     * Executes the given requests for all server URLs, even if the disable_send configuration is set to true.
+     */
+    public <T> List<T> forceExecuteForAllUrls(String path, ConnectionHandler<T> connectionHandler) {
         List<URL> serverUrls = getServerUrls();
         List<T> results = new ArrayList<>(serverUrls.size());
         for (URL serverUrl : serverUrls) {

@@ -97,7 +97,7 @@ public class MockServerStepDefinitions {
         ApmServerClient apmServerClient = new ApmServerClient(config);
         apmServerClient.start();
         try {
-            apmServerClient.execute("/", new ApmServerClient.ConnectionHandler<>() {
+            apmServerClient.forceExecute("/", new ApmServerClient.ConnectionHandler<>() {
                 @Nullable
                 @Override
                 public Object withConnection(HttpURLConnection connection) throws IOException {

@@ -165,7 +165,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
         }
         try {
             payloadSerializer.blockUntilReady();
-            return apmServerClient.execute("/config/v1/agents", new ApmServerClient.ConnectionHandler<String>() {
+            return apmServerClient.forceExecute("/config/v1/agents", new ApmServerClient.ConnectionHandler<String>() {
                 @Override
                 public String withConnection(HttpURLConnection connection) throws IOException {
                     try {
