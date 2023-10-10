@@ -79,7 +79,11 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object enter(@Advice.This HttpURLConnection thiz,
                                        @Advice.FieldValue("connected") boolean connected,
+                                       @Advice.FieldValue("responseCode") int responseCode,
                                        @Advice.Origin String signature) {
+
+                //With HEAD requests the connected stays false
+                boolean actuallyConnected = connected || responseCode != -1;
 
                 boolean isNestedCall = callDepth.isNestedCallAndIncrement();
                 ElasticContext<?> activeContext = tracer.currentContext();
@@ -87,7 +91,7 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
                 Span<?> span = null;
                 if (parentSpan != null) {
                     span = inFlightSpans.get(thiz);
-                    if (span == null && !connected) {
+                    if (span == null && !actuallyConnected) {
                         final URL url = thiz.getURL();
                         span = HttpClientHelper.startHttpClientSpan(activeContext, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
                     }
@@ -98,7 +102,7 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
                     }
                 }
 
-                if (!isNestedCall && !connected) {
+                if (!isNestedCall && !actuallyConnected) {
                     tracer.currentContext().propagateContext(thiz, UrlConnectionPropertyAccessor.instance(), UrlConnectionPropertyAccessor.instance());
                 }
 
