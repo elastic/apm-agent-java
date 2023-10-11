@@ -23,29 +23,27 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
+import static net.bytebuddy.matcher.ElementMatchers.*;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class PropagatedContextInstrumentation extends MicronautInstrumentation {
+public class RouteExecutorInstrumentation extends MicronautInstrumentation {
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("io.micronaut");
+        return nameStartsWith("io.micronaut.http.server");
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("io.micronaut.core.propagation.PropagatedContext"));
+        return hasSuperType(named("io.micronaut.http.server.RouteExecutor"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("propagate");
+        return named("callRoute");
     }
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.micronaut.PropagatedContextAdvice";
+        return "co.elastic.apm.agent.micronaut.RouteExecutorAdvice";
     }
 }

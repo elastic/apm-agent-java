@@ -19,9 +19,11 @@
 package co.elastic.apm.agent.micronaut;
 
 import co.elastic.apm.agent.tracer.Transaction;
+import io.micronaut.core.annotation.Nullable;
+import io.micronaut.core.propagation.ThreadPropagatedContextElement;
 
-public class PropagatedContextElement implements io.micronaut.core.propagation.PropagatedContextElement {
-    private final Transaction<?> transaction;
+public class PropagatedContextElement implements ThreadPropagatedContextElement<Transaction<?>> {
+    private Transaction<?> transaction;
 
     public PropagatedContextElement(Transaction<?> transaction) {
         this.transaction = transaction;
@@ -29,5 +31,19 @@ public class PropagatedContextElement implements io.micronaut.core.propagation.P
 
     public Transaction<?> getTransaction() {
         return transaction;
+    }
+
+    public void setTransaction(Transaction<?> transaction) {
+        this.transaction = transaction;
+    }
+
+    @Override
+    public @Nullable Transaction<?> updateThreadContext() {
+        return transaction.activate();
+    }
+
+    @Override
+    public void restoreThreadContext(@Nullable Transaction<?> oldState) {
+        oldState.deactivate();
     }
 }

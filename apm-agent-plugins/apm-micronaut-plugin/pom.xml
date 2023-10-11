@@ -31,6 +31,12 @@
         </dependency>
         <dependency>
             <groupId>io.micronaut</groupId>
+            <artifactId>micronaut-router</artifactId>
+            <version>4.0.2</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut</groupId>
             <artifactId>micronaut-http</artifactId>
             <version>4.0.2</version>
             <scope>provided</scope>
