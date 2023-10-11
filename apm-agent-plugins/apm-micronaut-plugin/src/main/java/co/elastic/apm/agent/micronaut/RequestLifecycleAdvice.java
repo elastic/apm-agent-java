@@ -18,8 +18,6 @@
  */
 package co.elastic.apm.agent.micronaut;
 
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Transaction;
@@ -37,6 +35,7 @@ import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 
+@SuppressWarnings("unused")
 public class RequestLifecycleAdvice {
     private static class ScopeWrapper {
         private final PropagatedContext.Scope propagatedScope;
