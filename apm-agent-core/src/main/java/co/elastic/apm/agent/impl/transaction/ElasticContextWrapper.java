@@ -120,6 +120,12 @@ public class ElasticContextWrapper<T extends ElasticContext<T>> extends ElasticC
         return context.getSpan();
     }
 
+    @Nullable
+    @Override
+    public TraceContext getRemoteParent() {
+        throw new UnsupportedOperationException("Context wrapper should not be checked for remote parent");
+    }
+
     @Override
     public Baggage getBaggage() {
         throw new UnsupportedOperationException("Baggage should not be accessed on context wrapper");

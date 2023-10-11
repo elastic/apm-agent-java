@@ -22,6 +22,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.baggage.BaggageContext;
 import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
+import co.elastic.apm.agent.tracer.Id;
 import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.HeaderSetter;
@@ -41,6 +42,9 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
     @Override
     public abstract AbstractSpan<?> getSpan();
 
+    @Nullable
+    public abstract TraceContext getRemoteParent();
+
     @Override
     public abstract Baggage getBaggage();
 
@@ -55,6 +59,34 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
     public final Transaction getTransaction() {
         AbstractSpan<?> contextSpan = getSpan();
         return contextSpan != null ? contextSpan.getParentTransaction() : null;
+    }
+
+    @Nullable
+    @Override
+    public Id getTraceId() {
+        AbstractSpan<?> span = getSpan();
+        if(span != null) {
+            return span.getTraceContext().getTraceId();
+        }
+        TraceContext remoteParent = getRemoteParent();
+        if(remoteParent != null) {
+            return remoteParent.getTraceId();
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public <C> ElasticContext<?> withRemoteParent(C carrier, HeaderGetter<?, C> headerGetter) {
+        if (getTraceId() == null) { //only read remote parent if we have no active trace
+            //TODO: use pooling instead
+            RemoteParentContext parent = new RemoteParentContext(getTracer());
+            parent.fill(carrier, headerGetter);
+            if(!parent.isEmpty()) {
+                return parent;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -99,7 +131,7 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
     }
 
     public boolean isEmpty() {
-        return getSpan() == null && getBaggage().isEmpty();
+        return getSpan() == null && getBaggage().isEmpty() && getRemoteParent() == null;
     }
 
     @Override
@@ -110,10 +142,15 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
     @Override
     public <C1, C2> void propagateContext(C1 carrier, HeaderSetter<?, C1> headerSetter, @Nullable C2 carrier2, @Nullable HeaderGetter<?, C2> headerGetter) {
         AbstractSpan<?> contextSpan = getSpan();
-        if (contextSpan != null) {
+        TraceContext remoteParent = getRemoteParent();
+        if (contextSpan != null || remoteParent != null) {
             if (headerGetter == null || carrier2 == null || !HeaderUtils.containsAny(TraceContext.TRACE_TEXTUAL_HEADERS, carrier2, headerGetter)) {
-                contextSpan.setNonDiscardable();
-                contextSpan.getTraceContext().propagateTraceContext(carrier, headerSetter);
+                if(contextSpan != null) {
+                    contextSpan.setNonDiscardable();
+                    contextSpan.getTraceContext().propagateTraceContext(carrier, headerSetter);
+                } else {
+                    remoteParent.propagateTraceContext(carrier, headerSetter);
+                }
             }
         }
         Baggage baggage = getBaggage();
@@ -126,8 +163,7 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
 
     @Override
     public <C> boolean isPropagationRequired(C carrier, HeaderGetter<?, C> headerGetter) {
-        AbstractSpan<?> contextSpan = getSpan();
-        boolean traceContextPropagationRequired = contextSpan != null && !HeaderUtils.containsAny(TraceContext.TRACE_TEXTUAL_HEADERS, carrier, headerGetter);
+        boolean traceContextPropagationRequired = getTraceId() != null && !HeaderUtils.containsAny(TraceContext.TRACE_TEXTUAL_HEADERS, carrier, headerGetter);
         boolean baggagePropagationRequired = !getBaggage().isEmpty() && headerGetter.getFirstHeader(W3CBaggagePropagation.BAGGAGE_HEADER_NAME, carrier) == null;
         return traceContextPropagationRequired || baggagePropagationRequired;
     }

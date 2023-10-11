@@ -680,6 +680,12 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
         return flags;
     }
 
+    void replaceWithParent() {
+        id.copyFrom(parentId);
+        parentId.resetState();
+        transactionId.resetState();
+    }
+
     public interface ChildContextCreator<T> {
         boolean asChildOf(TraceContext child, T parent);
     }

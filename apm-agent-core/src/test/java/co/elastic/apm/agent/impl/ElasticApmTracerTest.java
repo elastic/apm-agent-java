@@ -744,6 +744,12 @@ class ElasticApmTracerTest {
             return null;
         }
 
+        @org.jetbrains.annotations.Nullable
+        @Override
+        public TraceContext getRemoteParent() {
+            return null;
+        }
+
         @Override
         public Baggage getBaggage() {
             return null;

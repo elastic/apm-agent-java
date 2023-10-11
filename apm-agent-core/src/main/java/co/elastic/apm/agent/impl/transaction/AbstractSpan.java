@@ -788,6 +788,13 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
         return type;
     }
 
+    @Nullable
+    @Override
+    public TraceContext getRemoteParent() {
+        //The ElasticContext remote parent must be null when there is an active span
+        return null;
+    }
+
     @Override
     public <T, C> boolean addLink(HeaderGetter<T, C> headerGetter, @Nullable C carrier) {
         return addSpanLink(headerGetter, carrier);

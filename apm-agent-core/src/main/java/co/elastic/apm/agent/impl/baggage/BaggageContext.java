@@ -20,11 +20,15 @@ package co.elastic.apm.agent.impl.baggage;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.tracer.BaggageContextBuilder;
 
 import javax.annotation.Nullable;
 
 public class BaggageContext extends ElasticContext<BaggageContext> {
+
+    @Nullable
+    private final TraceContext remoteParent;
 
     @Nullable
     private final AbstractSpan<?> span;
@@ -33,6 +37,13 @@ public class BaggageContext extends ElasticContext<BaggageContext> {
     private BaggageContext(ElasticContext<?> parent, Baggage baggage) {
         super(parent.getTracer());
         this.span = parent.getSpan();
+        TraceContext remoteParent = parent.getRemoteParent();
+        if(remoteParent != null) {
+            this.remoteParent = TraceContext.with64BitId(parent.getTracer());
+            this.remoteParent.copyFrom(remoteParent);
+        } else {
+            this.remoteParent = null;
+        }
         this.baggage = baggage;
     }
 
@@ -40,6 +51,12 @@ public class BaggageContext extends ElasticContext<BaggageContext> {
     @Override
     public AbstractSpan<?> getSpan() {
         return span;
+    }
+
+    @Nullable
+    @Override
+    public TraceContext getRemoteParent() {
+        return remoteParent;
     }
 
     @Override

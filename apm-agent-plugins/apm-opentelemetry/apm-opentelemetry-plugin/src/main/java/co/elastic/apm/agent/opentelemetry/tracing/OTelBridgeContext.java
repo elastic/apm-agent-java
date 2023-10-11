@@ -22,6 +22,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.opentelemetry.baggage.OtelBaggage;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Context;
@@ -114,6 +115,13 @@ public class OTelBridgeContext extends ElasticContext<OTelBridgeContext> impleme
         if (span instanceof OTelSpan) {
             return ((OTelSpan) span).getInternalSpan();
         }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public TraceContext getRemoteParent() {
+        //we don't support translating the remote parent for Otel yet
         return null;
     }
 
