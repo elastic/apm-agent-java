@@ -22,15 +22,12 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.metadata.Request;
 import co.elastic.apm.agent.tracer.metadata.Response;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
-import com.sun.net.httpserver.Headers;
-import com.sun.net.httpserver.HttpsExchange;
 import io.micronaut.core.execution.ExecutionFlow;
 import io.micronaut.core.propagation.PropagatedContext;
 import io.micronaut.http.HttpHeaders;
@@ -41,8 +38,6 @@ import net.bytebuddy.asm.Advice;
 import javax.annotation.Nullable;
 
 public class RequestLifecycleAdvice {
-    private static final Logger log = LoggerFactory.getLogger(RequestLifecycleAdvice.class);
-
     private static class ScopeWrapper {
         private final PropagatedContext.Scope propagatedScope;
         private final Transaction<?> transaction;
