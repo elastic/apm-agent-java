@@ -71,15 +71,11 @@ public abstract class ServletApiAdvice {
         if (httpServletRequest == null) {
             return null;
         }
-        AbstractSpan<?> ret = null;
+        Object ret = null;
         // re-activate transactions for async requests
         final Transaction<?> transactionAttr = (Transaction<?>) adapter.getAttribute(httpServletRequest, TRANSACTION_ATTRIBUTE);
         if (tracer.currentTransaction() == null && transactionAttr != null) {
             return transactionAttr.activateInScope();
-        }
-
-        if (!tracer.isRunning()) {
-            return null;
         }
 
         CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
@@ -94,6 +90,10 @@ public abstract class ServletApiAdvice {
             Transaction<?> transaction = servletTransactionHelper.createAndActivateTransaction(adapter, adapter, httpServletRequest);
 
             if (transaction == null) {
+                ElasticContext<?> remoteCtx = tracer.currentContext().withRemoteParent(httpServletRequest, adapter.getRequestHeaderGetter());
+                if(remoteCtx != null) {
+                    ret = remoteCtx.activateInScope();
+                }
                 // if the httpServletRequest is excluded, avoid matching all exclude patterns again on each filter invocation
                 excluded.set(Boolean.TRUE);
                 return null;
@@ -139,21 +139,22 @@ public abstract class ServletApiAdvice {
                 }
 
                 if (spanType != null && (areNotEqual(servletPathTL.get(), servletPath) || areNotEqual(pathInfoTL.get(), pathInfo))) {
-                    ret = activeContext.createSpan()
-                        .appendToName(spanType.getNamePrefix())
-                        .withAction(spanType.getAction())
-                        .withType(SPAN_TYPE)
-                        .withSubtype(SPAN_SUBTYPE);
+                    Span<?> span = activeContext.createSpan()
+                            .appendToName(spanType.getNamePrefix())
+                            .withAction(spanType.getAction())
+                            .withType(SPAN_TYPE)
+                            .withSubtype(SPAN_SUBTYPE);
 
                     if (servletPath != null) {
-                        ret.appendToName(servletPath.toString());
+                        span.appendToName(servletPath.toString());
                         servletPathTL.set(servletPath);
                     }
                     if (pathInfo != null) {
-                        ret.appendToName(pathInfo.toString());
+                        span.appendToName(pathInfo.toString());
                         pathInfoTL.set(pathInfo);
                     }
-                    ret.activate();
+                    span.activate();
+                    ret = span;
                 }
             }
         }

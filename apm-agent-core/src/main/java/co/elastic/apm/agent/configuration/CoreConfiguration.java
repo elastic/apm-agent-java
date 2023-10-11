@@ -854,6 +854,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
         .dynamic(true)
         .buildWithDefault(Arrays.asList(WildcardMatcher.valueOf("*")));
 
+
+    private final ConfigurationOption<Boolean> contextPropagationOnly = ConfigurationOption.booleanOption()
+            .key("context_propagation_only")
+            .configurationCategory(CORE_CATEGORY)
+            .description("TODO")
+            .dynamic(true)
+            .buildWithDefault(false);
+
     public boolean isEnabled() {
         return enabled.get();
     }
@@ -1145,6 +1153,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
 
     public List<WildcardMatcher> getBaggageToAttach() {
         return baggateToAttach.get();
+    }
+
+    public boolean isContextPropagationOnly() {
+        return contextPropagationOnly.get();
     }
 
     public enum CloudProvider {

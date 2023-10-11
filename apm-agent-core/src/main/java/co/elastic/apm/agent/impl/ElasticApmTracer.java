@@ -808,7 +808,7 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     public boolean isRunning() {
-        return tracerState == TracerState.RUNNING;
+        return tracerState == TracerState.RUNNING && !coreConfiguration.isContextPropagationOnly();
     }
 
     @Override

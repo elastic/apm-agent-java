@@ -21,6 +21,7 @@ package co.elastic.apm.agent.loginstr.correlation;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.ErrorCapture;
 import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Id;
 import co.elastic.apm.agent.tracer.Tracer;
 
 import javax.annotation.Nullable;
@@ -49,11 +50,11 @@ public class CorrelationIdMapAdapter extends AbstractMap<String, String> {
             @Override
             @Nullable
             public String call() {
-                AbstractSpan<?> activeSpan = tracer.getActive();
-                if (activeSpan == null) {
+                Id activeId = tracer.currentContext().getTraceId();
+                if (activeId == null) {
                     return null;
                 }
-                return activeSpan.getTraceContext().getTraceId().toString();
+                return activeId.toString();
             }
         }),
         new LazyEntry(TRANSACTION_ID_MDC_KEY, new Callable<String>() {
