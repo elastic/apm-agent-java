@@ -183,6 +183,11 @@ rendering
 |Captures methods annotated with `@OnOpen`, `@OnMessage`, `@OnError`, or `@OnClose` as transactions for classes that are annotated with `@ServerEndpoint`.
 |1.29.0
 
+|Micronaut
+|4.x
+|Creates transactions for inbound HTTP requests, injects into PropagatedContext (introduced in 4.x), names transaction according to the controller (Controller#method)
+|1.43.0
+
 |===
 
 
