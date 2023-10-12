@@ -401,6 +401,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             assertThat(transaction).isNotNull();
             assertThat(transaction.getTraceContext().getTraceId()).isEqualTo(span.getTraceContext().getTraceId());
             assertThat(transaction.getTraceContext().getParentId()).isEqualTo(span.getTraceContext().getId());
+            transaction.decrementReferences(); //recycle transaction without reporting
         });
     }
 

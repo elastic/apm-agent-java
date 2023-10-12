@@ -79,7 +79,7 @@ public class TestObjectPoolFactory extends ObjectPoolFactory {
                     // silently ignored
                 }
             }
-        } while (retry-- > 0 && hasSomethingLeft);
+        } while (--retry > 0 && hasSomethingLeft);
 
         if (retry == 0 && hasSomethingLeft) {
             for (BookkeeperObjectPool<?> pool : createdPools) {
