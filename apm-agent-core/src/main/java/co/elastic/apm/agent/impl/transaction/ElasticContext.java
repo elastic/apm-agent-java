@@ -79,11 +79,13 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
     @Override
     public <C> ElasticContext<?> withRemoteParent(C carrier, HeaderGetter<?, C> headerGetter) {
         if (getTraceId() == null) { //only read remote parent if we have no active trace
-            //TODO: use pooling instead
-            RemoteParentContext parent = new RemoteParentContext(getTracer());
+            RemoteParentContext parent = tracer.createRemoteParentContext();
             parent.fill(carrier, headerGetter);
             if(!parent.isEmpty()) {
                 return parent;
+            } else {
+                parent.recycle();
+                return null;
             }
         }
         return null;

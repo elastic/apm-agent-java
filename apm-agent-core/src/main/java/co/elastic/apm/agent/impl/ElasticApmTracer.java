@@ -26,6 +26,7 @@ import co.elastic.apm.agent.configuration.AutoDetectedServiceInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.impl.transaction.RemoteParentContext;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
@@ -114,6 +115,7 @@ public class ElasticApmTracer implements Tracer {
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<ErrorCapture> errorPool;
     private final ObjectPool<TraceContext> spanLinkPool;
+    private final ObjectPool<RemoteParentContext> remoteParentContextPool;
     private final Reporter reporter;
     private final ObjectPoolFactory objectPoolFactory;
 
@@ -223,6 +225,7 @@ public class ElasticApmTracer implements Tracer {
 
         this.objectPoolFactory = poolFactory;
         transactionPool = poolFactory.createTransactionPool(maxPooledElements, this);
+        remoteParentContextPool = poolFactory.createRemoteParentContextPool(maxPooledElements, this);
         spanPool = poolFactory.createSpanPool(maxPooledElements, this);
 
         // we are assuming that we don't need as many errors as spans or transactions
@@ -384,6 +387,16 @@ public class ElasticApmTracer implements Tracer {
     public Span startSpan(AbstractSpan<?> parent, Baggage baggage, long epochMicros) {
         return startSpan(TraceContext.fromParent(), parent, baggage, epochMicros);
     }
+
+    public RemoteParentContext createRemoteParentContext() {
+        RemoteParentContext ctx = remoteParentContextPool.createInstance();
+        while (ctx.getReferenceCount() != 0) {
+            logger.warn("Tried to start a span with a non-zero reference count {} {}", ctx.getReferenceCount(), ctx);
+            ctx = remoteParentContextPool.createInstance();
+        }
+        return ctx;
+    }
+
 
     /**
      * @param parentContext the trace context of the parent
@@ -604,6 +617,10 @@ public class ElasticApmTracer implements Tracer {
 
     public void recycle(TraceContext traceContext) {
         spanLinkPool.recycle(traceContext);
+    }
+
+    public void recycle(RemoteParentContext context) {
+        remoteParentContextPool.recycle(context);
     }
 
     public synchronized void stop() {

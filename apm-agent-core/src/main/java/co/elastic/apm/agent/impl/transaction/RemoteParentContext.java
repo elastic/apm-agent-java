@@ -25,8 +25,9 @@ import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.atomic.AtomicLong;
 
-public class RemoteParentContext extends ElasticContext<RemoteParentContext> implements Recyclable {
+public class RemoteParentContext extends AbstractRefCountedContext<RemoteParentContext> {
 
     private Baggage baggage;
 
@@ -70,18 +71,19 @@ public class RemoteParentContext extends ElasticContext<RemoteParentContext> imp
     }
 
     @Override
-    public void incrementReferences() {
-
-    }
-
-    @Override
-    public void decrementReferences() {
-
-    }
-
-    @Override
     public void resetState() {
+        super.resetState();
         baggage = Baggage.EMPTY;
         remoteTraceParent.resetState();
+    }
+
+    @Override
+    protected void recycle() {
+        tracer.recycle(this);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("RemoteParentContext %s (%s)", remoteTraceParent, Integer.toHexString(System.identityHashCode(this)));
     }
 }
