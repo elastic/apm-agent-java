@@ -20,6 +20,7 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import okhttp3.Response;
 import org.eclipse.jetty.server.NetworkConnector;
 import org.eclipse.jetty.server.Server;
@@ -30,6 +31,8 @@ import org.junit.jupiter.api.BeforeEach;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -74,7 +77,14 @@ abstract class AbstractServletTest extends AbstractInstrumentationTest {
     }
 
     protected Response get(String path) throws IOException {
-        return httpClient.newCall(new okhttp3.Request.Builder().url("http://localhost:" + getPort() + path).build()).execute();
+        return get(path, Collections.emptyMap());
+    }
+
+    protected Response get(String path, Map<String, String> headers) throws IOException {
+        Request.Builder builder = new Request.Builder()
+                .url("http://localhost:" + getPort() + path);
+        headers.forEach(builder::addHeader);
+        return httpClient.newCall(builder.build()).execute();
     }
 
     protected abstract void setUpHandler(ServletContextHandler handler);

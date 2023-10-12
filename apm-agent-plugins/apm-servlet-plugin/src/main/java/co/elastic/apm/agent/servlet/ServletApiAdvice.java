@@ -96,7 +96,7 @@ public abstract class ServletApiAdvice {
                 }
                 // if the httpServletRequest is excluded, avoid matching all exclude patterns again on each filter invocation
                 excluded.set(Boolean.TRUE);
-                return null;
+                return ret;
             }
 
             final Request req = transaction.getContext().getRequest();

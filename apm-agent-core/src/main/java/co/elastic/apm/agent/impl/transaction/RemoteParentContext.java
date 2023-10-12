@@ -44,7 +44,7 @@ public class RemoteParentContext extends ElasticContext<RemoteParentContext> imp
         }
         Baggage.Builder baggageBuilder = Baggage.builder();
         W3CBaggagePropagation.parse(carrier, getter, baggageBuilder);
-        baggage = Baggage.builder().build();
+        baggage = baggageBuilder.build();
         return !isEmpty();
     }
 

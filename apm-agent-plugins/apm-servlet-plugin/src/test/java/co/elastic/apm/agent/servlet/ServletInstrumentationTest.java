@@ -19,7 +19,14 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import co.elastic.apm.agent.impl.baggage.BaggageContext;
+import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.tracer.Baggage;
+import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.tracer.GlobalTracer;
@@ -46,6 +53,11 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.ERROR;
 import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.FORWARD;
@@ -53,6 +65,7 @@ import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.INCLUDE;
 import static co.elastic.apm.agent.servlet.ServletApiAdvice.SPAN_SUBTYPE;
 import static co.elastic.apm.agent.servlet.ServletApiAdvice.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 
@@ -70,6 +83,7 @@ class ServletInstrumentationTest extends AbstractServletTest {
         handler.setClassLoader(getClass().getClassLoader());
         handler.addServlet(TestServlet.class, "/filter/test");
         handler.addServlet(TestServlet.class, "/test");
+        handler.addServlet(ContextEchoServlet.class, "/context");
         handler.addServlet(BaseTestServlet.class, "/base");
         handler.addServlet(ForwardingServlet.class, "/forward");
         handler.addServlet(ForwardingServletWithPathInfo.class, "/forward/path");
@@ -105,6 +119,37 @@ class ServletInstrumentationTest extends AbstractServletTest {
     void testNoopInstrumentation() throws Exception {
         TracerInternalApiUtils.pauseTracer(tracer);
         callServlet(0, "/test");
+    }
+
+    @Test
+    void testContextPropagationActiveOnPausedTracer() throws Exception {
+        Transaction<?> dummyRoot = tracer.startRootTransaction(null)
+                .activate();
+
+        Map<String, String> headers = new HashMap<>();
+
+        tracer.currentContext().withUpdatedBaggage()
+                .put("foo", "bar")
+                .buildContext()
+                .propagateContext(headers, TextHeaderMapAccessor.INSTANCE, null);
+
+        dummyRoot.deactivate().end();
+
+        reporter.reset();
+        TracerInternalApiUtils.pauseTracer(tracer);
+
+        assertThat(headers)
+                .containsKeys("baggage", "traceparent", "tracestate");
+
+        Response response = get("/context", headers);
+        String responseBody = response.body().string();
+
+        List<String> expectedHeaders = headers.entrySet().stream()
+                        .map(entry -> entry.getKey()+": "+ entry.getValue())
+                        .collect(Collectors.toList());
+
+        assertThat(responseBody.split("\n")).containsExactlyElementsOf(expectedHeaders);
+        assertThat(reporter.getTransactions()).isEmpty();
     }
 
     @Test
@@ -232,6 +277,19 @@ class ServletInstrumentationTest extends AbstractServletTest {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             resp.getWriter().append("Hello World!");
+        }
+    }
+
+    public static class ContextEchoServlet extends HttpServlet {
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+            Map<String, String> headerMap = new HashMap<>();
+            ElasticContext<?> ctx = GlobalTracer.get().currentContext();
+            ctx.propagateContext(headerMap, TextHeaderMapAccessor.INSTANCE, null);
+            String headers = headerMap.entrySet().stream()
+                            .map(entry -> entry.getKey()+": "+ entry.getValue())
+                            .collect(Collectors.joining("\n"));
+            resp.getWriter().append(headers);
         }
     }
 
