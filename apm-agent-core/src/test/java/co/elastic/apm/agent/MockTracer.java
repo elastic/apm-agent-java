@@ -91,6 +91,10 @@ public class MockTracer {
      * values that can be customized by mocking the configuration.
      */
     public static synchronized MockInstrumentationSetup createMockInstrumentationSetup(ConfigurationRegistry configRegistry) {
+        return createMockInstrumentationSetup(configRegistry, true);
+    }
+
+    public static synchronized MockInstrumentationSetup createMockInstrumentationSetup(ConfigurationRegistry configRegistry, boolean checkRecycling) {
         // use an object pool that does bookkeeping to allow for extra usage checks
         TestObjectPoolFactory objectPoolFactory = new TestObjectPoolFactory();
 
@@ -106,9 +110,11 @@ public class MockTracer {
             // is left behind
             .withObjectPoolFactory(objectPoolFactory)
             .withLifecycleListener(ClosableLifecycleListenerAdapter.of(() -> {
-                reporter.assertRecycledAfterDecrementingReferences();
-                // checking proper object pool usage using tracer lifecycle events
-                objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+                if (checkRecycling) {
+                    reporter.assertRecycledAfterDecrementingReferences();
+                    // checking proper object pool usage using tracer lifecycle events
+                    objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+                }
             }))
             .buildAndStart();
         return new MockInstrumentationSetup(
