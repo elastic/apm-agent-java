@@ -82,6 +82,16 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
     }
 
     @Test
+    public void testMultipleGetResponseCodeWithHead() throws Exception {
+        final HttpURLConnection urlConnection = (HttpURLConnection) new URL(getBaseUrl() + "/").openConnection();
+        urlConnection.setRequestMethod("HEAD");
+        //Call twice to make sure we don't create two spans
+        urlConnection.getResponseCode();
+        urlConnection.getResponseCode();
+        expectSpan("/").verify();
+    }
+
+    @Test
     public void testGetOutputStream() throws Exception {
         final HttpURLConnection urlConnection = (HttpURLConnection) new URL(getBaseUrl() + "/").openConnection();
         urlConnection.setDoOutput(true);

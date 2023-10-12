@@ -47,7 +47,7 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
         public static Object onBeforeExecute(@Advice.Argument(0) String method,
                                             @Advice.Argument(1) String endpoint,
                                             @Advice.Argument(3) @Nullable HttpEntity entity) {
-            return helper.createClientSpan(method, endpoint, entity);
+            return helper.createClientSpan(method, endpoint, entity, true);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

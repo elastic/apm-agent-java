@@ -31,6 +31,10 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[float]
+===== Bug fixes
+* Fixed too many spans being created for `HTTPUrlConnection` requests with method `HEAD` - {pull}3353[#3353]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
@@ -45,6 +49,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 * Switched to OpenTelemetry compatible context propagation for Kafka - {pull}3300[#3300]
 * Changed `cloud.project.id` collected in Google Cloud (GCP) to be the `project-id` - {issues}3311[#3311]
 * Allow running the IntelliJ debug agent in parallel - {pull}3315[#3315]
+* Capture `span.sync` = `false` for ES restclient async spans plugins
 
 [float]
 ===== Bug fixes
