@@ -47,6 +47,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -476,6 +477,16 @@ class ElasticApmTracerTest {
             .describedAs("spans within non-sampled transactions should dropped")
             .hasSize(0);
 
+    }
+
+    @Test
+    void testNoRemoteParentContextOnEmptyHeaders() {
+        ElasticContext<?> ctx = tracerImpl.currentContext()
+                .withRemoteParent(Collections.emptyMap(), TextHeaderMapAccessor.INSTANCE);
+
+        assertThat(ctx).isNull();
+        //withRemoteParent will fetch a RemoteParentContext from the object pool to parse headers into
+        //this test is supposed to verify that that instance is returned to the pool correctly
     }
 
     @Test
