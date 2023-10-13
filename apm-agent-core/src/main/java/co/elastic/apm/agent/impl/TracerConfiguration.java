@@ -35,8 +35,9 @@ public class TracerConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "A boolean specifying if the agent should be recording or not.\n" +
             "When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.\n" +
-            "When not recording, the agent works as a noop, not collecting data and not communicating with the APM sever,\n" +
+            "When not recording, the agent works almost as a noop, not collecting data and not communicating with the APM sever,\n" +
             "except for polling the central configuration endpoint.\n" +
+            "Note that trace context propagation, baggage and log correlation remain active even when recording is disabled.\n"+
             "As this is a reversible switch, agent threads are not being killed when inactivated, but they will be \n" +
             "mostly idle in this state, so the overhead should be negligible.\n" +
             "\n" +

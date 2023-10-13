@@ -188,11 +188,9 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         for (MeterRegistry registry : currentlyReportableRegistries) {
             registry.forEachMeter(meterConsumer);
         }
-        if(tracer.isRunning()) {
-            logger.debug("Reporting {} meters", meterConsumer.meters.size());
-            for (JsonWriter serializedMetricSet : serializer.serialize(meterConsumer.meters, now * 1000)) {
-                reporter.reportMetrics(serializedMetricSet);
-            }
+        logger.debug("Reporting {} meters", meterConsumer.meters.size());
+        for (JsonWriter serializedMetricSet : serializer.serialize(meterConsumer.meters, now * 1000)) {
+            reporter.reportMetrics(serializedMetricSet);
         }
     }
 

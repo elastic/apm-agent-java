@@ -391,7 +391,7 @@ public class ElasticApmTracer implements Tracer {
     public RemoteParentContext createRemoteParentContext() {
         RemoteParentContext ctx = remoteParentContextPool.createInstance();
         while (ctx.getReferenceCount() != 0) {
-            logger.warn("Tried to start a span with a non-zero reference count {} {}", ctx.getReferenceCount(), ctx);
+            logger.warn("Tried to start a remote-context with a non-zero reference count {} {}", ctx.getReferenceCount(), ctx);
             ctx = remoteParentContextPool.createInstance();
         }
         return ctx;

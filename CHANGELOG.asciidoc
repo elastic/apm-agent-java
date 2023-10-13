@@ -32,6 +32,10 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 === Unreleased
 
 [float]
+===== Features
+* Context propagation and log correlation now takes place even if recording is disabled - {pull}3358[#3358]
+
+[float]
 ===== Bug fixes
 * Fixed too many spans being created for `HTTPUrlConnection` requests with method `HEAD` - {pull}3353[#3353]
 

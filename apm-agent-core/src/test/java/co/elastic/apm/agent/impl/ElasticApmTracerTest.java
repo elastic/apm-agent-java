@@ -755,7 +755,7 @@ class ElasticApmTracerTest {
             return null;
         }
 
-        @org.jetbrains.annotations.Nullable
+        @Nullable
         @Override
         public TraceContext getRemoteParent() {
             return null;
