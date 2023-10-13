@@ -187,6 +187,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     @Test
     public void testRemoteParentTraceId() throws Exception {
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
+        initializeReformattingDir("simple");
 
         String expectedTraceId = transaction.getTraceContext().getTraceId().toString();
         Map<String, String> headers = new HashMap<>();
