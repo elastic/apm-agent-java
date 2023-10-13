@@ -73,7 +73,7 @@ class CallTreeTest {
         // disable scheduled profiling to not interfere with this test
         profilerConfig = config.getConfig(ProfilingConfiguration.class);
         doReturn(true).when(profilerConfig).isProfilingEnabled();
-        tracer = MockTracer.createRealTracer(reporter, config);
+        tracer = MockTracer.createRealTracer(reporter, config, false);
     }
 
     @AfterEach

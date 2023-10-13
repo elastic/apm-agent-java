@@ -26,6 +26,7 @@ import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.common.util.Version;
+import org.mockito.CheckReturnValue;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -51,11 +52,15 @@ public class MockTracer {
         return createRealTracer(reporter, SpyConfiguration.createSpyConfig());
     }
 
+    public static ElasticApmTracer createRealTracer(Reporter reporter, ConfigurationRegistry config) {
+        return createRealTracer(reporter, config, true);
+    }
+
     /**
      * Creates a real tracer with a given reporter and a mock configuration which returns default values which can be customized by mocking
      * the configuration.
      */
-    public static ElasticApmTracer createRealTracer(Reporter reporter, ConfigurationRegistry config) {
+    public static ElasticApmTracer createRealTracer(Reporter reporter, ConfigurationRegistry config, boolean checkRecycling) {
 
         // use an object pool that does bookkeeping to allow for extra usage checks
         TestObjectPoolFactory objectPoolFactory = new TestObjectPoolFactory();
@@ -72,8 +77,10 @@ public class MockTracer {
                     ((MockReporter) reporter).assertRecycledAfterDecrementingReferences();
                 }
 
-                // checking proper object pool usage using tracer lifecycle events
-                objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+                if (checkRecycling) {
+                    // checking proper object pool usage using tracer lifecycle events
+                    objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+                }
             }))
             .build();
 
@@ -91,6 +98,10 @@ public class MockTracer {
      * values that can be customized by mocking the configuration.
      */
     public static synchronized MockInstrumentationSetup createMockInstrumentationSetup(ConfigurationRegistry configRegistry) {
+        return createMockInstrumentationSetup(configRegistry, true);
+    }
+
+    public static synchronized MockInstrumentationSetup createMockInstrumentationSetup(ConfigurationRegistry configRegistry, boolean checkRecycling) {
         // use an object pool that does bookkeeping to allow for extra usage checks
         TestObjectPoolFactory objectPoolFactory = new TestObjectPoolFactory();
 
@@ -106,9 +117,11 @@ public class MockTracer {
             // is left behind
             .withObjectPoolFactory(objectPoolFactory)
             .withLifecycleListener(ClosableLifecycleListenerAdapter.of(() -> {
-                reporter.assertRecycledAfterDecrementingReferences();
-                // checking proper object pool usage using tracer lifecycle events
-                objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+                if (checkRecycling) {
+                    reporter.assertRecycledAfterDecrementingReferences();
+                    // checking proper object pool usage using tracer lifecycle events
+                    objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+                }
             }))
             .buildAndStart();
         return new MockInstrumentationSetup(
