@@ -32,6 +32,10 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 === Unreleased
 
 [float]
+===== Features
+* Capture bucket and object key to Lambda transaction as OTel attributes - `aws.s3.bueckt`, `aws.s3.key` - {pull}3364[#3364]
+
+[float]
 ===== Bug fixes
 * Fixed too many spans being created for `HTTPUrlConnection` requests with method `HEAD` - {pull}3353[#3353]
 
