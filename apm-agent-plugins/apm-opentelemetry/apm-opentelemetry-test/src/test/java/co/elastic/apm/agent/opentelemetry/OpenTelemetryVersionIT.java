@@ -59,6 +59,7 @@ public class OpenTelemetryVersionIT {
         TestClassWithDependencyRunner runner = new TestClassWithDependencyRunner(dependencies,
             "co.elastic.apm.agent.opentelemetry.tracing.ElasticOpenTelemetryTest",
             "co.elastic.apm.agent.opentelemetry.tracing.AbstractOpenTelemetryTest",
+                "co.elastic.apm.agent.opentelemetry.SemAttributes",
             "co.elastic.apm.agent.opentelemetry.tracing.ElasticOpenTelemetryTest$MapGetter");
         runner.run();
     }
