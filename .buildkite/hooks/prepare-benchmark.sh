@@ -17,6 +17,3 @@ tar --extract --file /tmp/gh.tar.gz --directory "$GH_HOME" --strip-components 1
 
 PATH=$GH_HOME/bin:$PATH
 export PATH
-
-echo "--- Configure gh :github:"
-echo "$GH_TOKEN" | gh auth login --with-token
