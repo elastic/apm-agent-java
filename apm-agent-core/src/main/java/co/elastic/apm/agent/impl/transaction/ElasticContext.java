@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.baggage.BaggageContext;
@@ -77,16 +78,13 @@ public abstract class ElasticContext<T extends ElasticContext<T>> implements co.
 
     @Nullable
     @Override
-    public <C> ElasticContext<?> withRemoteParent(C carrier, HeaderGetter<?, C> headerGetter) {
-        if (getTraceId() == null) { //only read remote parent if we have no active trace
-            RemoteParentContext parent = tracer.createRemoteParentContext();
-            parent.fill(carrier, headerGetter);
-            if(!parent.isEmpty()) {
-                return parent;
-            } else {
-                parent.recycle();
-                return null;
-            }
+    public <C> ElasticContext<?> withContextPropagationOnly(C carrier, HeaderGetter<?, C> headerGetter) {
+        CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
+        //only create propagation-only context if there is none active already
+        if (getTraceId() == null && coreConfig.isContextPropagationOnly()) {
+            PropagationOnlyContext parent = tracer.createPropagationOnlyContext();
+            parent.initFrom(carrier, headerGetter);
+            return parent;
         }
         return null;
     }

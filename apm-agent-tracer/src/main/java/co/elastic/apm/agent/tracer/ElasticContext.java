@@ -85,7 +85,7 @@ public interface ElasticContext<T extends ElasticContext<T>> extends Activateabl
      * @param <C> the carrier type
      */
     @Nullable
-    <C> ElasticContext<?> withRemoteParent(C carrier, HeaderGetter<?, C> headerGetter);
+    <C> ElasticContext<?> withContextPropagationOnly(C carrier, HeaderGetter<?, C> headerGetter);
 
 
     /**

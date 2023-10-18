@@ -90,7 +90,7 @@ public abstract class ServletApiAdvice {
             Transaction<?> transaction = servletTransactionHelper.createAndActivateTransaction(adapter, adapter, httpServletRequest);
 
             if (transaction == null) {
-                ElasticContext<?> remoteCtx = tracer.currentContext().withRemoteParent(httpServletRequest, adapter.getRequestHeaderGetter());
+                ElasticContext<?> remoteCtx = tracer.currentContext().withContextPropagationOnly(httpServletRequest, adapter.getRequestHeaderGetter());
                 if(remoteCtx != null) {
                     ret = remoteCtx.activateInScope();
                 }

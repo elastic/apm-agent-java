@@ -88,7 +88,7 @@ public class NoopElasticContext implements ElasticContext<NoopElasticContext> {
 
     @Nullable
     @Override
-    public <C> ElasticContext<?> withRemoteParent(C carrier, HeaderGetter<?, C> headerGetter) {
+    public <C> ElasticContext<?> withContextPropagationOnly(C carrier, HeaderGetter<?, C> headerGetter) {
         return null;
     }
 

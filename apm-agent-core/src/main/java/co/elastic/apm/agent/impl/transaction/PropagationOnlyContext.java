@@ -22,31 +22,35 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
-import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.atomic.AtomicLong;
 
-public class RemoteParentContext extends AbstractRefCountedContext<RemoteParentContext> {
+public class PropagationOnlyContext extends AbstractRefCountedContext<PropagationOnlyContext> {
 
     private Baggage baggage;
 
+    /**
+     * This holds the remote trace context to be propagated, if available.
+     * If this context was created without a remote trace context, a new root trace context with default sampling is used instead.
+     */
     private final TraceContext remoteTraceParent;
 
-    public RemoteParentContext(ElasticApmTracer tracer) {
+    public PropagationOnlyContext(ElasticApmTracer tracer) {
         super(tracer);
         remoteTraceParent = TraceContext.with64BitId(tracer);
         baggage = Baggage.EMPTY;
     }
 
-    public <C> boolean fill(C carrier, HeaderGetter<?, C> getter) {
+    public <C> void initFrom(C carrier, HeaderGetter<?, C> getter) {
         if(remoteTraceParent.asChildOf(carrier, getter)) {
             remoteTraceParent.replaceWithParent();
+        } else {
+            //Create a dummy remote-parent
+            remoteTraceParent.asRootSpan(tracer.getSampler());
         }
         Baggage.Builder baggageBuilder = Baggage.builder();
         W3CBaggagePropagation.parse(carrier, getter, baggageBuilder);
         baggage = baggageBuilder.build();
-        return !isEmpty();
     }
 
     @Nullable

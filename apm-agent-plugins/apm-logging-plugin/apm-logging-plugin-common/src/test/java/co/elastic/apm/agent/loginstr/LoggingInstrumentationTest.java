@@ -22,9 +22,7 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Scope;
@@ -198,7 +196,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         try {
             assertThat(tracer.currentContext().isEmpty()).isTrue();
 
-            ElasticContext<?> remoteParentCtx = tracer.currentContext().withRemoteParent(headers, TextHeaderMapAccessor.INSTANCE);
+            ElasticContext<?> remoteParentCtx = tracer.currentContext().withContextPropagationOnly(headers, TextHeaderMapAccessor.INSTANCE);
             assertThat(remoteParentCtx).isNotNull();
             try(Scope scope = remoteParentCtx.activateInScope()) {
                 logger.debug(DEBUG_MESSAGE);

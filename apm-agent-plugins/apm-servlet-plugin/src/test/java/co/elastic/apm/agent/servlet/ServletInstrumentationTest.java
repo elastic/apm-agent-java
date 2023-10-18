@@ -19,13 +19,8 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
-import co.elastic.apm.agent.impl.baggage.BaggageContext;
-import co.elastic.apm.agent.impl.sampling.ConstantSampler;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.tracer.Baggage;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -56,7 +51,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.ERROR;
@@ -65,7 +59,6 @@ import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.INCLUDE;
 import static co.elastic.apm.agent.servlet.ServletApiAdvice.SPAN_SUBTYPE;
 import static co.elastic.apm.agent.servlet.ServletApiAdvice.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 
@@ -122,7 +115,7 @@ class ServletInstrumentationTest extends AbstractServletTest {
     }
 
     @Test
-    void testContextPropagationActiveOnPausedTracer() throws Exception {
+    void testContextPropagationOnlySupported() throws Exception {
         Transaction<?> dummyRoot = tracer.startRootTransaction(null)
                 .activate();
 
@@ -136,11 +129,12 @@ class ServletInstrumentationTest extends AbstractServletTest {
         dummyRoot.deactivate().end();
 
         reporter.reset();
-        TracerInternalApiUtils.pauseTracer(tracer);
+        doReturn(true).when(config.getConfig(CoreConfiguration.class)).isContextPropagationOnly();
 
         assertThat(headers)
                 .containsKeys("baggage", "traceparent", "tracestate");
 
+        //Ensure remote headers are respected when present
         Response response = get("/context", headers);
         String responseBody = response.body().string();
 
@@ -150,6 +144,13 @@ class ServletInstrumentationTest extends AbstractServletTest {
 
         assertThat(responseBody.split("\n")).containsExactlyElementsOf(expectedHeaders);
         assertThat(reporter.getTransactions()).isEmpty();
+
+
+        //Ensure a dummy trace-id is present when no remote headers are present
+        Response response2 = get("/context");
+        String response2Body = response2.body().string();
+        assertThat(response2Body)
+            .matches("(.|\n)*\n?traceparent: 00-[0-9a-f]{32}(.|\n)*");
     }
 
     @Test

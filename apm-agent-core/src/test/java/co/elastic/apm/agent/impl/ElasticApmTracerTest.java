@@ -480,13 +480,37 @@ class ElasticApmTracerTest {
     }
 
     @Test
-    void testNoRemoteParentContextOnEmptyHeaders() {
-        ElasticContext<?> ctx = tracerImpl.currentContext()
-                .withRemoteParent(Collections.emptyMap(), TextHeaderMapAccessor.INSTANCE);
+    void testPropagationOnlyContextCreation() {
 
-        assertThat(ctx).isNull();
-        //withRemoteParent will fetch a RemoteParentContext from the object pool to parse headers into
-        //this test is supposed to verify that that instance is returned to the pool correctly
+        Map<String,String> headersMap = new HashMap<>();
+        headersMap.put("baggage", "foo=bar");
+        headersMap.put(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
+
+        assertThat(tracerImpl.currentContext()
+                .withContextPropagationOnly(Collections.emptyMap(), TextHeaderMapAccessor.INSTANCE)).isNull();
+        assertThat(tracerImpl.currentContext()
+            .withContextPropagationOnly(headersMap, TextHeaderMapAccessor.INSTANCE)).isNull();
+
+        doReturn(true).when(config.getConfig(CoreConfiguration.class)).isContextPropagationOnly();
+
+        assertThat(tracerImpl.startRootTransaction(null)).isNull();
+
+        ElasticContext<?> noTraceHeadersCtx = tracerImpl.currentContext()
+            .withContextPropagationOnly(Collections.emptyMap(), TextHeaderMapAccessor.INSTANCE);
+        assertThat(noTraceHeadersCtx).isNotNull();
+        try(var scope = noTraceHeadersCtx.activateInScope()) {
+            assertThat(tracerImpl.currentContext().getTraceId().isEmpty()).isFalse();
+            assertThat(tracerImpl.currentContext().getRemoteParent().getId().isEmpty()).isFalse();
+        }
+
+
+        ElasticContext<?> traceHeadersCtx = tracerImpl.currentContext()
+            .withContextPropagationOnly(headersMap, TextHeaderMapAccessor.INSTANCE);
+        assertThat(traceHeadersCtx).isNotNull();
+        try(var scope = traceHeadersCtx.activateInScope()) {
+            assertThat(tracerImpl.currentContext().getTraceId().toString()).isEqualTo("0af7651916cd43dd8448eb211c80319c");
+            assertThat(tracerImpl.currentContext().getRemoteParent().getId().toString()).isEqualTo("b9c7c989f97918e1");
+        }
     }
 
     @Test
