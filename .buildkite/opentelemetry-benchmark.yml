@@ -1,0 +1,5 @@
+steps:
+  - label: "Run the opentelemetry-benchmark"
+    commands: .buildkite/scripts/opentelemetry-benchmark.sh
+    agents:
+      queue: observability-microbenchmarks
