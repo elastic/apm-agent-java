@@ -8,6 +8,12 @@
 
 set -eo pipefail
 
+# Upload should not do much with the pre-command.
+if [[ "$BUILDKITE_COMMAND" =~ .*"upload".* ]]; then
+  echo "Skipped pre-command when running the Upload pipeline"
+  exit 0
+fi
+
 ## TODO: change name for the opentelemetry-benchmark
 if [ "$BUILDKITE_PIPELINE_SLUG" == "apm-agent-java-load-testing" ]; then
     source .buildkite/hooks/prepare-benchmark.sh
