@@ -20,4 +20,3 @@ export PATH
 
 echo "--- Configure gh :github:"
 echo "$GH_TOKEN" | gh auth login --with-token
-gh auth setup-git
