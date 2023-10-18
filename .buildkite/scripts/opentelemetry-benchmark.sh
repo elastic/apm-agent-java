@@ -23,5 +23,5 @@ echo $NEW_LINE
 perl -i -ne "if (/withAgents/) {print \"$NEW_LINE\n\"}else{print}" src/test/java/io/opentelemetry/config/Configs.java
 
 echo "--- Run tests with sudo access"
-sudo ./gradlew test
+./gradlew test
 perl -ne '/Standard output/ && $on++; /\<\/pre\>/ && ($on=0);$on && s/\<.*\>//;$on && !/^\s*$/ && print' build/reports/tests/test/classes/io.opentelemetry.OverheadTests.html
