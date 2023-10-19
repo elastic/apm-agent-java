@@ -38,6 +38,11 @@ if [ -n "$BUILDKITE" ]; then
   cat << EOF | buildkite-agent annotate --style "info" --context report
   ### OverheadTests Report
 
+  \`\`\`
   ${REPORT}
+  \`\`\`
+
 EOF
 fi
+
+echo "--- Send Report (TBC)"
