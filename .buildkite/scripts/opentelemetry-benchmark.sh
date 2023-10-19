@@ -4,9 +4,11 @@ set -eo pipefail
 echo "--- Download the latest elastic-agent.zip"
 # run earlier so gh can use the current github repository.
 run_id=$(gh run list --branch main --status success --workflow main.yml -L 1 --json databaseId --jq '.[].databaseId')
+echo "downloading the latest artifact 'elastic-apm-agent' (using the workflow run '$run_id')"
 gh run download "$run_id" -n elastic-apm-agent
 ELASTIC_SNAPSHOT_JAR=$(ls -1 elastic-apm-agent-*.jar)
 ELASTIC_SNAPSHOT_JAR_FILE="$(pwd)/$ELASTIC_SNAPSHOT_JAR"
+echo "$ELASTIC_SNAPSHOT_JAR_FILE has been downloaded."
 
 echo "--- Build opentelemetry-java-instrumentation"
 git clone https://github.com/open-telemetry/opentelemetry-java-instrumentation.git --depth 1 --branch main
@@ -24,6 +26,8 @@ NEW_LINE="              .withAgents(Agent.NONE, Agent.LATEST_RELEASE, Agent.LATE
 echo $NEW_LINE
 perl -i -ne "if (/withAgents/) {print \"$NEW_LINE\n\"}else{print}" src/test/java/io/opentelemetry/config/Configs.java
 
-echo "--- Run tests with sudo access"
+echo "--- Run tests of benchmark-overhead"
 ./gradlew test
+
+echo "--- Report"
 perl -ne '/Standard output/ && $on++; /\<\/pre\>/ && ($on=0);$on && s/\<.*\>//;$on && !/^\s*$/ && print' build/reports/tests/test/classes/io.opentelemetry.OverheadTests.html
