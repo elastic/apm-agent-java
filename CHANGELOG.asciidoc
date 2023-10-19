@@ -34,6 +34,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Added protection against invalid timestamps provided by manual instrumentation - {pull}3363[#3363]
+* Added support for AWS SDK 2.21 - {pull}3373[#3373]
 
 [float]
 ===== Bug fixes

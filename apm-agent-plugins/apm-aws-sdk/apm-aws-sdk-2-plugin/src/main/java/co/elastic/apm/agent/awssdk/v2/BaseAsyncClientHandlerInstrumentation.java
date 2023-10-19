@@ -22,6 +22,8 @@ import co.elastic.apm.agent.awssdk.v2.helper.DynamoDbHelper;
 import co.elastic.apm.agent.awssdk.v2.helper.S3Helper;
 import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -35,6 +37,7 @@ import software.amazon.awssdk.core.client.config.SdkClientConfiguration;
 import software.amazon.awssdk.core.client.config.SdkClientOption;
 import software.amazon.awssdk.core.client.handler.ClientExecutionParams;
 import software.amazon.awssdk.core.http.ExecutionContext;
+import software.amazon.awssdk.core.internal.handler.BaseAsyncClientHandler;
 import software.amazon.awssdk.core.internal.http.TransformingAsyncResponseHandler;
 
 import java.net.URI;
@@ -70,12 +73,21 @@ public class BaseAsyncClientHandlerInstrumentation extends ElasticApmInstrumenta
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static class AdviceClass {
 
+        private static final Logger logger = LoggerFactory.getLogger(AdviceClass.class);
+
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @Advice.AssignReturned.ToArguments(@Advice.AssignReturned.ToArguments.ToArgument(value = 2))
         public static TransformingAsyncResponseHandler<?> enterDoExecute(@Advice.Argument(value = 0) ClientExecutionParams clientExecutionParams,
                                                                          @Advice.Argument(value = 1) ExecutionContext executionContext,
                                                                          @Advice.Argument(value = 2) TransformingAsyncResponseHandler<?> responseHandler,
-                                                                         @Advice.FieldValue("clientConfiguration") SdkClientConfiguration clientConfiguration) {
+                                                                         @Advice.This BaseAsyncClientHandler handler) {
+
+            SdkClientConfiguration clientConfiguration = ClientHandlerConfigInstrumentation.AdviceClass.getConfig(handler);
+            if(clientConfiguration == null) {
+                logger.warn("Not tracing AWS request due to being unable to resolve the configuration");
+                return responseHandler;
+            }
+
             String awsService = executionContext.executionAttributes().getAttribute(AwsSignerExecutionAttribute.SERVICE_NAME);
             SdkRequest sdkRequest = clientExecutionParams.getInput();
             URI uri = clientConfiguration.option(SdkClientOption.ENDPOINT);
