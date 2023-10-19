@@ -39,6 +39,7 @@ import software.amazon.awssdk.core.client.config.SdkClientConfiguration;
 import software.amazon.awssdk.core.client.config.SdkClientOption;
 import software.amazon.awssdk.core.client.handler.ClientExecutionParams;
 import software.amazon.awssdk.core.http.ExecutionContext;
+import software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -85,9 +86,10 @@ public class BaseSyncClientHandlerInstrumentation extends ElasticApmInstrumentat
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object enterDoExecute(@Advice.Argument(value = 0) ClientExecutionParams clientExecutionParams,
                                             @Advice.Argument(value = 1) ExecutionContext executionContext,
-                                            @Advice.FieldValue("clientConfiguration") SdkClientConfiguration clientConfiguration) {
+                                            @Advice.This BaseSyncClientHandler thiz) throws Throwable {
             String awsService = executionContext.executionAttributes().getAttribute(AwsSignerExecutionAttribute.SERVICE_NAME);
             SdkRequest sdkRequest = clientExecutionParams.getInput();
+            SdkClientConfiguration clientConfiguration = SQSHelper.getInstance().findClientConfiguration(thiz);
             URI uri = clientConfiguration.option(SdkClientOption.ENDPOINT);
             Span<?> span = null;
             boolean isSqs = false;

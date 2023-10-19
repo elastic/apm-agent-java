@@ -35,8 +35,14 @@ import software.amazon.awssdk.core.client.config.SdkClientConfiguration;
 import software.amazon.awssdk.core.client.config.SdkClientOption;
 import software.amazon.awssdk.core.client.handler.ClientExecutionParams;
 import software.amazon.awssdk.core.http.ExecutionContext;
+import software.amazon.awssdk.core.internal.handler.BaseAsyncClientHandler;
+import software.amazon.awssdk.core.internal.handler.BaseClientHandler;
 import software.amazon.awssdk.core.internal.http.TransformingAsyncResponseHandler;
+import software.amazon.awssdk.utils.internal.ReflectionUtils;
 
+import javax.annotation.Nonnull;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
@@ -75,9 +81,10 @@ public class BaseAsyncClientHandlerInstrumentation extends ElasticApmInstrumenta
         public static TransformingAsyncResponseHandler<?> enterDoExecute(@Advice.Argument(value = 0) ClientExecutionParams clientExecutionParams,
                                                                          @Advice.Argument(value = 1) ExecutionContext executionContext,
                                                                          @Advice.Argument(value = 2) TransformingAsyncResponseHandler<?> responseHandler,
-                                                                         @Advice.FieldValue("clientConfiguration") SdkClientConfiguration clientConfiguration) {
+                                                                         @Advice.This BaseAsyncClientHandler thiz) throws Throwable {
             String awsService = executionContext.executionAttributes().getAttribute(AwsSignerExecutionAttribute.SERVICE_NAME);
             SdkRequest sdkRequest = clientExecutionParams.getInput();
+            SdkClientConfiguration clientConfiguration = SQSHelper.getInstance().findClientConfiguration(thiz);
             URI uri = clientConfiguration.option(SdkClientOption.ENDPOINT);
             Span<?> span = null;
             boolean isSqs = false;

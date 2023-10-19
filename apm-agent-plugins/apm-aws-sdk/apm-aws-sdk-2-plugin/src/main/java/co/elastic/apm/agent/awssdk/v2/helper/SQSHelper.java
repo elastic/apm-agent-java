@@ -26,8 +26,10 @@ import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import software.amazon.awssdk.core.SdkRequest;
 import software.amazon.awssdk.core.SdkResponse;
+import software.amazon.awssdk.core.client.config.SdkClientConfiguration;
 import software.amazon.awssdk.core.client.handler.ClientExecutionParams;
 import software.amazon.awssdk.core.http.ExecutionContext;
+import software.amazon.awssdk.core.internal.handler.BaseClientHandler;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
@@ -36,7 +38,10 @@ import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -181,5 +186,29 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, Exec
         if (sdkResponse instanceof ReceiveMessageResponse && sdkRequest instanceof ReceiveMessageRequest) {
             SQSHelper.getInstance().handleReceivedMessages(span, ((ReceiveMessageRequest) sdkRequest).queueUrl(), ((ReceiveMessageResponse) sdkResponse).messages());
         }
+    }
+
+    @Nullable
+    public SdkClientConfiguration findClientConfiguration(@Nonnull BaseClientHandler thiz) throws Throwable {
+
+        Class<?> subclass = thiz.getClass();
+        Class<?> targetClass = BaseClientHandler.class;
+        Class<?> currentClass = subclass;
+        SdkClientConfiguration sdkClientConfiguration = null;
+        while (null != currentClass) {
+            if (targetClass.equals(currentClass)) {
+                Field clientConfigurationField = currentClass.getDeclaredField("clientConfiguration");
+                if (null != clientConfigurationField) {
+                    int fieldModifier = clientConfigurationField.getModifiers();
+                    if (Modifier.isPrivate(fieldModifier)) {
+                        clientConfigurationField.setAccessible(true);
+                    }
+                    sdkClientConfiguration = (SdkClientConfiguration) clientConfigurationField.get(thiz);
+                }
+                break;
+            }
+            currentClass = currentClass.getSuperclass();
+        }
+        return sdkClientConfiguration;
     }
 }
