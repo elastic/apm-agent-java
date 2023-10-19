@@ -18,12 +18,15 @@
  */
 package co.elastic.apm.agent.awssdk.v2.helper;
 
+import co.elastic.apm.agent.awssdk.common.AbstractMessageIteratorWrapper;
 import co.elastic.apm.agent.awssdk.common.AbstractSQSInstrumentationHelper;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.SdkRequest;
 import software.amazon.awssdk.core.SdkResponse;
 import software.amazon.awssdk.core.client.config.SdkClientConfiguration;
@@ -53,6 +56,8 @@ import java.util.Map;
 public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, ExecutionContext, Message> implements TextHeaderSetter<Map<String, MessageAttributeValue>> {
 
     private static final SQSHelper INSTANCE = new SQSHelper(GlobalTracer.get());
+
+    public static final Logger logger = LoggerFactory.getLogger(SQSHelper.class);
 
     public static SQSHelper getInstance() {
         return INSTANCE;
@@ -189,25 +194,27 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, Exec
     }
 
     @Nullable
-    public SdkClientConfiguration findClientConfiguration(@Nonnull BaseClientHandler thiz) throws Throwable {
-
-        Class<?> subclass = thiz.getClass();
+    public SdkClientConfiguration findClientConfiguration(ClientExecutionParams clientExecutionParams, @Nonnull BaseClientHandler thiz) throws Throwable {
+        SdkClientConfiguration sdkClientConfiguration = clientExecutionParams.requestConfiguration();
+        if (sdkClientConfiguration != null) {
+            return sdkClientConfiguration;
+        }
         Class<?> targetClass = BaseClientHandler.class;
-        Class<?> currentClass = subclass;
-        SdkClientConfiguration sdkClientConfiguration = null;
+        Class<?> currentClass = thiz.getClass();
         while (null != currentClass) {
             if (targetClass.equals(currentClass)) {
                 Field clientConfigurationField = currentClass.getDeclaredField("clientConfiguration");
-                if (null != clientConfigurationField) {
-                    int fieldModifier = clientConfigurationField.getModifiers();
-                    if (Modifier.isPrivate(fieldModifier)) {
-                        clientConfigurationField.setAccessible(true);
-                    }
-                    sdkClientConfiguration = (SdkClientConfiguration) clientConfigurationField.get(thiz);
+                int fieldModifier = clientConfigurationField.getModifiers();
+                if (Modifier.isPrivate(fieldModifier)) {
+                    clientConfigurationField.setAccessible(true);
                 }
+                sdkClientConfiguration = (SdkClientConfiguration) clientConfigurationField.get(thiz);
                 break;
             }
             currentClass = currentClass.getSuperclass();
+        }
+        if (sdkClientConfiguration == null) {
+            logger.warn("Cannot identify SdkClientConfiguration");
         }
         return sdkClientConfiguration;
     }

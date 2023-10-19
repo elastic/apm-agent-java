@@ -84,7 +84,10 @@ public class BaseAsyncClientHandlerInstrumentation extends ElasticApmInstrumenta
                                                                          @Advice.This BaseAsyncClientHandler thiz) throws Throwable {
             String awsService = executionContext.executionAttributes().getAttribute(AwsSignerExecutionAttribute.SERVICE_NAME);
             SdkRequest sdkRequest = clientExecutionParams.getInput();
-            SdkClientConfiguration clientConfiguration = SQSHelper.getInstance().findClientConfiguration(thiz);
+            SdkClientConfiguration clientConfiguration = SQSHelper.getInstance().findClientConfiguration(clientExecutionParams, thiz);
+            if (null == clientConfiguration) {
+                // handle null
+            }
             URI uri = clientConfiguration.option(SdkClientOption.ENDPOINT);
             Span<?> span = null;
             boolean isSqs = false;
