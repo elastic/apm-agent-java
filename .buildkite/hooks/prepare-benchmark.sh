@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "--- Prepare elasticsearch secrets :vault:"
+ES_URL_SECRET=$(vault read -field=es_url secret/ci/elastic-apm-agent-java/opentelemetry-benchmark)
+ES_USER_SECRET=$(vault read -field=es_user secret/ci/elastic-apm-agent-java/opentelemetry-benchmark)
+ES_PASS_SECRET=$(vault read -field=es_pass secret/ci/elastic-apm-agent-java/opentelemetry-benchmark)
+export ES_URL_SECRET ES_USER_SECRET ES_PASS_SECRET
+
 echo "--- Prepare github secrets :vault:"
 GITHUB_SECRET=$(vault kv get -field token "kv/ci-shared/observability-ci/github-apmmachine")
 GH_TOKEN=$GITHUB_SECRET
