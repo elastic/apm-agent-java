@@ -63,6 +63,7 @@
         <module>apm-agent-lambda-layer</module>
         <module>elastic-apm-agent-premain</module>
         <module>elastic-apm-agent-java8</module>
+        <module>elastic-apm-agent-spring-boot-starter</module>
         <module>apm-agent-benchmarks</module>
         <module>apm-agent-plugins</module>
         <module>apm-agent-api</module>
