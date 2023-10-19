@@ -38,6 +38,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Bug fixes
 * Fixed too many spans being created for `HTTPUrlConnection` requests with method `HEAD` - {pull}3353[#3353]
+* Fixed aws sdk v2 instrumentation due to internal changes - {pull}3374[#3374]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
