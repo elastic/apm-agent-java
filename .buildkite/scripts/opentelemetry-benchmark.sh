@@ -30,4 +30,14 @@ echo "--- Run tests of benchmark-overhead"
 ./gradlew test
 
 echo "--- Report"
-perl -ne '/Standard output/ && $on++; /\<\/pre\>/ && ($on=0);$on && s/\<.*\>//;$on && !/^\s*$/ && print' build/reports/tests/test/classes/io.opentelemetry.OverheadTests.html
+perl -ne '/Standard output/ && $on++; /\<\/pre\>/ && ($on=0);$on && s/\<.*\>//;$on && !/^\s*$/ && print' build/reports/tests/test/classes/io.opentelemetry.OverheadTests.html | tee report.txt
+
+# Buildkite annotation
+if [ -n "$BUILDKITE" ]; then
+  REPORT=$(cat report.txt)
+  cat << EOF | buildkite-agent annotate --style "info" --context report
+  ### OverheadTests Report
+
+  ${REPORT}
+EOF
+fi
