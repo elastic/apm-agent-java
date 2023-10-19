@@ -86,7 +86,7 @@ public class BaseAsyncClientHandlerInstrumentation extends ElasticApmInstrumenta
             SdkRequest sdkRequest = clientExecutionParams.getInput();
             SdkClientConfiguration clientConfiguration = SQSHelper.getInstance().findClientConfiguration(clientExecutionParams, thiz);
             if (null == clientConfiguration) {
-                // handle null
+                return responseHandler;
             }
             URI uri = clientConfiguration.option(SdkClientOption.ENDPOINT);
             Span<?> span = null;
