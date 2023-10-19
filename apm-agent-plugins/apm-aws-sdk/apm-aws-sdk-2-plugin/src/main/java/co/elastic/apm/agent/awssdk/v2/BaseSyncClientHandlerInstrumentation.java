@@ -91,7 +91,6 @@ public class BaseSyncClientHandlerInstrumentation extends ElasticApmInstrumentat
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object enterDoExecute(@Advice.Argument(value = 0) ClientExecutionParams clientExecutionParams,
                                             @Advice.Argument(value = 1) ExecutionContext executionContext,
-                                            @Advice.FieldValue("clientConfiguration") SdkClientConfiguration clientConfiguration2,
                                             @Advice.This BaseSyncClientHandler handler) {
 
             SdkClientConfiguration clientConfiguration = ClientHandlerConfigInstrumentation.AdviceClass.getConfig(handler);
