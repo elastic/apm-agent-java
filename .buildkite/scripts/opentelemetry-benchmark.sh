@@ -1,16 +1,21 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+echo "--- Download the latest elastic-agent.zip"
+# run earlier so gh can use the current github repository.
+run_id=$(gh run list --branch main --status success --workflow main.yml -L 1 --json databaseId --jq '.[].databaseId')
+gh run download "$run_id" -n elastic-apm-agent
+ELASTIC_SNAPSHOT_JAR=$(ls -1 elastic-apm-agent-*.jar)
+ELASTIC_SNAPSHOT_JAR_FILE="$(pwd)/$ELASTIC_SNAPSHOT_JAR"
+
 echo "--- Build opentelemetry-java-instrumentation"
 git clone https://github.com/open-telemetry/opentelemetry-java-instrumentation.git --depth 1 --branch main
 cd opentelemetry-java-instrumentation/
 ./gradlew assemble
 
-echo "--- Download the latest elastic-agent.zip"
+echo "--- Customise the elastic opentelemetry java instrumentation"
 cd benchmark-overhead
-run_id=$(gh run list --branch main --status success --workflow main.yml -L 1 --json databaseId --jq '.[].databaseId')
-gh run download "$run_id" -n elastic-apm-agent
-ELASTIC_SNAPSHOT_JAR=$(ls -1 elastic-apm-agent-*.jar)
+cp "$ELASTIC_SNAPSHOT_JAR_FILE" .
 ELASTIC_SNAPSHOT_ENTRY="new Agent(\\\"elastic-snapshot\\\",\\\"latest available snapshot version from elastic main\\\",\\\"file://$PWD/$ELASTIC_SNAPSHOT_JAR\\\")"
 ELASTIC_LATEST_VERSION=$(curl -s https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/ | perl -ne 's/<.*?>//g; if(s/^([\d\.]+).*$/$1/){print}' | sort -V | tail -1)
 ELASTIC_LATEST_ENTRY="new Agent(\\\"elastic-latest\\\",\\\"latest available released version from elastic main\\\",\\\"https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/$ELASTIC_LATEST_VERSION/elastic-apm-agent-$ELASTIC_LATEST_VERSION.jar\\\")"
