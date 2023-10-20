@@ -30,18 +30,7 @@ import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nullable;
-import javax.management.AttributeNotFoundException;
-import javax.management.InstanceNotFoundException;
-import javax.management.JMException;
-import javax.management.MBeanServer;
-import javax.management.MBeanServerDelegate;
-import javax.management.MBeanServerFactory;
-import javax.management.MBeanServerNotification;
-import javax.management.MalformedObjectNameException;
-import javax.management.Notification;
-import javax.management.NotificationListener;
-import javax.management.ObjectInstance;
-import javax.management.ObjectName;
+import javax.management.*;
 import javax.management.openmbean.CompositeData;
 import javax.management.relation.MBeanServerNotificationFilter;
 import java.lang.management.ManagementFactory;
@@ -308,36 +297,77 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         for (ObjectInstance mbean : mbeans) {
             for (JmxMetric.Attribute attribute : jmxMetric.getAttributes()) {
                 final ObjectName objectName = mbean.getObjectName();
-                final Object value;
-                try {
-                    value = server.getAttribute(objectName, attribute.getJmxAttributeName());
-                    if (value instanceof Number) {
-                        logger.debug("Found number attribute {}={}", attribute.getJmxAttributeName(), value);
-                        registrations.add(new JmxMetricRegistration(attribute.getMetricName(),
-                            attribute.getLabels(objectName),
-                            attribute.getJmxAttributeName(),
-                            null,
-                            objectName));
-                    } else if (value instanceof CompositeData) {
-                        final CompositeData compositeValue = (CompositeData) value;
-                        for (final String key : compositeValue.getCompositeType().keySet()) {
-                            if (compositeValue.get(key) instanceof Number) {
-                                logger.debug("Found composite number attribute {}.{}={}", attribute.getJmxAttributeName(), key, value);
-                                registrations.add(new JmxMetricRegistration(attribute.getCompositeMetricName(key),
-                                    attribute.getLabels(objectName),
-                                    attribute.getJmxAttributeName(),
-                                    key,
-                                    objectName));
+                final String metricPrepend = metricPrepend(attribute.getLabels(objectName));
+                if ("*".equals(attribute.getJmxAttributeName())) {
+                    MBeanInfo info = server.getMBeanInfo(objectName);
+                    MBeanAttributeInfo[] attrInfo = info.getAttributes();
+                    for (MBeanAttributeInfo attr : attrInfo) {
+                        try {
+                            final Object value = server.getAttribute(objectName, attr.getName());
+                            String foundName;
+//                            if (labels.("type") != null) {
+//                                foundName
+//                            }
+                            addJmxMetricRegistration(jmxMetric, registrations, objectName, value, attribute, attr.getName(), metricPrepend);
+                        } catch (AttributeNotFoundException e) {
+                            logger.warn("Can't create metric '{}' because attribute '{}' could not be found", jmxMetric, attribute.getJmxAttributeName());
+                        } catch (RuntimeMBeanException e) {
+                            if (e.getCause() instanceof UnsupportedOperationException) {
+                                //ignore this attribute
                             } else {
-                                logger.warn("Can't create metric '{}' because composite value '{}' is not a number: '{}'", jmxMetric, key, value);
+                                throw e;
                             }
                         }
-                    } else {
-                        logger.warn("Can't create metric '{}' because attribute '{}' is not a number: '{}'", jmxMetric, attribute.getJmxAttributeName(), value);
                     }
-                } catch (AttributeNotFoundException e) {
-                    logger.warn("Can't create metric '{}' because attribute '{}' could not be found", jmxMetric, attribute.getJmxAttributeName());
+                } else {
+                    final Object value = server.getAttribute(objectName, attribute.getJmxAttributeName());
+                    try {
+                        addJmxMetricRegistration(jmxMetric, registrations, objectName, value, attribute, attribute.getJmxAttributeName(), null);
+                    } catch (AttributeNotFoundException e) {
+                        logger.warn("Can't create metric '{}' because attribute '{}' could not be found", jmxMetric, attribute.getJmxAttributeName());
+                    }
                 }
+            }
+        }
+    }
+
+    private static String metricPrepend(Labels labels) {
+        List<String> keys = labels.getKeys();
+        for (int i = 0; i < keys.size(); i++) {
+            if ("type".equals(keys.get(i))) {
+                return labels.getValue(i)+".";
+            }
+        }
+        return "";
+    }
+
+    private static void addJmxMetricRegistration(JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, ObjectName objectName, Object value, JmxMetric.Attribute attribute, String attributeName, String metricPrepend) throws AttributeNotFoundException {
+        if (value instanceof Number) {
+            logger.debug("Found number attribute {}={}", attribute.getJmxAttributeName(), value);
+            registrations.add(new JmxMetricRegistration(attribute.getMetricName(metricPrepend == null? attributeName : metricPrepend+attributeName),
+                    attribute.getLabels(objectName),
+                    attributeName,
+                    null,
+                    objectName));
+        } else if (value instanceof CompositeData) {
+            final CompositeData compositeValue = (CompositeData) value;
+            for (final String key : compositeValue.getCompositeType().keySet()) {
+                if (compositeValue.get(key) instanceof Number) {
+                    logger.debug("Found composite number attribute {}.{}={}", attribute.getJmxAttributeName(), key, value);
+                    registrations.add(new JmxMetricRegistration(attribute.getCompositeMetricName(key, metricPrepend == null? attributeName : metricPrepend+attributeName),
+                            attribute.getLabels(objectName),
+                            attributeName,
+                            key,
+                            objectName));
+                } else {
+                    if (!"*".equals(attribute.getJmxAttributeName())) {
+                        logger.warn("Can't create metric '{}' because composite value '{}' is not a number: '{}'", jmxMetric, key, value);
+                    }
+                }
+            }
+        } else {
+            if (!"*".equals(attribute.getJmxAttributeName())) {
+                logger.warn("Can't create metric '{}' because attribute '{}' is not a number: '{}'", jmxMetric, attributeName, value);
             }
         }
     }
