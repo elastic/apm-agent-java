@@ -304,10 +304,6 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                     for (MBeanAttributeInfo attr : attrInfo) {
                         try {
                             final Object value = server.getAttribute(objectName, attr.getName());
-                            String foundName;
-//                            if (labels.("type") != null) {
-//                                foundName
-//                            }
                             addJmxMetricRegistration(jmxMetric, registrations, objectName, value, attribute, attr.getName(), metricPrepend);
                         } catch (AttributeNotFoundException e) {
                             logger.warn("Can't create metric '{}' because attribute '{}' could not be found", jmxMetric, attribute.getJmxAttributeName());
