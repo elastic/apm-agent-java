@@ -151,6 +151,7 @@ class ServletInstrumentationTest extends AbstractServletTest {
         String response2Body = response2.body().string();
         assertThat(response2Body)
             .matches("(.|\n)*\n?traceparent: 00-[0-9a-f]{32}(.|\n)*");
+        assertThat(reporter.getTransactions()).isEmpty();
     }
 
     @Test
