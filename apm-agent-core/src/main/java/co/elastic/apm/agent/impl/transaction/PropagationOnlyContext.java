@@ -21,6 +21,7 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
+import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 
 import javax.annotation.Nullable;
@@ -46,7 +47,7 @@ public class PropagationOnlyContext extends AbstractRefCountedContext<Propagatio
             remoteTraceParent.replaceWithParent();
         } else {
             //Create a dummy remote-parent
-            remoteTraceParent.asRootSpan(tracer.getSampler());
+            remoteTraceParent.asRootSpan(ConstantSampler.of(true));
         }
         Baggage.Builder baggageBuilder = Baggage.builder();
         W3CBaggagePropagation.parse(carrier, getter, baggageBuilder);
