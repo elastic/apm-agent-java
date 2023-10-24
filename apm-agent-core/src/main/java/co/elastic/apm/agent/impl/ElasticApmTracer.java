@@ -225,7 +225,7 @@ public class ElasticApmTracer implements Tracer {
 
         this.objectPoolFactory = poolFactory;
         transactionPool = poolFactory.createTransactionPool(maxPooledElements, this);
-        propagationOnlyContextPool = poolFactory.createRemoteParentContextPool(maxPooledElements, this);
+        propagationOnlyContextPool = poolFactory.createPropagationOnlyContextPool(maxPooledElements, this);
         spanPool = poolFactory.createSpanPool(maxPooledElements, this);
 
         // we are assuming that we don't need as many errors as spans or transactions

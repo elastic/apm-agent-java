@@ -33,7 +33,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 [float]
 ===== Features
-* Context propagation and log correlation now takes place even if recording is disabled - {pull}3358[#3358]
+* Added `context_propagation_only` configuration option - {pull}3358[#3358]
 
 [float]
 ===== Bug fixes

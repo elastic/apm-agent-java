@@ -75,7 +75,7 @@ public class ObjectPoolFactory implements co.elastic.apm.agent.tracer.pooling.Ob
         });
     }
 
-    public ObjectPool<PropagationOnlyContext> createRemoteParentContextPool(int maxCapacity, final ElasticApmTracer tracer) {
+    public ObjectPool<PropagationOnlyContext> createPropagationOnlyContextPool(int maxCapacity, final ElasticApmTracer tracer) {
         return createRecyclableObjectPool(maxCapacity, new Allocator<PropagationOnlyContext>() {
             @Override
             public PropagationOnlyContext createInstance() {

@@ -89,6 +89,6 @@ public class PropagationOnlyContext extends AbstractRefCountedContext<Propagatio
 
     @Override
     public String toString() {
-        return String.format("RemoteParentContext %s (%s)", remoteTraceParent, Integer.toHexString(System.identityHashCode(this)));
+        return String.format("PropagationOnlyContext %s (%s)", remoteTraceParent, Integer.toHexString(System.identityHashCode(this)));
     }
 }
