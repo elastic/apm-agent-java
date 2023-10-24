@@ -122,6 +122,7 @@ Click on a key to get more information.
 ** <<config-capture-headers>>
 ** <<config-global-labels>>
 ** <<config-instrument-ancient-bytecode>>
+** <<config-context-propagation-only>>
 ** <<config-classes-excluded-from-instrumentation>>
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
@@ -1076,6 +1077,30 @@ A boolean specifying if the agent should instrument pre-Java-1.4 bytecode.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.instrument_ancient_bytecode` | `instrument_ancient_bytecode` | `ELASTIC_APM_INSTRUMENT_ANCIENT_BYTECODE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-context-propagation-only]]
+==== `context_propagation_only` (added[1.44.0])
+
+When set to true, disables log sending, metrics and trace collection.
+Trace context propagation and log correlation will stay active.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.context_propagation_only` | `context_propagation_only` | `ELASTIC_APM_CONTEXT_PROPAGATION_ONLY`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -2958,9 +2983,7 @@ are only setting a single URL.
 
 If set to `true`, the agent will work as usual, except from any task requiring communication with 
 the APM server. Events will be dropped and the agent won't be able to receive central configuration, which 
-means that any other configuration cannot be changed in this state without restarting the service. 
-An example use case for this would be maintaining the ability to create traces and log 
-trace/transaction/span IDs through the log correlation feature, without setting up an APM Server.
+means that any other configuration cannot be changed in this state without restarting the service.
 
 
 
@@ -3810,6 +3833,15 @@ Example: `5ms`.
 # Default value: false
 #
 # instrument_ancient_bytecode=false
+
+# When set to true, disables log sending, metrics and trace collection.
+# Trace context propagation and log correlation will stay active.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# context_propagation_only=false
 
 # Use to exclude specific classes from being instrumented. In order to exclude entire packages, 
 # use wildcards, as in: `com.project.exclude.*`
@@ -4784,9 +4816,7 @@ Example: `5ms`.
 
 # If set to `true`, the agent will work as usual, except from any task requiring communication with 
 # the APM server. Events will be dropped and the agent won't be able to receive central configuration, which 
-# means that any other configuration cannot be changed in this state without restarting the service. 
-# An example use case for this would be maintaining the ability to create traces and log 
-# trace/transaction/span IDs through the log correlation feature, without setting up an APM Server.
+# means that any other configuration cannot be changed in this state without restarting the service.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: Boolean

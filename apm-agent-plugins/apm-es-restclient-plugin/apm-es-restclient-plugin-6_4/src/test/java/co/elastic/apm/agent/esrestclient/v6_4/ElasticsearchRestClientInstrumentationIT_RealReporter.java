@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.esrestclient.v6_4;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
@@ -61,6 +62,7 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.recycler.Recycler;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.junit.After;
@@ -126,6 +128,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
 
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
+        CoreConfiguration coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
         doReturn(0).when(reporterConfiguration).getMaxQueueSize();
         StacktraceConfiguration stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         doReturn(30).when(stacktraceConfiguration).getStackTraceLimit();
@@ -145,7 +148,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
             processorEventHandler,
             payloadSerializer,
             apmServerClient);
-        realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler, ReporterMonitor.NOOP, apmServerClient, payloadSerializer, new ObjectPoolFactory());
+        realReporter = new ApmServerReporter(true, reporterConfiguration, coreConfiguration, v2handler, ReporterMonitor.NOOP, apmServerClient, payloadSerializer, new ObjectPoolFactory());
         realReporter.start();
 
         tracer = new ElasticApmTracerBuilder()

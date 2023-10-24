@@ -509,7 +509,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
     private final ConfigurationOption<Boolean> contextPropagationOnly = ConfigurationOption.booleanOption()
         .key("context_propagation_only")
         .configurationCategory(CORE_CATEGORY)
-        .description("TODO")
+        .description("When set to true, disables log sending, metrics and trace collection.\n" +
+            "Trace context propagation and log correlation will stay active.")
         .dynamic(true)
         .tags("added[1.44.0]")
         .buildWithDefault(false);
