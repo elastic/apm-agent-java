@@ -23,9 +23,9 @@
         </dependency>
 
         <dependency>
-            <groupId>io.opentelemetry</groupId>
+            <groupId>io.opentelemetry.semconv</groupId>
             <artifactId>opentelemetry-semconv</artifactId>
-            <version>${version.opentelemetry}-alpha</version>
+            <version>${version.opentelemetry-semconv}</version>
             <scope>test</scope>
         </dependency>
 

@@ -541,6 +541,20 @@ class ElasticApmTracerTest {
     }
 
     @Test
+    void testTimestampSanitization() {
+        final Transaction transaction = tracerImpl.startChildTransaction(new HashMap<>(), TextHeaderMapAccessor.INSTANCE, ConstantSampler.of(true), 10, null);
+        final Span span = transaction.createSpan(20);
+        span.end(10);
+
+        transaction.end(5);
+
+        assertThat(transaction.getTimestamp()).isEqualTo(10);
+        assertThat(transaction.getDuration()).isEqualTo(0);
+        assertThat(span.getTimestamp()).isEqualTo(20);
+        assertThat(span.getDuration()).isEqualTo(0);
+    }
+
+    @Test
     void testStartSpanAfterTransactionHasEnded() {
         final Transaction transaction = startTestRootTransaction();
         assertThat(transaction).isNotNull();

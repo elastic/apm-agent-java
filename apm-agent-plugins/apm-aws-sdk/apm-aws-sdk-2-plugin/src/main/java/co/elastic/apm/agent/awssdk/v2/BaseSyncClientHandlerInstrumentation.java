@@ -24,6 +24,8 @@ import co.elastic.apm.agent.awssdk.v2.helper.SQSHelper;
 import co.elastic.apm.agent.awssdk.v2.helper.sqs.wrapper.MessageListWrapper;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -39,6 +41,8 @@ import software.amazon.awssdk.core.client.config.SdkClientConfiguration;
 import software.amazon.awssdk.core.client.config.SdkClientOption;
 import software.amazon.awssdk.core.client.handler.ClientExecutionParams;
 import software.amazon.awssdk.core.http.ExecutionContext;
+import software.amazon.awssdk.core.internal.handler.BaseAsyncClientHandler;
+import software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -81,11 +85,20 @@ public class BaseSyncClientHandlerInstrumentation extends ElasticApmInstrumentat
     @SuppressWarnings("rawtypes")
     public static class AdviceClass {
 
+        private static final Logger logger = LoggerFactory.getLogger(AdviceClass.class);
+
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object enterDoExecute(@Advice.Argument(value = 0) ClientExecutionParams clientExecutionParams,
                                             @Advice.Argument(value = 1) ExecutionContext executionContext,
-                                            @Advice.FieldValue("clientConfiguration") SdkClientConfiguration clientConfiguration) {
+                                            @Advice.This BaseSyncClientHandler handler) {
+
+            SdkClientConfiguration clientConfiguration = ClientHandlerConfigInstrumentation.AdviceClass.getConfig(handler);
+            if(clientConfiguration == null) {
+                logger.warn("Not tracing AWS request due to being unable to resolve the configuration");
+                return null;
+            }
+
             String awsService = executionContext.executionAttributes().getAttribute(AwsSignerExecutionAttribute.SERVICE_NAME);
             SdkRequest sdkRequest = clientExecutionParams.getInput();
             URI uri = clientConfiguration.option(SdkClientOption.ENDPOINT);

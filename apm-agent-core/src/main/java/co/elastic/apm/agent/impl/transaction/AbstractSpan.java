@@ -550,6 +550,13 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends AbstractRe
 
     public final void end(long epochMicros) {
         if (!finished) {
+
+            long startTime = timestamp.get();
+            if(epochMicros < startTime) {
+                logger.warn("End called on {} with a timestamp before start! Using start timestamp as end instead.", this);
+                epochMicros = startTime;
+            }
+
             this.endTimestamp.set(epochMicros);
             childDurations.onSpanEnd(epochMicros);
 
