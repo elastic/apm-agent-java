@@ -35,7 +35,7 @@ public class ProcessOtelBenchmarkResults {
     private final String resultFilePath;
     private final String elasticVersion;
     private final String otelVersion;
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     private ProcessOtelBenchmarkResults(OtelBenchParser parser, String resultFilePath, String elasticVersion, String otelVersion) throws IOException {
         this.resultFilePath = resultFilePath;
@@ -47,7 +47,7 @@ public class ProcessOtelBenchmarkResults {
 
     /**
      * Example file contents for args 0:
-     *
+     * <p>
      * <sometag-eg-pre>
      * Performing startup warming phase for 60 seconds...
      * Starting disposable JFR warmup recording...
@@ -81,10 +81,10 @@ public class ProcessOtelBenchmarkResults {
      *
      *
      * @param args 0 path to the test results (normally `build/reports/tests/test/classes/io.opentelemetry.OverheadTests.html`)
-     * @param args 1 path to output file to be created by this class (eg `output.json`)
-     * @param args 2 elastic version used in the test (eg `1.43.0`)
-     * @param args 3 path to otel "latest" jar file used in the test (normally `opentelemetry-javaagent.jar`)
-     * @throws Exception
+     *             1 path to output file to be created by this class (eg `output.json`)
+     *             2 elastic version used in the test (eg `1.43.0`)
+     *             3 path to otel "latest" jar file used in the test (normally `opentelemetry-javaagent.jar`)
+     * @throws Exception io and parsing errors
      */
     public static void main(String[] args) throws Exception {
         OtelBenchParser parser = new OtelBenchParser();
@@ -137,7 +137,7 @@ public class ProcessOtelBenchmarkResults {
         private String configComment;
         private String[] agentNames;
         private String[] runDurations;
-        private List<ResultValues> results = new ArrayList<>();
+        private final List<ResultValues> results = new ArrayList<>();
 
         public ArrayNode createTree(ObjectMapper objectMapper) {
             ArrayNode rootNode = objectMapper.createArrayNode();
