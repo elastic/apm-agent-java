@@ -48,7 +48,7 @@ public class ProcessOtelBenchmarkResults {
     /**
      * Example file contents for args 0:
      * <p>
-     * <sometag-eg-pre>
+     * <pre>
      * Performing startup warming phase for 60 seconds...
      * Starting disposable JFR warmup recording...
      * Stopping disposable JFR warmup recording...
@@ -77,7 +77,7 @@ public class ProcessOtelBenchmarkResults {
      * Net read avg (bps)  :       13733443.00      12234844.00      12082882.00      12154885.00      10863340.00      11873964.00
      * Net write avg (bps) :       18365140.00      66959119.00      66142391.00      16239026.00      14507576.00      15864209.00
      * Peak threads        :                40               54               53               48               48               48
-     * </sometag-eg-pre>
+     * </pre>
      *
      *
      * @param args 0 path to the test results (normally `build/reports/tests/test/classes/io.opentelemetry.OverheadTests.html`)
