@@ -29,7 +29,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class Jedis4InstrumentationIT extends Jedis1InstrumentationIT {
+public class Jedis4InstrumentationIT extends Jedis1InstrumentationIT {
     private JedisSharding shardedJedis;
     private UnifiedJedis binaryJedis;
 
@@ -50,6 +50,10 @@ class Jedis4InstrumentationIT extends Jedis1InstrumentationIT {
         shardedJedis.set("foo", "bar");
         assertThat(shardedJedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
 
+        verifyShardedJedisSpan();
+    }
+
+    protected void verifyShardedJedisSpan() {
         assertTransactionWithRedisSpans("CLIENT", "CLIENT", "SET", "GET");
     }
 
