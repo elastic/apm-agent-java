@@ -15,3 +15,4 @@ NOTE: Elastic provides no warranty or support for community-sourced plugins.
 [horizontal]
 https://github.com/elastic/apm-agent-java-plugin-example[example repo]:: an example plugin for a custom webserver
 https://github.com/videnkz/apm-jetty-httpclient-plugin[apm-jetty-httpclient-plugin]:: Jetty HttpClient plugin
+https://github.com/videnkz/apm-grizzly-asynchttpclient-plugin[apm-grizzly-asynchttpclient-plugin]:: Grizzly AsyncHttpClient plugin
