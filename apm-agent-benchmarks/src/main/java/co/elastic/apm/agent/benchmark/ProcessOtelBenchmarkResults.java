@@ -122,7 +122,7 @@ public class ProcessOtelBenchmarkResults {
         final File file = new File(resultFilePath);
         final FileWriter fileWriter = new FileWriter(file);
         for (JsonNode benchmark : bechmarkResultJson) {
-            fileWriter.append("{ \"index\" : { \"_index\" : \"microbenchmarks\" } }\n");
+            fileWriter.append("{ \"index\" : { \"_index\" : \"otel-microbenchmarks\" } }\n");
             fileWriter.append(objectMapper.writer().writeValueAsString(benchmark));
             fileWriter.append("\n");
         }
