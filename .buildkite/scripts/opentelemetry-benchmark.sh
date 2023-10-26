@@ -30,11 +30,11 @@ popd
 
 echo "--- Build opentelemetry-java-instrumentation"
 git clone https://github.com/open-telemetry/opentelemetry-java-instrumentation.git --depth 1 --branch main
-cd opentelemetry-java-instrumentation/
+pushd opentelemetry-java-instrumentation/
 ./gradlew assemble
 
 echo "--- Customise the elastic opentelemetry java instrumentation"
-cd benchmark-overhead
+pushd benchmark-overhead
 cp "$ELASTIC_SNAPSHOT_JAR_FILE" .
 ELASTIC_SNAPSHOT_ENTRY="new Agent(\\\"elastic-snapshot\\\",\\\"latest available snapshot version from elastic main\\\",\\\"file://$PWD/$ELASTIC_SNAPSHOT_JAR\\\")"
 ELASTIC_LATEST_VERSION=$(curl -s https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/ | perl -ne 's/<.*?>//g; if(s/^([\d\.]+).*$/$1/){print}' | sort -V | tail -1)
@@ -47,8 +47,10 @@ perl -i -ne "if (/withAgents/) {print \"$NEW_LINE\n\"}else{print}" src/test/java
 echo "--- Run tests of benchmark-overhead"
 ./gradlew test
 
-echo "--- Report"
-perl -ne '/Standard output/ && $on++; /\<\/pre\>/ && ($on=0);$on && s/\<.*\>//;$on && !/^\s*$/ && print' build/reports/tests/test/classes/io.opentelemetry.OverheadTests.html | tee report.txt
+echo "--- Report in Buildkite"
+
+REPORT_FILE=$(pwd)/build/reports/tests/test/classes/io.opentelemetry.OverheadTests.html
+perl -ne '/Standard output/ && $on++; /\<\/pre\>/ && ($on=0);$on && s/\<.*\>//;$on && !/^\s*$/ && print' $REPORT_FILE | tee report.txt
 
 # Buildkite annotation
 if [ -n "$BUILDKITE" ]; then
@@ -63,4 +65,19 @@ if [ -n "$BUILDKITE" ]; then
 EOF
 fi
 
+echo "--- Setup Report"
+popd
+popd
+find . -name "opentelemetry-javaagent.jar" -ls
+./mvnw clean package -DskipTests=true -Dmaven.javadoc.skip=true
+java -cp apm-agent-benchmarks/target/benchmarks.jar \
+  co.elastic.apm.agent.benchmark.ProcessOtelBenchmarkResults \
+  ${RESULT_FILE} output.json $ELASTIC_LATEST_VERSION opentelemetry-javaagent.jar
+
 echo "--- Send Report (TBC)"
+exit 0
+curl -X POST \
+  --user "${ES_USER_SECRET}:${ES_PASS_SECRET}" \
+  "${ES_URL_SECRET}/_bulk?pretty" \
+  -H "Content-Type: application/x-ndjson" \
+  --data-binary @output.json

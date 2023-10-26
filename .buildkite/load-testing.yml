@@ -5,3 +5,4 @@ steps:
       queue: observability-microbenchmarks
     artifact_paths:
       - "**/build/reports/tests/test/classes/io.opentelemetry.OverheadTests.html"
+      - "output.json"
