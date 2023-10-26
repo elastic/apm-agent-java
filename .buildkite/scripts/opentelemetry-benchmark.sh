@@ -2,6 +2,7 @@
 set -eo pipefail
 
 CONTAINER_NAME=mock-apm-server
+JSON_FILE="$(pwd)/output.json"
 
 function cleanup {
   echo "--- Tear down the environment"
@@ -20,6 +21,10 @@ gh run download "$run_id" -n elastic-apm-agent
 ELASTIC_SNAPSHOT_JAR=$(ls -1 elastic-apm-agent-*.jar)
 ELASTIC_SNAPSHOT_JAR_FILE="$(pwd)/$ELASTIC_SNAPSHOT_JAR"
 echo "$ELASTIC_SNAPSHOT_JAR_FILE has been downloaded."
+gh run download "$run_id" -n apm-agent-benchmarks
+BENCHMARKS_JAR=$(ls -1 benchmarks*.jar)
+BENCHMARKS_JAR_FILE="$(pwd)/$BENCHMARKS_JAR"
+echo "$BENCHMARKS_JAR_FILE has been downloaded."
 
 echo "--- Start APM Server mock"
 git clone https://github.com/elastic/apm-mutating-webhook.git
@@ -65,19 +70,15 @@ if [ -n "$BUILDKITE" ]; then
 EOF
 fi
 
-echo "--- Setup Report"
-## TODO: use the existing generated benchmarks.jar file
-popd
-popd
+echo "--- Generate ES docs"
 JSON_FILE="$(pwd)/output.json"
-./mvnw -q clean package -DskipTests=true -Dmaven.javadoc.skip=true
-java -cp apm-agent-benchmarks/target/benchmarks.jar \
+java -cp $BENCHMARKS_JAR_FILE \
   co.elastic.apm.agent.benchmark.ProcessOtelBenchmarkResults \
-  "$REPORT_FILE" "$JSON_FILE" "$ELASTIC_LATEST_VERSION" ./opentelemetry-java-instrumentation/benchmark-overhead/opentelemetry-javaagent.jar
+  "$REPORT_FILE" "$JSON_FILE" "$ELASTIC_LATEST_VERSION" ./opentelemetry-javaagent.jar
 
-echo "--- Send Report (TBC)"
+echo "--- Send Report"
 curl -X POST \
   --user "${ES_USER_SECRET}:${ES_PASS_SECRET}" \
   "${ES_URL_SECRET}/_bulk?pretty" \
   -H "Content-Type: application/x-ndjson" \
-  --data-binary @output.json
+  --data-binary @"$JSON_FILE"
