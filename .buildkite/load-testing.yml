@@ -1,8 +1,4 @@
+# @reakaleek: This is a place holder to create the pipeline in Buildkite. I will work on it, in a follow-up.
 steps:
-  - label: "Run the microbenchmark"
-    commands: .buildkite/scripts/opentelemetry-benchmark.sh
-    agents:
-      queue: observability-microbenchmarks
-    artifact_paths:
-      - "**/build/reports/tests/test/classes/io.opentelemetry.OverheadTests.html"
-      - "output.json"
+  - label: ":wave: Greetings"            # Label (with rich emojis https://ela.st/bk-emoji).
+    command: "echo 'My first pipeline!'" # Command to run (evaluated by Bash).
