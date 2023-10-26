@@ -71,7 +71,6 @@ EOF
 fi
 
 echo "--- Generate ES docs"
-JSON_FILE="$(pwd)/output.json"
 java -cp $BENCHMARKS_JAR_FILE \
   co.elastic.apm.agent.benchmark.ProcessOtelBenchmarkResults \
   "$REPORT_FILE" "$JSON_FILE" "$ELASTIC_LATEST_VERSION" ./opentelemetry-javaagent.jar
