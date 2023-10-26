@@ -76,7 +76,6 @@ java -cp apm-agent-benchmarks/target/benchmarks.jar \
   "$REPORT_FILE" "$JSON_FILE" "$ELASTIC_LATEST_VERSION" ./opentelemetry-java-instrumentation/benchmark-overhead/opentelemetry-javaagent.jar
 
 echo "--- Send Report (TBC)"
-exit 0
 curl -X POST \
   --user "${ES_USER_SECRET}:${ES_PASS_SECRET}" \
   "${ES_URL_SECRET}/_bulk?pretty" \
