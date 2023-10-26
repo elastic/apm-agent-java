@@ -21,7 +21,7 @@ ELASTIC_SNAPSHOT_JAR=$(ls -1 elastic-apm-agent-*.jar)
 ELASTIC_SNAPSHOT_JAR_FILE="$(pwd)/$ELASTIC_SNAPSHOT_JAR"
 echo "$ELASTIC_SNAPSHOT_JAR_FILE has been downloaded."
 
-echo "--- Download the latest elastic-agent.zip"
+echo "--- Start APM Server mock"
 git clone https://github.com/elastic/apm-mutating-webhook.git
 pushd apm-mutating-webhook/test/mock
 docker build -t $CONTAINER_NAME .
