@@ -68,11 +68,11 @@ fi
 echo "--- Setup Report"
 popd
 popd
-find . -name "opentelemetry-javaagent.jar" -ls
+JSON_FILE="$(pwd)/output.json"
 ./mvnw clean package -DskipTests=true -Dmaven.javadoc.skip=true
 java -cp apm-agent-benchmarks/target/benchmarks.jar \
   co.elastic.apm.agent.benchmark.ProcessOtelBenchmarkResults \
-  ${RESULT_FILE} output.json $ELASTIC_LATEST_VERSION opentelemetry-javaagent.jar
+  "$REPORT_FILE" "$JSON_FILE" "$ELASTIC_LATEST_VERSION" ./opentelemetry-java-instrumentation/benchmark-overhead/opentelemetry-javaagent.jar
 
 echo "--- Send Report (TBC)"
 exit 0
