@@ -12,7 +12,7 @@ function cleanup {
 
 trap cleanup EXIT
 
-echo "--- Download the latest elastic-agent.zip"
+echo "--- Download the latest elastic-apm-agent artifact"
 # run earlier so gh can use the current github repository.
 run_id=$(gh run list --branch main --status success --workflow main.yml -L 1 --json databaseId --jq '.[].databaseId')
 echo "downloading the latest artifact 'elastic-apm-agent' (using the workflow run '$run_id')"
