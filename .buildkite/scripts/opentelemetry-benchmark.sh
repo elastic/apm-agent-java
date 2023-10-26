@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+CONTAINER_NAME=mock-apm-server
+
+function cleanup {
+  echo "--- Tear down the environment"
+  MOCK_APM_SERVER=$(docker ps | grep $CONTAINER_NAME | awk '{print $1}')
+  docker stop $MOCK_APM_SERVER
+  docker rm $MOCK_APM_SERVER
+}
+
+trap cleanup EXIT
+
 echo "--- Download the latest elastic-agent.zip"
 # run earlier so gh can use the current github repository.
 run_id=$(gh run list --branch main --status success --workflow main.yml -L 1 --json databaseId --jq '.[].databaseId')
@@ -9,6 +20,13 @@ gh run download "$run_id" -n elastic-apm-agent
 ELASTIC_SNAPSHOT_JAR=$(ls -1 elastic-apm-agent-*.jar)
 ELASTIC_SNAPSHOT_JAR_FILE="$(pwd)/$ELASTIC_SNAPSHOT_JAR"
 echo "$ELASTIC_SNAPSHOT_JAR_FILE has been downloaded."
+
+echo "--- Download the latest elastic-agent.zip"
+git clone https://github.com/elastic/apm-mutating-webhook.git
+pushd apm-mutating-webhook/test/mock
+docker build -t $CONTAINER_NAME .
+docker run -dp 127.0.0.1:8027:8027 $CONTAINER_NAME
+popd
 
 echo "--- Build opentelemetry-java-instrumentation"
 git clone https://github.com/open-telemetry/opentelemetry-java-instrumentation.git --depth 1 --branch main
