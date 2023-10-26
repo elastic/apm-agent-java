@@ -3,6 +3,9 @@ steps:
     commands: .buildkite/scripts/opentelemetry-benchmark.sh
     agents:
       queue: observability-microbenchmarks
+    artifact_paths:
+      - "**/build/reports/tests/test/classes/io.opentelemetry.OverheadTests.html"
+      - "output.json"
 
 notify:
   - slack: "#apm-agent-java"
