@@ -189,8 +189,6 @@ public class ProcessOtelBenchmarkResults {
                 }
             } else if (result.matches("\\s*\\-+\\s*")) {
                 inResults = true;
-            } else {
-                System.out.println("X "+result);
             }
         }
 
