@@ -69,7 +69,7 @@ echo "--- Setup Report"
 popd
 popd
 JSON_FILE="$(pwd)/output.json"
-./mvnw clean package -DskipTests=true -Dmaven.javadoc.skip=true
+./mvnw -q clean package -DskipTests=true -Dmaven.javadoc.skip=true
 java -cp apm-agent-benchmarks/target/benchmarks.jar \
   co.elastic.apm.agent.benchmark.ProcessOtelBenchmarkResults \
   "$REPORT_FILE" "$JSON_FILE" "$ELASTIC_LATEST_VERSION" ./opentelemetry-java-instrumentation/benchmark-overhead/opentelemetry-javaagent.jar
