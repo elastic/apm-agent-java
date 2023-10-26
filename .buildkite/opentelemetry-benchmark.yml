@@ -1,0 +1,9 @@
+steps:
+  - label: "Run the opentelemetry-benchmark"
+    commands: .buildkite/scripts/opentelemetry-benchmark.sh
+    agents:
+      queue: observability-microbenchmarks
+
+notify:
+  - slack: "#apm-agent-java"
+    if: 'build.state != "passed"'

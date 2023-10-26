@@ -91,3 +91,40 @@ spec:
           access_level: MANAGE_BUILD_AND_READ
         everyone:
           access_level: READ_ONLY
+
+---
+# yaml-language-server: $schema=https://gist.githubusercontent.com/elasticmachine/988b80dae436cafea07d9a4a460a011d/raw/rre.schema.json
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: buildkite-pipeline-apm-agent-java-opentelemetry-benchmark
+  description: Buildkite Opentelemetry Benchmark for apm-agent-java
+  links:
+    - title: Pipeline
+      url: https://buildkite.com/elastic/apm-agent-java-opentelemetry-benchmark
+spec:
+  type: buildkite-pipeline
+  owner: group:apm-agent-java
+  system: buildkite
+  implementation:
+    apiVersion: buildkite.elastic.dev/v1
+    kind: Pipeline
+    metadata:
+      name: apm-agent-java-opentelemetry-benchmark
+    spec:
+      repository: elastic/apm-agent-java
+      pipeline_file: ".buildkite/opentelemetry-benchmark.yml"
+      default_branch: main
+      provider_settings:
+        publish_commit_status: false
+      teams:
+        apm-agent-java:
+          access_level: MANAGE_BUILD_AND_READ
+        observablt-robots:
+          access_level: MANAGE_BUILD_AND_READ
+        everyone:
+          access_level: READ_ONLY
+      schedules:
+        Weekly Benchmark on main Branch:
+          cronline: "@weekly"
+          message: "Run the quick benchmark weekly."
