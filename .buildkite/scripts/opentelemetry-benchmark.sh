@@ -66,6 +66,7 @@ EOF
 fi
 
 echo "--- Setup Report"
+## TODO: use the existing generated benchmarks.jar file
 popd
 popd
 JSON_FILE="$(pwd)/output.json"
