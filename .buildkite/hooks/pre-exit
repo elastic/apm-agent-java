@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-##  This script cleans up the workspace
-
-set -eo pipefail
-
-if [ "$BUILDKITE_PIPELINE_SLUG" == "apm-agent-java-opentelemetry-benchmark" ]; then
-    git reset --hard HEAD
-fi
