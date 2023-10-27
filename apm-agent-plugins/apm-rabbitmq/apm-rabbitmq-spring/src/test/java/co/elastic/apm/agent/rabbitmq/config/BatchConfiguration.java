@@ -19,13 +19,10 @@
 package co.elastic.apm.agent.rabbitmq.config;
 
 
-import co.elastic.apm.agent.rabbitmq.TestConstants;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.batch.SimpleBatchingStrategy;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -36,8 +33,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-
-import java.util.List;
 
 import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_NAME;
 
@@ -82,17 +77,5 @@ public class BatchConfiguration extends BaseConfiguration {
     @Bean
     public Queue queue() {
         return new Queue(QUEUE_NAME, false);
-    }
-
-    @RabbitListener(
-        queues = TestConstants.QUEUE_NAME,
-        containerFactory = "simpleRabbitListenerContainerFactory"
-    )
-    public void receiveWorkingBatch(List<Message> batchMessages) {
-        logger.info("Received batch of size {} from '{}'", batchMessages.size(), QUEUE_NAME);
-        batchMessages.forEach(message -> {
-            logger.info("Message in 'spring-boot' batch: {}", message.getBody());
-            testSpan();
-        });
     }
 }
