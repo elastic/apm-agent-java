@@ -184,6 +184,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
 
     @Test
     public void testRemoteParentTraceId() throws Exception {
+        doReturn(true).when(tracer.getConfig(CoreConfiguration.class)).isContextPropagationOnly();
         setEcsReformattingConfig(LogEcsReformatting.SHADE);
         initializeReformattingDir("simple");
 
