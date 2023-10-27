@@ -116,7 +116,7 @@ spec:
       pipeline_file: ".buildkite/opentelemetry-benchmark.yml"
       default_branch: main
       provider_settings:
-        publish_commit_status: false
+        trigger_mode: none
       teams:
         apm-agent-java:
           access_level: MANAGE_BUILD_AND_READ
