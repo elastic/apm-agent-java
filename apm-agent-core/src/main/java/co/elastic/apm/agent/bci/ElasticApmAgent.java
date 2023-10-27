@@ -720,6 +720,7 @@ public class ElasticApmAgent {
 
                 @Override
                 public Iterable<? extends List<Class<?>>> onError(int index, List<Class<?>> batch, Throwable throwable, List<Class<?>> types) {
+                    logger.error("Failed to redefine/retransform batch: {}", getClassNames(batch), throwable);
                     return Collections.emptyList();
                 }
 
