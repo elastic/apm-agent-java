@@ -84,6 +84,8 @@ spec:
     spec:
       repository: elastic/apm-agent-java
       pipeline_file: ".buildkite/load-testing.yml"
+      provider_settings:
+        trigger_mode: none
       teams:
         apm-agent-java:
           access_level: MANAGE_BUILD_AND_READ
