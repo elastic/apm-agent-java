@@ -699,11 +699,41 @@ public class ElasticApmAgent {
                 logger.warn("Failed to add ClassFileLocator for the agent jar. Some instrumentations may not work", e);
             }
         }
+        RedefinitionStrategy.Listener redefinitionListener = premain ? RedefinitionStrategy.Listener.NoOp.INSTANCE : RedefinitionStrategy.Listener.Pausing.of(100, TimeUnit.MILLISECONDS);
+        redefinitionListener = new RedefinitionStrategy.Listener.Compound(
+            redefinitionListener,
+            new RedefinitionStrategy.Listener() {
+
+                String getClassNames(List<Class<?>> classes) {
+                    StringBuilder result = new StringBuilder("[");
+                    for(Class<?> clazz : classes) {
+                        result.append(clazz.getName()).append(", ");
+                    }
+                    result.append("]");
+                    return result.toString();
+                }
+
+                @Override
+                public void onBatch(int index, List<Class<?>> batch, List<Class<?>> types) {
+                    logger.info("Starting redefiniton/retransformation of batch of {} classes: {}", batch.size(), getClassNames(batch));
+                }
+
+                @Override
+                public Iterable<? extends List<Class<?>>> onError(int index, List<Class<?>> batch, Throwable throwable, List<Class<?>> types) {
+                    return Collections.emptyList();
+                }
+
+                @Override
+                public void onComplete(int amount, List<Class<?>> types, Map<List<Class<?>>, Throwable> failures) {
+                    logger.info("All retransformation batches completed");
+                }
+            }
+        );
         return new AgentBuilder.Default(byteBuddy)
             .with(RedefinitionStrategy.RETRANSFORMATION)
             // when runtime attaching, only retransform up to 100 classes at once and sleep 100ms in-between as retransformation causes a stop-the-world pause
             .with(premain ? RedefinitionStrategy.BatchAllocator.ForTotal.INSTANCE : RedefinitionStrategy.BatchAllocator.ForFixedSize.ofSize(100))
-            .with(premain ? RedefinitionStrategy.Listener.NoOp.INSTANCE : RedefinitionStrategy.Listener.Pausing.of(100, TimeUnit.MILLISECONDS))
+            .with(redefinitionListener)
             .with(new RedefinitionStrategy.Listener.Adapter() {
                 @Override
                 public Iterable<? extends List<Class<?>>> onError(int index, List<Class<?>> batch, Throwable throwable, List<Class<?>> types) {
