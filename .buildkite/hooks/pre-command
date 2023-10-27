@@ -14,8 +14,7 @@ if [[ "$BUILDKITE_COMMAND" =~ .*"upload".* ]]; then
   exit 0
 fi
 
-## TODO: change name for the opentelemetry-benchmark
-if [ "$BUILDKITE_PIPELINE_SLUG" == "apm-agent-java-load-testing" ]; then
+if [ "$BUILDKITE_PIPELINE_SLUG" == "apm-agent-java-opentelemetry-benchmark" ]; then
     source .buildkite/hooks/prepare-benchmark.sh
 fi
 
