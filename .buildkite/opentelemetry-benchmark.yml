@@ -6,7 +6,7 @@ steps:
     artifact_paths:
       - "**/build/reports/tests/test/classes/io.opentelemetry.OverheadTests.html"
       - "**/build/reports/tests/test/index.html"
-      - "**/app/hs_err*.log"
+      - "**/hs_err_pid*.log"
       - "output.json"
     env: ## https://buildkite.com/docs/agent/v3/securing#forcing-clean-checkouts
       BUILDKITE_CLEAN_CHECKOUT: true
