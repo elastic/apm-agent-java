@@ -299,10 +299,10 @@ jobs:
             distribution: 'temurin'
           - version: 17
             distribution: 'temurin'
-          - version: 20
+          - version: 22-ea
             distribution: 'temurin'
           - version: 21
-            distribution: 'zulu'
+            distribution: 'temurin'
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/workflows/maven-goal
