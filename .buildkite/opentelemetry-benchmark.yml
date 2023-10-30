@@ -10,7 +10,3 @@ steps:
       - "output.json"
     env: ## https://buildkite.com/docs/agent/v3/securing#forcing-clean-checkouts
       BUILDKITE_CLEAN_CHECKOUT: true
-
-notify:
-  - slack: "#apm-agent-java"
-    if: 'build.state != "passed"'
