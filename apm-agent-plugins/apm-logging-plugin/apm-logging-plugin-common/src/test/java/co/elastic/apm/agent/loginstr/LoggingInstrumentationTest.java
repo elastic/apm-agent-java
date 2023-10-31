@@ -20,12 +20,9 @@ package co.elastic.apm.agent.loginstr;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.tracer.ElasticContext;
-import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.configuration.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.logging.TestUtils;
@@ -49,7 +46,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -179,39 +175,6 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
             JsonNode tagsJson = ecsLogLine.get("tags");
             assertThat(tagsJson.isArray()).isTrue();
             assertThat(tagsJson.get(0).textValue()).isEqualTo("TEST");
-        }
-    }
-
-    @Test
-    public void testRemoteParentTraceId() throws Exception {
-        doReturn(true).when(tracer.getConfig(CoreConfiguration.class)).isContextPropagationOnly();
-        setEcsReformattingConfig(LogEcsReformatting.SHADE);
-        initializeReformattingDir("simple");
-
-        String expectedTraceId = transaction.getTraceContext().getTraceId().toString();
-        Map<String, String> headers = new HashMap<>();
-        transaction.propagateContext(headers, TextHeaderMapAccessor.INSTANCE, null);
-
-        childSpan.deactivate();
-        transaction.deactivate();
-        try {
-            assertThat(tracer.currentContext().isEmpty()).isTrue();
-
-            ElasticContext<?> remoteParentCtx = tracer.currentContext().withContextPropagationOnly(headers, TextHeaderMapAccessor.INSTANCE);
-            assertThat(remoteParentCtx).isNotNull();
-            try(Scope scope = remoteParentCtx.activateInScope()) {
-                logger.debug(DEBUG_MESSAGE);
-
-                ArrayList<JsonNode> ecsLogLines = readEcsLogFile();
-                assertThat(ecsLogLines).hasSize(1);
-                JsonNode ecsLogLine = ecsLogLines.get(0);
-
-                assertThat(ecsLogLine.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY).textValue()).isEqualTo(expectedTraceId);
-                assertThat(ecsLogLine.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY)).isNull();
-            }
-        } finally {
-            transaction.activate();
-            childSpan.activate();
         }
     }
 

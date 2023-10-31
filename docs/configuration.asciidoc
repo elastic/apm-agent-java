@@ -1086,6 +1086,7 @@ A boolean specifying if the agent should instrument pre-Java-1.4 bytecode.
 
 When set to true, disables log sending, metrics and trace collection.
 Trace context propagation and log correlation will stay active.
+Note that in contrast to <<config-disable-send, `disable_send`>> the agent will still connect to the APM-server for fetching configuration updates and health checks.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -2983,7 +2984,9 @@ are only setting a single URL.
 
 If set to `true`, the agent will work as usual, except from any task requiring communication with 
 the APM server. Events will be dropped and the agent won't be able to receive central configuration, which 
-means that any other configuration cannot be changed in this state without restarting the service.
+means that any other configuration cannot be changed in this state without restarting the service. 
+An example use case for this would be maintaining the ability to create traces and log 
+trace/transaction/span IDs through the log correlation feature, without setting up an APM Server.
 
 
 
@@ -3836,6 +3839,7 @@ Example: `5ms`.
 
 # When set to true, disables log sending, metrics and trace collection.
 # Trace context propagation and log correlation will stay active.
+# Note that in contrast to <<config-disable-send, `disable_send`>> the agent will still connect to the APM-server for fetching configuration updates and health checks.
 #
 # This setting can be changed at runtime
 # Type: Boolean
@@ -4816,7 +4820,9 @@ Example: `5ms`.
 
 # If set to `true`, the agent will work as usual, except from any task requiring communication with 
 # the APM server. Events will be dropped and the agent won't be able to receive central configuration, which 
-# means that any other configuration cannot be changed in this state without restarting the service.
+# means that any other configuration cannot be changed in this state without restarting the service. 
+# An example use case for this would be maintaining the ability to create traces and log 
+# trace/transaction/span IDs through the log correlation feature, without setting up an APM Server.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: Boolean

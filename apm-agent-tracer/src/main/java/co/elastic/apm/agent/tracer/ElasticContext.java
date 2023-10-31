@@ -26,7 +26,6 @@ import javax.annotation.Nullable;
 
 public interface ElasticContext<T extends ElasticContext<T>> extends ActivateableInScope<T>, ReferenceCounted {
 
-
     /**
      * @return the span/transaction that is associated to this context, {@literal null} if there is none
      */
@@ -38,12 +37,6 @@ public interface ElasticContext<T extends ElasticContext<T>> extends Activateabl
      */
     @Nullable
     Transaction<?> getTransaction();
-
-    /**
-     * @return the trace id of the active transaction. If there is no active transaction, this will be the remote parent if available.
-     */
-    @Nullable
-    Id getTraceId();
 
     /**
      * @return the baggage associated with this context
@@ -69,24 +62,6 @@ public interface ElasticContext<T extends ElasticContext<T>> extends Activateabl
     Span<?> createExitSpan();
 
     BaggageContextBuilder withUpdatedBaggage();
-
-    /**
-     * If tracing is disabled (= no transactions can be started) this method should be used to instead
-     * store the remote trace context and baggage in a newly created {@link ElasticContext}.
-     *
-     * This allows context and baggage propagation to take place even if tracing is disabled.
-     *
-     * This method will always return null if the current context already contains a trace context,
-     * e.g. an existing remote parent or an active transaction)
-     *
-     * @param carrier the header carrier
-     * @param headerGetter a reader for the provided carrieres
-     * @return a new {@link ElasticContext} with the remote data. Null if the headers contained no trace context or baggage or this context already has a trace context active.
-     * @param <C> the carrier type
-     */
-    @Nullable
-    <C> ElasticContext<?> withContextPropagationOnly(C carrier, HeaderGetter<?, C> headerGetter);
-
 
     /**
      * If a context is empty, it does not need to be propagated (neither within the process, nor via external calls).

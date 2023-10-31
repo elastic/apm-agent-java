@@ -26,7 +26,6 @@ import co.elastic.apm.agent.configuration.AutoDetectedServiceInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
-import co.elastic.apm.agent.impl.transaction.PropagationOnlyContext;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
@@ -115,7 +114,6 @@ public class ElasticApmTracer implements Tracer {
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<ErrorCapture> errorPool;
     private final ObjectPool<TraceContext> spanLinkPool;
-    private final ObjectPool<PropagationOnlyContext> propagationOnlyContextPool;
     private final Reporter reporter;
     private final ObjectPoolFactory objectPoolFactory;
 
@@ -225,7 +223,6 @@ public class ElasticApmTracer implements Tracer {
 
         this.objectPoolFactory = poolFactory;
         transactionPool = poolFactory.createTransactionPool(maxPooledElements, this);
-        propagationOnlyContextPool = poolFactory.createPropagationOnlyContextPool(maxPooledElements, this);
         spanPool = poolFactory.createSpanPool(maxPooledElements, this);
 
         // we are assuming that we don't need as many errors as spans or transactions
@@ -282,10 +279,6 @@ public class ElasticApmTracer implements Tracer {
     @Override
     @Nullable
     public Transaction startRootTransaction(Sampler sampler, long epochMicros, Baggage baseBaggage, @Nullable ClassLoader initiatingClassLoader) {
-        if(coreConfiguration.isContextPropagationOnly()) {
-            logger.debug("Not starting transaction because agent is in context-propagation only mode");
-            return null;
-        }
         Transaction transaction = null;
         if (isRunning()) {
             transaction = createTransaction().startRoot(epochMicros, sampler, baseBaggage);
@@ -316,10 +309,6 @@ public class ElasticApmTracer implements Tracer {
     @Nullable
     private <T, C> Transaction startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, Sampler sampler,
                                                      long epochMicros, Baggage baseBaggage, @Nullable ClassLoader initiatingClassLoader) {
-        if(coreConfiguration.isContextPropagationOnly()) {
-            logger.debug("Not starting transaction because agent is in context-propagation only mode");
-            return null;
-        }
         Transaction transaction = null;
         if (isRunning()) {
             transaction = createTransaction().start(headerCarrier,
@@ -396,16 +385,6 @@ public class ElasticApmTracer implements Tracer {
     public Span startSpan(AbstractSpan<?> parent, Baggage baggage, long epochMicros) {
         return startSpan(TraceContext.fromParent(), parent, baggage, epochMicros);
     }
-
-    public PropagationOnlyContext createPropagationOnlyContext() {
-        PropagationOnlyContext ctx = propagationOnlyContextPool.createInstance();
-        while (ctx.getReferenceCount() != 0) {
-            logger.warn("Tried to start a remote-context with a non-zero reference count {} {}", ctx.getReferenceCount(), ctx);
-            ctx = propagationOnlyContextPool.createInstance();
-        }
-        return ctx;
-    }
-
 
     /**
      * @param parentContext the trace context of the parent
@@ -626,10 +605,6 @@ public class ElasticApmTracer implements Tracer {
 
     public void recycle(TraceContext traceContext) {
         spanLinkPool.recycle(traceContext);
-    }
-
-    public void recycle(PropagationOnlyContext context) {
-        propagationOnlyContextPool.recycle(context);
     }
 
     public synchronized void stop() {

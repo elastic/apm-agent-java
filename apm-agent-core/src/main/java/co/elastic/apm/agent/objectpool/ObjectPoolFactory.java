@@ -20,7 +20,6 @@ package co.elastic.apm.agent.objectpool;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.PropagationOnlyContext;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -74,16 +73,6 @@ public class ObjectPoolFactory implements co.elastic.apm.agent.tracer.pooling.Ob
             }
         });
     }
-
-    public ObjectPool<PropagationOnlyContext> createPropagationOnlyContextPool(int maxCapacity, final ElasticApmTracer tracer) {
-        return createRecyclableObjectPool(maxCapacity, new Allocator<PropagationOnlyContext>() {
-            @Override
-            public PropagationOnlyContext createInstance() {
-                return new PropagationOnlyContext(tracer);
-            }
-        });
-    }
-
 
     public ObjectPool<Span> createSpanPool(int maxCapacity, final ElasticApmTracer tracer) {
         return createRecyclableObjectPool(maxCapacity, new Allocator<Span>() {

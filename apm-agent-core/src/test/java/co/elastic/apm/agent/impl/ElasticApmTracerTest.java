@@ -47,7 +47,6 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -480,40 +479,6 @@ class ElasticApmTracerTest {
     }
 
     @Test
-    void testPropagationOnlyContextCreation() {
-
-        Map<String,String> headersMap = new HashMap<>();
-        headersMap.put("baggage", "foo=bar");
-        headersMap.put(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
-
-        assertThat(tracerImpl.currentContext()
-                .withContextPropagationOnly(Collections.emptyMap(), TextHeaderMapAccessor.INSTANCE)).isNull();
-        assertThat(tracerImpl.currentContext()
-            .withContextPropagationOnly(headersMap, TextHeaderMapAccessor.INSTANCE)).isNull();
-
-        doReturn(true).when(config.getConfig(CoreConfiguration.class)).isContextPropagationOnly();
-
-        assertThat(tracerImpl.startRootTransaction(null)).isNull();
-
-        ElasticContext<?> noTraceHeadersCtx = tracerImpl.currentContext()
-            .withContextPropagationOnly(Collections.emptyMap(), TextHeaderMapAccessor.INSTANCE);
-        assertThat(noTraceHeadersCtx).isNotNull();
-        try(var scope = noTraceHeadersCtx.activateInScope()) {
-            assertThat(tracerImpl.currentContext().getTraceId().isEmpty()).isFalse();
-            assertThat(tracerImpl.currentContext().getRemoteParent().getId().isEmpty()).isFalse();
-        }
-
-
-        ElasticContext<?> traceHeadersCtx = tracerImpl.currentContext()
-            .withContextPropagationOnly(headersMap, TextHeaderMapAccessor.INSTANCE);
-        assertThat(traceHeadersCtx).isNotNull();
-        try(var scope = traceHeadersCtx.activateInScope()) {
-            assertThat(tracerImpl.currentContext().getTraceId().toString()).isEqualTo("0af7651916cd43dd8448eb211c80319c");
-            assertThat(tracerImpl.currentContext().getRemoteParent().getId().toString()).isEqualTo("b9c7c989f97918e1");
-        }
-    }
-
-    @Test
     void testTransactionWithParentReference() {
         final Map<String, String> headerMap = Map.of(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
         final Transaction transaction = tracerImpl.startChildTransaction(headerMap, TextHeaderMapAccessor.INSTANCE, ConstantSampler.of(false), 0, null);
@@ -790,12 +755,6 @@ class ElasticApmTracerTest {
         @Nullable
         @Override
         public AbstractSpan<?> getSpan() {
-            return null;
-        }
-
-        @Nullable
-        @Override
-        public TraceContext getRemoteParent() {
             return null;
         }
 

@@ -58,12 +58,6 @@ public class NoopElasticContext implements ElasticContext<NoopElasticContext> {
         return null;
     }
 
-    @Nullable
-    @Override
-    public Id getTraceId() {
-        return null;
-    }
-
     @Override
     public Baggage getBaggage() {
         throw new UnsupportedOperationException();
@@ -84,12 +78,6 @@ public class NoopElasticContext implements ElasticContext<NoopElasticContext> {
     @Override
     public BaggageContextBuilder withUpdatedBaggage() {
         throw new UnsupportedOperationException();
-    }
-
-    @Nullable
-    @Override
-    public <C> ElasticContext<?> withContextPropagationOnly(C carrier, HeaderGetter<?, C> headerGetter) {
-        return null;
     }
 
     @Override

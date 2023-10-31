@@ -21,7 +21,6 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 
 import javax.annotation.Nullable;
 
@@ -34,12 +33,6 @@ class EmptyElasticContext extends ElasticContext<EmptyElasticContext> {
     @Nullable
     @Override
     public AbstractSpan<?> getSpan() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public TraceContext getRemoteParent() {
         return null;
     }
 

@@ -510,7 +510,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
         .key("context_propagation_only")
         .configurationCategory(CORE_CATEGORY)
         .description("When set to true, disables log sending, metrics and trace collection.\n" +
-            "Trace context propagation and log correlation will stay active.")
+            "Trace context propagation and log correlation will stay active.\n"
+        +"Note that in contrast to <<config-disable-send, `disable_send`>> the agent will still" +
+            " connect to the APM-server for fetching configuration updates and health checks.")
         .dynamic(true)
         .tags("added[1.44.0]")
         .buildWithDefault(false);

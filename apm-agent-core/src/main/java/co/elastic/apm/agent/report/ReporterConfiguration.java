@@ -112,7 +112,9 @@ public class ReporterConfiguration extends ConfigurationOptionProvider implement
         .configurationCategory(REPORTER_CATEGORY)
         .description("If set to `true`, the agent will work as usual, except from any task requiring communication with \n" +
             "the APM server. Events will be dropped and the agent won't be able to receive central configuration, which \n" +
-            "means that any other configuration cannot be changed in this state without restarting the service.")
+            "means that any other configuration cannot be changed in this state without restarting the service. \n" +
+            "An example use case for this would be maintaining the ability to create traces and log \n" +
+            "trace/transaction/span IDs through the log correlation feature, without setting up an APM Server.")
         .dynamic(false)
         .buildWithDefault(false);
 

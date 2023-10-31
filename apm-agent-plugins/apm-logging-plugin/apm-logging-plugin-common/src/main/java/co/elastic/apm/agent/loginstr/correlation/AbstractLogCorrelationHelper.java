@@ -23,7 +23,6 @@ import co.elastic.apm.agent.tracer.ErrorCapture;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
-import co.elastic.apm.agent.tracer.Id;
 import co.elastic.apm.agent.tracer.Tracer;
 
 @GlobalState
@@ -75,13 +74,9 @@ public abstract class AbstractLogCorrelationHelper {
         @Override
         protected boolean addToMdc() {
             boolean addedToMdc = false;
-            Id activeTrace = tracer.currentContext().getTraceId();
             AbstractSpan<?> activeSpan = tracer.getActive();
-            if(activeTrace != null) {
-                addToMdc(TRACE_ID_MDC_KEY, activeTrace.toString());
-                addedToMdc = true;
-            }
             if (activeSpan != null) {
+                addToMdc(TRACE_ID_MDC_KEY, activeSpan.getTraceContext().getTraceId().toString());
                 addToMdc(TRANSACTION_ID_MDC_KEY, activeSpan.getTraceContext().getTransactionId().toString());
                 addedToMdc = true;
             }
