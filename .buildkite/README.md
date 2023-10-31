@@ -19,3 +19,12 @@ This is the Buildkite pipeline for the APM Agent java in charge of the snaposhot
 
 To view the pipeline and its configuration, click [here](https://buildkite.com/elastic/apm-agent-java-snapshot) or
 go to the definition in the `elastic/ci` repository.
+
+## opentelemetry-benchmark pipeline
+
+This is the Buildkite pipeline for the Opentelemetry Benchmark.
+
+### Pipeline Configuration
+
+To view the pipeline and its configuration, click [here](https://buildkite.com/elastic/apm-agent-java-opentelemetry-benchmark) or
+go to the definition in `opentelemetry-benchmark.yml`.

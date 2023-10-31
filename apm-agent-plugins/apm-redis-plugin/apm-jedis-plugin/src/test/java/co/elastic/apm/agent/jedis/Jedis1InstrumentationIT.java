@@ -55,6 +55,10 @@ class Jedis1InstrumentationIT extends AbstractRedisInstrumentationTest {
         jedis.set("foo", "bar");
         assertThat(jedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
 
+        verifyBasicJedisSpans();
+    }
+
+    protected void verifyBasicJedisSpans() {
         assertTransactionWithRedisSpans("SET", "GET");
     }
 

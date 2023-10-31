@@ -1,0 +1,15 @@
+steps:
+  - label: "Run the opentelemetry-benchmark"
+    commands: .buildkite/scripts/opentelemetry-benchmark.sh
+    agents:
+      queue: observability-microbenchmarks
+    artifact_paths:
+      - "**/build/reports/tests/test/classes/io.opentelemetry.OverheadTests.html"
+      - "**/build/reports/tests/test/index.html"
+      - "output.json"
+    env: ## https://buildkite.com/docs/agent/v3/securing#forcing-clean-checkouts
+      BUILDKITE_CLEAN_CHECKOUT: true
+
+notify:
+  - slack: "#apm-agent-java"
+    if: 'build.state != "passed"'
