@@ -29,7 +29,7 @@ import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoad
 public abstract class AbstractOpenTelemetryInstrumentation extends ElasticApmInstrumentation {
 
     @Override
-    public final ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return classLoaderCanLoadClass("io.opentelemetry.context.propagation.TextMapSetter");
     }
 

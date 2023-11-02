@@ -23,6 +23,13 @@
         </dependency>
 
         <dependency>
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-instrumentation-annotations</artifactId>
+            <version>${version.opentelemetry}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
             <groupId>io.opentelemetry.semconv</groupId>
             <artifactId>opentelemetry-semconv</artifactId>
             <version>${version.opentelemetry-semconv}</version>

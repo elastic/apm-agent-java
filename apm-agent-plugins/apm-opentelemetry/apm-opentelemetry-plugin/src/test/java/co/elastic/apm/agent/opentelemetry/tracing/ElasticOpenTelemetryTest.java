@@ -34,6 +34,7 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.context.ContextKey;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapGetter;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -661,6 +662,60 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         assertThat(span.getDuration()).isEqualTo(TimeUnit.SECONDS.toMicros(1));
         assertThat(span.getType()).isEqualTo("external");
         assertThat(span.getSubtype()).isEqualTo("grpc");
+    }
+
+    @Test
+    public void withSpanAnnotationTestWithMethodSignatureSpanName() {
+        Span transaction = otelTracer.spanBuilder("transaction")
+            .startSpan();
+        try (Scope scope = transaction.makeCurrent()) {
+            fooSpan();
+        } finally {
+            transaction.end();
+        }
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
+        Transaction reportedTransaction = reporter.getFirstTransaction();
+        assertThat(reportedTransaction.getNameAsString()).isEqualTo("transaction");
+
+        co.elastic.apm.agent.impl.transaction.Span firstSpan = reporter.getFirstSpan();
+        assertThat(firstSpan.getNameAsString()).isEqualTo("ElasticOpenTelemetryTest#fooSpan");
+        assertThat(reporter.getFirstSpan().isChildOf(reporter.getFirstTransaction())).isTrue();
+    }
+
+    @Test
+    public void withSpanAnnotationTestWithSpanNameFromAnnotation() {
+        Span transaction = otelTracer.spanBuilder("transaction")
+            .startSpan();
+        try (Scope scope = transaction.makeCurrent()) {
+            barSpan();
+        } finally {
+            transaction.end();
+        }
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
+        Transaction reportedTransaction = reporter.getFirstTransaction();
+        assertThat(reportedTransaction.getNameAsString()).isEqualTo("transaction");
+
+        co.elastic.apm.agent.impl.transaction.Span firstSpan = reporter.getFirstSpan();
+        assertThat(firstSpan.getNameAsString()).isEqualTo("barSpan");
+        assertThat(reporter.getFirstSpan().isChildOf(reporter.getFirstTransaction())).isTrue();
+    }
+
+    @WithSpan(kind = SpanKind.CLIENT)
+    protected void fooSpan() {
+        for (int i = 0; i < 1_000_000; i++) {
+            // do stuff
+        }
+    }
+
+    @WithSpan(kind = SpanKind.INTERNAL, value = "barSpan")
+    protected void barSpan() {
+        for (int i = 0; i < 1_000_000; i++) {
+            // do stuff
+        }
     }
 
     private void checkReportError(Outcome expectedOutcome, Consumer<Span> actions) {
