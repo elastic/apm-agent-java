@@ -15,7 +15,6 @@ public class OTelHelperTest {
     @Test
     public void testMappingOfAllValues() {
         Arrays.asList(SpanKind.values())
-            .stream()
             .forEach(otelKind -> {
                 OTelSpanKind oTelSpanKind = null;
                 try {
@@ -26,5 +25,12 @@ public class OTelHelperTest {
                     fail(String.format("Exception should not be thrown with otelKind %s. Please check your OTelSpanKind class with new values.", otelKind));
                 }
             });
+    }
+
+    @Test
+    public void testMappingOfNullValue() {
+        OTelSpanKind oTelSpanKind = OTelHelper.map(null);
+
+        assertThat(oTelSpanKind).isNotNull().isEqualTo(OTelSpanKind.INTERNAL);
     }
 }
