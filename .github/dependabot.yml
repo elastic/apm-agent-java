@@ -69,3 +69,57 @@ updates:
       - dependency-name: "com.amazonaws:aws-java-sdk-s3"
       - dependency-name: "com.amazonaws:aws-java-sdk-dynamodb"
       - dependency-name: "software.amazon.awssdk:*"
+
+# GitHub actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "22:00"
+    reviewers:
+      - "elastic/observablt-ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+# GitHub composite actions
+  - package-ecosystem: "github-actions"
+    directory: "/.github/workflows/maven-goal"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "22:00"
+    reviewers:
+      - "elastic/observablt-ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/.github/workflows/stash"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "22:00"
+    reviewers:
+      - "elastic/observablt-ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/.github/workflows/unstash"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "22:00"
+    reviewers:
+      - "elastic/observablt-ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
