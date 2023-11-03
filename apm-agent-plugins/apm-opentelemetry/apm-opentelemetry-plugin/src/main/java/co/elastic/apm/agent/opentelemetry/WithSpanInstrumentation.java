@@ -20,13 +20,14 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
 import javax.annotation.Nullable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.Collections;
 
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isInAnyPackage;
@@ -53,6 +54,11 @@ public class WithSpanInstrumentation extends AbstractOpenTelemetryInstrumentatio
     @Override
     public final ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return classLoaderCanLoadClass("io.opentelemetry.instrumentation.annotations.WithSpan");
+    }
+
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singletonList("opentelemetry-annotations");
     }
 
     @Override
