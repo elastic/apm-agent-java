@@ -34,12 +34,17 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.context.ContextKey;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapGetter;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -704,6 +709,29 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         assertThat(reporter.getFirstSpan().isChildOf(reporter.getFirstTransaction())).isTrue();
     }
 
+    @Test
+    public void withSpanAnnotationSpanAttributes() {
+        Span transaction = otelTracer.spanBuilder("transaction")
+            .startSpan();
+        try (Scope scope = transaction.makeCurrent()) {
+            fooSpanWithAttrs("foobar", "objectAsString", 2073, 2.69);
+        } finally {
+            transaction.end();
+        }
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
+        Transaction reportedTransaction = reporter.getFirstTransaction();
+        assertThat(reportedTransaction.getNameAsString()).isEqualTo("transaction");
+
+        co.elastic.apm.agent.impl.transaction.Span firstSpan = reporter.getFirstSpan();
+        assertThat(firstSpan.getNameAsString()).isEqualTo("ElasticOpenTelemetryTest#fooSpanWithAttrs");
+        assertThat(firstSpan.isChildOf(reporter.getFirstTransaction())).isTrue();
+        assertThat(firstSpan.getOtelAttributes().get("attr1")).isEqualTo("foobar");
+        assertThat(firstSpan.getOtelAttributes().get("attr2")).isEqualTo("objectAsString");
+        assertThat(firstSpan.getOtelAttributes().get("count")).isNull();
+    }
+
     @WithSpan(kind = SpanKind.CLIENT)
     protected void fooSpan() {
         for (int i = 0; i < 1_000_000; i++) {
@@ -713,6 +741,17 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
     @WithSpan(kind = SpanKind.INTERNAL, value = "barSpan")
     protected void barSpan() {
+        for (int i = 0; i < 1_000_000; i++) {
+            // do stuff
+        }
+    }
+
+
+    @WithSpan
+    protected void fooSpanWithAttrs(@SpanAttribute("attr1") String string,
+                                    @TestAnnotation @SpanAttribute("attr2") Object object,
+                                    @SpanAttribute Integer count,
+                                    Double doubleVal) {
         for (int i = 0; i < 1_000_000; i++) {
             // do stuff
         }
@@ -760,5 +799,11 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         public String get(@Nullable Map<String, String> carrier, String key) {
             return carrier.get(key);
         }
+    }
+
+    @Target(ElementType.PARAMETER)
+    @Retention(RetentionPolicy.RUNTIME)
+    @interface TestAnnotation {
+
     }
 }

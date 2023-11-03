@@ -15,14 +15,18 @@ import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
 import javax.annotation.Nullable;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isInAnyPackage;
@@ -77,7 +81,10 @@ public class WithSpanInstrumentation extends AbstractOpenTelemetryInstrumentatio
         public static Object onMethodEnter(
             @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "io.opentelemetry.instrumentation.annotations.WithSpan", method = "value") String spanName,
-            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "io.opentelemetry.instrumentation.annotations.WithSpan", method = "kind") SpanKind otelKind) {
+            @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "io.opentelemetry.instrumentation.annotations.WithSpan", method = "kind") SpanKind otelKind,
+            @Advice.Origin Method method,
+            @Advice.AllArguments(typing = Assigner.Typing.DYNAMIC) Object[] methodArguments) {
+
             ElasticContext<?> activeContext = tracer.currentContext();
             final AbstractSpan<?> parentSpan = activeContext.getSpan();
             if (parentSpan == null) {
@@ -93,6 +100,26 @@ public class WithSpanInstrumentation extends AbstractOpenTelemetryInstrumentatio
             Span<?> span = activeContext.createSpan();
             if (span == null) {
                 return null;
+            }
+
+            // process parameters that annotated with `io.opentelemetry.instrumentation.annotations.SpanAttribute` annotation
+            int argsLength = methodArguments.length;
+            if (argsLength > 0) {
+                Annotation[][] parameterAnnotations = method.getParameterAnnotations();
+                for (int i = 0; i < argsLength; i++) {
+                    Annotation[] parameterAnnotation = parameterAnnotations[i];
+                    int parameterAnnotationLength = parameterAnnotation.length;
+                    for (int j = 0; j < parameterAnnotationLength; j++) {
+                        if (parameterAnnotation[j] instanceof SpanAttribute) {
+                            SpanAttribute spanAttribute = (SpanAttribute) parameterAnnotation[j];
+                            String attributeName = spanAttribute.value();
+                            if (!attributeName.isEmpty()) {
+                                span.withOtelAttribute(attributeName, methodArguments[i]);
+                            }
+                            break;
+                        }
+                    }
+                }
             }
 
             span.withName(spanName.isEmpty() ? signature : spanName)
