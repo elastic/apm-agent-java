@@ -261,4 +261,4 @@ Events are silently dropped, for example `Span.current().addEvent("my event")`.
 [float]
 [[otel-anntations]]
 ===== Annotations
-https://opentelemetry.io/docs/instrumentation/java/automatic/annotations/[OpenTelemetry instrumentation annotations] are currently ignored by Elastic APM agent and are thus not supported (see https://github.com/elastic/apm-agent-java/issues/2753[#2753]).
+https://opentelemetry.io/docs/instrumentation/java/automatic/annotations/[OpenTelemetry instrumentation annotations] started supported since `1.44.0`.

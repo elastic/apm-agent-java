@@ -83,7 +83,7 @@ public class WithSpanInstrumentation extends AbstractOpenTelemetryInstrumentatio
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "io.opentelemetry.instrumentation.annotations.WithSpan", method = "value") String spanName,
             @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "io.opentelemetry.instrumentation.annotations.WithSpan", method = "kind") SpanKind otelKind,
             @Advice.Origin Method method,
-            @Advice.AllArguments(typing = Assigner.Typing.DYNAMIC) Object[] methodArguments) {
+            @Advice.AllArguments Object[] methodArguments) {
 
             ElasticContext<?> activeContext = tracer.currentContext();
             final AbstractSpan<?> parentSpan = activeContext.getSpan();
