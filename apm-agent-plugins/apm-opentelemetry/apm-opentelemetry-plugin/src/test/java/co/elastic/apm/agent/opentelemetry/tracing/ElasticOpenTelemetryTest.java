@@ -671,18 +671,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
     @Test
     public void withSpanAnnotationTestWithMethodSignatureSpanName() {
-        Span transaction = otelTracer.spanBuilder("transaction")
-            .startSpan();
-        try (Scope scope = transaction.makeCurrent()) {
-            fooSpan();
-        } finally {
-            transaction.end();
-        }
-
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getSpans()).hasSize(1);
-        Transaction reportedTransaction = reporter.getFirstTransaction();
-        assertThat(reportedTransaction.getNameAsString()).isEqualTo("transaction");
+        executeSpanInTransactionAndAssertTransaction((ignore) -> fooSpan());
 
         co.elastic.apm.agent.impl.transaction.Span firstSpan = reporter.getFirstSpan();
         assertThat(firstSpan.getNameAsString()).isEqualTo("ElasticOpenTelemetryTest#fooSpan");
@@ -691,18 +680,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
     @Test
     public void withSpanAnnotationTestWithSpanNameFromAnnotation() {
-        Span transaction = otelTracer.spanBuilder("transaction")
-            .startSpan();
-        try (Scope scope = transaction.makeCurrent()) {
-            barSpan();
-        } finally {
-            transaction.end();
-        }
-
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getSpans()).hasSize(1);
-        Transaction reportedTransaction = reporter.getFirstTransaction();
-        assertThat(reportedTransaction.getNameAsString()).isEqualTo("transaction");
+        executeSpanInTransactionAndAssertTransaction((ignore) -> barSpan());
 
         co.elastic.apm.agent.impl.transaction.Span firstSpan = reporter.getFirstSpan();
         assertThat(firstSpan.getNameAsString()).isEqualTo("barSpan");
@@ -711,18 +689,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
     @Test
     public void withSpanAnnotationSpanAttributes() {
-        Span transaction = otelTracer.spanBuilder("transaction")
-            .startSpan();
-        try (Scope scope = transaction.makeCurrent()) {
-            fooSpanWithAttrs("foobar", "objectAsString", 2073, 2.69);
-        } finally {
-            transaction.end();
-        }
-
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getSpans()).hasSize(1);
-        Transaction reportedTransaction = reporter.getFirstTransaction();
-        assertThat(reportedTransaction.getNameAsString()).isEqualTo("transaction");
+        executeSpanInTransactionAndAssertTransaction((ignore) -> fooSpanWithAttrs("foobar", "objectAsString", 2073, 2.69));
 
         co.elastic.apm.agent.impl.transaction.Span firstSpan = reporter.getFirstSpan();
         assertThat(firstSpan.getNameAsString()).isEqualTo("ElasticOpenTelemetryTest#fooSpanWithAttrs");
@@ -732,18 +699,29 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         assertThat(firstSpan.getOtelAttributes().get("count")).isNull();
     }
 
+    private void executeSpanInTransactionAndAssertTransaction(Consumer<?> function) {
+        Span transaction = otelTracer.spanBuilder("transaction")
+            .startSpan();
+        try (Scope scope = transaction.makeCurrent()) {
+            function.accept(null);
+        } finally {
+            transaction.end();
+        }
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
+        Transaction reportedTransaction = reporter.getFirstTransaction();
+        assertThat(reportedTransaction.getNameAsString()).isEqualTo("transaction");
+    }
+
     @WithSpan(kind = SpanKind.CLIENT)
     protected void fooSpan() {
-        for (int i = 0; i < 1_000_000; i++) {
-            // do stuff
-        }
+        doStaff();
     }
 
     @WithSpan(kind = SpanKind.INTERNAL, value = "barSpan")
     protected void barSpan() {
-        for (int i = 0; i < 1_000_000; i++) {
-            // do stuff
-        }
+        doStaff();
     }
 
 
@@ -752,6 +730,10 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
                                     @TestAnnotation @SpanAttribute("attr2") Object object,
                                     @SpanAttribute Integer count,
                                     Double doubleVal) {
+        doStaff();
+    }
+
+    private void doStaff() {
         for (int i = 0; i < 1_000_000; i++) {
             // do stuff
         }
