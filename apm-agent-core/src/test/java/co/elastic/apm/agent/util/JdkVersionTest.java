@@ -32,6 +32,7 @@ public class JdkVersionTest {
     private static List<Arguments> releaseSchedule() {
         // from https://www.oracle.com/java/technologies/java-se-support-roadmap.html
         return List.of(
+            Arguments.of(21, LocalDate.parse("2024-09-01")),
             Arguments.of(22, LocalDate.parse("2024-03-01")),
             Arguments.of(23, LocalDate.parse("2024-09-01")),
             Arguments.of(24, LocalDate.parse("2025-03-01")),
