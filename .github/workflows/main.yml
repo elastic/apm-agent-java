@@ -309,7 +309,7 @@ jobs:
         with:
           test-java-version: ${{ matrix.version }}
           test-java-distribution: ${{ matrix.distribution }}
-          command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
+          command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true -Delastic.jdkCompatibilityTest=true
       - name: Run tests for ${{ matrix.version }}:${{ matrix.distribution }}
         run: ./mvnw test -Dtest_java_binary=${{ env.TEST_JAVA_BINARY }}
       - name: Store test results
