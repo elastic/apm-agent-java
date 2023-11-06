@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
@@ -31,6 +32,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
@@ -66,6 +68,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 class ApmServerReporterIntegrationTest {
 
@@ -81,6 +84,8 @@ class ApmServerReporterIntegrationTest {
     private volatile int statusCode = HttpStatus.OK_200;
     private volatile int acceptedEventCount = 0;
     private ReporterConfiguration reporterConfiguration;
+
+    private CoreConfiguration coreConfiguration;
     private ApmServerReporter reporter;
 
     private ReporterMonitor mockMonitor;
@@ -137,6 +142,8 @@ class ApmServerReporterIntegrationTest {
 
         ConfigurationRegistry config = tracer.getConfigurationRegistry();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
+        coreConfiguration = config.getConfig(CoreConfiguration.class);
+        SerializationConstants.init(coreConfiguration);
 
         // mockito mocking does not seem to reliably work here
         // thus we rely on mutable test state instead of having different mocking strategies.
@@ -163,7 +170,7 @@ class ApmServerReporterIntegrationTest {
             payloadSerializer,
             apmServerClient);
         mockMonitor = Mockito.mock(ReporterMonitor.class);
-        reporter = new ApmServerReporter(false, reporterConfiguration, v2handler, mockMonitor, apmServerClient, payloadSerializer, new ObjectPoolFactory());
+        reporter = new ApmServerReporter(false, reporterConfiguration, coreConfiguration, v2handler, mockMonitor, apmServerClient, payloadSerializer, new ObjectPoolFactory());
         reporter.start();
     }
 
@@ -192,6 +199,22 @@ class ApmServerReporterIntegrationTest {
         ReportingEventCounter payload = new ReportingEventCounter();
         payload.increment(ReportingEvent.ReportingEventType.TRANSACTION);
         verify(mockMonitor).requestFinished(eq(payload), eq(1L), gt(0L), eq(true));
+    }
+
+
+    @Test
+    void testContextPropagationOnlyRespected() {
+        doReturn(true).when(coreConfiguration).isContextPropagationOnly();
+
+        reporter.reportPartialTransaction(new Transaction(tracer));
+        reporter.report(new Transaction(tracer));
+        assertThat(reporter.flush(5, TimeUnit.SECONDS, false)).isTrue();
+        assertThat(reporter.getDropped()).isEqualTo(0);
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(0);
+        assertThat(receivedIntakeApiCallsWithFlushParam.get()).isEqualTo(0);
+        assertThat(reporter.getReported()).isEqualTo(0);
+
+        verifyNoInteractions(mockMonitor);
     }
 
     @Test
