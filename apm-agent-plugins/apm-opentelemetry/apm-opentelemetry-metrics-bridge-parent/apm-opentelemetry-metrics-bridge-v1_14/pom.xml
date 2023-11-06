@@ -18,7 +18,7 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
-            <version>1.14.0</version> <!--DO NOT UPDATE-->
+            <version>1.31.0</version> <!--DO NOT UPDATE-->
             <scope>provided</scope>
         </dependency>
         <dependency>
