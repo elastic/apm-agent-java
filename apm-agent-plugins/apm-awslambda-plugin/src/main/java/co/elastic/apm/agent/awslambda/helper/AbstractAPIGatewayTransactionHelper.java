@@ -30,6 +30,7 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 
 import javax.annotation.Nullable;
 import java.nio.CharBuffer;
@@ -43,7 +44,7 @@ import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.EventT
 public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends AbstractLambdaTransactionHelper<I, O> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractAPIGatewayTransactionHelper.class);
     protected static final String TRANSACTION_TYPE = "request";
-    private static final String CONTENT_TYPE_HEADER = "Content-Type";
+    protected static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final Set<String> METHODS_WITH_BODY = new HashSet<>(Arrays.asList("POST", "PUT", "PATCH", "DELETE"));
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
 
@@ -67,6 +68,39 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
         }
     }
 
+
+    @Nullable
+    protected String getHost(@Nullable Map<String, String> headers) {
+        String host = null;
+        if (null != headers) {
+            host = headers.get("host");
+            if (null == host) {
+                host = headers.get("Host");
+            }
+        }
+        return host;
+    }
+
+    @Nullable
+    protected String getQueryString(@Nullable Map<String, String> queryParameters) {
+        if (null != queryParameters && !queryParameters.isEmpty()) {
+            StringBuilder queryString = new StringBuilder();
+            int i = 0;
+            for (Map.Entry<String, String> entry : queryParameters.entrySet()) {
+                if (i > 0) {
+                    queryString.append('&');
+                }
+                queryString.append(entry.getKey());
+                queryString.append('=');
+                queryString.append(entry.getValue());
+                i++;
+            }
+            return queryString.toString();
+        }
+        return null;
+    }
+
+
     protected void fillHttpResponseData(Transaction transaction, @Nullable Map<String, String> headers, int statusCode) {
         Response response = transaction.getContext().getResponse();
         response.withFinished(true);
@@ -80,7 +114,7 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
         transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(statusCode));
     }
 
-    private void fillUrlRelatedFields(Request request, @Nullable String serverName, @Nullable String path, @Nullable String queryString) {
+    protected void fillUrlRelatedFields(Request request, @Nullable String serverName, @Nullable String path, @Nullable String queryString) {
         String qString = queryString == null || queryString.trim().isEmpty() ? null: queryString;
         request.getUrl().resetState();
         request.getUrl()
@@ -92,7 +126,7 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
     }
 
     @Nullable
-    private CharBuffer startCaptureBody(Transaction transaction, @Nullable String method, @Nullable String contentTypeHeader) {
+    protected CharBuffer startCaptureBody(Transaction transaction, @Nullable String method, @Nullable String contentTypeHeader) {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
             if (coreConfiguration.getCaptureBody() != OFF
@@ -146,7 +180,7 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
         transaction.getContext().getCloudOrigin().withAccountId(accountId);
     }
 
-    private void setRequestHeaders(Transaction transaction, Map<String, String> headers) {
+    protected void setRequestHeaders(Transaction transaction, Map<String, String> headers) {
         final Request req = transaction.getContext().getRequest();
         if (transaction.isSampled() && isCaptureHeaders()) {
             for (Map.Entry<String, String> headerEntry : headers.entrySet()) {
