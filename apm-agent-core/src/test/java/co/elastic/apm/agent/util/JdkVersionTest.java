@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.util;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.params.provider.Arguments;
 
 import java.time.LocalDate;
@@ -32,7 +33,7 @@ public class JdkVersionTest {
     private static List<Arguments> releaseSchedule() {
         // from https://www.oracle.com/java/technologies/java-se-support-roadmap.html
         return List.of(
-            Arguments.of(21, LocalDate.parse("2024-09-01")),
+            Arguments.of(21, LocalDate.parse("2022-09-01")),
             Arguments.of(22, LocalDate.parse("2024-03-01")),
             Arguments.of(23, LocalDate.parse("2024-09-01")),
             Arguments.of(24, LocalDate.parse("2025-03-01")),
@@ -41,24 +42,15 @@ public class JdkVersionTest {
     }
 
     @Test
+    @EnabledIfSystemProperty(named = "elastic.jdkCompatibilityTest", matches = "true")
     void jdkReleaseScheduleReminder() {
-        if (!Boolean.getBoolean("elastic.jdkCompatibilityTest")) {
-            return;
-        }
         // not using @MethodSource and directly the arguments stream to ensure at least one is in the future
         jdkReleaseScheduleReminder(releaseSchedule(), LocalDate.now());
     }
 
     void jdkReleaseScheduleReminder(List<Arguments> args, LocalDate now) {
-        assertThat(args).isNotEmpty();
-        LocalDate lastGaDate = args.stream().map(a -> (LocalDate) (a.get()[1]))
-            .sorted()
-            .reduce((d1, d2) -> d2)
-            .get();
 
-        assertThat(now)
-            .describedAs("at least one GA date must be in the future")
-            .isBefore(lastGaDate);
+        assertThat(args).isNotEmpty();
 
         args.forEach(a -> jdkReleaseScheduleReminder((int) a.get()[0], (LocalDate) a.get()[1], now));
     }
@@ -67,8 +59,16 @@ public class JdkVersionTest {
         if (now.isBefore(gaDate)) {
             return;
         }
+
         assertThat(false)
-            .describedAs("This test fails to remind you that JDK %d is about to be released, updating release schedule in this test and test matrix in CI is required", version)
+            .describedAs(
+                "This test fails to remind you that JDK %d is about or already released,\n\n" +
+                    "please update the following:\n" +
+                    "\n" +
+                    "- .github/workflows/main.yml in 'jdk-compatibility-tests' : replace early-access with released GA version\n" +
+                    "- in this test: remove released version in the release schedule\n" +
+                    "- in this test: update release schedule if needed\n"
+                , version)
             .isTrue();
 
     }
@@ -80,10 +80,11 @@ public class JdkVersionTest {
         LocalDate now = LocalDate.now();
 
         assertThatThrownBy(() -> jdkReleaseScheduleReminder(List.of(), now))
-            .isExactlyInstanceOf(AssertionError.class);
+            .isInstanceOf(AssertionError.class);
 
-        assertThatThrownBy(() -> jdkReleaseScheduleReminder(List.of(Arguments.of(42, now)), now))
-            .isExactlyInstanceOf(AssertionError.class);
+        assertThatThrownBy(() ->
+            jdkReleaseScheduleReminder(List.of(Arguments.of(42, now)), now))
+            .isInstanceOf(AssertionError.class);
 
         // should not trigger until the release day
         jdkReleaseScheduleReminder(List.of(Arguments.of(42, now.plusDays(1))), now);
