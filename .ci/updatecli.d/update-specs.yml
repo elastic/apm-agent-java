@@ -71,7 +71,7 @@ actions:
         ### Why
         *Changeset*
         * {{ source "pull_request" }}
-        * https://github.com/elastic/apm/commit/{{ source "sha" }}
+        * https://github.com/elastic/apm-data/commit/{{ source "sha" }}
 
 targets:
   error.json:
