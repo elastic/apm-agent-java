@@ -133,9 +133,7 @@ public class SystemInfo {
             systemInfo = new SystemInfo(osArch, configuredHostname, detectedHostname, osName);
         }
         // this call reads and parses files
-        systemInfo.findContainerDetails();
-        return systemInfo;
-
+        return systemInfo.findContainerDetails();
     }
 
     static boolean isWindows(String osName) {
@@ -361,7 +359,7 @@ public class SystemInfo {
 
                 // Legacy, e.g.: /system.slice/docker-<CID>.scope
                 if (idPart.endsWith(".scope")) {
-                    idPart = idPart.substring(0, idPart.length() - ".scope".length()).substring(idPart.indexOf("-") + 1);
+                    idPart = idPart.substring(0, idPart.length() - ".scope".length()).substring(idPart.lastIndexOf("-") + 1);
                 }
 
                 // Looking for kubernetes info
