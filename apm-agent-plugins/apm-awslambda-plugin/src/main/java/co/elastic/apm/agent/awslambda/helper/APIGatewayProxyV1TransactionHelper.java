@@ -112,6 +112,15 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
     }
 
     @Override
+    public String getDomainName(APIGatewayProxyRequestEvent apiGatewayRequest) {
+        APIGatewayProxyRequestEvent.ProxyRequestContext rContext = apiGatewayRequest.getRequestContext();
+        if (null == rContext) {
+            return null;
+        }
+        return rContext.getDomainName();
+    }
+
+    @Override
     protected String getApiGatewayVersion() {
         return "1.0";
     }
