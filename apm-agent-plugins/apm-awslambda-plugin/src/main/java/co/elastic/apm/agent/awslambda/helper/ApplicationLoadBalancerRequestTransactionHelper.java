@@ -22,6 +22,8 @@ import co.elastic.apm.agent.awslambda.MapTextHeaderGetter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.CloudOrigin;
 import co.elastic.apm.agent.impl.context.Request;
+import co.elastic.apm.agent.impl.context.ServiceOrigin;
+import co.elastic.apm.agent.impl.transaction.FaasTrigger;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.tracer.GlobalTracer;
@@ -73,12 +75,14 @@ public class ApplicationLoadBalancerRequestTransactionHelper extends AbstractAPI
         CloudOrigin cloudOrigin = transaction.getContext().getCloudOrigin();
         cloudOrigin.withServiceName("elb");
         cloudOrigin.withProvider("aws");
-        transaction.getFaas().getTrigger().withType("http");
-        transaction.getFaas().getTrigger().withRequestId(getHeader(loadBalancerRequestEvent, "x-amzn-trace-id"));
+        FaasTrigger faasTrigger = transaction.getFaas().getTrigger();
+        faasTrigger.withType("http");
+        faasTrigger.withRequestId(getHeader(loadBalancerRequestEvent, "x-amzn-trace-id"));
         LoadBalancerElbTargetGroupArnMetadata metadata = parseMetadata(loadBalancerRequestEvent);
         if (null != metadata) {
-            transaction.getContext().getServiceOrigin().withName(metadata.getTargetGroupName());
-            transaction.getContext().getServiceOrigin().withId(metadata.getTargetGroupArn());
+            ServiceOrigin serviceOrigin =  transaction.getContext().getServiceOrigin();
+            serviceOrigin.withName(metadata.getTargetGroupName());
+            serviceOrigin.withId(metadata.getTargetGroupArn());
             cloudOrigin.withAccountId(metadata.getAccountId());
             cloudOrigin.withRegion(metadata.getCloudRegion());
         }
