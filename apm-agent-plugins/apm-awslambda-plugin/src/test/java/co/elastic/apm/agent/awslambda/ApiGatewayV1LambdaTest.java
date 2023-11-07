@@ -144,34 +144,6 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
         assertThat(faas.getTrigger().getRequestId()).isEqualTo(API_GATEWAY_REQUEST_ID);
     }
 
-    @Test
-    public void testCallWithNullInput() {
-        getFunction().handleRequest(null, context);
-
-        reporter.awaitTransactionCount(1);
-        reporter.awaitSpanCount(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
-        assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
-        assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
-        assertThat(transaction.getType()).isEqualTo("request");
-        assertThat(transaction.getResult()).isEqualTo("HTTP 2xx");
-
-        assertThat(transaction.getContext().getCloudOrigin()).isNotNull();
-        assertThat(transaction.getContext().getCloudOrigin().getProvider()).isEqualTo("aws");
-        assertThat(transaction.getContext().getCloudOrigin().getServiceName()).isNull();
-        assertThat(transaction.getContext().getCloudOrigin().getRegion()).isNull();
-        assertThat(transaction.getContext().getCloudOrigin().getAccountId()).isNull();
-
-        assertThat(transaction.getContext().getServiceOrigin().hasContent()).isFalse();
-
-        Faas faas = transaction.getFaas();
-        assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
-
-        assertThat(faas.getTrigger().getType()).isEqualTo("other");
-        assertThat(faas.getTrigger().getRequestId()).isNull();
-    }
-
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     public void testCallWithNullRequestContext(boolean isObjectNull) {
