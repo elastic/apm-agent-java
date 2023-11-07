@@ -44,7 +44,7 @@ import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.EventT
 public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends AbstractLambdaTransactionHelper<I, O> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractAPIGatewayTransactionHelper.class);
     protected static final String TRANSACTION_TYPE = "request";
-    protected static final String CONTENT_TYPE_HEADER = "Content-Type";
+    private static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final Set<String> METHODS_WITH_BODY = new HashSet<>(Arrays.asList("POST", "PUT", "PATCH", "DELETE"));
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
 
@@ -114,7 +114,7 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
         transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(statusCode));
     }
 
-    protected void fillUrlRelatedFields(Request request, @Nullable String serverName, @Nullable String path, @Nullable String queryString) {
+    private void fillUrlRelatedFields(Request request, @Nullable String serverName, @Nullable String path, @Nullable String queryString) {
         String qString = queryString == null || queryString.trim().isEmpty() ? null: queryString;
         request.getUrl().resetState();
         request.getUrl()
@@ -126,7 +126,7 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
     }
 
     @Nullable
-    protected CharBuffer startCaptureBody(Transaction transaction, @Nullable String method, @Nullable String contentTypeHeader) {
+    private CharBuffer startCaptureBody(Transaction transaction, @Nullable String method, @Nullable String contentTypeHeader) {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
             if (coreConfiguration.getCaptureBody() != OFF
@@ -180,7 +180,7 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
         transaction.getContext().getCloudOrigin().withAccountId(accountId);
     }
 
-    protected void setRequestHeaders(Transaction transaction, Map<String, String> headers) {
+    private void setRequestHeaders(Transaction transaction, Map<String, String> headers) {
         final Request req = transaction.getContext().getRequest();
         if (transaction.isSampled() && isCaptureHeaders()) {
             for (Map.Entry<String, String> headerEntry : headers.entrySet()) {
