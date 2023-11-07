@@ -64,7 +64,7 @@ public class JdkVersionTest {
                 "This test fails to remind you that JDK %d is about or already released,\n\n" +
                     "please update the following:\n" +
                     "\n" +
-                    "- .github/workflows/main.yml in 'jdk-compatibility-tests' : replace early-access with released GA version\n" +
+                    "- .github/workflows/main.yml in 'jdk-compatibility-tests' : replace early-access with released GA version and add the new early-access version\n" +
                     "- in this test: remove released version in the release schedule\n" +
                     "- in this test: update release schedule if needed\n"
                 , version)
