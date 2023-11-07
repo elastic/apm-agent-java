@@ -46,7 +46,7 @@ import java.util.Objects;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
-public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
+public class ApiGatewayV2LambdaTest extends BaseGatewayLambdaTest<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
 
     @BeforeAll
     @BeforeClass
@@ -181,19 +181,6 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPE
 
         assertThat(faas.getTrigger().getType()).isEqualTo("other");
         assertThat(faas.getTrigger().getRequestId()).isNull();
-    }
-
-    @Test
-    public void testCallWithHErrorStatusCode() {
-        Objects.requireNonNull(context).setErrorStatusCode();
-        getFunction().handleRequest(createInput(), context);
-        reporter.awaitTransactionCount(1);
-        reporter.awaitSpanCount(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
-        assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
-        assertThat(transaction.getResult()).isEqualTo("HTTP 5xx");
-        assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
     }
 
     @Test

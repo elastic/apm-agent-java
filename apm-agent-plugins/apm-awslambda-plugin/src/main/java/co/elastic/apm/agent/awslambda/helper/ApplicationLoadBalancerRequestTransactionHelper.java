@@ -96,6 +96,9 @@ public class ApplicationLoadBalancerRequestTransactionHelper extends AbstractAPI
 
     @Nullable
     private LoadBalancerElbTargetGroupArnMetadata parseMetadata(ApplicationLoadBalancerRequestEvent event) {
+        if (null == event.getRequestContext()) {
+            return null;
+        }
         ApplicationLoadBalancerRequestEvent.Elb elb = event.getRequestContext().getElb();
         if (null == elb) {
             return null;

@@ -29,11 +29,15 @@ import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.ApplicationLoadBalancerRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.ApplicationLoadBalancerResponseEvent;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import javax.annotation.Nonnull;
 import java.util.Arrays;
@@ -43,7 +47,7 @@ import java.util.Objects;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
-public class ApplicationLoadBalancerRequestEventLambdaTest extends AbstractLambdaTest<ApplicationLoadBalancerRequestEvent, ApplicationLoadBalancerResponseEvent> {
+public class ApplicationLoadBalancerRequestEventLambdaTest extends BaseGatewayLambdaTest<ApplicationLoadBalancerRequestEvent, ApplicationLoadBalancerResponseEvent> {
 
     @BeforeAll
     // Need to overwrite the beforeAll() method from parent,
@@ -61,16 +65,6 @@ public class ApplicationLoadBalancerRequestEventLambdaTest extends AbstractLambd
 
     @Override
     protected ApplicationLoadBalancerRequestEvent createInput() {
-        return createLoadBalancerRequestEvent();
-    }
-
-    @Override
-    protected boolean supportsContextPropagation() {
-        return false;
-    }
-
-    @Nonnull
-    private ApplicationLoadBalancerRequestEvent createLoadBalancerRequestEvent() {
         var event = new ApplicationLoadBalancerRequestEvent();
         event.setBody("blablablabody");
         event.setIsBase64Encoded(false);
@@ -93,6 +87,10 @@ public class ApplicationLoadBalancerRequestEventLambdaTest extends AbstractLambd
         return event;
     }
 
+    @Override
+    protected boolean supportsContextPropagation() {
+        return false;
+    }
 
     @Test
     public void testBasicCall() {
@@ -152,6 +150,48 @@ public class ApplicationLoadBalancerRequestEventLambdaTest extends AbstractLambd
         assertThat(faas.getId()).isEqualTo(TestContext.FUNCTION_ARN);
         assertThat(faas.getTrigger().getType()).isEqualTo("http");
         assertThat(faas.getTrigger().getRequestId()).isEqualTo("Root=1-xxxxxxxxxxxxxx");
+    }
+
+    @Test
+    public void testCallWithNullRequestContext() {
+        ApplicationLoadBalancerRequestEvent requestEvent = createInput();
+        requestEvent.setRequestContext(null);
+
+        getFunction().handleRequest(requestEvent, context);
+
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
+        assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
+        Transaction transaction = reporter.getFirstTransaction();
+        assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
+        assertThat(transaction.getType()).isEqualTo("request");
+        assertThat(transaction.getResult()).isEqualTo("HTTP 2xx");
+
+        assertThat(transaction.getContext().getCloudOrigin()).isNotNull();
+        assertThat(transaction.getContext().getCloudOrigin().getProvider()).isEqualTo("aws");
+
+        assertThat(transaction.getContext().getCloudOrigin().getServiceName()).isEqualTo("elb");
+
+        assertThat(transaction.getContext().getCloudOrigin().getRegion()).isNull();
+        assertThat(transaction.getContext().getCloudOrigin().getAccountId()).isNull();
+
+        assertThat(transaction.getContext().getServiceOrigin().hasContent()).isFalse();
+
+        Faas faas = transaction.getFaas();
+        assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
+
+        assertThat(faas.getTrigger().getType()).isEqualTo("http");
+        assertThat(faas.getTrigger().getRequestId()).isEqualTo("Root=1-xxxxxxxxxxxxxx");
+    }
+
+    @Test
+    public void testTransactionNameWithUsePathAsName() {
+        doReturn(true).when(config.getConfig(WebConfiguration.class)).isUsePathAsName();
+        getFunction().handleRequest(createInput(), context);
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("POST /toolz/api/v2.0/downloadPDF/PDF_2020-09-11_11-06-01.pdf");
     }
 
 }
