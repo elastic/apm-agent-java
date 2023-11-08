@@ -8,16 +8,15 @@ import co.elastic.apm.agent.tracer.Tracer;
 
 public abstract class AbstractApacheHttpAsyncClientAdvice {
 
-    public static <AsyncProducer, AsyncProducerWrapper extends AsyncProducer, FutureCallback, FutureCallbackWrapper extends FutureCallback, HttpContext> Object[] startSpan(Tracer tracer,
-                                                                                                                                                                            AbstractApacheHttpAsyncClientHelper<AsyncProducer, AsyncProducerWrapper, FutureCallback, FutureCallbackWrapper, HttpContext> asyncHelper,
-                                                                                                                                                                            AsyncProducer asyncRequestProducer,
-                                                                                                                                                                            HttpContext context,
-                                                                                                                                                                            FutureCallback futureCallback) {
+    public static <PRODUCER, WRAPPER extends PRODUCER, CALLBACK, CALLBACK_WRAPPER extends CALLBACK, CONTEXT> Object[] startSpan(
+        Tracer tracer, AbstractApacheHttpAsyncClientHelper<PRODUCER, WRAPPER, CALLBACK, CALLBACK_WRAPPER, CONTEXT> asyncHelper,
+        PRODUCER asyncRequestProducer, CONTEXT context, CALLBACK futureCallback) {
+
         ElasticContext<?> parentContext = tracer.currentContext();
         if (parentContext.isEmpty()) {
             return null;
         }
-        FutureCallback wrappedFutureCallback = futureCallback;
+        CALLBACK wrappedFutureCallback = futureCallback;
         ElasticContext<?> activeContext = tracer.currentContext();
         Span<?> span = activeContext.createExitSpan();
         if (span != null) {
@@ -27,12 +26,12 @@ public abstract class AbstractApacheHttpAsyncClientAdvice {
                 .activate();
             wrappedFutureCallback = asyncHelper.wrapFutureCallback(futureCallback, context, span);
         }
-        AsyncProducer wrappedProducer = asyncHelper.wrapRequestProducer(asyncRequestProducer, span, tracer.currentContext());
+        PRODUCER wrappedProducer = asyncHelper.wrapRequestProducer(asyncRequestProducer, span, tracer.currentContext());
         return new Object[]{wrappedProducer, wrappedFutureCallback, span};
     }
 
-    public static <AsyncProducer, AsyncProducerWrapper extends AsyncProducer, FutureCallback, FutureCallbackWrapper extends FutureCallback, HttpContext> void endSpan(AbstractApacheHttpAsyncClientHelper<AsyncProducer, AsyncProducerWrapper, FutureCallback, FutureCallbackWrapper, HttpContext> asyncHelper,
-                                                                                                                                                                      Object[] enter, Throwable t) {
+    public static <PRODUCER, WRAPPER extends PRODUCER, CALLBACK, CALLBACK_WRAPPER extends CALLBACK, CONTEXT> void endSpan(
+        AbstractApacheHttpAsyncClientHelper<PRODUCER, WRAPPER, CALLBACK, CALLBACK_WRAPPER, CONTEXT> asyncHelper, Object[] enter, Throwable t) {
         Span<?> span = enter != null ? (Span<?>) enter[2] : null;
         if (span != null) {
             // Deactivate in this thread
@@ -40,8 +39,8 @@ public abstract class AbstractApacheHttpAsyncClientAdvice {
             // End the span if the method terminated with an exception.
             // The exception means that the listener who normally does the ending will not be invoked.
             if (t != null) {
-                AsyncProducerWrapper wrapper = (AsyncProducerWrapper) enter[0];
-                FutureCallbackWrapper cb = (FutureCallbackWrapper) enter[1];
+                WRAPPER wrapper = (WRAPPER) enter[0];
+                CALLBACK_WRAPPER cb = (CALLBACK_WRAPPER) enter[1];
                 asyncHelper.failedWithoutException(cb, t);
                 asyncHelper.recycle(wrapper);
             }

@@ -4,16 +4,16 @@ package co.elastic.apm.agent.httpclient.common;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public interface ApacheHttpClientApiAdapter<RequestObject extends HttpRequest, HttpRequest, HttpHost, CloseableResponse, StatusLine> {
-    String getMethod(RequestObject request);
+public interface ApacheHttpClientApiAdapter<REQUEST, WRAPPER extends REQUEST, HTTPHOST, RESPONSE> {
+    String getMethod(WRAPPER request);
 
-    URI getUri(RequestObject request) throws URISyntaxException;
+    URI getUri(WRAPPER request) throws URISyntaxException;
 
-    CharSequence getHostName(HttpHost httpHost);
+    CharSequence getHostName(HTTPHOST httpHost);
 
-    int getResponseCode(CloseableResponse response);
+    int getResponseCode(RESPONSE response);
 
     boolean isCircularRedirectException(Throwable t);
 
-    boolean isNotNullStatusLine(CloseableResponse response);
+    boolean isNotNullStatusLine(RESPONSE response);
 }

@@ -11,7 +11,7 @@ import org.apache.http.client.methods.HttpRequestWrapper;
 
 import java.net.URI;
 
-public class ApacheHttpClient4ApiAdapter implements ApacheHttpClientApiAdapter<HttpRequestWrapper, HttpRequest, HttpHost, CloseableHttpResponse, StatusLine> {
+public class ApacheHttpClient4ApiAdapter implements ApacheHttpClientApiAdapter<HttpRequest, HttpRequestWrapper, HttpHost, CloseableHttpResponse> {
     private static final ApacheHttpClient4ApiAdapter INSTANCE = new ApacheHttpClient4ApiAdapter();
 
     private ApacheHttpClient4ApiAdapter() {

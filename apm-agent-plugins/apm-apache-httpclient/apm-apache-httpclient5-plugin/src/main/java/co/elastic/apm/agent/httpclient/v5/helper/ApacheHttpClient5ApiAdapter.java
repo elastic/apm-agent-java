@@ -4,15 +4,13 @@ import co.elastic.apm.agent.httpclient.common.ApacheHttpClientApiAdapter;
 import org.apache.hc.client5.http.CircularRedirectException;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.core5.http.ClassicHttpRequest;
-import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpRequest;
-import org.apache.hc.core5.http.message.StatusLine;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<ClassicHttpRequest, HttpRequest, HttpHost, CloseableHttpResponse, StatusLine> {
+public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<HttpRequest, ClassicHttpRequest, HttpHost, CloseableHttpResponse> {
     private static final ApacheHttpClient5ApiAdapter INSTANCE = new ApacheHttpClient5ApiAdapter();
 
     private ApacheHttpClient5ApiAdapter() {

@@ -1,0 +1,97 @@
+package co.elastic.apm.agent.httpclient.v5.helper;
+
+
+import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
+import org.apache.hc.core5.http.EntityDetails;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.nio.RequestChannel;
+import org.apache.hc.core5.http.protocol.HttpContext;
+
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.net.URI;
+
+public class RequestChannelWrapper implements RequestChannel, Recyclable {
+    private static final Logger logger = LoggerFactory.getLogger(RequestChannelWrapper.class);
+
+    private volatile RequestChannel delegate;
+
+    @Nullable
+    private ElasticContext<?> toPropagate;
+
+    @Nullable
+    private Span<?> span;
+
+    public RequestChannelWrapper() {
+    }
+
+    public RequestChannelWrapper with(RequestChannel delegate,
+                                      @Nullable Span<?> span,
+                                      @Nullable ElasticContext<?> toPropagate) {
+        this.span = span;
+        if (null != toPropagate) {
+            toPropagate.incrementReferences();
+            this.toPropagate = toPropagate;
+        }
+        this.delegate = delegate;
+        return this;
+    }
+
+    @Override
+    public void resetState() {
+        span = null;
+        if (toPropagate != null) {
+            toPropagate.decrementReferences();
+            toPropagate = null;
+        }
+        delegate = null;
+    }
+
+    @Override
+    public void sendRequest(HttpRequest httpRequest, EntityDetails entityDetails, HttpContext httpContext) throws HttpException, IOException {
+        try {
+            if (toPropagate == null) {
+                throw new IllegalStateException("sendRequest was called before 'with'!");
+            }
+
+            if (httpRequest != null) {
+                if (span != null) {
+                    String host = null;
+                    String protocol = null;
+                    int port = -1;
+                    URI httpRequestURI = null;
+                    try {
+                        httpRequestURI = httpRequest.getUri();
+                        if (httpRequestURI != null) {
+                            host = httpRequestURI.getHost();
+                            port = httpRequestURI.getPort();
+                            protocol = httpRequestURI.getScheme();
+                        }
+                    } catch (Exception e) {
+                        logger.warn("Failed to obtain Apache HttpClient 5 destination info, null httpRequestURI", e);
+                    }
+                    String method = httpRequest.getMethod();
+                    span.withName(method).appendToName(" ");
+                    if (host != null) {
+                        span.appendToName(host);
+                    }
+                    span.getContext().getHttp().withMethod(method).withUrl(httpRequest.getRequestUri());
+                    HttpClientHelper.setDestinationServiceDetails(span, protocol, host, port);
+                }
+
+                toPropagate.propagateContext(httpRequest, RequestHeaderAccessor.INSTANCE, RequestHeaderAccessor.INSTANCE);
+            }
+
+            toPropagate.decrementReferences();
+            toPropagate = null;
+        } finally {
+            delegate.sendRequest(httpRequest, entityDetails, httpContext);
+        }
+    }
+}

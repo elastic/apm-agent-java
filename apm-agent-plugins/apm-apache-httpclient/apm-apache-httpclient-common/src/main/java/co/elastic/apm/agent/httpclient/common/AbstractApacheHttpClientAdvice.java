@@ -13,11 +13,13 @@ import java.net.URISyntaxException;
 
 public abstract class AbstractApacheHttpClientAdvice {
 
-    public static <RequestObject extends HttpRequest, HttpRequest, HttpHost, CloseableResponse, StatusLine, HeaderAccessor extends TextHeaderSetter<HttpRequest> & TextHeaderGetter<HttpRequest>> Object startSpan(final Tracer tracer,
-                                                                                                                                                                                                                   final ApacheHttpClientApiAdapter<RequestObject, HttpRequest, HttpHost, CloseableResponse, StatusLine> adapter,
-                                                                                                                                                                                                                   final RequestObject request,
-                                                                                                                                                                                                                   final HttpHost httpHost,
-                                                                                                                                                                                                                   final HeaderAccessor headerAccessor) throws URISyntaxException {
+    public static <REQUEST, WRAPPER extends REQUEST, HTTPHOST, RESPONSE,
+        HeaderAccessor extends TextHeaderSetter<REQUEST> &
+            TextHeaderGetter<REQUEST>> Object startSpan(final Tracer tracer,
+                                                        final ApacheHttpClientApiAdapter<REQUEST, WRAPPER, HTTPHOST, RESPONSE> adapter,
+                                                        final WRAPPER request,
+                                                        final HTTPHOST httpHost,
+                                                        final HeaderAccessor headerAccessor) throws URISyntaxException {
         ElasticContext<?> elasticContext = tracer.currentContext();
         Span<?> span = null;
         if (elasticContext.getSpan() != null) {
@@ -30,10 +32,10 @@ public abstract class AbstractApacheHttpClientAdvice {
         return span;
     }
 
-    public static <RequestObject extends HttpRequest, HttpRequest, HttpHost, CloseableResponse, StatusLine> void endSpan(ApacheHttpClientApiAdapter<RequestObject, HttpRequest, HttpHost, CloseableResponse, StatusLine> adapter,
-                                                                                                                         Object spanObj,
-                                                                                                                         Throwable t,
-                                                                                                                         CloseableResponse response) {
+    public static <REQUEST, WRAPPER extends REQUEST, HTTPHOST, RESPONSE> void endSpan(ApacheHttpClientApiAdapter<REQUEST, WRAPPER, HTTPHOST, RESPONSE> adapter,
+                                                                                      Object spanObj,
+                                                                                      Throwable t,
+                                                                                      RESPONSE response) {
         Span<?> span = (Span<?>) spanObj;
         if (span == null) {
             return;

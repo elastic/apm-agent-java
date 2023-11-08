@@ -61,7 +61,7 @@ public class ApacheHttpAsyncClientHelper implements AbstractApacheHttpAsyncClien
     private class FutureCallbackWrapperAllocator implements Allocator<FutureCallbackWrapper<?>> {
         @Override
         public FutureCallbackWrapper<?> createInstance() {
-            return new FutureCallbackWrapper(ApacheHttpAsyncClientHelper.this);
+            return new FutureCallbackWrapper<>(ApacheHttpAsyncClientHelper.this);
         }
     }
 
@@ -71,7 +71,7 @@ public class ApacheHttpAsyncClientHelper implements AbstractApacheHttpAsyncClien
     }
 
     @Override
-    public FutureCallbackWrapper wrapFutureCallback(FutureCallback futureCallback, HttpContext context, Span<?> span) {
+    public FutureCallbackWrapper<?> wrapFutureCallback(FutureCallback futureCallback, HttpContext context, Span<?> span) {
         return futureCallbackWrapperObjectPool.createInstance().with(futureCallback, context, span);
     }
 
