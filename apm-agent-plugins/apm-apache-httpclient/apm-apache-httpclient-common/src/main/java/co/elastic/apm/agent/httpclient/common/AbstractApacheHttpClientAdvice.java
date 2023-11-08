@@ -39,7 +39,7 @@ public abstract class AbstractApacheHttpClientAdvice {
             return;
         }
         try {
-            if (response != null && adapter.getStatusLine(response) != null) {
+            if (response != null && adapter.isNotNullStatusLine(response)) {
                 int statusCode = adapter.getResponseCode(response);
                 span.getContext().getHttp().withStatusCode(statusCode);
             }

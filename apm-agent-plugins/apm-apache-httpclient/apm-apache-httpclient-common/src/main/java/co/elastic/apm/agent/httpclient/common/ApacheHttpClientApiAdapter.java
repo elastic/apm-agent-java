@@ -15,5 +15,5 @@ public interface ApacheHttpClientApiAdapter<RequestObject extends HttpRequest, H
 
     boolean isCircularRedirectException(Throwable t);
 
-    StatusLine getStatusLine(CloseableResponse response);
+    boolean isNotNullStatusLine(CloseableResponse response);
 }

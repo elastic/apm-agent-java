@@ -51,7 +51,7 @@ public class ApacheHttpClient4ApiAdapter implements ApacheHttpClientApiAdapter<H
     }
 
     @Override
-    public StatusLine getStatusLine(CloseableHttpResponse o) {
-        return o.getStatusLine();
+    public boolean isNotNullStatusLine(CloseableHttpResponse o) {
+        return null != o.getStatusLine();
     }
 }
