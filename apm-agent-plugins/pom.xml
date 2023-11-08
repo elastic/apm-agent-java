@@ -73,6 +73,7 @@
         <module>apm-aws-sdk</module>
         <module>apm-finagle-httpclient-plugin</module>
         <module>apm-java-ldap-plugin</module>
+        <module>apm-apache-httpclient/apm-apache-httpclient-common</module>
     </modules>
 
     <dependencies>

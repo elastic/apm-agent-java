@@ -21,6 +21,11 @@
         but keeping it explicit avoids relying on transitive dependency
         -->
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-apache-httpclient-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>4.5.6</version>

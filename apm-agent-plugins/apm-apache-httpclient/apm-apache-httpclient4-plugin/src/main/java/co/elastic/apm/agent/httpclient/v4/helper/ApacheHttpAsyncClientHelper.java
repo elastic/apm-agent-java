@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.httpclient.v4.helper;
 
+import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpAsyncClientHelper;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
@@ -31,7 +32,7 @@ import org.apache.http.protocol.HttpContext;
 
 import javax.annotation.Nullable;
 
-public class ApacheHttpAsyncClientHelper {
+public class ApacheHttpAsyncClientHelper implements AbstractApacheHttpAsyncClientHelper<HttpAsyncRequestProducer, HttpAsyncRequestProducerWrapper, FutureCallback, FutureCallbackWrapper<?>, HttpContext> {
 
     private static final int MAX_POOLED_ELEMENTS = 256;
 
@@ -69,10 +70,17 @@ public class ApacheHttpAsyncClientHelper {
         return requestProducerWrapperObjectPool.createInstance().with(requestProducer, span, toPropagate);
     }
 
-    public <T> FutureCallbackWrapper<T> wrapFutureCallback(FutureCallback<T> futureCallback, HttpContext context, Span<?> span) {
-        return ((FutureCallbackWrapper<T>) futureCallbackWrapperObjectPool.createInstance()).with(futureCallback, context, span);
+    @Override
+    public FutureCallbackWrapper wrapFutureCallback(FutureCallback futureCallback, HttpContext context, Span<?> span) {
+        return futureCallbackWrapperObjectPool.createInstance().with(futureCallback, context, span);
     }
 
+    @Override
+    public void failedWithoutException(FutureCallbackWrapper<?> cb, Throwable t) {
+        cb.failedWithoutExecution(t);
+    }
+
+    @Override
     public void recycle(HttpAsyncRequestProducerWrapper requestProducerWrapper) {
         requestProducerWrapperObjectPool.recycle(requestProducerWrapper);
     }
