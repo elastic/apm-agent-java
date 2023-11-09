@@ -23,7 +23,6 @@ public class ApacheHttpAsyncClientHelper implements AbstractApacheHttpAsyncClien
     private final Tracer tracer;
     private final ObjectPool<AsyncRequestProducerWrapper> requestProducerWrapperObjectPool;
     private final ObjectPool<FutureCallbackWrapper<?>> futureCallbackWrapperObjectPool;
-
     private final ObjectPool<RequestChannelWrapper> requestChannelWrapperObjectPool;
 
     public ApacheHttpAsyncClientHelper() {
@@ -68,7 +67,7 @@ public class ApacheHttpAsyncClientHelper implements AbstractApacheHttpAsyncClien
 
     @Override
     public void failedWithoutException(FutureCallbackWrapper<?> cb, Throwable t) {
-        cb.failedWithoutExecution(t);
+        // ignore
     }
 
     public RequestChannelWrapper wrapRequestChannel(RequestChannel requestChannel, @Nullable Span<?> span, @Nullable ElasticContext<?> toPropagate) {

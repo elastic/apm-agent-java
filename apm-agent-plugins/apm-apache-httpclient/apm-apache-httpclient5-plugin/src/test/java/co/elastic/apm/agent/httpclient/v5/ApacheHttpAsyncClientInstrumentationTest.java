@@ -18,6 +18,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 
 import java.io.IOException;
 import java.net.URI;
@@ -73,7 +74,6 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
 
 
     @Test
-    @Ignore
     public void testSpanFinishOnEarlyException() throws Exception {
 
         client.close(); //this forces execute to immediately exit with an exception
@@ -81,7 +81,7 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
         reporter.disableCheckServiceTarget();
         reporter.disableCheckDestinationAddress();
         try {
-            assertThatThrownBy(() -> performGet(getBaseUrl() + "/")).isInstanceOf(IllegalStateException.class);
+            assertThatThrownBy(() -> performGet(getBaseUrl() + "/")).cause().isInstanceOf(IllegalStateException.class);
         } finally {
             //Reset state for other tests
             setUp();

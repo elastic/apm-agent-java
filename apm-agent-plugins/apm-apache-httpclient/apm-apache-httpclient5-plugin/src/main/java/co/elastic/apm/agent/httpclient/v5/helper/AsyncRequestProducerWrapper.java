@@ -5,7 +5,6 @@ import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.apache.hc.core5.http.HttpException;
-import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.nio.AsyncRequestProducer;
 import org.apache.hc.core5.http.nio.DataStreamChannel;
 import org.apache.hc.core5.http.nio.RequestChannel;
@@ -42,12 +41,14 @@ public class AsyncRequestProducerWrapper implements AsyncRequestProducer, Recycl
 
     @Override
     public void sendRequest(RequestChannel requestChannel, HttpContext httpContext) throws HttpException, IOException {
-        RequestChannelWrapper wrappedRequestChannel = null;
+        RequestChannelWrapper wrappedRequestChannel = asyncClientHelper.wrapRequestChannel(requestChannel, span, toPropagate);
+        boolean isNotNullWrappedRequestChannel = null != wrappedRequestChannel;
         try {
-            wrappedRequestChannel = asyncClientHelper.wrapRequestChannel(requestChannel, span, toPropagate);
-        } finally {
-            boolean isNotNullWrappedRequestChannel = null != wrappedRequestChannel;
             delegate.sendRequest(isNotNullWrappedRequestChannel ? wrappedRequestChannel : requestChannel, httpContext);
+        } catch (HttpException | IOException | IllegalStateException e) {
+            asyncClientHelper.recycle(this);
+            throw e;
+        } finally {
             if (isNotNullWrappedRequestChannel) {
                 asyncClientHelper.recycle(wrappedRequestChannel);
             }

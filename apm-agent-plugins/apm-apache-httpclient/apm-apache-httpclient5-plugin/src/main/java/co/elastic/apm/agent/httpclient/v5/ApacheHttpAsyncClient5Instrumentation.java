@@ -6,7 +6,6 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.hc.core5.concurrent.FutureCallback;
 import org.apache.hc.core5.http.nio.AsyncRequestProducer;
@@ -15,6 +14,7 @@ import org.apache.hc.core5.http.protocol.HttpContext;
 import javax.annotation.Nullable;
 
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -55,7 +55,10 @@ public class ApacheHttpAsyncClient5Instrumentation extends BaseApacheHttpClient5
         private static ApacheHttpAsyncClientHelper asyncHelper = new ApacheHttpAsyncClientHelper();
 
         @Nullable
-        @Advice.AssignReturned.ToArguments({@Advice.AssignReturned.ToArguments.ToArgument(index = 0, value = 0, typing = Assigner.Typing.DYNAMIC), @Advice.AssignReturned.ToArguments.ToArgument(index = 1, value = 3, typing = Assigner.Typing.DYNAMIC)})
+        @Advice.AssignReturned.ToArguments({
+            @Advice.AssignReturned.ToArguments.ToArgument(index = 0, value = 0, typing = DYNAMIC),
+            @Advice.AssignReturned.ToArguments.ToArgument(index = 1, value = 3, typing = DYNAMIC)
+        })
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] onBeforeExecute(@Advice.Argument(value = 0) AsyncRequestProducer asyncRequestProducer, @Advice.Argument(value = 2) HttpContext context, @Advice.Argument(value = 3) FutureCallback<?> futureCallback) {
             return startSpan(tracer, asyncHelper, asyncRequestProducer, context, futureCallback);

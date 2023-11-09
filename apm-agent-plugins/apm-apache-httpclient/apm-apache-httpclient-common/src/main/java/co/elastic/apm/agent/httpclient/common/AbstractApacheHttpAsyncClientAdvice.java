@@ -38,10 +38,12 @@ public abstract class AbstractApacheHttpAsyncClientAdvice {
             span.deactivate();
             // End the span if the method terminated with an exception.
             // The exception means that the listener who normally does the ending will not be invoked.
+            WRAPPER wrapper = (WRAPPER) enter[0];
             if (t != null) {
-                WRAPPER wrapper = (WRAPPER) enter[0];
                 CALLBACK_WRAPPER cb = (CALLBACK_WRAPPER) enter[1];
+                // only for apachehttpclient_v4
                 asyncHelper.failedWithoutException(cb, t);
+
                 asyncHelper.recycle(wrapper);
             }
         }
