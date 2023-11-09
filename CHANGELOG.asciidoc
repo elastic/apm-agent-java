@@ -37,6 +37,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 * Added support for AWS SDK 2.21 - {pull}3373[#3373]
 * Capture bucket and object key to Lambda transaction as OTel attributes - `aws.s3.bueckt`, `aws.s3.key` - {pull}3364[#3364]
 * Added `context_propagation_only` configuration option - {pull}3358[#3358]
+* Add support for Apache HTTP client 5.x - {pull}3419[#3419]
 
 [float]
 ===== Bug fixes
