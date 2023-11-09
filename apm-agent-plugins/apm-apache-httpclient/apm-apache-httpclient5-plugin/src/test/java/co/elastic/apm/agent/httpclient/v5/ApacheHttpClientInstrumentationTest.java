@@ -37,7 +37,7 @@ public class ApacheHttpClientInstrumentationTest extends AbstractHttpClientInstr
      */
     @Override
     public boolean isTestHttpCallWithUserInfoEnabled() {
-        return true;
+        return false;
     }
 
     @Override
