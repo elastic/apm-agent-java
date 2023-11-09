@@ -58,8 +58,7 @@ class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
     public void failedWithoutExecution(Throwable ex) {
         try {
             final Span<?> localSpan = span;
-            localSpan.captureException(ex);
-            localSpan.end();
+            localSpan.captureException(ex).end();
         } finally {
             helper.recycle(this);
         }

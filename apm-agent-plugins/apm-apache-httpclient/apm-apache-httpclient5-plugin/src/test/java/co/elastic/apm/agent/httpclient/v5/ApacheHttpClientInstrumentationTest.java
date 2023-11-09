@@ -30,10 +30,14 @@ public class ApacheHttpClientInstrumentationTest extends AbstractHttpClientInstr
 
     /**
      * RFC 7230: treat presence of userinfo in authority component in request URI as an HTTP protocol violation.
+     *
+     * Uses {@link org.apache.hc.core5.http.message.BasicHttpRequest#setUri} to fill {@link org.apache.hc.core5.net.URIAuthority}
+     *
+     * Assertions on authority in {@link org.apache.hc.client5.http.impl.classic.ProtocolExec#execute}
      */
     @Override
     public boolean isTestHttpCallWithUserInfoEnabled() {
-        return false;
+        return true;
     }
 
     @Override

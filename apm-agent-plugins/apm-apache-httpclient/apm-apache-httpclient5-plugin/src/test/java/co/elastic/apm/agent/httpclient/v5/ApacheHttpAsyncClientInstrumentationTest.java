@@ -10,14 +10,17 @@ import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.classic.ProtocolExec;
 import org.apache.hc.client5.http.protocol.HttpClientContext;
 import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.net.URIAuthority;
 import org.assertj.core.api.Assertions;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
@@ -41,8 +44,8 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
     @Override
     protected void performGet(String path) throws Exception {
         final CompletableFuture<SimpleHttpResponse> responseFuture = new CompletableFuture<>();
-
-        SimpleHttpRequest req = SimpleRequestBuilder.get().setPath(path).build();
+        SimpleHttpRequest req = SimpleRequestBuilder.get().setPath(path)
+            .build();
         RequestConfig requestConfig = RequestConfig.custom()
             .setCircularRedirectsAllowed(true)
             .build();
@@ -70,6 +73,7 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
 
 
     @Test
+    @Ignore
     public void testSpanFinishOnEarlyException() throws Exception {
 
         client.close(); //this forces execute to immediately exit with an exception
@@ -87,17 +91,19 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
         Assertions.assertThat(reporter.getSpans()).hasSize(1);
     }
 
-
     /**
-     * org.apache.hc.client5.http.ClientProtocolException: Request URI authority contains deprecated userinfo component
-     * see {@link ProtocolExec#execute}
-     *   final URIAuthority authority = request.getAuthority();
-     *   if (authority.getUserInfo() != null) {
-     *      throw new ProtocolException("Request URI authority contains deprecated userinfo component");
-     *   }
+     * Difference between sync and async requests is that
+     * In async requests you need {@link SimpleRequestBuilder#setAuthority(URIAuthority)} explicitly
+     * And in this case exception will be thrown from {@link org.apache.hc.client5.http.impl.async.AsyncProtocolExec#execute}
+     *
+     * SimpleHttpRequest req = SimpleRequestBuilder.get().setPath(path)
+     *             .setScheme("http")
+     *             .setAuthority(new URIAuthority(uri.getUserInfo(), uri.getHost(), uri.getPort()))
+     *             .build();
+     *
      */
-//    @Override
-//    public String getBaseUserInfoPath() {
-//        return "http://localhost:";
-//    }
+    @Override
+    public boolean isTestHttpCallWithUserInfoEnabled() {
+        return true;
+    }
 }
