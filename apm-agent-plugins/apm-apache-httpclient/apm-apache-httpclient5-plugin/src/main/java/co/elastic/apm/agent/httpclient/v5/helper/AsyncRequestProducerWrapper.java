@@ -22,6 +22,7 @@ package co.elastic.apm.agent.httpclient.v5.helper;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
+import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.nio.AsyncRequestProducer;
 import org.apache.hc.core5.http.nio.DataStreamChannel;
@@ -57,6 +58,10 @@ public class AsyncRequestProducerWrapper implements AsyncRequestProducer, Recycl
         return this;
     }
 
+    /**
+     * Here we should catch {@link IllegalStateException} in cases
+     * when {@link CloseableHttpAsyncClient#close()} executed.
+     */
     @Override
     public void sendRequest(RequestChannel requestChannel, HttpContext httpContext) throws HttpException, IOException {
         RequestChannelWrapper wrappedRequestChannel = asyncClientHelper.wrapRequestChannel(requestChannel, span, toPropagate);
