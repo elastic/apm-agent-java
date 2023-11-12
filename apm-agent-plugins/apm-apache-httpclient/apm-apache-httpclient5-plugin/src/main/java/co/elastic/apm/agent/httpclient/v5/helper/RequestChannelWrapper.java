@@ -51,12 +51,10 @@ public class RequestChannelWrapper implements RequestChannel, Recyclable {
 
     public RequestChannelWrapper with(RequestChannel delegate,
                                       @Nullable Span<?> span,
-                                      @Nullable ElasticContext<?> toPropagate) {
+                                      ElasticContext<?> toPropagate) {
         this.span = span;
-        if (null != toPropagate) {
-            toPropagate.incrementReferences();
-            this.toPropagate = toPropagate;
-        }
+        toPropagate.incrementReferences();
+        this.toPropagate = toPropagate;
         this.delegate = delegate;
         return this;
     }

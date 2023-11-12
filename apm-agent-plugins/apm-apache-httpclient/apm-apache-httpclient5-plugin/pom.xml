@@ -18,10 +18,6 @@
     </properties>
 
     <dependencies>
-        <!--
-        this dependency duplicates the transitive one we get from 'httpasyncclient'
-        but keeping it explicit avoids relying on transitive dependency
-        -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-apache-httpclient-common</artifactId>
@@ -30,12 +26,6 @@
         <dependency>
             <groupId>org.apache.httpcomponents.client5</groupId>
             <artifactId>httpclient5</artifactId>
-            <version>${httpclient.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents.client5</groupId>
-            <artifactId>httpclient5-fluent</artifactId>
             <version>${httpclient.version}</version>
             <scope>provided</scope>
         </dependency>

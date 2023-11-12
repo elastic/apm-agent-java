@@ -32,6 +32,8 @@ public abstract class AbstractApacheHttpAsyncClientAdvice {
 
         ElasticContext<?> parentContext = tracer.currentContext();
         if (parentContext.isEmpty()) {
+            // performance optimization, no need to wrap if we have nothing to propagate
+            // empty context means also we will not create an exit span
             return null;
         }
         CALLBACK wrappedFutureCallback = futureCallback;

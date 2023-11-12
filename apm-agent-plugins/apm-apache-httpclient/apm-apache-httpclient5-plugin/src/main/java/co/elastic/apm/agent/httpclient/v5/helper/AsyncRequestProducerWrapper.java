@@ -48,12 +48,10 @@ public class AsyncRequestProducerWrapper implements AsyncRequestProducer, Recycl
     }
 
     public AsyncRequestProducerWrapper with(AsyncRequestProducer delegate, @Nullable Span<?> span,
-                                            @Nullable ElasticContext<?> toPropagate) {
+                                            ElasticContext<?> toPropagate) {
         this.span = span;
-        if (null != toPropagate) {
-            toPropagate.incrementReferences();
-            this.toPropagate = toPropagate;
-        }
+        toPropagate.incrementReferences();
+        this.toPropagate = toPropagate;
         this.delegate = delegate;
         return this;
     }

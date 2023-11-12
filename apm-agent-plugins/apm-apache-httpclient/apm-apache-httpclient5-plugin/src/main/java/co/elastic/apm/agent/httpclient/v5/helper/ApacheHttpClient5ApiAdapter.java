@@ -65,6 +65,7 @@ public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<H
 
     @Override
     public boolean isNotNullStatusLine(CloseableHttpResponse closeableHttpResponse) {
+        // HTTP response messages in HttpClient 5.x no longer have a status line.
         return true;
     }
 }

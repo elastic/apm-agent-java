@@ -31,6 +31,6 @@ public abstract class BaseApacheHttpClient5Instrumentation extends ElasticApmIns
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "apache-httpclient");
+        return Arrays.asList("http-client", "apache-httpclient5");
     }
 }
