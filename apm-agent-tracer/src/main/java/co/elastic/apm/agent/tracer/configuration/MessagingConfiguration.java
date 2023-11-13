@@ -76,7 +76,7 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             WildcardMatcher.DOCUMENTATION)
         .dynamic(true)
-        .buildWithDefault(Collections.emptyList());
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
     private final ConfigurationOption<Boolean> endMessagingTransactionOnPoll = ConfigurationOption.booleanOption()
         .key("end_messaging_transaction_on_poll")
@@ -106,7 +106,7 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
             "Starting from version 1.43.0, the classes that are part of the 'application_packages' option are also included in the list of classes considered."
         )
         .dynamic(false)
-        .buildWithDefault(Collections.emptyList());
+        .buildWithDefault(Collections.<String>emptyList());
 
     private final ConfigurationOption<RabbitMQNamingMode> rabbitMQNamingMode = ConfigurationOption.enumOption(RabbitMQNamingMode.class)
         .key("rabbitmq_naming_mode")
