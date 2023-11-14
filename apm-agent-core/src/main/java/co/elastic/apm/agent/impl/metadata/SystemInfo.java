@@ -25,12 +25,14 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -51,7 +53,7 @@ public class SystemInfo {
     private static final String AWS_FARGATE_UID_REGEX = "^[0-9a-fA-F]{32}\\-[0-9]{10}$";
     private static final String POD_REGEX = "(?:^/kubepods[\\S]*/pod([^/]+)$)|(?:kubepods[^/]*-pod([^/]+)\\.slice)";
 
-    private static final String CGROUPV2_HOSTNAME_FILE = "/etc/hostname";
+    private static final String HOST_FILE = "/etc/hostname";
     private static final Pattern CGROUPV2_CONTAINER_PATTERN = Pattern.compile("^.*(" + CONTAINER_REGEX_64 + ").*$");
 
     private static final String SELF_CGROUP = "/proc/self/cgroup";
@@ -168,7 +170,15 @@ public class SystemInfo {
             try {
                 hostname = InetAddress.getLocalHost().getHostName();
             } catch (Exception e) {
-                logger.warn("Last fallback for hostname discovery of localhost failed", e);
+                logger.debug("Network fallback for hostname discovery of localhost failed", e);
+            }
+        }
+        if (hostname == null || hostname.isEmpty() && !isWindows) {
+            try (FileReader fileReader = new FileReader(HOST_FILE);
+                 BufferedReader reader = new BufferedReader(fileReader)) {
+                hostname = reader.readLine().trim();
+            } catch (IOException e) {
+                logger.debug(HOST_FILE + " fallback for hostname discovery of localhost failed", e);
             }
         }
         return hostname;
@@ -209,7 +219,7 @@ public class SystemInfo {
             logger.info("Failed to execute command {} with exit code {}", cmdAsString(cmd), commandOutput.getExitCode());
             logger.debug("Command execution error", commandOutput.getExceptionThrown());
         }
-        if(hostname != null) {
+        if (hostname != null) {
             hostname = hostname.toLowerCase(Locale.ROOT);
         }
         return hostname;
@@ -306,7 +316,7 @@ public class SystemInfo {
 
     @Nullable
     private void parseCgroupsFile(Path path) {
-        if(!Files.isRegularFile(path)){
+        if (!Files.isRegularFile(path)) {
             logger.debug("Could not parse container ID from '{}'", path);
             return;
         }
@@ -405,7 +415,7 @@ public class SystemInfo {
      */
     SystemInfo parseCgroupsV2ContainerId(List<String> lines) {
         for (String line : lines) {
-            int index = line.indexOf(CGROUPV2_HOSTNAME_FILE);
+            int index = line.indexOf(HOST_FILE);
             if (index > 0) {
                 String[] parts = line.split(" ");
                 if (parts.length > 3) {
@@ -416,9 +426,6 @@ public class SystemInfo {
                 }
             }
         }
-
-
-
 
         return this;
     }
