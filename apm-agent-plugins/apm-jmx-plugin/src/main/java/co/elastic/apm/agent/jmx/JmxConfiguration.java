@@ -58,7 +58,7 @@ public class JmxConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "The agent creates `labels` for each link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html#getKeyPropertyList()[JMX key property] such as `type` and `name`.\n" +
             "\n" +
-            "The link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[JMX object name pattern] supports wildcards. The attribute definition does NOT support wildcards, but a special definition `attribute[*]` is accepted to mean match all possible (numeric) attributes for the associated object name pattern\n" +
+            "The link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[JMX object name pattern] supports wildcards. The attribute definition does NOT support wildcards, but a special definition `attribute[*]` is accepted (from 1.44.0) to mean match all possible (numeric) attributes for the associated object name pattern\n" +
             "The definition `object_name[*:type=*,name=*] attribute[*]` would match all possible JMX metrics\n"  +
             "In the following example, the agent will create a metricset for each memory pool `name` (such as `G1 Old Generation` and `G1 Young Generation`)\n" +
             "\n" +
