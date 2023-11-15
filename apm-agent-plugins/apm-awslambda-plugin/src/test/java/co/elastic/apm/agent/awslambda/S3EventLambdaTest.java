@@ -66,7 +66,8 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
     private S3EventNotification.S3EventNotificationRecord createS3NotificationRecord() {
         S3EventNotification.ResponseElementsEntity responseElements = new S3EventNotification.ResponseElementsEntity("xAmzId2", S3_REQUEST_ID);
         S3EventNotification.S3BucketEntity bucket = new S3EventNotification.S3BucketEntity(S3_BUCKET_NAME, null, S3_BUCKET_ARN);
-        S3EventNotification.S3Entity s3 = new S3EventNotification.S3Entity("configId", bucket, null, "3.3");
+        S3EventNotification.S3ObjectEntity object = new S3EventNotification.S3ObjectEntity("b21b84d653bb07b05b1e6b33684dc11b", 1305107, "b21b84d653bb07b05b1e6b33684dc11b", "0C0F6F405D6ED209E1");
+        S3EventNotification.S3Entity s3 = new S3EventNotification.S3Entity("configId", bucket, object, "3.3");
         return new S3EventNotification.S3EventNotificationRecord(EVENT_SOURCE_REGION, S3_EVENT_NAME, S3_EVENT_SOURCE, null,
             S3_EVENT_VERSION, null, responseElements, s3, null);
     }
@@ -102,6 +103,8 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
         assertThat(faas.getId()).isEqualTo(TestContext.FUNCTION_ARN);
         assertThat(faas.getTrigger().getType()).isEqualTo("datasource");
         assertThat(faas.getTrigger().getRequestId()).isEqualTo(S3_REQUEST_ID);
+
+        verifyOtelAttributes(transaction);
     }
 
     @Test
@@ -173,5 +176,13 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
 
         assertThat(faas.getTrigger().getType()).isEqualTo("datasource");
         assertThat(faas.getTrigger().getRequestId()).isNull();
+    }
+
+    private void verifyOtelAttributes(Transaction transaction) {
+        Object s3keyAttribute = transaction.getOtelAttributes().get("aws.s3.key");
+        assertThat(s3keyAttribute).isInstanceOf(String.class).isEqualTo("b21b84d653bb07b05b1e6b33684dc11b");
+
+        Object s3bucketAttribute = transaction.getOtelAttributes().get("aws.s3.bucket");
+        assertThat(s3bucketAttribute).isInstanceOf(String.class).isEqualTo(S3_BUCKET_NAME);
     }
 }

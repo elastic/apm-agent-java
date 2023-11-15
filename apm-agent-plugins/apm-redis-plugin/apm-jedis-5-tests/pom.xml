@@ -3,12 +3,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>apm-logging-plugin</artifactId>
+        <artifactId>apm-redis-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
         <version>1.43.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>apm-log4j2-plugin</artifactId>
+    <artifactId>apm-jedis-5-tests</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
@@ -18,30 +18,35 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-logging-plugin-common</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>2.21.1</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>co.elastic.logging</groupId>
-            <artifactId>log4j2-ecs-layout</artifactId>
-            <version>${version.ecs.logging}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-logging-plugin-common</artifactId>
-            <version>${project.version}</version>
+            <artifactId>apm-redis-common</artifactId>
             <type>test-jar</type>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.ivy</groupId>
-            <artifactId>ivy</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jedis-plugin</artifactId>
+            <type>test-jar</type>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jedis-4-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jedis-4-plugin</artifactId>
+            <type>test-jar</type>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>5.0.2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
