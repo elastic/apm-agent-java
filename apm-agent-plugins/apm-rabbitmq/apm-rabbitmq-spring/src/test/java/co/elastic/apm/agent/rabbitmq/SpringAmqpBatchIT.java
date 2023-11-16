@@ -19,12 +19,12 @@
 package co.elastic.apm.agent.rabbitmq;
 
 
-import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.rabbitmq.components.batch.BatchListenerComponent;
 import co.elastic.apm.agent.rabbitmq.config.BatchConfiguration;
-import org.junit.Ignore;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.amqp.rabbit.core.BatchingRabbitTemplate;
@@ -42,10 +42,9 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.doReturn;
 
-@Ignore
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@ContextConfiguration(classes = {BatchConfiguration.class}, initializers = {RabbitMqTestBase.Initializer.class})
+@ContextConfiguration(classes = {BatchConfiguration.class, BatchListenerComponent.class}, initializers = {RabbitMqTestBase.Initializer.class})
 public class SpringAmqpBatchIT extends RabbitMqTestBase {
 
     @Autowired
@@ -158,7 +157,7 @@ public class SpringAmqpBatchIT extends RabbitMqTestBase {
             .filter(span -> Objects.equals(span.getNameAsString(), "RabbitMQ SEND to <default>"))
             .collect(Collectors.toList());
         assertThat(sendSpans.size()).isEqualTo(2);
-        sendSpans.forEach(span ->  {
+        sendSpans.forEach(span -> {
             assertThat(span.getType()).isEqualTo("messaging");
             assertThat(span.getTraceContext().getParentId()).isEqualTo(rootTraceTransaction.getTraceContext().getId());
         });
@@ -193,3 +192,4 @@ public class SpringAmqpBatchIT extends RabbitMqTestBase {
         rootTraceTransaction.deactivate().end();
     }
 }
+

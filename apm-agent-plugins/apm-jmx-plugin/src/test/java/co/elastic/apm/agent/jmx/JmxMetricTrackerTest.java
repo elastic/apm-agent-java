@@ -84,6 +84,17 @@ class JmxMetricTrackerTest {
     }
 
     @Test
+    void testAttributeWildcard() throws Exception {
+        setConfig(JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[*]"));
+        for (GarbageCollectorMXBean gcBean : ManagementFactory.getGarbageCollectorMXBeans()) {
+            String memoryManagerName = gcBean.getName();
+            assertThat(metricRegistry.getGaugeValue("jvm.jmx.collection_count", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
+            assertThat(metricRegistry.getGaugeValue("jvm.jmx.CollectionTime", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
+        }
+        printMetricSets();
+    }
+
+    @Test
     void testRemoveMetric() throws Exception {
         setConfig(JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count] attribute[CollectionTime]"));
         for (GarbageCollectorMXBean gcBean : ManagementFactory.getGarbageCollectorMXBeans()) {
