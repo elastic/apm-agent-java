@@ -75,12 +75,19 @@ public class S3TransactionHelper extends AbstractLambdaTransactionHelper<S3Event
 
             cloudOrigin.withRegion(s3NotificationRecord.getAwsRegion());
 
-            if (null != s3NotificationRecord.getS3() && null != s3NotificationRecord.getS3().getBucket()) {
+            if (s3NotificationRecord.getS3() != null) {
                 S3EventNotification.S3BucketEntity bucket = s3NotificationRecord.getS3().getBucket();
-                transaction.getContext().getServiceOrigin()
-                    .withId(bucket.getArn())
-                    .withName(bucket.getName())
-                    .withVersion(s3NotificationRecord.getEventVersion());
+                if (bucket != null) {
+                    transaction.getContext().getServiceOrigin()
+                        .withId(bucket.getArn())
+                        .withName(bucket.getName())
+                        .withVersion(s3NotificationRecord.getEventVersion());
+                    transaction.withOtelAttribute("aws.s3.bucket", bucket.getName());
+                }
+                S3EventNotification.S3ObjectEntity object = s3NotificationRecord.getS3().getObject();
+                if (object != null) {
+                    transaction.withOtelAttribute("aws.s3.key", object.getKey());
+                }
             }
         }
     }

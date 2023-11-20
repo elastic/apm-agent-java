@@ -183,8 +183,12 @@ public class JmxMetric {
             return jmxAttributeName;
         }
 
-        public String getMetricName() {
-            return JMX_PREFIX + (metricName != null ? metricName : jmxAttributeName);
+        public String getMetricName(String foundAttributeName) {
+            if (!foundAttributeName.isEmpty() && "*".equals(jmxAttributeName)) {
+                return JMX_PREFIX + (metricName != null ? metricName : foundAttributeName);
+            } else {
+                return JMX_PREFIX + (metricName != null ? metricName : jmxAttributeName);
+            }
         }
 
         @Override
@@ -210,8 +214,8 @@ public class JmxMetric {
             return Labels.Mutable.of(objectName.getKeyPropertyList());
         }
 
-        public String getCompositeMetricName(String key) {
-            return getMetricName() + "." + key;
+        public String getCompositeMetricName(String key, String foundAttributeName) {
+            return getMetricName(foundAttributeName) + "." + key;
         }
     }
 

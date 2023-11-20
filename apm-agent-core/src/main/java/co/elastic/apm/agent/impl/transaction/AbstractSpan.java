@@ -41,7 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticContext<T> implements Recyclable,
+public abstract class AbstractSpan<T extends AbstractSpan<T>> extends AbstractRefCountedContext<T> implements Recyclable,
     co.elastic.apm.agent.tracer.direct.AbstractDirectSpan<T>,
     co.elastic.apm.agent.tracer.AbstractSpan<T> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
@@ -62,7 +62,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
     protected final AtomicLong endTimestamp = new AtomicLong();
 
     private ChildDurationTimer childDurations = new ChildDurationTimer();
-    protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
     private int namePriority = PRIORITY_DEFAULT;
     private boolean discardRequested = false;
@@ -127,10 +126,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
     private OTelSpanKind otelKind = null;
 
     private final Map<String, Object> otelAttributes = new HashMap<>();
-
-    public int getReferenceCount() {
-        return references.get();
-    }
 
     @Override
     public T requestDiscarding() {
@@ -204,10 +199,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
         boolean selfTimeCollectionEnabled = !WildcardMatcher.isAnyMatch(tracer.getConfig(ReporterConfiguration.class).getDisableMetrics(), "span.self_time");
         boolean breakdownMetricsEnabled = tracer.getConfig(CoreConfiguration.class).isBreakdownMetricsEnabled();
         collectBreakdownMetrics = selfTimeCollectionEnabled && breakdownMetricsEnabled;
-    }
-
-    public boolean isReferenced() {
-        return references.get() > 0;
     }
 
     @Override
@@ -437,6 +428,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
 
     @Override
     public void resetState() {
+        super.resetState();
         finished = true;
         name.setLength(0);
         type = null;
@@ -446,7 +438,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
         traceContext.resetState();
         baggage = Baggage.EMPTY;
         childDurations.resetState();
-        references.set(0);
         namePriority = PRIORITY_DEFAULT;
         discardRequested = false;
         isExit = false;
@@ -575,6 +566,13 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
     @Override
     public final void end(long epochMicros) {
         if (!finished) {
+
+            long startTime = timestamp.get();
+            if(epochMicros < startTime) {
+                logger.warn("End called on {} with a timestamp before start! Using start timestamp as end instead.", this);
+                epochMicros = startTime;
+            }
+
             this.endTimestamp.set(epochMicros);
             childDurations.onSpanEnd(epochMicros);
 
@@ -674,35 +672,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends ElasticCon
             childDurations.onChildEnd(epochMicros);
         }
     }
-
-    @Override
-    public void incrementReferences() {
-        int referenceCount = references.incrementAndGet();
-        if (logger.isDebugEnabled()) {
-            logger.debug("increment references to {} ({})", this, referenceCount);
-            if (logger.isTraceEnabled()) {
-                logger.trace("incrementing references at",
-                    new RuntimeException("This is an expected exception. Is just used to record where the reference count has been incremented."));
-            }
-        }
-    }
-
-    @Override
-    public void decrementReferences() {
-        int referenceCount = references.decrementAndGet();
-        if (logger.isDebugEnabled()) {
-            logger.debug("decrement references to {} ({})", this, referenceCount);
-            if (logger.isTraceEnabled()) {
-                logger.trace("decrementing references at",
-                    new RuntimeException("This is an expected exception. Is just used to record where the reference count has been decremented."));
-            }
-        }
-        if (referenceCount == 0) {
-            recycle();
-        }
-    }
-
-    protected abstract void recycle();
 
     @Override
     public void setNonDiscardable() {

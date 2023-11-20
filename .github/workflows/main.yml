@@ -64,7 +64,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
@@ -116,15 +116,20 @@ jobs:
           path: |
             ./apm-agent-plugin-sdk/target/apm-agent-plugin-sdk-*.jar
             !./**/*-sources.jar
-
-
+      - name: Upload benchmark binaries as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: apm-agent-benchmarks
+          path: |
+            ./apm-agent-benchmarks/target/benchmarks*.jar
+            !./**/*-sources.jar
 
   license:
     name: License
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/workflows/unstash
         with:
           name: build
@@ -145,7 +150,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/workflows/unstash
         with:
           name: build
@@ -171,11 +176,23 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/workflows/unstash
         with:
           name: build
           path: ${{ github.workspace }}
+      # As long as there are some space issues with the CI runners.
+      - name: Free Disk Space
+        continue-on-error: true
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+          tool-cache: false
       - uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw -q -P ci-non-application-server-integration-tests verify
@@ -198,14 +215,15 @@ jobs:
     runs-on: ubuntu-20.04
     needs: build
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/workflows/unstash
         with:
           name: build
           path: ${{ github.workspace }}
       # As long as there are some space issues with the CI runners.
       - name: Free Disk Space
-        uses: jlumbroso/free-disk-space@0add001504c51b93b35ac8e81d252bdd47e4ef07
+        continue-on-error: true
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
         with:
           android: true
           dotnet: true
@@ -231,7 +249,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/workflows/unstash
         with:
           name: build
@@ -252,7 +270,7 @@ jobs:
     steps:
       - name: Support longpaths
         run: git config --system core.longpaths true
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
@@ -281,19 +299,19 @@ jobs:
             distribution: 'temurin'
           - version: 17
             distribution: 'temurin'
-          - version: 20
+          - version: 21
             distribution: 'temurin'
-          - version: 21-ea
-            distribution: 'zulu'
+          - version: 22-ea
+            distribution: 'temurin'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/workflows/maven-goal
         with:
           test-java-version: ${{ matrix.version }}
           test-java-distribution: ${{ matrix.distribution }}
           command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
       - name: Run tests for ${{ matrix.version }}:${{ matrix.distribution }}
-        run: ./mvnw test -Dtest_java_binary=${{ env.TEST_JAVA_BINARY }}
+        run: ./mvnw test -Delastic.jdkCompatibilityTest=true -Dtest_java_binary=${{ env.TEST_JAVA_BINARY }}
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v3

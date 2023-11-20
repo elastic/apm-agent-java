@@ -24,6 +24,7 @@ import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.impl.transaction.TransactionTest;
+import co.elastic.apm.agent.testutils.assertions.SpanAssert;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpVersion;
 import org.apache.http.entity.ByteArrayEntity;
@@ -36,6 +37,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.ELASTICSEARCH;
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
@@ -62,7 +66,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
 
     @Test
     void testCreateSpan() {
-        Span span = (Span) helper.createClientSpan("GET", "/_test", null);
+        Span span = (Span) helper.createClientSpan("GET", "/_test", null, true);
         assertThat(span).isNotNull();
 
         assertThat(tracer.getActive()).isEqualTo(span);
@@ -87,7 +91,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
 
     @Test
     void testCreateSpanWithClusterName() {
-        Span span = (Span) helper.createClientSpan("GET", "/_test", null);
+        Span span = (Span) helper.createClientSpan("GET", "/_test", null, true);
         assertThat(span).isNotNull();
 
         assertThat(tracer.getActive()).isEqualTo(span);
@@ -127,7 +131,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
     @Test
     void testNonSampledSpan() {
         TransactionTest.setRecorded(false, transaction);
-        Span esSpan = (Span) helper.createClientSpan("SEARCH", "/test", null);
+        Span esSpan = (Span) helper.createClientSpan("SEARCH", "/test", null, true);
         assertThat(esSpan).isNotNull();
         try {
             assertThat(esSpan.isSampled()).isFalse();
@@ -157,7 +161,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
         }
 
         Span span = (Span) helper.createClientSpan("GET", "/_test",
-            new ByteArrayEntity(new byte[0]));
+            new ByteArrayEntity(new byte[0]), true);
         assertThat(span).isNotNull();
         assertThat(tracer.getActive()).isEqualTo(span);
 
@@ -178,5 +182,27 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
         } else {
             assertThat((CharSequence) db.getStatementBuffer()).isNull();
         }
+    }
+
+    @Test
+    public void testSpanIsAsync() {
+        testSpanSyncAttribute(false, (span -> assertThat(span).isAsync()));
+    }
+
+    @Test
+    public void testSpanIsSync() {
+        testSpanSyncAttribute(true, (span -> assertThat(span).isSync()));
+    }
+
+    private void testSpanSyncAttribute(boolean isSync, Function<Span, SpanAssert> checkSyncAttribute) {
+        Span span = (Span) helper.createClientSpan("GET", "/_test", null, isSync);
+        assertThat(span).isNotNull();
+
+        assertThat(tracer.getActive()).isEqualTo(span);
+        checkSyncAttribute.apply(span);
+
+        Response response = mockResponse(Map.of());
+        helper.finishClientSpan(response, span, null);
+        span.deactivate();
     }
 }

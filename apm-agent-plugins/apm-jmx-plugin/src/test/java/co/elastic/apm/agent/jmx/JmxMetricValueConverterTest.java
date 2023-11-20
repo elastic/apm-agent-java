@@ -40,7 +40,7 @@ class JmxMetricValueConverterTest {
         JmxMetric metric = JmxMetric.valueOf(s);
         assertThat(metric.getAttributes()).hasSize(1);
         metric.getAttributes().forEach(a -> {
-            assertThat(a.getMetricName()).isEqualTo(expectedMetricName);
+            assertThat(a.getMetricName("")).isEqualTo(expectedMetricName);
             assertThat(a.getJmxAttributeName()).isEqualTo(expectedJmxAttributeName);
         });
     }

@@ -328,6 +328,7 @@ public class ElasticApmTracer implements Tracer {
         return startChildTransaction(headerCarrier, headersGetter, sampler, epochMicros, currentContext().getBaggage(), initiatingClassLoader);
     }
 
+    @Nullable
     private <T, C> Transaction startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, Sampler sampler,
                                                      long epochMicros, Baggage baseBaggage, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction = null;

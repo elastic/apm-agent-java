@@ -31,6 +31,18 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[float]
+===== Features
+* Added protection against invalid timestamps provided by manual instrumentation - {pull}3363[#3363]
+* Added support for AWS SDK 2.21 - {pull}3373[#3373]
+* Capture bucket and object key to Lambda transaction as OTel attributes - `aws.s3.bueckt`, `aws.s3.key` - {pull}3364[#3364]
+* Added `context_propagation_only` configuration option - {pull}3358[#3358]
+* Added attribute[*] for JMX pattern metrics (all metrics can now be generated with `object_name[*:type=*,name=*] attribute[*]`) - {pull}3376[#3376]
+
+[float]
+===== Bug fixes
+* Fixed too many spans being created for `HTTPUrlConnection` requests with method `HEAD` - {pull}3353[#3353]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
@@ -45,6 +57,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 * Switched to OpenTelemetry compatible context propagation for Kafka - {pull}3300[#3300]
 * Changed `cloud.project.id` collected in Google Cloud (GCP) to be the `project-id` - {issues}3311[#3311]
 * Allow running the IntelliJ debug agent in parallel - {pull}3315[#3315]
+* Capture `span.sync` = `false` for ES restclient async spans plugins
 
 [float]
 ===== Bug fixes

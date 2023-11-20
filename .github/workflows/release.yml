@@ -64,7 +64,7 @@ jobs:
           username: ${{ env.GIT_USER }}
           email: ${{ env.GIT_EMAIL }}
           token: ${{ env.GITHUB_TOKEN }}
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.branch }}
           token: ${{ env.GITHUB_TOKEN }}
@@ -114,7 +114,7 @@ jobs:
     name: "Wait for artifacts to be available on maven central"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Await artifacts published in maven central
         shell: bash
         timeout-minutes: 120
@@ -143,7 +143,7 @@ jobs:
           username: ${{ env.GIT_USER }}
           email: ${{ env.GIT_EMAIL }}
           token: ${{ env.GITHUB_TOKEN }}
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ env.TAG_NAME }}
           token: ${{ env.GITHUB_TOKEN }}
@@ -168,7 +168,7 @@ jobs:
           username: ${{ env.GIT_USER }}
           email: ${{ env.GIT_EMAIL }}
           token: ${{ env.GITHUB_TOKEN }}
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.branch }}
           token: ${{ env.GITHUB_TOKEN }}
@@ -186,7 +186,7 @@ jobs:
     env:
       SONATYPE_FALLBACK: 1
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ env.TAG_NAME }}
           fetch-depth: 0 # Load entire history as it is required for the push-script
@@ -215,7 +215,7 @@ jobs:
       # The default region does not matter, since we are publishing in all regions.
       AWS_DEFAULT_REGION: eu-west-1
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ env.TAG_NAME }}
       - name: Set up JDK ${{ env.JAVA_VERSION }}
@@ -226,7 +226,7 @@ jobs:
           cache: 'maven'
       - name: Build Lambda-layer zip using agent from maven-central
         run: ./mvnw dependency:purge-local-repository package -pl apm-agent-lambda-layer
-      - uses: hashicorp/vault-action@v2.4.2
+      - uses: hashicorp/vault-action@v2.7.4
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -263,7 +263,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ env.TAG_NAME }}
       - name: Await release-notes published

@@ -88,8 +88,8 @@ public class PartialTransactionTest {
 
     @AfterEach
     public void cleanup() {
+        reporter.reset();
         objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
-        reporter.resetWithoutRecycling();
         objectPoolFactory.reset();
     }
 

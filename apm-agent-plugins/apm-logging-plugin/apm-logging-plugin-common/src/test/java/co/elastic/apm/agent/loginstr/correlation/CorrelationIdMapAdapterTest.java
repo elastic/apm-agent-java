@@ -57,7 +57,7 @@ public class CorrelationIdMapAdapterTest {
         try (Scope scope = transaction.activateInScope()) {
             assertThat(CorrelationIdMapAdapter.get()).containsOnlyKeys("trace.id", "transaction.id");
         } finally {
-            transaction.end();
+            transaction.decrementReferences(); //recycle without reporting
         }
         assertThat(CorrelationIdMapAdapter.get()).isEmpty();
     }
@@ -70,8 +70,9 @@ public class CorrelationIdMapAdapterTest {
             assertThat(CorrelationIdMapAdapter.get()).containsOnlyKeys("trace.id", "transaction.id");
         } finally {
             span.end();
+            span.decrementReferences();
         }
-        transaction.end();
+        transaction.decrementReferences();
         assertThat(CorrelationIdMapAdapter.get()).isEmpty();
     }
 

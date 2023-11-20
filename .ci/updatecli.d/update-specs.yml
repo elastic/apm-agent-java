@@ -23,6 +23,15 @@ sources:
     transformers:
       - findsubmatch:
           pattern: "[0-9a-f]{40}"
+  pull_request:
+    kind: shell
+    dependson:
+      - sha
+    spec:
+      command: gh api /repos/elastic/apm-data/commits/{{ source "sha" }}/pulls --jq '.[].html_url'
+      environments:
+        - name: GITHUB_TOKEN
+        - name: PATH
   error.json:
     kind: file
     spec:
@@ -58,8 +67,10 @@ actions:
       description: |-
         ### What
         APM agent json schema automatic sync
+
         ### Why
         *Changeset*
+        * {{ source "pull_request" }}
         * https://github.com/elastic/apm-data/commit/{{ source "sha" }}
 
 targets:

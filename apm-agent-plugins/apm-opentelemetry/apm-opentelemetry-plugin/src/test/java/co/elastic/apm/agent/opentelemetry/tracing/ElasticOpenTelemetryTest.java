@@ -22,6 +22,7 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.opentelemetry.SemAttributes;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 import io.opentelemetry.api.baggage.Baggage;
@@ -33,7 +34,6 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.context.ContextKey;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapGetter;
-import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -571,20 +571,20 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
     public void testOTelSpanAttributesCopiedAsIs() {
         otelTracer.spanBuilder("transaction").setSpanKind(SpanKind.SERVER)
             .startSpan()
-            .setAttribute(SemanticAttributes.HTTP_METHOD, "GET")
-            .setAttribute(SemanticAttributes.HTTP_URL, "http://example.com:8080/foo?bar")
-            .setAttribute(SemanticAttributes.HTTP_STATUS_CODE, 200L)
-            .setAttribute(SemanticAttributes.NET_PEER_PORT, 123456)
-            .setAttribute(SemanticAttributes.NET_PEER_IP, "192.168.178.1")
+            .setAttribute(SemAttributes.HTTP_METHOD, "GET")
+            .setAttribute(SemAttributes.HTTP_URL, "http://example.com:8080/foo?bar")
+            .setAttribute(SemAttributes.HTTP_STATUS_CODE, 200L)
+            .setAttribute(SemAttributes.NET_PEER_PORT, 123456)
+            .setAttribute(SemAttributes.NET_PEER_IP, "192.168.178.1")
             .end();
         assertThat(reporter.getTransactions()).hasSize(1);
 
         checkOTelAttributes(reporter.getFirstTransaction(), Map.of(
-            SemanticAttributes.HTTP_METHOD.getKey(), "GET",
-            SemanticAttributes.HTTP_URL.getKey(), "http://example.com:8080/foo?bar",
-            SemanticAttributes.HTTP_STATUS_CODE.getKey(), 200L,
-            SemanticAttributes.NET_PEER_PORT.getKey(), 123456L,
-            SemanticAttributes.NET_PEER_IP.getKey(), "192.168.178.1"
+            SemAttributes.HTTP_METHOD.getKey(), "GET",
+            SemAttributes.HTTP_URL.getKey(), "http://example.com:8080/foo?bar",
+            SemAttributes.HTTP_STATUS_CODE.getKey(), 200L,
+            SemAttributes.NET_PEER_PORT.getKey(), 123456L,
+            SemAttributes.NET_PEER_IP.getKey(), "192.168.178.1"
         ));
     }
 

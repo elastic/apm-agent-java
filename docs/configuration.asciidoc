@@ -122,6 +122,7 @@ Click on a key to get more information.
 ** <<config-capture-headers>>
 ** <<config-global-labels>>
 ** <<config-instrument-ancient-bytecode>>
+** <<config-context-propagation-only>>
 ** <<config-classes-excluded-from-instrumentation>>
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
@@ -417,6 +418,7 @@ A boolean specifying if the agent should be recording or not.
 When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
 When not recording, the agent works as a noop, not collecting data and not communicating with the APM sever,
 except for polling the central configuration endpoint.
+Note that trace context propagation, baggage and log correlation will also be disabled when recording is disabled.
 As this is a reversible switch, agent threads are not being killed when inactivated, but they will be 
 mostly idle in this state, so the overhead should be negligible.
 
@@ -1075,6 +1077,31 @@ A boolean specifying if the agent should instrument pre-Java-1.4 bytecode.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.instrument_ancient_bytecode` | `instrument_ancient_bytecode` | `ELASTIC_APM_INSTRUMENT_ANCIENT_BYTECODE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-context-propagation-only]]
+==== `context_propagation_only` (added[1.44.0])
+
+When set to true, disables log sending, metrics and trace collection.
+Trace context propagation and log correlation will stay active.
+Note that in contrast to <<config-disable-send, `disable_send`>> the agent will still connect to the APM-server for fetching configuration updates and health checks.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.context_propagation_only` | `context_propagation_only` | `ELASTIC_APM_CONTEXT_PROPAGATION_ONLY`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -2003,8 +2030,9 @@ Note that all JMX metric names will be prefixed with `jvm.jmx.` by the agent.
 
 The agent creates `labels` for each link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html#getKeyPropertyList()[JMX key property] such as `type` and `name`.
 
-The link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[JMX object name pattern] supports wildcards.
-In this example, the agent will create a metricset for each memory pool `name` (such as `G1 Old Generation` and `G1 Young Generation`)
+The link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[JMX object name pattern] supports wildcards. The attribute definition does NOT support wildcards, but a special definition `attribute[*]` is accepted (from 1.44.0) to mean match all possible (numeric) attributes for the associated object name pattern
+The definition `object_name[*:type=*,name=*] attribute[*]` would match all possible JMX metrics
+In the following example, the agent will create a metricset for each memory pool `name` (such as `G1 Old Generation` and `G1 Young Generation`)
 
 ----
 object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count] attribute[CollectionTime]
@@ -3453,6 +3481,7 @@ Example: `5ms`.
 # When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
 # When not recording, the agent works as a noop, not collecting data and not communicating with the APM sever,
 # except for polling the central configuration endpoint.
+# Note that trace context propagation, baggage and log correlation will also be disabled when recording is disabled.
 # As this is a reversible switch, agent threads are not being killed when inactivated, but they will be 
 # mostly idle in this state, so the overhead should be negligible.
 # 
@@ -3808,6 +3837,16 @@ Example: `5ms`.
 # Default value: false
 #
 # instrument_ancient_bytecode=false
+
+# When set to true, disables log sending, metrics and trace collection.
+# Trace context propagation and log correlation will stay active.
+# Note that in contrast to <<config-disable-send, `disable_send`>> the agent will still connect to the APM-server for fetching configuration updates and health checks.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# context_propagation_only=false
 
 # Use to exclude specific classes from being instrumented. In order to exclude entire packages, 
 # use wildcards, as in: `com.project.exclude.*`
@@ -4288,8 +4327,9 @@ Example: `5ms`.
 # 
 # The agent creates `labels` for each link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html#getKeyPropertyList()[JMX key property] such as `type` and `name`.
 # 
-# The link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[JMX object name pattern] supports wildcards.
-# In this example, the agent will create a metricset for each memory pool `name` (such as `G1 Old Generation` and `G1 Young Generation`)
+# The link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[JMX object name pattern] supports wildcards. The attribute definition does NOT support wildcards, but a special definition `attribute[*]` is accepted (from 1.44.0) to mean match all possible (numeric) attributes for the associated object name pattern
+# The definition `object_name[*:type=*,name=*] attribute[*]` would match all possible JMX metrics
+# In the following example, the agent will create a metricset for each memory pool `name` (such as `G1 Old Generation` and `G1 Young Generation`)
 # 
 # ----
 # object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count] attribute[CollectionTime]

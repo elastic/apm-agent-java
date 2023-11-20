@@ -53,8 +53,7 @@ class CallTreeSpanifyTest {
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         // disable scheduled profiling to not interfere with this test
         doReturn(false).when(config.getConfig(ProfilingConfiguration.class)).isProfilingEnabled();
-        tracer = MockTracer.createRealTracer(reporter, config);
-        tracer = MockTracer.createRealTracer(reporter);
+        tracer = MockTracer.createRealTracer(reporter, config, false);
     }
 
     @AfterEach

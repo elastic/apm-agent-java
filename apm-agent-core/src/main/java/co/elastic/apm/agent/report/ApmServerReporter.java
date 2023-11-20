@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -132,8 +133,11 @@ public class ApmServerReporter implements Reporter {
 
     private final PartialTransactionReporter partialTransactionReporter;
 
+    private final CoreConfiguration coreConfiguration;
+
     public ApmServerReporter(boolean dropTransactionIfQueueFull,
                              ReporterConfiguration reporterConfiguration,
+                             CoreConfiguration coreConfiguration,
                              ReportingEventHandler reportingEventHandler,
                              ReporterMonitor monitor,
                              ApmServerClient apmServer,
@@ -144,6 +148,7 @@ public class ApmServerReporter implements Reporter {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
         this.syncReport = reporterConfiguration.isReportSynchronously();
         this.monitor = monitor;
+        this.coreConfiguration = coreConfiguration;
         disruptor = new Disruptor<>(
             new TransactionEventFactory(),
             MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()),
@@ -164,7 +169,9 @@ public class ApmServerReporter implements Reporter {
 
     @Override
     public void reportPartialTransaction(Transaction transaction) {
-        partialTransactionReporter.reportPartialTransaction(transaction);
+        if (!coreConfiguration.isContextPropagationOnly()) {
+            partialTransactionReporter.reportPartialTransaction(transaction);
+        }
     }
 
     @Override
@@ -340,6 +347,10 @@ public class ApmServerReporter implements Reporter {
     }
 
     private <E> boolean tryAddEventToRingBuffer(E event, EventTranslatorOneArg<ReportingEvent, E> eventTranslator, ReportingEvent.ReportingEventType targetType) {
+        if(coreConfiguration.isContextPropagationOnly()) {
+            logger.debug("Dropping event {} because of context_propagation_only", event.getClass().getSimpleName(), event);
+            return false;
+        }
         long capacity = getQueueCapacity();
         monitor.eventCreated(targetType, capacity, getQueueElementCount());
         if (dropTransactionIfQueueFull) {
