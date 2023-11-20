@@ -18,12 +18,13 @@
  */
 package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.agent.context.InitLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.LifecycleListener;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonReader;
@@ -44,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ApmServerConfigurationSource extends AbstractConfigurationSource implements InitLifecycleListener {
+public class ApmServerConfigurationSource extends AbstractConfigurationSource implements LifecycleListener {
 
     // log correlation is enabled by default in Java agent, thus removing it from warnings
     private static final Set<String> IGNORED_REMOTE_KEYS = Collections.singleton("enable_log_correlation");
@@ -114,8 +115,8 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     }
 
     @Override
-    public void init(ElasticApmTracer tracer) {
-        this.tracer = tracer;
+    public void init(Tracer tracer) {
+        this.tracer = tracer.require(ElasticApmTracer.class);
     }
 
     @Override

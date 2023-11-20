@@ -21,7 +21,6 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.context.InitLifecycleListener;
 import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -141,9 +140,9 @@ public class LifecycleTest {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig(SimpleSource.forTest("enabled", "false"));
         final AtomicBoolean initialized = new AtomicBoolean();
         final AtomicBoolean started = new AtomicBoolean();
-        class TestListener extends AbstractLifecycleListener implements InitLifecycleListener {
+        class TestListener extends AbstractLifecycleListener {
             @Override
-            public void init(ElasticApmTracer tracer) {
+            public void init(co.elastic.apm.agent.tracer.Tracer tracer) {
                 initialized.set(true);
             }
 

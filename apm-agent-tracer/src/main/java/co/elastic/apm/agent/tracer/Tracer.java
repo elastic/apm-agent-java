@@ -24,6 +24,7 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 
 import javax.annotation.Nullable;
+import java.io.Closeable;
 import java.util.Set;
 
 public interface Tracer {
@@ -80,4 +81,6 @@ public interface Tracer {
 
     @Nullable
     ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader);
+
+    void addShutdownHook(Closeable job);
 }

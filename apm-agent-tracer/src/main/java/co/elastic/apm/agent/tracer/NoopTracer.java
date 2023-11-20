@@ -24,6 +24,7 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 
 import javax.annotation.Nullable;
+import java.io.Closeable;
 import java.util.Collections;
 import java.util.Set;
 
@@ -109,5 +110,9 @@ class NoopTracer implements Tracer {
     @Override
     public ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader) {
         return null;
+    }
+
+    @Override
+    public void addShutdownHook(Closeable job) {
     }
 }

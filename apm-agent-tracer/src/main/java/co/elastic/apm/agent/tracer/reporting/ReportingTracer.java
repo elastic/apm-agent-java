@@ -46,6 +46,4 @@ public interface ReportingTracer extends Tracer {
     DataWriter newWriter(int maxSerializedSize);
 
     ScheduledExecutorService getSharedSingleThreadedPool();
-
-    void addShutdownHook(Closeable job);
 }

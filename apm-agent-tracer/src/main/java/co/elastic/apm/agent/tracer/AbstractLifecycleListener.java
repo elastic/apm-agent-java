@@ -21,6 +21,10 @@ package co.elastic.apm.agent.tracer;
 public abstract class AbstractLifecycleListener implements LifecycleListener {
 
     @Override
+    public void init(Tracer tracer) throws Exception {
+    }
+
+    @Override
     public void start() throws Exception {
     }
 

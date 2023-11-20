@@ -38,6 +38,14 @@ import co.elastic.apm.agent.tracer.reporting.ReportingTracer;
 public interface LifecycleListener {
 
     /**
+     * Callback for tracer initialization. As opposed to {@link LifecycleListener#start()}, which may
+     * be called in a delay, this callback is called at the bootstrap of the JVM, before anything else starts.
+     * This may be useful for listeners that need to operate very early on, for example such that setup class loading
+     * requirement to support OSGi systems.
+     */
+    void init(Tracer tracer) throws Exception;
+
+    /**
      * Callback for when the {@link Tracer} starts.
      */
     void start() throws Exception;
