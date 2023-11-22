@@ -443,6 +443,7 @@ class InstrumentationTest {
         instrumentedClass = null;
 
         long start = System.currentTimeMillis();
+        int count = 0;
         while(System.currentTimeMillis()-start < 10_000) {
             Runtime.getRuntime().runFinalization();
             System.gc();
@@ -454,6 +455,7 @@ class InstrumentationTest {
             for (int i = 0; i < 100000; i++) {
                 tempGarbage.add(i);
             }
+            System.out.println(++count+". Elapsed ms: "+(System.currentTimeMillis()-start)+" arr size: "+tempGarbage.size());
         }
         Runtime.getRuntime().runFinalization();
         System.gc();
