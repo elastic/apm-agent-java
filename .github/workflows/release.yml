@@ -100,7 +100,7 @@ jobs:
           vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
           vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
           pipeline: apm-agent-java-release
-          pipelineVersion: ${{ env.TAG_NAME }}
+          pipelineCommit: ${{ env.TAG_NAME }}
           waitFor: true
           printBuildLogs: false
           # The action fails with .github/actions/buildkite/run.sh: line 24: 3: parameter missing.
