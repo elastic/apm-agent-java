@@ -52,10 +52,13 @@ import org.slf4j.event.SubstituteLoggingEvent;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -444,6 +447,8 @@ class InstrumentationTest {
 
         long start = System.currentTimeMillis();
         int count = 0;
+        String next = "";
+        String last = "";
         while(System.currentTimeMillis()-start < 10_000) {
             Runtime.getRuntime().runFinalization();
             System.gc();
@@ -455,12 +460,32 @@ class InstrumentationTest {
             for (int i = 0; i < 100000; i++) {
                 tempGarbage.add(i);
             }
-            System.out.println(++count+". Elapsed ms: "+(System.currentTimeMillis()-start)+" arr size: "+tempGarbage.size());
+            System.out.println(++count+". Elapsed ms: "+(System.currentTimeMillis()-start)+" mem free: "+Runtime.getRuntime().freeMemory());
+            next = getGcTime();
+            if (!next.equals(last)) {
+                System.out.println(new Date() + " " + next);
+            }
+            last = next;
         }
         Runtime.getRuntime().runFinalization();
         System.gc();
         System.gc();
         await().untilAsserted(() -> assertThat(applicationCLRef.get()).isNull());
+    }
+
+    public static String getGcTime() {
+//        if (true) return "";
+        StringBuilder sb = new StringBuilder();
+        for (GarbageCollectorMXBean bean : ManagementFactory.getGarbageCollectorMXBeans()) {
+            sb.append(bean.getName());
+            sb.append(": Count: ");
+            sb.append(bean.getCollectionCount());
+            sb.append(" Time: ");
+            sb.append(bean.getCollectionTime());
+            sb.append(" / ");
+        }
+
+        return sb.toString();
     }
 
     public static class InstrumentedInIsolatedClassLoader {
