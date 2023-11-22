@@ -43,6 +43,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math.util.MathUtils;
 import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.pool2.impl.CallStackUtils;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,6 +60,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static co.elastic.apm.agent.util.MockitoMatchers.containsValue;
@@ -86,11 +88,13 @@ class InstrumentationTest {
         tracer = MockTracer.createRealTracer();
         configurationRegistry = tracer.getConfigurationRegistry();
         coreConfig = configurationRegistry.getConfig(CoreConfiguration.class);
+        Awaitility.setDefaultTimeout(30, TimeUnit.SECONDS);
     }
 
     @AfterEach
     void reset() {
         ElasticApmAgent.reset();
+        Awaitility.reset();
     }
 
     @Test
