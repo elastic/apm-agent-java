@@ -447,6 +447,8 @@ class InstrumentationTest {
 
         System.gc();
         System.gc();
+        Runtime.getRuntime().runFinalization();
+        System.gc();
         await().untilAsserted(() -> assertThat(applicationCLRef.get()).isNull());
     }
 
