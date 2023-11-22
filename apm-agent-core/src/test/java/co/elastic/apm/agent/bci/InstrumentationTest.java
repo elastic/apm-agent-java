@@ -43,7 +43,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math.util.MathUtils;
 import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.pool2.impl.CallStackUtils;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,13 +53,13 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static co.elastic.apm.agent.util.MockitoMatchers.containsValue;
@@ -88,13 +87,11 @@ class InstrumentationTest {
         tracer = MockTracer.createRealTracer();
         configurationRegistry = tracer.getConfigurationRegistry();
         coreConfig = configurationRegistry.getConfig(CoreConfiguration.class);
-        Awaitility.setDefaultTimeout(30, TimeUnit.SECONDS);
     }
 
     @AfterEach
     void reset() {
         ElasticApmAgent.reset();
-        Awaitility.reset();
     }
 
     @Test
@@ -445,9 +442,21 @@ class InstrumentationTest {
         applicationCL = null;
         instrumentedClass = null;
 
-        System.gc();
-        System.gc();
+        long start = System.currentTimeMillis();
+        while(System.currentTimeMillis()-start < 10_000) {
+            Runtime.getRuntime().runFinalization();
+            System.gc();
+            System.gc();
+            if(applicationCLRef.get() == null) {
+                break;
+            }
+            ArrayList<Object> tempGarbage = new ArrayList<>();
+            for (int i = 0; i < 100000; i++) {
+                tempGarbage.add(i);
+            }
+        }
         Runtime.getRuntime().runFinalization();
+        System.gc();
         System.gc();
         await().untilAsserted(() -> assertThat(applicationCLRef.get()).isNull());
     }
