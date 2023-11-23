@@ -137,7 +137,7 @@ public class BaseSyncClientHandlerInstrumentation extends ElasticApmInstrumentat
                 Span<?> span = (Span<?>) spanObj;
                 span.deactivate();
                 if (thrown != null) {
-                    if (JVM_RUNTIME_INFO.isCoretto() && JVM_RUNTIME_INFO.getMajorVersion() > 16) {
+                    if (JVM_RUNTIME_INFO.isCoretto() && JVM_RUNTIME_INFO.getMajorVersion() > 16 && JVM_RUNTIME_INFO.getMajorVersion() < 21) {
                         span.captureException(RedactedException.getInstance(thiz.getClass().getName()));
                     } else {
                         span.captureException(thrown);
