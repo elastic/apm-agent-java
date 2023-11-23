@@ -31,6 +31,12 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.44.0]]
+==== 1.44.0 - 2023/11/21
+
 [float]
 ===== Features
 * Added protection against invalid timestamps provided by manual instrumentation - {pull}3363[#3363]
@@ -43,9 +49,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Bug fixes
 * Fixed too many spans being created for `HTTPUrlConnection` requests with method `HEAD` - {pull}3353[#3353]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.43.0]]
 ==== 1.43.0 - 2023/09/26
