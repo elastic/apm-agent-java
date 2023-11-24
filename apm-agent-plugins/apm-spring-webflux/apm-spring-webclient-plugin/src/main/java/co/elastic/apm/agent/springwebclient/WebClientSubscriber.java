@@ -74,7 +74,7 @@ public class WebClientSubscriber<T> implements CoreSubscriber<T>, Subscription {
         try {
             if (span != null && t instanceof ClientResponse) {
                 ClientResponse clientResponse = (ClientResponse) t;
-                int statusCode = clientResponse.rawStatusCode();
+                int statusCode = clientResponse.statusCode().value();
                 span.withOutcome(ResultUtil.getOutcomeByHttpClientStatus(statusCode));
                 span.getContext().getHttp().withStatusCode(statusCode);
             }
