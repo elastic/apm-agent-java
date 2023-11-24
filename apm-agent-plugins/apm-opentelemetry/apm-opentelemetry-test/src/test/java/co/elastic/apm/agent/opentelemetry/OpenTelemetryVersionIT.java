@@ -140,4 +140,30 @@ public class OpenTelemetryVersionIT {
         runner.run();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "1.20.0",
+        "1.21.0",
+        "1.22.0",
+        "1.23.0",
+        "1.24.0",
+        "1.25.0",
+        "1.26.0",
+        "1.27.0",
+        "1.28.0",
+        "1.29.0",
+        "1.30.0",
+        "1.31.0",
+        "1.32.0",
+    })
+    void testOpentelemetryAnnotationsVersion(String version) throws Exception {
+        List<String> dependencies = List.of(
+            "io.opentelemetry:opentelemetry-api:" + version,
+            "io.opentelemetry:opentelemetry-context:" + version,
+            "io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:" + version);
+        TestClassWithDependencyRunner runner = new TestClassWithDependencyRunner(dependencies,
+            "co.elastic.apm.agent.opentelemetry.tracing.ElasticOpenTelemetryAnnotationsTest",
+            "co.elastic.apm.agent.opentelemetry.tracing.AbstractOpenTelemetryTest");
+        runner.run();
+    }
 }

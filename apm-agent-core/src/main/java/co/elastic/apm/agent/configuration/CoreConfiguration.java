@@ -802,7 +802,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
         .tags("added[1.25.0]")
         .configurationCategory(CORE_CATEGORY)
         .tags("performance")
-        .description("A boolean specifying if the agent should search the class hierarchy for public api annotations (`@CaptureTransaction`, `@CaptureSpan`, `@Traced` and from 1.44.0 `@WithSpan`" +
+        .description("A boolean specifying if the agent should search the class hierarchy for public api annotations (`@CaptureTransaction`, `@CaptureSpan`, `@Traced` and from 1.45.0 `@WithSpan`" +
             ").\n " +
             "When set to `false`, a method is instrumented if it is annotated with a public api annotation.\n  " +
             "When set to `true` methods overriding annotated methods will be instrumented as well.\n " +
