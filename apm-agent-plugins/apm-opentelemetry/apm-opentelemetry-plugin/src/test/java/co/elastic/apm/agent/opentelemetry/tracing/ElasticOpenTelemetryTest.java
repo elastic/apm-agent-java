@@ -785,7 +785,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
     @Target(ElementType.PARAMETER)
     @Retention(RetentionPolicy.RUNTIME)
-    @interface TestAnnotation {
+    public @interface TestAnnotation {
 
     }
 }
