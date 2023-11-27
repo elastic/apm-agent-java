@@ -222,7 +222,7 @@ public class GreetingWebClient {
             .headers(httpHeaders -> httpHeaders.addAll(headers))
             .cookies(httpCookies -> httpCookies.addAll(cookies))
             .retrieve()
-            .onRawStatus(status -> status != expectedStatus, r -> Mono.error(new IllegalStateException(String.format("unexpected response status %d", r.statusCode().value()))));
+            .onRawStatus(status -> status != expectedStatus, r -> Mono.error(new IllegalStateException("unexpected response status")));
     }
 
     @Override
