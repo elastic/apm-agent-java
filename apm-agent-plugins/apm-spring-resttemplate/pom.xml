@@ -19,6 +19,7 @@
     <modules>
         <module>apm-spring-resttemplate-plugin</module>
         <module>apm-spring-resttemplate-test</module>
+        <module>apm-spring-restclient-test</module>
     </modules>
 
 </project>
