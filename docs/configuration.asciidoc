@@ -1485,7 +1485,7 @@ Valid options: `AUTO`, `AWS`, `GCP`, `AZURE`, `NONE`
 [[config-enable-public-api-annotation-inheritance]]
 ==== `enable_public_api_annotation_inheritance` (performance)
 
-A boolean specifying if the agent should search the class hierarchy for public api annotations (`@CaptureTransaction`, `@CaptureSpan`, `@Traced` and from 1.44.0 `@WithSpan`).
+A boolean specifying if the agent should search the class hierarchy for public api annotations (`@CaptureTransaction`, `@CaptureSpan`, `@Traced` and from 1.45.0 `@WithSpan`).
  When set to `false`, a method is instrumented if it is annotated with a public api annotation.
   When set to `true` methods overriding annotated methods will be instrumented as well.
  Either way, methods will only be instrumented if they are included in the configured <<config-application-packages>>.
@@ -4055,7 +4055,7 @@ Example: `5ms`.
 #
 # cloud_provider=AUTO
 
-# A boolean specifying if the agent should search the class hierarchy for public api annotations (`@CaptureTransaction`, `@CaptureSpan`, `@Traced` and from 1.44.0 `@WithSpan`).
+# A boolean specifying if the agent should search the class hierarchy for public api annotations (`@CaptureTransaction`, `@CaptureSpan`, `@Traced` and from 1.45.0 `@WithSpan`).
 #  When set to `false`, a method is instrumented if it is annotated with a public api annotation.
 #   When set to `true` methods overriding annotated methods will be instrumented as well.
 #  Either way, methods will only be instrumented if they are included in the configured <<config-application-packages>>.
