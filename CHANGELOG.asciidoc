@@ -23,7 +23,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 [float]
 ===== Features
-* Cool new feature: {pull}2526[#2526]
+* Only automatically apply redacted exceptions for Corretto JVM 17-20. Outside that, user should use capture_exception_details=false to workaround the JVM race-condition bug if it gets triggered: {pull}3438[#3438]
 
 [float]
 ===== Bug fixes
