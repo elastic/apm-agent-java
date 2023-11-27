@@ -34,6 +34,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Added support for OpenTelemetry annotations - `WithSpan` and `SpanAttribute` - {pull}3406[#3406]
+* Only automatically apply redacted exceptions for Corretto JVM 17-20. Outside that, user should use capture_exception_details=false to workaround the JVM race-condition bug if it gets triggered: {pull}3438[#3438]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
@@ -48,7 +49,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 * Capture bucket and object key to Lambda transaction as OTel attributes - `aws.s3.bueckt`, `aws.s3.key` - {pull}3364[#3364]
 * Added `context_propagation_only` configuration option - {pull}3358[#3358]
 * Added attribute[*] for JMX pattern metrics (all metrics can now be generated with `object_name[*:type=*,name=*] attribute[*]`) - {pull}3376[#3376]
-* Only automatically apply redacted exceptions for Corretto JVM 17-20. Outside that, user should use capture_exception_details=false to workaround the JVM race-condition bug if it gets triggered: {pull}3438[#3438]
 
 [float]
 ===== Bug fixes
