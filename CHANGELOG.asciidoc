@@ -31,6 +31,10 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[float]
+===== Features
+* Added support for OpenTelemetry annotations - `WithSpan` and `SpanAttribute` - {pull}3406[#3406]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
