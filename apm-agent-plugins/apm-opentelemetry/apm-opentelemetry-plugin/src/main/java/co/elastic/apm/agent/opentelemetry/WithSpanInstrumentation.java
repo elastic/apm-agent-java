@@ -44,8 +44,10 @@ import net.bytebuddy.matcher.ElementMatchers;
 import javax.annotation.Nullable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isInAnyPackage;
@@ -76,7 +78,9 @@ public class WithSpanInstrumentation extends AbstractOpenTelemetryInstrumentatio
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("opentelemetry-annotations");
+        List<String> ret = new ArrayList<>(super.getInstrumentationGroupNames());
+        ret.add("opentelemetry-annotations");
+        return ret;
     }
 
     @Override

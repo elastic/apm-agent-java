@@ -81,12 +81,11 @@ public class ElasticOpenTelemetryAnnotationsTest extends AbstractOpenTelemetryTe
 
     @WithSpan(kind = SpanKind.CLIENT)
     protected void fooSpan() {
-        doStaff();
+
     }
 
     @WithSpan(kind = SpanKind.INTERNAL, value = "barSpan")
     protected void barSpan() {
-        doStaff();
     }
 
 
@@ -95,13 +94,6 @@ public class ElasticOpenTelemetryAnnotationsTest extends AbstractOpenTelemetryTe
                                     @TestAnnotation @SpanAttribute("attr2") Object object,
                                     @SpanAttribute Integer count,
                                     Double doubleVal) {
-        doStaff();
-    }
-
-    private void doStaff() {
-        for (int i = 0; i < 1_000_000; i++) {
-            // do stuff
-        }
     }
 
     @Target(ElementType.PARAMETER)

@@ -261,4 +261,4 @@ Events are silently dropped, for example `Span.current().addEvent("my event")`.
 [float]
 [[otel-anntations]]
 ===== Annotations
-https://opentelemetry.io/docs/instrumentation/java/automatic/annotations/[OpenTelemetry instrumentation annotations] started supported since `1.44.0`.
+https://opentelemetry.io/docs/instrumentation/java/automatic/annotations/[OpenTelemetry instrumentation annotations] started supported since `1.45.0`.
