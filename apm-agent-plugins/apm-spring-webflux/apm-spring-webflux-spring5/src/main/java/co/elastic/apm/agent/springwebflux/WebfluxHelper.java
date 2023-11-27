@@ -38,6 +38,7 @@ import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
 import org.reactivestreams.Publisher;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.MultiValueMap;
@@ -197,7 +198,11 @@ public class WebfluxHelper {
                 path = exchange.getRequest().getPath().value();
             }
         }
-        String method = exchange.getRequest().getMethodValue();
+        String method = "UNKNOWN";
+        HttpMethod methodObj = exchange.getRequest().getMethod();
+        if(methodObj != null) {
+            method = methodObj.name();
+        }
         StringBuilder transactionName = transaction.getAndOverrideName(namePriority, false);
 
         if (path != null) {
@@ -252,7 +257,11 @@ public class WebfluxHelper {
         ServerHttpRequest serverRequest = exchange.getRequest();
         Request request = transaction.getContext().getRequest();
 
-        request.withMethod(serverRequest.getMethodValue());
+
+        HttpMethod method = serverRequest.getMethod();
+        if (method != null) {
+            request.withMethod(method.name());
+        }
 
         InetSocketAddress remoteAddress = serverRequest.getRemoteAddress();
         if (remoteAddress != null && remoteAddress.getAddress() != null) {
