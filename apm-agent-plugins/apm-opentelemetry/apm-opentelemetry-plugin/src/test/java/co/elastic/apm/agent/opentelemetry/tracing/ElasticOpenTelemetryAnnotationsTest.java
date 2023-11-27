@@ -81,7 +81,6 @@ public class ElasticOpenTelemetryAnnotationsTest extends AbstractOpenTelemetryTe
 
     @WithSpan(kind = SpanKind.CLIENT)
     protected void fooSpan() {
-
     }
 
     @WithSpan(kind = SpanKind.INTERNAL, value = "barSpan")
