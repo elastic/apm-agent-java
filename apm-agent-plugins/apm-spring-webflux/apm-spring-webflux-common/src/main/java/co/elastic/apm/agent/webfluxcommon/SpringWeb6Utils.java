@@ -16,30 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.springwebflux;
+package co.elastic.apm.agent.webfluxcommon;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledForJreRange;
-import org.junit.jupiter.api.condition.JRE;
-import org.mockito.Mockito;
+
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-@EnabledForJreRange(min = JRE.JAVA_17)
-public class SpringWeb6UtilsTest {
-
-    @Test
-    void testGetStatusCode() throws Exception {
-        ServerHttpResponse mockResponse = Mockito.mock(ServerHttpResponse.class);
-        Mockito.doReturn(HttpStatusCode.valueOf(222)).when(mockResponse).getStatusCode();
-        assertThat(SpringWebVersionUtils.getStatusCode(mockResponse)).isEqualTo(222);
-    }
-
-    @Test
-    void testWrongResponseType() {
-        assertThatThrownBy(() -> SpringWebVersionUtils.getStatusCode(new Object())).isInstanceOf(ClassCastException.class);
+/**
+ * This class is compiled with spring-web 6.x, as it relies on {@link HttpStatusCode} and an API that was introduced in 6.0.0.
+ * Therefore, it MUST only be loaded through its class name through {@link SpringWebVersionUtils}.
+ */
+@SuppressWarnings("unused") //Created via reflection
+public class SpringWeb6Utils implements SpringWebVersionUtils.ISpringWebVersionUtils {
+    @Override
+    public int getServerStatusCode(Object response) {
+        HttpStatusCode statusCode = ((ServerHttpResponse) response).getStatusCode();
+        return statusCode != null ? statusCode.value() : 200;
     }
 }

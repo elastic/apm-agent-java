@@ -16,21 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.springwebflux;
+package co.elastic.apm.agent.webfluxcommon;
 
+import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 
-/**
- * This class is compiled with spring-web 5.x, relying on the {@link ServerHttpResponse#getStatusCode()}, which changed in 6.0.0.
- * Therefore, it MUST only be loaded through its class name through {@link SpringWebVersionUtils}.
- */
-@SuppressWarnings("unused") //Created via reflection
-public class SpringWeb5Utils implements SpringWebVersionUtils.ISpringWebVersionUtils {
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
-    @Override
-    public int getStatusCode(Object response) {
-        HttpStatus statusCode = ((ServerHttpResponse) response).getStatusCode();
-        return statusCode != null ? statusCode.value() : 200;
+class SpringWeb5UtilsTest {
+
+    @Test
+    void testGetStatusCode() throws Exception {
+        ServerHttpResponse mockResponse = mock(ServerHttpResponse.class);
+        doReturn(HttpStatus.IM_USED).when(mockResponse).getStatusCode();
+        assertThat(SpringWebVersionUtils.getServerStatusCode(mockResponse)).isEqualTo(226);
+    }
+
+    @Test
+    void testWrongResponseType() {
+        assertThatThrownBy(() -> SpringWebVersionUtils.getServerStatusCode(new Object())).isInstanceOf(ClassCastException.class);
     }
 }

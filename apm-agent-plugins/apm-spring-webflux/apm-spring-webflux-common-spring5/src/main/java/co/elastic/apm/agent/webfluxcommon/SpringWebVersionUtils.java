@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.springwebflux;
+package co.elastic.apm.agent.webfluxcommon;
 
 import javax.annotation.Nullable;
 
@@ -27,8 +27,8 @@ import javax.annotation.Nullable;
  */
 public class SpringWebVersionUtils {
 
-    private static final String SPRING_WEB_5_UTILS_CLASS_NAME = "co.elastic.apm.agent.springwebflux.SpringWeb5Utils";
-    private static final String SPRING_WEB_6_UTILS_CLASS_NAME = "co.elastic.apm.agent.springwebflux.SpringWeb6Utils";
+    private static final String SPRING_WEB_5_UTILS_CLASS_NAME = "co.elastic.apm.agent.webfluxcommon.SpringWeb5Utils";
+    private static final String SPRING_WEB_6_UTILS_CLASS_NAME = "co.elastic.apm.agent.webfluxcommon.SpringWeb6Utils";
 
     @Nullable
     private static ISpringWebVersionUtils instance = null;
@@ -77,10 +77,10 @@ public class SpringWebVersionUtils {
      *                 expected
      * @return the status code of the provided response
      */
-    public static int getStatusCode(Object response) throws Exception {
+    public static int getServerStatusCode(Object response) throws Exception {
         ISpringWebVersionUtils implementation = getImplementation();
         if (implementation != null) {
-            return implementation.getStatusCode(response);
+            return implementation.getServerStatusCode(response);
         }
         return 200;
     }
@@ -93,6 +93,7 @@ public class SpringWebVersionUtils {
          * @param response must be of type {@code org.springframework.http.server.reactive.ServerHttpResponse}
          * @return the corresponding status code
          */
-        int getStatusCode(Object response);
+        int getServerStatusCode(Object response);
+
     }
 }

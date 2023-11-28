@@ -35,6 +35,7 @@ import co.elastic.apm.agent.tracer.metadata.Response;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
+import co.elastic.apm.agent.webfluxcommon.SpringWebVersionUtils;
 import org.reactivestreams.Publisher;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
@@ -282,7 +283,7 @@ public class WebfluxHelper {
         ServerHttpResponse serverResponse = exchange.getResponse();
         int status = 0;
         try {
-            status = SpringWebVersionUtils.getStatusCode(serverResponse);
+            status = SpringWebVersionUtils.getServerStatusCode(serverResponse);
         } catch (Exception e) {
             oneTimeResponseCodeErrorLogger.error("Failed to get response code", e);
         }
