@@ -45,7 +45,7 @@ class SpringWeb5UtilsTest {
     @Test
     void testGetClientStatusCode() throws Exception {
         ClientResponse mockResponse = mock(ClientResponse.class);
-        doReturn(HttpStatus.IM_USED).when(mockResponse).statusCode();
+        doReturn(226).when(mockResponse).rawStatusCode();
         assertThat(SpringWebVersionUtils.getClientStatusCode(mockResponse)).isEqualTo(226);
     }
 }
