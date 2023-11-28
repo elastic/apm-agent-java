@@ -47,8 +47,6 @@ import static org.mockito.Mockito.doReturn;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ContextConfiguration(classes = {BatchConfiguration.class, BatchListenerComponent.class}, initializers = {RabbitMqTestBase.Initializer.class})
-@Ignore("Test fails often on CI, presumably due to other RabbitMqTestBase tests not cleaning up correctly." +
-    "Can be reproduced locally by running SpringAmqpBatchIT in repeated mode.")
 public class SpringAmqpBatchIT extends RabbitMqTestBase {
 
     @Autowired
