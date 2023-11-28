@@ -22,6 +22,8 @@ import io.opentelemetry.api.metrics.DoubleHistogram;
 import io.opentelemetry.api.metrics.DoubleHistogramBuilder;
 import io.opentelemetry.api.metrics.LongHistogramBuilder;
 
+import java.util.List;
+
 public class ProxyDoubleHistogramBuilder {
 
     private final DoubleHistogramBuilder delegate;
@@ -52,4 +54,8 @@ public class ProxyDoubleHistogramBuilder {
         return this;
     }
 
+    public ProxyDoubleHistogramBuilder setExplicitBucketBoundariesAdvice(List<Double> bucketBoundaries) {
+        delegate.setExplicitBucketBoundariesAdvice(bucketBoundaries);
+        return this;
+    }
 }

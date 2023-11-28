@@ -16,40 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.embeddedotel.proxy;
+package co.elastic.apm.agent.opentelemetry.metrics.bridge.latest;
 
-import io.opentelemetry.api.metrics.LongHistogram;
-import io.opentelemetry.api.metrics.LongHistogramBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleHistogramBuilder;
+import io.opentelemetry.api.metrics.DoubleHistogramBuilder;
 
 import java.util.List;
 
-public class ProxyLongHistogramBuilder {
-
-    private final LongHistogramBuilder delegate;
-
-    public ProxyLongHistogramBuilder(LongHistogramBuilder delegate) {
-        this.delegate = delegate;
+public class BridgeDoubleHistogramBuilder extends co.elastic.apm.agent.opentelemetry.metrics.bridge.v1_14.BridgeDoubleHistogramBuilder {
+    public BridgeDoubleHistogramBuilder(ProxyDoubleHistogramBuilder delegate) {
+        super(delegate);
     }
 
-    public LongHistogramBuilder getDelegate() {
-        return delegate;
-    }
-
-    public ProxyLongHistogram build() {
-        return new ProxyLongHistogram(delegate.build());
-    }
-
-    public ProxyLongHistogramBuilder setUnit(String arg0) {
-        delegate.setUnit(arg0);
-        return this;
-    }
-
-    public ProxyLongHistogramBuilder setDescription(String arg0) {
-        delegate.setDescription(arg0);
-        return this;
-    }
-
-    public ProxyLongHistogramBuilder setExplicitBucketBoundariesAdvice(List<Long> bucketBoundaries) {
+    /**
+     * This method was added in 1.32.0, but is safe to have even if the provided API is older.
+     * This is safe because it doesn't reference any newly added API types.
+     */
+    @Override
+    public DoubleHistogramBuilder setExplicitBucketBoundariesAdvice(List<Double> bucketBoundaries) {
         delegate.setExplicitBucketBoundariesAdvice(bucketBoundaries);
         return this;
     }
