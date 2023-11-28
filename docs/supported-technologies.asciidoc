@@ -390,7 +390,7 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |Spring RestClient
 |6.1.0+
 |
-|1.44.0
+|1.45.0
 |===
 
 
