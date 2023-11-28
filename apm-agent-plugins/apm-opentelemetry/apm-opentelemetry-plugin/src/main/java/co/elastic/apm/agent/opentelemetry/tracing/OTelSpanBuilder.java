@@ -187,12 +187,7 @@ class OTelSpanBuilder implements SpanBuilder {
             }
         }
 
-        if (kind == null) {
-            span.withOtelKind(OTelSpanKind.INTERNAL);
-        } else {
-            span.withOtelKind(OTelSpanKind.valueOf(kind.name()));
-        }
-
+        span.withOtelKind(OTelHelper.map(kind));
 
         // With OTel API, the status (bridged to outcome) should only be explicitly set, thus we have to set and use
         // user outcome to provide higher priority and avoid inferring outcome from any reported exception
