@@ -25,6 +25,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.rabbitmq.components.batch.BatchListenerComponent;
 import co.elastic.apm.agent.rabbitmq.config.BatchConfiguration;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.jupiter.api.Disabled;
 import org.junit.runner.RunWith;
@@ -46,7 +47,7 @@ import static org.mockito.Mockito.doReturn;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ContextConfiguration(classes = {BatchConfiguration.class, BatchListenerComponent.class}, initializers = {RabbitMqTestBase.Initializer.class})
-@Disabled("Test fails often on CI, presumably due to other RabbitMqTestBase tests not cleaning up correctly." +
+@Ignore("Test fails often on CI, presumably due to other RabbitMqTestBase tests not cleaning up correctly." +
     "Can be reproduced locally by running SpringAmqpBatchIT in repeated mode.")
 public class SpringAmqpBatchIT extends RabbitMqTestBase {
 
