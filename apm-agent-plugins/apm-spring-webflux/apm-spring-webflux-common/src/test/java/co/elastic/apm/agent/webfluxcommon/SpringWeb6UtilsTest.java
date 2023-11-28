@@ -22,11 +22,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
 import org.mockito.Mockito;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.web.reactive.function.client.ClientResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 @EnabledForJreRange(min = JRE.JAVA_17)
 public class SpringWeb6UtilsTest {
@@ -41,5 +45,12 @@ public class SpringWeb6UtilsTest {
     @Test
     void testWrongResponseType() {
         assertThatThrownBy(() -> SpringWebVersionUtils.getServerStatusCode(new Object())).isInstanceOf(ClassCastException.class);
+    }
+
+    @Test
+    void testGetClientStatusCode() throws Exception {
+        ClientResponse mockResponse = mock(ClientResponse.class);
+        doReturn(HttpStatusCode.valueOf(222)).when(mockResponse).statusCode();
+        assertThat(SpringWebVersionUtils.getClientStatusCode(mockResponse)).isEqualTo(222);
     }
 }

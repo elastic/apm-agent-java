@@ -20,6 +20,7 @@ package co.elastic.apm.agent.webfluxcommon;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.web.reactive.function.client.ClientResponse;
 
 /**
  * This class is compiled with spring-web 5.x, relying on the {@link ServerHttpResponse#getStatusCode()}, which changed in 6.0.0.
@@ -32,5 +33,10 @@ public class SpringWeb5Utils implements SpringWebVersionUtils.ISpringWebVersionU
     public int getServerStatusCode(Object response) {
         HttpStatus statusCode = ((ServerHttpResponse) response).getStatusCode();
         return statusCode != null ? statusCode.value() : 200;
+    }
+
+    @Override
+    public int getClientStatusCode(Object response) {
+        return ((ClientResponse) response).rawStatusCode();
     }
 }

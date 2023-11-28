@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.webfluxcommon;
 
+import org.springframework.web.reactive.function.server.ServerResponse;
+
 import javax.annotation.Nullable;
 
 /**
@@ -40,21 +42,16 @@ public class SpringWebVersionUtils {
             return;
         }
         try {
-            // check if using spring 6.0.0 or higher
-            Class.forName("org.springframework.http.HttpStatusCode");
-            try {
-                // loading class by name so to avoid linkage attempt when spring-web 6 is unavailable
-                instance = (ISpringWebVersionUtils) Class.forName(SPRING_WEB_6_UTILS_CLASS_NAME).getDeclaredConstructor().newInstance();
-            } catch (Exception e) {
-                throw new IllegalStateException("Spring-web 6.x+ identified, but failed to load related utility class", e);
-            }
-        } catch (ClassNotFoundException ignored) {
-            // assuming spring-web < 6.x
-            try {
-                // loading class by name so to avoid linkage attempt on spring-web 6, where the getStatusCode API has changed
-                instance = (ISpringWebVersionUtils) Class.forName(SPRING_WEB_5_UTILS_CLASS_NAME).getDeclaredConstructor().newInstance();
-            } catch (Exception e) {
-                throw new IllegalStateException("Spring-web < 6.x identified, but failed to load related utility class", e);
+            Class<?> statusCodeType = ServerResponse.class.getMethod("statusCode").getReturnType();
+            switch (statusCodeType.getName()) {
+                case "org.springframework.http.HttpStatusCode": // spring 6.0.0 or higher
+                    instance = (ISpringWebVersionUtils) Class.forName(SPRING_WEB_6_UTILS_CLASS_NAME).getDeclaredConstructor().newInstance();
+                    break;
+                case "org.springframework.http.HttpStatus": // spring < 6
+                    instance = (ISpringWebVersionUtils) Class.forName(SPRING_WEB_5_UTILS_CLASS_NAME).getDeclaredConstructor().newInstance();
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected type: "+statusCodeType.getName());
             }
         } finally {
             initialized = true;
@@ -85,6 +82,23 @@ public class SpringWebVersionUtils {
         return 200;
     }
 
+
+    /**
+     * A utility method to get the status code of a {@code org.springframework.web.reactive.function.client.ClientResponse} from any version
+     * of Spring framework.
+     *
+     * @param response must be of type {@code org.springframework.web.reactive.function.client.ClientResponse}, otherwise an Exception is
+     *                 expected
+     * @return the status code of the provided response
+     */
+    public static int getClientStatusCode(Object response) throws Exception {
+        ISpringWebVersionUtils implementation = getImplementation();
+        if (implementation != null) {
+            return implementation.getClientStatusCode(response);
+        }
+        return 200;
+    }
+
     public interface ISpringWebVersionUtils {
         /**
          * A utility method to get the status code of a {@code org.springframework.http.server.reactive.ServerHttpResponse} from any version
@@ -94,6 +108,15 @@ public class SpringWebVersionUtils {
          * @return the corresponding status code
          */
         int getServerStatusCode(Object response);
+
+        /**
+         * A utility method to get the status code of a {@code org.springframework.web.reactive.function.client.ClientResponse} from any version
+         * of Spring framework.
+         *
+         * @param response must be of type {@code org.springframework.web.reactive.function.client.ClientResponse}
+         * @return the corresponding status code
+         */
+        int getClientStatusCode(Object response);
 
     }
 }

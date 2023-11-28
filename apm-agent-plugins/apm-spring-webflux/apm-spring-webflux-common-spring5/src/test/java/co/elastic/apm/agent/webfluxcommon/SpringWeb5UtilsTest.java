@@ -21,6 +21,7 @@ package co.elastic.apm.agent.webfluxcommon;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.web.reactive.function.client.ClientResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,7 +31,7 @@ import static org.mockito.Mockito.mock;
 class SpringWeb5UtilsTest {
 
     @Test
-    void testGetStatusCode() throws Exception {
+    void testGetServerStatusCode() throws Exception {
         ServerHttpResponse mockResponse = mock(ServerHttpResponse.class);
         doReturn(HttpStatus.IM_USED).when(mockResponse).getStatusCode();
         assertThat(SpringWebVersionUtils.getServerStatusCode(mockResponse)).isEqualTo(226);
@@ -39,5 +40,12 @@ class SpringWeb5UtilsTest {
     @Test
     void testWrongResponseType() {
         assertThatThrownBy(() -> SpringWebVersionUtils.getServerStatusCode(new Object())).isInstanceOf(ClassCastException.class);
+    }
+
+    @Test
+    void testGetClientStatusCode() throws Exception {
+        ClientResponse mockResponse = mock(ClientResponse.class);
+        doReturn(HttpStatus.IM_USED).when(mockResponse).statusCode();
+        assertThat(SpringWebVersionUtils.getClientStatusCode(mockResponse)).isEqualTo(226);
     }
 }

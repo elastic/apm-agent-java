@@ -23,6 +23,7 @@ import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
+import co.elastic.apm.agent.webfluxcommon.SpringWebVersionUtils;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,14 +75,14 @@ public class WebClientSubscriber<T> implements CoreSubscriber<T>, Subscription {
         try {
             if (span != null && t instanceof ClientResponse) {
                 ClientResponse clientResponse = (ClientResponse) t;
-                int statusCode = clientResponse.statusCode().value();
+                int statusCode = SpringWebVersionUtils.getClientStatusCode(clientResponse);
                 span.withOutcome(ResultUtil.getOutcomeByHttpClientStatus(statusCode));
                 span.getContext().getHttp().withStatusCode(statusCode);
             }
             subscriber.onNext(t);
         } catch (Throwable e) {
             thrown = e;
-            throw e;
+            throwException(e);
         } finally {
             doExit(hasActivated, "onNext", span);
             discardIf(thrown != null);
@@ -192,5 +193,19 @@ public class WebClientSubscriber<T> implements CoreSubscriber<T>, Subscription {
             debugTrace(false, "cancelSpan", span);
         }
     }
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void throwException(Throwable exception, Object dummy) throws T
+    {
+        throw (T) exception;
+    }
+
+    /**
+     * Utility method for throwing a checked exception like an unchecked one.
+     */
+    private static void throwException(Throwable exception)
+    {
+        throwException(exception, null);
+    }
+
 
 }
