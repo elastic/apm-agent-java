@@ -112,7 +112,7 @@ the JVM arguments, or setting `ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS=true` for th
 |Spring Webflux
 |5.2.3+
 |Creates transactions for incoming HTTP requests, supports annotated and functional endpoints.
-|1.24.0 (experimental), 1.34.0 (GA)
+|1.24.0 (experimental), 1.34.0 (GA), 6.1+ since 1.45.0
 
 |JavaServer Faces
 |2.2.x, 2.3.x, 3.0.x

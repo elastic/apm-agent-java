@@ -141,7 +141,7 @@ public class GreetingAnnotated {
 
     @RequestMapping(path = "/hello-mapping", method = {RequestMethod.HEAD, RequestMethod.OPTIONS, RequestMethod.TRACE})
     public Mono<String> otherMapping(ServerHttpRequest request) {
-        return greetingHandler.helloMessage(request.getMethodValue());
+        return greetingHandler.helloMessage(request.getMethod().name());
     }
 
     @GetMapping("/with-parameters/{id}")

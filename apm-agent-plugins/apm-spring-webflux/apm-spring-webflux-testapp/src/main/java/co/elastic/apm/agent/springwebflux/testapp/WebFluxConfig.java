@@ -105,7 +105,22 @@ public class WebFluxConfig implements WebFluxConfigurer {
     NettyReactiveWebServerFactory nettyReactiveWebServerFactory(@Qualifier("reactorServerResourceFactory") ReactorResourceFactory resourceFactory,
                                                                 ObjectProvider<NettyRouteProvider> routes, ObjectProvider<NettyServerCustomizer> serverCustomizers) {
         NettyReactiveWebServerFactory serverFactory = new NettyReactiveWebServerFactory();
-        serverFactory.setResourceFactory(resourceFactory);
+
+        //The argument type of setResourceFactory was changed in spring 6.1 from
+        // org.springframework.http.client.reactive.ReactorResourceFactory to
+        // org.springframework.http.client.ReactorResourceFactory
+        // we therefor use reflection to call the correct one
+        try {
+            try {
+                Class<?> argType = Class.forName("org.springframework.http.client.reactive.ReactorResourceFactory");
+                serverFactory.getClass().getMethod("setResourceFactory", argType).invoke(serverFactory, resourceFactory);
+            } catch (ClassNotFoundException | NoSuchMethodException e) {
+                Class<?> argType = Class.forName("org.springframework.http.client.ReactorResourceFactory");
+                serverFactory.getClass().getMethod("setResourceFactory", argType).invoke(serverFactory, resourceFactory);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         routes.orderedStream().forEach(serverFactory::addRouteProviders);
         serverFactory.getServerCustomizers().addAll(serverCustomizers.orderedStream().collect(Collectors.toList()));
         return serverFactory;
