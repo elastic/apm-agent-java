@@ -95,6 +95,7 @@ public class OpenTelemetryVersionIT {
         List<String> dependencies = List.of(
             "io.opentelemetry:opentelemetry-api:" + version,
             "io.opentelemetry:opentelemetry-sdk-metrics:" + version,
+            "io.opentelemetry:opentelemetry-extension-incubator:" + version+"-alpha",
             "io.opentelemetry:opentelemetry-sdk-common:" + version,
             "io.opentelemetry:opentelemetry-context:" + version,
             semConvDep);
