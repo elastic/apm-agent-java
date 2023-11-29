@@ -53,6 +53,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Bug fixes
 * Fixed too many spans being created for `HTTPUrlConnection` requests with method `HEAD` - {pull}3353[#3353]
+* Enhance k8s container/pod and host name detection heuristics - {pull}3418[#3418]
 
 [[release-notes-1.43.0]]
 ==== 1.43.0 - 2023/09/26
