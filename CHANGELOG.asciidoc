@@ -37,6 +37,13 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 * Only automatically apply redacted exceptions for Corretto JVM 17-20. Outside that, user should use capture_exception_details=false to workaround the JVM race-condition bug if it gets triggered: {pull}3438[#3438]
 * Added support for Spring 6.1 / Spring-Boot 3.2 - {pull}3440[#3440]
 
+[float]
+===== Potentially breaking changes
+* Added support for OpenTelemetry 1.32.0. As a result, `custom_metrics_histogram_boundaries` will not
+work when you bring your own `MeterProvider` from an SDK with version `1.32.0` or newer. As a workaround,
+you should manually register a corresponding View in your `MeterProvider`. Note that this change will not
+affect you, if you are using the OpenTelemetry API only and not the SDK. - {pull}3447[#3447]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
