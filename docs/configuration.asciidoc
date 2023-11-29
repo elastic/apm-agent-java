@@ -2547,6 +2547,8 @@ NOTE: This feature is currently experimental, which means it is disabled by defa
 
 Defines the default bucket boundaries to use for OpenTelemetry histograms.
 
+Note that for OpenTelemetry 1.32.0 or newer this setting will only work when using API only. The default buckets will not be applied when bringing your own SDK.
+
 
 
 
@@ -4618,6 +4620,8 @@ Example: `5ms`.
 # dedot_custom_metrics=true
 
 # Defines the default bucket boundaries to use for OpenTelemetry histograms.
+# 
+# Note that for OpenTelemetry 1.32.0 or newer this setting will only work when using API only. The default buckets will not be applied when bringing your own SDK.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: comma separated list

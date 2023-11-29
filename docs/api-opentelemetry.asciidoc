@@ -149,6 +149,8 @@ In both cases the Elastic APM Agent will respect the <<config-disable-metrics, `
 
 You can use the <<config-custom-metrics-histogram-boundaries, `custom_metrics_histogram_boundaries`>> setting to customize histogram bucket boundaries.
 Alternatively you can use OpenTelemetry `Views` to define histogram buckets on a per-metric basis when providing your own `MeterProvider`.
+Note that  `custom_metrics_histogram_boundaries` will only work for API Usages. If you bring your own `MeterProvider` and therefore your own OpenTelemetry SDK,
+the setting will only work for SDK versions prior to `1.32.0`.
 
 [float]
 [[otel-metrics-api]]
@@ -178,7 +180,7 @@ If you provide your own `MeterProvider` (see <<otel-metrics-sdk>>), the agent wi
 In some cases using just the <<otel-metrics-api, OpenTelemetry API for metrics>> might not be flexible enough.
 Some example use cases are:
 
- * Using OpenTelemetry Views (e.g. to customize histogram buckets on a per-metric basis)
+ * Using OpenTelemetry Views
  * Exporting metrics to other tools in addition to Elastic APM (e.g. prometheus)
 
 For these use cases you can just setup you OpenTelemetry SDK `MeterProvider`.

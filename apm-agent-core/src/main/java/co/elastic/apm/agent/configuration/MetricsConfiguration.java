@@ -48,7 +48,10 @@ public class MetricsConfiguration extends ConfigurationOptionProvider implements
     private final ConfigurationOption<List<Double>> customMetricsHistogramBoundaries = ConfigurationOption.builder(new ListValueConverter<>(DoubleValueConverter.INSTANCE), List.class)
         .key("custom_metrics_histogram_boundaries")
         .configurationCategory(METRICS_CATEGORY)
-        .description("Defines the default bucket boundaries to use for OpenTelemetry histograms.")
+        .description("Defines the default bucket boundaries to use for OpenTelemetry histograms.\n" +
+            "\n" +
+            "Note that for OpenTelemetry 1.32.0 or newer this setting will only work when using API only. " +
+            "The default buckets will not be applied when bringing your own SDK.")
         .dynamic(false)
         .tags("added[1.37.0]", "experimental")
         .addValidator(new ConfigurationOption.Validator<List<Double>>() {
