@@ -17,11 +17,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>jakarta.servlet</groupId>
-            <artifactId>jakarta.servlet-api</artifactId>
-            <version>5.0.0</version> <!-- jetty doesn't support servlet API 6.x -->
-        </dependency>
-        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>spring-boot-2-base</artifactId>
             <version>${project.version}</version>
