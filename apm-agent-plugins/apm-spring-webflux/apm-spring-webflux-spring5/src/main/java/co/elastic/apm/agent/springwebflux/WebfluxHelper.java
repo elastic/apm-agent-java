@@ -199,7 +199,7 @@ public class WebfluxHelper {
                 path = exchange.getRequest().getPath().value();
             }
         }
-        String method = "UNKNOWN";
+        String method = "unknown";
         HttpMethod methodObj = exchange.getRequest().getMethod();
         if(methodObj != null) {
             method = methodObj.name();

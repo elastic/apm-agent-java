@@ -82,6 +82,7 @@ public class WebClientSubscriber<T> implements CoreSubscriber<T>, Subscription {
             subscriber.onNext(t);
         } catch (Throwable e) {
             thrown = e;
+            // Since spring 6.1 we can't throw checked exceptions here anymore, so we have to use this trick
             throwException(e);
         } finally {
             doExit(hasActivated, "onNext", span);
@@ -193,17 +194,16 @@ public class WebClientSubscriber<T> implements CoreSubscriber<T>, Subscription {
             debugTrace(false, "cancelSpan", span);
         }
     }
+
     @SuppressWarnings("unchecked")
-    private static <T extends Throwable> void throwException(Throwable exception, Object dummy) throws T
-    {
+    private static <T extends Throwable> void throwException(Throwable exception, Object dummy) throws T {
         throw (T) exception;
     }
 
     /**
      * Utility method for throwing a checked exception like an unchecked one.
      */
-    private static void throwException(Throwable exception)
-    {
+    private static void throwException(Throwable exception) {
         throwException(exception, null);
     }
 
