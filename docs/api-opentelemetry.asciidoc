@@ -6,7 +6,7 @@ endif::[]
 [[opentelemetry-bridge]]
 === OpenTelemetry bridge
 
-The Elastic APM OpenTelemetry bridge allows creating Elastic APM `Transactions` and `Spans`,
+The Elastic APM OpenTelemetry bridge allows creating Elastic APM `Transactions` and `Spans`
 using the OpenTelemetry API. OpenTelemetry metrics are also collected.
 In other words,
 it translates the calls to the OpenTelemetry API to Elastic APM and thus allows for reusing existing instrumentation.
@@ -50,7 +50,7 @@ The minimum required OpenTelemetry version is 1.0.1.
 ==== Initialize tracer
 
 There's no separate dependency needed for the bridge itself.
-The Java agent hooks into `GlobalOpenTelemetry` to return it's own implementation of `OpenTelemetry`
+The Java agent hooks into `GlobalOpenTelemetry` to return its own implementation of `OpenTelemetry`
 that is connected to the internal tracer of the agent.
 
 [source,java]
