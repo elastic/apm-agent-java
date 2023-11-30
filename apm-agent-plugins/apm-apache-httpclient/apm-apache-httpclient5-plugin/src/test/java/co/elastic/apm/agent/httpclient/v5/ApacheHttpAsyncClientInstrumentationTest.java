@@ -19,27 +19,24 @@
 package co.elastic.apm.agent.httpclient.v5;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Outcome;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.client5.http.async.methods.SimpleRequestBuilder;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
-import org.apache.hc.client5.http.impl.classic.ProtocolExec;
 import org.apache.hc.client5.http.protocol.HttpClientContext;
 import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.http.ProtocolException;
 import org.apache.hc.core5.net.URIAuthority;
 import org.assertj.core.api.Assertions;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
@@ -109,16 +106,50 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
         Assertions.assertThat(reporter.getSpans()).hasSize(1);
     }
 
+    @Test
+    public void testSpanFinishWithIllegalProtocol() throws Exception {
+        reporter.disableCheckServiceTarget();
+        reporter.disableCheckDestinationAddress();
+        String url = getBaseUrl().replaceAll("http", "ottp") + "/";
+        performGet(url);
+
+        Span firstSpan = reporter.getFirstSpan(500);
+        assertThat(firstSpan).isNotNull();
+        assertThat(firstSpan.getOutcome()).isEqualTo(Outcome.FAILURE);
+        assertThat(firstSpan.getNameAsString()).isEqualTo("GET localhost");
+        Assertions.assertThat(reporter.getSpans()).hasSize(1);
+    }
+
+    @Test
+    public void testSpanFinishWithIllegalUrl() throws Exception {
+        reporter.disableCheckServiceTarget();
+        reporter.disableCheckDestinationAddress();
+        String url = getBaseUrl().replaceAll("http:/", "") + "/";
+
+        try {
+            assertThatThrownBy(() -> performGet(url)).cause().isInstanceOf(ProtocolException.class);
+        } finally {
+            //Reset state for other tests
+            setUp();
+            reporter.resetChecks();
+        }
+
+        Span firstSpan = reporter.getFirstSpan(500);
+        assertThat(firstSpan).isNotNull();
+        assertThat(firstSpan.getOutcome()).isEqualTo(Outcome.FAILURE);
+        assertThat(firstSpan.getNameAsString()).isEqualTo("GET ");
+        Assertions.assertThat(reporter.getSpans()).hasSize(1);
+    }
+
     /**
      * Difference between sync and async requests is that
      * In async requests you need {@link SimpleRequestBuilder#setAuthority(URIAuthority)} explicitly
      * And in this case exception will be thrown from {@link org.apache.hc.client5.http.impl.async.AsyncProtocolExec#execute}
-     *
+     * <p>
      * SimpleHttpRequest req = SimpleRequestBuilder.get().setPath(path)
-     *             .setScheme("http")
-     *             .setAuthority(new URIAuthority(uri.getUserInfo(), uri.getHost(), uri.getPort()))
-     *             .build();
-     *
+     * .setScheme("http")
+     * .setAuthority(new URIAuthority(uri.getUserInfo(), uri.getHost(), uri.getPort()))
+     * .build();
      */
     @Override
     public boolean isTestHttpCallWithUserInfoEnabled() {

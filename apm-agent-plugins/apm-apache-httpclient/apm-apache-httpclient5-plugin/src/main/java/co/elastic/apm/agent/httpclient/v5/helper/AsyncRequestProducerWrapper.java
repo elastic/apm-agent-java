@@ -100,8 +100,8 @@ public class AsyncRequestProducerWrapper implements AsyncRequestProducer, Recycl
     public void releaseResources() {
         if (delegate != null) {
             delegate.releaseResources();
+            asyncClientHelper.recycle(this);
         }
-        asyncClientHelper.recycle(this);
     }
 
     @Override

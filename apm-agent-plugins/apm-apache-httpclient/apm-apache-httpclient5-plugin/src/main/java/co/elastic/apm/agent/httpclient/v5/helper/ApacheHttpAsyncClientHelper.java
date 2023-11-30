@@ -85,7 +85,7 @@ public class ApacheHttpAsyncClientHelper implements AbstractApacheHttpAsyncClien
 
     @Override
     public void failedWithoutException(FutureCallbackWrapper<?> cb, Throwable t) {
-        // ignore
+        cb.failedWithoutExecution(t);
     }
 
     public RequestChannelWrapper wrapRequestChannel(RequestChannel requestChannel, @Nullable Span<?> span, @Nullable ElasticContext<?> toPropagate) {
