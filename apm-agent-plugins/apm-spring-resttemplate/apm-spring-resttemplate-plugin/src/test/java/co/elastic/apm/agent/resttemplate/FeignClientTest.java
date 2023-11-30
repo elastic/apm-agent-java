@@ -41,24 +41,14 @@ import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class FeignClientIntegration extends AbstractInstrumentationTest {
+public class FeignClientTest extends AbstractInstrumentationTest {
 
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort(), false);
 
     private Transaction rootTransaction;
 
-    private final boolean expectSpan;
-
     private String baseUrl = null;
-
-    public FeignClientIntegration() {
-        this(true);
-    }
-
-    protected FeignClientIntegration(boolean expectSpan) {
-        this.expectSpan = expectSpan;
-    }
 
     @Before
     public void before() {
@@ -86,18 +76,14 @@ public class FeignClientIntegration extends AbstractInstrumentationTest {
 
         testInterface.getRoot();
 
-        if (!expectSpan) {
-            reporter.assertNoSpan(1000);
-        } else {
-            reporter.awaitSpanCount(1);
+        reporter.awaitSpanCount(1);
 
-            Span span = reporter.getFirstSpan();
-            Http http = span.getContext().getHttp();
+        Span span = reporter.getFirstSpan();
+        Http http = span.getContext().getHttp();
 
-            assertThat(span.getNameAsString()).isEqualTo("GET 127.0.0.1");
-            assertThat(http.getMethod()).isEqualTo("GET");
-            assertThat(http.getUrl().toString()).isNotNull().isEqualTo(baseUrl);
-        }
+        assertThat(span.getNameAsString()).isEqualTo("GET 127.0.0.1");
+        assertThat(http.getMethod()).isEqualTo("GET");
+        assertThat(http.getUrl().toString()).isNotNull().isEqualTo(baseUrl);
     }
 
     private JaxRsTestInterface buildTestInterface() {

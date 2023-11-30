@@ -65,7 +65,11 @@ public class ApacheHttpAsyncClient5Instrumentation extends BaseApacheHttpClient5
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("execute").and(takesArguments(4)).and(takesArgument(0, named("org.apache.hc.core5.http.nio.AsyncRequestProducer"))).and(takesArgument(1, named("org.apache.hc.core5.http.nio.AsyncResponseConsumer"))).and(takesArgument(2, named("org.apache.hc.core5.http.protocol.HttpContext"))).and(takesArgument(3, named("org.apache.hc.core5.concurrent.FutureCallback")));
+        return named("execute").and(takesArguments(4))
+            .and(takesArgument(0, named("org.apache.hc.core5.http.nio.AsyncRequestProducer")))
+            .and(takesArgument(1, named("org.apache.hc.core5.http.nio.AsyncResponseConsumer")))
+            .and(takesArgument(2, named("org.apache.hc.core5.http.protocol.HttpContext")))
+            .and(takesArgument(3, named("org.apache.hc.core5.concurrent.FutureCallback")));
     }
 
     public static class ApacheHttpAsyncClient5Advice extends AbstractApacheHttpAsyncClientAdvice {

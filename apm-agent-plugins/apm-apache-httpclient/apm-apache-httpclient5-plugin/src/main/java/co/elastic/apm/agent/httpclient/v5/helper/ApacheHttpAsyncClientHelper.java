@@ -66,7 +66,7 @@ public class ApacheHttpAsyncClientHelper implements AbstractApacheHttpAsyncClien
         }
     }
 
-    private class RequestChannelWrapperAllocator implements Allocator<RequestChannelWrapper> {
+    private static class RequestChannelWrapperAllocator implements Allocator<RequestChannelWrapper> {
         @Override
         public RequestChannelWrapper createInstance() {
             return new RequestChannelWrapper();

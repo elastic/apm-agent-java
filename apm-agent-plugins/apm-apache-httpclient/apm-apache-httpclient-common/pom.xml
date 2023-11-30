@@ -7,7 +7,7 @@
     <parent>
         <artifactId>apm-apache-httpclient</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.43.1-SNAPSHOT</version>
+        <version>1.44.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-apache-httpclient-common</artifactId>
@@ -16,21 +16,5 @@
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
     </properties>
-
-
-    <build>
-        <plugins>
-            <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 
 </project>
