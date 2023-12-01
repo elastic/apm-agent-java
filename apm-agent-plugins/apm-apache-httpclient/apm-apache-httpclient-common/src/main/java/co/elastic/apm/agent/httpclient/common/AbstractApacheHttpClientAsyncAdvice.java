@@ -24,10 +24,10 @@ import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 
-public abstract class AbstractApacheHttpAsyncClientAdvice {
+public abstract class AbstractApacheHttpClientAsyncAdvice {
 
     public static <PRODUCER, WRAPPER extends PRODUCER, CALLBACK, CALLBACK_WRAPPER extends CALLBACK, CONTEXT> Object[] startSpan(
-        Tracer tracer, AbstractApacheHttpAsyncClientHelper<PRODUCER, WRAPPER, CALLBACK, CALLBACK_WRAPPER, CONTEXT> asyncHelper,
+        Tracer tracer, ApacheHttpClientAsyncHelper<PRODUCER, WRAPPER, CALLBACK, CALLBACK_WRAPPER, CONTEXT> asyncHelper,
         PRODUCER asyncRequestProducer, CONTEXT context, CALLBACK futureCallback) {
 
         ElasticContext<?> parentContext = tracer.currentContext();
@@ -51,7 +51,7 @@ public abstract class AbstractApacheHttpAsyncClientAdvice {
     }
 
     public static <PRODUCER, WRAPPER extends PRODUCER, CALLBACK, CALLBACK_WRAPPER extends CALLBACK, CONTEXT> void endSpan(
-        AbstractApacheHttpAsyncClientHelper<PRODUCER, WRAPPER, CALLBACK, CALLBACK_WRAPPER, CONTEXT> asyncHelper, Object[] enter, Throwable t) {
+        ApacheHttpClientAsyncHelper<PRODUCER, WRAPPER, CALLBACK, CALLBACK_WRAPPER, CONTEXT> asyncHelper, Object[] enter, Throwable t) {
         Span<?> span = enter != null ? (Span<?>) enter[2] : null;
         if (span != null) {
             // Deactivate in this thread

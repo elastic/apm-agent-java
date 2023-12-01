@@ -46,7 +46,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 @SuppressWarnings("Duplicates")
 public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrumentation {
 
-    public static class ApacheHttpClientAdvice extends AbstractApacheHttpClientAdvice {
+    public static class ApacheHttpClient4Advice extends AbstractApacheHttpClientAdvice {
         private static final ApacheHttpClient4ApiAdapter adapter = ApacheHttpClient4ApiAdapter.get();
 
         @Nullable
@@ -66,7 +66,7 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.httpclient.v4.ApacheHttpClientInstrumentation$ApacheHttpClientAdvice";
+        return "co.elastic.apm.agent.httpclient.v4.ApacheHttpClientInstrumentation$ApacheHttpClient4Advice";
     }
 
     @Override

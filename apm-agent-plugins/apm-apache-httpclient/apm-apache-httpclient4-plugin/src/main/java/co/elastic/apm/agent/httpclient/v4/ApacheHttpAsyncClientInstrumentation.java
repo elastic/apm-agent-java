@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.httpclient.v4;
 
-import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpAsyncClientAdvice;
-import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpAsyncClientHelper;
+import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpClientAsyncAdvice;
+import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpClient4AsyncHelper;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
@@ -46,7 +46,7 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.httpclient.v4.ApacheHttpAsyncClientInstrumentation$ApacheHttpAsyncClientAdvice";
+        return "co.elastic.apm.agent.httpclient.v4.ApacheHttpAsyncClientInstrumentation$ApacheHttpClient4AsyncAdvice";
     }
 
     @Override
@@ -75,8 +75,8 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
             .and(takesArgument(3, named("org.apache.http.concurrent.FutureCallback")));
     }
 
-    public static class ApacheHttpAsyncClientAdvice extends AbstractApacheHttpAsyncClientAdvice {
-        private static ApacheHttpAsyncClientHelper asyncHelper = new ApacheHttpAsyncClientHelper();
+    public static class ApacheHttpClient4AsyncAdvice extends AbstractApacheHttpClientAsyncAdvice {
+        private static ApacheHttpClient4AsyncHelper asyncHelper = new ApacheHttpClient4AsyncHelper();
 
         @Advice.AssignReturned.ToArguments({
             @ToArgument(index = 0, value = 0, typing = DYNAMIC),

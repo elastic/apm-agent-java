@@ -30,7 +30,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.HttpHost;
-import org.apache.hc.core5.http.protocol.HttpContext;
 
 import javax.annotation.Nullable;
 import java.net.URISyntaxException;
@@ -44,7 +43,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class ApacheHttpClient5Instrumentation extends BaseApacheHttpClient5Instrumentation {
 
-    public static class HttpClient5Advice extends AbstractApacheHttpClientAdvice {
+    public static class ApacheHttpClient5Advice extends AbstractApacheHttpClientAdvice {
         private static final ApacheHttpClient5ApiAdapter adapter = ApacheHttpClient5ApiAdapter.get();
 
         @Nullable
@@ -64,7 +63,7 @@ public class ApacheHttpClient5Instrumentation extends BaseApacheHttpClient5Instr
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.httpclient.v5.ApacheHttpClient5Instrumentation$HttpClient5Advice";
+        return "co.elastic.apm.agent.httpclient.v5.ApacheHttpClient5Instrumentation$ApacheHttpClient5Advice";
     }
 
     @Override

@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.httpclient.v4.helper;
+package co.elastic.apm.agent.httpclient.v5.helper;
 
-import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpAsyncClientHelper;
+
+import co.elastic.apm.agent.httpclient.common.ApacheHttpClientAsyncHelper;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
@@ -26,47 +27,54 @@ import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
 import co.elastic.apm.agent.tracer.pooling.ObjectPool;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
-import org.apache.http.concurrent.FutureCallback;
-import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
-import org.apache.http.protocol.HttpContext;
+import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.http.nio.AsyncRequestProducer;
+import org.apache.hc.core5.http.nio.RequestChannel;
+import org.apache.hc.core5.http.protocol.HttpContext;
 
 import javax.annotation.Nullable;
 
-public class ApacheHttpAsyncClientHelper implements AbstractApacheHttpAsyncClientHelper<HttpAsyncRequestProducer, HttpAsyncRequestProducerWrapper, FutureCallback, FutureCallbackWrapper<?>, HttpContext> {
+public class ApacheHttpClient5AsyncHelper implements ApacheHttpClientAsyncHelper<AsyncRequestProducer, AsyncRequestProducerWrapper, FutureCallback, FutureCallbackWrapper<?>, HttpContext> {
 
     private static final int MAX_POOLED_ELEMENTS = 256;
 
     private final Tracer tracer;
-    private final ObjectPool<HttpAsyncRequestProducerWrapper> requestProducerWrapperObjectPool;
+    private final ObjectPool<AsyncRequestProducerWrapper> requestProducerWrapperObjectPool;
     private final ObjectPool<FutureCallbackWrapper<?>> futureCallbackWrapperObjectPool;
+    private final ObjectPool<RequestChannelWrapper> requestChannelWrapperObjectPool;
 
-    public ApacheHttpAsyncClientHelper() {
+    public ApacheHttpClient5AsyncHelper() {
         tracer = GlobalTracer.get();
+
         ObjectPoolFactory factory = tracer.getObjectPoolFactory();
         requestProducerWrapperObjectPool = factory.createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new RequestProducerWrapperAllocator());
         futureCallbackWrapperObjectPool = factory.createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new FutureCallbackWrapperAllocator());
+        requestChannelWrapperObjectPool = factory.createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new RequestChannelWrapperAllocator());
     }
 
-    public Tracer getTracer() {
-        return tracer;
-    }
-
-    private class RequestProducerWrapperAllocator implements Allocator<HttpAsyncRequestProducerWrapper> {
+    private class RequestProducerWrapperAllocator implements Allocator<AsyncRequestProducerWrapper> {
         @Override
-        public HttpAsyncRequestProducerWrapper createInstance() {
-            return new HttpAsyncRequestProducerWrapper(ApacheHttpAsyncClientHelper.this);
+        public AsyncRequestProducerWrapper createInstance() {
+            return new AsyncRequestProducerWrapper(ApacheHttpClient5AsyncHelper.this);
         }
     }
 
     private class FutureCallbackWrapperAllocator implements Allocator<FutureCallbackWrapper<?>> {
         @Override
         public FutureCallbackWrapper<?> createInstance() {
-            return new FutureCallbackWrapper<>(ApacheHttpAsyncClientHelper.this);
+            return new FutureCallbackWrapper<>(ApacheHttpClient5AsyncHelper.this);
         }
     }
 
-    public HttpAsyncRequestProducerWrapper wrapRequestProducer(HttpAsyncRequestProducer requestProducer, @Nullable Span<?> span,
-                                                               ElasticContext<?> toPropagate) {
+    private static class RequestChannelWrapperAllocator implements Allocator<RequestChannelWrapper> {
+        @Override
+        public RequestChannelWrapper createInstance() {
+            return new RequestChannelWrapper();
+        }
+    }
+
+    public AsyncRequestProducerWrapper wrapRequestProducer(AsyncRequestProducer requestProducer, @Nullable Span<?> span,
+                                                           @Nullable ElasticContext<?> toPropagate) {
         return requestProducerWrapperObjectPool.createInstance().with(requestProducer, span, toPropagate);
     }
 
@@ -80,12 +88,19 @@ public class ApacheHttpAsyncClientHelper implements AbstractApacheHttpAsyncClien
         cb.failedWithoutExecution(t);
     }
 
-    @Override
-    public void recycle(HttpAsyncRequestProducerWrapper requestProducerWrapper) {
+    public RequestChannelWrapper wrapRequestChannel(RequestChannel requestChannel, @Nullable Span<?> span, @Nullable ElasticContext<?> toPropagate) {
+        return requestChannelWrapperObjectPool.createInstance().with(requestChannel, span, toPropagate);
+    }
+
+    public void recycle(AsyncRequestProducerWrapper requestProducerWrapper) {
         requestProducerWrapperObjectPool.recycle(requestProducerWrapper);
     }
 
     void recycle(FutureCallbackWrapper<?> futureCallbackWrapper) {
         futureCallbackWrapperObjectPool.recycle(futureCallbackWrapper);
+    }
+
+    void recycle(RequestChannelWrapper requestChannelWrapper) {
+        requestChannelWrapperObjectPool.recycle(requestChannelWrapper);
     }
 }
