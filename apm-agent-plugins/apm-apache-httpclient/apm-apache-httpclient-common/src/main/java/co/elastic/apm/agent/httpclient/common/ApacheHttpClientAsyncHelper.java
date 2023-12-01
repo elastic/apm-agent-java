@@ -28,7 +28,7 @@ public interface ApacheHttpClientAsyncHelper<AsyncProducer, AsyncProducerWrapper
 
     FutureCallbackWrapper wrapFutureCallback(FutureCallback futureCallback, HttpContext httpContext, Span<?> span);
 
-    void failedWithoutException(FutureCallbackWrapper cb, Throwable t);
+    void failedBeforeRequestStarted(FutureCallbackWrapper cb, Throwable t);
 
     void recycle(AsyncProducerWrapper requestProducerWrapper);
 

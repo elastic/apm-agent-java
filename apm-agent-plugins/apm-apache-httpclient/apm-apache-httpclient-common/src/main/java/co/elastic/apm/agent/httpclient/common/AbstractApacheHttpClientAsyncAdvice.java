@@ -62,7 +62,7 @@ public abstract class AbstractApacheHttpClientAsyncAdvice {
             if (t != null) {
                 CALLBACK_WRAPPER cb = (CALLBACK_WRAPPER) enter[1];
                 // only for apachehttpclient_v4
-                asyncHelper.failedWithoutException(cb, t);
+                asyncHelper.failedBeforeRequestStarted(cb, t);
 
                 asyncHelper.recycle(wrapper);
             }

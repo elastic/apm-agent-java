@@ -38,13 +38,12 @@ public class ApacheHttpClient5AsyncHelper implements ApacheHttpClientAsyncHelper
 
     private static final int MAX_POOLED_ELEMENTS = 256;
 
-    private final Tracer tracer;
     private final ObjectPool<AsyncRequestProducerWrapper> requestProducerWrapperObjectPool;
     private final ObjectPool<FutureCallbackWrapper<?>> futureCallbackWrapperObjectPool;
     private final ObjectPool<RequestChannelWrapper> requestChannelWrapperObjectPool;
 
     public ApacheHttpClient5AsyncHelper() {
-        tracer = GlobalTracer.get();
+        Tracer tracer = GlobalTracer.get();
 
         ObjectPoolFactory factory = tracer.getObjectPoolFactory();
         requestProducerWrapperObjectPool = factory.createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new RequestProducerWrapperAllocator());
@@ -84,7 +83,7 @@ public class ApacheHttpClient5AsyncHelper implements ApacheHttpClientAsyncHelper
     }
 
     @Override
-    public void failedWithoutException(FutureCallbackWrapper<?> cb, Throwable t) {
+    public void failedBeforeRequestStarted(FutureCallbackWrapper<?> cb, Throwable t) {
         cb.failedWithoutExecution(t);
     }
 
