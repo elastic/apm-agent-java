@@ -56,7 +56,7 @@ import java.util.Optional;
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
-public class SQSJmsClientIT extends AbstractAwsClientIT {
+public class SQSJmsClientIT extends AbstractAws1ClientIT {
     AmazonSQSMessagingClientWrapper client;
     SQSConnection connection;
     SQSConnection receivingConnection;
