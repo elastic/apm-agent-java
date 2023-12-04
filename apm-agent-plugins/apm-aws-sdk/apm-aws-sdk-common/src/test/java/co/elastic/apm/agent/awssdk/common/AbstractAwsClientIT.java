@@ -40,7 +40,7 @@ import static org.assertj.core.api.Assertions.fail;
 
 @Testcontainers
 public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
-    private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:0.14.2");
+    private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:3.0.2");
     protected static final String BUCKET_NAME = "some-test-bucket";
     protected static final String SQS_QUEUE_NAME = "some-test-sqs-queue";
     protected static final String SQS_IGNORED_QUEUE_NAME = "ignored-queue";
