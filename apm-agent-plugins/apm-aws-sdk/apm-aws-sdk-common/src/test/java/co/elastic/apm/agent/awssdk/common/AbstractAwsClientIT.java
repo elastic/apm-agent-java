@@ -40,7 +40,6 @@ import static org.assertj.core.api.Assertions.fail;
 
 @Testcontainers
 public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
-    private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:3.0.2");
     protected static final String BUCKET_NAME = "some-test-bucket";
     protected static final String SQS_QUEUE_NAME = "some-test-sqs-queue";
     protected static final String SQS_IGNORED_QUEUE_NAME = "ignored-queue";
@@ -52,7 +51,12 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
     protected static final String KEY_CONDITION_EXPRESSION = "attributeOne = :one";
 
     @Container
-    protected LocalStackContainer localstack = new LocalStackContainer(localstackImage).withServices(localstackService());
+    protected LocalStackContainer localstack;
+
+    public AbstractAwsClientIT(String localstackVersion) {
+        DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:" + localstackVersion);
+        localstack = new LocalStackContainer(localstackImage).withServices(localstackService());
+    }
 
     protected abstract String awsService();
 
