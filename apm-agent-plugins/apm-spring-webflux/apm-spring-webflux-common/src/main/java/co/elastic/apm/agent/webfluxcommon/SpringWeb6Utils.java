@@ -16,21 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.springwebflux;
+package co.elastic.apm.agent.webfluxcommon;
 
-import org.springframework.http.HttpStatus;
+
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.web.reactive.function.client.ClientResponse;
 
 /**
- * This class is compiled with spring-web 5.x, relying on the {@link ServerHttpResponse#getStatusCode()}, which changed in 6.0.0.
+ * This class is compiled with spring-web 6.x, as it relies on {@link HttpStatusCode} and an API that was introduced in 6.0.0.
  * Therefore, it MUST only be loaded through its class name through {@link SpringWebVersionUtils}.
  */
 @SuppressWarnings("unused") //Created via reflection
-public class SpringWeb5Utils implements SpringWebVersionUtils.ISpringWebVersionUtils {
+public class SpringWeb6Utils implements SpringWebVersionUtils.ISpringWebVersionUtils {
+    @Override
+    public int getServerStatusCode(Object response) {
+        HttpStatusCode statusCode = ((ServerHttpResponse) response).getStatusCode();
+        return statusCode != null ? statusCode.value() : 200;
+    }
 
     @Override
-    public int getStatusCode(Object response) {
-        HttpStatus statusCode = ((ServerHttpResponse) response).getStatusCode();
-        return statusCode != null ? statusCode.value() : 200;
+    public int getClientStatusCode(Object response) {
+        HttpStatusCode statusCode = ((ClientResponse) response).statusCode();
+        return statusCode.value();
     }
 }

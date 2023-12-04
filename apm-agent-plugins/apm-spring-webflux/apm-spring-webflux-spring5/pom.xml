@@ -14,7 +14,6 @@
     <properties>
         <!-- for licence header plugin -->
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
-
         <animal.sniffer.skip>true</animal.sniffer.skip>
     </properties>
 
@@ -34,6 +33,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-httpserver-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-spring-webflux-common</artifactId>
             <version>${project.version}</version>
         </dependency>
 

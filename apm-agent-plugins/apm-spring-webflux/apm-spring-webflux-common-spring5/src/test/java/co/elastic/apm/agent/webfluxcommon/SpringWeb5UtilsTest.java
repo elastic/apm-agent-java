@@ -16,30 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.springwebflux;
+package co.elastic.apm.agent.webfluxcommon;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledForJreRange;
-import org.junit.jupiter.api.condition.JRE;
-import org.mockito.Mockito;
-import org.springframework.http.HttpStatusCode;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.web.reactive.function.client.ClientResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
-@EnabledForJreRange(min = JRE.JAVA_17)
-public class SpringWeb6UtilsTest {
+class SpringWeb5UtilsTest {
 
     @Test
-    void testGetStatusCode() throws Exception {
-        ServerHttpResponse mockResponse = Mockito.mock(ServerHttpResponse.class);
-        Mockito.doReturn(HttpStatusCode.valueOf(222)).when(mockResponse).getStatusCode();
-        assertThat(SpringWebVersionUtils.getStatusCode(mockResponse)).isEqualTo(222);
+    void testGetServerStatusCode() throws Exception {
+        ServerHttpResponse mockResponse = mock(ServerHttpResponse.class);
+        doReturn(HttpStatus.IM_USED).when(mockResponse).getStatusCode();
+        assertThat(SpringWebVersionUtils.getServerStatusCode(mockResponse)).isEqualTo(226);
     }
 
     @Test
     void testWrongResponseType() {
-        assertThatThrownBy(() -> SpringWebVersionUtils.getStatusCode(new Object())).isInstanceOf(ClassCastException.class);
+        assertThatThrownBy(() -> SpringWebVersionUtils.getServerStatusCode(new Object())).isInstanceOf(ClassCastException.class);
+    }
+
+    @Test
+    void testGetClientStatusCode() throws Exception {
+        ClientResponse mockResponse = mock(ClientResponse.class);
+        doReturn(226).when(mockResponse).rawStatusCode();
+        assertThat(SpringWebVersionUtils.getClientStatusCode(mockResponse)).isEqualTo(226);
     }
 }

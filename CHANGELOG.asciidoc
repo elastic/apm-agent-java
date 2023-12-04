@@ -35,6 +35,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ===== Features
 * Added support for OpenTelemetry annotations - `WithSpan` and `SpanAttribute` - {pull}3406[#3406]
 * Only automatically apply redacted exceptions for Corretto JVM 17-20. Outside that, user should use capture_exception_details=false to workaround the JVM race-condition bug if it gets triggered: {pull}3438[#3438]
+* Added support for Spring 6.1 / Spring-Boot 3.2 - {pull}3440[#3440]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
@@ -53,6 +54,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Bug fixes
 * Fixed too many spans being created for `HTTPUrlConnection` requests with method `HEAD` - {pull}3353[#3353]
+* Enhance k8s container/pod and host name detection heuristics - {pull}3418[#3418]
 
 [[release-notes-1.43.0]]
 ==== 1.43.0 - 2023/09/26
