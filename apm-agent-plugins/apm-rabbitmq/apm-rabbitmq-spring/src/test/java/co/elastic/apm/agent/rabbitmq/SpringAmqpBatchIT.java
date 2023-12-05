@@ -25,6 +25,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.rabbitmq.components.batch.BatchListenerComponent;
 import co.elastic.apm.agent.rabbitmq.config.BatchConfiguration;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.amqp.rabbit.core.BatchingRabbitTemplate;
@@ -45,6 +46,7 @@ import static org.mockito.Mockito.doReturn;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ContextConfiguration(classes = {BatchConfiguration.class, BatchListenerComponent.class}, initializers = {RabbitMqTestBase.Initializer.class})
+@Ignore("Test causes CI flakyness, presumably due to unclean shutdown of RabbitMqTestBase: Can pre reproduced by running the test in repeated mode locally.")
 public class SpringAmqpBatchIT extends RabbitMqTestBase {
 
     @Autowired

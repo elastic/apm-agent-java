@@ -44,7 +44,7 @@ import javax.annotation.Nullable;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-public class S3ClientIT extends AbstractAwsClientIT {
+public class S3ClientIT extends AbstractAws2ClientIT {
     private S3Client s3;
     private S3AsyncClient s3Async;
 
