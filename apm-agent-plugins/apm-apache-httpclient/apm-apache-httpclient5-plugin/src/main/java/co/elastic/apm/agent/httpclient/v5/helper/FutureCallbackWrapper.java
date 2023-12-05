@@ -54,10 +54,13 @@ class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
         try {
             finishSpan(null);
         } finally {
-            if (delegate != null) {
-                delegate.completed(result);
+            try {
+                if (delegate != null) {
+                    delegate.completed(result);
+                }
+            } finally {
+                helper.recycle(this);
             }
-            helper.recycle(this);
         }
     }
 
@@ -66,10 +69,13 @@ class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
         try {
             finishSpan(ex);
         } finally {
-            if (delegate != null) {
-                delegate.failed(ex);
+            try {
+                if (delegate != null) {
+                    delegate.failed(ex);
+                }
+            } finally {
+                helper.recycle(this);
             }
-            helper.recycle(this);
         }
     }
 
@@ -87,10 +93,13 @@ class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
         try {
             finishSpan(null);
         } finally {
-            if (delegate != null) {
-                delegate.cancelled();
+            try {
+                if (delegate != null) {
+                    delegate.cancelled();
+                }
+            } finally {
+                helper.recycle(this);
             }
-            helper.recycle(this);
         }
     }
 

@@ -31,7 +31,6 @@ import org.apache.hc.client5.http.protocol.HttpClientContext;
 import org.apache.hc.core5.concurrent.FutureCallback;
 import org.apache.hc.core5.http.ProtocolException;
 import org.apache.hc.core5.net.URIAuthority;
-import org.assertj.core.api.Assertions;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -103,7 +102,7 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
             reporter.resetChecks();
         }
         assertThat(reporter.getFirstSpan(500)).isNotNull();
-        Assertions.assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
     }
 
     @Test
@@ -117,7 +116,7 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
         assertThat(firstSpan).isNotNull();
         assertThat(firstSpan.getOutcome()).isEqualTo(Outcome.FAILURE);
         assertThat(firstSpan.getNameAsString()).isEqualTo("GET localhost");
-        Assertions.assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
     }
 
     @Test
@@ -138,7 +137,7 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
         assertThat(firstSpan).isNotNull();
         assertThat(firstSpan.getOutcome()).isEqualTo(Outcome.FAILURE);
         assertThat(firstSpan.getNameAsString()).isEqualTo("GET ");
-        Assertions.assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
     }
 
     /**
