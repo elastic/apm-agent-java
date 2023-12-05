@@ -54,7 +54,7 @@ import java.util.stream.Stream;
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 
-public class DynamoDbClientIT extends AbstractAwsClientIT {
+public class DynamoDbClientIT extends AbstractAws2ClientIT {
 
     private DynamoDbClient dynamoDB;
     private DynamoDbAsyncClient dynamoDBAsync;

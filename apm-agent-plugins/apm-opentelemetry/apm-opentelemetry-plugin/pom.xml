@@ -4,7 +4,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-opentelemetry</artifactId>
-        <version>1.43.1-SNAPSHOT</version>
+        <version>1.44.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-opentelemetry-plugin</artifactId>
@@ -18,6 +18,13 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
+            <version>${version.opentelemetry}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-instrumentation-annotations</artifactId>
             <version>${version.opentelemetry}</version>
             <scope>provided</scope>
         </dependency>
