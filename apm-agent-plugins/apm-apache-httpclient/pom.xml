@@ -18,7 +18,9 @@
 
     <modules>
         <module>apm-apache-httpclient3-plugin</module>
+        <module>apm-apache-httpclient-common</module>
         <module>apm-apache-httpclient4-plugin</module>
+        <module>apm-apache-httpclient5-plugin</module>
     </modules>
 
     <dependencies>

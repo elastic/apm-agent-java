@@ -16,44 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.httpclient.v4;
+package co.elastic.apm.agent.httpclient.v5;
+
 
 import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpClientAdvice;
-import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpClient4ApiAdapter;
-import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
+import co.elastic.apm.agent.httpclient.v5.helper.ApacheHttpClient5ApiAdapter;
+import co.elastic.apm.agent.httpclient.v5.helper.RequestHeaderAccessor;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpRequestWrapper;
-import org.apache.http.conn.routing.HttpRoute;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.HttpHost;
 
 import javax.annotation.Nullable;
 import java.net.URISyntaxException;
 
-import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-@SuppressWarnings("Duplicates")
-public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrumentation {
+public class ApacheHttpClient5Instrumentation extends BaseApacheHttpClient5Instrumentation {
 
-    public static class ApacheHttpClient4Advice extends AbstractApacheHttpClientAdvice {
-        private static final ApacheHttpClient4ApiAdapter adapter = ApacheHttpClient4ApiAdapter.get();
+    public static class ApacheHttpClient5Advice extends AbstractApacheHttpClientAdvice {
+        private static final ApacheHttpClient5ApiAdapter adapter = ApacheHttpClient5ApiAdapter.get();
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onBeforeExecute(@Advice.Argument(0) HttpRoute route,
-                                             @Advice.Argument(1) HttpRequestWrapper request) throws URISyntaxException {
-            return startSpan(tracer, adapter, request, route.getTargetHost(), RequestHeaderAccessor.INSTANCE);
+        public static Object onBeforeExecute(@Advice.Argument(0) HttpHost httpHost,
+                                             @Advice.Argument(1) ClassicHttpRequest request) throws URISyntaxException {
+            return startSpan(tracer, adapter, request, httpHost, RequestHeaderAccessor.INSTANCE);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -66,33 +63,26 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.httpclient.v4.ApacheHttpClientInstrumentation$ApacheHttpClient4Advice";
-    }
-
-    @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return not(isBootstrapClassLoader())
-            .and(classLoaderCanLoadClass("org.apache.http.impl.execchain.ClientExecChain"));
-    }
-
-    @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Exec").or(nameContains("Chain"));
+        return "co.elastic.apm.agent.httpclient.v5.ApacheHttpClient5Instrumentation$ApacheHttpClient5Advice";
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.apache.http.impl.execchain.ClientExecChain"));
+        return hasSuperType(named("org.apache.hc.client5.http.impl.classic.CloseableHttpClient"));
+    }
+
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("HttpClient");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("execute")
-            .and(takesArguments(4))
-            .and(returns(hasSuperType(named("org.apache.http.client.methods.CloseableHttpResponse"))))
-            .and(takesArgument(0, hasSuperType(named("org.apache.http.conn.routing.HttpRoute"))))
-            .and(takesArgument(1, hasSuperType(named("org.apache.http.client.methods.HttpRequestWrapper"))))
-            .and(takesArgument(2, hasSuperType(named("org.apache.http.client.protocol.HttpClientContext"))))
-            .and(takesArgument(3, hasSuperType(named("org.apache.http.client.methods.HttpExecutionAware"))));
+        return named("doExecute")
+            .and(takesArguments(3))
+            .and(returns(hasSuperType(named("org.apache.hc.client5.http.impl.classic.CloseableHttpResponse"))))
+            .and(takesArgument(0, named("org.apache.hc.core5.http.HttpHost")))
+            .and(takesArgument(1, named("org.apache.hc.core5.http.ClassicHttpRequest")))
+            .and(takesArgument(2, named("org.apache.hc.core5.http.protocol.HttpContext")));
     }
 }

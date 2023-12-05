@@ -35,7 +35,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyclable {
-    private final ApacheHttpAsyncClientHelper asyncClientHelper;
+    private final ApacheHttpClient4AsyncHelper asyncClientHelper;
     private volatile HttpAsyncRequestProducer delegate;
 
     @Nullable
@@ -44,7 +44,7 @@ public class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer
     @Nullable
     private Span<?> span;
 
-    HttpAsyncRequestProducerWrapper(ApacheHttpAsyncClientHelper helper) {
+    HttpAsyncRequestProducerWrapper(ApacheHttpClient4AsyncHelper helper) {
         this.asyncClientHelper = helper;
     }
 

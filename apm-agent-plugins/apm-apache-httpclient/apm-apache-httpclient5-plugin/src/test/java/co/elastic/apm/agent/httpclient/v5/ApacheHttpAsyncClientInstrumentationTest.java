@@ -16,20 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.httpclient.v4;
+package co.elastic.apm.agent.httpclient.v5;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.tracer.Outcome;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.concurrent.FutureCallback;
-import org.apache.http.conn.UnsupportedSchemeException;
-import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
-import org.apache.http.impl.nio.client.HttpAsyncClients;
-import org.assertj.core.api.Assertions;
+import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
+import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.client5.http.async.methods.SimpleRequestBuilder;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
+import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
+import org.apache.hc.client5.http.protocol.HttpClientContext;
+import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.http.ProtocolException;
+import org.apache.hc.core5.net.URIAuthority;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -56,28 +57,24 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
     }
 
     @Override
-    public boolean isAsync() {
-        return true;
-    }
-
-    @Override
     protected void performGet(String path) throws Exception {
-        final CompletableFuture<HttpResponse> responseFuture = new CompletableFuture<>();
-
+        final CompletableFuture<SimpleHttpResponse> responseFuture = new CompletableFuture<>();
+        SimpleHttpRequest req = SimpleRequestBuilder.get().setPath(path)
+            .build();
         RequestConfig requestConfig = RequestConfig.custom()
             .setCircularRedirectsAllowed(true)
             .build();
         HttpClientContext httpClientContext = HttpClientContext.create();
         httpClientContext.setRequestConfig(requestConfig);
-        client.execute(new HttpGet(path), httpClientContext, new FutureCallback<>() {
+        client.execute(req, httpClientContext, new FutureCallback<SimpleHttpResponse>() {
             @Override
-            public void completed(HttpResponse result) {
-                responseFuture.complete(result);
+            public void completed(SimpleHttpResponse simpleHttpResponse) {
+                responseFuture.complete(simpleHttpResponse);
             }
 
             @Override
-            public void failed(Exception ex) {
-                responseFuture.completeExceptionally(ex);
+            public void failed(Exception e) {
+                responseFuture.completeExceptionally(e);
             }
 
             @Override
@@ -89,6 +86,7 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
         responseFuture.get();
     }
 
+
     @Test
     public void testSpanFinishOnEarlyException() throws Exception {
 
@@ -97,33 +95,63 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
         reporter.disableCheckServiceTarget();
         reporter.disableCheckDestinationAddress();
         try {
-            assertThatThrownBy(() -> performGet(getBaseUrl() + "/")).isInstanceOf(IllegalStateException.class);
+            assertThatThrownBy(() -> performGet(getBaseUrl() + "/")).cause().isInstanceOf(IllegalStateException.class);
         } finally {
             //Reset state for other tests
             setUp();
             reporter.resetChecks();
         }
         assertThat(reporter.getFirstSpan(500)).isNotNull();
-        Assertions.assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
     }
 
     @Test
-    public void testSpanWithIllegalProtocol() throws Exception {
+    public void testSpanFinishWithIllegalProtocol() throws Exception {
         reporter.disableCheckServiceTarget();
         reporter.disableCheckDestinationAddress();
-        try {
-            String illegalProtocol = "ottp";
-            String url = getBaseUrl().replaceAll("http", illegalProtocol) + "/";
-            assertThatThrownBy(() -> performGet(url)).cause().isInstanceOf(UnsupportedSchemeException.class);
-        } finally {
-            setUp();
-            reporter.resetChecks();
-        }
+        String url = getBaseUrl().replaceAll("http", "ottp") + "/";
+        performGet(url);
+
         Span firstSpan = reporter.getFirstSpan(500);
         assertThat(firstSpan).isNotNull();
         assertThat(firstSpan.getOutcome()).isEqualTo(Outcome.FAILURE);
-        Assertions.assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(firstSpan.getNameAsString()).isEqualTo("GET localhost");
+        assertThat(reporter.getSpans()).hasSize(1);
     }
 
+    @Test
+    public void testSpanFinishWithIllegalUrl() throws Exception {
+        reporter.disableCheckServiceTarget();
+        reporter.disableCheckDestinationAddress();
+        String url = getBaseUrl().replaceAll("http:/", "") + "/";
 
+        try {
+            assertThatThrownBy(() -> performGet(url)).cause().isInstanceOf(ProtocolException.class);
+        } finally {
+            //Reset state for other tests
+            setUp();
+            reporter.resetChecks();
+        }
+
+        Span firstSpan = reporter.getFirstSpan(500);
+        assertThat(firstSpan).isNotNull();
+        assertThat(firstSpan.getOutcome()).isEqualTo(Outcome.FAILURE);
+        assertThat(firstSpan.getNameAsString()).isEqualTo("GET ");
+        assertThat(reporter.getSpans()).hasSize(1);
+    }
+
+    /**
+     * Difference between sync and async requests is that
+     * In async requests you need {@link SimpleRequestBuilder#setAuthority(URIAuthority)} explicitly
+     * And in this case exception will be thrown from {@link org.apache.hc.client5.http.impl.async.AsyncProtocolExec#execute}
+     * <p>
+     * SimpleHttpRequest req = SimpleRequestBuilder.get().setPath(path)
+     * .setScheme("http")
+     * .setAuthority(new URIAuthority(uri.getUserInfo(), uri.getHost(), uri.getPort()))
+     * .build();
+     */
+    @Override
+    public boolean isTestHttpCallWithUserInfoEnabled() {
+        return true;
+    }
 }

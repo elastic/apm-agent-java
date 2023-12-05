@@ -16,19 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.httpclient.v4;
+package co.elastic.apm.agent.httpclient.v5;
 
 import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpClientAsyncAdvice;
-import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpClient4AsyncHelper;
+import co.elastic.apm.agent.httpclient.v5.helper.ApacheHttpClient5AsyncHelper;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.apache.http.concurrent.FutureCallback;
-import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
-import org.apache.http.protocol.HttpContext;
+import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.http.nio.AsyncRequestProducer;
+import org.apache.hc.core5.http.protocol.HttpContext;
 
 import javax.annotation.Nullable;
 
@@ -42,17 +41,16 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientInstrumentation {
+public class ApacheHttpAsyncClient5Instrumentation extends BaseApacheHttpClient5Instrumentation {
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.httpclient.v4.ApacheHttpAsyncClientInstrumentation$ApacheHttpClient4AsyncAdvice";
+        return "co.elastic.apm.agent.httpclient.v5.ApacheHttpAsyncClient5Instrumentation$ApacheHttpClient5AsyncAdvice";
     }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return not(isBootstrapClassLoader())
-            .and(classLoaderCanLoadClass("org.apache.http.nio.client.HttpAsyncClient"));
+        return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("org.apache.hc.client5.http.async.HttpAsyncClient"));
     }
 
     @Override
@@ -62,37 +60,34 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.apache.http.nio.client.HttpAsyncClient"));
+        return hasSuperType(named("org.apache.hc.client5.http.async.HttpAsyncClient"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("execute")
-            .and(takesArguments(4))
-            .and(takesArgument(0, named("org.apache.http.nio.protocol.HttpAsyncRequestProducer")))
-            .and(takesArgument(1, named("org.apache.http.nio.protocol.HttpAsyncResponseConsumer")))
-            .and(takesArgument(2, named("org.apache.http.protocol.HttpContext")))
-            .and(takesArgument(3, named("org.apache.http.concurrent.FutureCallback")));
+        return named("execute").and(takesArguments(4))
+            .and(takesArgument(0, named("org.apache.hc.core5.http.nio.AsyncRequestProducer")))
+            .and(takesArgument(1, named("org.apache.hc.core5.http.nio.AsyncResponseConsumer")))
+            .and(takesArgument(2, named("org.apache.hc.core5.http.protocol.HttpContext")))
+            .and(takesArgument(3, named("org.apache.hc.core5.concurrent.FutureCallback")));
     }
 
-    public static class ApacheHttpClient4AsyncAdvice extends AbstractApacheHttpClientAsyncAdvice {
-        private static ApacheHttpClient4AsyncHelper asyncHelper = new ApacheHttpClient4AsyncHelper();
+    public static class ApacheHttpClient5AsyncAdvice extends AbstractApacheHttpClientAsyncAdvice {
 
-        @Advice.AssignReturned.ToArguments({
-            @ToArgument(index = 0, value = 0, typing = DYNAMIC),
-            @ToArgument(index = 1, value = 3, typing = DYNAMIC)
-        })
+        private static ApacheHttpClient5AsyncHelper asyncHelper = new ApacheHttpClient5AsyncHelper();
+
         @Nullable
+        @Advice.AssignReturned.ToArguments({
+            @Advice.AssignReturned.ToArguments.ToArgument(index = 0, value = 0, typing = DYNAMIC),
+            @Advice.AssignReturned.ToArguments.ToArgument(index = 1, value = 3, typing = DYNAMIC)
+        })
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object[] onBeforeExecute(@Advice.Argument(value = 0) HttpAsyncRequestProducer requestProducer,
-                                               @Advice.Argument(2) HttpContext context,
-                                               @Advice.Argument(value = 3) FutureCallback<?> futureCallback) {
-            return startSpan(tracer, asyncHelper, requestProducer, context, futureCallback);
+        public static Object[] onBeforeExecute(@Advice.Argument(value = 0) AsyncRequestProducer asyncRequestProducer, @Advice.Argument(value = 2) HttpContext context, @Advice.Argument(value = 3) FutureCallback<?> futureCallback) {
+            return startSpan(tracer, asyncHelper, asyncRequestProducer, context, futureCallback);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onAfterExecute(@Advice.Enter @Nullable Object[] enter,
-                                          @Advice.Thrown @Nullable Throwable t) {
+        public static void onAfterExecute(@Advice.Enter @Nullable Object[] enter, @Advice.Thrown @Nullable Throwable t) {
             endSpan(asyncHelper, enter, t);
         }
     }

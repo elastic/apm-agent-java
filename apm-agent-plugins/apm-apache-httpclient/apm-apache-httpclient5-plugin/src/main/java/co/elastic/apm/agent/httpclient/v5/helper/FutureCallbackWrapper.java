@@ -16,28 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.httpclient.v4.helper;
+package co.elastic.apm.agent.httpclient.v5.helper;
+
 
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
-import org.apache.http.concurrent.FutureCallback;
-import org.apache.http.protocol.HttpContext;
-import org.apache.http.protocol.HttpCoreContext;
+import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.http.protocol.HttpCoreContext;
 
 import javax.annotation.Nullable;
 
-public class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
-    private final ApacheHttpClient4AsyncHelper helper;
+class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
+    private final ApacheHttpClient5AsyncHelper helper;
     @Nullable
     private FutureCallback<T> delegate;
     @Nullable
     private HttpContext context;
     private volatile Span<?> span;
 
-    FutureCallbackWrapper(ApacheHttpClient4AsyncHelper helper) {
+    FutureCallbackWrapper(ApacheHttpClient5AsyncHelper helper) {
         this.helper = helper;
     }
 
@@ -54,10 +54,13 @@ public class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
         try {
             finishSpan(null);
         } finally {
-            if (delegate != null) {
-                delegate.completed(result);
+            try {
+                if (delegate != null) {
+                    delegate.completed(result);
+                }
+            } finally {
+                helper.recycle(this);
             }
-            helper.recycle(this);
         }
     }
 
@@ -66,18 +69,20 @@ public class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
         try {
             finishSpan(ex);
         } finally {
-            if (delegate != null) {
-                delegate.failed(ex);
+            try {
+                if (delegate != null) {
+                    delegate.failed(ex);
+                }
+            } finally {
+                helper.recycle(this);
             }
-            helper.recycle(this);
         }
     }
 
     public void failedWithoutExecution(Throwable ex) {
         try {
             final Span<?> localSpan = span;
-            localSpan.captureException(ex);
-            localSpan.end();
+            localSpan.captureException(ex).end();
         } finally {
             helper.recycle(this);
         }
@@ -88,10 +93,13 @@ public class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
         try {
             finishSpan(null);
         } finally {
-            if (delegate != null) {
-                delegate.cancelled();
+            try {
+                if (delegate != null) {
+                    delegate.cancelled();
+                }
+            } finally {
+                helper.recycle(this);
             }
-            helper.recycle(this);
         }
     }
 
@@ -102,10 +110,8 @@ public class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
             if (context != null) {
                 Object responseObject = context.getAttribute(HttpCoreContext.HTTP_RESPONSE);
                 if (responseObject instanceof HttpResponse) {
-                    StatusLine statusLine = ((HttpResponse) responseObject).getStatusLine();
-                    if (statusLine != null) {
-                        span.getContext().getHttp().withStatusCode(statusLine.getStatusCode());
-                    }
+                    int statusCode = ((HttpResponse) responseObject).getCode();
+                    span.getContext().getHttp().withStatusCode(statusCode);
                 }
             }
             localSpan.captureException(e);
