@@ -121,7 +121,7 @@ public class ElasticOtelMetricsExporter implements MetricExporter {
         try {
             DoubleHistogramBuilder.class.getMethod("setExplicitBucketBoundariesAdvice", List.class);
             return true;
-        } catch (NoSuchMethodException e) {
+        } catch (NoSuchMethodException | SecurityException e) {
             return false;
         }
     }

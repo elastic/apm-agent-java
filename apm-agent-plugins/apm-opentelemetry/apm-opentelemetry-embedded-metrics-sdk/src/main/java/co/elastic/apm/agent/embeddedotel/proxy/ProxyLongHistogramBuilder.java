@@ -31,7 +31,7 @@ public class ProxyLongHistogramBuilder {
 
     public ProxyLongHistogramBuilder(LongHistogramBuilder delegate) {
         this.delegate = delegate;
-        //apply default bucket boundaries
+        //apply default bucket boundaries, they are guaranteed to be ordered
         List<Double> boundaries = GlobalTracer.get().getConfig(MetricsConfiguration.class).getCustomMetricsHistogramBoundaries();
         delegate.setExplicitBucketBoundariesAdvice(convertToLongBoundaries(boundaries));
     }
