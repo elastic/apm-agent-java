@@ -31,6 +31,12 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.45.0]]
+==== 1.45.0 - 2023/12/07
+
 [float]
 ===== Features
 * Added support for OpenTelemetry annotations - `WithSpan` and `SpanAttribute` - {pull}3406[#3406]
@@ -44,9 +50,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 work when you bring your own `MeterProvider` from an SDK with version `1.32.0` or newer. As a workaround,
 you should manually register a corresponding View in your `MeterProvider`. Note that this change will not
 affect you, if you are using the OpenTelemetry API only and not the SDK. - {pull}3447[#3447]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.44.0]]
 ==== 1.44.0 - 2023/11/21
