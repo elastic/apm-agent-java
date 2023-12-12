@@ -16,15 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.awssdk.v2;
+package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
+public class EagerThrowable extends Throwable {
 
-public abstract class AbstractAws2ClientIT extends AbstractAwsClientIT {
+    private final Class<? extends Throwable> originalType;
 
-    public static final String LOCALSTACK_VERSION = "3.0.2";
+    public EagerThrowable(Throwable t) {
+        super(t.getMessage(), t.getCause(), false, false);
+        setStackTrace(t.getStackTrace());
+        this.originalType = t.getClass();
+    }
 
-    public AbstractAws2ClientIT() {
-        super(LOCALSTACK_VERSION);
+    public Class<? extends Throwable> getOriginalType() {
+        return originalType;
     }
 }

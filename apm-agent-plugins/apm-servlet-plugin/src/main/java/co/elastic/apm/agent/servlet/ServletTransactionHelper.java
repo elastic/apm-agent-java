@@ -232,7 +232,18 @@ public class ServletTransactionHelper {
                         @Nullable String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader, boolean deactivate) {
         try {
             // thrown the first time a JSP is invoked in order to register it
-            if (exception != null && "weblogic.servlet.jsp.AddToMapException".equals(exception.getClass().getName())) {
+            boolean ignoreTransaction = false;
+
+            if(exception != null){
+                Class<?> exceptionType;
+                if (exception instanceof EagerThrowable) {
+                    exceptionType = ((EagerThrowable) exception).getOriginalType();
+                } else {
+                    exceptionType = exception.getClass();
+                }
+                ignoreTransaction = "weblogic.servlet.jsp.AddToMapException".equals(exceptionType.getName());
+            }
+            if(ignoreTransaction){
                 transaction.ignoreTransaction();
             } else {
                 doOnAfter(transaction, exception, committed, status, overrideStatusCodeOnThrowable, method,
