@@ -236,12 +236,7 @@ public class ServletTransactionHelper {
             boolean ignoreTransaction = false;
 
             if(exception != null){
-                Class<?> exceptionType;
-                if (exception instanceof EagerThrowable) {
-                    exceptionType = ((EagerThrowable) exception).getOriginalType();
-                } else {
-                    exceptionType = exception.getClass();
-                }
+                Class<?> exceptionType = EagerThrowable.getOriginalClass(exception);
                 ignoreTransaction = "weblogic.servlet.jsp.AddToMapException".equals(exceptionType.getName());
             }
             if(ignoreTransaction){

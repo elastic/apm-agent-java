@@ -20,20 +20,24 @@ package co.elastic.apm.agent.tracer;
 
 public class EagerThrowable extends Throwable {
 
-    private final Class<? extends Throwable> originalType;
+    private final Class<? extends Throwable> originalClass;
 
     public EagerThrowable(Throwable t) {
         super(t.getMessage(), t.getCause(), true, false);
         setStackTrace(t.getStackTrace());
-        this.originalType = t.getClass();
+        this.originalClass = t.getClass();
         Throwable[] suppressed = t.getSuppressed();
         for (int i = 0; i < suppressed.length; i++) {
             addSuppressed(suppressed[i]);
         }
     }
 
-    public Class<? extends Throwable> getOriginalType() {
-        return originalType;
+    public static Class<? extends Throwable> getOriginalClass(Throwable t) {
+        if (t instanceof EagerThrowable) {
+            return ((EagerThrowable) t).originalClass;
+        } else {
+            return t.getClass();
+        }
     }
 
 }

@@ -64,6 +64,7 @@ import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.EagerThrowable;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import com.dslplatform.json.BoolConverter;
@@ -934,7 +935,9 @@ public class DslJsonSerializer {
                 writeField("message", String.valueOf(exception.getMessage()));
                 serializeStacktrace(exception.getStackTrace());
                 writeFieldName("type");
-                writeStringValue(exception.getClass().getName());
+
+                Class<?> type = EagerThrowable.getOriginalClass(exception);
+                writeStringValue(type.getName());
 
                 Throwable cause = exception.getCause();
                 if (cause != null) {
