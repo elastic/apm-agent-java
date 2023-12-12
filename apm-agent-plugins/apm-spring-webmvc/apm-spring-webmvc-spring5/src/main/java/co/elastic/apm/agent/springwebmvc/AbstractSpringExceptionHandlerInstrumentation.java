@@ -20,7 +20,7 @@ package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.servlet.Constants;
-import co.elastic.apm.agent.servlet.EagerThrowable;
+import co.elastic.apm.agent.tracer.EagerThrowable;
 import co.elastic.apm.agent.servlet.adapter.ServletRequestAdapter;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

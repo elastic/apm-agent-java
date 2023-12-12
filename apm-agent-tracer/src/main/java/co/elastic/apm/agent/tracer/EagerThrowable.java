@@ -16,19 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.servlet;
+package co.elastic.apm.agent.tracer;
 
 public class EagerThrowable extends Throwable {
 
     private final Class<? extends Throwable> originalType;
 
     public EagerThrowable(Throwable t) {
-        super(t.getMessage(), t.getCause(), false, false);
+        super(t.getMessage(), t.getCause(), true, false);
         setStackTrace(t.getStackTrace());
         this.originalType = t.getClass();
+        Throwable[] suppressed = t.getSuppressed();
+        for (int i = 0; i < suppressed.length; i++) {
+            addSuppressed(suppressed[i]);
+        }
     }
 
     public Class<? extends Throwable> getOriginalType() {
         return originalType;
     }
+
 }
