@@ -19,7 +19,9 @@
 package co.elastic.apm.agent.springwebmvc.exception;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.EagerThrowable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,10 +70,16 @@ public abstract class AbstractExceptionHandlerInstrumentationTest extends Abstra
 
         assertThat(reporter.getErrors())
             .hasSize(1)
-            .first().satisfies(error -> {
+            .first()
+            .satisfies(error -> {
                 assertThat(error.getException())
-                    .hasMessageContaining(exceptionMessageContains)
-                    .isInstanceOf(exceptionClazz);
+                    .isNotNull();
+                assertThat(error.getException())
+                    .hasMessageContaining(exceptionMessageContains);
+
+                // original type won't be the one we expect when exception is "eager"
+                assertThat(EagerThrowable.getOriginalClass(error.getException()))
+                    .isEqualTo(exceptionClazz);
             });
         assertThat(response.getStatus()).isEqualTo(statusCode);
         assertThat(transaction.getContext().getResponse().getStatusCode()).isEqualTo(statusCode);
