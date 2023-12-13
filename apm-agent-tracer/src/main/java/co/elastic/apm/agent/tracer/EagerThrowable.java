@@ -23,12 +23,12 @@ public class EagerThrowable extends Throwable {
     private final Class<? extends Throwable> originalClass;
 
     public EagerThrowable(Throwable t) {
-        super(t.getMessage(), t.getCause(), true, false);
+        super(t.getMessage(), t.getCause() == null ? null : new EagerThrowable(t.getCause()), true, false);
         setStackTrace(t.getStackTrace());
         this.originalClass = t.getClass();
         Throwable[] suppressed = t.getSuppressed();
         for (int i = 0; i < suppressed.length; i++) {
-            addSuppressed(suppressed[i]);
+            addSuppressed(new EagerThrowable(suppressed[i]));
         }
     }
 
