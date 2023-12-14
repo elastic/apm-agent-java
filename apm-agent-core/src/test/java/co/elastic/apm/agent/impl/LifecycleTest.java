@@ -142,7 +142,7 @@ public class LifecycleTest {
         final AtomicBoolean started = new AtomicBoolean();
         class TestListener extends AbstractLifecycleListener {
             @Override
-            public void init(co.elastic.apm.agent.tracer.Tracer tracer) {
+            public void init(Tracer tracer) {
                 initialized.set(true);
             }
 
