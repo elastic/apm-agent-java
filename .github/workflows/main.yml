@@ -341,7 +341,7 @@ jobs:
           path: ${{ github.workspace }}
       - uses: ./.github/workflows/maven-goal
         with:
-          command: ./mvnw -q -P jboss-tests verify
+          command: ./mvnw -q -P ci-jboss-integration-tests verify
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v3
