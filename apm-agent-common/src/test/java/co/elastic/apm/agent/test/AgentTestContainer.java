@@ -270,16 +270,16 @@ public abstract class AgentTestContainer<SELF extends GenericContainer<SELF>> ex
             log.info("starting container with {} = {}", jvmEnvironmentVariable, value);
         }
 
+        // log app server output for easier debugging
+        withLogConsumer(new Slf4jLogConsumer(log));
+
         try {
             super.start();
         } catch (RuntimeException e) {
             log.error("unable to start container, set breakpoint where this log is generated to debug", e);
         }
 
-        // send container logs to logger for easier debug by default
-        followOutput(new Slf4jLogConsumer(log));
 
-        //.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockServerContainer.class))
     }
 
     private static String javaAgentArg(AgentFileAccessor.Variant javaAgentArgumentVariant) {
