@@ -241,6 +241,40 @@
           </build>
         </profile>
         <profile>
+          <!-- copies behavior from app server tests for jboss -->
+          <id>ci-jboss-integration-tests</id>
+          <activation>
+              <activeByDefault>false</activeByDefault>
+          </activation>
+          <properties>
+              <!--
+              By default, disables all integration tests.
+              In integration-tests/application-server-integration-tests/pom.xml,
+              only that module is included by overriding skip.integration.test to false.
+              -->
+              <skip.integration.test>true</skip.integration.test>
+              <maven.javadoc.skip>true</maven.javadoc.skip>
+              <animal.sniffer.skip>true</animal.sniffer.skip>
+          </properties>
+          <build>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <configuration>
+                        <skipTests>${skip.integration.test}</skipTests>
+                        <rerunFailingTestsCount>3</rerunFailingTestsCount>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <configuration>
+                        <skipTests>true</skipTests>
+                    </configuration>
+                </plugin>
+            </plugins>
+          </build>
+        </profile>
+        <profile>
             <id>different-test-jdk</id>
             <activation>
                 <property>
