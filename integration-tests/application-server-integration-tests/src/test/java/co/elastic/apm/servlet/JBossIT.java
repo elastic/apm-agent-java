@@ -58,6 +58,10 @@ public class JBossIT extends AbstractServletContainerIntegrationTest {
 
     @Parameterized.Parameters(name = "JBoss {0}")
     public static Iterable<Object[]> data() {
+        // When running in GitHub actions if a new docker image is added, please
+        // update the list of these docker images in .ci/scripts/jboss-docker-images.txt
+        // then you can run .ci/scripts/jboss-upload.sh to upload these new docker images
+        // to the internal docker registry.
         return Arrays.asList(new Object[][]{
             {"registry.redhat.io/jboss-eap-7/eap70-openshift:1.7", true},
             {"registry.access.redhat.com/jboss-eap-7/eap71-openshift", true},

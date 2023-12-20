@@ -1,0 +1,6 @@
+eap71-openshift:latest
+eap72-openshift:latest
+eap70-openshift:1.7
+eap74-openjdk17-openshift-rhel8:7.4.14
+eap73-openjdk11-openshift-rhel8:7.3.10
+eap74-openjdk11-openshift-rhel8:7.4.0
