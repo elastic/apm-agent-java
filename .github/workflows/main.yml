@@ -343,7 +343,7 @@ jobs:
         run: .ci/scripts/jboss-pull.sh
       - uses: ./.github/workflows/maven-goal
         with:
-          command: ./mvnw -q -P ci-jboss-integration-tests verify
+          command: ./mvnw -q --file ./integration-tests/application-server-integration-tests/pom.xml -P ci-jboss-integration-tests verify
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v3
