@@ -68,6 +68,7 @@ public class JBossIT extends AbstractServletContainerIntegrationTest {
             {"registry.access.redhat.com/jboss-eap-7/eap72-openshift", true},
             {"registry.redhat.io/jboss-eap-7/eap73-openjdk11-openshift-rhel8:7.3.10", true},
             {"registry.redhat.io/jboss-eap-7/eap74-openjdk11-openshift-rhel8:7.4.0", false},
+            {"registry.redhat.io/jboss-eap-7/eap74-openjdk17-openshift-rhel8:7.4.14", false},
         });
     }
 
