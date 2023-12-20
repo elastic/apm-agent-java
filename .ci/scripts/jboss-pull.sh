@@ -7,6 +7,7 @@ set -eo pipefail
 ## to use the official docker namespace.
 ## Or by an Elastic employee to configure the docker images as needed.
 while read -r i ; do
+  [[ -z $i ]] && continue
   name="${i##*/}"
   echo "::group::$name"
   docker pull docker.elastic.co/observability-ci/$name --platform linux/amd64
@@ -14,6 +15,8 @@ while read -r i ; do
   echo "::endgroup::"
 done < .ci/scripts/jboss-docker-images.txt
 
-echo "::group::docker-images"
-docker images
-echo "::endgroup::"
+if [ "$CI" == "true" ] ;then
+  echo "::group::docker-images"
+  docker images
+  echo "::endgroup::"
+fi
