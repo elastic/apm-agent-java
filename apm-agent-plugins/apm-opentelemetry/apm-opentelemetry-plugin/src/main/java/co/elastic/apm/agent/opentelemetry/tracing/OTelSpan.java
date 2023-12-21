@@ -169,9 +169,13 @@ public class OTelSpan implements Span {
             type = "db";
             subType = dbSystem;
             String dbName = (String) attributes.get("db.name");
+            String dbStatement = (String) attributes.get("db.statement");
+            String dbUser = (String) attributes.get("db.user");
             s.getContext().getDb()
                 .withType(subType)
-                .withInstance(dbName);
+                .withInstance(dbName)
+                .withStatement(dbStatement)
+                .withUser(dbUser);
             s.getContext().getServiceTarget()
                 .withType(subType)
                 .withName(dbName);
