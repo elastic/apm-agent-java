@@ -31,6 +31,10 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[float]
+===== Bug fixes
+* Fixed NPE in ApacheHttpClientApiAdapter#getHostName - {pull}3479[#3479]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
