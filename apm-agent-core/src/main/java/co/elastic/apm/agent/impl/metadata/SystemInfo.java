@@ -304,6 +304,7 @@ public class SystemInfo {
         }
         try {
             List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+            logger.trace("Trying to parse container ID from '{}', lines: {}", path, lines);
             parseCgroupsV2ContainerId(lines);
             if (container != null) {
                 return;
@@ -322,6 +323,7 @@ public class SystemInfo {
         }
         try {
             List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+            logger.trace("Trying to parse container ID from '{}', lines: {}", path, lines);
             for (String line : lines) {
                 parseCgroupsLine(line);
                 if (container != null) {
