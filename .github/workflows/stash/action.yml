@@ -17,7 +17,7 @@ runs:
       shell: bash
 
     - name: Upload stash
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.name }}
+        name: ${{ inputs.name }}-${{ github.run_id }}-${{ github.run_attempt }}
         path: ${{ runner.temp }}/${{ inputs.name }}.tar.zst

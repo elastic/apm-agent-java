@@ -76,21 +76,21 @@ jobs:
       - name: Upload agent binaries as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: elastic-apm-agent
+          name: elastic-apm-agent-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ./elastic-apm-agent/target/elastic-apm-agent-*.jar
             !./**/*-sources.jar
       - name: Upload agent java 8 binaries as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: elastic-apm-agent-java8
+          name: elastic-apm-agent-java8-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ./elastic-apm-agent-java8/target/elastic-apm-agent-java8-*.jar
             !./**/*-sources.jar
       - name: Upload agent attach CLI artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: apm-agent-attach-cli
+          name: apm-agent-attach-cli-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ./apm-agent-attach-cli/target/apm-agent-attach-cli-*.jar
             !./**/*-sources.jar
@@ -98,28 +98,28 @@ jobs:
       - name: Upload agent attach artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: apm-agent-attach
+          name: apm-agent-attach-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ./apm-agent-attach/target/apm-agent-attach-*.jar
             !./**/*-sources.jar
       - name: Upload agent API artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: apm-agent-api
+          name: apm-agent-api-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ./apm-agent-api/target/apm-agent-api-*.jar
             !./**/*-sources.jar
       - name: Upload agent plugin SDK artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: apm-agent-plugin-sdk
+          name: apm-agent-plugin-sdk-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ./apm-agent-plugin-sdk/target/apm-agent-plugin-sdk-*.jar
             !./**/*-sources.jar
       - name: Upload benchmark binaries as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: apm-agent-benchmarks
+          name: apm-agent-benchmarks-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ./apm-agent-benchmarks/target/benchmarks*.jar
             !./**/*-sources.jar
@@ -162,7 +162,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ github.run_id }}-${{ github.run_attempt }}-ut
           path: |
             **/junit-*.xml
             **/TEST-*.xml
@@ -200,7 +200,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ github.run_id }}-${{ github.run_attempt }}-non-app-it
           path: |
             **/junit-*.xml
             **/TEST-*.xml
@@ -239,7 +239,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ github.run_id }}-${{ github.run_attempt }}-app-it
           path: |
             **/junit-*.xml
             **/TEST-*.xml
@@ -280,7 +280,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ github.run_id }}-${{ github.run_attempt }}-ut-windows
           path: |
             **/junit-*.xml
             **/TEST-*.xml
@@ -316,7 +316,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ github.run_id }}-${{ github.run_attempt }}-jdk-compat
           path: |
             **/junit-*.xml
             **/TEST-*.xml
@@ -349,7 +349,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ github.run_id }}-${{ github.run_attempt }}-jboss
           path: |
             **/junit-*.xml
             **/TEST-*.xml
