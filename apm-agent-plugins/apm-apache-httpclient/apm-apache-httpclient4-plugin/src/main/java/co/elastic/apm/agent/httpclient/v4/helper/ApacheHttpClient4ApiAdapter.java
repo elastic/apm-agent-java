@@ -50,7 +50,7 @@ public class ApacheHttpClient4ApiAdapter implements ApacheHttpClientApiAdapter<H
     }
 
     @Override
-    public CharSequence getHostName(HttpHost httpHost) {
+    public CharSequence getHostName(HttpHost httpHost, HttpRequestWrapper request) {
         return httpHost.getHostName();
     }
 

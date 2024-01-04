@@ -27,6 +27,7 @@ import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
 
+import javax.annotation.Nullable;
 import java.net.URISyntaxException;
 
 public abstract class AbstractApacheHttpClientAdvice {
@@ -36,12 +37,12 @@ public abstract class AbstractApacheHttpClientAdvice {
             TextHeaderGetter<REQUEST>> Object startSpan(final Tracer tracer,
                                                         final ApacheHttpClientApiAdapter<REQUEST, WRAPPER, HTTPHOST, RESPONSE> adapter,
                                                         final WRAPPER request,
-                                                        final HTTPHOST httpHost,
+                                                        @Nullable final HTTPHOST httpHost,
                                                         final HeaderAccessor headerAccessor) throws URISyntaxException {
         ElasticContext<?> elasticContext = tracer.currentContext();
         Span<?> span = null;
         if (elasticContext.getSpan() != null) {
-            span = HttpClientHelper.startHttpClientSpan(elasticContext, adapter.getMethod(request), adapter.getUri(request), adapter.getHostName(httpHost));
+            span = HttpClientHelper.startHttpClientSpan(elasticContext, adapter.getMethod(request), adapter.getUri(request), adapter.getHostName(httpHost, request));
             if (span != null) {
                 span.activate();
             }
