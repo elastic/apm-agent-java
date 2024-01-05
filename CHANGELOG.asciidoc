@@ -31,8 +31,14 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[float]
 ===== Features
-* Added support for OpenTelementry Attributes db.statement and db.user
+* Added support for OpenTelementry Attributes db.statement and db.user - {pull}3475[#3475]
+
+[float]
+===== Bug fixes
+* Fixed NPE in ApacheHttpClientApiAdapter#getHostName - {pull}3479[#3479]
+
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

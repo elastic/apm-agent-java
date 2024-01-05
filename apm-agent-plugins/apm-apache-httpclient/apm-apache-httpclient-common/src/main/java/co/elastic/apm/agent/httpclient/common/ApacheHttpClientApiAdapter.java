@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.httpclient.common;
 
 
+import javax.annotation.Nullable;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -27,7 +28,8 @@ public interface ApacheHttpClientApiAdapter<REQUEST, WRAPPER extends REQUEST, HT
 
     URI getUri(WRAPPER request) throws URISyntaxException;
 
-    CharSequence getHostName(HTTPHOST httpHost);
+    @Nullable
+    CharSequence getHostName(@Nullable HTTPHOST httpHost, WRAPPER request);
 
     int getResponseCode(RESPONSE response);
 
