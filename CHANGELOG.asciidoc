@@ -35,6 +35,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ===== Bug fixes
 * Fixed NPE in ApacheHttpClientApiAdapter#getHostName - {pull}3479[#3479]
 * Fix span stack trace when combined with span compression - {pull}3474[#3474]
+* Fix `UnsupportedClassVersionError` java 7 compatibility for jctools - {pull}3483[#3483]
 
 
 [[release-notes-1.x]]
