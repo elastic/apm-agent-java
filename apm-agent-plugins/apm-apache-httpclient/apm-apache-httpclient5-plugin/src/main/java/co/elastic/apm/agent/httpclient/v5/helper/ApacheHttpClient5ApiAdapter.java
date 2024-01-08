@@ -19,17 +19,24 @@
 package co.elastic.apm.agent.httpclient.v5.helper;
 
 import co.elastic.apm.agent.httpclient.common.ApacheHttpClientApiAdapter;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.apache.hc.client5.http.CircularRedirectException;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.routing.RoutingSupport;
 import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpRequest;
 
+import javax.annotation.Nullable;
 import java.net.URI;
 import java.net.URISyntaxException;
 
 public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<HttpRequest, ClassicHttpRequest, HttpHost, CloseableHttpResponse> {
     private static final ApacheHttpClient5ApiAdapter INSTANCE = new ApacheHttpClient5ApiAdapter();
+
+    private static final Logger logger = LoggerFactory.getLogger(ApacheHttpClient5ApiAdapter.class);
 
     private ApacheHttpClient5ApiAdapter() {
     }
@@ -49,8 +56,19 @@ public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<H
     }
 
     @Override
-    public CharSequence getHostName(HttpHost httpHost) {
-        return httpHost.getHostName();
+    public CharSequence getHostName(@Nullable HttpHost httpHost, ClassicHttpRequest request) {
+        if (httpHost != null) {
+            return httpHost.getHostName();
+        }
+
+        try {
+            return RoutingSupport.determineHost(request)
+                .getHostName();
+        } catch (HttpException e) {
+            logger.error("Exception while determining HostName", e);
+
+            return null;
+        }
     }
 
     @Override

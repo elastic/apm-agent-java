@@ -48,7 +48,7 @@ public class ApacheHttpClient5Instrumentation extends BaseApacheHttpClient5Instr
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onBeforeExecute(@Advice.Argument(0) HttpHost httpHost,
+        public static Object onBeforeExecute(@Advice.Argument(0) @Nullable HttpHost httpHost,
                                              @Advice.Argument(1) ClassicHttpRequest request) throws URISyntaxException {
             return startSpan(tracer, adapter, request, httpHost, RequestHeaderAccessor.INSTANCE);
         }
