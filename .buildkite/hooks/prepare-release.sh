@@ -22,6 +22,7 @@ export SERVER_PASSWORD
 # Signing keys
 GPG_SECRET=kv/data/ci-shared/release-eng/team-release-secrets/apm/gpg
 vault read -field=key_id $GPG_SECRET >$KEY_FILE
+## NOTE: passphase is the name of the field.
 KEYPASS_SECRET=$(vault read -field=passphase $GPG_SECRET)
 export KEYPASS_SECRET
 export KEY_ID_SECRET=D88E42B4
