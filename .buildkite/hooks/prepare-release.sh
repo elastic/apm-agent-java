@@ -21,11 +21,13 @@ export SERVER_PASSWORD
 
 # Signing keys
 GPG_SECRET=kv/data/ci-shared/release-eng/team-release-secrets/apm/gpg
-vault read -field=key_id $GPG_SECRET >$KEY_FILE
+vault read -field="keyring" $GPG_SECRET | base64 -d > $KEY_FILE
 ## NOTE: passphase is the name of the field.
-KEYPASS_SECRET=$(vault read -field=passphase $GPG_SECRET)
+KEYPASS_SECRET=$(vault read -field="passphase" $GPG_SECRET)
 export KEYPASS_SECRET
-export KEY_ID_SECRET=D88E42B4
+KEY_ID=$(vault kv get --field="key_id" $GPG_SECRET)
+KEY_ID_SECRET=${KEY_ID: -8}
+export KEY_ID_SECRET
 
 # Import the key into the keyring
 echo "$KEYPASS_SECRET" | gpg --batch --import "$KEY_FILE"
