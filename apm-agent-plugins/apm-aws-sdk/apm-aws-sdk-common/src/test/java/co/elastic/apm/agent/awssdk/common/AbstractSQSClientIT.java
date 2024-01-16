@@ -38,6 +38,10 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
     protected CoreConfiguration coreConfiguration;
     protected MessagingConfiguration messagingConfiguration;
 
+    public AbstractSQSClientIT(String localstackVersion) {
+        super(localstackVersion);
+    }
+
     @BeforeEach
     public void setupConfig() {
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);

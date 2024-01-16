@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
 
-public class S3ClientIT extends AbstractAwsClientIT {
+public class S3ClientIT extends AbstractAws1ClientIT {
 
     private AmazonS3 s3;
 

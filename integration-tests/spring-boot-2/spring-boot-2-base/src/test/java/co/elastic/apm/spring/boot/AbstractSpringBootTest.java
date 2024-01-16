@@ -78,8 +78,8 @@ public abstract class AbstractSpringBootTest {
     public void setUp() {
         doReturn(true).when(config.getConfig(ReporterConfiguration.class)).isReportSynchronously();
         restTemplate = new TestRestTemplate(new RestTemplateBuilder()
-            .setConnectTimeout(Duration.ZERO)
-            .setReadTimeout(Duration.ZERO)
+            .setConnectTimeout(Duration.ofSeconds(10))
+            .setReadTimeout(Duration.ofSeconds(10))
             .basicAuthentication("username", "password"));
         reporter.reset();
     }

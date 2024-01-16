@@ -48,6 +48,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -159,11 +160,20 @@ class ElasticApmTracerTest {
             Span span = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span.activateInScope()) {
                 Thread.sleep(10);
-                span.end();
+                stackTraceEndSpan(span);
             }
             transaction.end();
         }
-        assertThat(reporter.getFirstSpan().getStacktrace()).isNotNull();
+        Throwable stackTrace = reporter.getFirstSpan().getStacktrace();
+        assertThat(stackTrace).isNotNull();
+        assertThat(Arrays.stream(stackTrace.getStackTrace()).filter(stackTraceElement ->
+            stackTraceElement.getMethodName().equals("stackTraceEndSpan")
+                && stackTraceElement.getClassName().equals(ElasticApmTracerTest.class.getName()))).hasSize(1);
+    }
+
+    private static void stackTraceEndSpan(Span span) {
+        // dummy method used just to verify that the captured stack trace contains it
+        span.end();
     }
 
     @Test
