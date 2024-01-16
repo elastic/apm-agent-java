@@ -80,4 +80,4 @@ targets:
     sourceid: tarball
     kind: shell
     spec:
-      command: cd apm-agent-core/src/test/resources/apm-server-schema/current && tar xvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz
+      command: .ci/scripts/update-specs.sh {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz
