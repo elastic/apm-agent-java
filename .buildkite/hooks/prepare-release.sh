@@ -20,7 +20,7 @@ SERVER_PASSWORD=$(vault kv get --field="password" $NEXUS_SECRET)
 export SERVER_PASSWORD
 
 # Signing keys
-GPG_SECRET=kv/data/ci-shared/release-eng/team-release-secrets/apm/gpg
+GPG_SECRET=kv/ci-shared/release-eng/team-release-secrets/apm/gpg
 vault kv get --field="keyring" $GPG_SECRET | base64 -d > $KEY_FILE
 ## NOTE: passphase is the name of the field.
 KEYPASS_SECRET=$(vault kv get --field="passphase" $GPG_SECRET)
