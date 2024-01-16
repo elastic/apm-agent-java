@@ -49,7 +49,7 @@ sources:
     dependson:
       - sha
     spec:
-      command: cd input/elasticapm/docs/spec/v2 && tar cvzf /tmp/tarball.tgz .
+      command: cd input/elasticapm/docs/spec/v2 && tar cvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz .
       environments:
         - name: PATH
 
@@ -80,4 +80,4 @@ targets:
     sourceid: sha
     kind: shell
     spec:
-      command: cd apm-agent-core/src/test/resources/apm-server-schema/current && tar xvzf /tmp/tarball.tgz
+      command: cd apm-agent-core/src/test/resources/apm-server-schema/current && tar xvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz
