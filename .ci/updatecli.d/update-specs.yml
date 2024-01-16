@@ -1,6 +1,5 @@
 name: update-specs
 pipelineid: update-schema-specs
-title: synchronize schema specs
 
 scms:
   default:
@@ -49,9 +48,10 @@ sources:
     dependson:
       - sha
     spec:
-      command: cd input/elasticapm/docs/spec/v2 && tar cvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz .
+      command: tar cvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz .
       environments:
         - name: PATH
+      workdir: input/elasticapm/docs/spec/v2
 
 actions:
   pr:
@@ -80,7 +80,5 @@ targets:
     sourceid: agent-specs-tarball
     kind: shell
     spec:
-      command: .ci/scripts/update-specs.sh {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz
-      environments:
-        - name: PATH
-        - name: HOME
+      command: tar -xvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz
+      workdir: apm-agent-core/src/test/resources/apm-server-schema/current
