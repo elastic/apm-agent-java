@@ -77,7 +77,7 @@ targets:
   agent-json-schema:
     name: APM agent json schema {{ source "sha" }}
     scmid: default
-    sourceid: sha
+    sourceid: tarball
     kind: shell
     spec:
       command: cd apm-agent-core/src/test/resources/apm-server-schema/current && tar xvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz
