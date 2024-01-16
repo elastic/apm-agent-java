@@ -48,7 +48,7 @@ sources:
     dependson:
       - sha
     spec:
-      command: tar cvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz .
+      command: tar cvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/json-schema.tgz .
       environments:
         - name: PATH
       workdir: "{{ .specs.apm_data_path }}"
@@ -66,7 +66,7 @@ actions:
         - "automation"
       description: |-
         ### What
-        APM agent json schema automatic sync
+        APM agent json server schema automatic sync
 
         ### Why
         *Changeset*
@@ -75,10 +75,10 @@ actions:
 
 targets:
   agent-json-schema:
-    name: APM agent json schema {{ source "sha" }}
+    name: APM agent json server schema {{ source "sha" }}
     scmid: default
     sourceid: sha
     kind: shell
     spec:
-      command: 'tar -xzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz && git --no-pager diff # required to ignore the sourceid being appended'
+      command: 'tar -xzf {{ requiredEnv "GITHUB_WORKSPACE" }}/json-schema.tgz && git --no-pager diff # required to ignore the sourceid being appended'
       workdir: "{{ .apm_agent.server_schema_specs_path  }}"

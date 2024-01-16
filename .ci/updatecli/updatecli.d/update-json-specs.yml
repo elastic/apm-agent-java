@@ -47,7 +47,7 @@ sources:
     dependson:
       - sha
     spec:
-      command: tar cvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz .
+      command: tar cvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/json-specs.tgz .
       environments:
         - name: PATH
       workdir: "{{ .specs.apm_json_path }}"
@@ -78,5 +78,5 @@ targets:
     sourceid: sha
     kind: shell
     spec:
-      command: 'tar -xzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz && git --no-pager diff # required to ignore the sourceid being appended'
+      command: 'tar -xzf {{ requiredEnv "GITHUB_WORKSPACE" }}/json-specs.tgz && git --no-pager diff # required to ignore the sourceid being appended'
       workdir: "{{ .apm_agent.json_specs_path }}"
