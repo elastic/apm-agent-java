@@ -75,8 +75,8 @@ targets:
   agent-json-specs:
     name: APM agent json specs {{ source "sha" }}
     scmid: default
-    sourceid: agents-json-specs-tarball
+    sourceid: sha
     kind: shell
     spec:
-      command: tar -xvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz && git --no-pager diff # required to ignore the sourceid being appended
+      command: 'tar -xzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz && git --no-pager diff # required to ignore the sourceid being appended'
       workdir: "{{ .apm_agent.json_specs_path }}"
