@@ -58,7 +58,6 @@ actions:
     kind: "github/pullrequest"
     scmid: default
     sourceid: sha
-    name: '[Automation] Update JSON schema specs'
     spec:
       automerge: false
       draft: false
@@ -72,6 +71,7 @@ actions:
         *Changeset*
         * {{ source "pull_request" }}
         * https://github.com/{{ .github.owner }}/{{ .github.apm_data_repository }}/commit/{{ source "sha" }}
+      title: '[Automation] Update JSON server schema specs'
 
 targets:
   agent-json-schema:

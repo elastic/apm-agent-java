@@ -56,7 +56,6 @@ actions:
   pr:
     kind: "github/pullrequest"
     scmid: default
-    name: '[Automation] Update Gherkin specs'
     spec:
       automerge: false
       draft: false
@@ -70,6 +69,7 @@ actions:
         *Changeset*
         * {{ source "pull_request" }}
         * https://github.com/elastic/apm/commit/{{ source "sha" }}
+      title: '[Automation] Update Gherkin specs'
 
 targets:
   agent-gherkin-specs:

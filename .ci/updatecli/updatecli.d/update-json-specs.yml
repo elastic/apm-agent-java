@@ -56,7 +56,6 @@ actions:
   pr:
     kind: "github/pullrequest"
     scmid: default
-    name: '[Automation] Update JSON specs'
     spec:
       automerge: false
       draft: false
@@ -70,6 +69,7 @@ actions:
         *Changeset*
         * {{ source "pull_request" }}
         * https://github.com/{{ .github.owner }}/{{ .github.apm_repository }}/commit/{{ source "sha" }}
+      title: '[Automation] Update JSON specs'
 
 targets:
   agent-json-specs:
