@@ -27,12 +27,13 @@ scms:
 
 sources:
   sha:
-    kind: shell
+    kind: file
     spec:
-      command: gh api /repos/elastic/apm-data/commits --jq '.[0].sha'
-    environments:
-      - name: GITHUB_TOKEN
-      - name: PATH
+      file: 'https://github.com/elastic/apm-data/commit/main.patch'
+      matchpattern: "^From\\s([0-9a-f]{40})\\s"
+    transformers:
+      - findsubmatch:
+          pattern: "[0-9a-f]{40}"
   pull_request:
     kind: shell
     dependson:
