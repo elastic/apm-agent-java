@@ -11,7 +11,6 @@ set -eo pipefail
 # Make sure we delete this folder before leaving even in case of failure
 clean_up () {
   ARG=$?
-  export VAULT_TOKEN=$PREVIOUS_VAULT_TOKEN
   echo "--- Deleting tmp workspace"
   rm -rf $TMP_WORKSPACE
   exit $ARG
