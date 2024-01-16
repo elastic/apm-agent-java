@@ -46,8 +46,10 @@ sources:
   tarball:
     kind: shell
     scmid: apm-data
+    dependson:
+      - sha
     spec:
-      command: cd input/elasticapm/docs/spec/v2 && tar cvzf /tmp/tarball.tgz .
+      command: cd input/elasticapm/docs/spec/v2 && tar cvzf /tmp/tarball-{{ source "sha" }}.tgz .
       environments:
         - name: PATH
 
@@ -72,9 +74,10 @@ actions:
         * https://github.com/elastic/apm-data/commit/{{ source "sha" }}
 
 targets:
-  files.json:
+  agent-json-schema:
+    name: APM agent json schema {{ source "sha" }}
     scmid: default
-    sourceid: tarball
+    sourceid: sha
     kind: shell
     spec:
-      command: cd apm-agent-core/src/test/resources/apm-server-schema/current && tar xvzf /tmp/tarball.tgz
+      command: cd apm-agent-core/src/test/resources/apm-server-schema/current && tar xvzf /tmp/tarball-{{ source "sha" }}.tgz
