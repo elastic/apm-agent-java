@@ -113,6 +113,7 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(MESSAGING_CATEGORY)
         .description("Defines whether the agent should use the exchanges or the queue for the naming of RabbitMQ Transactions.")
         .dynamic(true)
+        .tags("added[1.46.0]")
         .buildWithDefault(RabbitMQNamingMode.EXCHANGE);
 
     public JmsStrategy getMessagePollingTransactionStrategy() {
