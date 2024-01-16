@@ -20,10 +20,16 @@ jobs:
           vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
           pipeline: .ci/updatecli/updatecli.d
           values: .ci/updatecli/values.yml
+          notifySlackChannel: "#on-week-oblt-productivity"
       - if: failure()
         uses: elastic/apm-pipeline-library/.github/actions/notify-build-status@current
         with:
           vaultUrl: ${{ secrets.VAULT_ADDR }}
           vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
           vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
-          slackChannel: "#apm-agent-java"
+          slackChannel: "#on-week-oblt-productivity"
+      - if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: specs
+          path: tarball.tgz

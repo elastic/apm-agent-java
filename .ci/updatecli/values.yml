@@ -1,5 +1,5 @@
 github:
-  owner: "elastic"
+  owner: "v1v"
   repository: "apm-agent-java"
   apm_repository: "apm"
   apm_data_repository: "apm-data"
