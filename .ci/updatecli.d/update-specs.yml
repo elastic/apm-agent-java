@@ -80,5 +80,5 @@ targets:
     sourceid: agent-specs-tarball
     kind: shell
     spec:
-      command: tar -xvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz
+      command: tar -xvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz && git --no-pager diff # required to ignore the sourceid being appended
       workdir: apm-agent-core/src/test/resources/apm-server-schema/current
