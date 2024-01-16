@@ -171,6 +171,7 @@ Click on a key to get more information.
 * <<config-messaging>>
 ** <<config-ignore-message-queues>>
 ** <<config-jms-listener-packages>>
+** <<config-rabbitmq-naming-mode>>
 * <<config-metrics>>
 ** <<config-dedot-custom-metrics>>
 ** <<config-custom-metrics-histogram-boundaries>>
@@ -820,7 +821,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `enable_instrumentations` (added[1.28.0])
 
 A list of instrumentations which should be selectively enabled.
-Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log-correlation`, `log-error`, `log-reformatting`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentelemetry-annotations`, `opentelemetry-metrics`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log-correlation`, `log-error`, `log-reformatting`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentelemetry-annotations`, `opentelemetry-metrics`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 
@@ -848,7 +849,7 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log-correlation`, `log-error`, `log-reformatting`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentelemetry-annotations`, `opentelemetry-metrics`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log-correlation`, `log-error`, `log-reformatting`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentelemetry-annotations`, `opentelemetry-metrics`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -2504,6 +2505,30 @@ Starting from version 1.43.0, the classes that are part of the 'application_pack
 | `elastic.apm.jms_listener_packages` | `jms_listener_packages` | `ELASTIC_APM_JMS_LISTENER_PACKAGES`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-rabbitmq-naming-mode]]
+==== `rabbitmq_naming_mode` (added[1.46.0])
+
+Defines whether the agent should use the exchanges or the queue for the naming of RabbitMQ Transactions. Valid options are `QUEUE` and `EXCHANGE`
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+Valid options: `EXCHANGE`, `QUEUE`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `EXCHANGE` | RabbitMQNamingMode | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.rabbitmq_naming_mode` | `rabbitmq_naming_mode` | `ELASTIC_APM_RABBITMQ_NAMING_MODE`
+|============
+
 [[config-metrics]]
 === Metrics configuration options
 
@@ -3709,7 +3734,7 @@ Example: `5ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,*auth*,*principal*,set-cookie
 
 # A list of instrumentations which should be selectively enabled.
-# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log-correlation`, `log-error`, `log-reformatting`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentelemetry-annotations`, `opentelemetry-metrics`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log-correlation`, `log-error`, `log-reformatting`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentelemetry-annotations`, `opentelemetry-metrics`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 # When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 # When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through <<config-disable-instrumentations>> or <<config-enable-experimental-instrumentations>>.
 # 
@@ -3722,7 +3747,7 @@ Example: `5ms`.
 # enable_instrumentations=
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log-correlation`, `log-error`, `log-reformatting`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentelemetry-annotations`, `opentelemetry-metrics`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
+# Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log-correlation`, `log-error`, `log-reformatting`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentelemetry-annotations`, `opentelemetry-metrics`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`.
 # For version `1.25.0` and later, use <<config-enable-experimental-instrumentations>> to enable experimental instrumentations.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -4600,6 +4625,15 @@ Example: `5ms`.
 # Default value: 
 #
 # jms_listener_packages=
+
+# Defines whether the agent should use the exchanges or the queue for the naming of RabbitMQ Transactions. Valid options are `QUEUE` and `EXCHANGE`
+#
+# Valid options: EXCHANGE, QUEUE
+# This setting can be changed at runtime
+# Type: RabbitMQNamingMode
+# Default value: EXCHANGE
+#
+# rabbitmq_naming_mode=EXCHANGE
 
 ############################################
 # Metrics                                  #
