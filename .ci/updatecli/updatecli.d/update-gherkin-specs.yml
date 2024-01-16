@@ -1,5 +1,5 @@
-name: update-specs
-pipelineid: update-schema-specs
+name: update-gherkin-specs
+pipelineid: update-gherkin-specs
 
 scms:
   default:
@@ -7,28 +7,27 @@ scms:
     spec:
       user: '{{ requiredEnv "GIT_USER" }}'
       email: '{{ requiredEnv "GIT_EMAIL" }}'
-      owner: elastic
-      repository: apm-agent-java
+      owner: "{{ .github.owner }}"
+      repository: "{{ .github.repository }}"
       token: '{{ requiredEnv "GITHUB_TOKEN" }}'
       username: '{{ requiredEnv "GIT_USER" }}'
-      branch: main
-
-  apm-data:
+      branch: "{{ .github.branch }}"
+  apm:
     kind: github
     spec:
       user: '{{ requiredEnv "GIT_USER" }}'
       email: '{{ requiredEnv "GIT_EMAIL" }}'
-      owner: elastic
-      repository: apm-data
+      owner: "{{ .github.owner }}"
+      repository: "{{ .github.apm_repository }}"
       token: '{{ requiredEnv "GITHUB_TOKEN" }}'
       username: '{{ requiredEnv "GIT_USER" }}'
-      branch: main
+      branch: "{{ .github.branch }}"
 
 sources:
   sha:
     kind: file
     spec:
-      file: 'https://github.com/elastic/apm-data/commit/main.patch'
+      file: 'https://github.com/{{ .github.owner }}/{{ .github.apm_repository }}/commit/{{ .github.branch }}.patch'
       matchpattern: "^From\\s([0-9a-f]{40})\\s"
     transformers:
       - findsubmatch:
@@ -38,27 +37,26 @@ sources:
     dependson:
       - sha
     spec:
-      command: gh api /repos/elastic/apm-data/commits/{{ source "sha" }}/pulls --jq '.[].html_url'
+      command: gh api /repos/{{ .github.owner }}/{{ .github.apm_repository }}/commits/{{ source "sha" }}/pulls --jq '.[].html_url'
       environments:
         - name: GITHUB_TOKEN
         - name: PATH
-  agent-specs-tarball:
+  agents-gherkin-specs-tarball:
     kind: shell
-    scmid: apm-data
+    scmid: apm
     dependson:
       - sha
     spec:
       command: tar cvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz .
       environments:
         - name: PATH
-      workdir: input/elasticapm/docs/spec/v2
+      workdir: "{{ .specs.apm_gherkin_path }}"
 
 actions:
   pr:
     kind: "github/pullrequest"
     scmid: default
-    sourceid: sha
-    name: '[Automation] Update JSON schema specs'
+    name: '[Automation] Update Gherkin specs'
     spec:
       automerge: false
       draft: false
@@ -66,19 +64,19 @@ actions:
         - "automation"
       description: |-
         ### What
-        APM agent json schema automatic sync
+        APM agent Gherkin specs automatic sync
 
         ### Why
         *Changeset*
         * {{ source "pull_request" }}
-        * https://github.com/elastic/apm-data/commit/{{ source "sha" }}
+        * https://github.com/elastic/apm/commit/{{ source "sha" }}
 
 targets:
-  agent-json-schema:
-    name: APM agent json schema {{ source "sha" }}
+  agent-gherkin-specs:
+    name: APM agent gherkin specs {{ source "sha" }}
     scmid: default
-    sourceid: agent-specs-tarball
+    sourceid: agents-gherkin-specs-tarball
     kind: shell
     spec:
       command: tar -xvzf {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz && git --no-pager diff # required to ignore the sourceid being appended
-      workdir: apm-agent-core/src/test/resources/apm-server-schema/current
+      workdir: "{{ .apm_agent.gherkin_specs_path }}"
