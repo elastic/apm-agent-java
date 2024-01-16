@@ -19,6 +19,7 @@ jobs:
           vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
           vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
           pipeline: .ci/updatecli.d/update-specs.yml
+          notifySlackChannel: "#on-week-oblt-productivity"
       - if: failure()
         uses: elastic/apm-pipeline-library/.github/actions/notify-build-status@current
         with:
