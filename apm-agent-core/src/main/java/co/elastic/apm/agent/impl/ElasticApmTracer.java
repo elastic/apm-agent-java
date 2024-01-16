@@ -107,7 +107,6 @@ public class ElasticApmTracer implements Tracer {
     private static volatile boolean classloaderCheckOk = false;
 
     private final ConfigurationRegistry configurationRegistry;
-    private final StacktraceConfiguration stacktraceConfiguration;
     private final ApmServerClient apmServerClient;
     private final List<LifecycleListener> lifecycleListeners = new CopyOnWriteArrayList<>();
     private final ObjectPool<Transaction> transactionPool;
@@ -203,7 +202,6 @@ public class ElasticApmTracer implements Tracer {
         this.metricRegistry = metricRegistry;
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
-        this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         this.apmServerClient = apmServerClient;
         this.ephemeralId = ephemeralId;
         this.metaDataFuture = metaDataFuture;
@@ -574,12 +572,6 @@ public class ElasticApmTracer implements Tracer {
         // makes sure that parents are also non-discardable
         span.setNonDiscardable();
 
-        long spanStackTraceMinDurationMs = stacktraceConfiguration.getSpanStackTraceMinDurationMs();
-        if (spanStackTraceMinDurationMs >= 0 && span.isSampled() && span.getStackFrames() == null) {
-            if (span.getDurationMs() >= spanStackTraceMinDurationMs) {
-                span.withStacktrace(new Throwable());
-            }
-        }
         reporter.report(span);
     }
 

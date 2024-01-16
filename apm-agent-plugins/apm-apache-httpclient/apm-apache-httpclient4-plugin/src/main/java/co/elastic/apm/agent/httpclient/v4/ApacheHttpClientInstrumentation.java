@@ -18,22 +18,20 @@
  */
 package co.elastic.apm.agent.httpclient.v4;
 
-import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpClientAdvice;
+import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpClient4ApiAdapter;
 import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
-import co.elastic.apm.agent.tracer.ElasticContext;
-import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.apache.http.client.CircularRedirectException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.conn.routing.HttpRoute;
 
 import javax.annotation.Nullable;
+import java.net.URISyntaxException;
 
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -48,54 +46,27 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 @SuppressWarnings("Duplicates")
 public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrumentation {
 
-    public static class ApacheHttpClientAdvice {
+    public static class ApacheHttpClient4Advice extends AbstractApacheHttpClientAdvice {
+        private static final ApacheHttpClient4ApiAdapter adapter = ApacheHttpClient4ApiAdapter.get();
+
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(0) HttpRoute route,
-                                             @Advice.Argument(1) HttpRequestWrapper request) {
-            ElasticContext<?> activeContext = tracer.currentContext();
-            Span<?> span = null;
-            if (activeContext.getSpan() != null) {
-                span = HttpClientHelper.startHttpClientSpan(activeContext, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());
-
-                if (span != null) {
-                    span.activate();
-                }
-            }
-
-            tracer.currentContext().propagateContext(request, RequestHeaderAccessor.INSTANCE, RequestHeaderAccessor.INSTANCE);
-            return span;
+                                             @Advice.Argument(1) HttpRequestWrapper request) throws URISyntaxException {
+            return startSpan(tracer, adapter, request, route.getTargetHost(), RequestHeaderAccessor.INSTANCE);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Return @Nullable CloseableHttpResponse response,
                                           @Advice.Enter @Nullable Object spanObj,
                                           @Advice.Thrown @Nullable Throwable t) {
-            Span<?> span = (Span<?>) spanObj;
-            if (span == null) {
-                return;
-            }
-            try {
-                if (response != null && response.getStatusLine() != null) {
-                    int statusCode = response.getStatusLine().getStatusCode();
-                    span.getContext().getHttp().withStatusCode(statusCode);
-                }
-                span.captureException(t);
-            } finally {
-                // in case of circular redirect, we get an exception but status code won't be available without response
-                // thus we have to deal with span outcome directly
-                if (t instanceof CircularRedirectException) {
-                    span.withOutcome(Outcome.FAILURE);
-                }
-
-                span.deactivate().end();
-            }
+            endSpan(adapter, spanObj, t, response);
         }
     }
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.httpclient.v4.ApacheHttpClientInstrumentation$ApacheHttpClientAdvice";
+        return "co.elastic.apm.agent.httpclient.v4.ApacheHttpClientInstrumentation$ApacheHttpClient4Advice";
     }
 
     @Override

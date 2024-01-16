@@ -1,0 +1,6 @@
+registry.redhat.io/jboss-eap-7/eap70-openshift:1.7
+registry.access.redhat.com/jboss-eap-7/eap71-openshift
+registry.access.redhat.com/jboss-eap-7/eap72-openshift
+registry.redhat.io/jboss-eap-7/eap73-openjdk11-openshift-rhel8:7.3.10
+registry.redhat.io/jboss-eap-7/eap74-openjdk11-openshift-rhel8:7.4.0
+registry.redhat.io/jboss-eap-7/eap74-openjdk17-openshift-rhel8:7.4.14

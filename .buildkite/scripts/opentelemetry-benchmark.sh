@@ -27,8 +27,8 @@ BENCHMARKS_JAR_FILE="$(pwd)/$BENCHMARKS_JAR"
 echo "$BENCHMARKS_JAR_FILE has been downloaded."
 
 echo "--- Start APM Server mock"
-git clone https://github.com/elastic/apm-mutating-webhook.git
-pushd apm-mutating-webhook/test/mock
+git clone https://github.com/elastic/apm-k8s-attacher.git
+pushd apm-k8s-attacher/test/mock
 docker build -t $CONTAINER_NAME .
 docker run -dp 127.0.0.1:8027:8027 $CONTAINER_NAME
 popd

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.httpclient.v4.helper;
 
+import co.elastic.apm.agent.httpclient.common.ApacheHttpClientAsyncHelper;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
@@ -31,7 +32,7 @@ import org.apache.http.protocol.HttpContext;
 
 import javax.annotation.Nullable;
 
-public class ApacheHttpAsyncClientHelper {
+public class ApacheHttpClient4AsyncHelper implements ApacheHttpClientAsyncHelper<HttpAsyncRequestProducer, HttpAsyncRequestProducerWrapper, FutureCallback, FutureCallbackWrapper<?>, HttpContext> {
 
     private static final int MAX_POOLED_ELEMENTS = 256;
 
@@ -39,7 +40,7 @@ public class ApacheHttpAsyncClientHelper {
     private final ObjectPool<HttpAsyncRequestProducerWrapper> requestProducerWrapperObjectPool;
     private final ObjectPool<FutureCallbackWrapper<?>> futureCallbackWrapperObjectPool;
 
-    public ApacheHttpAsyncClientHelper() {
+    public ApacheHttpClient4AsyncHelper() {
         tracer = GlobalTracer.get();
         ObjectPoolFactory factory = tracer.getObjectPoolFactory();
         requestProducerWrapperObjectPool = factory.createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new RequestProducerWrapperAllocator());
@@ -53,14 +54,14 @@ public class ApacheHttpAsyncClientHelper {
     private class RequestProducerWrapperAllocator implements Allocator<HttpAsyncRequestProducerWrapper> {
         @Override
         public HttpAsyncRequestProducerWrapper createInstance() {
-            return new HttpAsyncRequestProducerWrapper(ApacheHttpAsyncClientHelper.this);
+            return new HttpAsyncRequestProducerWrapper(ApacheHttpClient4AsyncHelper.this);
         }
     }
 
     private class FutureCallbackWrapperAllocator implements Allocator<FutureCallbackWrapper<?>> {
         @Override
         public FutureCallbackWrapper<?> createInstance() {
-            return new FutureCallbackWrapper(ApacheHttpAsyncClientHelper.this);
+            return new FutureCallbackWrapper<>(ApacheHttpClient4AsyncHelper.this);
         }
     }
 
@@ -69,10 +70,17 @@ public class ApacheHttpAsyncClientHelper {
         return requestProducerWrapperObjectPool.createInstance().with(requestProducer, span, toPropagate);
     }
 
-    public <T> FutureCallbackWrapper<T> wrapFutureCallback(FutureCallback<T> futureCallback, HttpContext context, Span<?> span) {
-        return ((FutureCallbackWrapper<T>) futureCallbackWrapperObjectPool.createInstance()).with(futureCallback, context, span);
+    @Override
+    public FutureCallbackWrapper<?> wrapFutureCallback(FutureCallback futureCallback, HttpContext context, Span<?> span) {
+        return futureCallbackWrapperObjectPool.createInstance().with(futureCallback, context, span);
     }
 
+    @Override
+    public void failedBeforeRequestStarted(FutureCallbackWrapper<?> cb, Throwable t) {
+        cb.failedWithoutExecution(t);
+    }
+
+    @Override
     public void recycle(HttpAsyncRequestProducerWrapper requestProducerWrapper) {
         requestProducerWrapperObjectPool.recycle(requestProducerWrapper);
     }

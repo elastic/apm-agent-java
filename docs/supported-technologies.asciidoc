@@ -204,7 +204,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |8+
 
 |<<setup-jboss-wildfly,JBoss EAP>>
-|6.4, 7.0, 7.1, 7.2
+|6.4, 7.x
 
 |<<setup-jetty,Jetty>> (only the `ServletContextHandler` is supported)
 |9.2, 9.3, 9.4
@@ -319,6 +319,7 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |
 | 0.7.0 (4.3+)
   1.8.0 (4.0+)
+  1.45.0 (5.0+)
 
 |Apache HttpClient (Legacy)
 |3.0+
