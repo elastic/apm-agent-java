@@ -25,7 +25,7 @@ jobs:
           vaultUrl: ${{ secrets.VAULT_ADDR }}
           vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
           vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
-          slackChannel: "#apm-agent-java"
+          slackChannel: "#on-week-oblt-productivity"
       - if: always()
         uses: actions/upload-artifact@v3
         with:
