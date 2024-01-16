@@ -43,7 +43,7 @@ sources:
       environments:
         - name: GITHUB_TOKEN
         - name: PATH
-  tarball:
+  agent-specs-tarball:
     kind: shell
     scmid: apm-data
     dependson:
@@ -77,7 +77,10 @@ targets:
   agent-json-schema:
     name: APM agent json schema {{ source "sha" }}
     scmid: default
-    sourceid: tarball
+    sourceid: agent-specs-tarball
     kind: shell
     spec:
       command: .ci/scripts/update-specs.sh {{ requiredEnv "GITHUB_WORKSPACE" }}/tarball.tgz
+      environments:
+        - name: PATH
+        - name: HOME
