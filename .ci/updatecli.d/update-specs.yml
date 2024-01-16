@@ -14,15 +14,25 @@ scms:
       username: '{{ requiredEnv "GIT_USER" }}'
       branch: main
 
+  apm-data:
+    kind: github
+    spec:
+      user: '{{ requiredEnv "GIT_USER" }}'
+      email: '{{ requiredEnv "GIT_EMAIL" }}'
+      owner: elastic
+      repository: apm-data
+      token: '{{ requiredEnv "GITHUB_TOKEN" }}'
+      username: '{{ requiredEnv "GIT_USER" }}'
+      branch: main
+
 sources:
   sha:
-    kind: file
+    kind: shell
     spec:
-      file: 'https://github.com/elastic/apm-data/commit/main.patch'
-      matchpattern: "^From\\s([0-9a-f]{40})\\s"
-    transformers:
-      - findsubmatch:
-          pattern: "[0-9a-f]{40}"
+      command: gh api /repos/elastic/apm-data/commits --jq '.[0].sha'
+    environments:
+      - name: GITHUB_TOKEN
+      - name: PATH
   pull_request:
     kind: shell
     dependson:
@@ -32,26 +42,13 @@ sources:
       environments:
         - name: GITHUB_TOKEN
         - name: PATH
-  error.json:
-    kind: file
+  tarball:
+    kind: shell
+    scmid: apm-data
     spec:
-      file: https://raw.githubusercontent.com/elastic/apm-data/main/input/elasticapm/docs/spec/v2/error.json
-  metadata.json:
-    kind: file
-    spec:
-      file: https://raw.githubusercontent.com/elastic/apm-data/main/input/elasticapm/docs/spec/v2/metadata.json
-  metricset.json:
-    kind: file
-    spec:
-      file: https://raw.githubusercontent.com/elastic/apm-data/main/input/elasticapm/docs/spec/v2/metricset.json
-  span.json:
-    kind: file
-    spec:
-      file: https://raw.githubusercontent.com/elastic/apm-data/main/input/elasticapm/docs/spec/v2/span.json
-  transaction.json:
-    kind: file
-    spec:
-      file: https://raw.githubusercontent.com/elastic/apm-data/main/input/elasticapm/docs/spec/v2/transaction.json
+      command: cd input/elasticapm/docs/spec/v2 && tar cvzf /tmp/tarball.tgz .
+      environments:
+        - name: PATH
 
 actions:
   pr:
@@ -74,43 +71,9 @@ actions:
         * https://github.com/elastic/apm-data/commit/{{ source "sha" }}
 
 targets:
-  error.json:
-    name: error.json
+  files.json:
     scmid: default
-    sourceid: error.json
-    kind: file
+    sourceid: tarball
+    kind: shell
     spec:
-      file: apm-agent-core/src/test/resources/apm-server-schema/current/error.json
-      forcecreate: true
-  metadata.json:
-    name: metadata.json
-    scmid: default
-    sourceid: metadata.json
-    kind: file
-    spec:
-      file: apm-agent-core/src/test/resources/apm-server-schema/current/metadata.json
-      forcecreate: true
-  metricset.json:
-    name: metricset.json
-    scmid: default
-    sourceid: metricset.json
-    kind: file
-    spec:
-      file: apm-agent-core/src/test/resources/apm-server-schema/current/metricset.json
-      forcecreate: true
-  span.json:
-    name: span.json
-    scmid: default
-    sourceid: span.json
-    kind: file
-    spec:
-      file: apm-agent-core/src/test/resources/apm-server-schema/current/span.json
-      forcecreate: true
-  transaction.json:
-    name: transaction.json
-    scmid: default
-    sourceid: transaction.json
-    kind: file
-    spec:
-      file: apm-agent-core/src/test/resources/apm-server-schema/current/transaction.json
-      forcecreate: true
+      command: cd apm-agent-core/src/test/resources/apm-server-schema/current && tar xvzf /tmp/tarball.tgz
