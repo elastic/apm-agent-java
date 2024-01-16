@@ -58,7 +58,7 @@ actions:
     kind: "github/pullrequest"
     scmid: default
     sourceid: sha
-    title: '[Automation] Update JSON schema specs'
+    name: '[Automation] Update JSON schema specs'
     spec:
       automerge: false
       draft: false
