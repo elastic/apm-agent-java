@@ -32,6 +32,7 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.DoubleCounter;
 import io.opentelemetry.api.metrics.DoubleGaugeBuilder;
 import io.opentelemetry.api.metrics.DoubleHistogram;
+import io.opentelemetry.api.metrics.DoubleHistogramBuilder;
 import io.opentelemetry.api.metrics.DoubleUpDownCounter;
 import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.LongHistogram;
@@ -588,44 +589,44 @@ public abstract class AbstractOtelMetricsTest {
     @Test
     public void testHistogram() {
         MetricsConfiguration metricsConfig = config.getConfig(MetricsConfiguration.class);
-        doReturn(List.of(1.0, 5.0)).when(metricsConfig).getCustomMetricsHistogramBoundaries();
+        doReturn(List.of(5d, 10d, 25d)).when(metricsConfig).getCustomMetricsHistogramBoundaries();
 
         Meter testMeter = createMeter("test");
         DoubleHistogram doubleHisto = testMeter.histogramBuilder("double_histo").build();
         LongHistogram longHisto = testMeter.histogramBuilder("long_histo").ofLongs().build();
 
         doubleHisto.record(0.5);
-        doubleHisto.record(1.5);
-        doubleHisto.record(1.5);
-        doubleHisto.record(5.5);
-        doubleHisto.record(5.5);
-        doubleHisto.record(5.5);
+        doubleHisto.record(6.5);
+        doubleHisto.record(6.5);
+        doubleHisto.record(10.5);
+        doubleHisto.record(10.5);
+        doubleHisto.record(10.5);
 
-        longHisto.record(0);
-        longHisto.record(2);
-        longHisto.record(2);
+        longHisto.record(1);
         longHisto.record(6);
         longHisto.record(6);
-        longHisto.record(6);
+        longHisto.record(11);
+        longHisto.record(11);
+        longHisto.record(11);
 
         resetReporterAndFlushMetrics();
         assertThatMetricSets(reporter.getBytes())
             .hasMetricsetCount(1)
             .first()
-            .containsHistogramMetric("double_histo", List.of(0.5, 3.0, 5.0), List.of(1L, 2L, 3L))
-            .containsHistogramMetric("long_histo", List.of(0.5, 3.0, 5.0), List.of(1L, 2L, 3L))
+            .containsHistogramMetric("double_histo", List.of(2.5, 7.5, 17.5), List.of(1L, 2L, 3L))
+            .containsHistogramMetric("long_histo", List.of(2.5, 7.5, 17.5), List.of(1L, 2L, 3L))
             .hasMetricsCount(2);
 
         //make sure only delta is reported and empty buckets are omitted
-        doubleHisto.record(1.5);
-        longHisto.record(2);
+        doubleHisto.record(6.5);
+        longHisto.record(6);
 
         resetReporterAndFlushMetrics();
         assertThatMetricSets(reporter.getBytes())
             .hasMetricsetCount(1)
             .first()
-            .containsHistogramMetric("double_histo", List.of(3.0), List.of(1L))
-            .containsHistogramMetric("long_histo", List.of(3.0), List.of(1L))
+            .containsHistogramMetric("double_histo", List.of(7.5), List.of(1L))
+            .containsHistogramMetric("long_histo", List.of(7.5), List.of(1L))
             .hasMetricsCount(2);
 
         //empty histograms must not be exported
@@ -664,9 +665,56 @@ public abstract class AbstractOtelMetricsTest {
             .hasMetricsetCount(1)
             .first()
             .metricSatisfies("double_histo",
-                metric -> assertThat(metric.counts.stream().mapToLong(Long::longValue).sum()).isEqualTo(totalSumFinal))
+                metric -> {
+                    assertThat(metric.counts).hasSizeGreaterThan(20);
+                    assertThat(metric.counts.stream().mapToLong(Long::longValue).sum()).isEqualTo(totalSumFinal);
+                })
             .metricSatisfies("long_histo",
-                metric -> assertThat(metric.counts.stream().mapToLong(Long::longValue).sum()).isEqualTo(totalSumFinal))
+                metric -> {
+                    assertThat(metric.counts).hasSizeGreaterThan(20);
+                    assertThat(metric.counts.stream().mapToLong(Long::longValue).sum()).isEqualTo(totalSumFinal);
+                })
+            .hasMetricsCount(2);
+    }
+
+
+    @Test
+    public void testHistogramAdviceAPI() {
+        try {
+            DoubleHistogramBuilder.class.getMethod("setExplicitBucketBoundariesAdvice", List.class);
+        } catch (NoSuchMethodException expected) {
+            //we are in an integration test where .setExplicitBucketBoundariesAdvice() doesn't exist, skip this test
+            return;
+        }
+
+        Meter testMeter = createMeter("test");
+        DoubleHistogram doubleHisto = testMeter.histogramBuilder("double_histo")
+            .setExplicitBucketBoundariesAdvice(List.of(2.0 ,6.0))
+            .build();
+        LongHistogram longHisto = testMeter.histogramBuilder("long_histo").ofLongs()
+            .setExplicitBucketBoundariesAdvice(List.of(2L ,6L))
+            .build();
+
+        doubleHisto.record(0.5);
+        doubleHisto.record(2.5);
+        doubleHisto.record(2.5);
+        doubleHisto.record(7.5);
+        doubleHisto.record(7.5);
+        doubleHisto.record(7.5);
+
+        longHisto.record(0);
+        longHisto.record(3);
+        longHisto.record(3);
+        longHisto.record(7);
+        longHisto.record(7);
+        longHisto.record(7);
+
+        resetReporterAndFlushMetrics();
+        assertThatMetricSets(reporter.getBytes())
+            .hasMetricsetCount(1)
+            .first()
+            .containsHistogramMetric("double_histo", List.of(1.0, 4.0, 6.0), List.of(1L, 2L, 3L))
+            .containsHistogramMetric("long_histo", List.of(1.0, 4.0, 6.0), List.of(1L, 2L, 3L))
             .hasMetricsCount(2);
     }
 

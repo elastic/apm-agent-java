@@ -5,7 +5,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.43.1-SNAPSHOT</version>
+        <version>1.45.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>application-server-integration-tests</artifactId>
@@ -188,6 +188,18 @@
     </dependencies>
 
     <profiles>
+        <!-- application servers only jboss -->
+        <profile>
+            <id>ci-jboss-integration-tests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <skip.integration.test>false</skip.integration.test>
+                <failsafe.includes>**/JBossIT.java</failsafe.includes>
+            </properties>
+        </profile>
+        <!-- application servers but jboss -->
         <profile>
             <id>ci-application-server-integration-tests</id>
             <activation>
@@ -195,8 +207,10 @@
             </activation>
             <properties>
                 <skip.integration.test>false</skip.integration.test>
+                <failsafe.excludes>**/JBossIT.java</failsafe.excludes>
             </properties>
         </profile>
+        <!-- non application servers -->
         <profile>
             <id>ci-non-application-server-integration-tests</id>
             <activation>
@@ -204,6 +218,7 @@
             </activation>
             <properties>
                 <skip.integration.test>true</skip.integration.test>
+                <failsafe.excludes>**/JBossIT.java</failsafe.excludes>
             </properties>
         </profile>
     </profiles>

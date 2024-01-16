@@ -69,6 +69,15 @@ public class BaseSyncClientHandlerInstrumentationTest {
         assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.Exceptions.get(this.getClass().getName())).isNotNull();
     }
 
+    @Test
+    public void checkNoRedactedExceptionWhenExceptionThrownOnCorretto21() {
+        BaseSyncClientHandlerInstrumentation.JVM_RUNTIME_INFO = new JvmRuntimeInfo("21.0.1", "OpenJDK 64-Bit Server VM", "Amazon.com Inc.", "17.0.5+8-LTS");
+        assertThat(BaseSyncClientHandlerInstrumentation.JVM_RUNTIME_INFO.isCoretto()).isTrue();
+        assertThat(BaseSyncClientHandlerInstrumentation.JVM_RUNTIME_INFO.getMajorVersion()).isGreaterThan(16);
+        assertThat(exerciseRedactedException(new Exception("test3"))).isEqualTo(Outcome.FAILURE);
+        assertThat(BaseSyncClientHandlerInstrumentation.RedactedException.Exceptions).isEmpty();
+    }
+
     public Outcome exerciseRedactedException(Exception canBeNull) {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         ElasticApmTracer tracer = mockInstrumentationSetup.getTracer();

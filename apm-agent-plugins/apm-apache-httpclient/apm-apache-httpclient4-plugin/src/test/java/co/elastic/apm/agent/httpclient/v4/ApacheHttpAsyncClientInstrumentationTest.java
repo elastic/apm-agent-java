@@ -19,11 +19,14 @@
 package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.tracer.Outcome;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.concurrent.FutureCallback;
+import org.apache.http.conn.UnsupportedSchemeException;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.assertj.core.api.Assertions;
@@ -103,5 +106,24 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         Assertions.assertThat(reporter.getSpans()).hasSize(1);
     }
+
+    @Test
+    public void testSpanWithIllegalProtocol() throws Exception {
+        reporter.disableCheckServiceTarget();
+        reporter.disableCheckDestinationAddress();
+        try {
+            String illegalProtocol = "ottp";
+            String url = getBaseUrl().replaceAll("http", illegalProtocol) + "/";
+            assertThatThrownBy(() -> performGet(url)).cause().isInstanceOf(UnsupportedSchemeException.class);
+        } finally {
+            setUp();
+            reporter.resetChecks();
+        }
+        Span firstSpan = reporter.getFirstSpan(500);
+        assertThat(firstSpan).isNotNull();
+        assertThat(firstSpan.getOutcome()).isEqualTo(Outcome.FAILURE);
+        Assertions.assertThat(reporter.getSpans()).hasSize(1);
+    }
+
 
 }

@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.43.1-SNAPSHOT</version>
+    <version>1.45.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -129,9 +129,9 @@
         <version.ecs.logging>1.5.0</version.ecs.logging>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.0.87</version.json-schema-validator>
+        <version.json-schema-validator>1.1.0</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.14.9</version.byte-buddy>
+        <version.byte-buddy>1.14.10</version.byte-buddy>
         <version.asm>9.6</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
@@ -209,6 +209,40 @@
         </profile>
         <profile>
           <id>ci-application-server-integration-tests</id>
+          <activation>
+              <activeByDefault>false</activeByDefault>
+          </activation>
+          <properties>
+              <!--
+              By default, disables all integration tests.
+              In integration-tests/application-server-integration-tests/pom.xml,
+              only that module is included by overriding skip.integration.test to false.
+              -->
+              <skip.integration.test>true</skip.integration.test>
+              <maven.javadoc.skip>true</maven.javadoc.skip>
+              <animal.sniffer.skip>true</animal.sniffer.skip>
+          </properties>
+          <build>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <configuration>
+                        <skipTests>${skip.integration.test}</skipTests>
+                        <rerunFailingTestsCount>3</rerunFailingTestsCount>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <configuration>
+                        <skipTests>true</skipTests>
+                    </configuration>
+                </plugin>
+            </plugins>
+          </build>
+        </profile>
+        <profile>
+          <!-- copies behavior from app server tests for jboss -->
+          <id>ci-jboss-integration-tests</id>
           <activation>
               <activeByDefault>false</activeByDefault>
           </activation>
@@ -777,7 +811,7 @@
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock-jre8-standalone</artifactId>
-            <version>2.35.0</version>
+            <version>2.35.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>

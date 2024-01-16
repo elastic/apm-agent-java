@@ -26,6 +26,7 @@ import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.ServiceTarget;
 import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.context.Url;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -43,6 +44,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.a
     private static final Logger logger = LoggerFactory.getLogger(Span.class);
     public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
     private static long lastSpanMaxWarningTimestamp;
+    private final StacktraceConfiguration stacktraceConfiguration;
 
     /**
      * A subtype describing this span (eg 'mysql', 'elasticsearch', 'jsf' etc)
@@ -86,6 +88,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.a
 
     public Span(ElasticApmTracer tracer) {
         super(tracer);
+        this.stacktraceConfiguration = tracer.getConfig(StacktraceConfiguration.class);
     }
 
     public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, Baggage parentBaggage, long epochMicros) {
@@ -263,6 +266,14 @@ public class Span extends AbstractSpan<Span> implements Recyclable, co.elastic.a
 
     @Override
     protected void afterEnd() {
+        // capture stack trace when the span ends, relies on this method being called synchronously from the instrumentation
+        long spanStackTraceMinDurationMs = stacktraceConfiguration.getSpanStackTraceMinDurationMs();
+        if (spanStackTraceMinDurationMs >= 0 && isSampled() && stackFrames == null) {
+            if (getDurationMs() >= spanStackTraceMinDurationMs) {
+                this.stacktrace = new Throwable();
+            }
+        }
+
         // Why do we increment references of this span here?
         // The only thing preventing the "this"-span from being recycled is the initial reference increment in onAfterStart()
         // There are multiple ways in afterEnd() on how this reference may be decremented and therefore potentially causing recycling:

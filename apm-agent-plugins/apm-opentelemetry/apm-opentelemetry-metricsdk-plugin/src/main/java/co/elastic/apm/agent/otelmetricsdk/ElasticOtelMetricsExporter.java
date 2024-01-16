@@ -25,6 +25,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.internal.util.ExecutorUtils;
 import co.elastic.apm.agent.tracer.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.tracer.configuration.ReporterConfiguration;
+import io.opentelemetry.api.metrics.DoubleHistogramBuilder;
 import io.opentelemetry.sdk.common.CompletableResultCode;
 import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentType;
@@ -37,12 +38,15 @@ import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.List;
 
 public class ElasticOtelMetricsExporter implements MetricExporter {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticOtelMetricsExporter.class);
 
     private static final AggregationTemporalitySelector TEMPORALITY_SELECTOR = AggregationTemporalitySelector.deltaPreferred();
+
+    private static final boolean API_SUPPORTS_BUCKET_ADVICE = checkOtelApiSupportsHistogramBucketAdvice();
 
     private final Aggregation defaultHistogramAggregation;
 
@@ -103,10 +107,22 @@ public class ElasticOtelMetricsExporter implements MetricExporter {
 
     @Override
     public Aggregation getDefaultAggregation(InstrumentType instrumentType) {
-        if (instrumentType == InstrumentType.HISTOGRAM) {
+        // Unfortunately advices are not applied when a non-default aggregation is returned here
+        // When instrumenting API-usages, we now apply the default histogram boundaries via the
+        // ProxyLongHistogramBuilder and ProxyDoubleHistogramBuilder
+        if (instrumentType == InstrumentType.HISTOGRAM && !API_SUPPORTS_BUCKET_ADVICE) {
             return defaultHistogramAggregation;
         } else {
             return Aggregation.defaultAggregation();
+        }
+    }
+
+    private static boolean checkOtelApiSupportsHistogramBucketAdvice() {
+        try {
+            DoubleHistogramBuilder.class.getMethod("setExplicitBucketBoundariesAdvice", List.class);
+            return true;
+        } catch (NoSuchMethodException | SecurityException e) {
+            return false;
         }
     }
 }

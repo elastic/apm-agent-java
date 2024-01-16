@@ -35,9 +35,11 @@ import co.elastic.apm.agent.tracer.metadata.Response;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
+import co.elastic.apm.agent.webfluxcommon.SpringWebVersionUtils;
 import org.reactivestreams.Publisher;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.MultiValueMap;
@@ -197,7 +199,11 @@ public class WebfluxHelper {
                 path = exchange.getRequest().getPath().value();
             }
         }
-        String method = exchange.getRequest().getMethodValue();
+        String method = "unknown";
+        HttpMethod methodObj = exchange.getRequest().getMethod();
+        if(methodObj != null) {
+            method = methodObj.name();
+        }
         StringBuilder transactionName = transaction.getAndOverrideName(namePriority, false);
 
         if (path != null) {
@@ -252,7 +258,11 @@ public class WebfluxHelper {
         ServerHttpRequest serverRequest = exchange.getRequest();
         Request request = transaction.getContext().getRequest();
 
-        request.withMethod(serverRequest.getMethodValue());
+
+        HttpMethod method = serverRequest.getMethod();
+        if (method != null) {
+            request.withMethod(method.name());
+        }
 
         InetSocketAddress remoteAddress = serverRequest.getRemoteAddress();
         if (remoteAddress != null && remoteAddress.getAddress() != null) {
@@ -273,7 +283,7 @@ public class WebfluxHelper {
         ServerHttpResponse serverResponse = exchange.getResponse();
         int status = 0;
         try {
-            status = SpringWebVersionUtils.getStatusCode(serverResponse);
+            status = SpringWebVersionUtils.getServerStatusCode(serverResponse);
         } catch (Exception e) {
             oneTimeResponseCodeErrorLogger.error("Failed to get response code", e);
         }

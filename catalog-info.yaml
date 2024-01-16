@@ -27,6 +27,8 @@ spec:
           access_level: MANAGE_BUILD_AND_READ
         observablt-robots:
           access_level: MANAGE_BUILD_AND_READ
+        observablt-robots-automation:
+          access_level: BUILD_AND_READ
         everyone:
           access_level: READ_ONLY
 
@@ -59,6 +61,8 @@ spec:
           access_level: MANAGE_BUILD_AND_READ
         observablt-robots:
           access_level: MANAGE_BUILD_AND_READ
+        observablt-robots-automation:
+          access_level: BUILD_AND_READ
         everyone:
           access_level: READ_ONLY
 
@@ -91,6 +95,8 @@ spec:
           access_level: MANAGE_BUILD_AND_READ
         observablt-robots:
           access_level: MANAGE_BUILD_AND_READ
+        observablt-robots-automation:
+          access_level: BUILD_AND_READ
         everyone:
           access_level: READ_ONLY
 
@@ -124,6 +130,8 @@ spec:
           access_level: MANAGE_BUILD_AND_READ
         observablt-robots:
           access_level: MANAGE_BUILD_AND_READ
+        observablt-robots-automation:
+          access_level: BUILD_AND_READ
         everyone:
           access_level: READ_ONLY
       schedules:

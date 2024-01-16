@@ -65,25 +65,18 @@ public class OpenTelemetryVersionIT {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "1.10.0",
-        //"1.11.0",
-        //"1.12.0",
-        //"1.13.0",
-        "1.14.0",
-        "1.15.0",
-        //"1.16.0",
-        //"1.17.0",
-        //"1.18.0",
-        //"1.19.0",
-        //"1.20.0",
-        "1.21.0"
-    })
-    void testAgentProvidedMetricsSdkForApiVersion(String version) throws Exception {
+    @CsvSource(value = {
+        "1.10.0|io.opentelemetry:opentelemetry-semconv:1.10.0-alpha",
+        "1.14.0|io.opentelemetry:opentelemetry-semconv:1.14.0-alpha",
+        "1.15.0|io.opentelemetry:opentelemetry-semconv:1.15.0-alpha",
+        "1.21.0|io.opentelemetry:opentelemetry-semconv:1.21.0-alpha",
+        "1.31.0|io.opentelemetry.semconv:opentelemetry-semconv:1.22.0-alpha",
+    }, delimiterString = "|")
+    void testAgentProvidedMetricsSdkForApiVersion(String version, String semConvDep) throws Exception {
         List<String> dependencies = List.of(
             "io.opentelemetry:opentelemetry-api:" + version,
             "io.opentelemetry:opentelemetry-context:" + version,
-            "io.opentelemetry:opentelemetry-semconv:" + version + "-alpha");
+            semConvDep);
         TestClassWithDependencyRunner runner = new TestClassWithDependencyRunner(dependencies,
             "co.elastic.apm.agent.opentelemetry.metrics.AgentProvidedSdkOtelMetricsTest",
             "co.elastic.apm.agent.otelmetricsdk.AbstractOtelMetricsTest",
@@ -93,21 +86,19 @@ public class OpenTelemetryVersionIT {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "1.16.0",
-        //"1.17.0",
-        //"1.18.0",
-        //"1.19.0",
-        //"1.20.0",
-        "1.21.0"
-    })
-    void testUserProvidedMetricsSdkVersion(String version) throws Exception {
+    @CsvSource(value = {
+        "1.16.0|io.opentelemetry:opentelemetry-semconv:1.16.0-alpha",
+        "1.21.0|io.opentelemetry:opentelemetry-semconv:1.21.0-alpha",
+        "1.31.0|io.opentelemetry.semconv:opentelemetry-semconv:1.22.0-alpha",
+    }, delimiterString = "|")
+    void testUserProvidedMetricsSdkVersion(String version, String semConvDep) throws Exception {
         List<String> dependencies = List.of(
             "io.opentelemetry:opentelemetry-api:" + version,
             "io.opentelemetry:opentelemetry-sdk-metrics:" + version,
+            "io.opentelemetry:opentelemetry-extension-incubator:" + version+"-alpha",
             "io.opentelemetry:opentelemetry-sdk-common:" + version,
             "io.opentelemetry:opentelemetry-context:" + version,
-            "io.opentelemetry:opentelemetry-semconv:" + version + "-alpha");
+            semConvDep);
         TestClassWithDependencyRunner runner = new TestClassWithDependencyRunner(dependencies,
             "co.elastic.apm.agent.otelmetricsdk.PrivateUserSdkOtelMetricsTest",
             "co.elastic.apm.agent.otelmetricsdk.AbstractOtelMetricsTest",
@@ -140,4 +131,18 @@ public class OpenTelemetryVersionIT {
         runner.run();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "1.20.0",
+    })
+    void testOpentelemetryAnnotationsVersion(String version) throws Exception {
+        List<String> dependencies = List.of(
+            "io.opentelemetry:opentelemetry-api:" + version,
+            "io.opentelemetry:opentelemetry-context:" + version,
+            "io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:" + version);
+        TestClassWithDependencyRunner runner = new TestClassWithDependencyRunner(dependencies,
+            "co.elastic.apm.agent.opentelemetry.tracing.ElasticOpenTelemetryAnnotationsTest",
+            "co.elastic.apm.agent.opentelemetry.tracing.AbstractOpenTelemetryTest");
+        runner.run();
+    }
 }

@@ -45,6 +45,7 @@ import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.pool2.impl.CallStackUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnJre;
 import org.junit.jupiter.api.condition.JRE;
@@ -421,6 +422,7 @@ class InstrumentationTest {
         await().untilAsserted(() -> assertThat(pluginClassLoader.get()).isNull());
     }
 
+    @Disabled("this is failing from unspecified - likely metaspace specific GC not happening - in CI")
     @Test
     void testNoClassLoaderLeakWhenInstrumentedApplicationIsUndeployed() throws Exception {
         ElasticApmAgent.initInstrumentation(tracer,

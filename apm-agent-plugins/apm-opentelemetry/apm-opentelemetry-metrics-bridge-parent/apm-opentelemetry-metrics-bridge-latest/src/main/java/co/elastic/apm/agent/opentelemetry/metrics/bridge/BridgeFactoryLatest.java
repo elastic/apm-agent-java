@@ -21,25 +21,31 @@ package co.elastic.apm.agent.opentelemetry.metrics.bridge;
 import co.elastic.apm.agent.embeddedotel.proxy.ProxyBatchCallback;
 import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleCounterBuilder;
 import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleGaugeBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleHistogramBuilder;
 import co.elastic.apm.agent.embeddedotel.proxy.ProxyDoubleUpDownCounterBuilder;
 import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongCounterBuilder;
 import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongGaugeBuilder;
+import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongHistogramBuilder;
 import co.elastic.apm.agent.embeddedotel.proxy.ProxyLongUpDownCounterBuilder;
 import co.elastic.apm.agent.embeddedotel.proxy.ProxyMeter;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.latest.BridgeBatchCallback;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.latest.BridgeDoubleCounterBuilder;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.latest.BridgeDoubleGaugeBuilder;
+import co.elastic.apm.agent.opentelemetry.metrics.bridge.latest.BridgeDoubleHistogramBuilder;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.latest.BridgeDoubleUpDownCounterBuilder;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.latest.BridgeLongCounterBuilder;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.latest.BridgeLongGaugeBuilder;
+import co.elastic.apm.agent.opentelemetry.metrics.bridge.latest.BridgeLongHistogramBuilder;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.latest.BridgeLongUpDownCounterBuilder;
 import co.elastic.apm.agent.opentelemetry.metrics.bridge.latest.BridgeMeter;
 import io.opentelemetry.api.metrics.BatchCallback;
 import io.opentelemetry.api.metrics.DoubleCounterBuilder;
 import io.opentelemetry.api.metrics.DoubleGaugeBuilder;
+import io.opentelemetry.api.metrics.DoubleHistogramBuilder;
 import io.opentelemetry.api.metrics.DoubleUpDownCounterBuilder;
 import io.opentelemetry.api.metrics.LongCounterBuilder;
 import io.opentelemetry.api.metrics.LongGaugeBuilder;
+import io.opentelemetry.api.metrics.LongHistogramBuilder;
 import io.opentelemetry.api.metrics.LongUpDownCounterBuilder;
 import io.opentelemetry.api.metrics.Meter;
 
@@ -98,5 +104,15 @@ public class BridgeFactoryLatest extends BridgeFactoryV1_14 {
 
     public BatchCallback bridgeBatchCallback(ProxyBatchCallback delegate) {
         return new BridgeBatchCallback(delegate);
+    }
+
+    @Override
+    public DoubleHistogramBuilder bridgeDoubleHistogramBuilder(ProxyDoubleHistogramBuilder delegate) {
+        return new BridgeDoubleHistogramBuilder(delegate);
+    }
+
+    @Override
+    public LongHistogramBuilder bridgeLongHistogramBuilder(ProxyLongHistogramBuilder delegate) {
+        return new BridgeLongHistogramBuilder(delegate);
     }
 }

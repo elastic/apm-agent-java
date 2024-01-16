@@ -706,4 +706,5 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
             return carrier.get(key);
         }
     }
+
 }

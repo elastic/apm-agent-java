@@ -320,3 +320,36 @@ jobs:
           path: |
             **/junit-*.xml
             **/TEST-*.xml
+
+  jboss:
+    name: JBoss integration tests
+    runs-on: ubuntu-latest
+    needs: build
+    # If no PR event or if a PR event that's caused by a non-fork and non dependabot actor
+    if: github.event_name != 'pull_request' || ( github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false && github.actor != 'dependabot[bot]' )
+    steps:
+      - uses: actions/checkout@v4
+      - uses: elastic/apm-pipeline-library/.github/actions/docker-login@current
+        with:
+          registry: docker.elastic.co
+          secret: secret/observability-team/ci/docker-registry/prod
+          url: ${{ secrets.VAULT_ADDR }}
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+      - uses: ./.github/workflows/unstash
+        with:
+          name: build
+          path: ${{ github.workspace }}
+      - name: Pull JBoss docker images
+        run: .ci/scripts/jboss-pull.sh
+      - uses: ./.github/workflows/maven-goal
+        with:
+          command: ./mvnw -q -P ci-jboss-integration-tests verify
+      - name: Store test results
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            **/junit-*.xml
+            **/TEST-*.xml

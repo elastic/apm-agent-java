@@ -50,7 +50,7 @@ import java.util.function.Consumer;
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 
-public class DynamoDbClientIT extends AbstractAwsClientIT {
+public class DynamoDbClientIT extends AbstractAws1ClientIT {
 
     private AmazonDynamoDB dynamoDB;
     private AmazonDynamoDBAsync dynamoDBAsync;

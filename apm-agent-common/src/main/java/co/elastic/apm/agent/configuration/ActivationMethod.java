@@ -20,7 +20,7 @@ package co.elastic.apm.agent.configuration;
 
 public enum ActivationMethod {
     // Set explicitly by the process starting the agent
-    K8S_ATTACH, // https://github.com/elastic/apm-mutating-webhook
+    K8S_ATTACH, // https://github.com/elastic/apm-k8s-attacher
     AWS_LAMBDA_LAYER, // Only if installed by using layers (as other metadata already identifies lambda)
     FLEET, // Fleet using 'java -jar apm-agent-attach-cli.jar ...' to attach (directly or through webhook)
     APM_AGENT_ATTACH_CLI, // 'java -jar apm-agent-attach-cli.jar ...' used

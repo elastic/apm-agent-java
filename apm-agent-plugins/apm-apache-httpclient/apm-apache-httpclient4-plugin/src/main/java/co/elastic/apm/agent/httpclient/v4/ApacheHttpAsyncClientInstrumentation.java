@@ -18,12 +18,8 @@
  */
 package co.elastic.apm.agent.httpclient.v4;
 
-import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpAsyncClientHelper;
-import co.elastic.apm.agent.httpclient.v4.helper.FutureCallbackWrapper;
-import co.elastic.apm.agent.httpclient.v4.helper.HttpAsyncRequestProducerWrapper;
-import co.elastic.apm.agent.tracer.ElasticContext;
-import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpClientAsyncAdvice;
+import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpClient4AsyncHelper;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
@@ -50,7 +46,7 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.httpclient.v4.ApacheHttpAsyncClientInstrumentation$ApacheHttpAsyncClientAdvice";
+        return "co.elastic.apm.agent.httpclient.v4.ApacheHttpAsyncClientInstrumentation$ApacheHttpClient4AsyncAdvice";
     }
 
     @Override
@@ -79,8 +75,8 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
             .and(takesArgument(3, named("org.apache.http.concurrent.FutureCallback")));
     }
 
-    public static class ApacheHttpAsyncClientAdvice {
-        private static ApacheHttpAsyncClientHelper asyncHelper = new ApacheHttpAsyncClientHelper();
+    public static class ApacheHttpClient4AsyncAdvice extends AbstractApacheHttpClientAsyncAdvice {
+        private static ApacheHttpClient4AsyncHelper asyncHelper = new ApacheHttpClient4AsyncHelper();
 
         @Advice.AssignReturned.ToArguments({
             @ToArgument(index = 0, value = 0, typing = DYNAMIC),
@@ -91,43 +87,13 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
         public static Object[] onBeforeExecute(@Advice.Argument(value = 0) HttpAsyncRequestProducer requestProducer,
                                                @Advice.Argument(2) HttpContext context,
                                                @Advice.Argument(value = 3) FutureCallback<?> futureCallback) {
-
-            ElasticContext<?> parentContext = tracer.currentContext();
-            if (parentContext.isEmpty()) {
-                // performance optimization, no need to wrap if we have nothing to propagate
-                // empty context means also we will not create an exit span
-                return null;
-            }
-            FutureCallback<?> wrappedFutureCallback = futureCallback;
-            ElasticContext<?> activeContext = tracer.currentContext();
-            Span<?> span = activeContext.createExitSpan();
-            if (span != null) {
-                span.withType(HttpClientHelper.EXTERNAL_TYPE)
-                    .withSubtype(HttpClientHelper.HTTP_SUBTYPE)
-                    .withSync(false)
-                    .activate();
-                wrappedFutureCallback = asyncHelper.wrapFutureCallback(futureCallback, context, span);
-            }
-            HttpAsyncRequestProducer wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, span, tracer.currentContext());
-            return new Object[]{wrappedProducer, wrappedFutureCallback, span};
+            return startSpan(tracer, asyncHelper, requestProducer, context, futureCallback);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Enter @Nullable Object[] enter,
                                           @Advice.Thrown @Nullable Throwable t) {
-            Span<?> span = enter != null ? (Span<?>) enter[2] : null;
-            if (span != null) {
-                // Deactivate in this thread
-                span.deactivate();
-                // End the span if the method terminated with an exception.
-                // The exception means that the listener who normally does the ending will not be invoked.
-                if (t != null) {
-                    HttpAsyncRequestProducerWrapper wrapper = (HttpAsyncRequestProducerWrapper) enter[0];
-                    FutureCallbackWrapper<?> cb = (FutureCallbackWrapper<?>) enter[1];
-                    cb.failedWithoutExecution(t);
-                    asyncHelper.recycle(wrapper);
-                }
-            }
+            endSpan(asyncHelper, enter, t);
         }
     }
 }

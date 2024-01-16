@@ -112,7 +112,7 @@ the JVM arguments, or setting `ELASTIC_APM_DISABLE_BOOTSTRAP_CHECKS=true` for th
 |Spring Webflux
 |5.2.3+
 |Creates transactions for incoming HTTP requests, supports annotated and functional endpoints.
-|1.24.0 (experimental), 1.34.0 (GA)
+|1.24.0 (experimental), 1.34.0 (GA), 6.1+ since 1.45.0
 
 |JavaServer Faces
 |2.2.x, 2.3.x, 3.0.x
@@ -204,7 +204,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |8+
 
 |<<setup-jboss-wildfly,JBoss EAP>>
-|6.4, 7.0, 7.1, 7.2
+|6.4, 7.x
 
 |<<setup-jetty,Jetty>> (only the `ServletContextHandler` is supported)
 |9.2, 9.3, 9.4
@@ -319,6 +319,7 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |
 | 0.7.0 (4.3+)
   1.8.0 (4.0+)
+  1.45.0 (5.0+)
 
 |Apache HttpClient (Legacy)
 |3.0+
@@ -386,6 +387,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |
 |
 | 1.36.0
+
+|Spring RestClient
+|6.1.0+
+|
+|1.45.0
 |===
 
 
