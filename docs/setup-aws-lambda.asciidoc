@@ -4,6 +4,10 @@
 
 The Java APM Agent can be used with AWS Lambda to monitor the execution of your AWS Lambda functions.
 
+```
+Note: The Centralized Agent Configuration on the Elasticsearch APM currently does NOT support AWS Lambda.
+```
+
 [float]
 [[aws-lambda-java-quick-start]]
 === Quick Start
