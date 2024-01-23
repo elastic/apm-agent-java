@@ -75,8 +75,8 @@ targets:
   agent-gherkin-specs:
     name: APM agent gherkin specs {{ source "sha" }}
     scmid: default
-    sourceid: sha
+    disablesourceinput: true
     kind: shell
     spec:
-      command: 'tar -xzf {{ requiredEnv "GITHUB_WORKSPACE" }}/gherkin-specs.tgz && git --no-pager diff # required to ignore the sourceid being appended'
+      command: 'tar -xzf {{ requiredEnv "GITHUB_WORKSPACE" }}/gherkin-specs.tgz && git --no-pager diff'
       workdir: "{{ .apm_agent.gherkin_specs_path }}"
