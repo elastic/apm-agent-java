@@ -77,8 +77,8 @@ targets:
   agent-json-schema:
     name: APM agent json server schema {{ source "sha" }}
     scmid: default
-    sourceid: sha
+    disablesourceinput: true
     kind: shell
     spec:
-      command: 'tar -xzf {{ requiredEnv "GITHUB_WORKSPACE" }}/json-schema.tgz && git --no-pager diff # required to ignore the sourceid being appended'
+      command: 'tar -xzf {{ requiredEnv "GITHUB_WORKSPACE" }}/json-schema.tgz && git --no-pager diff'
       workdir: "{{ .apm_agent.server_schema_specs_path  }}"
