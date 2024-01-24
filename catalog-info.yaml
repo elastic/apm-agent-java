@@ -166,7 +166,6 @@ metadata:
   tags:
     - aws-lambda
     - github
-    - github-action
     - gpg-sign
     - maven-central
     - release
@@ -176,11 +175,13 @@ metadata:
     - title: GitHub action
       url: https://github.com/elastic/apm-agent-java/actions/workflows/release.yml
 spec:
-  type: service
+  type: github-actions
   owner: group:apm-agent-java
   lifecycle: production
   dependsOn:
     - "system:github-actions"
+    - "resource:user-apmmachine"
+    - "resource:user-obltmachine"
 
 ---
 # A Component for the snapshot GitHub action
@@ -197,7 +198,6 @@ metadata:
     github.com/team-slug: elastic/apm-agent-java
   tags:
     - github
-    - github-action
     - gpg-sign
     - maven-central
     - snapshot
@@ -206,11 +206,12 @@ metadata:
     - title: GitHub action
       url: https://github.com/elastic/apm-agent-java/actions/workflows/snapshot.yml
 spec:
-  type: service
+  type: github-actions
   owner: group:apm-agent-java
   lifecycle: production
   dependsOn:
     - "system:github-actions"
+    - "resource:user-obltmachine"
 
 ---
 # A Component for the microbenchmark GitHub action
@@ -227,14 +228,14 @@ metadata:
     github.com/team-slug: elastic/apm-agent-java
   tags:
     - github
-    - github-action
     - user:obltmachine
   links:
     - title: GitHub action
       url: https://github.com/elastic/apm-agent-java/actions/workflows/microbenchmark.yml
 spec:
-  type: service
+  type: github-actions
   owner: group:apm-agent-java
   lifecycle: production
   dependsOn:
     - "system:github-actions"
+    - "resource:user-obltmachine"
