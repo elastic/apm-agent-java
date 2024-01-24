@@ -20,6 +20,8 @@ package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.tracer.AbstractSpan;
@@ -54,6 +56,8 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
 
     public static final Tracer tracer = GlobalTracer.get(); // must be public!
 
+    private static final Logger log = LoggerFactory.getLogger(HttpUrlConnectionInstrumentation.class);
+
     public static final ReferenceCountedMap<HttpURLConnection, Span<?>> inFlightSpans = tracer.newReferenceCountedMap();
     public static final CallDepth callDepth = CallDepth.get(HttpUrlConnectionInstrumentation.class);
 
@@ -81,6 +85,10 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
                                        @Advice.FieldValue("connected") boolean connected,
                                        @Advice.FieldValue("responseCode") int responseCode,
                                        @Advice.Origin String signature) {
+
+                if (log.isTraceEnabled()) {
+                    log.trace("{} >> connected = {}, responseCode = {}", signature, connected, responseCode);
+                }
 
                 //With HEAD requests the connected stays false
                 boolean actuallyConnected = connected || responseCode != -1;
@@ -115,6 +123,10 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
                                     @Advice.FieldValue("responseCode") int responseCode,
                                     @Advice.Enter @Nullable Object spanObject,
                                     @Advice.Origin String signature) {
+
+                if (log.isTraceEnabled()) {
+                    log.trace("{} << responseCode = {}, thrown = {}", signature, responseCode, t);
+                }
 
                 callDepth.decrement();
                 Span<?> span = (Span<?>) spanObject;
