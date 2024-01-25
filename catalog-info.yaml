@@ -180,8 +180,8 @@ spec:
   lifecycle: production
   dependsOn:
     - "system:github-actions"
-    - "resource:user-apmmachine"
-    - "resource:user-obltmachine"
+    - "user:apmmachine"
+    - "user:obltmachine"
 
 ---
 # A Component for the snapshot GitHub action
@@ -211,7 +211,7 @@ spec:
   lifecycle: production
   dependsOn:
     - "system:github-actions"
-    - "resource:user-obltmachine"
+    - "user:obltmachine"
 
 ---
 # A Component for the microbenchmark GitHub action
@@ -238,4 +238,4 @@ spec:
   lifecycle: production
   dependsOn:
     - "system:github-actions"
-    - "resource:user-obltmachine"
+    - "user:obltmachine"
