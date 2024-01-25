@@ -56,7 +56,7 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
 
     public static final Tracer tracer = GlobalTracer.get(); // must be public!
 
-    private static final Logger log = LoggerFactory.getLogger(HttpUrlConnectionInstrumentation.class);
+    public static final Logger log = LoggerFactory.getLogger(HttpUrlConnectionInstrumentation.class);
 
     public static final ReferenceCountedMap<HttpURLConnection, Span<?>> inFlightSpans = tracer.newReferenceCountedMap();
     public static final CallDepth callDepth = CallDepth.get(HttpUrlConnectionInstrumentation.class);
