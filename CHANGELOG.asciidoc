@@ -31,6 +31,12 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.46.0]]
+==== 1.46.0 - 2024/01/29
+
 [float]
 ===== Features
 * Added support for OpenTelementry Attributes db.statement and db.user - {pull}3475[#3475]
@@ -40,11 +46,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 * Fixed NPE in ApacheHttpClientApiAdapter#getHostName - {pull}3479[#3479]
 * Fix span stack trace when combined with span compression - {pull}3474[#3474]
 * Fix `UnsupportedClassVersionError` java 7 compatibility for jctools - {pull}3483[#3483]
-
-
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.45.0]]
 ==== 1.45.0 - 2023/12/07
