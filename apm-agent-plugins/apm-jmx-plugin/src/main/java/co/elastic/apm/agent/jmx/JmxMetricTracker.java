@@ -355,15 +355,14 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         return "";
     }
 
-    private static void addJmxMetricRegistration(JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, ObjectName objectName, Object value, JmxMetric.Attribute attribute, String attributeName, String metricPrepend) throws AttributeNotFoundException {
+    private static void addJmxMetricRegistration(JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, ObjectName objectName, Object value, JmxMetric.Attribute attribute, String attributeName, @Nullable String metricPrepend) throws AttributeNotFoundException {
+        String effectiveAttributeName = metricPrepend == null ? attributeName : metricPrepend + attributeName;
         if (value instanceof Number) {
             logger.debug("Found number attribute {}={}", attribute.getJmxAttributeName(), value);
             registrations.add(
                 new JmxMetricRegistration(
                     attribute.getMetricName(
-                        metricPrepend == null ?
-                            attributeName :
-                            metricPrepend + attributeName
+                        effectiveAttributeName
                     ),
                     attribute.getLabels(objectName),
                     attributeName,
@@ -380,10 +379,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                         new JmxMetricRegistration(
                             attribute.getCompositeMetricName(
                                 key,
-                                metricPrepend == null ?
-                                    attributeName :
-                                    metricPrepend + attributeName
-                            ),
+                                effectiveAttributeName),
                             attribute.getLabels(objectName),
                             attributeName,
                             key,
@@ -427,11 +423,13 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                 @Override
                 public double get() {
                     try {
+                        double value;
                         if (compositeDataKey == null) {
-                            return ((Number) server.getAttribute(objectName, jmxAttribute)).doubleValue();
+                            value = ((Number) server.getAttribute(objectName, jmxAttribute)).doubleValue();
                         } else {
-                            return ((Number) ((CompositeData) server.getAttribute(objectName, jmxAttribute)).get(compositeDataKey)).doubleValue();
+                            value = ((Number) ((CompositeData) server.getAttribute(objectName, jmxAttribute)).get(compositeDataKey)).doubleValue();
                         }
+                        return value;
                     } catch (InstanceNotFoundException | AttributeNotFoundException e) {
                         unregister(metricRegistry);
                         return Double.NaN;
