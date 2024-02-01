@@ -23,10 +23,12 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
-import co.elastic.apm.agent.tracer.GlobalLocks;
+import co.elastic.apm.agent.sdk.internal.util.ExecutorUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.tracer.GlobalLocks;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nullable;
@@ -54,6 +56,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class JmxMetricTracker extends AbstractLifecycleListener {
@@ -68,9 +71,17 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
     @Nullable
     private volatile NotificationListener listener;
 
+    private final List<JmxMetric> failedMetrics;
+
+    @Nullable
+    private ScheduledExecutorService retryExecutor;
+
     public JmxMetricTracker(ElasticApmTracer tracer) {
         jmxConfiguration = tracer.getConfig(JmxConfiguration.class);
         metricRegistry = tracer.getMetricRegistry();
+
+        // using a synchronized list so adding to the list does not require synchronization
+        failedMetrics = Collections.synchronizedList(new ArrayList<JmxMetric>());
     }
 
     @Override
@@ -175,8 +186,15 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         jmxConfiguration.getCaptureJmxMetrics().addChangeListener(new ConfigurationOption.ChangeListener<List<JmxMetric>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<JmxMetric> oldValue, List<JmxMetric> newValue) {
-                List<JmxMetricRegistration> oldRegistrations = compileJmxMetricRegistrations(oldValue, platformMBeanServer);
-                List<JmxMetricRegistration> newRegistrations = compileJmxMetricRegistrations(newValue, platformMBeanServer);
+                List<JmxMetric> registrationErrors = new ArrayList<JmxMetric>(); // those are not needed
+                List<JmxMetricRegistration> oldRegistrations = compileJmxMetricRegistrations(oldValue, platformMBeanServer, registrationErrors);
+
+                List<JmxMetricRegistration> newRegistrations;
+                synchronized (failedMetrics) {
+                    failedMetrics.clear();
+                    newRegistrations = compileJmxMetricRegistrations(newValue, platformMBeanServer, failedMetrics);
+                }
+
 
                 for (JmxMetricRegistration addedRegistration : removeAll(oldRegistrations, newRegistrations)) {
                     addedRegistration.register(platformMBeanServer, metricRegistry);
@@ -184,10 +202,27 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                 for (JmxMetricRegistration deletedRegistration : removeAll(newRegistrations, oldRegistrations)) {
                     deletedRegistration.unregister(metricRegistry);
                 }
-
             }
         });
-        register(jmxConfiguration.getCaptureJmxMetrics().get(), platformMBeanServer);
+
+        ConfigurationOption<TimeDuration> failedRetryConfig = jmxConfiguration.getDelayFailedRegistrationRetry();
+        long retryMillis = failedRetryConfig.getValue().getMillis();
+        if (!failedRetryConfig.isDefault()) {
+            retryExecutor = ExecutorUtils.createSingleThreadSchedulingDaemonPool("jmx-retry");
+            retryExecutor.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    List<JmxMetric> failed = JmxMetricTracker.this.failedMetrics;
+                    synchronized (failed) {
+                        List<JmxMetric> toRetry = new ArrayList<>(failed);
+                        failed.clear();
+                        register(toRetry, platformMBeanServer, failed);
+                    }
+                }
+            }, retryMillis, retryMillis, TimeUnit.MILLISECONDS);
+        }
+
+        register(jmxConfiguration.getCaptureJmxMetrics().get(), platformMBeanServer, failedMetrics);
     }
 
     private void registerMBeanNotificationListener(final MBeanServer server) {
@@ -217,7 +252,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                 ObjectName metricName = jmxMetric.getObjectName();
                 if (metricName.apply(mBeanName) || matchesJbossStatisticsPool(mBeanName, metricName, server)) {
                     logger.debug("MBean added at runtime: {}", jmxMetric.getObjectName());
-                    register(Collections.singletonList(jmxMetric), server);
+                    register(Collections.singletonList(jmxMetric), server, failedMetrics);
                 }
             }
 
@@ -280,25 +315,33 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         return result;
     }
 
-    private void register(List<JmxMetric> jmxMetrics, MBeanServer server) {
-        for (JmxMetricRegistration registration : compileJmxMetricRegistrations(jmxMetrics, server)) {
+    private void register(List<JmxMetric> jmxMetrics, MBeanServer server, List<JmxMetric> failedMetrics) {
+        for (JmxMetricRegistration registration : compileJmxMetricRegistrations(jmxMetrics, server, failedMetrics)) {
             registration.register(server, metricRegistry);
         }
     }
 
     /**
      * A single {@link JmxMetric} can yield multiple {@link JmxMetricRegistration}s if the {@link JmxMetric} contains multiple attributes
+     *
+     * @param jmxMetrics    JMX metrics to register
+     * @param server        MBean server
+     * @param failedMetrics list of JMX metrics that failed to register (out)
      */
-    private List<JmxMetricRegistration> compileJmxMetricRegistrations(List<JmxMetric> jmxMetrics, MBeanServer server) {
-        List<JmxMetricRegistration> registrations = new ArrayList<>();
+    private List<JmxMetricRegistration> compileJmxMetricRegistrations(List<JmxMetric> jmxMetrics, MBeanServer server, List<JmxMetric> failedMetrics) {
+        List<JmxMetricRegistration> globalRegistrations = new ArrayList<>();
         for (JmxMetric jmxMetric : jmxMetrics) {
+            List<JmxMetricRegistration> metricRegistrations = new ArrayList<>();
             try {
-                addJmxMetricRegistration(jmxMetric, registrations, server);
+                addJmxMetricRegistration(jmxMetric, metricRegistrations, server);
+                globalRegistrations.addAll(metricRegistrations);
             } catch (Exception e) {
+                failedMetrics.add(jmxMetric);
                 logger.error("Failed to register JMX metric {}", jmxMetric.toString(), e);
             }
+
         }
-        return registrations;
+        return globalRegistrations;
     }
 
     private static void addJmxMetricRegistration(final JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, MBeanServer server) throws JMException {
@@ -470,6 +513,9 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         Thread logManagerPropertyPoller = this.logManagerPropertyPoller;
         if (logManagerPropertyPoller != null) {
             logManagerPropertyPoller.interrupt();
+        }
+        if (retryExecutor != null) {
+            ExecutorUtils.shutdownAndWaitTermination(retryExecutor);
         }
     }
 }
