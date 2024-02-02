@@ -23,6 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -31,6 +32,8 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -91,6 +94,7 @@ public class AgentDownloader {
     /**
      * Downloads the agent jar, authenticates and verifies its PGP signature and returns the path for the locally
      * stored jar.
+     *
      * @param agentVersion the target agent version
      * @return the path for the locally stored agent jar
      * @throws Exception failure either with downloading, copying to local file system, or in PGP signature verification
@@ -181,8 +185,9 @@ public class AgentDownloader {
 
     /**
      * Downloads a file from the provided URL into the provided local file path
+     *
      * @param remoteFileUrlString remote file URL as string
-     * @param localFilePath destination path for the dewnloaded file
+     * @param localFilePath       destination path for the dewnloaded file
      * @throws IOException indicating a failure during class reading or writing, or the file already exists
      */
     void downloadFile(String remoteFileUrlString, Path localFilePath) throws IOException {
@@ -200,7 +205,7 @@ public class AgentDownloader {
      *
      * @param agentJarFile        the path to the downloaded agent jar
      * @param mavenAgentUrlString the maven base URL for the agent
-     * @throws Exception  if an I/O exception occurs reading from various input streams
+     * @throws Exception if an I/O exception occurs reading from various input streams
      */
     void verifyPgpSignature(final Path agentJarFile, final String mavenAgentUrlString) throws Exception {
         final String ascUrlString = mavenAgentUrlString + ".asc";
@@ -209,14 +214,24 @@ public class AgentDownloader {
         try (
             InputStream agentJarIS = Files.newInputStream(agentJarFile);
             InputStream pgpSignatureIS = signatureFileUrlConnection.getInputStream();
-            InputStream publicKeyIS = getPublicKey()
         ) {
-            if (!pgpSignatureVerifier.verifyPgpSignature(agentJarIS, pgpSignatureIS, publicKeyIS, getPublicKeyId())) {
-                throw new IllegalStateException("Signature verification for " + mavenAgentUrlString +
-                    " failed, downloaded jar may have been tampered with.");
+
+            for (Map.Entry<String, byte[]> entry : getPublicKeys().entrySet()) {
+                InputStream publicKeyIS = new ByteArrayInputStream(entry.getValue());
+                try {
+                    if (pgpSignatureVerifier.verifyPgpSignature(agentJarIS, pgpSignatureIS, publicKeyIS, entry.getKey())) {
+                        logger.info("Elastic APM Java Agent jar PGP signature successfully verified.");
+                        return;
+                    }
+                } catch (Exception e) {
+                    logger.debug(e.getMessage());
+                }
+
             }
+            throw new IllegalStateException("Signature verification for " + mavenAgentUrlString + " failed, downloaded jar may have been tampered with.");
+
         }
-        logger.info("Elastic APM Java Agent jar PGP signature successfully verified.");
+
     }
 
     static String findLatestVersion() throws Exception {
@@ -250,20 +265,26 @@ public class AgentDownloader {
     }
 
     /**
-     * Return the public key ID of our agent signing key.
+     * Returns the public keys used to sign agent artifacts
      *
-     * @return the public key ID
+     * @return map of signing keys, with key ID as key, and the raw public key value as value
      */
-    String getPublicKeyId() {
-        return "D27D666CD88E42B4";
+    public Map<String, byte[]> getPublicKeys() {
+        Map<String, byte[]> map = new HashMap<String, byte[]>();
+        map.put("D27D666CD88E42B4", getPubKeyContent("/pub_key_D27D666CD88E42B4.asc"));
+        map.put("8AB554FD8F207067", getPubKeyContent("/pub_key_8AB554FD8F207067.asc"));
+        return map;
     }
 
-    /**
-     * An input stream to the public key of the signing key.
-     *
-     * @return an input stream to the public key
-     */
-    InputStream getPublicKey() {
-        return AgentDownloader.class.getResourceAsStream("/public_key.asc");
+    private byte[] getPubKeyContent(String path) {
+        try (InputStream inputStream = AgentDownloader.class.getResourceAsStream(path)) {
+            if (inputStream == null) {
+                throw new IllegalStateException("unknown key file: " + path);
+            }
+            return inputStream.readAllBytes();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
+
 }
