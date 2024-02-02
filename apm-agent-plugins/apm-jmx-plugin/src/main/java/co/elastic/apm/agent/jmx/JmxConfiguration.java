@@ -142,7 +142,7 @@ public class JmxConfiguration extends ConfigurationOptionProvider {
         return captureJmxMetrics;
     }
 
-    private final ConfigurationOption<TimeDuration> delayFailedRegistrationRetry = TimeDurationValueConverter.durationOption("m")
+    private final ConfigurationOption<TimeDuration> faildRetryInterval = TimeDurationValueConverter.durationOption("m")
         .key("jmx_failed_retry_interval")
         .tags("internal")
         .description("If set to a value greater or equal to 1m, the agent will retry failed JMX metric registrations.")
@@ -150,7 +150,7 @@ public class JmxConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(TimeDuration.of("0m"));
 
-    public ConfigurationOption<TimeDuration> getDelayFailedRegistrationRetry() {
-        return delayFailedRegistrationRetry;
+    public ConfigurationOption<TimeDuration> getFaildRetryInterval() {
+        return faildRetryInterval;
     }
 }

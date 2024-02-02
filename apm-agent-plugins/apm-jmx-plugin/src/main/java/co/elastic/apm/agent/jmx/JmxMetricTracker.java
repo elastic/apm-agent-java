@@ -205,7 +205,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
             }
         });
 
-        ConfigurationOption<TimeDuration> failedRetryConfig = jmxConfiguration.getDelayFailedRegistrationRetry();
+        ConfigurationOption<TimeDuration> failedRetryConfig = jmxConfiguration.getFaildRetryInterval();
         long retryMillis = failedRetryConfig.getValue().getMillis();
         if (!failedRetryConfig.isDefault()) {
             retryExecutor = ExecutorUtils.createSingleThreadSchedulingDaemonPool("jmx-retry");
@@ -344,7 +344,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         return globalRegistrations;
     }
 
-    private static void addJmxMetricRegistration(final JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, MBeanServer server) throws JMException {
+    private void addJmxMetricRegistration(final JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, MBeanServer server) throws JMException {
         Set<ObjectInstance> mbeans = server.queryMBeans(jmxMetric.getObjectName(), null);
         if (!mbeans.isEmpty()) {
             logger.debug("Found mbeans for object name {}", jmxMetric.getObjectName());
@@ -398,8 +398,9 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         return "";
     }
 
-    private static void addJmxMetricRegistration(JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, ObjectName objectName, Object value, JmxMetric.Attribute attribute, String attributeName, @Nullable String metricPrepend) throws AttributeNotFoundException {
+    private void addJmxMetricRegistration(JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, ObjectName objectName, Object value, JmxMetric.Attribute attribute, String attributeName, @Nullable String metricPrepend) throws AttributeNotFoundException {
         String effectiveAttributeName = metricPrepend == null ? attributeName : metricPrepend + attributeName;
+        boolean unsubscribeOnError = !jmxConfiguration.getFaildRetryInterval().isDefault();
         if (value instanceof Number) {
             logger.debug("Found number attribute {}={}", attribute.getJmxAttributeName(), value);
             registrations.add(
@@ -410,7 +411,8 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                     attribute.getLabels(objectName),
                     attributeName,
                     null,
-                    objectName
+                    objectName,
+                    unsubscribeOnError
                 )
             );
         } else if (value instanceof CompositeData) {
@@ -426,7 +428,8 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                             attribute.getLabels(objectName),
                             attributeName,
                             key,
-                            objectName
+                            objectName,
+                            unsubscribeOnError
                         )
                     );
                 } else {
@@ -450,13 +453,15 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         @Nullable
         private final String compositeDataKey;
         private final ObjectName objectName;
+        private final boolean unsubscribeOnError;
 
-        private JmxMetricRegistration(String metricName, Labels labels, String jmxAttribute, @Nullable String compositeDataKey, ObjectName objectName) {
+        private JmxMetricRegistration(String metricName, Labels labels, String jmxAttribute, @Nullable String compositeDataKey, ObjectName objectName, boolean unsubscribeOnError) {
             this.metricName = metricName;
             this.labels = labels.immutableCopy();
             this.jmxAttribute = jmxAttribute;
             this.compositeDataKey = compositeDataKey;
             this.objectName = objectName;
+            this.unsubscribeOnError = unsubscribeOnError;
         }
 
 
@@ -474,7 +479,9 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                         }
                         return value;
                     } catch (InstanceNotFoundException | AttributeNotFoundException e) {
-                        unregister(metricRegistry);
+                        if (unsubscribeOnError) {
+                            unregister(metricRegistry);
+                        }
                         return Double.NaN;
                     } catch (Exception e) {
                         return Double.NaN;
