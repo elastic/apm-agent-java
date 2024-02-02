@@ -282,7 +282,7 @@ public class AgentDownloader {
                 throw new IllegalStateException("unknown key file: " + path);
             }
             byte[] result = new byte[size];
-            if (size == 0 || size != inputStream.read(result)) {
+            if (size == 0 || size != inputStream.read(result) || inputStream.read() >= 0) {
                 throw new IllegalStateException("invalid key file size: " + size);
             }
             return result;
