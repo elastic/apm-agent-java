@@ -36,7 +36,7 @@ import static org.mockito.Mockito.spy;
 
 class AgentDownloaderTest {
 
-    private static final String TEST_KEY_ID = "90AD76CD56AA73A9";
+    private static final String TEST_KEY_ID = "D27D666CD88E42B4";
 
     private final AgentDownloader agentDownloader = new AgentDownloader(new BouncyCastleVerifier());
 
