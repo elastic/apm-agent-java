@@ -271,17 +271,21 @@ public class AgentDownloader {
      */
     public Map<String, byte[]> getPublicKeys() {
         Map<String, byte[]> map = new HashMap<String, byte[]>();
-        map.put("D27D666CD88E42B4", getPubKeyContent("/pub_key_D27D666CD88E42B4.asc"));
-        map.put("8AB554FD8F207067", getPubKeyContent("/pub_key_8AB554FD8F207067.asc"));
+        map.put("D27D666CD88E42B4", getPubKeyContent("/pub_key_D27D666CD88E42B4.asc", 1780));
+        map.put("8AB554FD8F207067", getPubKeyContent("/pub_key_8AB554FD8F207067.asc", 0));
         return map;
     }
 
-    private byte[] getPubKeyContent(String path) {
+    private byte[] getPubKeyContent(String path, int size) {
         try (InputStream inputStream = AgentDownloader.class.getResourceAsStream(path)) {
             if (inputStream == null) {
                 throw new IllegalStateException("unknown key file: " + path);
             }
-            return inputStream.readAllBytes();
+            byte[] result = new byte[size];
+            if (size == 0 || size != inputStream.read(result)) {
+                throw new IllegalStateException("invalid key file size: " + size);
+            }
+            return result;
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
