@@ -25,9 +25,11 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.tracer.service.Service;
 
 import javax.annotation.Nullable;
+import java.io.Flushable;
+import java.io.IOException;
 import java.util.Set;
 
-public interface Tracer {
+public interface Tracer extends Flushable {
 
     boolean isRunning();
 
@@ -88,4 +90,9 @@ public interface Tracer {
 
     @Nullable
     Service createService(String ephemeralId);
+
+    @Override
+    void flush();
+
+    void completeMetaData(String name, String version, String id, String region);
 }

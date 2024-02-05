@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.agent.awslambda.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.context.CloudOrigin;
-import co.elastic.apm.agent.impl.context.ServiceOrigin;
-import co.elastic.apm.agent.impl.transaction.FaasTrigger;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.FaasTrigger;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.ServiceOrigin;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.metadata.CloudOrigin;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification;
@@ -38,13 +38,13 @@ public class S3TransactionHelper extends AbstractLambdaTransactionHelper<S3Event
     @Nullable
     private static S3TransactionHelper INSTANCE;
 
-    private S3TransactionHelper(ElasticApmTracer tracer) {
+    private S3TransactionHelper(Tracer tracer) {
         super(tracer);
     }
 
     public static S3TransactionHelper getInstance() {
         if (INSTANCE == null) {
-            INSTANCE = new S3TransactionHelper(GlobalTracer.get().require(ElasticApmTracer.class));
+            INSTANCE = new S3TransactionHelper(GlobalTracer.get());
         }
         return INSTANCE;
     }
@@ -52,17 +52,17 @@ public class S3TransactionHelper extends AbstractLambdaTransactionHelper<S3Event
 
     @Nullable
     @Override
-    protected Transaction doStartTransaction(S3Event s3Event, Context lambdaContext) {
+    protected Transaction<?> doStartTransaction(S3Event s3Event, Context lambdaContext) {
         return tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(lambdaContext.getClass()));
     }
 
     @Override
-    public void captureOutputForTransaction(Transaction transaction, Void output) {
+    public void captureOutputForTransaction(Transaction<?> transaction, Void output) {
         // Nothing to do here
     }
 
     @Override
-    protected void setTransactionTriggerData(Transaction transaction, S3Event s3Event) {
+    protected void setTransactionTriggerData(Transaction<?> transaction, S3Event s3Event) {
         transaction.withType(TRANSACTION_TYPE);
 
         FaasTrigger faasTrigger = transaction.getFaas().getTrigger();
@@ -97,7 +97,7 @@ public class S3TransactionHelper extends AbstractLambdaTransactionHelper<S3Event
     }
 
     @Override
-    protected void setTransactionName(Transaction transaction, S3Event s3Event, Context lambdaContext) {
+    protected void setTransactionName(Transaction<?> transaction, S3Event s3Event, Context lambdaContext) {
         S3EventNotification.S3EventNotificationRecord s3NotificationRecord = getS3NotificationRecord(s3Event);
         StringBuilder transactionName = transaction.getAndOverrideName(AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK);
         if (transactionName != null && null != s3NotificationRecord && null != s3NotificationRecord.getS3() && null != s3NotificationRecord.getS3().getBucket()) {

@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.awslambda;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -41,7 +41,7 @@ public abstract class AbstractAwsLambdaHandlerInstrumentation extends ElasticApm
     @Nullable
     protected String handlerMethodName;
 
-    public AbstractAwsLambdaHandlerInstrumentation(ElasticApmTracer tracer) {
+    public AbstractAwsLambdaHandlerInstrumentation(Tracer tracer) {
         serverlessConfiguration = tracer.getConfig(ServerlessConfiguration.class);
         String awsLambdaHandler = serverlessConfiguration.getAwsLambdaHandler();
         //noinspection ConstantConditions

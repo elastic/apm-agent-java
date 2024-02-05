@@ -56,4 +56,6 @@ public interface Transaction<T extends Transaction<T>> extends AbstractSpan<T> {
     void setFrameworkName(@Nullable String frameworkName);
 
     void setFrameworkVersion(@Nullable String frameworkVersion);
+
+    Faas getFaas();
 }

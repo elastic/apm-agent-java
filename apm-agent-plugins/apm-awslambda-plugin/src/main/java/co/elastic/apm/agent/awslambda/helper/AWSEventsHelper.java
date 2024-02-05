@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.awslambda.helper;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
@@ -33,7 +33,7 @@ import javax.annotation.Nullable;
 public class AWSEventsHelper {
 
     @Nullable
-    public static Transaction startTransaction(Object input, Context lambdaContext) {
+    public static Transaction<?> startTransaction(Object input, Context lambdaContext) {
         if (input instanceof APIGatewayV2HTTPEvent && ((APIGatewayV2HTTPEvent) input).getRequestContext() != null
             && ((APIGatewayV2HTTPEvent) input).getRequestContext().getHttp() != null) {
             // API Gateway V2 trigger
@@ -54,7 +54,7 @@ public class AWSEventsHelper {
         return PlainTransactionHelper.getInstance().startTransaction(input, lambdaContext);
     }
 
-    public static void finalizeTransaction(Transaction transaction, Object output, @Nullable Throwable thrown) {
+    public static void finalizeTransaction(Transaction<?> transaction, Object output, @Nullable Throwable thrown) {
         if (output instanceof APIGatewayV2HTTPResponse) {
             APIGatewayProxyV2TransactionHelper.getInstance().finalizeTransaction(transaction, (APIGatewayV2HTTPResponse) output, thrown);
         } else if (output instanceof APIGatewayProxyResponseEvent) {

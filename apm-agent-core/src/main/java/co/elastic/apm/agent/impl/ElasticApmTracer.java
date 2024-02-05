@@ -18,7 +18,9 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.IndyBootstrap;
+import co.elastic.apm.agent.bci.InstrumentationStats;
 import co.elastic.apm.agent.collections.WeakReferenceCountedMap;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
@@ -26,7 +28,8 @@ import co.elastic.apm.agent.configuration.AutoDetectedServiceInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
-import co.elastic.apm.agent.impl.metadata.ServiceFactory;
+import co.elastic.apm.agent.impl.metadata.*;
+import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.tracer.service.Service;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
@@ -35,7 +38,6 @@ import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -78,10 +80,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 
 
 /**
@@ -92,6 +91,7 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 public class ElasticApmTracer implements Tracer {
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
+    private static final Logger enabledInstrumentationsLogger = LoggerUtils.logOnce(logger);
 
     private static final WeakMap<ClassLoader, ServiceInfo> serviceInfoByClassLoader = WeakConcurrent.buildMap();
 
@@ -994,5 +994,34 @@ public class ElasticApmTracer implements Tracer {
             ephemeralId,
             configurationRegistry.getConfig(ServerlessConfiguration.class).runsOnAwsLambda()
         );
+    }
+
+    @Override
+    public void flush() {
+        long flushTimeout = configurationRegistry.getConfig(ServerlessConfiguration.class).getDataFlushTimeout();
+        try {
+            if (!reporter.flush(flushTimeout, TimeUnit.MILLISECONDS, true)) {
+                logger.error("APM data flush haven't completed within {} milliseconds.", flushTimeout);
+            }
+        } catch (Exception e) {
+            logger.error("An error occurred on flushing APM data.", e);
+        }
+        logEnabledInstrumentations();
+    }
+
+    private void logEnabledInstrumentations() {
+        if (enabledInstrumentationsLogger.isInfoEnabled()) {
+            InstrumentationStats instrumentationStats = ElasticApmAgent.getInstrumentationStats();
+            enabledInstrumentationsLogger.info("Used instrumentation groups: {}", instrumentationStats.getUsedInstrumentationGroups());
+        }
+    }
+
+    @Override
+    public void completeMetaData(String name, String version, String id, String region) {
+        metaDataFuture.getFaaSMetaDataExtensionFuture().complete(new FaaSMetaDataExtension(
+            new Framework(name, version),
+            new NameAndIdField(null, id),
+            region
+        ));
     }
 }

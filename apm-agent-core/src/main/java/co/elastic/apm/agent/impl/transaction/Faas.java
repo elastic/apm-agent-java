@@ -22,7 +22,7 @@ import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 
-public class Faas implements Recyclable {
+public class Faas implements co.elastic.apm.agent.tracer.Faas, Recyclable {
 
     @Nullable
     private String execution;
@@ -68,26 +68,31 @@ public class Faas implements Recyclable {
         return version;
     }
 
+    @Override
     public Faas withExecution(@Nullable String execution) {
         this.execution = execution;
         return this;
     }
 
+    @Override
     public Faas withColdStart(boolean coldStart) {
         this.coldStart = coldStart;
         return this;
     }
 
+    @Override
     public Faas withId(@Nullable String id) {
         this.id = id;
         return this;
     }
 
+    @Override
     public Faas withName(@Nullable String name) {
         this.name = name;
         return this;
     }
 
+    @Override
     public Faas withVersion(@Nullable String version) {
         this.version = version;
         return this;

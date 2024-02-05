@@ -150,4 +150,14 @@ public class GlobalTracer implements Tracer {
     public Service createService(String ephemeralId) {
         return tracer.createService(ephemeralId);
     }
+
+    @Override
+    public void flush() {
+        tracer.flush();
+    }
+
+    @Override
+    public void completeMetaData(String name, String version, String id, String region) {
+        tracer.completeMetaData(name, version, id, region);
+    }
 }
