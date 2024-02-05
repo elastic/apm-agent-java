@@ -16,12 +16,6 @@
     </properties>
 
     <dependencies>
-        <!-- This plugin requires further refactoring to avoid agent dependencies. -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-java-concurrent-plugin</artifactId>
