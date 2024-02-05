@@ -52,6 +52,8 @@ public class AgentDownloader {
     private static final String CLI_JAR_VERSION;
     public static final String USER_AGENT;
 
+    private final Map<String,byte[]> keys;
+
     static {
         CLI_JAR_VERSION = readCliJarVersion();
         StringBuilder userAgent = new StringBuilder("elastic-apm-agent-java-attach-cli");
@@ -87,6 +89,9 @@ public class AgentDownloader {
 
     public AgentDownloader(PgpSignatureVerifier pgpSignatureVerifier) {
         this.pgpSignatureVerifier = pgpSignatureVerifier;
+        this.keys = new HashMap<String, byte[]>();
+        keys.put("D27D666CD88E42B4", getPubKeyContent("/pub_key_D27D666CD88E42B4.asc", 1780));
+        keys.put("8AB554FD8F207067", getPubKeyContent("/pub_key_8AB554FD8F207067.asc", 977));
     }
 
     private final PgpSignatureVerifier pgpSignatureVerifier;
@@ -210,27 +215,41 @@ public class AgentDownloader {
     void verifyPgpSignature(final Path agentJarFile, final String mavenAgentUrlString) throws Exception {
         final String ascUrlString = mavenAgentUrlString + ".asc";
         logger.info("Verifying Elastic APM Java Agent jar PGP signature...");
-        HttpURLConnection signatureFileUrlConnection = openConnection(ascUrlString);
-        try (
-            InputStream agentJarIS = Files.newInputStream(agentJarFile);
-            InputStream pgpSignatureIS = signatureFileUrlConnection.getInputStream();
-        ) {
 
-            for (Map.Entry<String, byte[]> entry : getPublicKeys().entrySet()) {
+        HttpURLConnection signatureFileUrlConnection = openConnection(ascUrlString);
+        int signatureLength = signatureFileUrlConnection.getContentLength();
+        if (signatureLength <= 0) {
+            throw new IllegalStateException("unexpected signature size");
+        }
+
+        byte[] signatureBytes;
+        try (InputStream inputStream = signatureFileUrlConnection.getInputStream()) {
+            signatureBytes = toByteArray(inputStream, signatureLength);
+        }
+
+        for (Map.Entry<String, byte[]> entry : getPublicKeys().entrySet()) {
+            try (
+                InputStream agentJarIS = Files.newInputStream(agentJarFile);
+            ) {
+                InputStream pgpSignatureIS = new ByteArrayInputStream(signatureBytes);
+                logger.debug("attempt to verify with key [{}]", entry.getKey());
                 InputStream publicKeyIS = new ByteArrayInputStream(entry.getValue());
                 try {
                     if (pgpSignatureVerifier.verifyPgpSignature(agentJarIS, pgpSignatureIS, publicKeyIS, entry.getKey())) {
                         logger.info("Elastic APM Java Agent jar PGP signature successfully verified.");
                         return;
+                    } else {
+                        logger.debug("key verification failed with key [{}]", entry.getKey());
                     }
                 } catch (Exception e) {
                     logger.debug(e.getMessage());
                 }
-
             }
-            throw new IllegalStateException("Signature verification for " + mavenAgentUrlString + " failed, downloaded jar may have been tampered with.");
 
         }
+        throw new IllegalStateException("Signature verification for " + mavenAgentUrlString + " failed, downloaded jar may have been tampered with.");
+
+
 
     }
 
@@ -270,25 +289,26 @@ public class AgentDownloader {
      * @return map of signing keys, with key ID as key, and the raw public key value as value
      */
     public Map<String, byte[]> getPublicKeys() {
-        Map<String, byte[]> map = new HashMap<String, byte[]>();
-        map.put("D27D666CD88E42B4", getPubKeyContent("/pub_key_D27D666CD88E42B4.asc", 1780));
-        map.put("8AB554FD8F207067", getPubKeyContent("/pub_key_8AB554FD8F207067.asc", 0));
-        return map;
+        return keys;
     }
 
-    private byte[] getPubKeyContent(String path, int size) {
+    private static byte[] getPubKeyContent(String path, int size) {
         try (InputStream inputStream = AgentDownloader.class.getResourceAsStream(path)) {
             if (inputStream == null) {
                 throw new IllegalStateException("unknown key file: " + path);
             }
-            byte[] result = new byte[size];
-            if (size == 0 || size != inputStream.read(result) || inputStream.read() >= 0) {
-                throw new IllegalStateException("invalid key file size: " + size);
-            }
-            return result;
+            return toByteArray(inputStream, size);
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    private static byte[] toByteArray(InputStream inputStream, int size) throws IOException {
+        byte[] result = new byte[size];
+        if (size == 0 || size != inputStream.read(result) || inputStream.read() >= 0) {
+            throw new IllegalStateException("invalid input size" + size);
+        }
+        return result;
     }
 
 }
