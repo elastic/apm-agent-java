@@ -22,6 +22,7 @@ import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
+import co.elastic.apm.agent.tracer.service.Service;
 
 import javax.annotation.Nullable;
 import java.util.Set;
@@ -80,4 +81,11 @@ public interface Tracer {
 
     @Nullable
     ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader);
+
+    void reportLog(String log);
+
+    void reportLog(byte[] log);
+
+    @Nullable
+    Service createService(String ephemeralId);
 }

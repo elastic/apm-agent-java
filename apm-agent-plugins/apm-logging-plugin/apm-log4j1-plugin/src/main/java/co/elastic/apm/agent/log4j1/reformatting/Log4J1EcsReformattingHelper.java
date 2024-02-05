@@ -22,9 +22,9 @@ import co.elastic.apm.agent.log4j1.sending.LogSenderAppender;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
 
-import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.logging.log4j.EcsLayout;
 import org.apache.log4j.Appender;
 import org.apache.log4j.FileAppender;
@@ -112,8 +112,8 @@ class Log4J1EcsReformattingHelper extends AbstractEcsReformattingHelper<WriterAp
     }
 
     @Override
-    protected Appender createAndStartLogSendingAppender(Reporter reporter, Layout formatter) {
-        return new LogSenderAppender(reporter, formatter);
+    protected Appender createAndStartLogSendingAppender(Tracer tracer, Layout formatter) {
+        return new LogSenderAppender(tracer, formatter);
     }
 
     @Override

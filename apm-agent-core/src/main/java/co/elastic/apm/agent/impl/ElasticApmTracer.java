@@ -26,6 +26,8 @@ import co.elastic.apm.agent.configuration.AutoDetectedServiceInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.impl.metadata.ServiceFactory;
+import co.elastic.apm.agent.tracer.service.Service;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
@@ -972,5 +974,25 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public ServiceInfo autoDetectedServiceInfo() {
         return AutoDetectedServiceInfo.autoDetected();
+    }
+
+    @Override
+    public void reportLog(String log) {
+        reporter.reportLog(log);
+    }
+
+    @Override
+    public void reportLog(byte[] log) {
+        reporter.reportLog(log);
+    }
+
+    @Nullable
+    @Override
+    public Service createService(String ephemeralId) {
+        return new ServiceFactory().createService(
+            coreConfiguration,
+            ephemeralId,
+            configurationRegistry.getConfig(ServerlessConfiguration.class).runsOnAwsLambda()
+        );
     }
 }

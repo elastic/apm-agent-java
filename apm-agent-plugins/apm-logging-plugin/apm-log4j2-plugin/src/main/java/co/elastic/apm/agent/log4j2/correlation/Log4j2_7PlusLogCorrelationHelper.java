@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.log4j2.correlation;
 
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
 import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
 import co.elastic.apm.agent.tracer.Tracer;
