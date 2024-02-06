@@ -53,7 +53,16 @@ public class BouncyCastleVerifier implements PgpSignatureVerifier {
                                       InputStream rawPublicKey, String keyID) throws Exception {
         // read expected signature
         final JcaPGPObjectFactory factory = new JcaPGPObjectFactory(PGPUtil.getDecoderStream(expectedPgpSignature));
-        final PGPSignature signature = ((PGPSignatureList) factory.nextObject()).get(0);
+        Object factoryObj = factory.nextObject();
+        if(!(factoryObj instanceof PGPSignatureList)) {
+            throw new IllegalStateException("unexpected signature list");
+        }
+        PGPSignatureList signatureList = (PGPSignatureList) factoryObj;
+        if (signatureList.size() != 1) {
+            throw new IllegalStateException("unexpected signature list size");
+        }
+
+        final PGPSignature signature = signatureList.get(0);
 
         // validate the signature has key ID matching our public key ID
         final String signatureKeyID = Long.toHexString(signature.getKeyID()).toUpperCase(Locale.ROOT);
