@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.metrics;
+package co.elastic.apm.agent.tracer.metrics;
 
-import co.elastic.apm.agent.tracer.metrics.Labels;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

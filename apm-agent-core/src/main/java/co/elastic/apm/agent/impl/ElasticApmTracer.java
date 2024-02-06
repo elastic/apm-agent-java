@@ -68,6 +68,7 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import com.dslplatform.json.JsonWriter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -1046,5 +1047,10 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public void schedule(Runnable job, long interval, TimeUnit timeUnit) {
         sharedPool.scheduleAtFixedRate(job, 0, interval, timeUnit);
+    }
+
+    @Override
+    public void reportMetric(JsonWriter metrics) {
+        reporter.reportMetrics(metrics);
     }
 }

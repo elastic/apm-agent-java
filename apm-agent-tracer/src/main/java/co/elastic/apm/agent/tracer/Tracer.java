@@ -25,10 +25,10 @@ import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.tracer.service.Service;
+import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
 import java.io.Flushable;
-import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -108,4 +108,6 @@ public interface Tracer extends Flushable {
     void schedule(Runnable job, long interval, TimeUnit timeUnit);
 
     void addShutdownHook(AutoCloseable hook);
+
+    void reportMetric(JsonWriter metrics); // TODO: replace with internalized DSL writer that only accepts data.
 }

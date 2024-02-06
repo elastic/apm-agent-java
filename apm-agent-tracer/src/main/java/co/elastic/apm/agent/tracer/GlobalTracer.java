@@ -25,6 +25,7 @@ import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.tracer.service.Service;
+import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
 import java.util.Set;
@@ -182,5 +183,15 @@ public class GlobalTracer implements Tracer {
     @Override
     public void schedule(Runnable job, long interval, TimeUnit timeUnit) {
         tracer.schedule(job, interval, timeUnit);
+    }
+
+    @Override
+    public void addShutdownHook(AutoCloseable hook) {
+        tracer.addShutdownHook(hook);
+    }
+
+    @Override
+    public void reportMetric(JsonWriter metrics) {
+        tracer.reportMetric(metrics);
     }
 }

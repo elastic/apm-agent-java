@@ -26,6 +26,7 @@ import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.tracer.configuration.ReporterConfiguration;
+import com.dslplatform.json.JsonWriter;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
@@ -185,7 +186,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         }
         logger.debug("Reporting {} meters", meterConsumer.meters.size());
         for (JsonWriter serializedMetricSet : serializer.serialize(meterConsumer.meters, now * 1000)) {
-            reporter.reportMetrics(serializedMetricSet);
+            tracer.reportMetric(serializedMetricSet);
         }
     }
 

@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.micrometer;
 
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 import co.elastic.apm.agent.tracer.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.tracer.metrics.DslJsonUtil;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
@@ -100,14 +100,14 @@ public class MicrometerMeterRegistrySerializer {
         boolean dedotMetricName = config.isDedotCustomMetrics();
         jw.writeByte(JsonWriter.OBJECT_START);
         {
-            DslJsonSerializer.writeFieldName("metricset", jw);
+            DslJsonUtil.writeFieldName("metricset", jw);
             jw.writeByte(JsonWriter.OBJECT_START);
             {
-                DslJsonSerializer.writeFieldName("timestamp", jw);
+                DslJsonUtil.writeFieldName("timestamp", jw);
                 NumberConverter.serialize(epochMicros, jw);
                 jw.writeByte(JsonWriter.COMMA);
                 serializeTags(tags, replaceBuilder, jw);
-                DslJsonSerializer.writeFieldName("samples", jw);
+                DslJsonUtil.writeFieldName("samples", jw);
                 jw.writeByte(JsonWriter.OBJECT_START);
 
                 ClassLoader originalContextCL = PrivilegedActionUtils.getContextClassLoader(Thread.currentThread());
@@ -167,16 +167,16 @@ public class MicrometerMeterRegistrySerializer {
         if (tags.isEmpty()) {
             return;
         }
-        DslJsonSerializer.writeFieldName("tags", jw);
+        DslJsonUtil.writeFieldName("tags", jw);
         jw.writeByte(OBJECT_START);
         for (int i = 0, tagsSize = tags.size(); i < tagsSize; i++) {
             Tag tag = tags.get(i);
             if (i > 0) {
                 jw.writeByte(COMMA);
             }
-            DslJsonSerializer.writeStringValue(DslJsonSerializer.sanitizePropertyName(tag.getKey(), replaceBuilder), replaceBuilder, jw);
+            DslJsonUtil.writeStringValue(DslJsonUtil.sanitizePropertyName(tag.getKey(), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
-            DslJsonSerializer.writeStringValue(tag.getValue(), replaceBuilder, jw);
+            DslJsonUtil.writeStringValue(tag.getValue(), replaceBuilder, jw);
         }
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
@@ -320,7 +320,7 @@ public class MicrometerMeterRegistrySerializer {
     private static void serializeObjectStart(String key, String objectName, String suffix, JsonWriter jw, StringBuilder replaceBuilder, boolean dedotMetricName) {
         replaceBuilder.setLength(0);
         if (dedotMetricName) {
-            DslJsonSerializer.sanitizePropertyName(key, replaceBuilder);
+            DslJsonUtil.sanitizePropertyName(key, replaceBuilder);
         } else {
             replaceBuilder.append(key);
         }
