@@ -400,7 +400,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
 
     private void addJmxMetricRegistration(JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, ObjectName objectName, Object value, JmxMetric.Attribute attribute, String attributeName, @Nullable String metricPrepend) throws AttributeNotFoundException {
         String effectiveAttributeName = metricPrepend == null ? attributeName : metricPrepend + attributeName;
-        boolean unsubscribeOnError = !jmxConfiguration.getFaildRetryInterval().isDefault();
+        boolean unsubscribeOnError = jmxConfiguration.getFaildRetryInterval().isDefault();
         if (value instanceof Number) {
             logger.debug("Found number attribute {}={}", attribute.getJmxAttributeName(), value);
             registrations.add(

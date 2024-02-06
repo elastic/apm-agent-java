@@ -147,7 +147,6 @@ public class JmxConfiguration extends ConfigurationOptionProvider {
         .tags("internal")
         .description("If set to a value greater or equal to 1m, the agent will retry failed JMX metric registrations.")
         .addValidator(isNotInRange(TimeDuration.of("1ms"), TimeDuration.of("59s")))
-        .dynamic(true)
         .buildWithDefault(TimeDuration.of("0m"));
 
     public ConfigurationOption<TimeDuration> getFaildRetryInterval() {
