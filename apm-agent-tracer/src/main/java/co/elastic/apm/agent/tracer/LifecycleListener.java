@@ -16,16 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.context;
-
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Tracer;
+package co.elastic.apm.agent.tracer;
 
 /**
  * A {@link LifecycleListener} notifies about the start and stop event of the {@link ElasticApmTracer}.
  * <p>
  * Implement this interface and register it as a {@linkplain java.util.ServiceLoader service} under
- * {@code src/main/resources/META-INF/services/co.elastic.apm.agent.context.LifecycleListener}.
+ * {@code src/main/resources/META-INF/services/co.elastic.apm.agent.tracer.LifecycleListener}.
  * </p>
  * <p>
  * Implementations may have a constructor with an {@link ElasticApmTracer} argument
@@ -34,21 +31,21 @@ import co.elastic.apm.agent.impl.Tracer;
 public interface LifecycleListener {
 
     /**
-     * Callback for tracer initialization. As opposed to {@link LifecycleListener#start(ElasticApmTracer)}, which may
+     * Callback for tracer initialization. As opposed to {@link LifecycleListener#start(Tracer)}, which may
      * be called in a delay, this callback is called at the bootstrap of the JVM, before anything else start.
      * This may be useful for listeners that need to operate very early on, for example such that setup class loading
      * requirement to support OSGi systems.
      * @param tracer the tracer
      * @throws Exception
      */
-    void init(ElasticApmTracer tracer) throws Exception;
+    void init(Tracer tracer) throws Exception;
 
     /**
      * Callback for when the {@link ElasticApmTracer} starts.
      *
      * @param tracer The tracer.
      */
-    void start(ElasticApmTracer tracer) throws Exception;
+    void start(Tracer tracer) throws Exception;
 
     /**
      * Callback for when {@link ElasticApmTracer#pause()} has been called.

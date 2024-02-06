@@ -19,6 +19,8 @@
 package co.elastic.apm.agent.tracer;
 
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
+import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
+import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
@@ -26,6 +28,7 @@ import co.elastic.apm.agent.tracer.service.Service;
 
 import javax.annotation.Nullable;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class GlobalTracer implements Tracer {
 
@@ -159,5 +162,25 @@ public class GlobalTracer implements Tracer {
     @Override
     public void completeMetaData(String name, String version, String id, String region) {
         tracer.completeMetaData(name, version, id, region);
+    }
+
+    @Override
+    public void removeGauge(String name, Labels.Immutable labels) {
+        tracer.removeGauge(name, labels);
+    }
+
+    @Override
+    public void addGauge(String name, Labels.Immutable labels, DoubleSupplier supplier) {
+        tracer.addGauge(name, labels, supplier);
+    }
+
+    @Override
+    public void submit(Runnable job) {
+        tracer.submit(job);
+    }
+
+    @Override
+    public void schedule(Runnable job, long interval, TimeUnit timeUnit) {
+        tracer.schedule(job, interval, timeUnit);
     }
 }

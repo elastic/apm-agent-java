@@ -30,11 +30,13 @@ import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.impl.metadata.*;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
+import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
+import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.tracer.service.Service;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.tracer.LifecycleListener;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -943,7 +945,8 @@ public class ElasticApmTracer implements Tracer {
         return sharedPool;
     }
 
-    public void addShutdownHook(Closeable closeable) {
+    @Override
+    public void addShutdownHook(AutoCloseable closeable) {
         lifecycleListeners.add(ClosableLifecycleListenerAdapter.of(closeable));
     }
 
@@ -1023,5 +1026,25 @@ public class ElasticApmTracer implements Tracer {
             new NameAndIdField(null, id),
             region
         ));
+    }
+
+    @Override
+    public void removeGauge(String name, Labels.Immutable labels) {
+        metricRegistry.removeGauge(name, labels);
+    }
+
+    @Override
+    public void addGauge(String name, Labels.Immutable labels, DoubleSupplier supplier) {
+        metricRegistry.add(name, labels, supplier);
+    }
+
+    @Override
+    public void submit(Runnable job) {
+        sharedPool.submit(job);
+    }
+
+    @Override
+    public void schedule(Runnable job, long interval, TimeUnit timeUnit) {
+        sharedPool.scheduleAtFixedRate(job, 0, interval, timeUnit);
     }
 }

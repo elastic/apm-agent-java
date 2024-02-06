@@ -19,6 +19,8 @@
 package co.elastic.apm.agent.tracer;
 
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
+import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
+import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
@@ -28,6 +30,7 @@ import javax.annotation.Nullable;
 import java.io.Flushable;
 import java.io.IOException;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public interface Tracer extends Flushable {
 
@@ -95,4 +98,14 @@ public interface Tracer extends Flushable {
     void flush();
 
     void completeMetaData(String name, String version, String id, String region);
+
+    void removeGauge(String name, Labels.Immutable labels);
+
+    void addGauge(String name, Labels.Immutable labels, DoubleSupplier supplier);
+
+    void submit(Runnable job);
+
+    void schedule(Runnable job, long interval, TimeUnit timeUnit);
+
+    void addShutdownHook(AutoCloseable hook);
 }
