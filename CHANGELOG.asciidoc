@@ -43,6 +43,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 [float]
 ===== Features
+* Added a configuration option to use queues in names of spring-rabbit transactions - {pull}3424[#3424]
 * Added support for OpenTelementry Attributes db.statement and db.user - {pull}3475[#3475]
 
 [float]

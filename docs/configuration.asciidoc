@@ -171,6 +171,7 @@ Click on a key to get more information.
 * <<config-messaging>>
 ** <<config-ignore-message-queues>>
 ** <<config-jms-listener-packages>>
+** <<config-rabbitmq-naming-mode>>
 * <<config-metrics>>
 ** <<config-dedot-custom-metrics>>
 ** <<config-custom-metrics-histogram-boundaries>>
@@ -2504,6 +2505,30 @@ Starting from version 1.43.0, the classes that are part of the 'application_pack
 | `elastic.apm.jms_listener_packages` | `jms_listener_packages` | `ELASTIC_APM_JMS_LISTENER_PACKAGES`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-rabbitmq-naming-mode]]
+==== `rabbitmq_naming_mode` (added[1.46.0])
+
+Defines whether the agent should use the exchanges or the queue for the naming of RabbitMQ Transactions. Valid options are `QUEUE` and `EXCHANGE`
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+Valid options: `EXCHANGE`, `QUEUE`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `EXCHANGE` | RabbitMQNamingMode | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.rabbitmq_naming_mode` | `rabbitmq_naming_mode` | `ELASTIC_APM_RABBITMQ_NAMING_MODE`
+|============
+
 [[config-metrics]]
 === Metrics configuration options
 
@@ -4602,6 +4627,15 @@ Example: `5ms`.
 # Default value: 
 #
 # jms_listener_packages=
+
+# Defines whether the agent should use the exchanges or the queue for the naming of RabbitMQ Transactions. Valid options are `QUEUE` and `EXCHANGE`
+#
+# Valid options: EXCHANGE, QUEUE
+# This setting can be changed at runtime
+# Type: RabbitMQNamingMode
+# Default value: EXCHANGE
+#
+# rabbitmq_naming_mode=EXCHANGE
 
 ############################################
 # Metrics                                  #
