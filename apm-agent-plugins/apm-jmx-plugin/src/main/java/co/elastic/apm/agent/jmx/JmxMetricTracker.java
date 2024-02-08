@@ -212,17 +212,22 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
             retryExecutor.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
-                    List<JmxMetric> failed = JmxMetricTracker.this.failedMetrics;
-                    synchronized (failed) {
-                        List<JmxMetric> toRetry = new ArrayList<>(failed);
-                        failed.clear();
-                        register(toRetry, platformMBeanServer, failed);
-                    }
+                    retryFailedJmx(platformMBeanServer);
                 }
             }, retryMillis, retryMillis, TimeUnit.MILLISECONDS);
         }
 
         register(jmxConfiguration.getCaptureJmxMetrics().get(), platformMBeanServer, failedMetrics);
+    }
+
+    // package-private for testing
+    void retryFailedJmx(MBeanServer platformMBeanServer) {
+        List<JmxMetric> failed = JmxMetricTracker.this.failedMetrics;
+        synchronized (failed) {
+            List<JmxMetric> toRetry = new ArrayList<>(failed);
+            failed.clear();
+            register(toRetry, platformMBeanServer, failed);
+        }
     }
 
     private void registerMBeanNotificationListener(final MBeanServer server) {

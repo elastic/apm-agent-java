@@ -181,15 +181,53 @@ class JmxMetricTrackerTest {
         assertThat(metricRegistry.getGauge("jvm.jmx.Baz", labels)).isNull();
     }
 
+    @Test
+    void testMBeanExceptionWhenRegisteredThenOk() throws Exception {
+        ObjectName objectName = new ObjectName("foo:type=Foo,name=testMBeanExceptionWhenRegisteredThenOk");
+        TestMetric testMetric = new TestMetric();
+        testMetric.setValue(-1);
+        assertThatThrownBy(testMetric::getBaz).isInstanceOf(RuntimeException.class);
+
+        setConfig(JmxMetric.valueOf("object_name[foo:type=Foo,name=*] attribute[Baz]"));
+
+        registerMBean(testMetric, objectName);
+
+        Labels labels = Labels.Mutable.of("name", "testMBeanExceptionWhenRegisteredThenOk").add("type", "Foo");
+        assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", labels))
+            .isNaN();
+        assertThat(metricRegistry.getGauge("jvm.jmx.Baz", labels))
+            .isNull();
+
+        testMetric.setValue(37);
+        // calling directly the JMX tracker to avoid testing async execution
+        jmxTracker.retryFailedJmx(mbeanServer);
+
+        assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", labels))
+            .isEqualTo(37);
+    }
+
     public interface TestMetricMBean {
         int getBaz();
     }
 
     public static class TestMetric implements TestMetricMBean {
 
+        private int value;
+
+        public TestMetric() {
+            this.value = 42;
+        }
+
+        void setValue(int value) {
+            this.value = value;
+        }
+
         @Override
         public int getBaz() {
-            return 42;
+            if (value < 0) {
+                throw new RuntimeException("value less than zero");
+            }
+            return value;
         }
     }
 
