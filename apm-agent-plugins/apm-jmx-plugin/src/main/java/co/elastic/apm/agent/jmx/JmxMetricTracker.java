@@ -206,8 +206,12 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         });
 
         ConfigurationOption<TimeDuration> failedRetryConfig = jmxConfiguration.getFaildRetryInterval();
-        long retryMillis = failedRetryConfig.getValue().getMillis();
         if (!failedRetryConfig.isDefault()) {
+            long retryMillis = failedRetryConfig.getValue().getMillis();
+            if (retryExecutor != null) {
+                ExecutorUtils.shutdownAndWaitTermination(retryExecutor);
+            }
+
             retryExecutor = ExecutorUtils.createSingleThreadSchedulingDaemonPool("jmx-retry");
             retryExecutor.scheduleAtFixedRate(new Runnable() {
                 @Override
