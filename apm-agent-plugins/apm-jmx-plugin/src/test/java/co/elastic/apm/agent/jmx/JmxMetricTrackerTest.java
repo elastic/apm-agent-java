@@ -31,16 +31,20 @@ import org.junit.jupiter.api.Test;
 import javax.management.ObjectName;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JmxMetricTrackerTest {
 
     private MetricRegistry metricRegistry;
     private JmxConfiguration config;
     private ElasticApmTracer tracer;
+    private List<ObjectName> toUnregister;
 
     @BeforeEach
     void setUp() {
@@ -48,11 +52,25 @@ class JmxMetricTrackerTest {
         metricRegistry = tracer.getMetricRegistry();
         config = tracer.getConfig(JmxConfiguration.class);
         tracer.getLifecycleListener(JmxMetricTracker.class).init(ManagementFactory.getPlatformMBeanServer());
+        toUnregister = new ArrayList<>();
     }
 
     @AfterEach
     void cleanup() {
         tracer.stop();
+        for (ObjectName name : toUnregister) {
+            try {
+                ManagementFactory.getPlatformMBeanServer().unregisterMBean(name);
+            } catch (Exception e) {
+                // silently ignored
+            }
+        }
+        toUnregister.clear();
+    }
+
+    private void registerMBean(Object object, ObjectName objectName) throws Exception {
+        toUnregister.add(objectName);
+        ManagementFactory.getPlatformMBeanServer().registerMBean(object, objectName);
     }
 
     @Test
@@ -115,43 +133,31 @@ class JmxMetricTrackerTest {
     void testMBeanAddedLater() throws Exception {
         setConfig(JmxMetric.valueOf("object_name[foo:type=Bar] attribute[Baz]"));
         ObjectName objectName = new ObjectName("foo:type=Bar");
-        ManagementFactory.getPlatformMBeanServer().registerMBean(new TestMetric(), objectName);
-        try {
-            assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("type", "Bar"))).isEqualTo(42);
-        } finally {
-            ManagementFactory.getPlatformMBeanServer().unregisterMBean(objectName);
-        }
+        registerMBean(new TestMetric(), objectName);
+        assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("type", "Bar"))).isEqualTo(42);
     }
 
     @Test
     void testMBeanMatchingWildcardAddedLater() throws Exception {
         ObjectName objectName = new ObjectName("foo:type=Foo,name=mbean1");
         ObjectName objectName2 = new ObjectName("foo:type=Foo,name=mbean2");
-        try {
-            ManagementFactory.getPlatformMBeanServer().registerMBean(new TestMetric(), objectName);
-            setConfig(JmxMetric.valueOf("object_name[foo:type=Foo,name=*] attribute[Baz]"));
-            assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean1").add("type", "Foo"))).isEqualTo(42);
-            assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean2").add("type", "Foo"))).isNaN();
 
-            ManagementFactory.getPlatformMBeanServer().registerMBean(new TestMetric(), objectName2);
-            assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean1").add("type", "Foo"))).isEqualTo(42);
-            assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean2").add("type", "Foo"))).isEqualTo(42);
-        } finally {
-            ManagementFactory.getPlatformMBeanServer().unregisterMBean(objectName);
-            ManagementFactory.getPlatformMBeanServer().unregisterMBean(objectName2);
-        }
+        registerMBean(new TestMetric(), objectName);
+        setConfig(JmxMetric.valueOf("object_name[foo:type=Foo,name=*] attribute[Baz]"));
+        assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean1").add("type", "Foo"))).isEqualTo(42);
+        assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean2").add("type", "Foo"))).isNaN();
+
+        registerMBean(new TestMetric(), objectName2);
+        assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean1").add("type", "Foo"))).isEqualTo(42);
+        assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean2").add("type", "Foo"))).isEqualTo(42);
     }
 
     @Test
     void testMBeanUnregister() throws Exception {
         ObjectName objectName = new ObjectName("foo:type=Foo,name=testMBeanUnregister");
-        ManagementFactory.getPlatformMBeanServer().registerMBean(new TestMetric(), objectName);
-        try {
-            setConfig(JmxMetric.valueOf("object_name[foo:type=Foo,name=*] attribute[Baz]"));
-            assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "testMBeanUnregister").add("type", "Foo"))).isEqualTo(42);
-        } finally {
-            ManagementFactory.getPlatformMBeanServer().unregisterMBean(objectName);
-        }
+        registerMBean(new TestMetric(), objectName);
+        setConfig(JmxMetric.valueOf("object_name[foo:type=Foo,name=*] attribute[Baz]"));
+        assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "testMBeanUnregister").add("type", "Foo"))).isEqualTo(42);
 
         // trying to get a non-existing MBean metric value will unregister it
         assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "testMBeanUnregister").add("type", "Foo"))).isNaN();
