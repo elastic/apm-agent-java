@@ -18,11 +18,15 @@
  */
 package co.elastic.apm.agent.jmx;
 
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 import java.util.Collections;
 import java.util.List;
+
+import static co.elastic.apm.agent.tracer.configuration.RangeValidator.isNotInRange;
 
 public class JmxConfiguration extends ConfigurationOptionProvider {
 
@@ -136,5 +140,16 @@ public class JmxConfiguration extends ConfigurationOptionProvider {
 
     ConfigurationOption<List<JmxMetric>> getCaptureJmxMetrics() {
         return captureJmxMetrics;
+    }
+
+    private final ConfigurationOption<TimeDuration> faildRetryInterval = TimeDurationValueConverter.durationOption("m")
+        .key("jmx_failed_retry_interval")
+        .tags("internal")
+        .description("If set to a value greater or equal to 1m, the agent will retry failed JMX metric registrations.")
+        .addValidator(isNotInRange(TimeDuration.of("1ms"), TimeDuration.of("59s")))
+        .buildWithDefault(TimeDuration.of("0m"));
+
+    public ConfigurationOption<TimeDuration> getFaildRetryInterval() {
+        return faildRetryInterval;
     }
 }
