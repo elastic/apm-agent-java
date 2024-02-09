@@ -21,12 +21,17 @@ package co.elastic.apm.attach;
 import co.elastic.apm.agent.common.util.Version;
 import co.elastic.apm.attach.bouncycastle.BouncyCastleVerifier;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.TreeSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,6 +41,7 @@ import static org.mockito.Mockito.spy;
 
 class AgentDownloaderTest {
 
+    // valid key stored in valid_key.asc, but not the one used to sign agent artifacts
     private static final String TEST_KEY_ID = "90AD76CD56AA73A9";
 
     private final AgentDownloader agentDownloader = new AgentDownloader(new BouncyCastleVerifier());
@@ -69,9 +75,12 @@ class AgentDownloaderTest {
         assertThatThrownBy(() -> agentDownloader.downloadFile(mavenPgpSignatureUrl, localFilePath)).isInstanceOf(FileAlreadyExistsException.class);
     }
 
-    @Test
-    void testDownloadAndVerifyAgent() throws Exception {
-        String agentVersion = AgentDownloader.findLatestVersion();
+    @ParameterizedTest
+    @ValueSource(strings = {"1.24.0", "1.46.0", "latest"})
+    void testDownloadAndVerifyAgent(String agentVersion) throws Exception {
+        if ("latest".equals(agentVersion)) {
+            agentVersion = AgentDownloader.findLatestVersion();
+        }
         Path targetDir = AgentDownloadUtils.of(agentVersion).getTargetAgentDir();
         final Path localAgentPath = targetDir.resolve(agentDownloader.computeAgentJarName(agentVersion));
         System.out.println("localAgentPath = " + localAgentPath);
@@ -81,11 +90,18 @@ class AgentDownloaderTest {
         assertThat(Files.isReadable(localAgentPath)).isTrue();
     }
 
-    @Test
-    void testDownloadAgentAndFailVerification() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"1.24.0", "1.46.0"})
+    void testDownloadAgentAndFailVerification(String agentVersion) throws Exception {
         AgentDownloader spyAgentDownloader = spy(new AgentDownloader(new BouncyCastleVerifier()));
-        doReturn(TEST_KEY_ID).when(spyAgentDownloader).getPublicKeyId();
-        String agentVersion = "1.24.0";
+
+        // using invalid key ID but valid key value
+        byte[] key;
+        try (InputStream is = Objects.requireNonNull(AgentDownloaderTest.class.getResourceAsStream("/valid_key.asc"))) {
+            key = is.readAllBytes();
+        }
+        doReturn(Map.of(TEST_KEY_ID, key)).when(spyAgentDownloader).getPublicKeys();
+
         Path targetDir = AgentDownloadUtils.of(agentVersion).getTargetAgentDir();
         final Path localAgentPath = targetDir.resolve(spyAgentDownloader.computeAgentJarName(agentVersion));
         System.out.println("localAgentPath = " + localAgentPath);

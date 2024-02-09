@@ -52,6 +52,10 @@ public abstract class AbstractBaseInstrumentation extends ElasticApmInstrumentat
         return !WildcardMatcher.isAnyMatch(coreConfiguration.getSanitizeFieldNames(), key);
     }
 
+    protected static MessagingConfiguration.RabbitMQNamingMode getRabbitMQNamingMode() {
+        return messagingConfiguration.getRabbitMQNamingMode();
+    }
+
     /**
      * Captures queue name and optional timestamp
      *

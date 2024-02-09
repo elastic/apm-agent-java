@@ -31,6 +31,14 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[float]
+===== Features
+* Added a configuration option to use queues in names of spring-rabbit transactions - {pull}3424[#3424]
+
+[float]
+===== Bug fixes
+* Add support to CLI attach download for new agent signature for 1.46.0+ - {pull}3513[#3513]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
