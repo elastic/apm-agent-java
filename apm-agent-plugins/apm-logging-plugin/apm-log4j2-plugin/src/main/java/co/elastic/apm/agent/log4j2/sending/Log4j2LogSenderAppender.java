@@ -18,25 +18,25 @@
  */
 package co.elastic.apm.agent.log4j2.sending;
 
-import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.tracer.Tracer;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.StringLayout;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 
 public class Log4j2LogSenderAppender extends AbstractAppender {
 
-    private final Reporter reporter;
+    private final Tracer tracer;
     private final StringLayout ecsLayout;
 
-    public Log4j2LogSenderAppender(Reporter reporter, StringLayout ecsLayout) {
+    public Log4j2LogSenderAppender(Tracer tracer, StringLayout ecsLayout) {
         super("ElasticApmAppender", null, ecsLayout, true, null);
-        this.reporter = reporter;
+        this.tracer = tracer;
         this.ecsLayout = ecsLayout;
     }
 
     @Override
     public void append(LogEvent event) {
-        reporter.reportLog(ecsLayout.toSerializable(event));
+        tracer.reportLog(ecsLayout.toSerializable(event));
     }
 
 }

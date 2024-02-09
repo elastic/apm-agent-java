@@ -18,13 +18,9 @@
  */
 package co.elastic.apm.agent.loginstr.reformatting;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.metadata.Service;
-import co.elastic.apm.agent.impl.metadata.ServiceFactory;
 import co.elastic.apm.agent.tracer.configuration.LogEcsReformatting;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.state.CallDepth;
@@ -35,6 +31,8 @@ import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.configuration.LoggingConfiguration;
 import co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.tracer.service.Service;
+import co.elastic.apm.agent.tracer.service.ServiceAwareTracer;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -168,26 +166,28 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
 
     @Nullable
     private final Map<String, String> additionalFields;
-    private final Reporter reporter;
+    private final Tracer tracer;
 
     public AbstractEcsReformattingHelper() {
-        Tracer tracer = GlobalTracer.get();
+        tracer = GlobalTracer.get();
         loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
         additionalFields = loggingConfiguration.getLogEcsReformattingAdditionalFields();
-        Service service = new ServiceFactory().createService(
-            tracer.getConfig(CoreConfiguration.class),
-            "",
-            tracer.getConfig(ServerlessConfiguration.class).runsOnAwsLambda()
-        );
-        globalServiceName = service.getName();
-        globalServiceVersion = service.getVersion();
-        if (service.getNode() != null) {
-            configuredServiceNodeName = service.getNode().getName();
-        } else {
+        Service service = tracer.createService("");
+        if (service == null) {
+            globalServiceName = null;
+            globalServiceVersion = null;
             configuredServiceNodeName = null;
+            environment = null;
+        } else {
+            globalServiceName = service.getName();
+            globalServiceVersion = service.getVersion();
+            if (service.getNode() != null) {
+                configuredServiceNodeName = service.getNode().getName();
+            } else {
+                configuredServiceNodeName = null;
+            }
+            environment = service.getEnvironment();
         }
-        environment = service.getEnvironment();
-        reporter = tracer.require(ElasticApmTracer.class).getReporter();
     }
 
     /**
@@ -330,7 +330,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
             }
             sendingAppender = NULL_APPENDER;
             try {
-                sendingAppender = createAndStartLogSendingAppender(reporter, createEcsFormatter(originalAppender));
+                sendingAppender = createAndStartLogSendingAppender(tracer, createEcsFormatter(originalAppender));
                 originalAppender2sendingAppender.put(originalAppender, sendingAppender);
             } catch (Throwable throwable) {
                 logger.warn(String.format("Failed to create ECS shipper appender for log appender %s.%s. " +
@@ -538,7 +538,7 @@ public abstract class AbstractEcsReformattingHelper<A, B, F, L> {
 
     protected abstract void closeShadeAppender(A shadeAppender);
 
-    protected abstract B createAndStartLogSendingAppender(Reporter reporter, F formatter);
+    protected abstract B createAndStartLogSendingAppender(Tracer tracer, F formatter);
 
     protected abstract void append(L logEvent, B appender);
 }

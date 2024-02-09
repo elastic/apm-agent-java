@@ -22,6 +22,7 @@ import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
+import co.elastic.apm.agent.tracer.service.Service;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -108,6 +109,20 @@ class NoopTracer implements Tracer {
     @Nullable
     @Override
     public ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader) {
+        return null;
+    }
+
+    @Override
+    public void reportLog(String log) {
+    }
+
+    @Override
+    public void reportLog(byte[] log) {
+    }
+
+    @Override
+    @Nullable
+    public Service createService(String ephemeralId) {
         return null;
     }
 }

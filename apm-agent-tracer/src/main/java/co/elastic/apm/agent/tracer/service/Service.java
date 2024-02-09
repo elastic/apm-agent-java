@@ -16,33 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.impl.metadata;
+package co.elastic.apm.agent.tracer.service;
 
 import javax.annotation.Nullable;
 
-/**
- * A representation of a service node, ie JVM
- */
-public class Node implements co.elastic.apm.agent.tracer.service.Node {
+public interface Service {
 
     /**
-     * (Optional)
-     * A name representing this JVM. Should be unique within the service.
+     * Immutable name of the service emitting this event
+     * (Required)
      */
     @Nullable
-    private final String name;
+    String getName();
 
-    public Node(@Nullable String name) {
-        this.name = name;
-    }
-
+    /**
+     * Version of the service emitting this event
+     */
     @Nullable
-    @Override
-    public String getName() {
-        return name;
-    }
+    String getVersion();
 
-    public boolean hasContents() {
-        return name != null && !name.isEmpty();
-    }
+    /**
+     * Representation of a service node
+     */
+    @Nullable
+    Node getNode();
+
+    /**
+     * Environment name of the service, e.g. "production" or "staging"
+     */
+    @Nullable
+    String getEnvironment();
 }
