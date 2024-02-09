@@ -20,6 +20,7 @@ package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import org.junit.Test;
 
 import java.util.List;
@@ -28,8 +29,11 @@ import static co.elastic.apm.agent.rabbitmq.RabbitMQIT.checkParentChild;
 import static co.elastic.apm.agent.rabbitmq.RabbitMQIT.checkSendSpan;
 import static co.elastic.apm.agent.rabbitmq.RabbitMQIT.checkTransaction;
 import static co.elastic.apm.agent.rabbitmq.RabbitMQIT.getNonRootTransaction;
+import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_NAME;
 import static co.elastic.apm.agent.rabbitmq.TestConstants.TOPIC_EXCHANGE_NAME;
+import static co.elastic.apm.agent.tracer.configuration.MessagingConfiguration.JmsStrategy.POLLING;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.doReturn;
 
 public abstract class AbstractRabbitMqTest extends RabbitMqTestBase {
 
@@ -40,6 +44,20 @@ public abstract class AbstractRabbitMqTest extends RabbitMqTestBase {
         rabbitTemplate.convertAndSend(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, MESSAGE);
         Transaction receiveTransaction = reporter.getFirstTransaction(1000);
         checkTransaction(receiveTransaction, TOPIC_EXCHANGE_NAME, "Spring AMQP");
+        Span testSpan = reporter.getFirstSpan(1000);
+        assertThat(testSpan.getNameAsString()).isEqualTo("testSpan");
+        assertThat(testSpan.getType()).isEqualTo("custom");
+        checkParentChild(receiveTransaction, testSpan);
+    }
+
+    @Test
+    public void verifyThatTransactionWithSpanCreated_NamingModeQueue() {
+        MessagingConfiguration messagingConfiguration = config.getConfig(MessagingConfiguration.class);
+        doReturn(MessagingConfiguration.RabbitMQNamingMode.QUEUE).when(messagingConfiguration).getRabbitMQNamingMode();
+
+        rabbitTemplate.convertAndSend(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, MESSAGE);
+        Transaction receiveTransaction = reporter.getFirstTransaction(1000);
+        checkTransaction(receiveTransaction, QUEUE_NAME, "Spring AMQP");
         Span testSpan = reporter.getFirstSpan(1000);
         assertThat(testSpan.getNameAsString()).isEqualTo("testSpan");
         assertThat(testSpan.getType()).isEqualTo("custom");
