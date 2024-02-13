@@ -31,6 +31,12 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.47.0]]
+==== 1.47.0 - 2024/02/13
+
 [float]
 ===== Features
 * Added a configuration option to use queues in names of spring-rabbit transactions - {pull}3424[#3424]
@@ -42,9 +48,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Bug fixes
 * Add support to CLI attach download for new agent signature for 1.46.0+ - {pull}3513[#3513]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.46.0]]
 ==== 1.46.0 - 2024/01/29
