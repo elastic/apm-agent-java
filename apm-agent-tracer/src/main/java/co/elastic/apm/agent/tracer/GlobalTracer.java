@@ -150,4 +150,10 @@ public class GlobalTracer implements Tracer {
     public Service createService(String ephemeralId) {
         return tracer.createService(ephemeralId);
     }
+
+    @Nullable
+    @Override
+    public Throwable redactExceptionIfRequired(@Nullable Throwable original) {
+        return tracer.redactExceptionIfRequired(original);
+    }
 }
