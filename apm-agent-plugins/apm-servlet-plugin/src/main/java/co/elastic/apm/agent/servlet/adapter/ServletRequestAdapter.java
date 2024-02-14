@@ -90,9 +90,6 @@ public interface ServletRequestAdapter<HttpServletRequest, ServletContext> {
 
     void setAttribute(HttpServletRequest request, String attributeName, Object value);
 
-    @Nullable
-    Object getHttpAttribute(HttpServletRequest request, String attributeName);
-
     Map<String, String[]> getParameterMap(HttpServletRequest httpServletRequest);
 
     TextHeaderGetter<HttpServletRequest> getRequestHeaderGetter();

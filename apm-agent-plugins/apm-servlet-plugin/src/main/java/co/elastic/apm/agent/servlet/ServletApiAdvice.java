@@ -202,7 +202,7 @@ public abstract class ServletApiAdvice {
             httpServletRequest != null &&
             httpServletResponse != null) {
 
-            if (adapter.getHttpAttribute(httpServletRequest, ServletTransactionHelper.ASYNC_ATTRIBUTE) != null) {
+            if (adapter.getAttribute(httpServletRequest, ServletTransactionHelper.ASYNC_ATTRIBUTE) != null) {
                 // HttpServletRequest.startAsync was invoked on this httpServletRequest.
                 // The transaction should be handled from now on by the other thread committing the response
                 transaction.deactivate();
@@ -230,7 +230,7 @@ public abstract class ServletApiAdvice {
                     final int size = requestExceptionAttributes.size();
                     for (int i = 0; i < size; i++) {
                         String attributeName = requestExceptionAttributes.get(i);
-                        Object throwable = adapter.getHttpAttribute(httpServletRequest, attributeName);
+                        Object throwable = adapter.getAttribute(httpServletRequest, attributeName);
                         if (throwable instanceof Throwable) {
                             t2 = (Throwable) throwable;
                             if (!attributeName.equals("javax.servlet.error.exception") && !attributeName.equals("jakarta.servlet.error.exception")) {

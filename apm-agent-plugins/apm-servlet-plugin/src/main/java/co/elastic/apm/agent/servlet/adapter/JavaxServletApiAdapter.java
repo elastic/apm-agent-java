@@ -256,12 +256,6 @@ public class JavaxServletApiAdapter implements ServletApiAdapter<HttpServletRequ
         servletRequest.setAttribute(attributeName, value);
     }
 
-    @Nullable
-    @Override
-    public Object getHttpAttribute(HttpServletRequest httpServletRequest, String attributeName) {
-        return httpServletRequest.getAttribute(attributeName);
-    }
-
     @Override
     public Collection<String> getHeaderNames(HttpServletResponse httpServletResponse) {
         return httpServletResponse.getHeaderNames();

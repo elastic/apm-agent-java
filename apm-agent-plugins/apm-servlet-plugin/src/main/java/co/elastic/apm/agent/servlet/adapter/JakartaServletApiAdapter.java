@@ -242,12 +242,6 @@ public class JakartaServletApiAdapter implements ServletApiAdapter<HttpServletRe
         servletRequest.setAttribute(attributeName, value);
     }
 
-    @Nullable
-    @Override
-    public Object getHttpAttribute(HttpServletRequest httpServletRequest, String attributeName) {
-        return httpServletRequest.getAttribute(attributeName);
-    }
-
     @Override
     public Collection<String> getHeaderNames(HttpServletResponse httpServletResponse) {
         return httpServletResponse.getHeaderNames();
