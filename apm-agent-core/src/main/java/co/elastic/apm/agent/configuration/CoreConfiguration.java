@@ -523,7 +523,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
         .tags("internal")
         .configurationCategory(CORE_CATEGORY)
         .dynamic(true)
-        .buildWithDefault(true);
+        .buildWithDefault(false);
 
     private final ConfigurationOption<List<WildcardMatcher>> classesExcludedFromInstrumentation = ConfigurationOption
         .builder(new ValueConverter<List<WildcardMatcher>>() {
