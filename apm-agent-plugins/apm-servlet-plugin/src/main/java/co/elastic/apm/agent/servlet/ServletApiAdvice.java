@@ -244,6 +244,13 @@ public abstract class ServletApiAdvice {
 
                             // elastic exception can be removed as it's not needed after transaction end
                             if (attributeName.equals(ELASTIC_EXCEPTION)) {
+                                try {
+                                    // extra safety: try to remove hard reference from the map entry to the exception
+                                    // but map implementation might throw if it does not support null values
+                                    adapter.setAttribute(httpServletRequest, attributeName, null);
+                                } catch (RuntimeException e){
+                                    // silently ignored
+                                }
                                 adapter.removeAttribute(httpServletRequest, attributeName);
                             }
 
