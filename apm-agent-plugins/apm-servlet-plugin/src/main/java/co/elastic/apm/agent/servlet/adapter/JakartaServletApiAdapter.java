@@ -243,6 +243,11 @@ public class JakartaServletApiAdapter implements ServletApiAdapter<HttpServletRe
     }
 
     @Override
+    public void removeAttribute(HttpServletRequest httpServletRequest, String attributeName) {
+        httpServletRequest.removeAttribute(attributeName);
+    }
+
+    @Override
     public Collection<String> getHeaderNames(HttpServletResponse httpServletResponse) {
         return httpServletResponse.getHeaderNames();
     }

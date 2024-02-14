@@ -90,6 +90,8 @@ public interface ServletRequestAdapter<HttpServletRequest, ServletContext> {
 
     void setAttribute(HttpServletRequest request, String attributeName, Object value);
 
+    void removeAttribute(HttpServletRequest request, String attributeName);
+
     Map<String, String[]> getParameterMap(HttpServletRequest httpServletRequest);
 
     TextHeaderGetter<HttpServletRequest> getRequestHeaderGetter();

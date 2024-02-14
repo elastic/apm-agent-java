@@ -257,6 +257,11 @@ public class JavaxServletApiAdapter implements ServletApiAdapter<HttpServletRequ
     }
 
     @Override
+    public void removeAttribute(HttpServletRequest servletRequest, String attributeName) {
+        servletRequest.removeAttribute(attributeName);
+    }
+
+    @Override
     public Collection<String> getHeaderNames(HttpServletResponse httpServletResponse) {
         return httpServletResponse.getHeaderNames();
     }
