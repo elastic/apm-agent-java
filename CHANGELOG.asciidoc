@@ -30,6 +30,9 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ////
 
 === Unreleased
+[float]
+===== Features
+* Bumped base alpine docker image version - {pull}3524[#3524]
 
 [float]
 ===== Bug fixes
@@ -44,7 +47,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Added a configuration option to use queues in names of spring-rabbit transactions - {pull}3424[#3424]
-* Bumped base alpine docker image version - {pull}3524[#3524]
 
 [float]
 ===== Features
