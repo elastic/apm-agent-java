@@ -21,6 +21,7 @@ package co.elastic.apm.agent.springwebmvc;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.servlet.Constants;
 import co.elastic.apm.agent.servlet.adapter.ServletRequestAdapter;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -63,7 +64,8 @@ public abstract class AbstractSpringExceptionHandlerInstrumentation extends Elas
                                                                     @Nullable HttpServletRequest request,
                                                                     @Nullable Exception e) {
             if (request != null && e != null) {
-                adapter.setAttribute(request, "co.elastic.apm.exception", e);
+                Throwable maybeRedacted = GlobalTracer.get().redactExceptionIfRequired(e);
+                adapter.setAttribute(request, "co.elastic.apm.exception", maybeRedacted);
             }
         }
     }
