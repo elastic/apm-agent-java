@@ -31,12 +31,12 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
-[[release-notes-1.x]]
-=== Java Agent version 1.x
-
 [float]
 ===== Bug fixes
 * Cleanup extra servlet request attribute used for Spring exception handler - {pull}3527[#3527]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
 
 [[release-notes-1.47.0]]
 ==== 1.47.0 - 2024/02/13
