@@ -239,6 +239,12 @@ public abstract class ServletApiAdvice {
                             break;
                         }
                     }
+                    if (t2 == null) {
+                        t2 = transaction.getPendingTransactionException();
+                        if(t2 != null) {
+                            overrideStatusCodeOnThrowable = false;
+                        }
+                    }
                 }
 
                 ServletContext servletContext = adapter.getServletContext(httpServletRequest);

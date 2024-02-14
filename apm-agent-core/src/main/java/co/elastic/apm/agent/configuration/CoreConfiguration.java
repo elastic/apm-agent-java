@@ -518,12 +518,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
         .buildWithDefault(false);
 
 
-    private final ConfigurationOption<Boolean> redactExceptions = ConfigurationOption.<Boolean>booleanOption()
+    private final ConfigurationOption<Integer> redactExceptions = ConfigurationOption.<Boolean>integerOption()
         .key("redact_exceptions")
         .tags("internal")
         .configurationCategory(CORE_CATEGORY)
         .dynamic(true)
-        .buildWithDefault(false);
+        .buildWithDefault(0);
 
     private final ConfigurationOption<List<WildcardMatcher>> classesExcludedFromInstrumentation = ConfigurationOption
         .builder(new ValueConverter<List<WildcardMatcher>>() {
@@ -1172,7 +1172,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
     }
 
     public boolean isRedactExceptions() {
-        return redactExceptions.get();
+        return (redactExceptions.get() & 1) != 0;
+    }
+
+    @Override
+    public boolean isNotUseServletAttributesForExceptionPropagation() {
+        return (redactExceptions.get() & 2) != 0;
     }
 
     public enum CloudProvider {

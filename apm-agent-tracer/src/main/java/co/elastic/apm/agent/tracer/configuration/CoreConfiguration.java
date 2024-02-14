@@ -50,6 +50,8 @@ public interface CoreConfiguration {
 
     TimeDuration getSpanMinDuration();
 
+    boolean isNotUseServletAttributesForExceptionPropagation();
+
     enum EventType {
         /**
          * Request bodies will never be reported
