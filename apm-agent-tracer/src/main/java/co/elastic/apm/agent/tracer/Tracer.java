@@ -88,4 +88,7 @@ public interface Tracer {
 
     @Nullable
     Service createService(String ephemeralId);
+
+    @Nullable
+    Throwable redactExceptionIfRequired(@Nullable Throwable original);
 }

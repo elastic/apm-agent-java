@@ -79,7 +79,7 @@ public class JakartaApmAsyncListener implements AsyncListener, Recyclable {
 
     @Override
     public void onTimeout(AsyncEvent event) {
-        throwable = event.getThrowable();
+        throwable = asyncContextAdviceHelperImpl.getTracer().redactExceptionIfRequired(event.getThrowable());
         if (isJBossEap6(event)) {
             endTransaction(event);
         }
@@ -98,7 +98,7 @@ public class JakartaApmAsyncListener implements AsyncListener, Recyclable {
 
     @Override
     public void onError(AsyncEvent event) {
-        throwable = event.getThrowable();
+        throwable = asyncContextAdviceHelperImpl.getTracer().redactExceptionIfRequired(event.getThrowable());
         if (isJBossEap6(event)) {
             endTransaction(event);
         }

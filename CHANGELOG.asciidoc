@@ -33,6 +33,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 [float]
 ===== Features
+* Added internal `safe_exceptions` config option to workaround JVM bugs related to touching exceptions - {pull}3528[#3528]
 * Bumped base alpine docker image version - {pull}3524[#3524]
 
 [float]
@@ -48,9 +49,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Added a configuration option to use queues in names of spring-rabbit transactions - {pull}3424[#3424]
-
-[float]
-===== Features
 * Add option to retry JMX metrics capture in case of exception - {pull}3511[#3511]
 
 [float]
