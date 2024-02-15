@@ -125,4 +125,10 @@ class NoopTracer implements Tracer {
     public Service createService(String ephemeralId) {
         return null;
     }
+
+    @Nullable
+    @Override
+    public Throwable redactExceptionIfRequired(@Nullable Throwable original) {
+        return original;
+    }
 }

@@ -24,6 +24,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.error.RedactedException;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
@@ -106,6 +107,27 @@ class ErrorCaptureTest {
         assertThat(errorCapture).isNotNull();
         assertThat(errorCapture.getException()).isInstanceOf(WrapperException.class);
     }
+
+    @Test
+    void testExceptionRedaction() {
+        doReturn(true).when(coreConfiguration).isRedactExceptions();
+        assertThat(tracer.redactExceptionIfRequired(null)).isNull();
+
+        Exception exception = new CustomException();
+        Throwable redacted = tracer.redactExceptionIfRequired(exception);
+        assertThat(redacted).isInstanceOf(RedactedException.class);
+
+        assertThat(tracer.redactExceptionIfRequired(redacted)).isSameAs(redacted);
+
+        ErrorCapture errorCapture = tracer.captureException(exception, tracer.currentContext(), null);
+        assertThat(errorCapture).isNotNull();
+        assertThat(errorCapture.getException()).isInstanceOf(RedactedException.class);
+
+        ErrorCapture alreadyRedacted = tracer.captureException(redacted, tracer.currentContext(), null);
+        assertThat(alreadyRedacted).isNotNull();
+        assertThat(alreadyRedacted.getException()).isSameAs(redacted);
+    }
+
 
     private static class NestedException extends Exception {
         public NestedException(Throwable cause) {
