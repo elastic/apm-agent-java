@@ -31,6 +31,10 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[float]
+===== Features
+* Bumped base alpine docker image version - {pull}3524[#3524]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
