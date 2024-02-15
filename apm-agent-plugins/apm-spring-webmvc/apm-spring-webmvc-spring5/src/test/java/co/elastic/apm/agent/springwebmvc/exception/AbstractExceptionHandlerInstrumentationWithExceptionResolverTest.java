@@ -28,6 +28,9 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.util.Enumeration;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -51,6 +54,16 @@ public abstract class AbstractExceptionHandlerInstrumentationWithExceptionResolv
         ResultActions resultActions = this.mockMvc.perform(get("/exception-resolver/throw-exception"));
         MvcResult result = resultActions.andReturn();
         MockHttpServletResponse response = result.getResponse();
+
+
+        Enumeration<String> attributeNames = result.getRequest().getAttributeNames();
+        while (attributeNames.hasMoreElements()) {
+            String attributeName = attributeNames.nextElement();
+            assertThat(attributeName)
+                .describedAs("elastic attributes should be removed after usage")
+                .doesNotStartWith("co.elastic.");
+        }
+
 
         assertExceptionCapture(ExceptionResolverRuntimeException.class, response, 200, "", "runtime exception occurred", "View#render error-page");
         assertEquals("error-page", response.getForwardedUrl());
