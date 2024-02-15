@@ -34,13 +34,16 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
+[float]
+===== Features
+* Bumped base alpine docker image version - {pull}3524[#3524]
+
 [[release-notes-1.47.1]]
 ==== 1.47.1 - 2024/02/15
 
 [float]
 ===== Features
 * Added internal `safe_exceptions` config option to workaround JVM bugs related to touching exceptions - {pull}3528[#3528]
-* Bumped base alpine docker image version - {pull}3524[#3524]
 
 [float]
 ===== Bug fixes
