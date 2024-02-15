@@ -33,7 +33,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 [float]
 ===== Features
-* Added internal `redact_exceptions` config option to workaround JVM bugs related to touching exceptions - {pull}3528[#3528]
+* Added internal `safe_exceptions` config option to workaround JVM bugs related to touching exceptions - {pull}3528[#3528]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

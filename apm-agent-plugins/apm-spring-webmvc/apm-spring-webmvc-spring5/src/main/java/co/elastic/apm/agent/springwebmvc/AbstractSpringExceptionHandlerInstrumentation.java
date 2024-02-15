@@ -68,16 +68,15 @@ public abstract class AbstractSpringExceptionHandlerInstrumentation extends Elas
                                                                     @Nullable Exception e) {
             if (request != null && e != null) {
                 Tracer tracer = GlobalTracer.get();
-                boolean notUseAttribs = tracer.getConfig(CoreConfiguration.class).isNotUseServletAttributesForExceptionPropagation();
+                boolean useAttribs = tracer.getConfig(CoreConfiguration.class).isUseServletAttributesForExceptionPropagation();
                 Throwable maybeRedacted = tracer.redactExceptionIfRequired(e);
-
-                if (notUseAttribs) {
+                if (useAttribs) {
+                    adapter.setAttribute(request, "co.elastic.apm.exception", maybeRedacted);
+                } else {
                     Transaction<?> transaction = tracer.currentContext().getTransaction();
                     if(transaction != null) {
                         transaction.setPendingTransactionException(maybeRedacted);
                     }
-                } else {
-                    adapter.setAttribute(request, "co.elastic.apm.exception", maybeRedacted);
                 }
             }
         }

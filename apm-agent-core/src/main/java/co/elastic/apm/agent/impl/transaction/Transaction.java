@@ -104,6 +104,7 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
     @Nullable
     private String frameworkVersion;
 
+    @Nullable
     private Throwable pendingException;
 
     /**
@@ -541,7 +542,7 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
 
 
     @Override
-    public void setPendingTransactionException(Throwable exception) {
+    public void setPendingTransactionException(@Nullable Throwable exception) {
         this.pendingException = exception;
     }
 
