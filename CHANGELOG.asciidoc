@@ -30,6 +30,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ////
 
 === Unreleased
+
 [float]
 ===== Features
 * Bumped base alpine docker image version - {pull}3524[#3524]
