@@ -30,7 +30,9 @@ public abstract class AbstractOpenTelemetryInstrumentation extends ElasticApmIns
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return classLoaderCanLoadClass("io.opentelemetry.context.propagation.TextMapSetter");
+        return classLoaderCanLoadClass("io.opentelemetry.context.propagation.TextMapSetter")
+            //TracerBuilder has been added in 1.4.0, which is the minimum supported API version
+            .and(classLoaderCanLoadClass("io.opentelemetry.api.trace.TracerBuilder"));
     }
 
     @Override
