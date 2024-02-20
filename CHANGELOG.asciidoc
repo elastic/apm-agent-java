@@ -37,11 +37,11 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 [float]
 ===== Bug fixes
-* Added missing support for TracerBuilder in OpenTelemetry bridge - {pull}XXX[#XXX]
+* Added missing support for TracerBuilder in OpenTelemetry bridge - {pull}3535[#3535]
 
 [float]
 ===== Potentially breaking changes
-* The minimum supported OpenTelemetry version has been increased to 1.4.0 - {pull}3447[#3447]
+* The minimum supported OpenTelemetry version has been increased to 1.4.0 - {pull}3535[#3535]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
