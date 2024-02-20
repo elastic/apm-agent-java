@@ -4,8 +4,6 @@ on:
     types: [opened]
   pull_request_target:
     types: [opened]
-env:
-  MY_GITHUB_TOKEN: ${{ secrets.APM_TECH_USER_TOKEN }}
 
 jobs:
   triage:
@@ -27,7 +25,7 @@ jobs:
         username: ${{ github.actor }}
         token: ${{ secrets.APM_TECH_USER_TOKEN }}
     - name: Add community and triage lables
-      if: steps.is_elastic_member.outputs.result != true
+      if: contains(steps.is_elastic_member.outputs.result, 'false')
       uses: actions/github-script@v7
       with:
         script: |
@@ -38,7 +36,7 @@ jobs:
             labels: ["community", "triage"]
           })
     - name: Add comment for community PR
-      if: steps.is_elastic_member.outputs.result != true
+      if: contains(steps.is_elastic_member.outputs.result, 'false')
       uses: wow-actions/auto-comment@v1
       with:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,7 +48,7 @@ jobs:
           Every once in a while we go through a process of prioritization, after which we are focussing on the tasks that were planned for the upcoming [milestone](https://github.com/elastic/apm-agent-java/milestones). The prioritization status is typically reflected through the PR labels. It could be pending triage, a candidate for a future milestone, or have a target milestone set to it.
     - name: Assign new internal pull requests to project
       uses: elastic/assign-one-project-github-action@1.2.2
-      if: (steps.is_elastic_member.outputs.result == true) && github.event.pull_request
+      if: contains(steps.is_elastic_member.outputs.result, 'true') && github.event.pull_request
       with:
         project: 'https://github.com/orgs/elastic/projects/454'
         project_id: '5882982'
