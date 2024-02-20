@@ -35,6 +35,14 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ===== Features
 * Bumped base alpine docker image version - {pull}3524[#3524]
 
+[float]
+===== Bug fixes
+* Added missing support for TracerBuilder in OpenTelemetry bridge - {pull}XXX[#XXX]
+
+[float]
+===== Potentially breaking changes
+* The minimum supported OpenTelemetry version has been increased to 1.4.0 - {pull}3447[#3447]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
