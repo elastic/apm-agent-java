@@ -22,6 +22,7 @@ import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
+import co.elastic.apm.agent.tracer.service.Service;
 
 import javax.annotation.Nullable;
 import java.util.Set;
@@ -132,5 +133,27 @@ public class GlobalTracer implements Tracer {
     @Override
     public ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader) {
         return tracer.captureException(e, initiatingClassLoader);
+    }
+
+    @Override
+    public void reportLog(String log) {
+        tracer.reportLog(log);
+    }
+
+    @Override
+    public void reportLog(byte[] log) {
+        tracer.reportLog(log);
+    }
+
+    @Nullable
+    @Override
+    public Service createService(String ephemeralId) {
+        return tracer.createService(ephemeralId);
+    }
+
+    @Nullable
+    @Override
+    public Throwable redactExceptionIfRequired(@Nullable Throwable original) {
+        return tracer.redactExceptionIfRequired(original);
     }
 }

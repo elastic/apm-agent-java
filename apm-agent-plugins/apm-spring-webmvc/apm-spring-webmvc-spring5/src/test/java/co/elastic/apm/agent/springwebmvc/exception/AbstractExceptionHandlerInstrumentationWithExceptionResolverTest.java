@@ -18,15 +18,21 @@
  */
 package co.elastic.apm.agent.springwebmvc.exception;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_resolver.ExceptionResolverController;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_resolver.ExceptionResolverRuntimeException;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.util.Enumeration;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 /**
@@ -39,11 +45,25 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 })
 public abstract class AbstractExceptionHandlerInstrumentationWithExceptionResolverTest extends AbstractExceptionHandlerInstrumentationTest {
 
-    @Test
-    public void testCallApiWithExceptionThrown() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true,false})
+    public void testCallApiWithExceptionThrown(boolean useAttributeBasedPropagation) throws Exception {
+        CoreConfiguration coreConfig = config.getConfig(CoreConfiguration.class);
+        doReturn(useAttributeBasedPropagation).when(coreConfig).isUseServletAttributesForExceptionPropagation();
+
         ResultActions resultActions = this.mockMvc.perform(get("/exception-resolver/throw-exception"));
         MvcResult result = resultActions.andReturn();
         MockHttpServletResponse response = result.getResponse();
+
+
+        Enumeration<String> attributeNames = result.getRequest().getAttributeNames();
+        while (attributeNames.hasMoreElements()) {
+            String attributeName = attributeNames.nextElement();
+            assertThat(attributeName)
+                .describedAs("elastic attributes should be removed after usage")
+                .doesNotStartWith("co.elastic.");
+        }
+
 
         assertExceptionCapture(ExceptionResolverRuntimeException.class, response, 200, "", "runtime exception occurred", "View#render error-page");
         assertEquals("error-page", response.getForwardedUrl());

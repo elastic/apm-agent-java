@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.tracer.configuration;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.tracer.configuration.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
@@ -33,7 +32,7 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
     private static final String MESSAGE_POLLING_TRANSACTION_STRATEGY = "message_polling_transaction_strategy";
     private static final String MESSAGE_BATCH_STRATEGY = "message_batch_strategy";
 
-    private ConfigurationOption<JmsStrategy> messagePollingTransactionStrategy = ConfigurationOption.enumOption(JmsStrategy.class)
+    private final ConfigurationOption<JmsStrategy> messagePollingTransactionStrategy = ConfigurationOption.enumOption(JmsStrategy.class)
         .key(MESSAGE_POLLING_TRANSACTION_STRATEGY)
         .configurationCategory(MESSAGING_CATEGORY)
         .tags("internal")
@@ -45,7 +44,7 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(JmsStrategy.HANDLING);
 
-    private ConfigurationOption<BatchStrategy> messageBatchStrategy = ConfigurationOption.enumOption(BatchStrategy.class)
+    private final ConfigurationOption<BatchStrategy> messageBatchStrategy = ConfigurationOption.enumOption(BatchStrategy.class)
         .key(MESSAGE_BATCH_STRATEGY)
         .configurationCategory(MESSAGING_CATEGORY)
         .tags("internal")
@@ -57,7 +56,7 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(BatchStrategy.BATCH_HANDLING);
 
-    private ConfigurationOption<Boolean> collectQueueAddress = ConfigurationOption.booleanOption()
+    private final ConfigurationOption<Boolean> collectQueueAddress = ConfigurationOption.booleanOption()
         .key("collect_queue_address")
         .configurationCategory(MESSAGING_CATEGORY)
         .tags("internal")
@@ -109,6 +108,14 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(Collections.<String>emptyList());
 
+    private final ConfigurationOption<RabbitMQNamingMode> rabbitMQNamingMode = ConfigurationOption.enumOption(RabbitMQNamingMode.class)
+        .key("rabbitmq_naming_mode")
+        .configurationCategory(MESSAGING_CATEGORY)
+        .description("Defines whether the agent should use the exchanges or the queue for the naming of RabbitMQ Transactions. Valid options are `QUEUE` and `EXCHANGE`")
+        .dynamic(true)
+        .tags("added[1.46.0]")
+        .buildWithDefault(RabbitMQNamingMode.EXCHANGE);
+
     public JmsStrategy getMessagePollingTransactionStrategy() {
         return messagePollingTransactionStrategy.get();
     }
@@ -131,6 +138,10 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
 
     public Collection<String> getJmsListenerPackages() {
         return jmsListenerPackages.get();
+    }
+
+    public RabbitMQNamingMode getRabbitMQNamingMode() {
+        return rabbitMQNamingMode.get();
     }
 
     public enum JmsStrategy {
@@ -163,5 +174,16 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
          * Create a single transaction encapsulating the entire message/record batch-processing.
          */
         BATCH_HANDLING
+    }
+
+    public enum RabbitMQNamingMode {
+        /**
+         * Use exchange in transaction names
+         */
+        EXCHANGE,
+        /**
+         * Use queue in transaction names
+         */
+        QUEUE,
     }
 }

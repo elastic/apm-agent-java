@@ -55,7 +55,15 @@ public abstract class ServletApiAdvice {
     private static final DetachedThreadLocal<Object> servletPathTL = GlobalVariables.get(ServletApiAdvice.class, "servletPath", WeakConcurrent.buildThreadLocal());
     private static final DetachedThreadLocal<Object> pathInfoTL = GlobalVariables.get(ServletApiAdvice.class, "pathInfo", WeakConcurrent.buildThreadLocal());
 
-    private static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "jakarta.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
+    private static final String ELASTIC_EXCEPTION = "co.elastic.apm.exception";
+    private static final String JAVAX_ERROR_EXCEPTION = "javax.servlet.error.exception";
+    private static final String JAKARTA_ERROR_EXCEPTION = "jakarta.servlet.error.exception";
+    private static final List<String> requestExceptionAttributes = Arrays.asList(
+        JAVAX_ERROR_EXCEPTION,
+        JAKARTA_ERROR_EXCEPTION,
+        "exception",
+        "org.springframework.web.servlet.DispatcherServlet.EXCEPTION",
+        ELASTIC_EXCEPTION);
 
     @Nullable
     public static <HttpServletRequest, HttpServletResponse, ServletContext, ServletContextEvent, FilterConfig, ServletConfig> Object onServletEnter(
@@ -202,7 +210,7 @@ public abstract class ServletApiAdvice {
             httpServletRequest != null &&
             httpServletResponse != null) {
 
-            if (adapter.getHttpAttribute(httpServletRequest, ServletTransactionHelper.ASYNC_ATTRIBUTE) != null) {
+            if (adapter.getAttribute(httpServletRequest, ServletTransactionHelper.ASYNC_ATTRIBUTE) != null) {
                 // HttpServletRequest.startAsync was invoked on this httpServletRequest.
                 // The transaction should be handled from now on by the other thread committing the response
                 transaction.deactivate();
@@ -230,13 +238,25 @@ public abstract class ServletApiAdvice {
                     final int size = requestExceptionAttributes.size();
                     for (int i = 0; i < size; i++) {
                         String attributeName = requestExceptionAttributes.get(i);
-                        Object throwable = adapter.getHttpAttribute(httpServletRequest, attributeName);
+                        Object throwable = adapter.getAttribute(httpServletRequest, attributeName);
                         if (throwable instanceof Throwable) {
                             t2 = (Throwable) throwable;
-                            if (!attributeName.equals("javax.servlet.error.exception") && !attributeName.equals("jakarta.servlet.error.exception")) {
+
+                            // elastic exception can be removed as it's not needed after transaction end
+                            if (attributeName.equals(ELASTIC_EXCEPTION)) {
+                                adapter.removeAttribute(httpServletRequest, attributeName);
+                            }
+
+                            if (!attributeName.equals(JAVAX_ERROR_EXCEPTION) && !attributeName.equals(JAKARTA_ERROR_EXCEPTION)) {
                                 overrideStatusCodeOnThrowable = false;
                             }
                             break;
+                        }
+                    }
+                    if (t2 == null) {
+                        t2 = transaction.getPendingTransactionException();
+                        if(t2 != null) {
+                            overrideStatusCodeOnThrowable = false;
                         }
                     }
                 }

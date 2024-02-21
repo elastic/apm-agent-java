@@ -18,24 +18,24 @@
  */
 package co.elastic.apm.agent.jul.sending;
 
-import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 
 public class JulLogSenderHandler extends Handler {
-    private final Reporter reporter;
+    private final Tracer tracer;
     private final Formatter formatter;
 
-    public JulLogSenderHandler(Reporter reporter, Formatter formatter) {
-        this.reporter = reporter;
+    public JulLogSenderHandler(Tracer tracer, Formatter formatter) {
+        this.tracer = tracer;
         this.formatter = formatter;
     }
 
     @Override
     public void publish(LogRecord record) {
-        reporter.reportLog(formatter.format(record));
+        tracer.reportLog(formatter.format(record));
     }
 
     @Override

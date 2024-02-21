@@ -29,10 +29,7 @@ public class OpenTelemetryVersionIT {
 
     @ParameterizedTest
     @ValueSource(strings = {
-        "1.0.1",
-        "1.1.0",
-        "1.2.0",
-        "1.3.0",
+        "1.4.0",
         "1.4.1",
         "1.5.0",
         "1.6.0",

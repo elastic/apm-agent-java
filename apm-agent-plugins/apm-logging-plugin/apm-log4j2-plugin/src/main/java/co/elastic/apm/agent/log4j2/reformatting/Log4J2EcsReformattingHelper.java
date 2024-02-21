@@ -21,9 +21,9 @@ package co.elastic.apm.agent.log4j2.reformatting;
 import co.elastic.apm.agent.log4j2.sending.Log4j2LogSenderAppender;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
-import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.logging.log4j2.EcsLayout;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.Layout;
@@ -155,8 +155,8 @@ class Log4J2EcsReformattingHelper extends AbstractEcsReformattingHelper<Appender
     }
 
     @Override
-    protected Appender createAndStartLogSendingAppender(Reporter reporter, Layout<? extends Serializable> ecsLayout) {
-        Log4j2LogSenderAppender appender = new Log4j2LogSenderAppender(reporter, (StringLayout) ecsLayout);
+    protected Appender createAndStartLogSendingAppender(Tracer tracer, Layout<? extends Serializable> ecsLayout) {
+        Log4j2LogSenderAppender appender = new Log4j2LogSenderAppender(tracer, (StringLayout) ecsLayout);
         appender.start();
         return appender;
     }
