@@ -34,6 +34,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Bumped base alpine docker image version - {pull}3524[#3524]
+* Replace statement parser cache with an LRU cache to improve efficiency in certain cases {pull}3492[#3492]
 
 [float]
 ===== Bug fixes
