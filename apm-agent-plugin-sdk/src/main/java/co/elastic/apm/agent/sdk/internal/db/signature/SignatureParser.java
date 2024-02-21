@@ -18,12 +18,14 @@
  */
 package co.elastic.apm.agent.sdk.internal.db.signature;
 
+import co.elastic.apm.agent.sdk.internal.collections.LRUCache;
 import co.elastic.apm.agent.sdk.internal.pooling.ObjectHandle;
 import co.elastic.apm.agent.sdk.internal.pooling.ObjectPool;
 import co.elastic.apm.agent.sdk.internal.pooling.ObjectPooling;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 
 import javax.annotation.Nullable;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -32,11 +34,7 @@ public class SignatureParser {
 
     private final ObjectPool<? extends ObjectHandle<Scanner>> scannerPool;
 
-
-    private final ConcurrentLinkedHashMap<String, String[]> signatureCache = new ConcurrentLinkedHashMap.Builder<String, String[]>()
-        .maximumWeightedCapacity(1000)
-        .concurrencyLevel(Runtime.getRuntime().availableProcessors())
-        .build();
+    private final Map<String, String[]> signatureCache = LRUCache.createCache(1000);
 
     public SignatureParser() {
         this(new Callable<Scanner>() {
