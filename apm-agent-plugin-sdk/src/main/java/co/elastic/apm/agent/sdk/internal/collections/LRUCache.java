@@ -16,6 +16,7 @@ public class LRUCache {
 
     /**
      * Creates a bounded LRU-cache. Keys and values are strongly referenced.
+     * The returned map is guaranteed to be thread-safe.
      *
      * @param capacity the capacity of the cache
      */
