@@ -162,7 +162,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-JUnit
           path: |
             **/junit-*.xml
             **/TEST-*.xml
@@ -200,7 +200,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-non-app-server-integration
           path: |
             **/junit-*.xml
             **/TEST-*.xml
@@ -239,7 +239,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-app-server-integration
           path: |
             **/junit-*.xml
             **/TEST-*.xml
@@ -280,7 +280,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-windows
           path: |
             **/junit-*.xml
             **/TEST-*.xml
@@ -316,7 +316,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-jdk-compatibility-${{ matrix.version }}-${{ matrix.distribution }}
           path: |
             **/junit-*.xml
             **/TEST-*.xml
@@ -349,7 +349,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-jboss-integration
           path: |
             **/junit-*.xml
             **/TEST-*.xml
