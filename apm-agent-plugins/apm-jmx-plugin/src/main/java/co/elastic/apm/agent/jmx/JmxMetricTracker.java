@@ -84,7 +84,6 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
     public JmxMetricTracker(Tracer tracer) {
         this.tracer = tracer;
         jmxConfiguration = tracer.getConfig(JmxConfiguration.class);
-        metricRegistry = tracer.getMetricRegistry();
 
         // using a synchronized list so adding to the list does not require synchronization
         failedMetrics = Collections.synchronizedList(new ArrayList<JmxMetric>());
