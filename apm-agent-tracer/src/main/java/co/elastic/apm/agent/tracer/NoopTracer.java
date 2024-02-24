@@ -127,6 +127,12 @@ class NoopTracer implements Tracer {
         return null;
     }
 
+    @Nullable
+    @Override
+    public Throwable redactExceptionIfRequired(@Nullable Throwable original) {
+        return original;
+    }
+
     @Override
     public void flush() {
     }

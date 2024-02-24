@@ -44,6 +44,10 @@ public class JakartaAsyncContextAdviceHelper implements AsyncContextAdviceHelper
             new JakartaAsyncContextAdviceHelper.JakartaApmAsyncListenerAllocator());
     }
 
+    public Tracer getTracer() {
+        return tracer;
+    }
+
     private final class JakartaApmAsyncListenerAllocator implements Allocator<JakartaApmAsyncListener> {
         @Override
         public JakartaApmAsyncListener createInstance() {

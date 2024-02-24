@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.46.1-SNAPSHOT</version>
+    <version>1.47.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -756,7 +756,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.24.2</version>
+            <version>3.25.3</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>

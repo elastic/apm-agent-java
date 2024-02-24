@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.opentelemetry.tracing;
 
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.TracerBuilder;
 import io.opentelemetry.api.trace.TracerProvider;
 
 import javax.annotation.Nullable;
@@ -38,5 +39,10 @@ public class OTelTracerProvider implements TracerProvider {
     @Override
     public Tracer get(String instrumentationName, @Nullable String instrumentationVersion) {
         return this.tracer;
+    }
+
+    @Override
+    public TracerBuilder tracerBuilder(String instrumentationScopeName) {
+        return new OtelTracerBuilder(tracer);
     }
 }

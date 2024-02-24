@@ -91,6 +91,9 @@ public interface Tracer extends Flushable {
     @Nullable
     Service createService(String ephemeralId);
 
+    @Nullable
+    Throwable redactExceptionIfRequired(@Nullable Throwable original);
+
     @Override
     void flush();
 

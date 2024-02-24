@@ -28,7 +28,8 @@ import co.elastic.apm.agent.configuration.AutoDetectedServiceInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
-import co.elastic.apm.agent.impl.metadata.*;
+import co.elastic.apm.agent.impl.error.RedactedException;
+import co.elastic.apm.agent.impl.metadata.ServiceFactory;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.tracer.service.Service;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
@@ -448,6 +449,8 @@ public class ElasticApmTracer implements Tracer {
         if (!coreConfiguration.captureExceptionDetails()) {
             return null;
         }
+
+        e = redactExceptionIfRequired(e);
 
         while (e != null && WildcardMatcher.anyMatch(coreConfiguration.getUnnestExceptions(), e.getClass().getName()) != null) {
             e = e.getCause();
@@ -997,6 +1000,15 @@ public class ElasticApmTracer implements Tracer {
             ephemeralId,
             configurationRegistry.getConfig(ServerlessConfiguration.class).runsOnAwsLambda()
         );
+    }
+
+    @Override
+    @Nullable
+    public Throwable redactExceptionIfRequired(@Nullable Throwable original) {
+        if (original != null && coreConfiguration.isRedactExceptions() && !(original instanceof RedactedException)) {
+            return new RedactedException();
+        }
+        return original;
     }
 
     @Override
