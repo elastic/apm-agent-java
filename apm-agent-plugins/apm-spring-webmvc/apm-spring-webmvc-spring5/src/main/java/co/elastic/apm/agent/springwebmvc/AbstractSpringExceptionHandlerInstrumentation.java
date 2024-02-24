@@ -21,6 +21,10 @@ package co.elastic.apm.agent.springwebmvc;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.servlet.Constants;
 import co.elastic.apm.agent.servlet.adapter.ServletRequestAdapter;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -63,7 +67,17 @@ public abstract class AbstractSpringExceptionHandlerInstrumentation extends Elas
                                                                     @Nullable HttpServletRequest request,
                                                                     @Nullable Exception e) {
             if (request != null && e != null) {
-                adapter.setAttribute(request, "co.elastic.apm.exception", e);
+                Tracer tracer = GlobalTracer.get();
+                boolean useAttribs = tracer.getConfig(CoreConfiguration.class).isUseServletAttributesForExceptionPropagation();
+                Throwable maybeRedacted = tracer.redactExceptionIfRequired(e);
+                if (useAttribs) {
+                    adapter.setAttribute(request, "co.elastic.apm.exception", maybeRedacted);
+                } else {
+                    Transaction<?> transaction = tracer.currentContext().getTransaction();
+                    if(transaction != null) {
+                        transaction.setPendingTransactionException(maybeRedacted);
+                    }
+                }
             }
         }
     }

@@ -104,6 +104,9 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
     @Nullable
     private String frameworkVersion;
 
+    @Nullable
+    private Throwable pendingException;
+
     /**
      * Faas
      * <p>
@@ -337,6 +340,7 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         frameworkVersion = null;
         faas.resetState();
         wasActivated.set(false);
+        pendingException = null;
         // don't clear timerBySpanTypeAndSubtype map (see field-level javadoc)
     }
 
@@ -535,4 +539,17 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
             phaser.readerUnlock();
         }
     }
+
+
+    @Override
+    public void setPendingTransactionException(@Nullable Throwable exception) {
+        this.pendingException = exception;
+    }
+
+    @Nullable
+    @Override
+    public Throwable getPendingTransactionException() {
+        return this.pendingException;
+    }
+
 }

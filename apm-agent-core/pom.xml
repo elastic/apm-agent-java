@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.46.1-SNAPSHOT</version>
+        <version>1.47.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-core</artifactId>
@@ -99,6 +99,16 @@
             <groupId>org.hdrhistogram</groupId>
             <artifactId>HdrHistogram</artifactId>
             <version>2.1.11</version>
+        </dependency>
+        <!--
+        We can't use caffeine due to requiring Java 7.
+        As recommended by the author, we use concurrentlinkedhashmap-lru instead:
+        https://github.com/ben-manes/caffeine/issues/51#issuecomment-179402074
+        -->
+        <dependency>
+            <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+            <artifactId>concurrentlinkedhashmap-lru</artifactId>
+            <version>1.4.2</version>
         </dependency>
 
         <dependency>

@@ -28,6 +28,7 @@ import co.elastic.apm.agent.tracer.service.Service;
 import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -128,6 +129,12 @@ class NoopTracer implements Tracer {
     @Nullable
     public Service createService(String ephemeralId) {
         return null;
+    }
+
+    @Nullable
+    @Override
+    public Throwable redactExceptionIfRequired(@Nullable Throwable original) {
+        return original;
     }
 
     @Override

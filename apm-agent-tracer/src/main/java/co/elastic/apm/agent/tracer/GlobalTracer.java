@@ -155,6 +155,12 @@ public class GlobalTracer implements Tracer {
         return tracer.createService(ephemeralId);
     }
 
+    @Nullable
+    @Override
+    public Throwable redactExceptionIfRequired(@Nullable Throwable original) {
+        return tracer.redactExceptionIfRequired(original);
+    }
+
     @Override
     public void flush() {
         tracer.flush();
