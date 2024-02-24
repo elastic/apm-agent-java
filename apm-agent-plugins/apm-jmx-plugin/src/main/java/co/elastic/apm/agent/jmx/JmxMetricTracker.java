@@ -23,16 +23,10 @@ import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.tracer.GlobalLocks;
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.metrics.DoubleSupplier;
-import co.elastic.apm.agent.metrics.Labels;
-import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.sdk.internal.util.ExecutorUtils;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.GlobalLocks;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import org.stagemonitor.configuration.ConfigurationOption;
 
