@@ -124,7 +124,7 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
                         .withOutcome(Outcome.FAILURE)
                         .end();
                 } catch (Throwable t) {
-                    logger.error(t.getMessage(), t); // TODO
+                    logger.error(t.getMessage(), t);
                 } finally {
                     delegate.onFailure(req, e);
                 }
