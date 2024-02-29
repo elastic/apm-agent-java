@@ -154,14 +154,14 @@ public class ElasticsearchRestClientInstrumentationHelper {
                 cluster = response.getHeader("x-found-handling-cluster");
 
             } else if (t != null) {
-                if (t instanceof ResponseException) {
+                if (t instanceof ResponseException) { // TODO
                     ResponseException esre = (ResponseException) t;
                     HttpHost host = esre.getResponse().getHost();
                     address = host.getHostName();
                     port = host.getPort();
                     url = host.toURI();
                     statusCode = esre.getResponse().getStatusLine().getStatusCode();
-                } else if (t instanceof CancellationException) {
+                } else if (t instanceof CancellationException) { // TODO
                     // We can't tell whether a cancelled search is related to a failure or not
                     span.withOutcome(Outcome.UNKNOWN);
                 }

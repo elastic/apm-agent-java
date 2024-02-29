@@ -78,7 +78,7 @@ public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<H
 
     @Override
     public boolean isCircularRedirectException(Throwable t) {
-        return t instanceof CircularRedirectException;
+        return t instanceof CircularRedirectException; // TODO
     }
 
     @Override

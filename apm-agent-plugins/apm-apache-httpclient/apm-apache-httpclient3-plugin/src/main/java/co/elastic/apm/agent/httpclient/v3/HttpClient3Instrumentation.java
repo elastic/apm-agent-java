@@ -146,7 +146,7 @@ public class HttpClient3Instrumentation extends ElasticApmInstrumentation {
                 span.getContext().getHttp().withStatusCode(statusLine.getStatusCode());
             }
 
-            if (thrown instanceof CircularRedirectException) {
+            if (thrown instanceof CircularRedirectException) { // TODO
                 span.withOutcome(Outcome.FAILURE);
             }
 

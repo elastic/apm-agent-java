@@ -123,7 +123,7 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
                 try {
                     span.captureException(e).withOutcome(Outcome.FAILURE).end();
                 } catch (Throwable t) {
-                    logger.error(t.getMessage(), t);
+                    logger.error(t.getMessage(), t); // TODO
                 } finally {
                     delegate.onFailure(call, e);
                 }
@@ -135,7 +135,7 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
                     span.getContext().getHttp().withStatusCode(response.code());
                     span.end();
                 } catch (Throwable t) {
-                    logger.error(t.getMessage(), t);
+                    logger.error(t.getMessage(), t); // TODO
                 } finally {
                     delegate.onResponse(call, response);
                 }

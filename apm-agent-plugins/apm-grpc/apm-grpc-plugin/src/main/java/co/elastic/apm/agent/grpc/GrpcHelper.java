@@ -257,7 +257,7 @@ public class GrpcHelper {
         if (null != thrown) {
             // when there is a runtime exception thrown in one of the listener methods the calling code will catch it
             // and make this the last listener method called
-            terminateStatus = Status.fromThrowable(thrown);
+            terminateStatus = Status.fromThrowable(thrown); // TODO
             setTerminateStatus = true;
 
         } else if (transaction.getOutcome() == Outcome.UNKNOWN) {

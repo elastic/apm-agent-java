@@ -239,7 +239,7 @@ public abstract class ServletApiAdvice {
                     for (int i = 0; i < size; i++) {
                         String attributeName = requestExceptionAttributes.get(i);
                         Object throwable = adapter.getAttribute(httpServletRequest, attributeName);
-                        if (throwable instanceof Throwable) {
+                        if (throwable instanceof Throwable) { // TODO : does this one counts as well ?
                             t2 = (Throwable) throwable;
 
                             // elastic exception can be removed as it's not needed after transaction end

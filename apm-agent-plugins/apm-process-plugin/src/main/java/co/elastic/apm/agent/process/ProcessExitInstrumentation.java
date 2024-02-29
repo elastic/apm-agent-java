@@ -145,7 +145,7 @@ public abstract class ProcessExitInstrumentation extends BaseProcessInstrumentat
                     return;
                 }
 
-                if (thrown instanceof IllegalThreadStateException) {
+                if (thrown instanceof IllegalThreadStateException) { // TODO ?
                     // this call to exitValue was invoked before the process had terminated
                     return;
                 }
