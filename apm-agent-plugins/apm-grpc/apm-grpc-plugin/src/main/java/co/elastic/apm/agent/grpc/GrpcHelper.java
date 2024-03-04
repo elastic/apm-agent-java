@@ -27,6 +27,7 @@ import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.dispatch.AbstractHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
@@ -257,7 +258,11 @@ public class GrpcHelper {
         if (null != thrown) {
             // when there is a runtime exception thrown in one of the listener methods the calling code will catch it
             // and make this the last listener method called
-            terminateStatus = Status.fromThrowable(thrown); // TODO
+            if (tracer.getConfig(CoreConfiguration.class).isAvoidTouchingExceptions()) {
+                terminateStatus = Status.UNKNOWN;
+            } else {
+                terminateStatus = Status.fromThrowable(thrown);
+            }
             setTerminateStatus = true;
 
         } else if (transaction.getOutcome() == Outcome.UNKNOWN) {

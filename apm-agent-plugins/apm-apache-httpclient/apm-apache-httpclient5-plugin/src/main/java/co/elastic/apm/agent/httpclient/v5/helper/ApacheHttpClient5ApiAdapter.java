@@ -21,6 +21,9 @@ package co.elastic.apm.agent.httpclient.v5.helper;
 import co.elastic.apm.agent.httpclient.common.ApacheHttpClientApiAdapter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import org.apache.hc.client5.http.CircularRedirectException;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.routing.RoutingSupport;
@@ -37,6 +40,8 @@ public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<H
     private static final ApacheHttpClient5ApiAdapter INSTANCE = new ApacheHttpClient5ApiAdapter();
 
     private static final Logger logger = LoggerFactory.getLogger(ApacheHttpClient5ApiAdapter.class);
+
+    private final Tracer tracer = GlobalTracer.get();
 
     private ApacheHttpClient5ApiAdapter() {
     }
@@ -78,7 +83,10 @@ public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<H
 
     @Override
     public boolean isCircularRedirectException(Throwable t) {
-        return t instanceof CircularRedirectException; // TODO
+        if (t == null || tracer.getConfig(CoreConfiguration.class).isAvoidTouchingExceptions()) {
+            return false;
+        }
+        return t instanceof CircularRedirectException;
     }
 
     @Override
