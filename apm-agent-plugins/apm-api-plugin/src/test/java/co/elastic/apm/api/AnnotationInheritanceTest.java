@@ -31,6 +31,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
@@ -94,6 +99,7 @@ class AnnotationInheritanceTest {
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     class EnabledPublicApiAnnotationInheritance {
 
+
         @BeforeAll
         void beforeAll() {
             init(true);
@@ -104,6 +110,14 @@ class AnnotationInheritanceTest {
             reset();
         }
 
+        private TestClassBase createTestClassInstance(Class<? extends TestClassBase> testClass)
+            throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException
+        {
+            Constructor<? extends TestClassBase> declaredConstructor = testClass.getDeclaredConstructor();
+            declaredConstructor.setAccessible(true);
+            return declaredConstructor.newInstance();
+        }
+
         @Test
         void testClassWithAnnotations() {
             invokeApiMethods(new ClassWithAnnotations());
@@ -111,36 +125,43 @@ class AnnotationInheritanceTest {
             assertThat(reporter.getSpans()).hasSize(1);
         }
 
-        @Test
-        void testInheritedCaptureTransaction() {
-            new ClassWithoutAnnotations().captureTransaction();
-            checkTransaction("ClassWithoutAnnotations#captureTransaction");
+        @ParameterizedTest
+        @ValueSource(classes = {ClassWithoutAnnotations.class, TransitiveClassWithoutAnnotations.class, InterfaceImplementor.class})
+        void testInheritedCaptureTransaction(Class<? extends TestClassBase> testClass) throws Exception{
+            TestClassBase instance = createTestClassInstance(testClass);
+            instance.captureTransaction();
+            checkTransaction(testClass.getSimpleName()+"#captureTransaction");
         }
 
-        @Test
-        void testInheritedCaptureSpan() {
+
+        @ParameterizedTest
+        @ValueSource(classes = {ClassWithoutAnnotations.class, TransitiveClassWithoutAnnotations.class, InterfaceImplementor.class})
+        void testInheritedCaptureSpan(Class<? extends TestClassBase> testClass) throws Exception{
+            TestClassBase instance = createTestClassInstance(testClass);
             Transaction transaction = ElasticApm.startTransaction();
             try (Scope scope = transaction.activate()) {
-                new ClassWithoutAnnotations().captureSpan();
+                instance.captureSpan();
             }
             transaction.end();
-            checkSpan("ClassWithoutAnnotations#captureSpan");
+            checkSpan(testClass.getSimpleName()+"#captureSpan");
         }
 
-        @Test
-        void testInheritedTracedWithoutActiveTransaction() {
-            new ClassWithoutAnnotations().traced();
-            checkTransaction("ClassWithoutAnnotations#traced");
+        @ParameterizedTest
+        @ValueSource(classes = {ClassWithoutAnnotations.class, TransitiveClassWithoutAnnotations.class, InterfaceImplementor.class})
+        void testInheritedTracedWithoutActiveTransaction(Class<? extends TestClassBase> testClass) throws Exception {
+            createTestClassInstance(testClass).traced();
+            checkTransaction(testClass.getSimpleName()+"#traced");
         }
 
-        @Test
-        void testInheritedTracedWithActiveTransaction() {
+        @ParameterizedTest
+        @ValueSource(classes = {ClassWithoutAnnotations.class, TransitiveClassWithoutAnnotations.class, InterfaceImplementor.class})
+        void testInheritedTracedWithActiveTransaction(Class<? extends TestClassBase> testClass) throws Exception{
             Transaction transaction = ElasticApm.startTransaction();
             try (Scope scope = transaction.activate()) {
-                new ClassWithoutAnnotations().traced();
+                createTestClassInstance(testClass).traced();
             }
             transaction.end();
-            checkSpan("ClassWithoutAnnotations#traced");
+            checkSpan(testClass.getSimpleName()+"#traced");
         }
 
         private void checkTransaction(String name) {
@@ -166,7 +187,16 @@ class AnnotationInheritanceTest {
         classWithAnnotations.traced();
     }
 
-    static class ClassWithAnnotations {
+
+    abstract static class TestClassBase {
+        abstract void captureTransaction();
+
+        abstract void captureSpan();
+
+        abstract void traced();
+    }
+
+    static class ClassWithAnnotations extends TestClassBase {
         @CaptureTransaction
         void captureTransaction() {
         }
@@ -193,4 +223,46 @@ class AnnotationInheritanceTest {
         void traced() {
         }
     }
+
+    static class EmptyClass extends ClassWithAnnotations {
+    }
+
+    static class TransitiveClassWithoutAnnotations extends EmptyClass {
+        @Override
+        void captureTransaction() {
+        }
+
+        @Override
+        void captureSpan() {
+        }
+
+        @Override
+        void traced() {
+        }
+    }
+
+    interface InterfaceWithAnnotations {
+        @CaptureTransaction
+        void captureTransaction();
+
+        @CaptureSpan
+        void captureSpan();
+
+        @Traced
+        void traced();
+    }
+
+    static class InterfaceImplementor extends TestClassBase implements InterfaceWithAnnotations {
+
+        public void captureTransaction() {
+        }
+
+        public void captureSpan() {
+        }
+
+        @Override
+        public void traced() {
+        }
+    }
+
 }
