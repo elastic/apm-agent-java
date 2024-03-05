@@ -66,7 +66,7 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
     private Object getAnnotationValue(MethodDescription instrumentedMethod, AnnotationValueExtractor annotationValueExtractor) {
         Queue<TypeDescription> typesToCheck = new ArrayDeque<>();
         typesToCheck.add(instrumentedMethod.getDeclaringType().asErasure());
-        Set<TypeDescription> alreadyCheckedTypes = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<TypeDescription> alreadyCheckedTypes = Collections.newSetFromMap(new IdentityHashMap<TypeDescription, Boolean>());
 
         while (!typesToCheck.isEmpty()) {
             TypeDescription type = typesToCheck.poll();
