@@ -39,6 +39,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Bug fixes
 * Added missing support for TracerBuilder in OpenTelemetry bridge - {pull}3535[#3535]
+* Fixed some locations to not touch exceptions when `safe_exception` is configured - {pull}3543[#3543]
 
 [float]
 ===== Potentially breaking changes

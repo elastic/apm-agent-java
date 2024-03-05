@@ -30,6 +30,7 @@ import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
 import co.elastic.apm.agent.tracer.pooling.ObjectPool;
 import org.apache.http.HttpEntity;
@@ -154,16 +155,18 @@ public class ElasticsearchRestClientInstrumentationHelper {
                 cluster = response.getHeader("x-found-handling-cluster");
 
             } else if (t != null) {
-                if (t instanceof ResponseException) {
-                    ResponseException esre = (ResponseException) t;
-                    HttpHost host = esre.getResponse().getHost();
-                    address = host.getHostName();
-                    port = host.getPort();
-                    url = host.toURI();
-                    statusCode = esre.getResponse().getStatusLine().getStatusCode();
-                } else if (t instanceof CancellationException) {
-                    // We can't tell whether a cancelled search is related to a failure or not
-                    span.withOutcome(Outcome.UNKNOWN);
+                if (!tracer.getConfig(CoreConfiguration.class).isAvoidTouchingExceptions()) {
+                    if (t instanceof ResponseException) {
+                        ResponseException esre = (ResponseException) t;
+                        HttpHost host = esre.getResponse().getHost();
+                        address = host.getHostName();
+                        port = host.getPort();
+                        url = host.toURI();
+                        statusCode = esre.getResponse().getStatusLine().getStatusCode();
+                    } else if (t instanceof CancellationException) {
+                        // We can't tell whether a cancelled search is related to a failure or not
+                        span.withOutcome(Outcome.UNKNOWN);
+                    }
                 }
                 span.captureException(t);
             }

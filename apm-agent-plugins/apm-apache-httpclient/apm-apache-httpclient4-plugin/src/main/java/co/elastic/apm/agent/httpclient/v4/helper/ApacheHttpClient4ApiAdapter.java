@@ -20,6 +20,9 @@ package co.elastic.apm.agent.httpclient.v4.helper;
 
 
 import co.elastic.apm.agent.httpclient.common.ApacheHttpClientApiAdapter;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.StatusLine;
@@ -31,6 +34,8 @@ import java.net.URI;
 
 public class ApacheHttpClient4ApiAdapter implements ApacheHttpClientApiAdapter<HttpRequest, HttpRequestWrapper, HttpHost, CloseableHttpResponse> {
     private static final ApacheHttpClient4ApiAdapter INSTANCE = new ApacheHttpClient4ApiAdapter();
+
+    private final Tracer tracer = GlobalTracer.get();
 
     private ApacheHttpClient4ApiAdapter() {
     }
@@ -65,6 +70,9 @@ public class ApacheHttpClient4ApiAdapter implements ApacheHttpClientApiAdapter<H
 
     @Override
     public boolean isCircularRedirectException(Throwable t) {
+        if (t == null || tracer.getConfig(CoreConfiguration.class).isAvoidTouchingExceptions()) {
+            return false;
+        }
         return t instanceof CircularRedirectException;
     }
 
