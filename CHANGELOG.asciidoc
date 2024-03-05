@@ -32,6 +32,10 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 === Unreleased
 
 [float]
+===== Bug fixes
+* Fixed problems with public API annotation inheritance - {pull}3551[#3551]
+
+[float]
 ===== Features
 * Bumped base alpine docker image version - {pull}3524[#3524]
 * Replace statement parser cache with an LRU cache to improve efficiency in certain cases {pull}3492[#3492]
