@@ -31,6 +31,12 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.48.0]]
+==== 1.48.0 - 2024/03/05
+
 [float]
 ===== Features
 * Bumped base alpine docker image version - {pull}3524[#3524]
@@ -44,9 +50,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Potentially breaking changes
 * The minimum supported OpenTelemetry version has been increased to 1.4.0 - {pull}3535[#3535]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.47.1]]
 ==== 1.47.1 - 2024/02/15
