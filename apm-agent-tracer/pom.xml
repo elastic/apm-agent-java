@@ -4,7 +4,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.48.1-SNAPSHOT</version>
+        <version>1.48.1</version>
     </parent>
 
     <artifactId>apm-agent-tracer</artifactId>
