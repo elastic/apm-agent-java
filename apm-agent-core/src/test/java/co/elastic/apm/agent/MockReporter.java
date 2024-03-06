@@ -40,6 +40,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
 import org.awaitility.core.ThrowingRunnable;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -810,7 +811,7 @@ public class MockReporter implements Reporter {
 
         private static JsonSchema getSchema(String resource) {
             InputStream input = Objects.requireNonNull(MockReporter.class.getResourceAsStream(resource), "missing resource " + resource);
-            return JsonSchemaFactory.getInstance().getSchema(input);
+            return JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7).getSchema(input);
         }
     }
 
