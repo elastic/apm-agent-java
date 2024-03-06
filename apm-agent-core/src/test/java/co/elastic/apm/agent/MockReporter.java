@@ -811,7 +811,7 @@ public class MockReporter implements Reporter {
 
         private static JsonSchema getSchema(String resource) {
             InputStream input = Objects.requireNonNull(MockReporter.class.getResourceAsStream(resource), "missing resource " + resource);
-            return JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7).getSchema(input);
+            return JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4).getSchema(input);
         }
     }
 
