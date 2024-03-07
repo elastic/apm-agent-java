@@ -21,11 +21,14 @@ echo $PATH
 java -version
 
 set +x
+# Default in dry-run mode
+GOAL="install"
+DRY_RUN_MSG="(dry-run)"
+# Otherwise, a RELEASE
 if [[ "$dry_run" == "false" ]] ; then
-  echo "--- Deploy the release :package:"
-  GOAL=deploy
-else
-  echo "--- Deploy the release :package: (dry-run)"
-  GOAL=install
+  GOAL="deploy"
+  DRY_RUN_MSG=""
 fi
+
+echo "--- Deploy the release :package: [./mvnw $GOAL)] $DRY_RUN_MSG"
 ./mvnw -V -s .ci/settings.xml -Pgpg clean $GOAL -DskipTests --batch-mode | tee release.txt
