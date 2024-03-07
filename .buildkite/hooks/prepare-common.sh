@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Configure the java version
-JAVA_VERSION=$(cat .java-version)
+JAVA_VERSION=$(cat .java-version | xargs | tr -dc '[:print:]')
 JAVA_HOME="${HOME}/.java/openjdk${JAVA_VERSION}"
 export JAVA_HOME
 PATH="${JAVA_HOME}/bin:$PATH"
