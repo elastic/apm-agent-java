@@ -1,5 +1,6 @@
 agents:
   provider: "gcp"
+  #image: "family/apm-agent-java-ubuntu-2204"
 
 steps:
   - label: "Run the snapshot"

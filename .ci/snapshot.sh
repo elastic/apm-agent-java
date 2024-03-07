@@ -23,9 +23,10 @@ echo $PATH
 java -version
 
 set +x
-echo "--- Deploy the snapshot :package:"
-if [[ "$dry_run" == "true" ]] ; then
-  echo './mvnw -V -s .ci/settings.xml -Pgpg clean deploy -DskipTests --batch-mode'
-else
+if [[ "$dry_run" == "false" ]] ; then
+  echo "--- Deploy the snapshot :package:"
   ./mvnw -V -s .ci/settings.xml -Pgpg clean deploy -DskipTests --batch-mode | tee snapshot.txt
+else
+  echo "--- Deploy the snapshot :package: (dry-run)"
+  ./mvnw -V -s .ci/settings.xml -Pgpg clean install -DskipTests --batch-mode | tee snapshot.txt
 fi
