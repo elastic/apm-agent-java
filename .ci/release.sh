@@ -23,8 +23,9 @@ java -version
 set +x
 if [[ "$dry_run" == "false" ]] ; then
   echo "--- Deploy the release :package:"
-  ./mvnw -V -s .ci/settings.xml -Pgpg clean deploy -DskipTests --batch-mode | tee release.txt
+  GOAL=deploy
 else
   echo "--- Deploy the release :package: (dry-run)"
-  ./mvnw -V -s .ci/settings.xml -Pgpg clean install -DskipTests --batch-mode | tee release.txt
+  GOAL=install
 fi
+./mvnw -V -s .ci/settings.xml -Pgpg clean $GOAL -DskipTests --batch-mode | tee release.txt
