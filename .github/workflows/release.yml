@@ -53,7 +53,7 @@ jobs:
     permissions:
       contents: write
     name: "Changelog and Version Bump"
-    if: ${{ ! inputs.skip_preparation && ! inputs.dry_run }}
+    if: ${{ ! inputs.skip_preparation }}
     runs-on: ubuntu-latest
     steps:
       - uses: elastic/apm-pipeline-library/.github/actions/github-token@current
@@ -75,17 +75,20 @@ jobs:
         with:
           command: ./mvnw clean
       - name: Prepare changelog for release
-        if: ${{ inputs.update_changelog }}
+        if: ${{ inputs.update_changelog && ! inputs.dry_run }}
         run: |
           java .ci/ReleaseChangelog.java CHANGELOG.asciidoc ${{ inputs.version }}
           git commit -m "Prepare changelog for release ${{ inputs.version }}" CHANGELOG.asciidoc
       - name: Bump version and add git tag
+        if: ${{ ! inputs.dry_run }}
         run: ./mvnw release:prepare -B -DpushChanges=false "-Darguments=-DskipTests -Dmaven.javadoc.skip=true" -DreleaseVersion=${{ inputs.version }}
-      - run: git push --atomic origin ${{ inputs.branch }} ${{ env.TAG_NAME }}
+      - name: Push changes
+        if: ${{ ! inputs.dry_run }}
+        run: git push --atomic origin ${{ inputs.branch }} ${{ env.TAG_NAME }}
 
   maven_central_deploy:
     name: "Deploy to Maven Central (Buildkite)"
-    if: ${{ ! inputs.skip_maven_deploy && ! inputs.dry_run && ( inputs.skip_preparation || success() ) }}
+    if: ${{ ! inputs.skip_maven_deploy && ( inputs.skip_preparation || success() ) }}
     runs-on: ubuntu-latest
     needs:
       - prepare_release
@@ -108,10 +111,10 @@ jobs:
   await_artifact_on_maven_central:
     name: "Wait for artifacts to be available on maven central"
     runs-on: ubuntu-latest
-    if: ${{ ! inputs.dry_run }}
     steps:
       - uses: actions/checkout@v4
       - name: Await artifacts published in maven central
+        if: ${{ ! inputs.dry_run }}
         shell: bash
         timeout-minutes: 120
         run: |
@@ -124,7 +127,6 @@ jobs:
   update_major_branch:
     name: "Update Major Branch"
     runs-on: ubuntu-latest
-    if: ${{ ! inputs.dry_run }}
     needs:
       - await_artifact_on_maven_central
     permissions:
@@ -144,13 +146,15 @@ jobs:
         with:
           ref: ${{ env.TAG_NAME }}
           token: ${{ env.GITHUB_TOKEN }}
-      - run: .ci/release/update_major_branch.sh ${{ inputs.version }}
-      - run: git push -f origin "$(echo '${{ inputs.version }}' | sed -E 's/\..+/.x/')"
+      - name: Update major branch
+        run: .ci/release/update_major_branch.sh ${{ inputs.version }}
+      - name: Push changes
+        if: ${{ ! inputs.dry_run }}
+        run: git push -f origin "$(echo '${{ inputs.version }}' | sed -E 's/\..+/.x/')"
 
   update_cloudfoundry:
     name: "Update Cloudfoundry"
     runs-on: ubuntu-latest
-    if: ${{ ! inputs.dry_run }}
     needs:
       - await_artifact_on_maven_central
     permissions:
@@ -173,13 +177,13 @@ jobs:
       - name: "Update Cloudfoundry index.yml file"
         shell: bash
         run: .ci/release/update_cloudfoundry.sh ${{ inputs.version }}
-      - run: git push origin ${{ inputs.branch }}
-
+      - name: Push changes
+        if: ${{ ! inputs.dry_run }}
+        run: git push origin ${{ inputs.branch }}
 
   build_and_push_docker_images:
     name: "Build and push docker images"
     runs-on: ubuntu-latest
-    if: ${{ ! inputs.dry_run }}
     needs:
       - await_artifact_on_maven_central
     env:
@@ -198,14 +202,15 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRET_ID }}
       - name: "Build docker image"
         shell: bash
-        run: |
-          ./scripts/docker-release/build_docker.sh
-          ./scripts/docker-release/push_docker.sh
+        run: ./scripts/docker-release/build_docker.sh
+      - name: "Push docker image"
+        if: ${{ ! inputs.dry_run }}
+        shell: bash
+        run: ./scripts/docker-release/push_docker.sh
 
   publish_aws_lambda:
     name: "Publish AWS Lambda"
     runs-on: ubuntu-latest
-    if: ${{ ! inputs.dry_run }}
     needs:
       - await_artifact_on_maven_central
     outputs:
@@ -232,6 +237,7 @@ jobs:
             secret/observability-team/ci/service-account/apm-aws-lambda access_key_id | AWS_ACCESS_KEY_ID ;
             secret/observability-team/ci/service-account/apm-aws-lambda secret_access_key | AWS_SECRET_ACCESS_KEY
       - name: Publish
+        if: ${{ ! inputs.dry_run }}
         run: |
           # Convert v1.2.3 to ver-1-2-3
           VERSION=${TAG_NAME/v/ver-}
@@ -239,10 +245,12 @@ jobs:
           
           ELASTIC_LAYER_NAME="elastic-apm-java-${VERSION}" .ci/publish-aws.sh
       - uses: actions/upload-artifact@v4
+        if: ${{ ! inputs.dry_run }}
         with:
           name: arn-file
           path: .ci/.arn-file.md
       - name: Add ARN file to output
+        if: ${{ ! inputs.dry_run }}
         id: arn_output
         run: |
           echo 'arn_content<<ARN_CONTENT_EOF' >> $GITHUB_OUTPUT
