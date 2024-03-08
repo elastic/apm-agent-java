@@ -12,4 +12,5 @@ steps:
 
 notify:
   - slack: "#apm-agent-java"
-    if: 'build.state != "passed"'
+    # skip slack messages if no failures and dry-run mode
+    if: 'build.state != "passed" && build.env("dry_run") == "false"'
