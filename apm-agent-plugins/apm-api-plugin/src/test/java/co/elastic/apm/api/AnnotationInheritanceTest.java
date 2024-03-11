@@ -111,8 +111,7 @@ class AnnotationInheritanceTest {
         }
 
         private TestClassBase createTestClassInstance(Class<? extends TestClassBase> testClass)
-            throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException
-        {
+            throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
             Constructor<? extends TestClassBase> declaredConstructor = testClass.getDeclaredConstructor();
             declaredConstructor.setAccessible(true);
             return declaredConstructor.newInstance();
@@ -127,41 +126,41 @@ class AnnotationInheritanceTest {
 
         @ParameterizedTest
         @ValueSource(classes = {ClassWithoutAnnotations.class, TransitiveClassWithoutAnnotations.class, InterfaceImplementor.class})
-        void testInheritedCaptureTransaction(Class<? extends TestClassBase> testClass) throws Exception{
+        void testInheritedCaptureTransaction(Class<? extends TestClassBase> testClass) throws Exception {
             TestClassBase instance = createTestClassInstance(testClass);
             instance.captureTransaction();
-            checkTransaction(testClass.getSimpleName()+"#captureTransaction");
+            checkTransaction(testClass.getSimpleName() + "#captureTransaction");
         }
 
 
         @ParameterizedTest
         @ValueSource(classes = {ClassWithoutAnnotations.class, TransitiveClassWithoutAnnotations.class, InterfaceImplementor.class})
-        void testInheritedCaptureSpan(Class<? extends TestClassBase> testClass) throws Exception{
+        void testInheritedCaptureSpan(Class<? extends TestClassBase> testClass) throws Exception {
             TestClassBase instance = createTestClassInstance(testClass);
             Transaction transaction = ElasticApm.startTransaction();
             try (Scope scope = transaction.activate()) {
                 instance.captureSpan();
             }
             transaction.end();
-            checkSpan(testClass.getSimpleName()+"#captureSpan");
+            checkSpan(testClass.getSimpleName() + "#captureSpan");
         }
 
         @ParameterizedTest
         @ValueSource(classes = {ClassWithoutAnnotations.class, TransitiveClassWithoutAnnotations.class, InterfaceImplementor.class})
         void testInheritedTracedWithoutActiveTransaction(Class<? extends TestClassBase> testClass) throws Exception {
             createTestClassInstance(testClass).traced();
-            checkTransaction(testClass.getSimpleName()+"#traced");
+            checkTransaction(testClass.getSimpleName() + "#traced");
         }
 
         @ParameterizedTest
         @ValueSource(classes = {ClassWithoutAnnotations.class, TransitiveClassWithoutAnnotations.class, InterfaceImplementor.class})
-        void testInheritedTracedWithActiveTransaction(Class<? extends TestClassBase> testClass) throws Exception{
+        void testInheritedTracedWithActiveTransaction(Class<? extends TestClassBase> testClass) throws Exception {
             Transaction transaction = ElasticApm.startTransaction();
             try (Scope scope = transaction.activate()) {
                 createTestClassInstance(testClass).traced();
             }
             transaction.end();
-            checkSpan(testClass.getSimpleName()+"#traced");
+            checkSpan(testClass.getSimpleName() + "#traced");
         }
 
         private void checkTransaction(String name) {
