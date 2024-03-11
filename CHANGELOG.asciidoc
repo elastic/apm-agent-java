@@ -40,6 +40,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Bug fixes
 * Avoid another case where we might touch application exceptions for `safe_exceptions` - {pull}3553[#3553]
+* More robust hostname detection on Windows - {pull}3556[#3556]
 
 [[release-notes-1.48.0]]
 ==== 1.48.0 - 2024/03/05
