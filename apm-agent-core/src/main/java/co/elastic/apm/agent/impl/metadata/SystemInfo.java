@@ -188,7 +188,10 @@ public class SystemInfo {
     static String discoverHostnameThroughCommand(boolean isWindows, long timeoutMillis) {
         String hostname;
         if (isWindows) {
-            hostname = executeHostnameDiscoveryCommand(Arrays.asList("powershell.exe", "[System.Net.Dns]::GetHostEntry($env:computerName).HostName"), timeoutMillis);
+            List<String> powershellCmd = Arrays.asList("powershell.exe",
+                "-NoLogo", "-NonInteractive", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                "-Command", "[System.Net.Dns]::GetHostEntry($env:computerName).HostName");
+            hostname = executeHostnameDiscoveryCommand(powershellCmd, timeoutMillis);
             if (hostname == null || hostname.isEmpty()) {
                 hostname = executeHostnameDiscoveryCommand(Arrays.asList("cmd.exe", "/c", "hostname"), timeoutMillis);
             }
