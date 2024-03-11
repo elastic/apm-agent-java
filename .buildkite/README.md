@@ -36,7 +36,7 @@ This is the Buildkite pipeline for the Opentelemetry Benchmark.
 To view the pipeline and its configuration, click [here](https://buildkite.com/elastic/apm-agent-java-opentelemetry-benchmark) or
 go to the definition in `opentelemetry-benchmark.yml`.
 
-## Buildkite VM runners
+## Buildkite VM runners
 
 A set of Buildkite VM runners has been created for this repository. The VM runners contain
 the required software:
