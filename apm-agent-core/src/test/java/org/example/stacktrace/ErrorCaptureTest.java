@@ -117,7 +117,8 @@ class ErrorCaptureTest {
         Throwable redacted = tracer.redactExceptionIfRequired(exception);
         assertThat(redacted).isInstanceOf(RedactedException.class);
 
-        assertThat(tracer.redactExceptionIfRequired(redacted)).isSameAs(redacted);
+        // double redaction means no instanceof check
+        assertThat(tracer.redactExceptionIfRequired(redacted)).isNotSameAs(redacted);
 
         ErrorCapture errorCapture = tracer.captureException(exception, tracer.currentContext(), null);
         assertThat(errorCapture).isNotNull();
@@ -125,7 +126,7 @@ class ErrorCaptureTest {
 
         ErrorCapture alreadyRedacted = tracer.captureException(redacted, tracer.currentContext(), null);
         assertThat(alreadyRedacted).isNotNull();
-        assertThat(alreadyRedacted.getException()).isSameAs(redacted);
+        assertThat(alreadyRedacted.getException()).isNotSameAs(redacted);
     }
 
 

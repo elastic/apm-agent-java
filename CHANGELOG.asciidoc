@@ -31,6 +31,19 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.48.1]]
+==== 1.48.1 - 2024/03/06
+
+[float]
+===== Bug fixes
+* Avoid another case where we might touch application exceptions for `safe_exceptions` - {pull}3553[#3553]
+
+[[release-notes-1.48.0]]
+==== 1.48.0 - 2024/03/05
+
 [float]
 ===== Bug fixes
 * Fixed problems with public API annotation inheritance - {pull}3551[#3551]
@@ -43,13 +56,11 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Bug fixes
 * Added missing support for TracerBuilder in OpenTelemetry bridge - {pull}3535[#3535]
+* Fixed some locations to not touch exceptions when `safe_exception` is configured - {pull}3543[#3543]
 
 [float]
 ===== Potentially breaking changes
 * The minimum supported OpenTelemetry version has been increased to 1.4.0 - {pull}3535[#3535]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.47.1]]
 ==== 1.47.1 - 2024/02/15

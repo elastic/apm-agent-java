@@ -28,6 +28,7 @@ import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -146,8 +147,10 @@ public class HttpClient3Instrumentation extends ElasticApmInstrumentation {
                 span.getContext().getHttp().withStatusCode(statusLine.getStatusCode());
             }
 
-            if (thrown instanceof CircularRedirectException) {
-                span.withOutcome(Outcome.FAILURE);
+            if(thrown != null && !tracer.getConfig(CoreConfiguration.class).isAvoidTouchingExceptions()) {
+                if (thrown instanceof CircularRedirectException) {
+                    span.withOutcome(Outcome.FAILURE);
+                }
             }
 
             span.captureException(thrown)
