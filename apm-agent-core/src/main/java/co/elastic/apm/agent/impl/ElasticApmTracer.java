@@ -35,11 +35,13 @@ import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.metadata.ServiceFactory;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
+import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
+import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.tracer.service.Service;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.tracer.LifecycleListener;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -71,12 +73,12 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import com.dslplatform.json.JsonWriter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
-import java.io.Closeable;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -954,7 +956,8 @@ public class ElasticApmTracer implements Tracer {
         return sharedPool;
     }
 
-    public void addShutdownHook(Closeable closeable) {
+    @Override
+    public void addShutdownHook(AutoCloseable closeable) {
         lifecycleListeners.add(ClosableLifecycleListenerAdapter.of(closeable));
     }
 
@@ -1044,4 +1047,30 @@ public class ElasticApmTracer implements Tracer {
             region
         ));
     }
+
+    @Override
+    public void removeGauge(String name, Labels.Immutable labels) {
+        metricRegistry.removeGauge(name, labels);
+    }
+
+    @Override
+    public void addGauge(String name, Labels.Immutable labels, DoubleSupplier supplier) {
+        metricRegistry.add(name, labels, supplier);
+    }
+
+    @Override
+    public void submit(Runnable job) {
+        sharedPool.submit(job);
+    }
+
+    @Override
+    public void schedule(Runnable job, long interval, TimeUnit timeUnit) {
+        sharedPool.scheduleAtFixedRate(job, 0, interval, timeUnit);
+    }
+
+    @Override
+    public void reportMetric(JsonWriter metrics) {
+        reporter.reportMetrics(metrics);
+    }
+
 }

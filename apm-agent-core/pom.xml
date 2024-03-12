@@ -149,11 +149,6 @@
             <version>${version.jetty-server}</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.dslplatform</groupId>
-            <artifactId>dsl-json</artifactId>
-            <version>1.9.3</version>
-        </dependency>
         <!--Used to test old class file versions-->
         <dependency>
             <groupId>commons-math</groupId>

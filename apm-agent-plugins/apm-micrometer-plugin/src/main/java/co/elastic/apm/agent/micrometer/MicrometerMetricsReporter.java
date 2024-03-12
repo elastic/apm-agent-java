@@ -18,14 +18,12 @@
  */
 package co.elastic.apm.agent.micrometer;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.tracer.configuration.ReporterConfiguration;
 import com.dslplatform.json.JsonWriter;
@@ -90,19 +88,17 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
     private final WeakMap<MeterRegistry, Step> meterRegistries = WeakConcurrent.buildMap();
     private final WeakMap<MeterRegistry, SimpleConfig> configMap = WeakConcurrent.buildMap();
     private final MicrometerMeterRegistrySerializer serializer;
-    private final Reporter reporter;
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
     private final AtomicBoolean scheduledReporting = new AtomicBoolean();
     private final boolean disableScheduler;
 
-    public MicrometerMetricsReporter(ElasticApmTracer tracer) {
+    public MicrometerMetricsReporter(Tracer tracer) {
         this(tracer, false);
     }
 
     //constructor split up to have this available for testing
-    MicrometerMetricsReporter(ElasticApmTracer tracer, boolean disableSchedulerThread) {
+    MicrometerMetricsReporter(Tracer tracer, boolean disableSchedulerThread) {
         this.tracer = tracer;
-        this.reporter = tracer.getReporter();
         tracer.addShutdownHook(this);
         serializer = new MicrometerMeterRegistrySerializer(tracer.getConfig(MetricsConfiguration.class));
         this.disableScheduler = disableSchedulerThread;
@@ -135,7 +131,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
             // called for every class loader that loaded micrometer
             // that's because a new MicrometerMetricsReporter instance is created in every IndyPluginClassLoader
             // for example if multiple webapps use potentially different versions of Micrometer
-            tracer.getSharedSingleThreadedPool().scheduleAtFixedRate(this, 0, INTERVAL_BETWEEN_CHECKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS);
+            tracer.schedule(this, INTERVAL_BETWEEN_CHECKS_IN_MILLISECONDS, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -147,7 +143,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
 
     //run split up to have this available for testing
     void run(final long now) {
-        if (tracer.getState() != Tracer.TracerState.RUNNING) {
+        if (!tracer.isRunning()) {
             return;
         }
         long metricsIntervalMs = tracer.getConfig(ReporterConfiguration.class).getMetricsIntervalMs();
@@ -190,7 +186,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         }
         logger.debug("Reporting {} meters", meterConsumer.meters.size());
         for (JsonWriter serializedMetricSet : serializer.serialize(meterConsumer.meters, now * 1000)) {
-            reporter.reportMetrics(serializedMetricSet);
+            tracer.reportMetric(serializedMetricSet);
         }
     }
 
@@ -220,7 +216,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
     public void close() {
         // flushing out metrics before shutting down
         // this is especially important for counters as the counts that were accumulated between the last report and the shutdown would otherwise get lost
-        tracer.getSharedSingleThreadedPool().submit(this);
+        tracer.submit(this);
     }
 
     private static class MeterMapConsumer implements Consumer<Meter> {

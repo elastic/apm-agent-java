@@ -18,17 +18,18 @@
  */
 package co.elastic.apm.agent.context;
 
-import java.io.Closeable;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.LifecycleListener;
 
 public class ClosableLifecycleListenerAdapter extends AbstractLifecycleListener {
 
-    private final Closeable closeable;
+    private final AutoCloseable closeable;
 
-    public static LifecycleListener of(Closeable closeable) {
+    public static LifecycleListener of(AutoCloseable closeable) {
         return new ClosableLifecycleListenerAdapter(closeable);
     }
 
-    private ClosableLifecycleListenerAdapter(Closeable closeable) {
+    private ClosableLifecycleListenerAdapter(AutoCloseable closeable) {
         this.closeable = closeable;
     }
 

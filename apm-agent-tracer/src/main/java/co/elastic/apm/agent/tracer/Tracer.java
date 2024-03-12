@@ -19,13 +19,17 @@
 package co.elastic.apm.agent.tracer;
 
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
+import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
+import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.tracer.service.Service;
+import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public interface Tracer {
 
@@ -91,6 +95,18 @@ public interface Tracer {
 
     @Nullable
     Throwable redactExceptionIfRequired(@Nullable Throwable original);
+
+    void removeGauge(String name, Labels.Immutable labels);
+
+    void addGauge(String name, Labels.Immutable labels, DoubleSupplier supplier);
+
+    void submit(Runnable job);
+
+    void schedule(Runnable job, long interval, TimeUnit timeUnit);
+
+    void addShutdownHook(AutoCloseable hook);
+
+    void reportMetric(JsonWriter metrics); // TODO: replace with internalized DSL writer that only accepts data.
 
     void flush();
 

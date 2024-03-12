@@ -19,15 +19,18 @@
 package co.elastic.apm.agent.tracer;
 
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
+import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
+import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.tracer.service.Service;
+import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 class NoopTracer implements Tracer {
 
@@ -139,5 +142,29 @@ class NoopTracer implements Tracer {
 
     @Override
     public void completeMetaData(String name, String version, String id, String region) {
+    }
+
+    @Override
+    public void addGauge(String name, Labels.Immutable labels, DoubleSupplier supplier) {
+    }
+
+    @Override
+    public void removeGauge(String name, Labels.Immutable labels) {
+    }
+
+    @Override
+    public void submit(Runnable job) {
+    }
+
+    @Override
+    public void schedule(Runnable job, long interval, TimeUnit timeUnit) {
+    }
+
+    @Override
+    public void addShutdownHook(AutoCloseable hook) {
+    }
+
+    @Override
+    public void reportMetric(JsonWriter metrics) {
     }
 }

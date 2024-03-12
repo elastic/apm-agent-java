@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.collections;
 
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -41,7 +41,7 @@ public class WeakMapCleaner extends AbstractLifecycleListener implements Runnabl
     }
 
     @Override
-    public void start(ElasticApmTracer tracer) {
+    public void start(Tracer tracer) {
         scheduler.scheduleWithFixedDelay(this, 1, 1, TimeUnit.SECONDS);
     }
 

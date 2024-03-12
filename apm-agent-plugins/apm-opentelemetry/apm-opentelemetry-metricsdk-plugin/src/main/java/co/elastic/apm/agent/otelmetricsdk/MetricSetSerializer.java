@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.otelmetricsdk;
 
 import co.elastic.apm.agent.report.Reporter;
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.tracer.metrics.DslJsonUtil;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
@@ -56,14 +56,14 @@ class MetricSetSerializer {
         jw = DSL_JSON.newWriter(INITIAL_BUFFER_SIZE);
         jw.writeByte(JsonWriter.OBJECT_START);
         {
-            DslJsonSerializer.writeFieldName("metricset", jw);
+            DslJsonUtil.writeFieldName("metricset", jw);
             jw.writeByte(JsonWriter.OBJECT_START);
             {
-                DslJsonSerializer.writeFieldName("timestamp", jw);
+                DslJsonUtil.writeFieldName("timestamp", jw);
                 NumberConverter.serialize(epochMicros, jw);
                 jw.writeByte(JsonWriter.COMMA);
                 serializeAttributes(instrumentationScopeName, attributes);
-                DslJsonSerializer.writeFieldName("samples", jw);
+                DslJsonUtil.writeFieldName("samples", jw);
                 jw.writeByte(JsonWriter.OBJECT_START);
             }
         }
@@ -188,7 +188,7 @@ class MetricSetSerializer {
         if (attributeMap.isEmpty() && instrumentationScopeName.length() == 0) {
             return;
         }
-        DslJsonSerializer.writeFieldName("tags", jw);
+        DslJsonUtil.writeFieldName("tags", jw);
         jw.writeByte(OBJECT_START);
         boolean anyWritten = false;
         if (instrumentationScopeName.length() > 0) {
@@ -210,7 +210,7 @@ class MetricSetSerializer {
             if (prependComma) {
                 jw.writeByte(COMMA);
             }
-            DslJsonSerializer.writeStringValue(DslJsonSerializer.sanitizePropertyName(key.getKey(), replaceBuilder), replaceBuilder, jw);
+            DslJsonUtil.writeStringValue(DslJsonUtil.sanitizePropertyName(key.getKey(), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
 
             AttributeType type = key.getType();

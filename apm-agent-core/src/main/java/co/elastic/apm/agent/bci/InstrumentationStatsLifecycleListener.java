@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,7 +31,7 @@ public class InstrumentationStatsLifecycleListener extends AbstractLifecycleList
     private static final Logger logger = LoggerFactory.getLogger(InstrumentationStatsLifecycleListener.class);
 
     @Override
-    public void init(ElasticApmTracer tracer) {
+    public void init(Tracer tracer) {
         InstrumentationStats instrumentationStats = ElasticApmAgent.getInstrumentationStats();
         instrumentationStats.reset();
         instrumentationStats.setMeasureMatching(logger.isDebugEnabled());
