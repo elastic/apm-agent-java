@@ -156,4 +156,14 @@ public class GlobalTracer implements Tracer {
     public Throwable redactExceptionIfRequired(@Nullable Throwable original) {
         return tracer.redactExceptionIfRequired(original);
     }
+
+    @Override
+    public void flush() {
+        tracer.flush();
+    }
+
+    @Override
+    public void completeMetaData(String name, String version, String id, String region) {
+        tracer.completeMetaData(name, version, id, region);
+    }
 }

@@ -25,6 +25,7 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.tracer.service.Service;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
 
@@ -130,5 +131,13 @@ class NoopTracer implements Tracer {
     @Override
     public Throwable redactExceptionIfRequired(@Nullable Throwable original) {
         return original;
+    }
+
+    @Override
+    public void flush() {
+    }
+
+    @Override
+    public void completeMetaData(String name, String version, String id, String region) {
     }
 }

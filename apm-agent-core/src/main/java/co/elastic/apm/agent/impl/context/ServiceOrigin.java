@@ -28,7 +28,7 @@ import javax.annotation.Nullable;
  * If a request originated from another service,
  * the service origin interface can be used to collect information about the origin service.
  */
-public class ServiceOrigin implements Recyclable {
+public class ServiceOrigin implements co.elastic.apm.agent.tracer.ServiceOrigin, Recyclable {
 
     @Nullable
     private String id;
@@ -43,6 +43,7 @@ public class ServiceOrigin implements Recyclable {
         return id;
     }
 
+    @Override
     public ServiceOrigin withId(@Nullable String id) {
         this.id = id;
         return this;
@@ -52,6 +53,7 @@ public class ServiceOrigin implements Recyclable {
         return name;
     }
 
+    @Override
     public ServiceOrigin withName(@Nullable CharSequence name) {
         this.name.setLength(0);
         if (name != null) {
@@ -72,6 +74,7 @@ public class ServiceOrigin implements Recyclable {
         return version;
     }
 
+    @Override
     public ServiceOrigin withVersion(@Nullable String version) {
         this.version = version;
         return this;

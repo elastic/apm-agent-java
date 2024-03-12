@@ -43,4 +43,6 @@ public interface TransactionContext extends AbstractContext {
     User getUser();
 
     CloudOrigin getCloudOrigin();
+
+    ServiceOrigin getServiceOrigin();
 }

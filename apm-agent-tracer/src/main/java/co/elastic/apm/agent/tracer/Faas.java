@@ -16,31 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.tracer.metadata;
+package co.elastic.apm.agent.tracer;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
 
-public interface Response {
+public interface Faas {
 
-    /**
-     * A mapping of HTTP headers of the response object
-     */
-    PotentiallyMultiValuedMap getHeaders();
+    FaasTrigger getTrigger();
 
-    /**
-     * A boolean indicating whether the response was finished or not
-     */
-    Response withFinished(boolean finished);
+    Faas withId(@Nullable String id);
 
-    /**
-     * The HTTP status code of the response.
-     */
-    Response withStatusCode(int statusCode);
+    Faas withName(@Nullable String name);
 
-    Response withHeadersSent(boolean headersSent);
+    Faas withVersion(@Nullable String version);
 
-    Response addHeader(String headerName, @Nullable String headerValue);
+    Faas withExecution(@Nullable String execution);
 
-    Response addHeader(String headerName, @Nullable Collection<String> headerValues);
+    Faas withColdStart(boolean coldStart);
 }

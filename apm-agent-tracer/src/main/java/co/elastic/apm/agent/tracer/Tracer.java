@@ -91,4 +91,8 @@ public interface Tracer {
 
     @Nullable
     Throwable redactExceptionIfRequired(@Nullable Throwable original);
+
+    void flush();
+
+    void completeMetaData(String name, String version, String id, String region);
 }
