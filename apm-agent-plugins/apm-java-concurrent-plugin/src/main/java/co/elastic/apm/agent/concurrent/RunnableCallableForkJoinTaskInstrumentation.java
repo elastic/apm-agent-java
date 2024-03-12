@@ -79,8 +79,7 @@ public class RunnableCallableForkJoinTaskInstrumentation extends ElasticApmInstr
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(@Advice.Thrown Throwable thrown,
-                                  @Nullable @Advice.Enter Object context) {
+        public static void onExit(@Nullable @Advice.Enter Object context) {
             if (context != null) {
                 ((ElasticContext<?>) context).deactivate();
             }

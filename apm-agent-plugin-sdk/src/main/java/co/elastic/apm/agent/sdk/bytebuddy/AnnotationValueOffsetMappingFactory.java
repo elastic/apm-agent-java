@@ -22,6 +22,7 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.annotation.AnnotationDescription;
+import net.bytebuddy.description.annotation.AnnotationValue;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.method.ParameterDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -32,6 +33,11 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.ArrayDeque;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Queue;
+import java.util.Set;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
@@ -58,20 +64,31 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
 
     @Nullable
     private Object getAnnotationValue(MethodDescription instrumentedMethod, AnnotationValueExtractor annotationValueExtractor) {
-        MethodDescription methodDescription = instrumentedMethod;
-        do {
-            for (TypeDescription typeDescription : methodDescription.getDeclaredAnnotations().asTypeList()) {
-                if (named(annotationValueExtractor.annotationClassName()).matches(typeDescription)) {
-                    for (MethodDescription.InDefinedShape annotationMethod : typeDescription.getDeclaredMethods()) {
-                        if (annotationMethod.getName().equals(annotationValueExtractor.method())) {
-                            return methodDescription.getDeclaredAnnotations().ofType(typeDescription).getValue(annotationMethod).resolve();
-                        }
+        Queue<TypeDescription> typesToCheck = new ArrayDeque<>();
+        typesToCheck.add(instrumentedMethod.getDeclaringType().asErasure());
+        Set<TypeDescription> alreadyCheckedTypes = Collections.newSetFromMap(new IdentityHashMap<TypeDescription, Boolean>());
+
+        while (!typesToCheck.isEmpty()) {
+            TypeDescription type = typesToCheck.poll();
+            if (alreadyCheckedTypes.add(type)) {
+                MethodDescription method = findMethodWithSameSignature(type, instrumentedMethod);
+                if (method != null) {
+                    AnnotationValue<?, ?> value = findValueOnMethod(method, annotationValueExtractor);
+                    if (value != null) {
+                        return value.resolve();
                     }
                 }
-            }
 
-            methodDescription = findInstrumentedMethodInSuperClass(methodDescription.getDeclaringType().getSuperClass(), instrumentedMethod);
-        } while (methodDescription != null);
+                TypeDescription.Generic superClass = type.getSuperClass();
+                if (superClass != null) {
+                    typesToCheck.add(superClass.asErasure());
+                }
+                for (TypeDescription.Generic interfaceType : type.getInterfaces()) {
+                    typesToCheck.add(interfaceType.asErasure());
+                }
+            }
+        }
+
         Class<? extends DefaultValueProvider> defaultValueProvider = annotationValueExtractor.defaultValueProvider();
         try {
             return defaultValueProvider.getDeclaredConstructor().newInstance().getDefaultValue();
@@ -89,12 +106,8 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
     }
 
     @Nullable
-    private MethodDescription findInstrumentedMethodInSuperClass(@Nullable TypeDescription.Generic superClass, MethodDescription instrumentedMethod) {
-        if (superClass == null) {
-            return null;
-
-        }
-        for (MethodDescription declaredMethod : superClass.getDeclaredMethods()) {
+    private MethodDescription findMethodWithSameSignature(TypeDescription declaringType, MethodDescription instrumentedMethod) {
+        for (MethodDescription declaredMethod : declaringType.getDeclaredMethods()) {
             if (instrumentedMethod.getInternalName().equals(declaredMethod.getInternalName())
                 && instrumentedMethod.getParameters().asTypeList().asErasures().equals(declaredMethod.getParameters().asTypeList().asErasures())) {
                 return declaredMethod;
@@ -102,6 +115,21 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
         }
         return null;
     }
+
+    @Nullable
+    private static AnnotationValue<?, ?> findValueOnMethod(MethodDescription method, AnnotationValueExtractor valueExtractor) {
+        for (TypeDescription typeDescription : method.getDeclaredAnnotations().asTypeList()) {
+            if (named(valueExtractor.annotationClassName()).matches(typeDescription)) {
+                for (MethodDescription.InDefinedShape annotationMethod : typeDescription.getDeclaredMethods()) {
+                    if (annotationMethod.getName().equals(valueExtractor.method())) {
+                        return method.getDeclaredAnnotations().ofType(typeDescription).getValue(annotationMethod);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
 
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.PARAMETER)
@@ -114,7 +142,8 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
     }
 
     public interface DefaultValueProvider {
-        @Nullable Object getDefaultValue();
+        @Nullable
+        Object getDefaultValue();
     }
 
     public static class NullDefaultValueProvider implements DefaultValueProvider {

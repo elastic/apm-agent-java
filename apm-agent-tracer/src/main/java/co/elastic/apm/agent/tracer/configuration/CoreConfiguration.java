@@ -50,6 +50,8 @@ public interface CoreConfiguration {
 
     TimeDuration getSpanMinDuration();
 
+    boolean isAvoidTouchingExceptions();
+
     boolean isUseServletAttributesForExceptionPropagation();
 
     enum EventType {

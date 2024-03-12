@@ -239,6 +239,10 @@ public abstract class ServletApiAdvice {
                     for (int i = 0; i < size; i++) {
                         String attributeName = requestExceptionAttributes.get(i);
                         Object throwable = adapter.getAttribute(httpServletRequest, attributeName);
+                        // We don't check tracer.getConfig(CoreConfiguration.class).isAvoidTouchingExceptions() here,
+                        // because in that case the corrupt pointer is already stored in the request attributes
+                        // In that case we already lost, because the GC will complain about the broken pointer
+                        // when the request attributes entry is GCed
                         if (throwable instanceof Throwable) {
                             t2 = (Throwable) throwable;
 

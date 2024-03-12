@@ -305,7 +305,7 @@ jobs:
             distribution: 'temurin'
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/workflows/maven-goal
+      - uses: ./.github/workflows/maven-goal-jdk
         with:
           test-java-version: ${{ matrix.version }}
           test-java-distribution: ${{ matrix.distribution }}

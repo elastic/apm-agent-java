@@ -1176,6 +1176,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
     }
 
     @Override
+    public boolean isAvoidTouchingExceptions() {
+        return isRedactExceptions() || !captureExceptionDetails();
+    }
+
+    @Override
     public boolean isUseServletAttributesForExceptionPropagation() {
         return (safeExceptions.get() & 2) == 0;
     }
