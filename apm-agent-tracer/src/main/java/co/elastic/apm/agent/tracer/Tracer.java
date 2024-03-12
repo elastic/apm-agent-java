@@ -107,6 +107,7 @@ public interface Tracer {
     void addShutdownHook(AutoCloseable hook);
 
     void reportMetric(JsonWriter metrics); // TODO: replace with internalized DSL writer that only accepts data.
+
     void flush();
 
     void completeMetaData(String name, String version, String id, String region);
