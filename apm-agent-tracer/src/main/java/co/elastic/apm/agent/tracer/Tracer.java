@@ -28,11 +28,10 @@ import co.elastic.apm.agent.tracer.service.Service;
 import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
-import java.io.Flushable;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public interface Tracer extends Flushable {
+public interface Tracer {
 
     boolean isRunning();
 
@@ -97,11 +96,6 @@ public interface Tracer extends Flushable {
     @Nullable
     Throwable redactExceptionIfRequired(@Nullable Throwable original);
 
-    @Override
-    void flush();
-
-    void completeMetaData(String name, String version, String id, String region);
-
     void removeGauge(String name, Labels.Immutable labels);
 
     void addGauge(String name, Labels.Immutable labels, DoubleSupplier supplier);
@@ -113,4 +107,7 @@ public interface Tracer extends Flushable {
     void addShutdownHook(AutoCloseable hook);
 
     void reportMetric(JsonWriter metrics); // TODO: replace with internalized DSL writer that only accepts data.
+    void flush();
+
+    void completeMetaData(String name, String version, String id, String region);
 }

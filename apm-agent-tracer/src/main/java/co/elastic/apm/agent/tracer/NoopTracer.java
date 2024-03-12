@@ -28,7 +28,6 @@ import co.elastic.apm.agent.tracer.service.Service;
 import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;

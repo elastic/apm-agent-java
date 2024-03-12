@@ -200,4 +200,5 @@ public class GlobalTracer implements Tracer {
     public void reportMetric(JsonWriter metrics) {
         tracer.reportMetric(metrics);
     }
+
 }
