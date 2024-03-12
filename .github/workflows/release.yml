@@ -34,10 +34,12 @@ on:
         type: boolean
         required: true
         default: false
+      dry_run:
+        description: If set, run a dry-run release
+        default: false
+        type: boolean
 
 env:
-  JAVA_VERSION: 17
-  JAVA_DIST: temurin
   TAG_NAME: v${{ inputs.version }}
 
 permissions:
@@ -68,21 +70,21 @@ jobs:
         with:
           ref: ${{ inputs.branch }}
           token: ${{ env.GITHUB_TOKEN }}
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
+      - name: Install JDK and mvn clean
+        uses: ./.github/workflows/maven-goal
         with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
-          cache: 'maven'
+          command: ./mvnw clean
       - name: Prepare changelog for release
-        if: ${{ inputs.update_changelog }}
+        if: ${{ inputs.update_changelog && ! inputs.dry_run }}
         run: |
           java .ci/ReleaseChangelog.java CHANGELOG.asciidoc ${{ inputs.version }}
           git commit -m "Prepare changelog for release ${{ inputs.version }}" CHANGELOG.asciidoc
       - name: Bump version and add git tag
+        if: ${{ ! inputs.dry_run }}
         run: ./mvnw release:prepare -B -DpushChanges=false "-Darguments=-DskipTests -Dmaven.javadoc.skip=true" -DreleaseVersion=${{ inputs.version }}
-      - run: git push --atomic origin ${{ inputs.branch }} ${{ env.TAG_NAME }}
-
+      - name: Push changes
+        if: ${{ ! inputs.dry_run }}
+        run: git push --atomic origin ${{ inputs.branch }} ${{ env.TAG_NAME }}
 
   maven_central_deploy:
     name: "Deploy to Maven Central (Buildkite)"
@@ -103,12 +105,8 @@ jobs:
           pipelineCommit: ${{ env.TAG_NAME }}
           waitFor: true
           printBuildLogs: false
-          # The action fails with .github/actions/buildkite/run.sh: line 24: 3: parameter missing.
-          # Which is an unexpected bug.
-          # Adding a random buildEnvVar to circumvent the behaviour.
           buildEnvVars: |
-            something_something=true
-
+            dry_run=${{ inputs.dry_run || 'false' }}
 
   await_artifact_on_maven_central:
     name: "Wait for artifacts to be available on maven central"
@@ -116,6 +114,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Await artifacts published in maven central
+        if: ${{ ! inputs.dry_run }}
         shell: bash
         timeout-minutes: 120
         run: |
@@ -147,8 +146,11 @@ jobs:
         with:
           ref: ${{ env.TAG_NAME }}
           token: ${{ env.GITHUB_TOKEN }}
-      - run: .ci/release/update_major_branch.sh ${{ inputs.version }}
-      - run: git push -f origin "$(echo '${{ inputs.version }}' | sed -E 's/\..+/.x/')"
+      - name: Update major branch
+        run: .ci/release/update_major_branch.sh ${{ inputs.version }}
+      - name: Push changes
+        if: ${{ ! inputs.dry_run }}
+        run: git push -f origin "$(echo '${{ inputs.version }}' | sed -E 's/\..+/.x/')"
 
   update_cloudfoundry:
     name: "Update Cloudfoundry"
@@ -175,8 +177,9 @@ jobs:
       - name: "Update Cloudfoundry index.yml file"
         shell: bash
         run: .ci/release/update_cloudfoundry.sh ${{ inputs.version }}
-      - run: git push origin ${{ inputs.branch }}
-
+      - name: Push changes
+        if: ${{ ! inputs.dry_run }}
+        run: git push origin ${{ inputs.branch }}
 
   build_and_push_docker_images:
     name: "Build and push docker images"
@@ -199,9 +202,11 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRET_ID }}
       - name: "Build docker image"
         shell: bash
-        run: |
-          ./scripts/docker-release/build_docker.sh
-          ./scripts/docker-release/push_docker.sh
+        run: ./scripts/docker-release/build_docker.sh
+      - name: "Push docker image"
+        if: ${{ ! inputs.dry_run }}
+        shell: bash
+        run: ./scripts/docker-release/push_docker.sh
 
   publish_aws_lambda:
     name: "Publish AWS Lambda"
@@ -218,14 +223,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.TAG_NAME }}
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DIST }}
-          cache: 'maven'
       - name: Build Lambda-layer zip using agent from maven-central
-        run: ./mvnw dependency:purge-local-repository package -pl apm-agent-lambda-layer
+        uses: ./.github/workflows/maven-goal
+        with:
+          command: ./mvnw dependency:purge-local-repository package -pl apm-agent-lambda-layer
       - uses: hashicorp/vault-action@v3.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
@@ -236,6 +237,7 @@ jobs:
             secret/observability-team/ci/service-account/apm-aws-lambda access_key_id | AWS_ACCESS_KEY_ID ;
             secret/observability-team/ci/service-account/apm-aws-lambda secret_access_key | AWS_SECRET_ACCESS_KEY
       - name: Publish
+        if: ${{ ! inputs.dry_run }}
         run: |
           # Convert v1.2.3 to ver-1-2-3
           VERSION=${TAG_NAME/v/ver-}
@@ -243,16 +245,17 @@ jobs:
           
           ELASTIC_LAYER_NAME="elastic-apm-java-${VERSION}" .ci/publish-aws.sh
       - uses: actions/upload-artifact@v4
+        if: ${{ ! inputs.dry_run }}
         with:
           name: arn-file
           path: .ci/.arn-file.md
       - name: Add ARN file to output
+        if: ${{ ! inputs.dry_run }}
         id: arn_output
         run: |
           echo 'arn_content<<ARN_CONTENT_EOF' >> $GITHUB_OUTPUT
           cat .ci/.arn-file.md >> $GITHUB_OUTPUT
           echo 'ARN_CONTENT_EOF' >> $GITHUB_OUTPUT
-
 
   create_github_release:
     name: "Create GitHub Release"
@@ -260,6 +263,7 @@ jobs:
       - publish_aws_lambda
       - update_major_branch
     runs-on: ubuntu-latest
+    if: ${{ ! inputs.dry_run }}
     permissions:
       contents: write
     steps:
@@ -286,10 +290,9 @@ jobs:
             --title="Release ${{ inputs.version }}" \
             --notes="[Release Notes for ${{ inputs.version }}](https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${{ steps.get_dotx_branch.outputs.dotx_branch }}.html#release-notes-${{ inputs.version }})
             ${{ needs.publish_aws_lambda.outputs.arn_content }}"
-          
 
   notify:
-    if: always()
+    if: ${{ always() && ! inputs.dry_run }}
     needs:
       - prepare_release
       - maven_central_deploy

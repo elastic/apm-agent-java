@@ -1006,7 +1006,7 @@ public class ElasticApmTracer implements Tracer {
     @Override
     @Nullable
     public Throwable redactExceptionIfRequired(@Nullable Throwable original) {
-        if (original != null && coreConfiguration.isRedactExceptions() && !(original instanceof RedactedException)) {
+        if (original != null && coreConfiguration.isRedactExceptions()) {
             return new RedactedException();
         }
         return original;

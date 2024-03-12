@@ -603,7 +603,7 @@ class InstrumentationTest {
 
             @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-            public static String onMethodExit(@Advice.Thrown Throwable throwable) {
+            public static String onMethodExit() {
                 throw new RuntimeException("This exception should be suppressed");
             }
         }
