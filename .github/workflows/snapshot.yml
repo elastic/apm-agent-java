@@ -12,6 +12,9 @@ on:
         default: false
         type: boolean
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     name: Deploy
