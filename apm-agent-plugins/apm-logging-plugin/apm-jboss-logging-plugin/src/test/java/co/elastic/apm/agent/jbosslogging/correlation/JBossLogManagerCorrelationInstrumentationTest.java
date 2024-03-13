@@ -20,9 +20,9 @@ package co.elastic.apm.agent.jbosslogging.correlation;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
 import org.jboss.logmanager.ExtHandler;
 import org.jboss.logmanager.ExtLogRecord;
@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 import java.util.Objects;
 
-import static co.elastic.apm.agent.impl.transaction.TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME;
+import static co.elastic.apm.agent.impl.transaction.TraceContextImpl.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class JBossLogManagerCorrelationInstrumentationTest extends AbstractInstrumentationTest {
@@ -48,7 +48,7 @@ public class JBossLogManagerCorrelationInstrumentationTest extends AbstractInstr
     private static final LoggingCorrelationVerifier loggingCorrelationVerifier = new LoggingCorrelationVerifier();
     private static Logger logger;
 
-    private Transaction transaction;
+    private TransactionImpl transaction;
 
     @BeforeAll
     static void initializeLogger() {
@@ -115,14 +115,14 @@ public class JBossLogManagerCorrelationInstrumentationTest extends AbstractInstr
                 String traceParent = record.getMessage();
                 assertThat(traceParent).isNotNull();
                 Map<String, String> textHeaderMap = Map.of(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, traceParent);
-                TraceContext childTraceContext = TraceContext.with64BitId(tracer);
+                TraceContextImpl childTraceContext = TraceContextImpl.with64BitId(tracer);
                 childTraceContext.asChildOf(textHeaderMap, TextHeaderMapAccessor.INSTANCE);
                 System.out.println("childTraceContext = " + childTraceContext);
                 assertThat(childTraceContext.getTraceId().toString()).isEqualTo(traceId.toString());
                 assertThat(childTraceContext.getParentId().toString()).isEqualTo(transactionId.toString());
                 if (shouldContainErrorId) {
                     assertThat(errorId).isNotNull();
-                    ErrorCapture activeError = ErrorCapture.getActive();
+                    ErrorCaptureImpl activeError = ErrorCaptureImpl.getActive();
                     assertThat(activeError).isNotNull();
                     assertThat(activeError.getTraceContext().getId().toString()).isEqualTo(errorId.toString());
                 } else {

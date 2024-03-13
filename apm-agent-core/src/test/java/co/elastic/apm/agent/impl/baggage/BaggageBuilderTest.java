@@ -27,23 +27,23 @@ public class BaggageBuilderTest {
 
     @Test
     public void verifyBaggageReuseOnNoModification() {
-        Baggage base = Baggage.builder()
+        BaggageImpl base = BaggageImpl.builder()
             .put("foo", "bar")
             .build();
 
-        Baggage newlyBuilt = base.toBuilder().build();
+        BaggageImpl newlyBuilt = base.toBuilder().build();
 
         assertThat(newlyBuilt).isSameAs(base);
     }
 
     @Test
     public void verifyBaggageBuilderPreserversOriginalBaggage() {
-        Baggage base = Baggage.builder()
+        BaggageImpl base = BaggageImpl.builder()
             .put("foo", "bar")
             .put("bar", "baz")
             .build();
 
-        Baggage newlyBuilt = base.toBuilder()
+        BaggageImpl newlyBuilt = base.toBuilder()
             .put("foo", "not-bar")
             .build();
 
@@ -57,12 +57,12 @@ public class BaggageBuilderTest {
 
     @Test
     public void testEntryRemoval() {
-        Baggage base = Baggage.builder()
+        BaggageImpl base = BaggageImpl.builder()
             .put("foo", "bar")
             .put("bar", "baz")
             .build();
 
-        Baggage newlyBuilt = base.toBuilder()
+        BaggageImpl newlyBuilt = base.toBuilder()
             .put("foo", null)
             .build();
 
@@ -77,12 +77,12 @@ public class BaggageBuilderTest {
 
     @Test
     public void verifyMetadataPreserved() {
-        Baggage base = Baggage.builder()
+        BaggageImpl base = BaggageImpl.builder()
             .put("foo", "bar", "meta1")
             .put("bar", "baz", "meta2")
             .build();
 
-        Baggage newlyBuilt = base.toBuilder()
+        BaggageImpl newlyBuilt = base.toBuilder()
             .put("foo", "not-bar")
             .put("new", "newval", "new_meta")
             .build();

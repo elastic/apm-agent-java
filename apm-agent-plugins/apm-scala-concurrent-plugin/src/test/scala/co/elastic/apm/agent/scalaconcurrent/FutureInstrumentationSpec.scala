@@ -2,7 +2,7 @@ package co.elastic.apm.agent.scalaconcurrent
 
 import co.elastic.apm.agent.MockReporter
 import co.elastic.apm.agent.bci.ElasticApmAgent
-import co.elastic.apm.agent.configuration.{CoreConfiguration, SpyConfiguration}
+import co.elastic.apm.agent.configuration.{CoreConfigurationImpl, SpyConfiguration}
 import co.elastic.apm.agent.impl.{ElasticApmTracer, ElasticApmTracerBuilder}
 import munit.FunSuite
 import net.bytebuddy.agent.ByteBuddyAgent
@@ -17,12 +17,12 @@ class FutureInstrumentationSpec extends FunSuite {
 
   private var reporter: MockReporter = _
   private var tracer: ElasticApmTracer = _
-  private var coreConfiguration: CoreConfiguration = _
+  private var CoreConfigurationImpl: CoreConfigurationImpl = _
 
   override def beforeEach(context: BeforeEach): Unit = {
     reporter = new MockReporter
     val config: ConfigurationRegistry = SpyConfiguration.createSpyConfig
-    coreConfiguration = config.getConfig(classOf[CoreConfiguration])
+    CoreConfigurationImpl = config.getConfig(classOf[CoreConfigurationImpl])
     tracer = new ElasticApmTracerBuilder().configurationRegistry(config).reporter(reporter).build
     ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install)
     tracer.start(false)

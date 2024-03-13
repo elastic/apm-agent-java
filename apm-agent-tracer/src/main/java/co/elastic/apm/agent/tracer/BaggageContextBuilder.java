@@ -41,5 +41,5 @@ public interface BaggageContextBuilder {
     /**
      * @return the created context with the baggage updates applied.
      */
-    ElasticContext<?> buildContext();
+    TraceState<?> buildContext();
 }

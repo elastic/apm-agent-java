@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.springwebmvc.exception;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.controller_advice.ControllerAdviceController;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.controller_advice.ControllerAdviceRuntimeException;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.controller_advice.ControllerAdviceRuntimeException200;
@@ -56,7 +56,7 @@ public class Spring5ExceptionHandlerInstrumentationWithGlobalAdviceTest extends 
     public void testExceptionCaptureWithGlobalControllerAdvice_IgnoreExceptions() throws Exception {
 
         doReturn(List.of(WildcardMatcher.valueOf("co.elastic.apm.agent.springwebmvc.exception.testapp.controller_advice.ControllerAdviceRuntimeException")))
-            .when(config.getConfig(CoreConfiguration.class)).getIgnoreExceptions();
+            .when(config.getConfig(CoreConfigurationImpl.class)).getIgnoreExceptions();
 
         this.mockMvc.perform(get("/controller-advice/throw-exception"));
 

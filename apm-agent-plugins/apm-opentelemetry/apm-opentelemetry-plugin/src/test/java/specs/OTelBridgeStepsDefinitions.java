@@ -18,12 +18,9 @@
  */
 package specs;
 
-import co.elastic.apm.agent.impl.context.ServiceTarget;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.context.ServiceTargetImpl;
+import co.elastic.apm.agent.impl.transaction.*;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.opentelemetry.global.ElasticOpenTelemetry;
 import co.elastic.apm.agent.opentelemetry.tracing.ElasticOpenTelemetryTest;
 import co.elastic.apm.agent.opentelemetry.tracing.OTelSpan;
@@ -100,7 +97,7 @@ public class OTelBridgeStepsDefinitions {
 
     @Then("Elastic bridged transaction has remote context as parent")
     public void bridgedTransactionWithRemoteContextParent() {
-        TraceContext traceContext = getBridgedTransaction().getTraceContext();
+        TraceContextImpl traceContext = getBridgedTransaction().getTraceContext();
         assertThat(traceContext.isRoot()).isFalse();
         assertThat(traceContext.getParentId().toString()).isEqualTo(REMOTE_PARENT_ID);
         assertThat(traceContext.getTraceId().toString()).isEqualTo(REMOTE_PARENT_TRACE_ID);
@@ -125,7 +122,7 @@ public class OTelBridgeStepsDefinitions {
 
     @Then("Elastic bridged transaction is a root transaction")
     public void bridgedTransactionIsRootTransaction() {
-        TraceContext traceContext = getBridgedTransaction().getTraceContext();
+        TraceContextImpl traceContext = getBridgedTransaction().getTraceContext();
         assertThat(traceContext.isRoot()).isTrue();
     }
 
@@ -146,7 +143,7 @@ public class OTelBridgeStepsDefinitions {
 
         SpanContext otelParentContext = io.opentelemetry.api.trace.Span.fromContext(localParentContext).getSpanContext();
 
-        TraceContext bridgedSpanContext = getBridgedSpan().getTraceContext();
+        TraceContextImpl bridgedSpanContext = getBridgedSpan().getTraceContext();
         assertThat(bridgedSpanContext.getTraceId().toString()).isEqualTo(otelParentContext.getTraceId());
         assertThat(bridgedSpanContext.getParentId().toString()).isEqualTo(otelParentContext.getSpanId());
     }
@@ -157,7 +154,7 @@ public class OTelBridgeStepsDefinitions {
     public void otelSpanIsCreatedWithKind(String kind) {
         // we have to use a parent transaction as we are creating a span
         // the parent transaction is created by another step definition, thus we reuse the existing state
-        Transaction parentTransaction = state.getTransaction();
+        TransactionImpl parentTransaction = state.getTransaction();
 
         Function<String,OTelSpan> createSpanWithKind = k -> {
             SpanBuilder spanBuilder = getOtel().getTracer("")
@@ -262,14 +259,14 @@ public class OTelBridgeStepsDefinitions {
 
     @Then("Elastic bridged {contextType} type is {string}")
     public void bridgeObjectType(String contextType, String expected) {
-        AbstractSpan<?> bridgedObject = getBridgedAbstractSpan();
+        AbstractSpanImpl<?> bridgedObject = getBridgedAbstractSpan();
         String type;
-        if (bridgedObject instanceof Transaction) {
+        if (bridgedObject instanceof TransactionImpl) {
             assertThat(contextType).isEqualTo("transaction");
-            type = ((Transaction) bridgedObject).getType();
+            type = ((TransactionImpl) bridgedObject).getType();
         } else {
             assertThat(contextType).isEqualTo("span");
-            type = ((Span) bridgedObject).getType();
+            type = ((SpanImpl) bridgedObject).getType();
         }
 
         assertThat(type).isEqualTo(expected);
@@ -315,7 +312,7 @@ public class OTelBridgeStepsDefinitions {
 
     @Then("Elastic bridged span service target type is {string} and name is {string}")
     public void bridgedSpanTargetServiceType(String type, String name) {
-        ServiceTarget serviceTarget = getBridgedSpan().getContext().getServiceTarget();
+        ServiceTargetImpl serviceTarget = getBridgedSpan().getContext().getServiceTarget();
         assertThat(serviceTarget).hasType(type);
 
         if (name != null && !name.isEmpty()) {
@@ -337,20 +334,20 @@ public class OTelBridgeStepsDefinitions {
         otelSpan.end();
     }
 
-    private AbstractSpan<?> getBridgedAbstractSpan() {
-        return getBridgedObject(AbstractSpan.class);
+    private AbstractSpanImpl<?> getBridgedAbstractSpan() {
+        return getBridgedObject(AbstractSpanImpl.class);
     }
 
-    private Transaction getBridgedTransaction() {
-        return getBridgedObject(Transaction.class);
+    private TransactionImpl getBridgedTransaction() {
+        return getBridgedObject(TransactionImpl.class);
     }
 
-    private Span getBridgedSpan() {
-        return getBridgedObject(Span.class);
+    private SpanImpl getBridgedSpan() {
+        return getBridgedObject(SpanImpl.class);
     }
 
-    private <T extends AbstractSpan<?>> T getBridgedObject(Class<T> expectedType) {
-        AbstractSpan<?> internalSpan = otelSpan.getInternalSpan();
+    private <T extends AbstractSpanImpl<?>> T getBridgedObject(Class<T> expectedType) {
+        AbstractSpanImpl<?> internalSpan = otelSpan.getInternalSpan();
         assertThat(internalSpan).isInstanceOf(expectedType);
         return expectedType.cast(internalSpan);
     }

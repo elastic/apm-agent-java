@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.context.TransactionContextImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.junit.jupiter.api.Test;
 
@@ -99,7 +99,7 @@ class JakartaAsyncServletTest extends AbstractServletTest {
         assertThat(reporter.getFirstTransaction(500)).isNotNull();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).contains("Servlet").contains("#doGet");
-        final TransactionContext context = reporter.getFirstTransaction().getContext();
+        final TransactionContextImpl context = reporter.getFirstTransaction().getContext();
         assertThat(context.getRequest().getUrl().getPathname()).isEqualTo(path);
         assertThat(context.getResponse().getStatusCode()).isEqualTo(status);
     }
@@ -109,7 +109,7 @@ class JakartaAsyncServletTest extends AbstractServletTest {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             final AsyncContext asyncContext = req.startAsync();
-            final Transaction transaction = tracer.currentTransaction();
+            final TransactionImpl transaction = tracer.currentTransaction();
             asyncContext.start(() -> {
                 try {
                     assertThat(tracer.getActive()).isSameAs(transaction);

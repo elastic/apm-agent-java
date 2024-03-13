@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
+import co.elastic.apm.agent.tracer.TraceState;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,8 +37,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ForkJoinPoolTest extends AbstractInstrumentationTest {
 
     private ForkJoinPool pool;
-    private Transaction transaction;
-    private ElasticContext<?> txWithBaggage;
+    private TransactionImpl transaction;
+    private TraceState<?> txWithBaggage;
 
     @BeforeEach
     void setUp() {
@@ -58,7 +58,7 @@ public class ForkJoinPoolTest extends AbstractInstrumentationTest {
 
     @Test
     void testExecute() throws Exception {
-        final ForkJoinTask<ElasticContext<?>> task = newTask(() -> tracer.currentContext());
+        final ForkJoinTask<TraceState<?>> task = newTask(() -> tracer.currentContext());
         pool.execute(task);
         assertThat(task.get()).isSameAs(txWithBaggage);
     }
@@ -90,7 +90,7 @@ public class ForkJoinPoolTest extends AbstractInstrumentationTest {
     void testParallelStream() {
         assertThat(Stream.of("foo", "bar", "baz")
             .parallel()
-            .<ElasticContext<?>>map(s -> tracer.currentContext())
+            .<TraceState<?>>map(s -> tracer.currentContext())
             .distinct())
             .containsExactly(txWithBaggage);
     }

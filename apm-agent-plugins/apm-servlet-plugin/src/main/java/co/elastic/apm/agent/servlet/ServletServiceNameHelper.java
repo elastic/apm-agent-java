@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.tracer.service.ServiceAwareTracer;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -44,11 +43,6 @@ public class ServletServiceNameHelper {
                                                              @Nullable ServletContext servletContext,
                                                              Tracer tracer) {
 
-        ServiceAwareTracer serviceAwareTracer = tracer.probe(ServiceAwareTracer.class);
-        if (serviceAwareTracer == null) {
-            return;
-        }
-
         if (servletContext == null) {
             return;
         }
@@ -63,7 +57,7 @@ public class ServletServiceNameHelper {
             return;
         }
         ServiceInfo serviceInfo = detectServiceInfo(adapter, servletContext, servletContextClassLoader);
-        serviceAwareTracer.setServiceInfoForClassLoader(servletContextClassLoader, serviceInfo);
+        tracer.setServiceInfoForClassLoader(servletContextClassLoader, serviceInfo);
     }
 
     public static <ServletContext> ServiceInfo detectServiceInfo(ServletContextAdapter<ServletContext> adapter, ServletContext servletContext, ClassLoader servletContextClassLoader) {

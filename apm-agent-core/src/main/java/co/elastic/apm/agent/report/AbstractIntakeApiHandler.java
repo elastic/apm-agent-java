@@ -40,7 +40,7 @@ public class AbstractIntakeApiHandler {
     private static final Logger logger = LoggerFactory.getLogger(AbstractIntakeApiHandler.class);
     private static final Object WAIT_LOCK = new Object();
 
-    protected final ReporterConfiguration reporterConfiguration;
+    protected final ReporterConfigurationImpl reporterConfiguration;
     protected final DslJsonSerializer.Writer payloadSerializer;
     protected final ApmServerClient apmServerClient;
     protected Deflater deflater;
@@ -55,7 +55,7 @@ public class AbstractIntakeApiHandler {
     private volatile boolean healthy = true;
     private long requestStartedNanos;
 
-    protected AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, DslJsonSerializer payloadSerializer, ApmServerClient apmServerClient) {
+    protected AbstractIntakeApiHandler(ReporterConfigurationImpl reporterConfiguration, DslJsonSerializer payloadSerializer, ApmServerClient apmServerClient) {
         this.reporterConfiguration = reporterConfiguration;
         this.payloadSerializer = payloadSerializer.newWriter();
         this.apmServerClient = apmServerClient;

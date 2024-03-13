@@ -20,10 +20,10 @@ package co.elastic.apm.agent.benchmark;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import co.elastic.apm.agent.util.MathUtils;
 import org.ehcache.sizeof.SizeOf;
 
@@ -32,15 +32,15 @@ public class SizeOfSpan {
     public static void main(String[] args) {
         final SizeOf sizeOf = SizeOf.newInstance();
         ElasticApmTracer tracer = new ElasticApmTracerBuilder().buildAndStart();
-        final long sizeOfSpan = sizeOf.deepSizeOf(new Span(tracer));
-        final long sizeOfTransaction = sizeOf.deepSizeOf(new Transaction(tracer));
-        final long sizeOfError = sizeOf.deepSizeOf(new ErrorCapture(tracer));
+        final long sizeOfSpan = sizeOf.deepSizeOf(new SpanImpl(tracer));
+        final long sizeOfTransaction = sizeOf.deepSizeOf(new TransactionImpl(tracer));
+        final long sizeOfError = sizeOf.deepSizeOf(new ErrorCaptureImpl(tracer));
 
         System.out.println("sizeof span: " + sizeOfSpan);
         System.out.println("sizeof transaction: " + sizeOfTransaction);
         System.out.println("sizeof error: " + sizeOfError);
 
-        final int queueSize = MathUtils.getNextPowerOf2(new ReporterConfiguration().getMaxQueueSize());
+        final int queueSize = MathUtils.getNextPowerOf2(new ReporterConfigurationImpl().getMaxQueueSize());
         final long sizeOfObjectPools = queueSize * 2 * sizeOfSpan +
             queueSize * 2 * sizeOfTransaction +
             queueSize * sizeOfError;

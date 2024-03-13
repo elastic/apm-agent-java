@@ -23,7 +23,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
@@ -47,7 +47,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
 
     private static final AtomicBoolean isRegistered = GlobalVariables.get(ReactorInstrumentation.class, "reactor-hook-enabled", new AtomicBoolean(false));
 
-    private static final ReferenceCountedMap<TracedSubscriber<?>, ElasticContext<?>> contextMap = GlobalTracer.get().newReferenceCountedMap();
+    private static final ReferenceCountedMap<TracedSubscriber<?>, TraceState<?>> contextMap = GlobalTracer.get().newReferenceCountedMap();
 
     private static final String HOOK_KEY = "elastic-apm";
 
@@ -57,13 +57,13 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
 
     private final Context context;
 
-    TracedSubscriber(CoreSubscriber<? super T> subscriber, Tracer tracer, ElasticContext<?> context) {
+    TracedSubscriber(CoreSubscriber<? super T> subscriber, Tracer tracer, TraceState<?> context) {
         this.subscriber = subscriber;
         this.tracer = tracer;
         contextMap.put(this, context);
 
         // store our span/transaction into reactor context for later lookup without relying on active tracer state
-        this.context = subscriber.currentContext().put(ElasticContext.class, context);
+        this.context = subscriber.currentContext().put(TraceState.class, context);
     }
 
     @Override
@@ -78,7 +78,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
      */
     @Override
     public void onSubscribe(Subscription s) {
-        ElasticContext<?> context = getContext();
+        TraceState<?> context = getContext();
         boolean hasActivated = doEnter("onSubscribe", context);
         Throwable thrown = null;
         try {
@@ -99,7 +99,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
      */
     @Override
     public void onNext(T next) {
-        ElasticContext<?> context = getContext();
+        TraceState<?> context = getContext();
         boolean hasActivated = doEnter("onNext", context);
         Throwable thrown = null;
         try {
@@ -120,7 +120,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
      */
     @Override
     public void onError(Throwable t) {
-        ElasticContext<?> context = getContext();
+        TraceState<?> context = getContext();
         boolean hasActivated = doEnter("onError", context);
         try {
             subscriber.onError(t);
@@ -135,7 +135,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
      */
     @Override
     public void onComplete() {
-        ElasticContext<?> context = getContext();
+        TraceState<?> context = getContext();
         boolean hasActivated = doEnter("onComplete", context);
         try {
             subscriber.onComplete();
@@ -152,7 +152,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
      * @param context context
      * @return {@literal true} if context has been activated
      */
-    private boolean doEnter(String method, @Nullable ElasticContext<?> context) {
+    private boolean doEnter(String method, @Nullable TraceState<?> context) {
         debugTrace(true, method, context);
 
         if (context == null || tracer.currentContext() == context) {
@@ -171,7 +171,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
      * @param method     method name (only for debugging)
      * @param context    context
      */
-    private void doExit(boolean deactivate, String method, @Nullable ElasticContext<?> context) {
+    private void doExit(boolean deactivate, String method, @Nullable TraceState<?> context) {
         debugTrace(false, method, context);
 
         if (context == null || !deactivate) {
@@ -194,7 +194,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
         contextMap.remove(this);
     }
 
-    private void debugTrace(boolean isEnter, String method, @Nullable ElasticContext<?> context) {
+    private void debugTrace(boolean isEnter, String method, @Nullable TraceState<?> context) {
         if (!log.isTraceEnabled()) {
             return;
         }
@@ -205,7 +205,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
      * @return context associated with {@literal this}.
      */
     @Nullable
-    private ElasticContext<?> getContext() {
+    private TraceState<?> getContext() {
         return contextMap.get(this);
     }
 
@@ -252,11 +252,11 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
                 }
 
                 // use active span/transaction if directly active
-                ElasticContext<?> active = tracer.currentContext();
+                TraceState<?> active = tracer.currentContext();
 
                 // fallback to using context-stored span/transaction if not already active
                 if (active.isEmpty()) {
-                    active = subscriber.currentContext().getOrDefault(ElasticContext.class, null);
+                    active = subscriber.currentContext().getOrDefault(TraceState.class, null);
                 }
 
                 if (active == null || active.isEmpty()) {

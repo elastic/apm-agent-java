@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.sampling;
 
-import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.IdImpl;
 import co.elastic.apm.agent.impl.transaction.TraceState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,7 +58,7 @@ class ProbabilitySamplerTest {
     @Test
     void isSampledEmpiricalTest() {
         int sampledTransactions = 0;
-        Id id = Id.new128BitId();
+        IdImpl id = IdImpl.new128BitId();
         for (int i = 0; i < ITERATIONS; i++) {
             id.setToRandomValue();
             if (sampler.isSampled(id)) {
@@ -71,7 +71,7 @@ class ProbabilitySamplerTest {
     @Test
     void testSamplingUpperBoundary() {
         long upperBound = Long.MAX_VALUE / 2;
-        final Id transactionId = Id.new128BitId();
+        final IdImpl transactionId = IdImpl.new128BitId();
 
         transactionId.fromLongs((long) 0, upperBound - 1);
         assertThat(ProbabilitySampler.of(0.5).isSampled(transactionId)).isTrue();
@@ -86,7 +86,7 @@ class ProbabilitySamplerTest {
     @Test
     void testSamplingLowerBoundary() {
         long lowerBound = -Long.MAX_VALUE / 2;
-        final Id transactionId = Id.new128BitId();
+        final IdImpl transactionId = IdImpl.new128BitId();
 
         transactionId.fromLongs((long) 0, lowerBound + 1);
         assertThat(ProbabilitySampler.of(0.5).isSampled(transactionId)).isTrue();

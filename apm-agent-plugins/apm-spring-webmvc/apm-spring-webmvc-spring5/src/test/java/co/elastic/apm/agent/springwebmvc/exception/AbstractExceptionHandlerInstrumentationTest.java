@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.springwebmvc.exception;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +56,7 @@ public abstract class AbstractExceptionHandlerInstrumentationTest extends Abstra
     protected void assertExceptionCapture(Class exceptionClazz, MockHttpServletResponse response, int statusCode, String responseContent, String exceptionMessageContains, String childSpanNameContains) throws UnsupportedEncodingException {
 
         assertThat(reporter.getTransactions()).hasSize(1);
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         if (childSpanNameContains == null) {
             assertThat(reporter.getSpans()).isEmpty();
         } else {

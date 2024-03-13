@@ -20,9 +20,9 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,10 +50,10 @@ public class DiscardSpanTest {
 
     @Test
     void testContextPropagatingSpansAreNonDiscardable() {
-        Transaction transaction = tracer.startRootTransaction(null);
+        TransactionImpl transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();
         try {
-            Span span = transaction.createSpan().requestDiscarding();
+            SpanImpl span = transaction.createSpan().requestDiscarding();
             try {
                 span.propagateContext(new HashMap<>(), TextHeaderMapAccessor.INSTANCE, null);
                 assertThat(span.isDiscardable()).isFalse();
@@ -71,10 +71,10 @@ public class DiscardSpanTest {
 
     @Test
     void testErrorCapturingMakesSpansNonDiscardable() {
-        Transaction transaction = tracer.startRootTransaction(null);
+        TransactionImpl transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();
         try {
-            Span span = transaction.createSpan();
+            SpanImpl span = transaction.createSpan();
             try {
                 span.requestDiscarding().appendToName("non-discardable").captureException(new Exception());
                 assertThat(span.isDiscardable()).isFalse();
@@ -84,7 +84,7 @@ public class DiscardSpanTest {
         } finally {
             transaction.end();
         }
-        assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly("non-discardable");
+        assertThat(reporter.getSpans().stream().map(SpanImpl::getNameAsString)).containsExactly("non-discardable");
 
         assertThat(transaction.getSpanCount().getTotal()).hasValue(1);
         assertThat(transaction.getSpanCount().getDropped()).hasValue(0);
@@ -93,12 +93,12 @@ public class DiscardSpanTest {
 
     @Test
     void testParentsOfContextPropagatingSpansAreNonDiscardable() {
-        Transaction transaction = tracer.startRootTransaction(null);
+        TransactionImpl transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();
         try {
-            Span parentSpan = transaction.createSpan().requestDiscarding();
+            SpanImpl parentSpan = transaction.createSpan().requestDiscarding();
             try {
-                Span contextPropagatingSpan = parentSpan.createSpan();
+                SpanImpl contextPropagatingSpan = parentSpan.createSpan();
                 try {
                     contextPropagatingSpan.propagateContext(new HashMap<>(), TextHeaderMapAccessor.INSTANCE, null);
                     assertThat(contextPropagatingSpan.isDiscardable()).isFalse();
@@ -120,8 +120,8 @@ public class DiscardSpanTest {
 
     @Test
     void testDiscardSpanLimit() {
-        doReturn(2).when(tracer.getConfigurationRegistry().getConfig(CoreConfiguration.class)).getTransactionMaxSpans();
-        Transaction transaction = tracer.startRootTransaction(null);
+        doReturn(2).when(tracer.getConfigurationRegistry().getConfig(CoreConfigurationImpl.class)).getTransactionMaxSpans();
+        TransactionImpl transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();
         try {
             transaction.createSpan().appendToName("1st").end();
@@ -131,7 +131,7 @@ public class DiscardSpanTest {
         } finally {
             transaction.end();
         }
-        assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly("1st", "2nd");
+        assertThat(reporter.getSpans().stream().map(SpanImpl::getNameAsString)).containsExactly("1st", "2nd");
         assertThat(transaction.getSpanCount().getTotal()).hasValue(4);
         assertThat(transaction.getSpanCount().getDropped()).hasValue(2);
         assertThat(transaction.getSpanCount().getReported()).hasValue(2);
@@ -139,13 +139,13 @@ public class DiscardSpanTest {
 
     @Test
     void testDiscardSpanLimitNesting() {
-        doReturn(2).when(tracer.getConfigurationRegistry().getConfig(CoreConfiguration.class)).getTransactionMaxSpans();
-        Transaction transaction = tracer.startRootTransaction(null);
+        doReturn(2).when(tracer.getConfigurationRegistry().getConfig(CoreConfigurationImpl.class)).getTransactionMaxSpans();
+        TransactionImpl transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();
         try {
-            Span first = transaction.createSpan().appendToName("1st");
+            SpanImpl first = transaction.createSpan().appendToName("1st");
             try {
-                Span second = first.createSpan().appendToName("2nd");
+                SpanImpl second = first.createSpan().appendToName("2nd");
                 try {
                     second.createSpan().appendToName("exceeds limit").end();
                 } finally {
@@ -157,7 +157,7 @@ public class DiscardSpanTest {
         } finally {
             transaction.end();
         }
-        assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly("2nd", "1st");
+        assertThat(reporter.getSpans().stream().map(SpanImpl::getNameAsString)).containsExactly("2nd", "1st");
         assertThat(transaction.getSpanCount().getTotal()).hasValue(3);
         assertThat(transaction.getSpanCount().getDropped()).hasValue(1);
         assertThat(transaction.getSpanCount().getReported()).hasValue(2);
@@ -165,15 +165,15 @@ public class DiscardSpanTest {
 
     @Test
     void testDiscardSpanLimitNesting2() {
-        doReturn(2).when(tracer.getConfigurationRegistry().getConfig(CoreConfiguration.class)).getTransactionMaxSpans();
-        Transaction transaction = tracer.startRootTransaction(null);
+        doReturn(2).when(tracer.getConfigurationRegistry().getConfig(CoreConfigurationImpl.class)).getTransactionMaxSpans();
+        TransactionImpl transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();
         try {
-            Span first = transaction.createSpan().appendToName("1st");
+            SpanImpl first = transaction.createSpan().appendToName("1st");
             try {
-                Span second = first.createSpan().requestDiscarding().appendToName("discarded 1");
+                SpanImpl second = first.createSpan().requestDiscarding().appendToName("discarded 1");
                 try {
-                    Span exceedsLimit1 = second.createSpan().requestDiscarding().appendToName("exceeds limit 1");
+                    SpanImpl exceedsLimit1 = second.createSpan().requestDiscarding().appendToName("exceeds limit 1");
                     try {
                         assertThat(exceedsLimit1.isSampled()).isFalse();
                     } finally {
@@ -191,7 +191,7 @@ public class DiscardSpanTest {
         } finally {
             transaction.end();
         }
-        assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly("1st", "2nd");
+        assertThat(reporter.getSpans().stream().map(SpanImpl::getNameAsString)).containsExactly("1st", "2nd");
         assertThat(transaction.getSpanCount().getTotal()).hasValue(5);
         assertThat(transaction.getSpanCount().getDropped()).hasValue(3);
         assertThat(transaction.getSpanCount().getReported()).hasValue(2);

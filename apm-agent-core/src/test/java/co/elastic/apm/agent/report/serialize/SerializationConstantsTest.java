@@ -20,7 +20,7 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -49,7 +49,7 @@ class SerializationConstantsTest {
     void overrideDefaults() {
 
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
-        CoreConfiguration configuration = config.getConfig(CoreConfiguration.class);
+        CoreConfigurationImpl configuration = config.getConfig(CoreConfigurationImpl.class);
         doReturn(42).when(configuration).getLongFieldMaxLength();
 
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup(config);

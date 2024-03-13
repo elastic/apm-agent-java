@@ -23,14 +23,13 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.configuration.ServerlessConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.Faas;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.impl.transaction.TraceState;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.tracer.Outcome;
@@ -85,8 +84,8 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
         HEADER_2_KEY, HEADER_2_VALUE,
         CONTENT_TYPE_HEADER, TEXT_CONTENT_TYPE,
         "Host", API_GATEWAY_HOST,
-        TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, TRACEPARENT_EXAMPLE,
-        TraceContext.TRACESTATE_HEADER_NAME, TRACESTATE_EXAMPLE
+        TraceContextImpl.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, TRACEPARENT_EXAMPLE,
+        TraceContextImpl.TRACESTATE_HEADER_NAME, TRACESTATE_EXAMPLE
     );
     protected static final String PATH = "/some/url/path";
 
@@ -117,7 +116,7 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
     protected static final String S3_BUCKET_ARN = "arn:aws:s3:::" + S3_BUCKET_NAME;
 
     @Nullable
-    static ServerlessConfiguration serverlessConfiguration;
+    static ServerlessConfigurationImpl serverlessConfiguration;
 
     @Nullable
     protected TestContext context;
@@ -131,7 +130,7 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
 
     public AbstractLambdaTest() {
         jsonSerializer = new DslJsonSerializer(
-            mock(StacktraceConfiguration.class),
+            mock(StacktraceConfigurationImpl.class),
             mock(ApmServerClient.class),
             MetaDataMock.create()
         ).newWriter();
@@ -153,7 +152,7 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
 
     static synchronized void initAllButInstrumentation() {
         config = SpyConfiguration.createSpyConfig();
-        serverlessConfiguration = config.getConfig(ServerlessConfiguration.class);
+        serverlessConfiguration = config.getConfig(ServerlessConfigurationImpl.class);
         doReturn(true).when(serverlessConfiguration).runsOnAwsLambda();
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup(config);
         tracer = mockInstrumentationSetup.getTracer();
@@ -184,7 +183,7 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
         assertThat(transaction.getResult()).isEqualTo("failure");
         assertThat(reporter.getPartialTransactions()).containsExactly(transaction);
@@ -197,18 +196,18 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
             return;
         }
         getFunction().handleRequest(input, context);
-        Transaction transaction = reporter.getFirstTransaction();
-        TraceContext traceContext = transaction.getTraceContext();
+        TransactionImpl transaction = reporter.getFirstTransaction();
+        TraceContextImpl traceContext = transaction.getTraceContext();
         verifyDistributedTracing(traceContext);
     }
 
-    protected void verifyDistributedTracing(TraceContext traceContext) {
+    protected void verifyDistributedTracing(TraceContextImpl traceContext) {
         assertThat(traceContext.getTraceId().toString()).isEqualTo(TRACE_ID_EXAMPLE);
         assertThat(traceContext.getParentId().toString()).isEqualTo(PARENT_ID_EXAMPLE);
         assertThat(traceContext.getTraceState().getSampleRate()).isEqualTo(0.77d);
     }
 
-    protected void printTransactionJson(Transaction transaction) {
+    protected void printTransactionJson(TransactionImpl transaction) {
         String transactionJson = jsonSerializer.toJsonString(transaction);
         try {
             System.out.println(objectMapper.readTree(transactionJson).toPrettyString());

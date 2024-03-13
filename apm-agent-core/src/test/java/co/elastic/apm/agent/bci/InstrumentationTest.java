@@ -20,10 +20,10 @@ package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.bytebuddy.Instrumented;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
@@ -79,14 +79,14 @@ class InstrumentationTest {
 
     private ElasticApmTracer tracer;
     private ConfigurationRegistry configurationRegistry;
-    private CoreConfiguration coreConfig;
+    private CoreConfigurationImpl coreConfig;
     private String privateString;
 
     @BeforeEach
     void setup() {
         tracer = MockTracer.createRealTracer();
         configurationRegistry = tracer.getConfigurationRegistry();
-        coreConfig = configurationRegistry.getConfig(CoreConfiguration.class);
+        coreConfig = configurationRegistry.getConfig(CoreConfigurationImpl.class);
     }
 
     @AfterEach
@@ -476,7 +476,7 @@ class InstrumentationTest {
     }
 
     @Nullable
-    public AbstractSpan<?> getSpanFromThreadLocal() {
+    public AbstractSpanImpl<?> getSpanFromThreadLocal() {
         return null;
     }
 
@@ -989,7 +989,7 @@ class InstrumentationTest {
 
         public static class AdviceClass {
             @Advice.OnMethodEnter(inline = false)
-            public static Span onEnter() {
+            public static SpanImpl onEnter() {
                 return null;
             }
         }
@@ -1020,7 +1020,7 @@ class InstrumentationTest {
             }
 
             @Advice.OnMethodExit(inline = false)
-            private static void onExit(@Advice.Enter Span span) {
+            private static void onExit(@Advice.Enter SpanImpl span) {
             }
         }
 

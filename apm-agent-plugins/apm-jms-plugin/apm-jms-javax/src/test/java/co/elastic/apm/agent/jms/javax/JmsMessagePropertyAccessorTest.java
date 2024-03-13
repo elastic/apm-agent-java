@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.jms.javax;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -56,11 +56,11 @@ class JmsMessagePropertyAccessorTest extends AbstractInstrumentationTest {
 
         doReturn(null).when(msg).getStringProperty(any(String.class));
 
-        JmsMessagePropertyAccessor.instance().setHeader(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, "header-value", msg);
+        JmsMessagePropertyAccessor.instance().setHeader(TraceContextImpl.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, "header-value", msg);
 
         verify(msg).setStringProperty(headerName.capture(), headerValue.capture());
 
-        assertThat(headerName.getValue()).isEqualTo(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME.replace("-", "_"));
+        assertThat(headerName.getValue()).isEqualTo(TraceContextImpl.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME.replace("-", "_"));
         assertThat(headerValue.getValue()).isEqualTo("header-value");
     }
 

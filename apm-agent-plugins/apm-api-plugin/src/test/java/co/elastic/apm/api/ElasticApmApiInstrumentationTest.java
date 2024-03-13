@@ -19,11 +19,13 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractApiTest;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -99,14 +101,14 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
 
     @Test
     void testCreateChildSpanOfCurrentTransaction() {
-        final co.elastic.apm.agent.impl.transaction.Transaction transaction = startTestRootTransaction();
+        final TransactionImpl transaction = startTestRootTransaction();
         final Span span = ElasticApm.currentSpan().startSpan("db", "mysql", "query");
         span.setName("span");
         span.end();
         transaction.deactivate().end();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
-        co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
+        SpanImpl internalSpan = reporter.getFirstSpan();
         assertThat(internalSpan.getTraceContext().getParentId()).isEqualTo(reporter.getFirstTransaction().getTraceContext().getId());
         assertThat(internalSpan.getType()).isEqualTo("db");
         assertThat(internalSpan.getSubtype()).isEqualTo("mysql");
@@ -115,7 +117,7 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
 
     @Test
     void testLegacySpanCreationAndTyping() {
-        final co.elastic.apm.agent.impl.transaction.Transaction transaction = startTestRootTransaction();
+        final TransactionImpl transaction = startTestRootTransaction();
         final Span span = ElasticApm.currentSpan().createSpan();
         span.setName("span");
         span.setType("db.mysql.query.etc");
@@ -123,7 +125,7 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
         transaction.deactivate().end();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
-        co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
+        SpanImpl internalSpan = reporter.getFirstSpan();
         assertThat(internalSpan.getTraceContext().getParentId()).isEqualTo(reporter.getFirstTransaction().getTraceContext().getId());
         assertThat(internalSpan.getType()).isEqualTo("db");
         assertThat(internalSpan.getSubtype()).isEqualTo("mysql");
@@ -134,7 +136,7 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
     @Test
     void testAutomaticAndManualTransactions() {
 
-        final co.elastic.apm.agent.impl.transaction.Transaction transaction = startTestRootTransaction();
+        final TransactionImpl transaction = startTestRootTransaction();
         final Transaction manualTransaction = ElasticApm.startTransaction();
         manualTransaction.setName("manual transaction");
         manualTransaction.setType("request");
@@ -146,13 +148,13 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
     @Test
     void testGetId_distributedTracingEnabled() {
 
-        co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startRootTransaction(null).withType(Transaction.TYPE_REQUEST);
+        TransactionImpl transaction = tracer.startRootTransaction(null).withType(Transaction.TYPE_REQUEST);
         try (co.elastic.apm.agent.tracer.Scope scope = transaction.activateInScope()) {
             assertThat(ElasticApm.currentTransaction().getId()).isEqualTo(transaction.getTraceContext().getId().toString());
             assertThat(ElasticApm.currentTransaction().getTraceId()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
             assertThat(ElasticApm.currentSpan().getId()).isEqualTo(transaction.getTraceContext().getId().toString());
             assertThat(ElasticApm.currentSpan().getTraceId()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
-            co.elastic.apm.agent.impl.transaction.Span span = transaction.createSpan().withType("db").withSubtype("mysql").withName("SELECT");
+            SpanImpl span = transaction.createSpan().withType("db").withSubtype("mysql").withName("SELECT");
             try (co.elastic.apm.agent.tracer.Scope spanScope = span.activateInScope()) {
                 assertThat(ElasticApm.currentSpan().getId()).isEqualTo(span.getTraceContext().getId().toString());
                 assertThat(ElasticApm.currentSpan().getTraceId()).isEqualTo(span.getTraceContext().getTraceId().toString());
@@ -262,7 +264,7 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
 
     @Test
     void testTransactionWithRemoteParentFunction() {
-        AbstractSpan<?> parent = tracer.startRootTransaction(null);
+        AbstractSpanImpl<?> parent = tracer.startRootTransaction(null);
         assertThat(parent).isNotNull();
         Map<String, String> headerMap = new HashMap<>();
         parent.propagateContext(headerMap, TextHeaderMapAccessor.INSTANCE, null);
@@ -273,7 +275,7 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
 
     @Test
     void testTransactionWithRemoteParentFunctions() {
-        AbstractSpan<?> parent = tracer.startRootTransaction(null);
+        AbstractSpanImpl<?> parent = tracer.startRootTransaction(null);
         assertThat(parent).isNotNull();
         Map<String, String> headerMap = new HashMap<>();
         parent.propagateContext(headerMap, TextHeaderMapAccessor.INSTANCE, null);
@@ -284,7 +286,7 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
 
     @Test
     void testTransactionWithRemoteParentHeaders() {
-        AbstractSpan<?> parent = tracer.startRootTransaction(null);
+        AbstractSpanImpl<?> parent = tracer.startRootTransaction(null);
         assertThat(parent).isNotNull();
         Map<String, String> headerMap = new HashMap<>();
         parent.propagateContext(headerMap, TextHeaderMapAccessor.INSTANCE, null);
@@ -359,7 +361,7 @@ class ElasticApmApiInstrumentationTest extends AbstractApiTest {
     }
 
     private void checkTransactionServiceInfo(ServiceInfo expected){
-        TraceContext traceContext = reporter.getFirstTransaction().getTraceContext();
+        TraceContextImpl traceContext = reporter.getFirstTransaction().getTraceContext();
         assertThat(traceContext.getServiceName()).isEqualTo(expected.getServiceName());
         assertThat(traceContext.getServiceVersion()).isEqualTo(expected.getServiceVersion());
     }

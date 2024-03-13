@@ -21,5 +21,6 @@ package co.elastic.apm.agent.tracer.configuration;
 import java.util.Collection;
 
 public interface StacktraceConfiguration {
+
     Collection<String> getApplicationPackages();
 }

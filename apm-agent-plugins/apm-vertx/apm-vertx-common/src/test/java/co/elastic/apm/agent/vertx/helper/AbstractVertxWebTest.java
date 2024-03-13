@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.vertx.helper;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.impl.context.TransactionContextImpl;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxTestContext;
 import okhttp3.Response;
@@ -49,7 +49,7 @@ public abstract class AbstractVertxWebTest extends AbstractInstrumentationTest {
     protected static final String CALL_ON_CONTEXT = "on-context";
 
     protected WebConfiguration webConfiguration;
-    protected CoreConfiguration coreConfiguration;
+    protected CoreConfigurationImpl coreConfiguration;
 
     @BeforeAll
     static void setCache() throws IOException {
@@ -60,7 +60,7 @@ public abstract class AbstractVertxWebTest extends AbstractInstrumentationTest {
     @BeforeEach
     void setUp() {
         webConfiguration = tracer.getConfig(WebConfiguration.class);
-        coreConfiguration = tracer.getConfig(CoreConfiguration.class);
+        coreConfiguration = tracer.getConfig(CoreConfigurationImpl.class);
     }
 
     @Nullable
@@ -124,11 +124,11 @@ public abstract class AbstractVertxWebTest extends AbstractInstrumentationTest {
         reporter.getFirstTransaction(500);
         assertThat(reporter.getTransactions()
             .stream()
-            .map(AbstractSpan::getNameAsString)
+            .map(AbstractSpanImpl::getNameAsString)
             .distinct())
             .describedAs("transaction service name should be inherited from test class name")
             .containsExactly(expectedTransactionName);
-        TransactionContext context = reporter.getFirstTransaction().getContext();
+        TransactionContextImpl context = reporter.getFirstTransaction().getContext();
         assertThat(context.getResponse().getStatusCode()).isEqualTo(expectedStatusCode);
         assertThat(context.getRequest().getUrl().getPathname()).isEqualTo(path);
     }

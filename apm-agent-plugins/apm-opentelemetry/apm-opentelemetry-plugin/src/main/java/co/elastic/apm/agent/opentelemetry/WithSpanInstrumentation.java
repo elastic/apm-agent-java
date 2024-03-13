@@ -19,14 +19,15 @@
 package co.elastic.apm.agent.opentelemetry;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.opentelemetry.tracing.OTelHelper;
 import co.elastic.apm.agent.sdk.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -46,7 +47,6 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
@@ -64,11 +64,11 @@ public class WithSpanInstrumentation extends AbstractOpenTelemetryInstrumentatio
     protected static final Tracer tracer = GlobalTracer.get();
 
     private final CoreConfiguration coreConfig;
-    private final StacktraceConfiguration stacktraceConfig;
+    private final StacktraceConfigurationImpl stacktraceConfig;
 
     public WithSpanInstrumentation(ElasticApmTracer tracer) {
         coreConfig = tracer.getConfig(CoreConfiguration.class);
-        stacktraceConfig = tracer.getConfig(StacktraceConfiguration.class);
+        stacktraceConfig = tracer.getConfig(StacktraceConfigurationImpl.class);
     }
 
     @Override
@@ -113,7 +113,7 @@ public class WithSpanInstrumentation extends AbstractOpenTelemetryInstrumentatio
             @Advice.Origin Method method,
             @Advice.AllArguments Object[] methodArguments) {
 
-            ElasticContext<?> activeContext = tracer.currentContext();
+            TraceState<?> activeContext = tracer.currentContext();
             final AbstractSpan<?> parentSpan = activeContext.getSpan();
             if (parentSpan == null) {
                 logger.debug("Not creating span for {} because there is no currently active span.", signature);
@@ -153,7 +153,7 @@ public class WithSpanInstrumentation extends AbstractOpenTelemetryInstrumentatio
             span.withName(spanName.isEmpty() ? signature : spanName)
                 .activate();
 
-            ((co.elastic.apm.agent.impl.transaction.Span) span).withOtelKind(OTelHelper.map(otelKind));
+            ((SpanImpl) span).withOtelKind(OTelHelper.map(otelKind));
 
             return span;
         }

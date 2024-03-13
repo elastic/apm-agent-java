@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.benchmark;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.runner.RunnerException;
@@ -36,7 +36,7 @@ public class LettuceNotActiveBenchmark extends LettuceBenchmark {
     @Threads(4)
     @Benchmark
     public String benchmarkLettuce() {
-        Transaction transaction = tracer.startRootTransaction(null).withName("transaction").activate();
+        TransactionImpl transaction = tracer.startRootTransaction(null).withName("transaction").activate();
         try {
             return sync.get("foo");
         } finally {

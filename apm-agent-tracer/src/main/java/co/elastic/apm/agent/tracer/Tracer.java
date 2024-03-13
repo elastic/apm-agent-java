@@ -25,6 +25,7 @@ import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.tracer.service.Service;
+import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
@@ -48,7 +49,7 @@ public interface Tracer {
 
     Set<String> getTraceHeaderNames();
 
-    ElasticContext<?> currentContext();
+    TraceState<?> currentContext();
 
     @Nullable
     AbstractSpan<?> getActive();
@@ -75,13 +76,13 @@ public interface Tracer {
      * available), then it will be started as the root transaction of the trace.
      *
      * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
-     * @param textHeadersGetter     provides the trace context headers required in order to create a child transaction
+     * @param headerGetter          provides the trace context headers required in order to create a child transaction
      * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
      *                              Used to determine the service name.
      * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
      */
     @Nullable
-    <T, C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader);
+    <T, C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headerGetter, @Nullable ClassLoader initiatingClassLoader);
 
     @Nullable
     ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader);
@@ -111,4 +112,22 @@ public interface Tracer {
     void flush();
 
     void completeMetaData(String name, String version, String id, String region);
+
+    @Nullable
+    ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader initiatingClassLoader);
+
+    /**
+     * Sets the service name and version for all {@link co.elastic.apm.agent.tracer.Transaction}s,
+     * {@link co.elastic.apm.agent.tracer.Span}s and {@link co.elastic.apm.agent.tracer.ErrorCapture}s which are created
+     * by the service which corresponds to the provided {@link ClassLoader}.
+     * <p>
+     * The main use case is being able to differentiate between multiple services deployed to the same application server.
+     * </p>
+     *
+     * @param classLoader the class loader which corresponds to a particular service
+     * @param serviceInfo the service name and version for this class loader
+     */
+    void setServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo);
+
+    ServiceInfo autoDetectedServiceInfo();
 }

@@ -20,7 +20,7 @@ package co.elastic.apm.agent.httpclient.v5.helper;
 
 
 import co.elastic.apm.agent.httpclient.common.ApacheHttpClientAsyncHelper;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -73,7 +73,7 @@ public class ApacheHttpClient5AsyncHelper implements ApacheHttpClientAsyncHelper
     }
 
     public AsyncRequestProducerWrapper wrapRequestProducer(AsyncRequestProducer requestProducer, @Nullable Span<?> span,
-                                                           @Nullable ElasticContext<?> toPropagate) {
+                                                           @Nullable TraceState<?> toPropagate) {
         return requestProducerWrapperObjectPool.createInstance().with(requestProducer, span, toPropagate);
     }
 
@@ -87,7 +87,7 @@ public class ApacheHttpClient5AsyncHelper implements ApacheHttpClientAsyncHelper
         cb.failedWithoutExecution(t);
     }
 
-    public RequestChannelWrapper wrapRequestChannel(RequestChannel requestChannel, @Nullable Span<?> span, @Nullable ElasticContext<?> toPropagate) {
+    public RequestChannelWrapper wrapRequestChannel(RequestChannel requestChannel, @Nullable Span<?> span, @Nullable TraceState<?> toPropagate) {
         return requestChannelWrapperObjectPool.createInstance().with(requestChannel, span, toPropagate);
     }
 

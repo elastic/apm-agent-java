@@ -21,9 +21,9 @@ package co.elastic.apm.agent.grpc;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcApp;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -58,7 +58,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
 
     @AfterEach
     void afterEach() throws Exception {
-        Transaction transaction = tracer.currentTransaction();
+        TransactionImpl transaction = tracer.currentTransaction();
 
         if (transaction != null) {
             transaction.deactivate()
@@ -77,16 +77,16 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
 
         endRootTransaction();
 
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction).isNotNull();
 
-        Span span = reporter.getFirstSpan();
+        SpanImpl span = reporter.getFirstSpan();
         checkSpan(span);
         assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
     }
 
-    private void checkSpan(Span span) {
+    private void checkSpan(SpanImpl span) {
         assertThat(span.getType()).isEqualTo("external");
         assertThat(span.getSubtype()).isEqualTo("grpc");
         assertThat(span.getNameAsString()).isEqualTo("helloworld.Hello/SayHello");
@@ -136,7 +136,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
             assertThat(msg.cancel(true)).isTrue();
 
 
-            Span span = reporter.getFirstSpan(200);
+            SpanImpl span = reporter.getFirstSpan(200);
 
             // we should have a span created and properly terminated, even if the server
             // thread is still waiting for proper termination.
@@ -224,7 +224,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
 
         // even if there is an exception thrown, we should still have a span created.
 
-        Span span = getFirstSpan();
+        SpanImpl span = getFirstSpan();
         checkSpan(span);
 
         Outcome outcome = span.getOutcome();
@@ -239,7 +239,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
     }
 
     protected void endRootTransaction() {
-        Transaction transaction = tracer.currentTransaction();
+        TransactionImpl transaction = tracer.currentTransaction();
         assertThat(transaction).isNotNull();
 
         transaction
@@ -252,7 +252,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         return getClass().getPackageName().contains(".v1_6_1");
     }
 
-    private static Span getFirstSpan() {
+    private static SpanImpl getFirstSpan() {
         return reporter.getFirstSpan(1000);
     }
 

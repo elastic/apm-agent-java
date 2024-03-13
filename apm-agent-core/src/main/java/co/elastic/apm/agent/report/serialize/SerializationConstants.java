@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.tracer.metrics.DslJsonUtil;
 
 import javax.annotation.Nullable;
@@ -43,7 +43,7 @@ public class SerializationConstants {
         this.maxLongStringValueLength = maxLongStringValueLength;
     }
 
-    public static void init(CoreConfiguration coreConfiguration) {
+    public static void init(CoreConfigurationImpl coreConfiguration) {
         INSTANCE = new SerializationConstants(coreConfiguration.getLongFieldMaxLength());
     }
 

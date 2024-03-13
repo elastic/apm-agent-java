@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.httpclient.v5;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.tracer.Outcome;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
@@ -112,7 +112,7 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
         String url = getBaseUrl().replaceAll("http", "ottp") + "/";
         performGet(url);
 
-        Span firstSpan = reporter.getFirstSpan(500);
+        SpanImpl firstSpan = reporter.getFirstSpan(500);
         assertThat(firstSpan).isNotNull();
         assertThat(firstSpan.getOutcome()).isEqualTo(Outcome.FAILURE);
         assertThat(firstSpan.getNameAsString()).isEqualTo("GET localhost");
@@ -133,7 +133,7 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
             reporter.resetChecks();
         }
 
-        Span firstSpan = reporter.getFirstSpan(500);
+        SpanImpl firstSpan = reporter.getFirstSpan(500);
         assertThat(firstSpan).isNotNull();
         assertThat(firstSpan.getOutcome()).isEqualTo(Outcome.FAILURE);
         assertThat(firstSpan.getNameAsString()).isEqualTo("GET ");

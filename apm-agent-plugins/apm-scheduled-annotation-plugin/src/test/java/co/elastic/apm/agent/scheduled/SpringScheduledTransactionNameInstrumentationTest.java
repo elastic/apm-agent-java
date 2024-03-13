@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.scheduled;
 
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.annotation.Schedules;
@@ -34,7 +34,7 @@ public class SpringScheduledTransactionNameInstrumentationTest extends AbstractS
         springCounter.scheduled();
         springCounter.scheduled();
 
-        List<Transaction> transactions = checkTransactions(springCounter, 2, "SpringCounter#scheduled");
+        List<TransactionImpl> transactions = checkTransactions(springCounter, 2, "SpringCounter#scheduled");
         checkOutcome(transactions, Outcome.SUCCESS);
     }
 
@@ -44,7 +44,7 @@ public class SpringScheduledTransactionNameInstrumentationTest extends AbstractS
         springCounter.scheduledJava8Repeatable();
         springCounter.scheduledJava8Repeatable();
 
-        List<Transaction> transactions = checkTransactions(springCounter, 2, "SpringCounter#scheduledJava8Repeatable");
+        List<TransactionImpl> transactions = checkTransactions(springCounter, 2, "SpringCounter#scheduledJava8Repeatable");
         checkOutcome(transactions, Outcome.SUCCESS);
     }
 
@@ -54,7 +54,7 @@ public class SpringScheduledTransactionNameInstrumentationTest extends AbstractS
         springCounter.scheduledJava7Repeatable();
         springCounter.scheduledJava7Repeatable();
 
-        List<Transaction> transactions = checkTransactions(springCounter, 2, "SpringCounter#scheduledJava7Repeatable");
+        List<TransactionImpl> transactions = checkTransactions(springCounter, 2, "SpringCounter#scheduledJava7Repeatable");
         checkOutcome(transactions, Outcome.SUCCESS);
     }
 

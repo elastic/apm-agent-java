@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.jsf;
 
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Transaction;
 import net.bytebuddy.description.method.MethodDescription;
@@ -46,7 +46,7 @@ public abstract class AbstractJsfLifecycleExecuteInstrumentation extends Abstrac
 
         @Nullable
         protected static Object createAndActivateSpan(boolean withExternalContext, @Nullable String requestServletPath, @Nullable String requestPathInfo) {
-            final ElasticContext<?> activeContext = tracer.currentContext();
+            final TraceState<?> activeContext = tracer.currentContext();
             if (activeContext.getSpan() instanceof Span<?>) {
                 Span<?> parentSpan = (Span<?>) activeContext.getSpan();
                 if (SPAN_SUBTYPE.equals(parentSpan.getSubtype()) && SPAN_ACTION.equals(parentSpan.getAction())) {

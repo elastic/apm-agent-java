@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
-import co.elastic.apm.agent.impl.transaction.Span;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -133,21 +133,21 @@ class JakartaServletInstrumentationTest extends AbstractServletTest {
 
     @Test
     void testForward_DispatchSpansDisabled() throws Exception {
-        doReturn(false).when(getConfig().getConfig(CoreConfiguration.class)).isInstrumentationEnabled(eq(Constants.SERVLET_API_DISPATCH));
+        doReturn(false).when(getConfig().getConfig(CoreConfigurationImpl.class)).isInstrumentationEnabled(eq(Constants.SERVLET_API_DISPATCH));
         callServlet(1, "/forward");
         assertThat(reporter.getSpans()).isEmpty();
     }
 
     @Test
     void testInclude_DispatchSpansDisabled() throws Exception {
-        doReturn(false).when(getConfig().getConfig(CoreConfiguration.class)).isInstrumentationEnabled(eq(Constants.SERVLET_API_DISPATCH));
+        doReturn(false).when(getConfig().getConfig(CoreConfigurationImpl.class)).isInstrumentationEnabled(eq(Constants.SERVLET_API_DISPATCH));
         callServlet(1, "/include");
         assertThat(reporter.getSpans()).isEmpty();
     }
 
     @Test
     void testClientError_DispatchSpansDisabled() throws Exception {
-        doReturn(false).when(getConfig().getConfig(CoreConfiguration.class)).isInstrumentationEnabled(eq(Constants.SERVLET_API_DISPATCH));
+        doReturn(false).when(getConfig().getConfig(CoreConfigurationImpl.class)).isInstrumentationEnabled(eq(Constants.SERVLET_API_DISPATCH));
         callServlet(1, "/unknown", "Hello Error!", 404);
         assertThat(reporter.getSpans()).isEmpty();
         // TODO - ERROR NOT CAPTURED
@@ -174,7 +174,7 @@ class JakartaServletInstrumentationTest extends AbstractServletTest {
     void testForwardWithPathInfo_verifyThatSpanNameContainsOriginalServletPathAndPathInfo() throws Exception {
         callServlet(1, "/forward/path", "Hello World! /forward-path-info", 200);
         assertThat(reporter.getSpans().size()).isEqualTo(1);
-        Span span = reporter.getFirstSpan();
+        SpanImpl span = reporter.getFirstSpan();
         assertThat(span.getType()).isEqualTo(SPAN_TYPE);
         assertThat(span.getSubtype()).isEqualTo(SPAN_SUBTYPE);
         assertThat(span.getAction()).isEqualTo(FORWARD.getAction());
@@ -185,7 +185,7 @@ class JakartaServletInstrumentationTest extends AbstractServletTest {
     void testIncludeWithPathInfo_verifyThatSpanNameContainsOriginalServletPathAndPathInfo() throws Exception {
         callServlet(1, "/include/path", "Hello World! /include-path-info", 200);
         assertThat(reporter.getSpans().size()).isEqualTo(1);
-        Span span = reporter.getFirstSpan();
+        SpanImpl span = reporter.getFirstSpan();
         assertThat(span.getType()).isEqualTo(SPAN_TYPE);
         assertThat(span.getSubtype()).isEqualTo(SPAN_SUBTYPE);
         assertThat(span.getAction()).isEqualTo(INCLUDE.getAction());

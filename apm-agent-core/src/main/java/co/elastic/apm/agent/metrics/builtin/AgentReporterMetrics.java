@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
 import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricCollector;
 import co.elastic.apm.agent.metrics.MetricRegistry;
@@ -77,7 +77,7 @@ public class AgentReporterMetrics implements ReporterMonitor {
     private final AtomicDouble maxQueueSize = new AtomicDouble(0.0);
     private final AtomicDouble minQueueSize = new AtomicDouble(0.0);
 
-    public AgentReporterMetrics(final MetricRegistry registry, MetricsConfiguration configuration) {
+    public AgentReporterMetrics(final MetricRegistry registry, MetricsConfigurationImpl configuration) {
         this.metricRegistry = registry;
         boolean allEnabled = configuration.isReporterHealthMetricsEnabled();
         this.totalEventsMetricEnabled = allEnabled && !registry.isDisabled(TOTAL_EVENTS_METRIC);

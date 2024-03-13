@@ -21,8 +21,8 @@ package co.elastic.apm.agent.loginstr.correlation;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Scope;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,7 +53,7 @@ public class CorrelationIdMapAdapterTest {
 
     @Test
     void testTransactionContext() {
-        Transaction transaction = tracer.startRootTransaction(null);
+        TransactionImpl transaction = tracer.startRootTransaction(null);
         try (Scope scope = transaction.activateInScope()) {
             assertThat(CorrelationIdMapAdapter.get()).containsOnlyKeys("trace.id", "transaction.id");
         } finally {
@@ -64,8 +64,8 @@ public class CorrelationIdMapAdapterTest {
 
     @Test
     void testSpanContext() {
-        Transaction transaction = tracer.startRootTransaction(null);
-        Span span = transaction.createSpan();
+        TransactionImpl transaction = tracer.startRootTransaction(null);
+        SpanImpl span = transaction.createSpan();
         try (Scope scope = span.activateInScope()) {
             assertThat(CorrelationIdMapAdapter.get()).containsOnlyKeys("trace.id", "transaction.id");
         } finally {

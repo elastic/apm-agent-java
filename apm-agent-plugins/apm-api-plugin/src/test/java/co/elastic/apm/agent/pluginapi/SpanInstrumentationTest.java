@@ -20,7 +20,9 @@ package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.AbstractApiTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.objectpool.impl.BookkeeperObjectPool;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Scope;
@@ -71,7 +73,7 @@ class SpanInstrumentationTest extends AbstractApiTest {
         Span span = transaction.createSpan();
         span.setType("foo.bar.baz");
         endSpan(span);
-        co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
+        SpanImpl internalSpan = reporter.getFirstSpan();
         assertThat(internalSpan.getType()).isEqualTo("foo");
         assertThat(internalSpan.getSubtype()).isEqualTo("bar");
         assertThat(internalSpan.getAction()).isEqualTo("baz");
@@ -83,7 +85,7 @@ class SpanInstrumentationTest extends AbstractApiTest {
 
         Span span = transaction.startSpan("foo", "bar", "baz");
         endSpan(span);
-        co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
+        SpanImpl internalSpan = reporter.getFirstSpan();
         assertThat(internalSpan.getType()).isEqualTo("foo");
         assertThat(internalSpan.getSubtype()).isEqualTo("bar");
         assertThat(internalSpan.getAction()).isEqualTo("baz");
@@ -96,7 +98,7 @@ class SpanInstrumentationTest extends AbstractApiTest {
 
         Span span = transaction.startExitSpan("foo", "bar", "baz");
         endSpan(span);
-        co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
+        SpanImpl internalSpan = reporter.getFirstSpan();
         // relying on auto-inference of context.destination.service.resource
         assertThat(internalSpan.getContext().getServiceTarget()).hasDestinationResource("bar");
     }
@@ -109,7 +111,7 @@ class SpanInstrumentationTest extends AbstractApiTest {
         Span parent = transaction.startSpan("foo", "bar", "baz");
         Span span = parent.startExitSpan("foo", "bar", "baz");
         endSpan(span);
-        co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
+        SpanImpl internalSpan = reporter.getFirstSpan();
         // relying on auto-inference of context.destination.service.resource
         assertThat(internalSpan.getContext().getServiceTarget()).hasDestinationResource("bar");
     }
@@ -128,7 +130,7 @@ class SpanInstrumentationTest extends AbstractApiTest {
         assertThat(reporter.getSpans()).isEmpty();
 
         endSpan(parent);
-        co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
+        SpanImpl internalSpan = reporter.getFirstSpan();
         // relying on auto-inference of context.destination.service.resource
         assertThat(internalSpan.getContext().getServiceTarget()).hasDestinationResource("bar");
     }
@@ -206,12 +208,12 @@ class SpanInstrumentationTest extends AbstractApiTest {
         span.end();
         transaction.end();
 
-        BookkeeperObjectPool<co.elastic.apm.agent.impl.transaction.Span> spanPool = objectPoolFactory.getSpanPool();
+        BookkeeperObjectPool<SpanImpl> spanPool = objectPoolFactory.getSpanPool();
         assertThat(
             spanPool.getRecyclablesToReturn().stream().filter(span1 -> span1.getReferenceCount() > 1).collect(Collectors.toList()))
             .hasSize(spanPool.getRequestedObjectCount());
 
-        BookkeeperObjectPool<co.elastic.apm.agent.impl.transaction.Transaction> transactionPool = objectPoolFactory.getTransactionPool();
+        BookkeeperObjectPool<TransactionImpl> transactionPool = objectPoolFactory.getTransactionPool();
         assertThat(
             transactionPool.getRecyclablesToReturn().stream().filter(transaction1 -> transaction1.getReferenceCount() > 1).collect(Collectors.toList()))
             .hasSize(transactionPool.getRequestedObjectCount());
@@ -245,7 +247,7 @@ class SpanInstrumentationTest extends AbstractApiTest {
             final Map<String, String> tracingHeaders = new HashMap<>();
             span.injectTraceHeaders(tracingHeaders::put);
             span.injectTraceHeaders(null);
-            assertThat(TraceContext.containsTraceContextTextHeaders(tracingHeaders, TextHeaderMapAccessor.INSTANCE)).isTrue();
+            assertThat(TraceContextImpl.containsTraceContextTextHeaders(tracingHeaders, TextHeaderMapAccessor.INSTANCE)).isTrue();
         }
     }
 }

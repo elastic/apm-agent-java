@@ -27,7 +27,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
-public abstract class ObjectPoolTest<T extends ObjectPool<TestRecyclable>> {
+public abstract class ObjectPoolTest<T extends ObservableObjectPool<TestRecyclable>> {
 
     private static final int MAX_SIZE = 16;
     private T objectPool;

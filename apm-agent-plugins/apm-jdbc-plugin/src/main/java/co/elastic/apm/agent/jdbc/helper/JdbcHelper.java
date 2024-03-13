@@ -22,7 +22,7 @@ import co.elastic.apm.agent.sdk.internal.db.signature.Scanner;
 import co.elastic.apm.agent.sdk.internal.db.signature.SignatureParser;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.jdbc.JdbcFilter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -82,7 +82,7 @@ public class JdbcHelper {
 
 
     @Nullable
-    public Span<?> createJdbcSpan(@Nullable String sql, Object statement, ElasticContext<?> activeContext, boolean preparedStatement) {
+    public Span<?> createJdbcSpan(@Nullable String sql, Object statement, TraceState<?> activeContext, boolean preparedStatement) {
         if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(activeContext.getSpan())) {
             return null;
         }

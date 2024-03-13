@@ -46,7 +46,7 @@ class ExactMatchCompressionStrategyTest extends AbstractCompressionStrategyTest 
             startExitSpan(t).withName("Another Name").end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -60,7 +60,7 @@ class ExactMatchCompressionStrategyTest extends AbstractCompressionStrategyTest 
             startExitSpan(t).withName("Another Name").end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -72,7 +72,7 @@ class ExactMatchCompressionStrategyTest extends AbstractCompressionStrategyTest 
     }
 
     @Override
-    protected String getCompositeSpanName(Span span) {
+    protected String getCompositeSpanName(SpanImpl span) {
         return getSpanName();
     }
 }

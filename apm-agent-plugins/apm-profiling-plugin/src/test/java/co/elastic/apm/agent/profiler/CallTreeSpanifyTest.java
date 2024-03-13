@@ -22,9 +22,9 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.objectpool.NoopObjectPool;
 import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
 import org.junit.jupiter.api.AfterEach;
@@ -76,25 +76,25 @@ class CallTreeSpanifyTest {
         assertThat(callTree.spanify()).isEqualTo(4);
         assertThat(reporter.getSpans()).hasSize(4);
         assertThat(reporter.getSpans().stream()
-            .map(Span::getNameAsString)
+            .map(SpanImpl::getNameAsString)
         ).containsExactly("CallTreeTest#d", "CallTreeTest#b", "CallTreeTest#a", "CallTreeTest#e");
 
-        Span d = reporter.getSpans().get(0);
+        SpanImpl d = reporter.getSpans().get(0);
         assertThat(d.getNameAsString()).isEqualTo("CallTreeTest#d");
         assertThat(d.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(10));
         assertThat(d.getStackFrames().stream().map(StackFrame::getMethodName)).containsExactly("c");
 
-        Span b = reporter.getSpans().get(1);
+        SpanImpl b = reporter.getSpans().get(1);
         assertThat(b.getNameAsString()).isEqualTo("CallTreeTest#b");
         assertThat(b.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(20));
         assertThat(b.getStackFrames()).isEmpty();
 
-        Span a = reporter.getSpans().get(2);
+        SpanImpl a = reporter.getSpans().get(2);
         assertThat(a.getNameAsString()).isEqualTo("CallTreeTest#a");
         assertThat(a.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(30));
         assertThat(a.getStackFrames()).isEmpty();
 
-        Span e = reporter.getSpans().get(3);
+        SpanImpl e = reporter.getSpans().get(3);
         assertThat(e.getNameAsString()).isEqualTo("CallTreeTest#e");
         assertThat(e.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(10));
         assertThat(e.getStackFrames()).isEmpty();
@@ -102,13 +102,13 @@ class CallTreeSpanifyTest {
 
     @Test
     void testCallTreeWithActiveSpan() {
-        TraceContext rootContext = CallTreeTest.rootTraceContext(tracer);
+        TraceContextImpl rootContext = CallTreeTest.rootTraceContext(tracer);
         CallTree.Root root = CallTree.createRoot(NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer)), rootContext.serialize(), rootContext.getServiceName(), rootContext.getServiceVersion(),0);
         NoopObjectPool<CallTree> callTreePool = NoopObjectPool.ofRecyclable(CallTree::new);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0, callTreePool, 0);
 
-        TraceContext spanContext = TraceContext.with64BitId(tracer);
-        TraceContext.fromParentContext().asChildOf(spanContext, rootContext);
+        TraceContextImpl spanContext = TraceContextImpl.with64BitId(tracer);
+        TraceContextImpl.fromParentContext().asChildOf(spanContext, rootContext);
 
         root.onActivation(spanContext.serialize(), TimeUnit.MILLISECONDS.toNanos(5));
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10), callTreePool, 0);

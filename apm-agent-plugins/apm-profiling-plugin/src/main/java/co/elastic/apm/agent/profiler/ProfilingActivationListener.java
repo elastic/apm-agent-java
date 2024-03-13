@@ -20,7 +20,7 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import co.elastic.apm.agent.sdk.internal.ThreadUtil;
 
 import java.util.Objects;
@@ -40,17 +40,17 @@ public class ProfilingActivationListener implements ActivationListener {
     }
 
     @Override
-    public void beforeActivate(AbstractSpan<?> context) {
+    public void beforeActivate(AbstractSpanImpl<?> context) {
         if (context.isSampled() && !ThreadUtil.isVirtual(Thread.currentThread())) {
-            AbstractSpan<?> active = tracer.getActive();
+            AbstractSpanImpl<?> active = tracer.getActive();
             profiler.onActivation(context.getTraceContext(), active != null ? active.getTraceContext() : null);
         }
     }
 
     @Override
-    public void afterDeactivate(AbstractSpan<?> deactivatedContext) {
+    public void afterDeactivate(AbstractSpanImpl<?> deactivatedContext) {
         if (deactivatedContext.isSampled() && !ThreadUtil.isVirtual(Thread.currentThread())) {
-            AbstractSpan<?> active = tracer.getActive();
+            AbstractSpanImpl<?> active = tracer.getActive();
             profiler.onDeactivation(deactivatedContext.getTraceContext(), active != null ? active.getTraceContext() : null);
         }
     }

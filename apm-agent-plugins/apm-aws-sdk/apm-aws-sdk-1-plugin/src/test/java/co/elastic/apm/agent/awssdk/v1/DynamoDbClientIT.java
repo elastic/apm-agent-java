@@ -18,9 +18,8 @@
  */
 package co.elastic.apm.agent.awssdk.v1;
 
-import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
@@ -55,7 +54,7 @@ public class DynamoDbClientIT extends AbstractAws1ClientIT {
     private AmazonDynamoDB dynamoDB;
     private AmazonDynamoDBAsync dynamoDBAsync;
 
-    private final Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
+    private final Consumer<SpanImpl> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
 
 
     @BeforeEach
@@ -72,7 +71,7 @@ public class DynamoDbClientIT extends AbstractAws1ClientIT {
 
     @Test
     public void testDynamoDbClient() {
-        Transaction transaction = startTestRootTransaction("s3-test");
+        TransactionImpl transaction = startTestRootTransaction("s3-test");
 
         newTest(() -> dynamoDB.createTable(new CreateTableRequest().withTableName(TABLE_NAME)
             .withAttributeDefinitions(List.of(
@@ -142,7 +141,7 @@ public class DynamoDbClientIT extends AbstractAws1ClientIT {
 
     @Test
     public void testDynamoDbClientAsync() {
-        Transaction transaction = startTestRootTransaction("s3-test");
+        TransactionImpl transaction = startTestRootTransaction("s3-test");
 
         newTest(() -> dynamoDBAsync.createTableAsync(new CreateTableRequest().withTableName(TABLE_NAME)
             .withAttributeDefinitions(List.of(

@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.report.processor;
 
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 /**
- * A processor is executed right before a event (a {@link Transaction} or {@link ErrorCapture}) gets reported.
+ * A processor is executed right before a event (a {@link TransactionImpl} or {@link ErrorCaptureImpl}) gets reported.
  * <p>
  * You can use this for example to sanitize certain information.
  * </p>
@@ -34,16 +34,16 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 public interface Processor {
 
     /**
-     * This method is executed before the provided {@link Transaction} is reported.
+     * This method is executed before the provided {@link TransactionImpl} is reported.
      *
      * @param transaction The transaction to process.
      */
-    void processBeforeReport(Transaction transaction);
+    void processBeforeReport(TransactionImpl transaction);
 
     /**
-     * This method is executed before the provided {@link ErrorCapture} is reported.
+     * This method is executed before the provided {@link ErrorCaptureImpl} is reported.
      *
      * @param error The error to process.
      */
-    void processBeforeReport(ErrorCapture error);
+    void processBeforeReport(ErrorCaptureImpl error);
 }

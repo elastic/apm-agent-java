@@ -22,7 +22,7 @@ import co.elastic.apm.agent.awssdk.common.AbstractSQSInstrumentationHelper;
 import co.elastic.apm.agent.awssdk.v1.helper.sqs.wrapper.ReceiveMessageResultWrapper;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -58,7 +58,7 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<Request<?>, Exec
     }
 
 
-    public void propagateContext(ElasticContext<?> toPropagate, AmazonWebServiceRequest request) {
+    public void propagateContext(TraceState<?> toPropagate, AmazonWebServiceRequest request) {
         if (request instanceof SendMessageRequest) {
             SendMessageRequest sendMessageRequest = (SendMessageRequest) request;
             toPropagate.propagateContext(sendMessageRequest.getMessageAttributes(), this, null);

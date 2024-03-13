@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.agent.impl.context.ServiceTarget;
-import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.impl.context.ServiceTargetImpl;
+import co.elastic.apm.agent.objectpool.ObservableObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.util.CharSequenceUtils;
@@ -59,7 +59,7 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
             cachedHashCode = Integer.MIN_VALUE;
         }
 
-        public StatsKey init(ServiceTarget serviceTarget, Outcome outcome) {
+        public StatsKey init(ServiceTargetImpl serviceTarget, Outcome outcome) {
             resetState();
             // we have to use a copy as argument is mutable will be recycled
             this.serviceType = Objects.requireNonNull(serviceTarget.getType());
@@ -148,14 +148,14 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
         }
     }
 
-    private static final ObjectPool<StatsKey> statsKeyObjectPool = QueueBasedObjectPool.<StatsKey>ofRecyclable(new MpmcAtomicArrayQueue<StatsKey>(512), false, new Allocator<StatsKey>() {
+    private static final ObservableObjectPool<StatsKey> statsKeyObjectPool = QueueBasedObjectPool.<StatsKey>ofRecyclable(new MpmcAtomicArrayQueue<StatsKey>(512), false, new Allocator<StatsKey>() {
         @Override
         public StatsKey createInstance() {
             return new StatsKey();
         }
     });
 
-    private static final ObjectPool<Stats> statsObjectPool = QueueBasedObjectPool.<Stats>ofRecyclable(new MpmcAtomicArrayQueue<Stats>(512), false, new Allocator<Stats>() {
+    private static final ObservableObjectPool<Stats> statsObjectPool = QueueBasedObjectPool.<Stats>ofRecyclable(new MpmcAtomicArrayQueue<Stats>(512), false, new Allocator<Stats>() {
         @Override
         public Stats createInstance() {
             return new Stats();
@@ -167,12 +167,12 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
     // only used during testing
     @Nullable
     Stats getStats(String serviceType, @Nullable String serviceName, Outcome outcome){
-        ServiceTarget st = new ServiceTarget().withType(serviceType).withName(serviceName);
+        ServiceTargetImpl st = new ServiceTargetImpl().withType(serviceType).withName(serviceName);
         return statsMap.get(new StatsKey().init(st, outcome));
     }
 
-    public void captureDroppedSpan(Span span) {
-        ServiceTarget serviceTarget = span.getContext().getServiceTarget();
+    public void captureDroppedSpan(SpanImpl span) {
+        ServiceTargetImpl serviceTarget = span.getContext().getServiceTarget();
         if (!span.isExit() || !serviceTarget.hasContent() ) {
             return;
         }
@@ -187,7 +187,7 @@ public class DroppedSpanStats implements Iterable<Map.Entry<DroppedSpanStats.Sta
         stats.sum.addAndGet(span.getDuration());
     }
 
-    private Stats getOrCreateStats(ServiceTarget serviceTarget, Outcome outcome) {
+    private Stats getOrCreateStats(ServiceTargetImpl serviceTarget, Outcome outcome) {
         StatsKey statsKey = statsKeyObjectPool.createInstance().init(serviceTarget, outcome);
         Stats stats = statsMap.get(statsKey);
         if (stats != null || statsMap.size() > 127) {

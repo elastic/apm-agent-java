@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.objectpool;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.objectpool.impl.BookkeeperObjectPool;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
@@ -36,17 +36,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Extension of default pool factory that keeps track of all pools and thus allows to query their state while testing
  */
-public class TestObjectPoolFactory extends ObjectPoolFactory {
+public class TestObjectPoolFactory extends ObjectPoolFactoryImpl {
 
     private final List<BookkeeperObjectPool<?>> createdPools = new ArrayList<BookkeeperObjectPool<?>>();
-    private BookkeeperObjectPool<Transaction> transactionPool;
-    private BookkeeperObjectPool<Span> spanPool;
-    private BookkeeperObjectPool<ErrorCapture> errorPool;
-    private BookkeeperObjectPool<TraceContext> spanLinksPool;
+    private BookkeeperObjectPool<TransactionImpl> transactionPool;
+    private BookkeeperObjectPool<SpanImpl> spanPool;
+    private BookkeeperObjectPool<ErrorCaptureImpl> errorPool;
+    private BookkeeperObjectPool<TraceContextImpl> spanLinksPool;
 
     @Override
-    public <T extends Recyclable> ObjectPool<T> createRecyclableObjectPool(int maxCapacity, Allocator<T> allocator) {
-        ObjectPool<T> pool = super.createRecyclableObjectPool(maxCapacity, allocator);
+    public <T extends Recyclable> ObservableObjectPool<T> createRecyclableObjectPool(int maxCapacity, Allocator<T> allocator) {
+        ObservableObjectPool<T> pool = super.createRecyclableObjectPool(maxCapacity, allocator);
         BookkeeperObjectPool<T> wrappedPool = new BookkeeperObjectPool<>(pool);
         createdPools.add(wrappedPool);
         return wrappedPool;
@@ -95,42 +95,42 @@ public class TestObjectPoolFactory extends ObjectPoolFactory {
     }
 
     @Override
-    public ObjectPool<Transaction> createTransactionPool(int maxCapacity, ElasticApmTracer tracer) {
-        transactionPool = (BookkeeperObjectPool<Transaction>) super.createTransactionPool(maxCapacity, tracer);
+    public ObservableObjectPool<TransactionImpl> createTransactionPool(int maxCapacity, ElasticApmTracer tracer) {
+        transactionPool = (BookkeeperObjectPool<TransactionImpl>) super.createTransactionPool(maxCapacity, tracer);
         return transactionPool;
     }
 
     @Override
-    public ObjectPool<Span> createSpanPool(int maxCapacity, ElasticApmTracer tracer) {
-        spanPool = (BookkeeperObjectPool<Span>) super.createSpanPool(maxCapacity, tracer);
+    public ObservableObjectPool<SpanImpl> createSpanPool(int maxCapacity, ElasticApmTracer tracer) {
+        spanPool = (BookkeeperObjectPool<SpanImpl>) super.createSpanPool(maxCapacity, tracer);
         return spanPool;
     }
 
     @Override
-    public ObjectPool<ErrorCapture> createErrorPool(int maxCapacity, ElasticApmTracer tracer) {
-        errorPool = (BookkeeperObjectPool<ErrorCapture>) super.createErrorPool(maxCapacity, tracer);
+    public ObservableObjectPool<ErrorCaptureImpl> createErrorPool(int maxCapacity, ElasticApmTracer tracer) {
+        errorPool = (BookkeeperObjectPool<ErrorCaptureImpl>) super.createErrorPool(maxCapacity, tracer);
         return errorPool;
     }
 
     @Override
-    public ObjectPool<TraceContext> createSpanLinkPool(int maxCapacity, ElasticApmTracer tracer) {
-        spanLinksPool = (BookkeeperObjectPool<TraceContext>) super.createSpanLinkPool(maxCapacity, tracer);
+    public ObservableObjectPool<TraceContextImpl> createSpanLinkPool(int maxCapacity, ElasticApmTracer tracer) {
+        spanLinksPool = (BookkeeperObjectPool<TraceContextImpl>) super.createSpanLinkPool(maxCapacity, tracer);
         return spanLinksPool;
     }
 
-    public BookkeeperObjectPool<Transaction> getTransactionPool() {
+    public BookkeeperObjectPool<TransactionImpl> getTransactionPool() {
         return transactionPool;
     }
 
-    public BookkeeperObjectPool<Span> getSpanPool() {
+    public BookkeeperObjectPool<SpanImpl> getSpanPool() {
         return spanPool;
     }
 
-    public BookkeeperObjectPool<ErrorCapture> getErrorPool() {
+    public BookkeeperObjectPool<ErrorCaptureImpl> getErrorPool() {
         return errorPool;
     }
 
-    public BookkeeperObjectPool<TraceContext> getSpanLinksPool() {
+    public BookkeeperObjectPool<TraceContextImpl> getSpanLinksPool() {
         return spanLinksPool;
     }
 }

@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.processor.Processor;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,12 +30,12 @@ public class TestProcessor implements Processor {
     private static AtomicInteger errorCounter = new AtomicInteger();
 
     @Override
-    public void processBeforeReport(Transaction transaction) {
+    public void processBeforeReport(TransactionImpl transaction) {
         transactionCounter.incrementAndGet();
     }
 
     @Override
-    public void processBeforeReport(ErrorCapture error) {
+    public void processBeforeReport(ErrorCaptureImpl error) {
         errorCounter.incrementAndGet();
     }
 

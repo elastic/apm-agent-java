@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -54,7 +54,7 @@ class ProcessHelper {
         return inTracingContext.get() == Boolean.TRUE;
     }
 
-    static void startProcess(ElasticContext<?> activeContext, Process process, List<String> command) {
+    static void startProcess(TraceState<?> activeContext, Process process, List<String> command) {
         INSTANCE.doStartProcess(activeContext, process, command.get(0));
     }
 
@@ -73,7 +73,7 @@ class ProcessHelper {
      * @param process       started process
      * @param processName   process name
      */
-    void doStartProcess(ElasticContext<?> activeContext, @Nonnull Process process, @Nonnull String processName) {
+    void doStartProcess(TraceState<?> activeContext, @Nonnull Process process, @Nonnull String processName) {
         if (inFlightSpans.contains(process)) {
             return;
         }
