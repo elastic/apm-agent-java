@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.springwebmvc.exception;
 
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_handler.ExceptionHandlerController;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_handler.ExceptionHandlerRuntimeException;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_handler.ExceptionHandlerRuntimeException200;
@@ -51,7 +51,7 @@ public class Spring5ExceptionHandlerInstrumentationWithExceptionHandlerTest exte
     @Test
     public void testExceptionCapture_IgnoreException() throws Exception {
         doReturn(List.of(WildcardMatcher.valueOf("co.elastic.apm.agent.springwebmvc.exception.testapp.exception_handler.ExceptionHandlerRuntimeException")))
-            .when(config.getConfig(CoreConfiguration.class)).getIgnoreExceptions();
+            .when(config.getConfig(CoreConfigurationImpl.class)).getIgnoreExceptions();
 
         this.mockMvc.perform(get("/exception-handler/throw-exception"));
 

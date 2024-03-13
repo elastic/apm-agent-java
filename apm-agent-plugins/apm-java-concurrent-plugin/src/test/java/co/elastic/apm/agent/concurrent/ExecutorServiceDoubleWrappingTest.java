@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,7 +36,7 @@ public class ExecutorServiceDoubleWrappingTest extends AbstractInstrumentationTe
     private static final Object TEST_OBJECT = new Object();
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private Transaction transaction;
+    private TransactionImpl transaction;
 
     @Before
     public void setUp() {
@@ -66,7 +66,7 @@ public class ExecutorServiceDoubleWrappingTest extends AbstractInstrumentationTe
     public void testWrappingTransactionSubmitRunnableWithResultTwice() throws InterruptedException, ExecutionException {
         Future<?> future = executor.submit(this::createAsyncSpan, TEST_OBJECT);
         assertThat(future.get()).isEqualTo(TEST_OBJECT);
-        Span span = reporter.getFirstSpan(500);
+        SpanImpl span = reporter.getFirstSpan(500);
         assertThat(span.getNameAsString()).isEqualTo("Async");
         assertThat(span.getTraceContext().getParentId()).isEqualTo(transaction.getTraceContext().getId());
     }
@@ -78,7 +78,7 @@ public class ExecutorServiceDoubleWrappingTest extends AbstractInstrumentationTe
             return TEST_OBJECT;
         });
         assertThat(future.get()).isEqualTo(TEST_OBJECT);
-        Span span = reporter.getFirstSpan(500);
+        SpanImpl span = reporter.getFirstSpan(500);
         assertThat(span.getNameAsString()).isEqualTo("Async");
         assertThat(span.getTraceContext().getParentId()).isEqualTo(transaction.getTraceContext().getId());
     }

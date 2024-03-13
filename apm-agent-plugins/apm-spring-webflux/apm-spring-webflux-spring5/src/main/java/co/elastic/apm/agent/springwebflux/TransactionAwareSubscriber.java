@@ -20,7 +20,7 @@ package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
@@ -72,7 +72,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
 
         // store transaction into subscriber context it can be looked-up by reactor when the transaction
         // is not already active in current thread.
-        this.context = subscriber.currentContext().put(ElasticContext.class, transaction);
+        this.context = subscriber.currentContext().put(TraceState.class, transaction);
     }
 
     @Override

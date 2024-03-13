@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractRefCountedContext<T extends AbstractRefCountedContext<T>> extends ElasticContext<T> implements Recyclable {
+public abstract class AbstractRefCountedContext<T extends AbstractRefCountedContext<T>> extends TraceStateImpl<T> implements Recyclable {
     private static final Logger logger = LoggerFactory.getLogger(AbstractRefCountedContext.class);
 
     private final AtomicInteger references = new AtomicInteger();

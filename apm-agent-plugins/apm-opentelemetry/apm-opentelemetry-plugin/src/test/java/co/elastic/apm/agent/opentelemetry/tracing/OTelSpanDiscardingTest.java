@@ -18,7 +18,8 @@
  */
 package co.elastic.apm.agent.opentelemetry.tracing;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
@@ -41,7 +42,7 @@ public class OTelSpanDiscardingTest extends AbstractOpenTelemetryTest {
 
     @Before
     public void before() {
-        doReturn(TimeDuration.of("100ms")).when(config.getConfig(CoreConfiguration.class)).getSpanMinDuration();
+        doReturn(TimeDuration.of("100ms")).when(config.getConfig(CoreConfigurationImpl.class)).getSpanMinDuration();
     }
 
     @Test
@@ -90,7 +91,7 @@ public class OTelSpanDiscardingTest extends AbstractOpenTelemetryTest {
         }
         transaction.end();
         assertThat(reporter.getTransactions()).hasSize(1);
-        List<co.elastic.apm.agent.impl.transaction.Span> spans = reporter.getSpans();
+        List<SpanImpl> spans = reporter.getSpans();
         switch (scenario) {
             case DISCARD:
             case DISCARD_SET_EXPLICITLY:

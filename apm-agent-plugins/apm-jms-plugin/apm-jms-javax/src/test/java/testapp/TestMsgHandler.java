@@ -19,9 +19,9 @@
 package testapp;
 
 
-import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import javax.jms.Message;
 import javax.jms.MessageListener;
@@ -30,14 +30,14 @@ import java.util.concurrent.atomic.AtomicReference;
 // won't be instrumented by default as it does not fit naming conventions that we rely on by default
 public class TestMsgHandler implements MessageListener {
 
-    private final AtomicReference<Transaction> transaction;
+    private final AtomicReference<TransactionImpl> transaction;
 
-    public TestMsgHandler(AtomicReference<Transaction> transaction) {
+    public TestMsgHandler(AtomicReference<TransactionImpl> transaction) {
         this.transaction = transaction;
     }
 
     @Override
     public void onMessage(Message message) {
-        transaction.set(GlobalTracer.get().require(Tracer.class).currentTransaction());
+        transaction.set(GlobalTracer.get().require(ElasticApmTracer.class).currentTransaction());
     }
 }

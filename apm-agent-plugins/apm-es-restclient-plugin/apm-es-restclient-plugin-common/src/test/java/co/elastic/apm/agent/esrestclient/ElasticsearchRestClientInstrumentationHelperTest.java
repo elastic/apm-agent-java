@@ -20,9 +20,9 @@ package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.impl.context.Db;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.context.DbImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionTest;
 import co.elastic.apm.agent.testutils.assertions.SpanAssert;
 import org.apache.http.HttpHost;
@@ -37,9 +37,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.ELASTICSEARCH;
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
@@ -52,7 +50,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
 
     private final ElasticsearchRestClientInstrumentationHelper helper = ElasticsearchRestClientInstrumentationHelper.get();
 
-    private Transaction transaction;
+    private TransactionImpl transaction;
 
     @BeforeEach
     void before() {
@@ -66,7 +64,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
 
     @Test
     void testCreateSpan() {
-        Span span = (Span) helper.createClientSpan("GET", "/_test", null, true);
+        SpanImpl span = (SpanImpl) helper.createClientSpan("GET", "/_test", null, true);
         assertThat(span).isNotNull();
 
         assertThat(tracer.getActive()).isEqualTo(span);
@@ -91,7 +89,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
 
     @Test
     void testCreateSpanWithClusterName() {
-        Span span = (Span) helper.createClientSpan("GET", "/_test", null, true);
+        SpanImpl span = (SpanImpl) helper.createClientSpan("GET", "/_test", null, true);
         assertThat(span).isNotNull();
 
         assertThat(tracer.getActive()).isEqualTo(span);
@@ -131,7 +129,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
     @Test
     void testNonSampledSpan() {
         TransactionTest.setRecorded(false, transaction);
-        Span esSpan = (Span) helper.createClientSpan("SEARCH", "/test", null, true);
+        SpanImpl esSpan = (SpanImpl) helper.createClientSpan("SEARCH", "/test", null, true);
         assertThat(esSpan).isNotNull();
         try {
             assertThat(esSpan.isSampled()).isFalse();
@@ -160,7 +158,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
             assertThat(config.getConfig(ElasticsearchConfiguration.class).getCaptureBodyUrls()).hasSizeGreaterThan(5);
         }
 
-        Span span = (Span) helper.createClientSpan("GET", "/_test",
+        SpanImpl span = (SpanImpl) helper.createClientSpan("GET", "/_test",
             new ByteArrayEntity(new byte[0]), true);
         assertThat(span).isNotNull();
         assertThat(tracer.getActive()).isEqualTo(span);
@@ -175,7 +173,7 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
             .hasType("elasticsearch")
             .hasNoName();
 
-        Db db = span.getContext().getDb();
+        DbImpl db = span.getContext().getDb();
         Assertions.assertThat(db.getType()).isEqualTo(ELASTICSEARCH);
         if (captureEverything) {
             assertThat((CharSequence) db.getStatementBuffer()).isNotNull();
@@ -194,8 +192,8 @@ class ElasticsearchRestClientInstrumentationHelperTest extends AbstractInstrumen
         testSpanSyncAttribute(true, (span -> assertThat(span).isSync()));
     }
 
-    private void testSpanSyncAttribute(boolean isSync, Function<Span, SpanAssert> checkSyncAttribute) {
-        Span span = (Span) helper.createClientSpan("GET", "/_test", null, isSync);
+    private void testSpanSyncAttribute(boolean isSync, Function<SpanImpl, SpanAssert> checkSyncAttribute) {
+        SpanImpl span = (SpanImpl) helper.createClientSpan("GET", "/_test", null, isSync);
         assertThat(span).isNotNull();
 
         assertThat(tracer.getActive()).isEqualTo(span);

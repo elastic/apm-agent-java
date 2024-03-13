@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.objectpool.impl;
 
-import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.objectpool.ObservableObjectPool;
 import co.elastic.apm.agent.objectpool.ObjectPoolTest;
 import co.elastic.apm.agent.objectpool.TestRecyclable;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
@@ -31,7 +31,7 @@ class BookkeeperObjectPoolTest extends ObjectPoolTest<BookkeeperObjectPool<TestR
 
     @Override
     protected BookkeeperObjectPool<TestRecyclable> createObjectPool(int maxSize) {
-        ObjectPool<TestRecyclable> queuePool = QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<>(maxSize), false, TestRecyclable::new);
+        ObservableObjectPool<TestRecyclable> queuePool = QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<>(maxSize), false, TestRecyclable::new);
         return new BookkeeperObjectPool<>(queuePool);
     }
 

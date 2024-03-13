@@ -20,7 +20,7 @@ package co.elastic.apm.agent.logging;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.configuration.AutoDetectedServiceInfo;
 import co.elastic.apm.agent.tracer.configuration.ByteValue;
 import co.elastic.apm.agent.report.ApmServerReporter;
@@ -46,15 +46,15 @@ import java.io.File;
 import java.net.URI;
 import java.util.List;
 
-import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACEHOLDER;
-import static co.elastic.apm.agent.logging.LoggingConfiguration.DEFAULT_LOG_FILE;
-import static co.elastic.apm.agent.logging.LoggingConfiguration.DEPRECATED_LOG_FILE_KEY;
-import static co.elastic.apm.agent.logging.LoggingConfiguration.DEPRECATED_LOG_LEVEL_KEY;
-import static co.elastic.apm.agent.logging.LoggingConfiguration.LOG_FILE_KEY;
-import static co.elastic.apm.agent.logging.LoggingConfiguration.LOG_FORMAT_FILE_KEY;
-import static co.elastic.apm.agent.logging.LoggingConfiguration.LOG_FORMAT_SOUT_KEY;
-import static co.elastic.apm.agent.logging.LoggingConfiguration.LOG_LEVEL_KEY;
-import static co.elastic.apm.agent.logging.LoggingConfiguration.SYSTEM_OUT;
+import static co.elastic.apm.agent.logging.LoggingConfigurationImpl.AGENT_HOME_PLACEHOLDER;
+import static co.elastic.apm.agent.logging.LoggingConfigurationImpl.DEFAULT_LOG_FILE;
+import static co.elastic.apm.agent.logging.LoggingConfigurationImpl.DEPRECATED_LOG_FILE_KEY;
+import static co.elastic.apm.agent.logging.LoggingConfigurationImpl.DEPRECATED_LOG_LEVEL_KEY;
+import static co.elastic.apm.agent.logging.LoggingConfigurationImpl.LOG_FILE_KEY;
+import static co.elastic.apm.agent.logging.LoggingConfigurationImpl.LOG_FORMAT_FILE_KEY;
+import static co.elastic.apm.agent.logging.LoggingConfigurationImpl.LOG_FORMAT_SOUT_KEY;
+import static co.elastic.apm.agent.logging.LoggingConfigurationImpl.LOG_LEVEL_KEY;
+import static co.elastic.apm.agent.logging.LoggingConfigurationImpl.SYSTEM_OUT;
 
 public class Log4j2ConfigurationFactory extends ConfigurationFactory {
 
@@ -156,7 +156,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
 
     private Level getLogLevel() {
         String rawLogLevelValue = getValue(LOG_LEVEL_KEY, sources, getValue(DEPRECATED_LOG_LEVEL_KEY, sources, Level.INFO.toString()));
-        LogLevel logLevel = LoggingConfiguration.mapLogLevel(new EnumValueConverter<>(LogLevel.class).convert(rawLogLevelValue));
+        LogLevel logLevel = LoggingConfigurationImpl.mapLogLevel(new EnumValueConverter<>(LogLevel.class).convert(rawLogLevelValue));
         return Level.valueOf(logLevel.toString());
     }
 
@@ -186,7 +186,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
                 .newLayout("PatternLayout")
                 .addAttribute("pattern", "%d [%thread] %-5level %logger{36} - %msg{nolookups}%n");
         } else {
-            String serviceName = getValue(CoreConfiguration.SERVICE_NAME, sources, AutoDetectedServiceInfo.autoDetected().getServiceName());
+            String serviceName = getValue(CoreConfigurationImpl.SERVICE_NAME, sources, AutoDetectedServiceInfo.autoDetected().getServiceName());
             return builder.newLayout("EcsLayout")
                 .addAttribute("eventDataset", serviceName + ".apm-agent");
         }
@@ -201,7 +201,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
     }
 
     private AppenderRefComponentBuilder createFileAppender(ConfigurationBuilder<BuiltConfiguration> builder, String logFile, LayoutComponentBuilder layout) {
-        ByteValue size = ByteValue.of(getValue("log_file_size", sources, LoggingConfiguration.DEFAULT_MAX_SIZE));
+        ByteValue size = ByteValue.of(getValue("log_file_size", sources, LoggingConfigurationImpl.DEFAULT_MAX_SIZE));
 
         AppenderComponentBuilder appender = builder.newAppender("rolling", "RollingFile")
             .addAttribute("fileName", logFile)

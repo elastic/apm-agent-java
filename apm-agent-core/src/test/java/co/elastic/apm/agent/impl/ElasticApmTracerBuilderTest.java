@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -36,22 +36,22 @@ class ElasticApmTracerBuilderTest {
 
     @AfterEach
     void tearDown() {
-        System.clearProperty("elastic.apm." + CoreConfiguration.CONFIG_FILE);
+        System.clearProperty("elastic.apm." + CoreConfigurationImpl.CONFIG_FILE);
     }
 
     @Test
     void testConfigFileLocation(@TempDir Path tempDir) throws IOException {
         Path file = Files.createFile(tempDir.resolve("elastic-apm-test.properties"));
         Files.write(file, List.of("instrument=false"));
-        System.setProperty("elastic.apm." + CoreConfiguration.CONFIG_FILE, file.toString());
+        System.setProperty("elastic.apm." + CoreConfigurationImpl.CONFIG_FILE, file.toString());
 
         ConfigurationRegistry configurationRegistry = new ElasticApmTracerBuilder().build().getConfigurationRegistry();
-        CoreConfiguration config = configurationRegistry.getConfig(CoreConfiguration.class);
+        CoreConfigurationImpl config = configurationRegistry.getConfig(CoreConfigurationImpl.class);
 
         // tests that changing non-dynamic properties also works
         assertThat(config.isInstrument()).isFalse();
-        configurationRegistry.getString(CoreConfiguration.CONFIG_FILE);
-        assertThat(configurationRegistry.getString(CoreConfiguration.CONFIG_FILE)).isEqualTo(file.toString());
+        configurationRegistry.getString(CoreConfigurationImpl.CONFIG_FILE);
+        assertThat(configurationRegistry.getString(CoreConfigurationImpl.CONFIG_FILE)).isEqualTo(file.toString());
     }
 
     @Test
@@ -62,7 +62,7 @@ class ElasticApmTracerBuilderTest {
         List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources("c=" + file.toAbsolutePath(), false);
 
         ConfigurationRegistry configurationRegistry = new ElasticApmTracerBuilder(configSources).build().getConfigurationRegistry();
-        CoreConfiguration config = configurationRegistry.getConfig(CoreConfiguration.class);
+        CoreConfigurationImpl config = configurationRegistry.getConfig(CoreConfigurationImpl.class);
         assertThat(config.isInstrument()).isFalse();
     }
 }

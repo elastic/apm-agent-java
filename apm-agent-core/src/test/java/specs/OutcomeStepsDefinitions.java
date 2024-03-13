@@ -18,11 +18,11 @@
  */
 package specs;
 
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 
@@ -62,31 +62,31 @@ public class OutcomeStepsDefinitions {
 
     @Given("a HTTP call is made that returns {int}")
     public void httpSpanWithStatus(int code) {
-        Span span = state.getSpan();
+        SpanImpl span = state.getSpan();
         span.withName(String.format("HTTP span status = %d", code));
         span.withOutcome(ResultUtil.getOutcomeByHttpClientStatus(code));
     }
 
     @Given("a HTTP call is received that returns {int}")
     public void httpTransactionWithStatus(int code) {
-        Transaction transaction = state.getTransaction();
+        TransactionImpl transaction = state.getTransaction();
         transaction.withName(String.format("HTTP transaction status = %d", code));
         transaction.withOutcome(ResultUtil.getOutcomeByHttpServerStatus(code));
     }
 
     // utilities
 
-    static void setUserOutcome(AbstractSpan<?> context, Outcome outcome) {
+    static void setUserOutcome(AbstractSpanImpl<?> context, Outcome outcome) {
         assertThat(context).isNotNull();
         context.withUserOutcome(outcome);
     }
 
-    static void setInternalOutcome(AbstractSpan<?> context, Outcome outcome) {
+    static void setInternalOutcome(AbstractSpanImpl<?> context, Outcome outcome) {
         assertThat(context).isNotNull();
         context.withOutcome(outcome);
     }
 
-    static void checkOutcome(AbstractSpan<?> context, Outcome outcome) {
+    static void checkOutcome(AbstractSpanImpl<?> context, Outcome outcome) {
         assertThat(context).isNotNull();
         assertThat(context.getOutcome())
             .describedAs("expected outcome = %s for context = %s", outcome, context)

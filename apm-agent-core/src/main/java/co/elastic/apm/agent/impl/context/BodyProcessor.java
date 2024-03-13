@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.processor.Processor;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.EventType.ALL;
@@ -29,30 +29,30 @@ import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.EventT
 import static co.elastic.apm.agent.tracer.configuration.CoreConfiguration.EventType.TRANSACTIONS;
 
 /**
- * This processor redacts the body according to the {@link co.elastic.apm.agent.configuration.CoreConfiguration#captureBody}
+ * This processor redacts the body according to the {@link CoreConfigurationImpl#captureBody}
  * configuration option
  */
 @SuppressWarnings("JavadocReference")
 public class BodyProcessor implements Processor {
 
-    private final CoreConfiguration coreConfiguration;
+    private final CoreConfigurationImpl coreConfiguration;
 
     public BodyProcessor(ConfigurationRegistry configurationRegistry) {
-        coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
+        coreConfiguration = configurationRegistry.getConfig(CoreConfigurationImpl.class);
     }
 
     @Override
-    public void processBeforeReport(Transaction transaction) {
+    public void processBeforeReport(TransactionImpl transaction) {
         redactBodyIfNecessary(transaction.getContext(), TRANSACTIONS);
     }
 
     @Override
-    public void processBeforeReport(ErrorCapture error) {
+    public void processBeforeReport(ErrorCaptureImpl error) {
         redactBodyIfNecessary(error.getContext(), ERRORS);
     }
 
-    private void redactBodyIfNecessary(TransactionContext context, CoreConfiguration.EventType eventType) {
-        final CoreConfiguration.EventType eventTypeConfig = coreConfiguration.getCaptureBody();
+    private void redactBodyIfNecessary(TransactionContextImpl context, CoreConfigurationImpl.EventType eventType) {
+        final CoreConfigurationImpl.EventType eventTypeConfig = coreConfiguration.getCaptureBody();
         if (eventTypeConfig != eventType && eventTypeConfig != ALL) {
             if (context.getRequest().getBody() != null) {
                 context.getRequest().redactBody();

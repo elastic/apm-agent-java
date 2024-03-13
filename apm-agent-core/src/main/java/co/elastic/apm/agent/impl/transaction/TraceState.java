@@ -303,7 +303,7 @@ public class TraceState implements Recyclable {
     public static <C> boolean includesElasticVendor(HeaderGetter<?, C> headers, C parent){
         boolean[] tracestateIncludesElasticVendor = new boolean[1];
         HeaderGetter.HeaderConsumer rawHeaderConsumer = TraceState.ELASTIC_TRACESTATE_HEADER_CHECKER;
-        headers.forEach(TraceContext.TRACESTATE_HEADER_NAME, parent, tracestateIncludesElasticVendor, rawHeaderConsumer);
+        headers.forEach(TraceContextImpl.TRACESTATE_HEADER_NAME, parent, tracestateIncludesElasticVendor, rawHeaderConsumer);
         return tracestateIncludesElasticVendor[0];
     }
 

@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.esrestclient.v5_6;
 
 import co.elastic.apm.agent.esrestclient.AbstractEsClientInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.tracer.Outcome;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -185,10 +185,10 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         assertThat(sr.getHits().getAt(0).getSourceAsMap().get(FOO)).isEqualTo(BAZ);
 
 
-        List<Span> spans = reporter.getSpans();
+        List<SpanImpl> spans = reporter.getSpans();
         assertThat(spans).hasSize(2);
         boolean updateSpanFound = false;
-        for (Span span : spans) {
+        for (SpanImpl span : spans) {
             if (span.getNameAsString().contains("_update")) {
                 updateSpanFound = true;
                 break;

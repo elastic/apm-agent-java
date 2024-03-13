@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -86,8 +87,8 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             @Advice.OnMethodEnter(inline = false)
             public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
                                        @Advice.Argument(0) String type) {
-                if (span instanceof co.elastic.apm.agent.impl.transaction.Span) {
-                    ((co.elastic.apm.agent.impl.transaction.Span) span).setType(type, null, null);
+                if (span instanceof SpanImpl) {
+                    ((SpanImpl) span).setType(type, null, null);
                 }
             }
         }
@@ -201,8 +202,8 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
                                       @Advice.Argument(0) String key,
                                       @Advice.Argument(1) String value) {
-                if (span instanceof co.elastic.apm.agent.impl.transaction.Span) {
-                    ((co.elastic.apm.agent.impl.transaction.Span) span).addLabel(key, value);
+                if (span instanceof SpanImpl) {
+                    ((SpanImpl) span).addLabel(key, value);
                 }
             }
         }

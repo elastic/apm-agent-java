@@ -19,14 +19,14 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.impl.context.Url;
+import co.elastic.apm.agent.impl.context.RequestImpl;
+import co.elastic.apm.agent.impl.context.ResponseImpl;
+import co.elastic.apm.agent.impl.context.TransactionContextImpl;
+import co.elastic.apm.agent.impl.context.UrlImpl;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,13 +63,13 @@ import static org.mockito.Mockito.verify;
 class ApmFilterTest extends AbstractInstrumentationTest {
 
     private WebConfiguration webConfiguration;
-    private CoreConfiguration coreConfiguration;
+    private CoreConfigurationImpl coreConfiguration;
     private MockFilterChain filterChain;
 
     @BeforeEach
     void setUp() {
         webConfiguration = tracer.getConfig(WebConfiguration.class);
-        coreConfiguration = tracer.getConfig(CoreConfiguration.class);
+        coreConfiguration = tracer.getConfig(CoreConfigurationImpl.class);
         filterChain = new MockFilterChain();
     }
 
@@ -92,8 +92,8 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         request.setQueryString("foo=bar");
         filterChain.doFilter(request, new MockHttpServletResponse());
 
-        TransactionContext transactionContext = reporter.getFirstTransaction().getContext();
-        Url url = transactionContext.getRequest().getUrl();
+        TransactionContextImpl transactionContext = reporter.getFirstTransaction().getContext();
+        UrlImpl url = transactionContext.getRequest().getUrl();
         assertThat(url.getProtocol()).isEqualTo("http");
         assertThat(url.getSearch()).isEqualTo("foo=bar");
         assertThat(url.getPort()).isEqualTo(80);
@@ -285,11 +285,11 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         mockResponse.addHeader("bar", "baz");
         filterChain.doFilter(get, mockResponse);
         assertThat(reporter.getTransactions()).hasSize(1);
-        final Request request = reporter.getFirstTransaction().getContext().getRequest();
+        final RequestImpl request = reporter.getFirstTransaction().getContext().getRequest();
         assertThat(request.getHeaders().isEmpty()).isFalse();
         assertThat(request.getHeaders().get("foo")).isEqualTo("bar");
         assertThat(request.getCookies().get("foo")).isEqualTo("bar");
-        final Response response = reporter.getFirstTransaction().getContext().getResponse();
+        final ResponseImpl response = reporter.getFirstTransaction().getContext().getResponse();
         assertThat(response.getHeaders().get("foo")).isEqualTo("bar");
         assertThat(response.getHeaders().get("bar")).isEqualTo("baz");
     }
@@ -340,7 +340,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
     private static class SimpleTestFilter implements Filter {
 
         @Nullable
-        AbstractSpan<?> active = null;
+        AbstractSpanImpl<?> active = null;
 
         @Override
         public void init(FilterConfig filterConfig) {

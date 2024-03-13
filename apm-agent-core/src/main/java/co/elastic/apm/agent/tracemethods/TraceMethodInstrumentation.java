@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.tracemethods;
 
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.TraceStateImpl;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -59,11 +59,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
 
     private final MethodMatcher methodMatcher;
-    private final CoreConfiguration config;
+    private final CoreConfigurationImpl config;
 
     public TraceMethodInstrumentation(Tracer tracer, MethodMatcher methodMatcher) {
         this.methodMatcher = methodMatcher;
-        config = tracer.getConfig(CoreConfiguration.class);
+        config = tracer.getConfig(CoreConfigurationImpl.class);
     }
 
     @Override
@@ -135,7 +135,7 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
         private static final long traceMethodThresholdMicros;
 
         static {
-            CoreConfiguration config = tracer.getConfig(CoreConfiguration.class);
+            CoreConfigurationImpl config = tracer.getConfig(CoreConfigurationImpl.class);
             traceMethodThresholdMicros = config.getTraceMethodsDurationThreshold().getMicros();
         }
 
@@ -143,9 +143,9 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onMethodEnter(@Advice.Origin Class<?> clazz,
                                            @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature) {
-            AbstractSpan<?> span = null;
-            ElasticContext<?> activeContext = tracer.currentContext();
-            final AbstractSpan<?> parentSpan = tracer.getActive();
+            AbstractSpanImpl<?> span = null;
+            TraceStateImpl<?> activeContext = tracer.currentContext();
+            final AbstractSpanImpl<?> parentSpan = tracer.getActive();
             if (parentSpan == null) {
                 span = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(clazz));
                 if (span != null) {
@@ -167,11 +167,11 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onMethodExit(@Advice.Enter @Nullable Object spanObj,
                                         @Advice.Thrown @Nullable Throwable t) {
-            AbstractSpan<?> span = (AbstractSpan<?>) spanObj;
+            AbstractSpanImpl<?> span = (AbstractSpanImpl<?>) spanObj;
             if (span != null) {
                 span.captureException(t);
                 final long endTime = span.getTraceContext().getClock().getEpochMicros();
-                if (span instanceof Span) {
+                if (span instanceof SpanImpl) {
                     long durationMicros = endTime - span.getTimestamp();
                     if (traceMethodThresholdMicros > 0 && durationMicros < traceMethodThresholdMicros && t == null) {
                         span.requestDiscarding();

@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.finaglehttpclient;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import com.twitter.finagle.Http;
 import com.twitter.finagle.Service;
 import com.twitter.finagle.http.Request;
@@ -72,7 +72,7 @@ public class FinagleHttpClientTest extends AbstractHttpClientInstrumentationTest
             service.close();
         }
 
-        Span span = expectSpan("/")
+        SpanImpl span = expectSpan("/")
             .withHost("sub-host")
             .withStatus(0)
             .withHttps()
@@ -80,7 +80,7 @@ public class FinagleHttpClientTest extends AbstractHttpClientInstrumentationTest
             .withoutTraceContextHeaders()
             .verify();
         assertThat(reporter.getErrors()).hasSize(1);
-        ErrorCapture error = reporter.getFirstError();
+        ErrorCaptureImpl error = reporter.getFirstError();
         assertThat(error.getTraceContext().getTraceId()).isEqualTo(span.getTraceContext().getTraceId());
         assertThat(error.getTraceContext().getParentId()).isEqualTo(span.getTraceContext().getId());
         assertThat(error.getException()).hasStackTraceContaining("SSLHandshakeException");

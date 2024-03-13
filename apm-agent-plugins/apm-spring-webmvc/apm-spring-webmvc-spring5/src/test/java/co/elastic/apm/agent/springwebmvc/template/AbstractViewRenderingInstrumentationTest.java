@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.springwebmvc.template;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,7 +57,7 @@ abstract class AbstractViewRenderingInstrumentationTest extends AbstractInstrume
         String responseString = response.getContentAsString();
         assertEquals(messageContent, responseString.trim().replaceAll("\r\n", "\n"));
         assertEquals(1, reporter.getSpans().size());
-        Span firstSpan = reporter.getSpans().get(0);
+        SpanImpl firstSpan = reporter.getSpans().get(0);
         assertEquals("template", firstSpan.getType());
         assertEquals(spanSubType, firstSpan.getSubtype());
         assertEquals("render", firstSpan.getAction());

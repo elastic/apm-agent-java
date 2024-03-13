@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.test.JavaExecutable;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecuteResultHandler;
@@ -78,8 +78,8 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
         terminateTransaction();
     }
 
-    private static CompletableFuture<AbstractSpan<?>> asyncProcessHasTransactionContext() throws Exception {
-        final CompletableFuture<AbstractSpan<?>> future = new CompletableFuture<>();
+    private static CompletableFuture<AbstractSpanImpl<?>> asyncProcessHasTransactionContext() throws Exception {
+        final CompletableFuture<AbstractSpanImpl<?>> future = new CompletableFuture<>();
         DefaultExecuteResultHandler handler = new DefaultExecuteResultHandler() {
 
             // note: calling super is required otherwise process termination is not detected and waits forever
@@ -112,7 +112,7 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
     }
 
     private static void startTransaction() {
-        Transaction transaction = tracer.startRootTransaction(CommonsExecAsyncInstrumentationTest.class.getClassLoader());
+        TransactionImpl transaction = tracer.startRootTransaction(CommonsExecAsyncInstrumentationTest.class.getClassLoader());
 
         assertThat(transaction).isNotNull();
         transaction.withType("request")
@@ -121,7 +121,7 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
     }
 
     private static void terminateTransaction() {
-        Transaction transaction = tracer.currentTransaction();
+        TransactionImpl transaction = tracer.currentTransaction();
         assertThat(transaction).isNotNull();
         transaction.deactivate().end();
 

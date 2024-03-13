@@ -19,12 +19,12 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.Url;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.impl.context.RequestImpl;
+import co.elastic.apm.agent.impl.context.UrlImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
 import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
@@ -121,9 +121,9 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         String expectedName = client.useFunctionalEndpoint()
             ? "GET /functional/hello"
             : "GreetingAnnotated#getHello";
-        Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
+        TransactionImpl transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
 
-        Request request = transaction.getContext().getRequest();
+        RequestImpl request = transaction.getContext().getRequest();
 
         checkUrl(transaction, "/hello");
 
@@ -160,7 +160,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void headerCaptureDisabled() {
-        CoreConfiguration coreConfig = getConfig().getConfig(CoreConfiguration.class);
+        CoreConfigurationImpl coreConfig = getConfig().getConfig(CoreConfigurationImpl.class);
         doReturn(false).when(coreConfig).isCaptureHeaders();
 
         hello(false);
@@ -172,7 +172,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
             .expectErrorMatches(expectClientError(404))
             .verify();
 
-        Transaction transaction = checkTransaction(getFirstTransaction(), "GET unknown route", "GET", 404);
+        TransactionImpl transaction = checkTransaction(getFirstTransaction(), "GET unknown route", "GET", 404);
 
         assertThat(transaction.getResult()).isEqualTo("HTTP 4xx");
         assertThat(transaction.getContext().getRequest().getMethod()).isEqualTo("GET");
@@ -189,7 +189,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
             .expectErrorMatches(expectClientError(404))
             .verify();
 
-        Transaction transaction = checkTransaction(getFirstTransaction(), "GET /*/error-404", "GET", 404);
+        TransactionImpl transaction = checkTransaction(getFirstTransaction(), "GET /*/error-404", "GET", 404);
 
         assertThat(transaction.getResult()).isEqualTo("HTTP 4xx");
         assertThat(transaction.getContext().getRequest().getMethod()).isEqualTo("GET");
@@ -240,7 +240,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
             .verifyComplete();
 
         String expectedName = client.useFunctionalEndpoint() ? "GET /functional/duration" : "GreetingAnnotated#duration";
-        Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
+        TransactionImpl transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
         assertThat(transaction.getDurationMs())
             .isCloseTo(duration * 1d, Offset.offset(duration / 2d));
 
@@ -257,7 +257,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
         String expectedName = client.useFunctionalEndpoint() ? "GET " + client.getPathPrefix() + "/with-parameters/{id}" : "GreetingAnnotated#withParameters";
 
-        Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
+        TransactionImpl transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
 
         checkUrl(transaction, "/with-parameters/1234");
     }
@@ -407,7 +407,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     }
 
     private void checkChildSpans(String expectedName, String pathAndQuery) {
-        Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
+        TransactionImpl transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
 
         checkUrl(transaction, pathAndQuery);
 
@@ -417,8 +417,8 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         });
     }
 
-    static void checkUrl(GreetingWebClient client, Transaction transaction, String pathAndQuery) {
-        Url url = transaction.getContext().getRequest().getUrl();
+    static void checkUrl(GreetingWebClient client, TransactionImpl transaction, String pathAndQuery) {
+        UrlImpl url = transaction.getContext().getRequest().getUrl();
 
         assertThat(url.getProtocol()).isEqualTo("http");
         assertThat(url.getHostname()).isEqualTo("localhost");
@@ -439,19 +439,19 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
             .isEqualTo(String.format("http://localhost:%d%s%s", client.getPort(), client.getPathPrefix(), pathAndQuery));
     }
 
-    private void checkUrl(Transaction transaction, String pathAndQuery) {
+    private void checkUrl(TransactionImpl transaction, String pathAndQuery) {
         checkUrl(client, transaction, pathAndQuery);
     }
 
-    protected Transaction getFirstTransaction() {
+    protected TransactionImpl getFirstTransaction() {
         return reporter.getFirstTransaction(200);
     }
 
-    protected ErrorCapture getFirstError() {
+    protected ErrorCaptureImpl getFirstError() {
         return reporter.getFirstError(200);
     }
 
-    static Transaction checkTransaction(Transaction transaction, String expectedName, String expectedMethod, int expectedStatus) {
+    static TransactionImpl checkTransaction(TransactionImpl transaction, String expectedName, String expectedMethod, int expectedStatus) {
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getNameAsString()).isEqualTo(expectedName);
 

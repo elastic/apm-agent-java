@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.testutils.assertions;
 
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 
-public class SpanAssert extends AbstractSpanAssert<SpanAssert, Span> {
+public class SpanAssert extends AbstractSpanAssert<SpanAssert, SpanImpl> {
 
-    protected SpanAssert(Span actual) {
+    protected SpanAssert(SpanImpl actual) {
         super(actual, SpanAssert.class);
     }
 

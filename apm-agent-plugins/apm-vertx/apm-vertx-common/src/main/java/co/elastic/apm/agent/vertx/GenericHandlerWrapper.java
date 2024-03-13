@@ -19,16 +19,16 @@
 package co.elastic.apm.agent.vertx;
 
 import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import io.vertx.core.Handler;
 
 public class GenericHandlerWrapper<T> implements Handler<T> {
 
     protected final Handler<T> actualHandler;
-    private final ElasticContext<?> parentContext;
+    private final TraceState<?> parentContext;
 
-    public GenericHandlerWrapper(ElasticContext<?> parentContext, Handler<T> actualHandler) {
+    public GenericHandlerWrapper(TraceState<?> parentContext, Handler<T> actualHandler) {
         this.parentContext = parentContext;
         this.actualHandler = actualHandler;
         parentContext.incrementReferences();
@@ -52,7 +52,7 @@ public class GenericHandlerWrapper<T> implements Handler<T> {
     }
 
     public static <T> Handler<T> wrapIfNonEmptyContext(Handler<T> handler) {
-        ElasticContext<?> currentContext = GlobalTracer.get().currentContext();
+        TraceState<?> currentContext = GlobalTracer.get().currentContext();
 
         if (!currentContext.isEmpty()) {
             handler = new GenericHandlerWrapper<>(currentContext, handler);

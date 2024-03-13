@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
@@ -39,14 +39,14 @@ import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.WAKE
 
 public class ReportingEvent {
     @Nullable
-    private Transaction transaction;
+    private TransactionImpl transaction;
     @Nullable
     private ReportingEventType type;
 
     @Nullable
-    private ErrorCapture error;
+    private ErrorCaptureImpl error;
     @Nullable
-    private Span span;
+    private SpanImpl span;
     @Nullable
     private JsonWriter jsonWriter;
     @Nullable
@@ -71,11 +71,11 @@ public class ReportingEvent {
     }
 
     @Nullable
-    public Transaction getTransaction() {
+    public TransactionImpl getTransaction() {
         return transaction;
     }
 
-    public void setTransaction(Transaction transaction) {
+    public void setTransaction(TransactionImpl transaction) {
         this.transaction = transaction;
         this.type = TRANSACTION;
     }
@@ -96,21 +96,21 @@ public class ReportingEvent {
     }
 
     @Nullable
-    public ErrorCapture getError() {
+    public ErrorCaptureImpl getError() {
         return error;
     }
 
     @Nullable
-    public Span getSpan() {
+    public SpanImpl getSpan() {
         return span;
     }
 
-    public void setError(ErrorCapture error) {
+    public void setError(ErrorCaptureImpl error) {
         this.error = error;
         this.type = ERROR;
     }
 
-    public void setSpan(Span span) {
+    public void setSpan(SpanImpl span) {
         this.span = span;
         this.type = SPAN;
     }

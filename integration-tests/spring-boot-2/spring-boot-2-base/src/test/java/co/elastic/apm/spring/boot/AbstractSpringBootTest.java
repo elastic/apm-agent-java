@@ -22,8 +22,8 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import co.elastic.apm.api.ElasticApm;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.AfterClass;
@@ -76,7 +76,7 @@ public abstract class AbstractSpringBootTest {
 
     @Before
     public void setUp() {
-        doReturn(true).when(config.getConfig(ReporterConfiguration.class)).isReportSynchronously();
+        doReturn(true).when(config.getConfig(ReporterConfigurationImpl.class)).isReportSynchronously();
         restTemplate = new TestRestTemplate(new RestTemplateBuilder()
             .setConnectTimeout(Duration.ofSeconds(10))
             .setReadTimeout(Duration.ofSeconds(10))
@@ -96,7 +96,7 @@ public abstract class AbstractSpringBootTest {
 
         // the transaction might not have been reported yet, as the http call returns when the ServletOutputStream has been closed,
         // which is before the transaction has ended
-        final Transaction transaction = reporter.getFirstTransaction(500);
+        final TransactionImpl transaction = reporter.getFirstTransaction(500);
         assertThat(transaction.getNameAsString()).isEqualTo("TestApp#greeting");
         assertThat(transaction.getContext().getUser().getDomain()).isEqualTo("domain");
         assertThat(transaction.getContext().getUser().getId()).isEqualTo("id");

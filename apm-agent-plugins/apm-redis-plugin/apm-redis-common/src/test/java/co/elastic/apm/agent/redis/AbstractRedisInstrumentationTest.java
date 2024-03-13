@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.redis;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.context.DestinationImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
@@ -62,7 +62,7 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
     @After
     @AfterEach
     public final void stopRedis() {
-        Transaction transaction = tracer.currentTransaction();
+        TransactionImpl transaction = tracer.currentTransaction();
         if (transaction != null) {
             transaction.deactivate().end();
         }
@@ -71,18 +71,18 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
 
     public void assertTransactionWithRedisSpans(String... commands) {
         await().untilAsserted(() -> assertThat(reporter.getSpans()).hasSize(commands.length));
-        assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly(commands);
-        assertThat(reporter.getSpans().stream().map(Span::getType).distinct()).containsExactly("db");
-        assertThat(reporter.getSpans().stream().map(Span::getSubtype).distinct()).containsExactly("redis");
-        assertThat(reporter.getSpans().stream().map(Span::getAction).distinct()).containsExactly("query");
-        assertThat(reporter.getSpans().stream().map(Span::isExit).distinct()).containsExactly(true);
-        assertThat(reporter.getSpans().stream().map(Span::getOutcome).distinct()).containsExactly(Outcome.SUCCESS);
+        assertThat(reporter.getSpans().stream().map(SpanImpl::getNameAsString)).containsExactly(commands);
+        assertThat(reporter.getSpans().stream().map(SpanImpl::getType).distinct()).containsExactly("db");
+        assertThat(reporter.getSpans().stream().map(SpanImpl::getSubtype).distinct()).containsExactly("redis");
+        assertThat(reporter.getSpans().stream().map(SpanImpl::getAction).distinct()).containsExactly("query");
+        assertThat(reporter.getSpans().stream().map(SpanImpl::isExit).distinct()).containsExactly(true);
+        assertThat(reporter.getSpans().stream().map(SpanImpl::getOutcome).distinct()).containsExactly(Outcome.SUCCESS);
         verifyDestinationDetails(reporter.getSpans());
     }
 
-    private void verifyDestinationDetails(List<Span> spanList) {
-        for (Span span : spanList) {
-            Destination destination = span.getContext().getDestination();
+    private void verifyDestinationDetails(List<SpanImpl> spanList) {
+        for (SpanImpl span : spanList) {
+            DestinationImpl destination = span.getContext().getDestination();
             if (destinationAddressSupported()) {
                 assertThat(destination.getAddress().toString()).isEqualTo(expectedAddress);
                 assertThat(destination.getPort()).isEqualTo(redisPort);

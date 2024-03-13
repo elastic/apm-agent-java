@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
-import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import com.sun.management.ThreadMXBean;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,15 +55,15 @@ public class AgentOverheadMetricsTest {
 
     private MetricRegistry metricRegistry;
 
-    private ReporterConfiguration spyReporterConfig;
-    private MetricsConfiguration spyMetricsConfig;
+    private ReporterConfigurationImpl spyReporterConfig;
+    private MetricsConfigurationImpl spyMetricsConfig;
 
     private AgentOverheadMetrics overheadMetrics;
 
     @BeforeEach
     public void setUp() {
-        spyReporterConfig = spy(ReporterConfiguration.class);
-        spyMetricsConfig = spy(MetricsConfiguration.class);
+        spyReporterConfig = spy(ReporterConfigurationImpl.class);
+        spyMetricsConfig = spy(MetricsConfigurationImpl.class);
 
         overheadMetrics = new AgentOverheadMetrics();
         metricRegistry = new MetricRegistry(spyReporterConfig, spyMetricsConfig);

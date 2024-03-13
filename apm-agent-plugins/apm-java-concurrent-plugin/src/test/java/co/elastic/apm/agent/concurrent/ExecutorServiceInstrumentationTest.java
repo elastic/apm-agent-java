@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,7 +51,7 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
 
     private final ExecutorService executor;
     private CurrentThreadExecutor currentThreadExecutor;
-    private Transaction transaction;
+    private TransactionImpl transaction;
 
     public ExecutorServiceInstrumentationTest(Supplier<ExecutorService> supplier) {
         executor = supplier.get();
@@ -141,9 +141,9 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
 
     @Test
     public void testInvokeAll() throws Exception {
-        final List<Future<Span>> futures = executor.invokeAll(Arrays.<Callable<Span>>asList(this::createAsyncSpan, () -> createAsyncSpan(), new Callable<Span>() {
+        final List<Future<SpanImpl>> futures = executor.invokeAll(Arrays.<Callable<SpanImpl>>asList(this::createAsyncSpan, () -> createAsyncSpan(), new Callable<SpanImpl>() {
             @Override
-            public Span call() throws Exception {
+            public SpanImpl call() throws Exception {
                 return createAsyncSpan();
             }
         }));
@@ -159,16 +159,16 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
 
     @Test
     public void testInvokeAllTimed() throws Exception {
-        final List<Future<Span>> futures = executor.invokeAll(Arrays.asList(
-            new Callable<Span>() {
+        final List<Future<SpanImpl>> futures = executor.invokeAll(Arrays.asList(
+            new Callable<SpanImpl>() {
                 @Override
-                public Span call() throws Exception {
+                public SpanImpl call() throws Exception {
                     return createAsyncSpan();
                 }
             },
-            new Callable<Span>() {
+            new Callable<SpanImpl>() {
                 @Override
-                public Span call() throws Exception {
+                public SpanImpl call() throws Exception {
                     return createAsyncSpan();
                 }
             }), 1, TimeUnit.SECONDS);
@@ -178,9 +178,9 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
 
     @Test
     public void testInvokeAny() throws Exception {
-        executor.invokeAny(Collections.singletonList(new Callable<Span>() {
+        executor.invokeAny(Collections.singletonList(new Callable<SpanImpl>() {
             @Override
-            public Span call() {
+            public SpanImpl call() {
                 return createAsyncSpan();
             }
         }));
@@ -189,9 +189,9 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
 
     @Test
     public void testInvokeAnyTimed() throws Exception {
-        executor.invokeAny(Collections.<Callable<Span>>singletonList(new Callable<Span>() {
+        executor.invokeAny(Collections.<Callable<SpanImpl>>singletonList(new Callable<SpanImpl>() {
             @Override
-            public Span call() {
+            public SpanImpl call() {
                 return createAsyncSpan();
             }
         }), 1, TimeUnit.SECONDS);
@@ -213,10 +213,10 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
         void accept(T t) throws Exception;
     }
 
-    private Span createAsyncSpan() {
+    private SpanImpl createAsyncSpan() {
         assertThat(tracer.getActive()).isNotNull();
         assertThat(tracer.getActive().getTraceContext().getId()).isEqualTo(transaction.getTraceContext().getId());
-        final Span span = tracer.getActive().createSpan().withName("Async");
+        final SpanImpl span = tracer.getActive().createSpan().withName("Async");
         span.end();
         return span;
     }

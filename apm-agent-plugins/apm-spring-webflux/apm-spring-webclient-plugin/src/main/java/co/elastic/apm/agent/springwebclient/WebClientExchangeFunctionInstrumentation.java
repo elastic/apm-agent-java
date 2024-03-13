@@ -20,11 +20,10 @@ package co.elastic.apm.agent.springwebclient;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
@@ -86,7 +85,7 @@ public class WebClientExchangeFunctionInstrumentation extends ElasticApmInstrume
                 span.activate();
             }
 
-            ElasticContext<?> toPropagate = tracer.currentContext();
+            TraceState<?> toPropagate = tracer.currentContext();
             if (!toPropagate.isEmpty()) {
                 ClientRequest.Builder builder = ClientRequest.from(clientRequest);
                 toPropagate.propagateContext(builder, WebClientRequestHeaderSetter.INSTANCE, null);

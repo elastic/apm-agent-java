@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
-import co.elastic.apm.agent.impl.context.Http;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.context.HttpImpl;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.tracer.Scope;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -48,7 +48,7 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
     public void testEndInDifferentThread() throws Exception {
         final HttpURLConnection urlConnection = (HttpURLConnection) new URL(getBaseUrl() + "/").openConnection();
         urlConnection.connect();
-        AbstractSpan<?> active = tracer.getActive();
+        AbstractSpanImpl<?> active = tracer.getActive();
         final Thread thread = new Thread(() -> {
             try (Scope scope = active.activateInScope()) {
                 urlConnection.getInputStream();
@@ -148,10 +148,10 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
 
-        Span span = reporter.getSpans().get(0);
+        SpanImpl span = reporter.getSpans().get(0);
         assertThat(span.getNameAsString()).isEqualTo("GET unknown");
 
-        Http http = span.getContext().getHttp();
+        HttpImpl http = span.getContext().getHttp();
         assertThat(http.getStatusCode()).isEqualTo(0);
         assertThat(http.getUrl().toString()).isEqualTo("http://unknown");
     }

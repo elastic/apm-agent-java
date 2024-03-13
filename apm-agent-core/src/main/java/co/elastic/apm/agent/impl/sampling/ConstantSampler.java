@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.sampling;
 
-import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.IdImpl;
 import co.elastic.apm.agent.impl.transaction.TraceState;
 
 /**
@@ -49,7 +49,7 @@ public class ConstantSampler implements Sampler {
     }
 
     @Override
-    public boolean isSampled(Id traceId) {
+    public boolean isSampled(IdImpl traceId) {
         return decision;
     }
 

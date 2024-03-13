@@ -20,8 +20,8 @@ package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.testutils.assertions.ServiceTargetAssert;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.AfterAll;
@@ -44,7 +44,7 @@ import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 
 public class ServiceResourceTest {
 
-    private static Transaction root;
+    private static TransactionImpl root;
 
     @BeforeAll
     static void startRootTransaction() {
@@ -60,7 +60,7 @@ public class ServiceResourceTest {
     @ParameterizedTest
     @MethodSource("getTestCases")
     void testServiceResourceInference(JsonNode testCase) {
-        Span span = createSpan(testCase);
+        SpanImpl span = createSpan(testCase);
 
         // increment reference count to prevent recycling while test executes
         span.incrementReferences();
@@ -70,7 +70,7 @@ public class ServiceResourceTest {
 
         JsonNode jsonServiceTarget = testCase.get("expected_service_target");
 
-        ServiceTarget serviceTarget = span.getContext().getServiceTarget();
+        ServiceTargetImpl serviceTarget = span.getContext().getServiceTarget();
         ServiceTargetAssert testAssertion = assertThat(serviceTarget)
             .describedAs(getTextValueOrNull(testCase, "failure_message"));
 
@@ -97,8 +97,8 @@ public class ServiceResourceTest {
         span.decrementReferences();
     }
 
-    private Span createSpan(JsonNode testCase) {
-        Span span = root.createSpan();
+    private SpanImpl createSpan(JsonNode testCase) {
+        SpanImpl span = root.createSpan();
         JsonNode spanJson = testCase.get("span");
         span.withType(spanJson.get("type").textValue());
         JsonNode subtypeJsonNode = spanJson.get("subtype");
@@ -110,7 +110,7 @@ public class ServiceResourceTest {
         }
         JsonNode contextJson = spanJson.get("context");
         if (contextJson != null) {
-            SpanContext context = span.getContext();
+            SpanContextImpl context = span.getContext();
             JsonNode dbJson = contextJson.get("db");
             if (dbJson != null) {
                 context.getDb()
@@ -119,7 +119,7 @@ public class ServiceResourceTest {
             }
             JsonNode messageJson = contextJson.get("message");
             if (messageJson != null) {
-                Message message = context.getMessage();
+                MessageImpl message = context.getMessage();
                 message.withBody(getTextValueOrNull(messageJson, "body"));
                 JsonNode queueJson = messageJson.get("queue");
                 if (queueJson != null) {
@@ -130,7 +130,7 @@ public class ServiceResourceTest {
             if (httpJson != null) {
                 String urlValue = getTextValueOrNull(httpJson, "url");
                 if (urlValue != null) {
-                    Url url = context.getHttp().getInternalUrl();
+                    UrlImpl url = context.getHttp().getInternalUrl();
                     try {
                         url.fillFrom(new URI(urlValue));
                     } catch (URISyntaxException e) {

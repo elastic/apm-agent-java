@@ -20,8 +20,8 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,14 +53,14 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
 
     @Test
     void setTransactionNameByServletClass() {
-        Transaction transaction = new Transaction(MockTracer.create());
+        TransactionImpl transaction = new TransactionImpl(MockTracer.create());
         TransactionNameUtils.setTransactionNameByServletClass("GET", ServletTransactionHelperTest.class, transaction.getAndOverrideName(PRIORITY_LOW_LEVEL_FRAMEWORK));
         assertThat(transaction.getNameAsString()).isEqualTo("ServletTransactionHelperTest#doGet");
     }
 
     @Test
     void setTransactionNameByServletClassNullMethod() {
-        Transaction transaction = new Transaction(MockTracer.create());
+        TransactionImpl transaction = new TransactionImpl(MockTracer.create());
         TransactionNameUtils.setTransactionNameByServletClass(null, ServletTransactionHelperTest.class, transaction.getAndOverrideName(PRIORITY_LOW_LEVEL_FRAMEWORK));
         assertThat(transaction.getNameAsString()).isEqualTo("ServletTransactionHelperTest");
     }
@@ -86,7 +86,7 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
             WildcardMatcher.valueOf("/foo/bar/*")
         )).when(webConfig).getUrlGroups();
 
-        Transaction transaction = new Transaction(MockTracer.create());
+        TransactionImpl transaction = new TransactionImpl(MockTracer.create());
         TransactionNameUtils.setTransactionNameByServletClass("GET", ServletTransactionHelperTest.class, transaction.getAndOverrideName(PRIORITY_LOW_LEVEL_FRAMEWORK));
         servletTransactionHelper.applyDefaultTransactionName("GET", "/foo/bar/baz", null, transaction);
         assertThat(transaction.getNameAsString()).isEqualTo("GET /foo/bar/*");
@@ -94,7 +94,7 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
 
     @Nonnull
     private String getTransactionName(String method, String path) {
-        Transaction transaction = new Transaction(MockTracer.create());
+        TransactionImpl transaction = new TransactionImpl(MockTracer.create());
         servletTransactionHelper.applyDefaultTransactionName(method, path, null, transaction);
         return transaction.getNameAsString();
     }

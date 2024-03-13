@@ -33,22 +33,22 @@ class UrlTest {
 
     @Test
     void testResetState() {
-        final Url url = sampleUrl();
+        final UrlImpl url = sampleUrl();
         url.resetState();
-        assertThat(toJson(url)).isEqualTo(toJson(new Url()));
+        assertThat(toJson(url)).isEqualTo(toJson(new UrlImpl()));
     }
 
     @Test
     void testCopyOf() {
-        final Url url = sampleUrl();
-        final Url copy = new Url();
+        final UrlImpl url = sampleUrl();
+        final UrlImpl copy = new UrlImpl();
         copy.copyFrom(url);
         assertThat(toJson(url)).isEqualTo(toJson(copy));
-        assertThat(toJson(url)).isNotEqualTo(toJson(new Url()));
+        assertThat(toJson(url)).isNotEqualTo(toJson(new UrlImpl()));
     }
 
-    private Url sampleUrl() {
-        return new Url()
+    private UrlImpl sampleUrl() {
+        return new UrlImpl()
             .withHostname("localhost")
             .withPathname("/foo")
             .withPort(8080)
@@ -59,27 +59,27 @@ class UrlTest {
     @Test
     void computeFullFromProperties() {
         // default port on http
-        assertThat(new Url().withProtocol("http")
+        assertThat(new UrlImpl().withProtocol("http")
             .withHostname("localhost")
             .withPort(80)
             .getFull().toString()).isEqualTo("http://localhost");
 
         // non default port on http + path
-        assertThat(new Url().withProtocol("http")
+        assertThat(new UrlImpl().withProtocol("http")
             .withHostname("localhost")
             .withPort(8080)
             .withPathname("/hello")
             .getFull().toString()).isEqualTo("http://localhost:8080/hello");
 
         // default port on https + search string
-        assertThat(new Url().withProtocol("https")
+        assertThat(new UrlImpl().withProtocol("https")
             .withHostname("hostname")
             .withPort(443)
             .withSearch("hello=world")
             .getFull().toString()).isEqualTo("https://hostname?hello=world");
 
         // non default port on https
-        assertThat(new Url().withProtocol("https")
+        assertThat(new UrlImpl().withProtocol("https")
             .withHostname("hostname")
             .withPort(447)
             .getFull().toString()).isEqualTo("https://hostname:447");
@@ -100,11 +100,11 @@ class UrlTest {
         "https://user:pwd@localhost:447/ https://localhost:447/ https localhost 447 / "
     })
     void fillFromURIorURL(String uriString, String full, String protocol, String host, int port, String path, String query) throws MalformedURLException {
-        Url urlFromUri = new Url();
+        UrlImpl urlFromUri = new UrlImpl();
         URI uri = URI.create(uriString);
         urlFromUri.fillFrom(uri);
 
-        Url urlFromUrl = new Url();
+        UrlImpl urlFromUrl = new UrlImpl();
         urlFromUrl.fillFrom(uri.toURL());
 
         Stream.of(urlFromUri, urlFromUrl).forEach(url -> {
@@ -123,7 +123,7 @@ class UrlTest {
         "http://user:password@localhost/path?query=help http://localhost/path?query=help"
     })
     void withFull(String input, String expected) {
-        Url url = new Url();
+        UrlImpl url = new UrlImpl();
         url.withFull(input);
         assertThat(url.getFull().toString()).isEqualTo(expected);
 
@@ -141,7 +141,7 @@ class UrlTest {
 
     @Test
     void getFullUpdatesFullWhenRequired() {
-        Url url = new Url();
+        UrlImpl url = new UrlImpl();
 
         StringBuilder full = url.getFull();
 

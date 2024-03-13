@@ -20,10 +20,10 @@ package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -58,7 +58,7 @@ public class JaxRsTransactionNameInstrumentationTestHelper {
         doRequestConsumer.accept("test");
         doRequestConsumer.accept("testInterface");
         doRequestConsumer.accept("testAbstract");
-        List<Transaction> actualTransactions = reporter.getTransactions();
+        List<TransactionImpl> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(3);
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("ResourceWithPath#testMethod");
         assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("unnamed");
@@ -73,7 +73,7 @@ public class JaxRsTransactionNameInstrumentationTestHelper {
         doRequestConsumer.accept("testInterface");
         doRequestConsumer.accept("testAbstract");
 
-        List<Transaction> actualTransactions = reporter.getTransactions();
+        List<TransactionImpl> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(3);
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("ResourceWithPath#testMethod");
         assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("ResourceWithPathOnInterface#testMethod");
@@ -85,7 +85,7 @@ public class JaxRsTransactionNameInstrumentationTestHelper {
 
         doRequestConsumer.accept("methodDelegation/methodA");
 
-        List<Transaction> actualTransactions = reporter.getTransactions();
+        List<TransactionImpl> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(1);
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("MethodDelegationResource#methodA");
     }
@@ -97,19 +97,19 @@ public class JaxRsTransactionNameInstrumentationTestHelper {
         doRequestConsumer.accept("testViewProxy");
         doRequestConsumer.accept("testProxyProxy");
 
-        List<Transaction> actualTransactions = reporter.getTransactions();
+        List<TransactionImpl> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(2);
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("unnamed");
         assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("unnamed");
     }
 
     public void testJaxRsTransactionNameNonSampledTransactions() throws IOException {
-        config.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
+        config.getConfig(CoreConfigurationImpl.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
 
         doRequestConsumer.accept("test");
 
-        List<Transaction> actualTransactions = reporter.getTransactions();
+        List<TransactionImpl> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(1);
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("ResourceWithPath#testMethod");
     }
@@ -124,7 +124,7 @@ public class JaxRsTransactionNameInstrumentationTestHelper {
         doRequestConsumer.accept("testAbstract");
         doRequestConsumer.accept("testInterface");
 
-        List<Transaction> actualTransactions = reporter.getTransactions();
+        List<TransactionImpl> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(3);
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /test");
         assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("GET /testAbstract");
@@ -141,7 +141,7 @@ public class JaxRsTransactionNameInstrumentationTestHelper {
         doRequestConsumer.accept("testInterface");
         doRequestConsumer.accept("testAbstract");
 
-        List<Transaction> actualTransactions = reporter.getTransactions();
+        List<TransactionImpl> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(3);
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /test");
         assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("unnamed");
@@ -157,7 +157,7 @@ public class JaxRsTransactionNameInstrumentationTestHelper {
         doRequestConsumer.accept("testWithPathMethod");
         doRequestConsumer.accept("testWithPathMethod/15");
 
-        List<Transaction> actualTransactions = reporter.getTransactions();
+        List<TransactionImpl> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(2);
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /testWithPathMethod");
         assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("GET /testWithPathMethod/{id}");
@@ -172,7 +172,7 @@ public class JaxRsTransactionNameInstrumentationTestHelper {
         doRequestConsumer.accept("testWithPathMethodSlash");
         doRequestConsumer.accept("testWithPathMethodSlash/15");
 
-        List<Transaction> actualTransactions = reporter.getTransactions();
+        List<TransactionImpl> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(2);
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /testWithPathMethodSlash");
         assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("GET /testWithPathMethodSlash/{id}");
@@ -186,7 +186,7 @@ public class JaxRsTransactionNameInstrumentationTestHelper {
 
         doRequestConsumer.accept("/foo/bar");
 
-        List<Transaction> actualTransactions = reporter.getTransactions();
+        List<TransactionImpl> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(1);
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /foo/bar");
     }
@@ -199,7 +199,7 @@ public class JaxRsTransactionNameInstrumentationTestHelper {
 
         doRequestConsumer.accept("");
 
-        List<Transaction> actualTransactions = reporter.getTransactions();
+        List<TransactionImpl> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(1);
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /");
     }
@@ -212,7 +212,7 @@ public class JaxRsTransactionNameInstrumentationTestHelper {
 
         doRequestConsumer.accept("/testInterface/test");
 
-        List<Transaction> actualTransactions = reporter.getTransactions();
+        List<TransactionImpl> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(1);
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /testInterface/test");
     }
@@ -224,19 +224,19 @@ public class JaxRsTransactionNameInstrumentationTestHelper {
 
         doRequestConsumer.accept("test");
 
-        List<Transaction> actualTransactions = reporter.getTransactions();
+        List<TransactionImpl> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(1);
         assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("JAX-RS");
         assertThat(reporter.getFirstTransaction().getFrameworkVersion()).isEqualTo(expectedVersion);
     }
 
     public void testJaxRsFrameworkNameAndVersionWithNonSampledTransaction(String expectedVersion) throws IOException {
-        config.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
+        config.getConfig(CoreConfigurationImpl.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
 
         doRequestConsumer.accept("test");
 
-        List<Transaction> actualTransactions = reporter.getTransactions();
+        List<TransactionImpl> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(1);
         assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("JAX-RS");
         assertThat(reporter.getFirstTransaction().getFrameworkVersion()).isEqualTo(expectedVersion);

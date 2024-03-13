@@ -18,10 +18,7 @@
  */
 package co.elastic.apm.agent.opentelemetry.tracing;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.*;
 import co.elastic.apm.agent.opentelemetry.SemAttributes;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
@@ -71,7 +68,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         }
 
         assertThat(reporter.getTransactions()).hasSize(1);
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo("transaction");
         assertThat(transaction.getBaggage())
             .hasSize(1)
@@ -94,7 +91,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
             .end();
 
         assertThat(reporter.getTransactions()).hasSize(1);
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo("transaction");
     }
 
@@ -109,7 +106,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
             .end();
 
         assertThat(reporter.getTransactions()).hasSize(1);
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
 
         assertThat(transaction.getOtelAttributes().get("boolean")).isEqualTo(true);
         assertThat(transaction.getOtelAttributes().get("long")).isEqualTo(42L);
@@ -120,7 +117,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
     @Test
     public void testBaggageInteroperability() {
-        ElasticContext<?> elasticContext = tracer.currentContext().withUpdatedBaggage()
+        TraceStateImpl<?> elasticContext = tracer.currentContext().withUpdatedBaggage()
             .put("foo", "elastic")
             .put("bar", "el2", "metadata")
             .buildContext()
@@ -160,7 +157,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
-        Transaction reportedTransaction = reporter.getFirstTransaction();
+        TransactionImpl reportedTransaction = reporter.getFirstTransaction();
         assertThat(reportedTransaction.getNameAsString()).isEqualTo("transaction");
 
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("span");
@@ -193,11 +190,11 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
         Baggage baggage = Baggage.builder().put("foo", "bar").build();
         try (Scope scope = baggage.makeCurrent()) {
-            Transaction tr = tracer.startRootTransaction(null).activate();
+            TransactionImpl tr = tracer.startRootTransaction(null).activate();
             assertThat(tr).hasBaggage("foo", "bar");
             Baggage baggage2 = Baggage.builder().put("foo2", "bar2").build();
             try (Scope scope2 = baggage2.makeCurrent()) {
-                co.elastic.apm.agent.impl.transaction.Span elasticSpan = tracer.currentContext().createSpan();
+                SpanImpl elasticSpan = tracer.currentContext().createSpan();
                 assertThat(elasticSpan)
                     .hasBaggage("foo2", "bar2")
                     .hasBaggageCount(1);
@@ -284,8 +281,8 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
             .isSameAs(Context.current());
     }
 
-    public ElasticContext<?> checkBridgedContext(Context context) {
-        assertThat(context).isInstanceOf(ElasticContext.class);
+    public TraceStateImpl<?> checkBridgedContext(Context context) {
+        assertThat(context).isInstanceOf(TraceStateImpl.class);
 
         // we have to check class name as the wrapper class is loaded in the plugin CL and it is also loadable from
         // the current CL, thus making class equality not work as expected
@@ -293,7 +290,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
             .describedAs("root context should be wrapped")
             .doesNotStartWith("io.opentelemetry");
 
-        return (ElasticContext<?>) context;
+        return (TraceStateImpl<?>) context;
     }
 
     @Test
@@ -349,7 +346,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
         assertThat(expected)
             .describedAs("otel context should also be an elastic context")
-            .isInstanceOf(ElasticContext.class);
+            .isInstanceOf(TraceStateImpl.class);
 
         assertThat(tracer.currentContext())
             .describedAs(assertMsg)
@@ -415,7 +412,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         ContextKey<String> key = ContextKey.named("key");
 
         Context context = Context.root().with(key, "value");
-        ElasticContext<?> bridgedContext = checkBridgedContext(context);
+        TraceStateImpl<?> bridgedContext = checkBridgedContext(context);
 
         // activate context from elastic API using a bridged context
         try (co.elastic.apm.agent.tracer.Scope scope = bridgedContext.activateInScope()) {
@@ -456,7 +453,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
     private void checkNoActiveContext() {
         assertThat(tracer.currentContext())
             .describedAs("no active elastic context is expected")
-            .satisfies(ElasticContext::isEmpty);
+            .satisfies(TraceStateImpl::isEmpty);
         assertThat(Context.current())
             .describedAs("no active otel context is expected")
             .isSameAs(Context.root())
@@ -466,7 +463,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
     @Test
     public void otelStateWithActiveElasticTransaction() {
 
-        Transaction transaction = startTestRootTransaction();
+        TransactionImpl transaction = startTestRootTransaction();
 
         try {
             assertThat(tracer.currentContext()).isSameAs(transaction);
@@ -493,7 +490,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
     @Test
     public void otelSpanOverActiveElasticTransaction() {
-        Transaction transaction = startTestRootTransaction();
+        TransactionImpl transaction = startTestRootTransaction();
 
         String spanId;
         try {
@@ -520,7 +517,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         assertThat(reporter.getFirstTransaction()).isSameAs(transaction);
 
         assertThat(reporter.getNumReportedSpans()).isEqualTo(1);
-        AbstractSpan<?> reportedSpan = reporter.getFirstSpan().getSpan();
+        AbstractSpanImpl<?> reportedSpan = reporter.getFirstSpan().getSpan();
         assertThat(reportedSpan).isNotNull();
         assertThat(reportedSpan.getNameAsString()).isEqualTo("otel span");
         assertThat(reportedSpan.getTraceContext().getId().toString()).isEqualTo(spanId);
@@ -529,7 +526,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
     @Test
     public void overrideElasticTransactionName() {
-        Transaction transaction = startTestRootTransaction()
+        TransactionImpl transaction = startTestRootTransaction()
             .withName("Elastic Provided High-Prio Name", co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_USER_SUPPLIED);
 
         try {
@@ -552,13 +549,13 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
             .spanBuilder("otel transaction")
             .startSpan();
 
-        Transaction transaction;
+        TransactionImpl transaction;
         try (Scope scope = otelSpan.makeCurrent()) {
 
             transaction = tracer.currentTransaction();
             assertThat(transaction).isNotNull();
 
-            co.elastic.apm.agent.impl.transaction.Span elasticSpan = transaction.createSpan();
+            SpanImpl elasticSpan = transaction.createSpan();
             try (co.elastic.apm.agent.tracer.Scope elasticScope = elasticSpan.activateInScope()) {
                 assertThat(tracer.getActive()).isNotNull();
                 tracer.getActive().withName("elastic span");
@@ -578,7 +575,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         assertThat(transaction.getNameAsString()).isEqualTo("otel transaction");
 
         assertThat(reporter.getNumReportedSpans()).isEqualTo(1);
-        AbstractSpan<?> reportedSpan = reporter.getFirstSpan().getSpan();
+        AbstractSpanImpl<?> reportedSpan = reporter.getFirstSpan().getSpan();
         assertThat(reportedSpan).isNotNull();
         assertThat(reportedSpan.getNameAsString()).isEqualTo("elastic span");
         assertThat(reportedSpan.getTraceContext().isChildOf(transaction.getTraceContext())).isTrue();
@@ -605,7 +602,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         ));
     }
 
-    private static void checkOTelAttributes(AbstractSpan<?> context, Map<String, Object> expected) {
+    private static void checkOTelAttributes(AbstractSpanImpl<?> context, Map<String, Object> expected) {
         assertThat(context.getOtelAttributes())
             .containsAllEntriesOf(expected)
             .hasSameSizeAs(expected);
@@ -662,7 +659,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         }
 
         assertThat(reporter.getTransactions()).hasSize(1);
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo("transaction");
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
         assertThat(transaction.getTimestamp()).isEqualTo(startTransaction.toEpochMilli() * 1000);
@@ -671,7 +668,7 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
 
 
         assertThat(reporter.getSpans()).hasSize(1);
-        co.elastic.apm.agent.impl.transaction.Span span = reporter.getFirstSpan();
+        SpanImpl span = reporter.getFirstSpan();
         assertThat(span.getNameAsString()).isEqualTo("span");
         assertThat(span.getOutcome()).isEqualTo(Outcome.UNKNOWN);
         assertThat(span.getTimestamp()).isEqualTo(startSpan.toEpochMilli() * 1000);

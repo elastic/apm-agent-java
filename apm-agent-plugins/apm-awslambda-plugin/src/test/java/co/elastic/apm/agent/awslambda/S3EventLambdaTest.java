@@ -21,8 +21,8 @@ package co.elastic.apm.agent.awslambda;
 import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.S3EventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
-import co.elastic.apm.agent.impl.transaction.Faas;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.FaasImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification;
@@ -80,7 +80,7 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo(S3_EVENT_NAME + " " + S3_BUCKET_NAME);
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getResult()).isEqualTo("success");
@@ -98,7 +98,7 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
         assertThat(transaction.getContext().getCloudOrigin().getRegion()).isEqualTo(EVENT_SOURCE_REGION);
         assertThat(transaction.getContext().getCloudOrigin().getAccountId()).isNull();
 
-        Faas faas = transaction.getFaas();
+        FaasImpl faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
         assertThat(faas.getId()).isEqualTo(TestContext.FUNCTION_ARN);
         assertThat(faas.getTrigger().getType()).isEqualTo("datasource");
@@ -115,7 +115,7 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getResult()).isEqualTo("success");
@@ -129,7 +129,7 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isFalse();
 
-        Faas faas = transaction.getFaas();
+        FaasImpl faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
 
         assertThat(faas.getTrigger().getType()).isEqualTo("other");
@@ -157,7 +157,7 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getResult()).isEqualTo("success");
@@ -171,14 +171,14 @@ public class S3EventLambdaTest extends AbstractLambdaTest<S3Event, Void> {
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isFalse();
 
-        Faas faas = transaction.getFaas();
+        FaasImpl faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
 
         assertThat(faas.getTrigger().getType()).isEqualTo("datasource");
         assertThat(faas.getTrigger().getRequestId()).isNull();
     }
 
-    private void verifyOtelAttributes(Transaction transaction) {
+    private void verifyOtelAttributes(TransactionImpl transaction) {
         Object s3keyAttribute = transaction.getOtelAttributes().get("aws.s3.key");
         assertThat(s3keyAttribute).isInstanceOf(String.class).isEqualTo("b21b84d653bb07b05b1e6b33684dc11b");
 

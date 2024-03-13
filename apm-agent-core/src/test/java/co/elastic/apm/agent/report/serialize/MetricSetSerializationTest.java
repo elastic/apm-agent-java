@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricCollector;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricsProvider;
-import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,7 +44,7 @@ import static org.mockito.Mockito.spy;
 class MetricSetSerializationTest {
 
     private ObjectMapper objectMapper = new ObjectMapper();
-    private MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class), spy(MetricsConfiguration.class));
+    private MetricRegistry registry = new MetricRegistry(mock(ReporterConfigurationImpl.class), spy(MetricsConfigurationImpl.class));
     private MetricRegistrySerializer metricRegistrySerializer = new MetricRegistrySerializer();
 
     @Test

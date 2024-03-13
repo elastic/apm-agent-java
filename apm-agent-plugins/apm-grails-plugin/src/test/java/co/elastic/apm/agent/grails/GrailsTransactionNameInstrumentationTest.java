@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.grails;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Scope;
 import grails.core.GrailsControllerClass;
 import grails.web.mapping.UrlMappingInfo;
@@ -50,7 +50,7 @@ public class GrailsTransactionNameInstrumentationTest extends AbstractInstrument
         doReturn("Foo").when(controllerClass).getShortName();
         final UrlMappingInfo mappingInfo = mock(UrlMappingInfo.class);
         doReturn("bar").when(mappingInfo).getActionName();
-        final Transaction transaction = tracer.startRootTransaction(null).withName("override me");
+        final TransactionImpl transaction = tracer.startRootTransaction(null).withName("override me");
         try (Scope scope = transaction.activateInScope()) {
             handlerAdapter.handle(mock(HttpServletRequest.class), mock(HttpServletResponse.class), new GrailsControllerUrlMappingInfo(controllerClass, mappingInfo));
         } catch (Exception ignore) {

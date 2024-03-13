@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.struts;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import com.opensymphony.xwork2.ActionSupport;
 import org.apache.struts2.StrutsTestCase;
 
@@ -55,7 +55,7 @@ public class ActionProxyAdviceTest extends StrutsTestCase {
     }
 
     public void testExecuteAction() throws ServletException, UnsupportedEncodingException {
-        Transaction transaction = AbstractInstrumentationTest.getTracer().startRootTransaction(null).withName("struts-test").activate();
+        TransactionImpl transaction = AbstractInstrumentationTest.getTracer().startRootTransaction(null).withName("struts-test").activate();
         executeAction("/test1");
         transaction.end();
 
@@ -63,7 +63,7 @@ public class ActionProxyAdviceTest extends StrutsTestCase {
     }
 
     public void testExecuteCustomMethodAction() throws ServletException, UnsupportedEncodingException {
-        Transaction transaction = AbstractInstrumentationTest.getTracer().startRootTransaction(null).withName("struts-test").activate();
+        TransactionImpl transaction = AbstractInstrumentationTest.getTracer().startRootTransaction(null).withName("struts-test").activate();
         executeAction("/test2");
         transaction.end();
 
@@ -71,12 +71,12 @@ public class ActionProxyAdviceTest extends StrutsTestCase {
     }
 
     public void testChainedAction() throws ServletException, UnsupportedEncodingException {
-        Transaction transaction = AbstractInstrumentationTest.getTracer().startRootTransaction(null).withName("struts-test").activate();
+        TransactionImpl transaction = AbstractInstrumentationTest.getTracer().startRootTransaction(null).withName("struts-test").activate();
         executeAction("/test3");
         transaction.end();
 
         assertThat(AbstractInstrumentationTest.getReporter().getFirstTransaction().getNameAsString()).isEqualTo("TestAction#chainedAction");
-        Span span = AbstractInstrumentationTest.getReporter().getFirstSpan();
+        SpanImpl span = AbstractInstrumentationTest.getReporter().getFirstSpan();
         assertThat(span.getNameAsString()).isEqualTo("TestAction#execute");
         assertThat(span.getType()).isEqualTo("app");
         assertThat(span.getSubtype()).isEqualTo("internal");

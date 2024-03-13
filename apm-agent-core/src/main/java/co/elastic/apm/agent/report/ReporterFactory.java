@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactoryImpl;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -32,17 +32,17 @@ public class ReporterFactory {
                                    ApmServerClient apmServerClient,
                                    DslJsonSerializer payloadSerializer,
                                    ReporterMonitor monitor,
-                                   ObjectPoolFactory poolFactory) {
+                                   ObjectPoolFactoryImpl poolFactory) {
 
-        ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        CoreConfiguration coreConfig = configurationRegistry.getConfig(CoreConfiguration.class);
+        ReporterConfigurationImpl reporterConfiguration = configurationRegistry.getConfig(ReporterConfigurationImpl.class);
+        CoreConfigurationImpl coreConfig = configurationRegistry.getConfig(CoreConfigurationImpl.class);
         ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry, reporterConfiguration, payloadSerializer, apmServerClient);
         return new ApmServerReporter(true, reporterConfiguration, coreConfig, reportingEventHandler, monitor, apmServerClient, payloadSerializer, poolFactory);
     }
 
     @Nonnull
     private ReportingEventHandler getReportingEventHandler(ConfigurationRegistry configurationRegistry,
-                                                           ReporterConfiguration reporterConfiguration,
+                                                           ReporterConfigurationImpl reporterConfiguration,
                                                            DslJsonSerializer payloadSerializer,
                                                            ApmServerClient apmServerClient) {
         ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);

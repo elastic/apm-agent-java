@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.awssdk.v2.helper;
 
 import co.elastic.apm.agent.awssdk.common.AbstractSQSInstrumentationHelper;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -57,7 +57,7 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, Exec
         super(tracer, SdkV2DataSource.getInstance());
     }
 
-    private SdkRequest propagateContext(ElasticContext<?> toPropagate, SdkRequest sdkRequest) {
+    private SdkRequest propagateContext(TraceState<?> toPropagate, SdkRequest sdkRequest) {
         if (sdkRequest instanceof SendMessageRequest) {
             SendMessageRequest sendMessageRequest = (SendMessageRequest) sdkRequest;
             Map<String, MessageAttributeValue> attributesMap = new HashMap<>(sendMessageRequest.messageAttributes());
@@ -119,7 +119,7 @@ public class SQSHelper extends AbstractSQSInstrumentationHelper<SdkRequest, Exec
         return request instanceof ReceiveMessageRequest;
     }
 
-    public void modifyRequestObject(ElasticContext<?> toPropagate, ClientExecutionParams clientExecutionParams, ExecutionContext executionContext) {
+    public void modifyRequestObject(TraceState<?> toPropagate, ClientExecutionParams clientExecutionParams, ExecutionContext executionContext) {
         SdkRequest sdkRequest = clientExecutionParams.getInput();
         SdkRequest newRequestObj = null;
         if (!toPropagate.isEmpty() && clientExecutionParams.getOperationName().startsWith("SendMessage")) {

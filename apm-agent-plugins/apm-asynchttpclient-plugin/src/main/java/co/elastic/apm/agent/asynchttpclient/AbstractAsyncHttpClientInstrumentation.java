@@ -20,7 +20,7 @@ package co.elastic.apm.agent.asynchttpclient;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -103,7 +103,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object onBeforeExecute(@Advice.Argument(value = 0) Request request,
                                                  @Advice.Argument(value = 1) AsyncHandler<?> asyncHandler) {
-                final ElasticContext<?> activeContext = tracer.currentContext();
+                final TraceState<?> activeContext = tracer.currentContext();
                 final AbstractSpan<?> parentSpan = tracer.getActive();
                 Span<?> span = null;
                 if (parentSpan != null) {

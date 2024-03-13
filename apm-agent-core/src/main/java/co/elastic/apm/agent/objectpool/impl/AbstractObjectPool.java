@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.agent.objectpool.impl;
 
-import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.objectpool.ObservableObjectPool;
 import co.elastic.apm.agent.objectpool.Resetter;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractObjectPool<T> implements ObjectPool<T> {
+public abstract class AbstractObjectPool<T> implements ObservableObjectPool<T> {
 
     protected final Allocator<? extends T> allocator;
     protected final Resetter<? super T> resetter;

@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.impl.transaction.ElasticContextWrapper;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.TraceStateImpl;
+import co.elastic.apm.agent.impl.transaction.TraceStateWrapper;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
@@ -55,11 +55,11 @@ class ActiveStack {
      * Also, the caller does not have to keep a reference to the previously active span, as that is maintained by the stack.
      * This makes activating a span allocation-free (assuming the stack has enough pre-allocated slots available).
      */
-    private final Deque<ElasticContext<?>> activeContextStack = new ArrayDeque<ElasticContext<?>>();
+    private final Deque<TraceStateImpl<?>> activeContextStack = new ArrayDeque<TraceStateImpl<?>>();
 
-    private final EmptyElasticContext emptyContext;
+    private final EmptyTraceState emptyContext;
 
-    ActiveStack(int stackMaxDepth, EmptyElasticContext emptyContextForTracer) {
+    ActiveStack(int stackMaxDepth, EmptyTraceState emptyContextForTracer) {
         this.stackMaxDepth = stackMaxDepth;
         this.emptyContext = emptyContextForTracer;
     }
@@ -68,18 +68,18 @@ class ActiveStack {
      * @return the current context, potentially empty when no span, transaction or baggage is currently active.
      */
 
-    public ElasticContext<?> currentContext() {
-        ElasticContext<?> current = activeContextStack.peek();
+    public TraceStateImpl<?> currentContext() {
+        TraceStateImpl<?> current = activeContextStack.peek();
 
         // When the active context is wrapped, the wrapper should be transparent to the caller, thus we always return
         // the underlying wrapped context.
-        if (current instanceof ElasticContextWrapper) {
-            return ((ElasticContextWrapper<?>) current).getWrappedContext();
+        if (current instanceof TraceStateWrapper) {
+            return ((TraceStateWrapper<?>) current).getWrappedContext();
         }
         return current != null ? current : emptyContext;
     }
 
-    boolean activate(ElasticContext<?> context, List<ActivationListener> activationListeners) {
+    boolean activate(TraceStateImpl<?> context, List<ActivationListener> activationListeners) {
         if (logger.isDebugEnabled()) {
             logger.debug("Activating {} on thread {}", context, Thread.currentThread().getId());
         }
@@ -96,7 +96,7 @@ class ActiveStack {
         }
 
         context.incrementReferences();
-        AbstractSpan<?> span = context.getSpan();
+        AbstractSpanImpl<?> span = context.getSpan();
         if (span != null) {
             triggerActivationListeners(span, true, activationListeners);
         }
@@ -105,7 +105,7 @@ class ActiveStack {
         return true;
     }
 
-    boolean deactivate(ElasticContext<?> context, List<ActivationListener> activationListeners, boolean assertionsEnabled) {
+    boolean deactivate(TraceStateImpl<?> context, List<ActivationListener> activationListeners, boolean assertionsEnabled) {
         if (logger.isDebugEnabled()) {
             logger.debug("Deactivating {} on thread {}", context, Thread.currentThread().getId());
         }
@@ -115,13 +115,13 @@ class ActiveStack {
             return false;
         }
 
-        ElasticContext<?> activeContext = currentContext();
+        TraceStateImpl<?> activeContext = currentContext();
         activeContextStack.remove();
 
         try {
             assertIsActive(context, activeContext, assertionsEnabled);
 
-            AbstractSpan<?> span = context.getSpan();
+            AbstractSpanImpl<?> span = context.getSpan();
             if (null != span) {
                 triggerActivationListeners(span, false, activationListeners);
             }
@@ -131,7 +131,7 @@ class ActiveStack {
         return true;
     }
 
-    private void triggerActivationListeners(AbstractSpan<?> span, boolean isActivate, List<ActivationListener> activationListeners) {
+    private void triggerActivationListeners(AbstractSpanImpl<?> span, boolean isActivate, List<ActivationListener> activationListeners) {
         for (int i = 0, size = activationListeners.size(); i < size; i++) {
             ActivationListener listener = activationListeners.get(i);
             try {
@@ -149,7 +149,7 @@ class ActiveStack {
         }
     }
 
-    private void assertIsActive(ElasticContext<?> context, @Nullable ElasticContext<?> currentlyActive, boolean assertionsEnabled) {
+    private void assertIsActive(TraceStateImpl<?> context, @Nullable TraceStateImpl<?> currentlyActive, boolean assertionsEnabled) {
         if (context != currentlyActive) {
             logger.warn("Deactivating a context ({}) which is not the currently active one ({}). " +
                 "This can happen when not properly deactivating a previous span or context.", context, currentlyActive);
@@ -169,17 +169,17 @@ class ActiveStack {
      * @param <T>          wrapper type
      * @return newly (or previously) created wrapper
      */
-    <T extends ElasticContext<T>> T wrapActiveContextIfRequired(Class<T> wrapperClass, Callable<T> wrapFunction, int approximateContextSize) {
+    <T extends TraceStateImpl<T>> T wrapActiveContextIfRequired(Class<T> wrapperClass, Callable<T> wrapFunction, int approximateContextSize) {
 
         // the current context might be either a "regular" one or a "wrapped" one if it has already been wrapped
-        ElasticContext<?> current = activeContextStack.peek();
+        TraceStateImpl<?> current = activeContextStack.peek();
 
         Objects.requireNonNull(current, "active context required for wrapping");
-        ElasticContextWrapper<?> wrapper;
-        if (current instanceof ElasticContextWrapper) {
-            wrapper = (ElasticContextWrapper<?>) current;
+        TraceStateWrapper<?> wrapper;
+        if (current instanceof TraceStateWrapper) {
+            wrapper = (TraceStateWrapper<?>) current;
         } else {
-            wrapper = new ElasticContextWrapper<>(approximateContextSize, current);
+            wrapper = new TraceStateWrapper<>(approximateContextSize, current);
         }
         T wrapped = wrapper.wrapIfRequired(wrapperClass, wrapFunction);
 

@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.java_ldap;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.test.TestPort;
 import co.elastic.apm.agent.tracer.Outcome;
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
@@ -63,7 +63,7 @@ public class LdapClientAdviceTest extends AbstractInstrumentationTest {
     void testSuccessfulAuthentication() throws Exception {
         Hashtable<String, String> environment = getEnvironment();
 
-        Transaction transaction = startTestRootTransaction();
+        TransactionImpl transaction = startTestRootTransaction();
         try {
             new InitialDirContext(environment).close();
         } catch (Exception ignored) {
@@ -71,7 +71,7 @@ public class LdapClientAdviceTest extends AbstractInstrumentationTest {
             transaction.deactivate().end();
         }
 
-        List<Span> spans = reporter.getSpans();
+        List<SpanImpl> spans = reporter.getSpans();
         assertThat(spans.size()).isEqualTo(1);
 
         assertSpan(spans.get(0), "authenticate", Outcome.SUCCESS);
@@ -82,7 +82,7 @@ public class LdapClientAdviceTest extends AbstractInstrumentationTest {
         Hashtable<String, String> environment = getEnvironment();
         environment.put(Context.SECURITY_CREDENTIALS, "wrong password");
 
-        Transaction transaction = startTestRootTransaction();
+        TransactionImpl transaction = startTestRootTransaction();
         try {
             new InitialDirContext(environment).close();
         } catch (Exception ignored) {
@@ -91,7 +91,7 @@ public class LdapClientAdviceTest extends AbstractInstrumentationTest {
             transaction.deactivate().end();
         }
 
-        List<Span> spans = reporter.getSpans();
+        List<SpanImpl> spans = reporter.getSpans();
         assertThat(spans.size()).isEqualTo(1);
 
         assertSpan(spans.get(0), "authenticate", Outcome.FAILURE);
@@ -101,7 +101,7 @@ public class LdapClientAdviceTest extends AbstractInstrumentationTest {
     void testSearch() {
         Hashtable<String, String> environment = getEnvironment();
 
-        Transaction transaction = startTestRootTransaction();
+        TransactionImpl transaction = startTestRootTransaction();
         try {
             InitialDirContext context = new InitialDirContext(environment);
             context.search("dc=example,dc=com", "(&(objectClass=person)(uid=tobiasstadler))", null);
@@ -111,7 +111,7 @@ public class LdapClientAdviceTest extends AbstractInstrumentationTest {
             transaction.deactivate().end();
         }
 
-        List<Span> spans = reporter.getSpans();
+        List<SpanImpl> spans = reporter.getSpans();
         assertThat(spans.size()).isEqualTo(2);
 
         assertSpan(spans.get(0), "authenticate", Outcome.SUCCESS);
@@ -130,7 +130,7 @@ public class LdapClientAdviceTest extends AbstractInstrumentationTest {
         return environment;
     }
 
-    static void assertSpan(Span span, String method, Outcome outcome) {
+    static void assertSpan(SpanImpl span, String method, Outcome outcome) {
         assertThat(span.getNameAsString()).isEqualTo("LDAP " + method);
         assertThat(span.getType()).isEqualTo("external");
         assertThat(span.getSubtype()).isEqualTo("ldap");

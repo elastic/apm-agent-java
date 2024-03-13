@@ -25,6 +25,7 @@ import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.tracer.service.Service;
+import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
@@ -76,8 +77,8 @@ class NoopTracer implements Tracer {
     }
 
     @Override
-    public ElasticContext<?> currentContext() {
-        return NoopElasticContext.INSTANCE;
+    public TraceState<?> currentContext() {
+        return NoopTraceState.INSTANCE;
     }
 
     @Nullable
@@ -106,7 +107,7 @@ class NoopTracer implements Tracer {
 
     @Nullable
     @Override
-    public <T, C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+    public <T, C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headerGetter, @Nullable ClassLoader initiatingClassLoader) {
         return null;
     }
 
@@ -166,5 +167,20 @@ class NoopTracer implements Tracer {
 
     @Override
     public void reportMetric(JsonWriter metrics) {
+    }
+
+    @Nullable
+    @Override
+    public ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader initiatingClassLoader) {
+        return null;
+    }
+
+    @Override
+    public void setServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo) {
+    }
+
+    @Override
+    public ServiceInfo autoDetectedServiceInfo() {
+        return ServiceInfo.empty();
     }
 }

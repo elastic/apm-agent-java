@@ -25,6 +25,7 @@ import co.elastic.apm.agent.tracer.pooling.ObjectPoolFactory;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.tracer.service.Service;
+import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
@@ -99,7 +100,7 @@ public class GlobalTracer implements Tracer {
     }
 
     @Override
-    public ElasticContext<?> currentContext() {
+    public TraceState<?> currentContext() {
         return tracer.currentContext();
     }
 
@@ -129,8 +130,8 @@ public class GlobalTracer implements Tracer {
 
     @Nullable
     @Override
-    public <T, C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
-        return tracer.startChildTransaction(headerCarrier, textHeadersGetter, initiatingClassLoader);
+    public <T, C> Transaction<?> startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headerGetter, @Nullable ClassLoader initiatingClassLoader) {
+        return tracer.startChildTransaction(headerCarrier, headerGetter, initiatingClassLoader);
     }
 
     @Nullable
@@ -201,4 +202,19 @@ public class GlobalTracer implements Tracer {
         tracer.reportMetric(metrics);
     }
 
+    @Nullable
+    @Override
+    public ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader initiatingClassLoader) {
+        return tracer.getServiceInfoForClassLoader(initiatingClassLoader);
+    }
+
+    @Override
+    public void setServiceInfoForClassLoader(@Nullable ClassLoader classLoader, ServiceInfo serviceInfo) {
+        tracer.setServiceInfoForClassLoader(classLoader, serviceInfo);
+    }
+
+    @Override
+    public ServiceInfo autoDetectedServiceInfo() {
+        return tracer.autoDetectedServiceInfo();
+    }
 }

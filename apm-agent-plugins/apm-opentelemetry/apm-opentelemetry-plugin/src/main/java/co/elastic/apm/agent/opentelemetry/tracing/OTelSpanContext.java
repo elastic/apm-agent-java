@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.opentelemetry.tracing;
 
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.TraceFlags;
 import io.opentelemetry.api.trace.TraceState;
@@ -28,11 +28,11 @@ import org.stagemonitor.util.StringUtils;
 import java.util.List;
 
 public class OTelSpanContext implements SpanContext {
-    private final TraceContext traceContext;
+    private final TraceContextImpl traceContext;
 
-    protected TraceContext getElasticTraceContext() {return traceContext;}
+    protected TraceContextImpl getElasticTraceContext() {return traceContext;}
 
-    public OTelSpanContext(TraceContext traceContext) {
+    public OTelSpanContext(TraceContextImpl traceContext) {
         this.traceContext = traceContext;
     }
 

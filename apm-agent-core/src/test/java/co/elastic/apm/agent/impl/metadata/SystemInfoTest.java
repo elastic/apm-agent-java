@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.metadata;
 
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.configuration.ServerlessConfigurationImpl;
 import co.elastic.apm.agent.util.CustomEnvVariables;
 import org.junit.jupiter.api.Test;
 
@@ -34,11 +34,11 @@ public class SystemInfoTest extends CustomEnvVariables {
 
     private static final SystemInfo systemInfo;
     private static final boolean isWindows;
-    private static final ServerlessConfiguration serverlessConfiguration;
+    private static final ServerlessConfigurationImpl serverlessConfiguration;
 
 
     static {
-        serverlessConfiguration = config.getConfig(ServerlessConfiguration.class);
+        serverlessConfiguration = config.getConfig(ServerlessConfigurationImpl.class);
         systemInfo = SystemInfo.create("hostname", 0, serverlessConfiguration);
         isWindows = SystemInfo.isWindows(systemInfo.getPlatform());
     }

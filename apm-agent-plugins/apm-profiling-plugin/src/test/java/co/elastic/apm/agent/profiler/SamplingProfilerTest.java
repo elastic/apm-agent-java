@@ -23,8 +23,8 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
 import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
@@ -163,7 +163,7 @@ class SamplingProfilerTest {
         setupProfiler(true);
         awaitProfilerStarted(profiler);
 
-        Transaction transaction = tracer.startRootTransaction(null).withName("transaction");
+        TransactionImpl transaction = tracer.startRootTransaction(null).withName("transaction");
         try (Scope scope = transaction.activateInScope()) {
             // makes sure that the rest will be captured by another profiling session
             // this tests that restoring which threads to profile works
@@ -179,23 +179,23 @@ class SamplingProfilerTest {
             .timeout(5000, TimeUnit.MILLISECONDS)
             .untilAsserted(() -> assertThat(reporter.getSpans()).hasSize(5));
 
-        Optional<Span> testProfileTransaction = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#testProfileTransaction")).findAny();
+        Optional<SpanImpl> testProfileTransaction = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#testProfileTransaction")).findAny();
         assertThat(testProfileTransaction).isPresent();
         assertThat(testProfileTransaction.get().isChildOf(transaction)).isTrue();
 
-        Optional<Span> inferredSpanA = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#aInferred")).findAny();
+        Optional<SpanImpl> inferredSpanA = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#aInferred")).findAny();
         assertThat(inferredSpanA).isPresent();
         assertThat(inferredSpanA.get().isChildOf(testProfileTransaction.get())).isTrue();
 
-        Optional<Span> explicitSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("bExplicit")).findAny();
+        Optional<SpanImpl> explicitSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("bExplicit")).findAny();
         assertThat(explicitSpanB).isPresent();
         assertThat(explicitSpanB.get().isChildOf(inferredSpanA.get())).isTrue();
 
-        Optional<Span> inferredSpanC = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#cInferred")).findAny();
+        Optional<SpanImpl> inferredSpanC = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#cInferred")).findAny();
         assertThat(inferredSpanC).isPresent();
         assertThat(inferredSpanC.get().isChildOf(explicitSpanB.get())).isTrue();
 
-        Optional<Span> inferredSpanD = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#dInferred")).findAny();
+        Optional<SpanImpl> inferredSpanD = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#dInferred")).findAny();
         assertThat(inferredSpanD).isPresent();
         assertThat(inferredSpanD.get().isChildOf(inferredSpanC.get())).isTrue();
     }
@@ -208,7 +208,7 @@ class SamplingProfilerTest {
 
         AtomicReference<Boolean> profilingActive = new AtomicReference<>();
         Runnable task = () -> {
-            Transaction transaction = tracer.startRootTransaction(null).withName("transaction");
+            TransactionImpl transaction = tracer.startRootTransaction(null).withName("transaction");
             try (Scope scope = transaction.activateInScope()) {
                 // makes sure that the rest will be captured by another profiling session
                 // this tests that restoring which threads to profile works
@@ -238,7 +238,7 @@ class SamplingProfilerTest {
         doReturn(false).when(profilingConfig).isPostProcessingEnabled();
         awaitProfilerStarted(profiler);
 
-        Transaction transaction = tracer.startRootTransaction(null).withName("transaction");
+        TransactionImpl transaction = tracer.startRootTransaction(null).withName("transaction");
         try (Scope scope = transaction.activateInScope()) {
             // makes sure that the rest will be captured by another profiling session
             // this tests that restoring which threads to profile works
@@ -253,13 +253,13 @@ class SamplingProfilerTest {
             .timeout(5000, TimeUnit.MILLISECONDS)
             .untilAsserted(() -> assertThat(reporter.getSpans()).hasSize(1));
 
-        Optional<Span> explicitSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("bExplicit")).findAny();
+        Optional<SpanImpl> explicitSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("bExplicit")).findAny();
         assertThat(explicitSpanB).isPresent();
         assertThat(explicitSpanB.get().isChildOf(transaction)).isTrue();
     }
 
-    private void aInferred(Transaction transaction) throws Exception {
-        Span span = transaction.createSpan().withName("bExplicit").withType("custom");
+    private void aInferred(TransactionImpl transaction) throws Exception {
+        SpanImpl span = transaction.createSpan().withName("bExplicit").withType("custom");
         try (Scope spanScope = span.activateInScope()) {
             cInferred();
         } finally {

@@ -56,7 +56,7 @@ class DestinationTest {
 
     @Test
     void setAddressTwiceShouldReset() {
-        Destination destination = new Destination();
+        DestinationImpl destination = new DestinationImpl();
 
         assertThat(destination.withAddress("aaa").withAddress("bb").getAddress().toString())
             .isEqualTo("bb");
@@ -67,7 +67,7 @@ class DestinationTest {
         checkAddress("user-before", d -> d.withUserAddress("user-before").withAddress("address"));
         checkAddress("user-after", d -> d.withAddress("user-before").withUserAddress("user-after"));
 
-        Destination emptyUserAddress = new Destination().withAddress("host").withUserAddress("");
+        DestinationImpl emptyUserAddress = new DestinationImpl().withAddress("host").withUserAddress("");
         assertThat(emptyUserAddress.getAddress()).isEmpty();
         assertThat(emptyUserAddress.hasContent()).isFalse();
     }
@@ -79,17 +79,17 @@ class DestinationTest {
         checkPort(33, d -> d.withPort(42).withUserPort(33));
         checkPort(33, d -> d.withUserPort(33).withPort(42));
     }
-    
-    private static void checkPort(int expected, Function<Destination, Destination> operations) {
-        Destination destination = new Destination();
+
+    private static void checkPort(int expected, Function<DestinationImpl, DestinationImpl> operations) {
+        DestinationImpl destination = new DestinationImpl();
         operations.apply(destination);
         assertThat(destination.getPort()).isEqualTo(expected);
 
         assertThat(destination.hasContent()).isTrue();
     }
 
-    private static void checkAddress(String expected, Function<Destination, Destination> operations) {
-        Destination destination = new Destination();
+    private static void checkAddress(String expected, Function<DestinationImpl, DestinationImpl> operations) {
+        DestinationImpl destination = new DestinationImpl();
         operations.apply(destination);
         assertThat(destination.getAddress().toString()) // call to toString required otherwise comparison fails
             .isEqualTo(expected);
@@ -102,7 +102,7 @@ class DestinationTest {
     }
 
     private void checkSetHostAndPort(String input, String expectedHost, int expectedPort) {
-        Destination destination = new Destination();
+        DestinationImpl destination = new DestinationImpl();
         destination.withAddressPort(input);
         assertThat(destination.hasContent()).isTrue();
 
@@ -112,7 +112,7 @@ class DestinationTest {
     }
 
     private void checkInvalidHostAndPort(String input) {
-        Destination destination = new Destination();
+        DestinationImpl destination = new DestinationImpl();
         destination.withAddressPort(input);
 
         assertThat(destination.hasContent()).isFalse();

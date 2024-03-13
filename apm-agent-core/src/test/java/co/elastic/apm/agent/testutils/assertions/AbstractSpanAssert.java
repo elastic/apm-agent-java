@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.agent.testutils.assertions;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.tracer.Outcome;
 
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, ACTUAL extends AbstractSpan<?>> extends ElasticContextAssert<SELF, ACTUAL> {
+public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, ACTUAL extends AbstractSpanImpl<?>> extends ElasticContextAssert<SELF, ACTUAL> {
 
     protected AbstractSpanAssert(ACTUAL actual, Class<SELF> selfType) {
         super(actual, selfType);
@@ -64,9 +64,9 @@ public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, A
         return thiz();
     }
 
-    public SELF hasParent(AbstractSpan<?> expectedParent) {
-        TraceContext parentCtx = expectedParent.getTraceContext();
-        TraceContext actualCtx = actual.getTraceContext();
+    public SELF hasParent(AbstractSpanImpl<?> expectedParent) {
+        TraceContextImpl parentCtx = expectedParent.getTraceContext();
+        TraceContextImpl actualCtx = actual.getTraceContext();
 
         checkObject("Expected span to have traceId '%s' but was '%s'", parentCtx.getTraceId(), actualCtx.getTraceId());
         checkObject("Expected span to have parent-Id '%s' but was '%s'", parentCtx.getId(), actualCtx.getParentId());
@@ -80,7 +80,7 @@ public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, A
         return thiz();
     }
 
-    public SELF hasSpanLink(AbstractSpan<?> expectedLink) {
+    public SELF hasSpanLink(AbstractSpanImpl<?> expectedLink) {
         if (!checkSpanLinksContain(expectedLink.getTraceContext())) {
             String links = actual.getSpanLinks().stream()
                 .map(ctx -> String.format("%s-%s", ctx.getTraceId(), ctx.getParentId()))
@@ -101,7 +101,7 @@ public class AbstractSpanAssert<SELF extends AbstractSpanAssert<SELF, ACTUAL>, A
         return thiz();
     }
 
-    private boolean checkSpanLinksContain(TraceContext expectedLink) {
+    private boolean checkSpanLinksContain(TraceContextImpl expectedLink) {
         return actual.getSpanLinks().stream()
             .anyMatch(ctx -> Objects.equals(ctx.getParentId(), expectedLink.getId())
                 && Objects.equals(ctx.getTraceId(), expectedLink.getTraceId())

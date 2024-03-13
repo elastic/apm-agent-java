@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.sampling;
 
-import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.IdImpl;
 import co.elastic.apm.agent.impl.transaction.TraceState;
 
 /**
@@ -29,9 +29,9 @@ import co.elastic.apm.agent.impl.transaction.TraceState;
  * <p>
  * Implementation notes:
  * </p>
- * We are taking advantage of the fact, that the {@link Id} is randomly generated.
+ * We are taking advantage of the fact, that the {@link IdImpl} is randomly generated.
  * So instead of generating another random number,
- * we just see if the long value returned by {@link Id#getLeastSignificantBits()}
+ * we just see if the long value returned by {@link IdImpl#getLeastSignificantBits()}
  * falls into the range between the {@code lowerBound} and the <code>higherBound</code>.
  * This is a visual representation of the mechanism with a sampling rate of 0.5 (=50%):
  * <pre>
@@ -70,7 +70,7 @@ public class ProbabilitySampler implements Sampler {
     }
 
     @Override
-    public boolean isSampled(Id traceId) {
+    public boolean isSampled(IdImpl traceId) {
         final long leastSignificantBits = traceId.getLeastSignificantBits();
         return leastSignificantBits > lowerBound && leastSignificantBits < higherBound;
     }

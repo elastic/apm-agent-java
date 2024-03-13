@@ -16,7 +16,6 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <dependencies>
-        <!-- This plugin requires further refactoring to avoid agent dependencies. -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-core</artifactId>

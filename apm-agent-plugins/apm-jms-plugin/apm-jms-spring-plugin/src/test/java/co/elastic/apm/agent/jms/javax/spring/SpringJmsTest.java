@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.jms.javax.spring;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Id;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.IdImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.command.ActiveMQMapMessage;
 import org.junit.AfterClass;
@@ -71,7 +71,7 @@ public class SpringJmsTest extends AbstractInstrumentationTest {
     public void testSendListenSpringQueue() throws JMSException, InterruptedException {
         try (Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)) {
 
-            Transaction transaction = startTestRootTransaction("JMS-Spring-Test Transaction");
+            TransactionImpl transaction = startTestRootTransaction("JMS-Spring-Test Transaction");
 
             final String key1 = "key1";
             final String key2 = "key2";
@@ -96,23 +96,23 @@ public class SpringJmsTest extends AbstractInstrumentationTest {
             assertThat(result.get(key1).toString()).isEqualTo(value1);
             assertThat(result.get(key2).toString()).isEqualTo(value2);
 
-            List<Transaction> transactions = reporter.getTransactions();
+            List<TransactionImpl> transactions = reporter.getTransactions();
             assertThat(transactions).hasSize(2);
-            Transaction baseTransaction = transactions.get(1);
-            Id traceId = baseTransaction.getTraceContext().getTraceId();
+            TransactionImpl baseTransaction = transactions.get(1);
+            IdImpl traceId = baseTransaction.getTraceContext().getTraceId();
 
-            List<Span> spans = reporter.getSpans();
+            List<SpanImpl> spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
-            Span sendSpan = spans.get(0);
+            SpanImpl sendSpan = spans.get(0);
             assertThat(sendSpan.getNameAsString()).isEqualTo("JMS SEND to queue " + SPRING_TEST_QUEUE);
             assertThat(sendSpan.getTraceContext().getTraceId()).isEqualTo(traceId);
 
-            Transaction receiveTransaction = transactions.get(0);
+            TransactionImpl receiveTransaction = transactions.get(0);
             verifyReceiveTransaction(traceId, sendSpan, receiveTransaction);
         }
     }
 
-    private void verifyReceiveTransaction(Id traceId, Span sendSpan, Transaction receiveTransaction) {
+    private void verifyReceiveTransaction(IdImpl traceId, SpanImpl sendSpan, TransactionImpl receiveTransaction) {
         assertThat(receiveTransaction.getNameAsString()).isEqualTo("JMS RECEIVE from queue " + SPRING_TEST_QUEUE);
         assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(traceId);
         assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendSpan.getTraceContext().getId());

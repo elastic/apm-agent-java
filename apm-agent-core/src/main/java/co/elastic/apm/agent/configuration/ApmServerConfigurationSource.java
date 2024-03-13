@@ -160,7 +160,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
      */
     @Nullable
     String fetchConfig(final ConfigurationRegistry configurationRegistry) {
-        if (!configurationRegistry.getConfig(CoreConfiguration.class).isCentralConfigEnabled()) {
+        if (!configurationRegistry.getConfig(CoreConfigurationImpl.class).isCentralConfigEnabled()) {
             logger.debug("Remote configuration is disabled");
             return null;
         }

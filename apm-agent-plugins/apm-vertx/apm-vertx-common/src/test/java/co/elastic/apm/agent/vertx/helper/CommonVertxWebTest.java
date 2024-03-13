@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.vertx.helper;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.context.RequestImpl;
+import co.elastic.apm.agent.impl.context.TransactionContextImpl;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
@@ -60,7 +60,7 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
     void testBasicVertxWebCall() throws Exception {
         Response response = http().get("/test");
         expectTransaction(response, "/test", DEFAULT_RESPONSE_BODY, "GET /test", 200);
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction.getFrameworkName()).isEqualTo(AbstractVertxWebHelper.FRAMEWORK_NAME);
 
         String vertxVersion = VersionUtils.getVersion(RoutingContext.class, "io.vertx", "vertx-web");
@@ -98,7 +98,7 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         Response response = http().get("/test", headers);
         expectTransaction(response, "/test", DEFAULT_RESPONSE_BODY, "GET /test", 200);
 
-        TransactionContext context = reporter.getFirstTransaction().getContext();
+        TransactionContextImpl context = reporter.getFirstTransaction().getContext();
         assertThat(context.getRequest().getHeaders().size()).isEqualTo(0);
         assertThat(context.getResponse().getHeaders().size()).isEqualTo(0);
         assertThat(context.getRequest().getFormUrlEncodedParameters().size()).isEqualTo(0);
@@ -136,13 +136,13 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
 
     @Test
     void testCallWithQueryParameters() throws Exception {
-        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.ALL).when(coreConfiguration).getCaptureBody();
         doReturn(List.of(WildcardMatcher.valueOf("application/x-www-form-urlencoded*"))).when(webConfiguration).getCaptureContentTypes();
 
         Response response = http().post("/post?par1=abc&par2=xyz", "Some Body", MediaType.get("application/x-www-form-urlencoded"));
         expectTransaction(response, "/post", DEFAULT_RESPONSE_BODY, "POST /post", 200);
 
-        Request request = reporter.getFirstTransaction().getContext().getRequest();
+        RequestImpl request = reporter.getFirstTransaction().getContext().getRequest();
         assertThat(request.getMethod()).isEqualTo("POST");
         assertThat(request.getFormUrlEncodedParameters().size()).isEqualTo(2);
         assertThat(request.getFormUrlEncodedParameters().containsIgnoreCase("par1")).isEqualTo(true);
@@ -155,7 +155,7 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
 
     @Test
     void testCallWithBodyCapturing() throws Exception {
-        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.ALL).when(coreConfiguration).getCaptureBody();
         doReturn(List.of(WildcardMatcher.valueOf("application/json*"))).when(webConfiguration).getCaptureContentTypes();
 
         String jsonBody = "{\"key\":\"Some JSON\"}";
@@ -163,7 +163,7 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         Response response = http().post("/post?par1=abc&par2=xyz", jsonBody, MediaType.get("application/json"));
         expectTransaction(response, "/post", DEFAULT_RESPONSE_BODY, "POST /post", 200);
 
-        Request request = reporter.getFirstTransaction().getContext().getRequest();
+        RequestImpl request = reporter.getFirstTransaction().getContext().getRequest();
         assertThat(request.getFormUrlEncodedParameters().size()).isEqualTo(0);
         assertThat(request.getUrl().getSearch()).isEqualTo("par1=abc&par2=xyz");
         assertThat(request.getBody()).isInstanceOf(CharBuffer.class);
@@ -201,7 +201,7 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         expectTransaction(response, path, DEFAULT_RESPONSE_BODY, "GET " + path, 200);
         reporter.awaitSpanCount(1);
         assertThat(reporter.getSpans()).hasSize(1);
-        Span span = reporter.getFirstSpan();
+        SpanImpl span = reporter.getFirstSpan();
         assertThat(span.getNameAsString()).isEqualTo(callType + "-child-span");
         assertThat(span.getParent()).isEqualTo(reporter.getFirstTransaction());
     }
@@ -214,7 +214,7 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         expectTransaction(response, path, DEFAULT_RESPONSE_BODY, "GET " + path, 200);
         reporter.awaitSpanCount(1);
         assertThat(reporter.getSpans()).hasSize(1);
-        Span span = reporter.getFirstSpan();
+        SpanImpl span = reporter.getFirstSpan();
         assertThat(span.getNameAsString()).isEqualTo(callType + "-child-span");
         assertThat(span.getParent()).isEqualTo(reporter.getFirstTransaction());
     }
@@ -224,7 +224,7 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         String path = "/" + CALL_SCHEDULED_SHIFTED;
         Response response = http().get(path);
         expectTransaction(response, path, DEFAULT_RESPONSE_BODY, "GET " + path, 200);
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
 
         // Mock reporter expects the reference count to be at 1 at test end,
         // so we decrement it here to emulate real reporter behaviour which would recycle ended transactions directly.
@@ -261,26 +261,26 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
 
         assertThat(reporter.getTransactions().stream().map(transaction -> transaction.getContext().getRequest().getUrl().getPathname()))
             .containsExactlyInAnyOrder("/parallel/1", "/parallel/2", "/parallel/3", "/parallel/4", "/parallel/5");
-        assertThat(reporter.getTransactions().stream().map(AbstractSpan::getNameAsString).distinct()).containsExactlyInAnyOrder("GET /parallel/:param");
+        assertThat(reporter.getTransactions().stream().map(AbstractSpanImpl::getNameAsString).distinct()).containsExactlyInAnyOrder("GET /parallel/:param");
         assertThat(reporter.getFirstTransaction().getSpanCount().getTotal().get()).isEqualTo(3);
 
-        AbstractSpan t1 = transaction("/parallel/1");
-        AbstractSpan t2 = transaction("/parallel/2");
-        AbstractSpan t3 = transaction("/parallel/3");
-        AbstractSpan t4 = transaction("/parallel/4");
-        AbstractSpan t5 = transaction("/parallel/5");
+        AbstractSpanImpl t1 = transaction("/parallel/1");
+        AbstractSpanImpl t2 = transaction("/parallel/2");
+        AbstractSpanImpl t3 = transaction("/parallel/3");
+        AbstractSpanImpl t4 = transaction("/parallel/4");
+        AbstractSpanImpl t5 = transaction("/parallel/5");
 
 
         assertThat(spansContaining("-1").size()).isEqualTo(3);
-        assertThat(spansContaining("-1").stream().map(Span::getParent).distinct()).containsExactly(t1);
+        assertThat(spansContaining("-1").stream().map(SpanImpl::getParent).distinct()).containsExactly(t1);
         assertThat(spansContaining("-2").size()).isEqualTo(3);
-        assertThat(spansContaining("-2").stream().map(Span::getParent).distinct()).containsExactly(t2);
+        assertThat(spansContaining("-2").stream().map(SpanImpl::getParent).distinct()).containsExactly(t2);
         assertThat(spansContaining("-3").size()).isEqualTo(3);
-        assertThat(spansContaining("-3").stream().map(Span::getParent).distinct()).containsExactly(t3);
+        assertThat(spansContaining("-3").stream().map(SpanImpl::getParent).distinct()).containsExactly(t3);
         assertThat(spansContaining("-4").size()).isEqualTo(3);
-        assertThat(spansContaining("-4").stream().map(Span::getParent).distinct()).containsExactly(t4);
+        assertThat(spansContaining("-4").stream().map(SpanImpl::getParent).distinct()).containsExactly(t4);
         assertThat(spansContaining("-5").size()).isEqualTo(3);
-        assertThat(spansContaining("-5").stream().map(Span::getParent).distinct()).containsExactly(t5);
+        assertThat(spansContaining("-5").stream().map(SpanImpl::getParent).distinct()).containsExactly(t5);
 
         executorService.shutdown();
     }
@@ -300,11 +300,11 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         expectTransaction(response, "/post", "", "GET unknown route", 405);
     }
 
-    private List<co.elastic.apm.agent.impl.transaction.Span> spansContaining(String name) {
+    private List<SpanImpl> spansContaining(String name) {
         return reporter.getSpans().stream().filter(span -> span.getNameAsString().contains(name)).collect(Collectors.toList());
     }
 
-    private Transaction transaction(String path) {
+    private TransactionImpl transaction(String path) {
         return reporter.getTransactions().stream().filter(t -> t.getContext().getRequest().getUrl().getPathname().equals(path)).findAny().get();
     }
 
@@ -332,7 +332,7 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         router.get("/" + CALL_SCHEDULED_SHIFTED).handler(routingContext -> {
             routingContext.vertx()
                 .setTimer(500, tid -> {
-                    Span child = Objects.requireNonNull(tracer.getActive()).createSpan();
+                    SpanImpl child = Objects.requireNonNull(tracer.getActive()).createSpan();
                     child.withName(CALL_SCHEDULED_SHIFTED + "-child-span");
                     child.end();
                 });
@@ -345,11 +345,11 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
             .runOnContext(new HandlerWithCustomNamedSpan(getDefaultHandlerImpl(), routingContext, CALL_ON_CONTEXT)));
 
         router.get("/parallel/:param").handler(routingContext -> routingContext.vertx().setTimer(1, tid_1 -> {
-            Span asyncChild = Objects.requireNonNull(tracer.getActive()).createSpan();
+            SpanImpl asyncChild = Objects.requireNonNull(tracer.getActive()).createSpan();
             asyncChild.withName("first-child-" + routingContext.pathParam("param"));
 
             routingContext.vertx().executeBlocking(p -> {
-                Span blockingChild = Objects.requireNonNull(tracer.getActive()).createSpan();
+                SpanImpl blockingChild = Objects.requireNonNull(tracer.getActive()).createSpan();
                 blockingChild.withName("second-child-" + routingContext.pathParam("param"));
 
                 try {
@@ -359,7 +359,7 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
                 }
 
                 routingContext.vertx().setTimer(1, tid_2 -> {
-                    Span thirdChild = Objects.requireNonNull(tracer.getActive()).createSpan();
+                    SpanImpl thirdChild = Objects.requireNonNull(tracer.getActive()).createSpan();
                     thirdChild.withName("third-child-" + routingContext.pathParam("param"));
                     getDefaultHandlerImpl().handle(routingContext);
                     thirdChild.end();

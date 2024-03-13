@@ -20,8 +20,8 @@ package co.elastic.apm.agent.vertx.helper;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 
@@ -39,11 +39,11 @@ public class HandlerWithCustomNamedSpan implements Handler<Void> {
 
     @Override
     public void handle(Void v) {
-        AbstractSpan<?> active = GlobalTracer.get().require(ElasticApmTracer.class).getActive();
+        AbstractSpanImpl<?> active = GlobalTracer.get().require(ElasticApmTracer.class).getActive();
         if (active == null) {
             return;
         }
-        Span child = active.createSpan();
+        SpanImpl child = active.createSpan();
         child.withName(spanName + "-child-span");
         child.activate();
         handler.handle(routingContext);

@@ -20,8 +20,8 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.configuration.AgentArgumentsConfigurationSource;
 import co.elastic.apm.agent.configuration.ApmServerConfigurationSource;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
 import co.elastic.apm.agent.configuration.PrefixingConfigurationSourceWrapper;
 import co.elastic.apm.agent.configuration.source.ConfigSources;
 import co.elastic.apm.agent.configuration.source.SystemPropertyConfigurationSource;
@@ -29,14 +29,14 @@ import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.tracer.LifecycleListener;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
+import co.elastic.apm.agent.logging.LoggingConfigurationImpl;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.builtin.AgentReporterMetrics;
-import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactoryImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
-import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import co.elastic.apm.agent.report.ReporterFactory;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.report.serialize.SerializationConstants;
@@ -74,7 +74,7 @@ public class ElasticApmTracerBuilder {
     @Nullable
     private Reporter reporter;
 
-    private ObjectPoolFactory objectPoolFactory;
+    private ObjectPoolFactoryImpl objectPoolFactory;
 
     private final List<LifecycleListener> extraLifecycleListeners;
 
@@ -98,9 +98,9 @@ public class ElasticApmTracerBuilder {
     public ElasticApmTracerBuilder(List<ConfigurationSource> configSources) {
         this.configSources = configSources;
         this.ephemeralId = UUID.randomUUID().toString();
-        LoggingConfiguration.init(configSources, ephemeralId);
+        LoggingConfigurationImpl.init(configSources, ephemeralId);
         logger = LoggerFactory.getLogger(getClass());
-        objectPoolFactory = new ObjectPoolFactory();
+        objectPoolFactory = new ObjectPoolFactoryImpl();
         extraLifecycleListeners = new ArrayList<>();
     }
 
@@ -115,7 +115,7 @@ public class ElasticApmTracerBuilder {
     }
 
 
-    public ElasticApmTracerBuilder withObjectPoolFactory(ObjectPoolFactory objectPoolFactory) {
+    public ElasticApmTracerBuilder withObjectPoolFactory(ObjectPoolFactoryImpl objectPoolFactory) {
         this.objectPoolFactory = objectPoolFactory;
         return this;
     }
@@ -158,11 +158,11 @@ public class ElasticApmTracerBuilder {
             apmServerClient = new ApmServerClient(configurationRegistry);
         }
 
-        SerializationConstants.init(configurationRegistry.getConfig(CoreConfiguration.class));
+        SerializationConstants.init(configurationRegistry.getConfig(CoreConfigurationImpl.class));
 
         MetaDataFuture metaDataFuture = MetaData.create(configurationRegistry, ephemeralId);
         DslJsonSerializer payloadSerializer = new DslJsonSerializer(
-            configurationRegistry.getConfig(StacktraceConfiguration.class),
+            configurationRegistry.getConfig(StacktraceConfigurationImpl.class),
             apmServerClient,
             metaDataFuture
         );
@@ -178,8 +178,8 @@ public class ElasticApmTracerBuilder {
             lifecycleListeners.add(configurationSource);
         }
 
-        MetricsConfiguration metricsConfig = configurationRegistry.getConfig(MetricsConfiguration.class);
-        MetricRegistry metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class), metricsConfig);
+        MetricsConfigurationImpl metricsConfig = configurationRegistry.getConfig(MetricsConfigurationImpl.class);
+        MetricRegistry metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfigurationImpl.class), metricsConfig);
 
         if (reporter == null) {
             AgentReporterMetrics healthMetrics = new AgentReporterMetrics(metricRegistry, metricsConfig);
@@ -229,9 +229,9 @@ public class ElasticApmTracerBuilder {
             return ConfigurationRegistry.builder()
                 .addConfigSource(new SimpleSource("Noop Configuration")
                     .add(TracerConfiguration.RECORDING, "false")
-                    .add(CoreConfiguration.INSTRUMENT, "false")
-                    .add(CoreConfiguration.SERVICE_NAME, "none")
-                    .add(CoreConfiguration.SAMPLE_RATE, "0"))
+                    .add(CoreConfigurationImpl.INSTRUMENT, "false")
+                    .add(CoreConfigurationImpl.SERVICE_NAME, "none")
+                    .add(CoreConfigurationImpl.SAMPLE_RATE, "0"))
                 .optionProviders(providers)
                 .build();
         }
@@ -272,7 +272,7 @@ public class ElasticApmTracerBuilder {
         // Optionally loading agent configuration from external file, while it depends on sources above, it has higher
         // priority and is thus inserted before them.
 
-        String configFileLocation = CoreConfiguration.getConfigFileLocation(result, premain);
+        String configFileLocation = CoreConfigurationImpl.getConfigFileLocation(result, premain);
         ConfigurationSource configFileSource = ConfigSources.fromFileSystem(configFileLocation);
         if (configFileSource != null) {
             result.add(0, configFileSource);

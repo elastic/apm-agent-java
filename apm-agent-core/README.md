@@ -19,7 +19,7 @@ It's based on a Disruptor/ring buffer and receives finished transactions potenti
 The ring buffer decouples the transaction-producing threads from the co.elastic.apm.agent.report.ReportingEventHandler,
 which is single-threaded and sends the transactions to the APM server via HTTP.
 
-The class co.elastic.apm.agent.report.ReporterConfiguration contains all relevant configuration options for the reporter.
+The class co.elastic.apm.agent.report.ReporterConfigurationImpl contains all relevant configuration options for the reporter.
 
 ## Lifecycle
 

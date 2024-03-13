@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.jsf;
 
 import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -64,7 +64,7 @@ public abstract class AbstractJsfLifecycleRenderInstrumentation extends Abstract
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object createRenderSpan() {
-            final ElasticContext<?> activeContext = tracer.currentContext();
+            final TraceState<?> activeContext = tracer.currentContext();
             final AbstractSpan<?> parentSpan = activeContext.getSpan();
             if (parentSpan instanceof Span<?>) {
                 Span<?> parSpan = (Span<?>) parentSpan;

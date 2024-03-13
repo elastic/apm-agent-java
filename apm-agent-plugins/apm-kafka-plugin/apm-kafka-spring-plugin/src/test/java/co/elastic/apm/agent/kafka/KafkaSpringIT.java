@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -85,23 +85,23 @@ public class KafkaSpringIT extends AbstractInstrumentationTest {
 
     @Test
     public void testBatchReceive() {
-        Transaction transaction1 = startTestRootTransaction("Send 1");
+        TransactionImpl transaction1 = startTestRootTransaction("Send 1");
         kafkaTemplate.send(BATCH_TOPIC, "data-1");
         transaction1.deactivate().end();
 
-        Transaction transaction2 = startTestRootTransaction("Send 2");
+        TransactionImpl transaction2 = startTestRootTransaction("Send 2");
         kafkaTemplate.send(BATCH_TOPIC, "data-2");
         transaction2.deactivate().end();
 
         reporter.awaitTransactionCount(3, 10000);
         reporter.awaitSpanCount(3); //two kafka exit spans + the batchListener span
 
-        List<Span> senderSpans = reporter.getSpans().stream()
-            .filter(AbstractSpan::isExit)
+        List<SpanImpl> senderSpans = reporter.getSpans().stream()
+            .filter(AbstractSpanImpl::isExit)
             .collect(Collectors.toList());
         assertThat(senderSpans).hasSize(2);
 
-        Transaction batchReceive = reporter.getTransactions().stream()
+        TransactionImpl batchReceive = reporter.getTransactions().stream()
             .filter(transaction -> transaction.getNameAsString().equals("Spring Kafka Message Batch Processing"))
             .findFirst().orElse(null);
 
@@ -111,7 +111,7 @@ public class KafkaSpringIT extends AbstractInstrumentationTest {
             .hasSpanLink(senderSpans.get(0))
             .hasSpanLink(senderSpans.get(1));
 
-        Span listenerSpan = reporter.getSpanByName("batchListener");
+        SpanImpl listenerSpan = reporter.getSpanByName("batchListener");
         assertThat(listenerSpan)
             .isNotNull()
             .hasParent(batchReceive);
@@ -121,20 +121,20 @@ public class KafkaSpringIT extends AbstractInstrumentationTest {
     // it just verifies that non-batch listeners are caught by the standard kafka instrumentation
     @Test
     public void testNonBatchSingleReceive() {
-        Transaction transaction1 = startTestRootTransaction("Send 1");
+        TransactionImpl transaction1 = startTestRootTransaction("Send 1");
         kafkaTemplate.send(SINGLE_TOPIC, "data-1");
         transaction1.deactivate().end();
 
         reporter.awaitTransactionCount(2, 10000);
         reporter.awaitSpanCount(2); //one kafka exit spans + the singleListener span
 
-        Span senderSpan = reporter.getSpans().stream()
-            .filter(AbstractSpan::isExit)
+        SpanImpl senderSpan = reporter.getSpans().stream()
+            .filter(AbstractSpanImpl::isExit)
             .findFirst().orElse(null);
 
         assertThat(senderSpan).isNotNull();
 
-        Transaction singleReceive = reporter.getTransactions().stream()
+        TransactionImpl singleReceive = reporter.getTransactions().stream()
             .filter(transaction -> "messaging".equals(transaction.getType()))
             .findFirst().orElse(null);
 
@@ -142,7 +142,7 @@ public class KafkaSpringIT extends AbstractInstrumentationTest {
             .isNotNull()
             .hasParent(senderSpan);
 
-        Span listenerSpan = reporter.getSpanByName("singleListener");
+        SpanImpl listenerSpan = reporter.getSpanByName("singleListener");
         assertThat(listenerSpan)
             .isNotNull()
             .hasParent(singleReceive);

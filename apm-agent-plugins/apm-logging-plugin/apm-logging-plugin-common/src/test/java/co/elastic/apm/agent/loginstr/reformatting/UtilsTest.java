@@ -20,7 +20,7 @@ package co.elastic.apm.agent.loginstr.reformatting;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.tracer.configuration.LogEcsReformatting;
-import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.logging.LoggingConfigurationImpl;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
@@ -33,7 +33,7 @@ public class UtilsTest extends AbstractInstrumentationTest {
     private static final String fileSeparator = System.getProperty("file.separator");
 
     @Nullable
-    private final String logEcsFormattingDestinationDir = config.getConfig(LoggingConfiguration.class).getLogEcsFormattingDestinationDir();
+    private final String logEcsFormattingDestinationDir = config.getConfig(LoggingConfigurationImpl.class).getLogEcsFormattingDestinationDir();
 
     private String computeReformattedLogFilePathWithConfiguredDir(String logFilePath) {
         return Utils.computeLogReformattingFilePath(logFilePath, logEcsFormattingDestinationDir);
@@ -49,7 +49,7 @@ public class UtilsTest extends AbstractInstrumentationTest {
 
     @Test
     void testReplace() {
-        doReturn(LogEcsReformatting.REPLACE).when(config.getConfig(LoggingConfiguration.class)).getLogEcsReformatting();
+        doReturn(LogEcsReformatting.REPLACE).when(config.getConfig(LoggingConfigurationImpl.class)).getLogEcsReformatting();
         assertThat(computeReformattedLogFilePathWithConfiguredDir("/test/absolute/path/app.log")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.ecs.json"));
         assertThat(computeReformattedLogFilePathWithConfiguredDir("/test/absolute/path/app")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.ecs.json"));
         assertThat(computeReformattedLogFilePathWithConfiguredDir("/test/absolute/path/app.log.1")).isEqualTo(replaceFileSeparator("/test/absolute/path/app.log.ecs.json"));

@@ -20,7 +20,7 @@ package co.elastic.apm.agent.httpclient.common;
 
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 
@@ -30,14 +30,14 @@ public abstract class AbstractApacheHttpClientAsyncAdvice {
         Tracer tracer, ApacheHttpClientAsyncHelper<PRODUCER, WRAPPER, CALLBACK, CALLBACK_WRAPPER, CONTEXT> asyncHelper,
         PRODUCER asyncRequestProducer, CONTEXT context, CALLBACK futureCallback) {
 
-        ElasticContext<?> parentContext = tracer.currentContext();
+        TraceState<?> parentContext = tracer.currentContext();
         if (parentContext.isEmpty()) {
             // performance optimization, no need to wrap if we have nothing to propagate
             // empty context means also we will not create an exit span
             return null;
         }
         CALLBACK wrappedFutureCallback = futureCallback;
-        ElasticContext<?> activeContext = tracer.currentContext();
+        TraceState<?> activeContext = tracer.currentContext();
         Span<?> span = activeContext.createExitSpan();
         if (span != null) {
             span.withType(HttpClientHelper.EXTERNAL_TYPE)

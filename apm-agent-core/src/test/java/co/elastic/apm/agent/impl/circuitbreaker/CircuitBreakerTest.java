@@ -37,8 +37,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static co.elastic.apm.agent.impl.Tracer.TracerState.PAUSED;
-import static co.elastic.apm.agent.impl.Tracer.TracerState.RUNNING;
+import static co.elastic.apm.agent.impl.ElasticApmTracer.TracerState.PAUSED;
+import static co.elastic.apm.agent.impl.ElasticApmTracer.TracerState.RUNNING;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;

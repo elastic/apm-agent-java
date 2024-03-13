@@ -20,7 +20,7 @@ package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Span;
 
 import javax.annotation.Nullable;
@@ -34,7 +34,7 @@ public class HttpClientHelper {
     public static final String HTTP_SUBTYPE = "http";
 
     @Nullable
-    public static Span<?> startHttpClientSpan(ElasticContext<?> activeContext, String method, @Nullable URI uri, @Nullable CharSequence hostName) {
+    public static Span<?> startHttpClientSpan(TraceState<?> activeContext, String method, @Nullable URI uri, @Nullable CharSequence hostName) {
         String uriString = null;
         String scheme = null;
         int port = -1;
@@ -50,7 +50,7 @@ public class HttpClientHelper {
     }
 
     @Nullable
-    public static Span<?> startHttpClientSpan(ElasticContext<?> activeContext, String method, @Nullable String uri,
+    public static Span<?> startHttpClientSpan(TraceState<?> activeContext, String method, @Nullable String uri,
                                               @Nullable String scheme, @Nullable CharSequence hostName, int port) {
         Span<?> span = activeContext.createExitSpan();
         if (span != null) {

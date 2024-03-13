@@ -20,9 +20,9 @@ package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.baggage.BaggageContext;
-import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TraceStateImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -61,7 +61,7 @@ public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     public void testExecutorExecute_Transaction() {
-        Transaction transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
+        TransactionImpl transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
         executor.execute(() -> createAsyncSpan(transaction));
         try {
             // wait for the async operation to end
@@ -76,13 +76,13 @@ public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     public void testBaggagePropagationWithTransaction() throws InterruptedException {
-        Transaction transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
+        TransactionImpl transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
         BaggageContext transactionWithBaggage = tracer.currentContext().withUpdatedBaggage()
             .put("foo", "bar")
             .buildContext()
             .activate();
 
-        AtomicReference<ElasticContext<?>> propagatedContext = new AtomicReference<>();
+        AtomicReference<TraceStateImpl<?>> propagatedContext = new AtomicReference<>();
         CountDownLatch doneLatch = new CountDownLatch(1);
         executor.execute(() -> {
             propagatedContext.set(tracer.currentContext());
@@ -105,7 +105,7 @@ public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
             .buildContext()
             .activate();
 
-        AtomicReference<ElasticContext<?>> propagatedContext = new AtomicReference<>();
+        AtomicReference<TraceStateImpl<?>> propagatedContext = new AtomicReference<>();
         CountDownLatch doneLatch = new CountDownLatch(1);
         executor.execute(() -> {
             propagatedContext.set(tracer.currentContext());
@@ -122,8 +122,8 @@ public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     public void testExecutorExecute_Span() {
-        Transaction transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
-        Span nonAsyncSpan = transaction.createSpan().withName("NonAsync").activate();
+        TransactionImpl transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
+        SpanImpl nonAsyncSpan = transaction.createSpan().withName("NonAsync").activate();
         executor.execute(() -> createAsyncSpan(transaction));
         try {
             // wait for the async operation to end
@@ -139,7 +139,7 @@ public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
     }
 
 
-    private void createAsyncSpan(Transaction expectedCurrent) {
+    private void createAsyncSpan(TransactionImpl expectedCurrent) {
         assertThat(tracer.currentTransaction()).isEqualTo(expectedCurrent);
         tracer.getActive().createSpan().withName("Async").end();
     }

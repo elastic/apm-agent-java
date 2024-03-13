@@ -20,10 +20,10 @@ package co.elastic.apm.agent.micrometer;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -74,7 +74,7 @@ class MicrometerMetricsReporterTest {
         meterRegistry = new CompositeMeterRegistry(Clock.SYSTEM, List.of(nestedCompositeMeterRegistry));
         reporter = new MockReporter();
         tracer = MockTracer.createRealTracer(reporter);
-        doReturn(61_000L).when(tracer.getConfig(ReporterConfiguration.class)).getMetricsIntervalMs();
+        doReturn(61_000L).when(tracer.getConfig(ReporterConfigurationImpl.class)).getMetricsIntervalMs();
         metricsReporter = new MicrometerMetricsReporter(tracer, true); //all calls to run() are explicit from the tests
         //note the default mode is CUMULATIVE, so no need to addConfig(meterRegistry, meterRegistryConfig);
         metricsReporter.registerMeterRegistry(meterRegistry);
@@ -121,7 +121,7 @@ class MicrometerMetricsReporterTest {
     @Test
     void testDisabledMetrics() {
         doReturn(List.of(WildcardMatcher.valueOf("root.metric"), WildcardMatcher.valueOf("root.metric.exclude.*")))
-            .when(tracer.getConfig(ReporterConfiguration.class)).getDisableMetrics();
+            .when(tracer.getConfig(ReporterConfigurationImpl.class)).getDisableMetrics();
 
         List<Tag> tags = List.of(Tag.of("foo", "bar"));
         meterRegistry.counter("root.metric", tags).increment(42);
@@ -136,7 +136,7 @@ class MicrometerMetricsReporterTest {
 
     @Test
     void testDedotMetricName() {
-        assertThat(tracer.getConfig(MetricsConfiguration.class).isDedotCustomMetrics()).isTrue();
+        assertThat(tracer.getConfig(MetricsConfigurationImpl.class).isDedotCustomMetrics()).isTrue();
         meterRegistry.counter("foo.bar").increment(42);
 
         JsonNode metricSet = getSingleMetricSet();
@@ -145,7 +145,7 @@ class MicrometerMetricsReporterTest {
 
     @Test
     void testDisableDedotMetricName() {
-        doReturn(false).when(tracer.getConfig(MetricsConfiguration.class)).isDedotCustomMetrics();
+        doReturn(false).when(tracer.getConfig(MetricsConfigurationImpl.class)).isDedotCustomMetrics();
         meterRegistry.counter("foo.bar").increment(42);
 
         JsonNode metricSet = getSingleMetricSet();
@@ -202,7 +202,7 @@ class MicrometerMetricsReporterTest {
 
     @Test
     void testCounterWithMetricsIntervalDisabled() {
-        doReturn(0L).when(tracer.getConfig(ReporterConfiguration.class)).getMetricsIntervalMs();
+        doReturn(0L).when(tracer.getConfig(ReporterConfigurationImpl.class)).getMetricsIntervalMs();
         meterRegistry.counter("counter", List.of(Tag.of("foo", "bar"), Tag.of("baz", "qux"))).increment(42);
         List<JsonNode> metricSets = getMetricSets(null);
         assertThat(metricSets).isEmpty();

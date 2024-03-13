@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
-import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.ReportingEvent;
 import co.elastic.apm.agent.report.ReportingEventCounter;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,16 +46,16 @@ public class AgentReporterMetricsTest {
 
     private MetricRegistry metricRegistry;
 
-    private ReporterConfiguration mockReporterConfig;
+    private ReporterConfigurationImpl mockReporterConfig;
 
-    private MetricsConfiguration mockMetricsConfig;
+    private MetricsConfigurationImpl mockMetricsConfig;
 
     private AgentReporterMetrics reporterMetrics;
 
     @BeforeEach
     public void setUp() {
-        mockReporterConfig = mock(ReporterConfiguration.class);
-        mockMetricsConfig = spy(MetricsConfiguration.class);
+        mockReporterConfig = mock(ReporterConfigurationImpl.class);
+        mockMetricsConfig = spy(MetricsConfigurationImpl.class);
         metricRegistry = new MetricRegistry(mockReporterConfig, mockMetricsConfig);
     }
 

@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent.springwebmvc;
 
-import co.elastic.apm.agent.tracer.service.ServiceAwareTracer;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.servlet.Constants;
@@ -76,14 +75,9 @@ public abstract class AbstractSpringServiceNameInstrumentation extends ElasticAp
 
         public static <ServletContext> void detectSpringServiceName(ServletContextAdapter<ServletContext> adapter,
                                                                     WebApplicationContext applicationContext, @Nullable ServletContext servletContext) {
-            ServiceAwareTracer serviceAwareTracer = tracer.probe(ServiceAwareTracer.class);
-            if (serviceAwareTracer == null) {
-                return;
-            }
-
             // avoid having two service names for a standalone jar
             // one based on Implementation-Title and one based on spring.application.name
-            if (!serviceAwareTracer.autoDetectedServiceInfo().isMultiServiceContainer()) {
+            if (!tracer.autoDetectedServiceInfo().isMultiServiceContainer()) {
                 return;
             }
 
@@ -105,7 +99,7 @@ public abstract class AbstractSpringServiceNameInstrumentation extends ElasticAp
             ServiceInfo fromSpringApplicationNameProperty = ServiceInfo.of(applicationContext.getEnvironment().getProperty("spring.application.name", ""));
             ServiceInfo fromApplicationContextApplicationName = ServiceInfo.of(removeLeadingSlash(applicationContext.getApplicationName()));
 
-            serviceAwareTracer.setServiceInfoForClassLoader(classLoader, fromSpringApplicationNameProperty
+            tracer.setServiceInfoForClassLoader(classLoader, fromSpringApplicationNameProperty
                 .withFallback(fromServletContext)
                 .withFallback(fromApplicationContextApplicationName));
         }

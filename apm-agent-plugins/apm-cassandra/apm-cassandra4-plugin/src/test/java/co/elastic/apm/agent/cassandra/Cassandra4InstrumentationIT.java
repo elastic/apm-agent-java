@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.cassandra;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
@@ -59,7 +59,7 @@ class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
         .withEnv("JAVA_TOOL_OPTIONS", "-Dcassandra.skip_wait_for_gossip_to_settle=0");
     private static CqlSession session;
     private static int cassandraPort;
-    private Transaction transaction;
+    private TransactionImpl transaction;
 
 
     @BeforeAll
@@ -103,19 +103,19 @@ class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
 
         reporter.awaitSpanCount(3);
 
-        Span createSpan = reporter.getSpanByName("CREATE");
+        SpanImpl createSpan = reporter.getSpanByName("CREATE");
         assertThat(createSpan).isSync();
         assertThat(createSpan.getContext().getDb())
             .hasStatement("CREATE TABLE users (id UUID PRIMARY KEY, name text)")
             .hasInstance(KEYSPACE);
 
-        Span insertSpan = reporter.getSpanByName("INSERT INTO users");
+        SpanImpl insertSpan = reporter.getSpanByName("INSERT INTO users");
         assertThat(insertSpan).isSync();
         assertThat(insertSpan.getContext().getDb())
             .hasStatement("INSERT INTO users (id, name) values (?, ?)")
             .hasInstance(KEYSPACE);
 
-        Span selectSpan = reporter.getSpanByName("SELECT FROM users");
+        SpanImpl selectSpan = reporter.getSpanByName("SELECT FROM users");
         assertThat(selectSpan).isAsync();
         assertThat(selectSpan.getContext().getDb())
             .hasStatement("SELECT * FROM users where name = 'alice' ALLOW FILTERING")

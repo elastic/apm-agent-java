@@ -20,10 +20,10 @@ package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.TransactionUtils;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,14 +48,14 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
     // of this instrumentation is. Also, integration test cover this feature for the general case with a packaged
     // agent and thus they don't have such limitation
 
-    private Transaction transaction;
+    private TransactionImpl transaction;
 
     private WeakMap<Process, co.elastic.apm.agent.tracer.Span<?>> storageMap;
     private ProcessHelper helper;
 
     @BeforeEach
     void before() {
-        transaction = new Transaction(tracer);
+        transaction = new TransactionImpl(tracer);
         TransactionUtils.fillTransaction(transaction);
 
         storageMap = WeakConcurrent.buildMap();
@@ -95,7 +95,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
         helper.doEndProcess(process, true);
 
-        Span span = getFirstSpan();
+        SpanImpl span = getFirstSpan();
 
         assertThat(span.getNameAsString()).isEqualTo(binaryName);
         assertThat(span.getType()).isEqualTo("process");
@@ -109,7 +109,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         Process process = mock(Process.class);
 
         helper.doStartProcess(transaction, process, "hello");
-        Span span = (Span) storageMap.get(process);
+        SpanImpl span = (SpanImpl) storageMap.get(process);
 
         helper.doStartProcess(transaction, process, "hello");
         assertThat(storageMap.get(process))
@@ -223,7 +223,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         helper.doEndProcess(process, true);
         assertThat(storageMap).isEmpty();
 
-        Span span = getFirstSpan();
+        SpanImpl span = getFirstSpan();
         assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
 
@@ -245,7 +245,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         assertThat(getFirstSpan().getOutcome()).isEqualTo(Outcome.UNKNOWN);
     }
 
-    private Span getFirstSpan() {
+    private SpanImpl getFirstSpan() {
         assertThat(reporter.getSpans()).hasSize(1);
         return reporter.getSpans().get(0);
     }

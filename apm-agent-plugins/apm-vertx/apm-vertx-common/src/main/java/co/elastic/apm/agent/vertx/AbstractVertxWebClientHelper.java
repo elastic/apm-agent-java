@@ -20,7 +20,7 @@ package co.elastic.apm.agent.vertx;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -51,8 +51,8 @@ public abstract class AbstractVertxWebClientHelper {
         }
     }
 
-    public void startSpanOrFollowRedirect(ElasticContext<?> activeContext, HttpContext<?> httpContext, HttpClientRequest httpRequest) {
-        ElasticContext<?> existingPropagationCtx = httpContext.get(PROPAGATION_CONTEXT_KEY);
+    public void startSpanOrFollowRedirect(TraceState<?> activeContext, HttpContext<?> httpContext, HttpClientRequest httpRequest) {
+        TraceState<?> existingPropagationCtx = httpContext.get(PROPAGATION_CONTEXT_KEY);
 
         if (existingPropagationCtx != null) {
             // Repropagate headers in case of redirects
@@ -65,7 +65,7 @@ public abstract class AbstractVertxWebClientHelper {
 
         URI requestUri = URI.create(httpRequest.absoluteURI());
         Span<?> span = HttpClientHelper.startHttpClientSpan(activeContext, getMethod(httpRequest), requestUri, null);
-        ElasticContext<?> toPropagate = activeContext;
+        TraceState<?> toPropagate = activeContext;
         if (span != null) {
             //no need to increment references of the span, the span will be kept alive by the incrementReferences() on the context below
             httpContext.set(WEB_CLIENT_SPAN_KEY, span);
@@ -80,7 +80,7 @@ public abstract class AbstractVertxWebClientHelper {
     }
 
     public void followRedirect(HttpContext<?> httpContext, HttpClientRequest httpRequest) {
-        ElasticContext<?> existingPropagationCtx = httpContext.get(PROPAGATION_CONTEXT_KEY);
+        TraceState<?> existingPropagationCtx = httpContext.get(PROPAGATION_CONTEXT_KEY);
         if (existingPropagationCtx != null) {
             existingPropagationCtx.propagateContext(httpRequest, HeaderSetter.INSTANCE, null);
         }
@@ -96,7 +96,7 @@ public abstract class AbstractVertxWebClientHelper {
 
     private void finalizeSpan(HttpContext<?> httpContext, int statusCode, @Nullable Throwable thrown, @Nullable AbstractSpan<?> parent) {
         Span<?> span = httpContext.get(WEB_CLIENT_SPAN_KEY);
-        ElasticContext<?> propagationCtx = httpContext.get(PROPAGATION_CONTEXT_KEY);
+        TraceState<?> propagationCtx = httpContext.get(PROPAGATION_CONTEXT_KEY);
         if (propagationCtx != null) {
             // Setting to null removes from the attributes map
             httpContext.set(WEB_CLIENT_SPAN_KEY, null);

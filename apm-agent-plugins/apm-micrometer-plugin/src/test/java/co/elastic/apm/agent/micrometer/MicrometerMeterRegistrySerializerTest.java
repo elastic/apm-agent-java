@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.micrometer;
 
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -50,7 +50,7 @@ public class MicrometerMeterRegistrySerializerTest {
 
     @BeforeAll
     static void setup() {
-        MetricsConfiguration config = mock(MetricsConfiguration.class);
+        MetricsConfigurationImpl config = mock(MetricsConfigurationImpl.class);
         serializer = new MicrometerMeterRegistrySerializer(config);
     }
 

@@ -32,7 +32,7 @@ class CoreConfigurationTest {
 
     @Test
     void testWithoutDisabledAndEnabledInstrumentations() {
-        CoreConfiguration config = getCoreConfiguration("", "");
+        CoreConfigurationImpl config = getCoreConfiguration("", "");
         assertThat(config.isInstrumentationEnabled("foo")).isTrue();
         assertThat(config.isInstrumentationEnabled(Collections.singletonList("foo"))).isTrue();
         assertThat(config.isInstrumentationEnabled(Arrays.asList("foo", "bar"))).isTrue();
@@ -40,7 +40,7 @@ class CoreConfigurationTest {
 
     @Test
     void testWithDisabledInstrumentations() {
-        CoreConfiguration config = getCoreConfiguration("", "foo");
+        CoreConfigurationImpl config = getCoreConfiguration("", "foo");
         assertThat(config.isInstrumentationEnabled("foo")).isFalse();
         assertThat(config.isInstrumentationEnabled("bar")).isTrue();
         assertThat(config.isInstrumentationEnabled(Collections.singletonList("foo"))).isFalse();
@@ -50,7 +50,7 @@ class CoreConfigurationTest {
 
     @Test
     void testWithEnabledInstrumentations() {
-        CoreConfiguration config = getCoreConfiguration("foo", "");
+        CoreConfigurationImpl config = getCoreConfiguration("foo", "");
         assertThat(config.isInstrumentationEnabled("foo")).isTrue();
         assertThat(config.isInstrumentationEnabled("bar")).isFalse();
         assertThat(config.isInstrumentationEnabled(Collections.singletonList("foo"))).isTrue();
@@ -60,7 +60,7 @@ class CoreConfigurationTest {
 
     @Test
     void testWithDisabledAndEnabledInstrumentations() {
-        CoreConfiguration config = getCoreConfiguration("foo", "foo");
+        CoreConfigurationImpl config = getCoreConfiguration("foo", "foo");
         assertThat(config.isInstrumentationEnabled("foo")).isFalse();
         assertThat(config.isInstrumentationEnabled("bar")).isFalse();
         assertThat(config.isInstrumentationEnabled(Collections.singletonList("foo"))).isFalse();
@@ -70,20 +70,20 @@ class CoreConfigurationTest {
 
     @Test
     void testWithEnabledInstrumentationsButDisabledExperimentalInstrumentations() {
-        CoreConfiguration config = getCoreConfiguration("experimental", "");
+        CoreConfigurationImpl config = getCoreConfiguration("experimental", "");
         assertThat(config.isInstrumentationEnabled("experimental")).isFalse();
         assertThat(config.isInstrumentationEnabled(Collections.singletonList("experimental"))).isFalse();
     }
 
     @Test
     void testWithEnabledInstrumentationsAndEnabledExperimentalInstrumentations() {
-        CoreConfiguration config = ConfigurationRegistry.builder()
-            .addOptionProvider(new CoreConfiguration())
+        CoreConfigurationImpl config = ConfigurationRegistry.builder()
+            .addOptionProvider(new CoreConfigurationImpl())
             .addConfigSource(SimpleSource.forTest("enable_instrumentations", "experimental"))
             .addConfigSource(SimpleSource.forTest("disable_instrumentations", ""))
             .addConfigSource(SimpleSource.forTest("enable_experimental_instrumentations", "true"))
             .build()
-            .getConfig(CoreConfiguration.class);
+            .getConfig(CoreConfigurationImpl.class);
 
         assertThat(config.isInstrumentationEnabled("experimental")).isTrue();
         assertThat(config.isInstrumentationEnabled(Collections.singletonList("experimental"))).isTrue();
@@ -93,30 +93,30 @@ class CoreConfigurationTest {
 
     @Test
     void testLegacyDefaultDisabledInstrumentation() {
-        CoreConfiguration config = getCoreConfiguration("", "incubating");
+        CoreConfigurationImpl config = getCoreConfiguration("", "incubating");
         assertThat(config.isInstrumentationEnabled("experimental")).isFalse();
         assertThat(config.isInstrumentationEnabled(Collections.singletonList("experimental"))).isFalse();
     }
 
     @Test
     void testPreventBroadElasticApmExclusionFromInstrumentation() {
-        CoreConfiguration coreConfig = ConfigurationRegistry.builder()
-            .addOptionProvider(new CoreConfiguration())
+        CoreConfigurationImpl coreConfig = ConfigurationRegistry.builder()
+            .addOptionProvider(new CoreConfigurationImpl())
             .addConfigSource(SimpleSource.forTest("classes_excluded_from_instrumentation", "co.elastic.apm.*, co.elastic.*, foo.bar.*"))
             .build()
-            .getConfig(CoreConfiguration.class);
+            .getConfig(CoreConfigurationImpl.class);
 
         assertThat(coreConfig.getClassesExcludedFromInstrumentation())
             .containsExactly(WildcardMatcher.valueOf("foo.bar.*"));
     }
 
-    private static CoreConfiguration getCoreConfiguration(String enabledInstrumentations, String disabledInstrumentations) {
+    private static CoreConfigurationImpl getCoreConfiguration(String enabledInstrumentations, String disabledInstrumentations) {
         ConfigurationRegistry configurationRegistry = ConfigurationRegistry.builder()
-            .addOptionProvider(new CoreConfiguration())
+            .addOptionProvider(new CoreConfigurationImpl())
             .addConfigSource(SimpleSource.forTest("enable_instrumentations", enabledInstrumentations))
             .addConfigSource(SimpleSource.forTest("disable_instrumentations", disabledInstrumentations))
             .build();
 
-        return configurationRegistry.getConfig(CoreConfiguration.class);
+        return configurationRegistry.getConfig(CoreConfigurationImpl.class);
     }
 }

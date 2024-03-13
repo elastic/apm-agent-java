@@ -31,7 +31,7 @@ class StacktraceConfigurationTest {
     void testGetSpanStackTraceMinDurationMs_whenSpanStackTraceMinDurationNonDefault_thenGetValueFromSpanStackTraceMinDuration() {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig(SimpleSource.forTest("span_frames_min_duration", "10ms").add("span_stack_trace_min_duration", "15ms"));
 
-        long actual = configRegistry.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs();
+        long actual = configRegistry.getConfig(StacktraceConfigurationImpl.class).getSpanStackTraceMinDurationMs();
         assertThat(actual).isEqualTo(15);
     }
 
@@ -39,7 +39,7 @@ class StacktraceConfigurationTest {
     void testGetSpanStackTraceMinDurationMs_whenSpanStackTraceDefault_whenSpanFramesNonDefault_thenGetValueFromSpanFramesMinDuration() {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig(SimpleSource.forTest("span_frames_min_duration", "15ms"));
 
-        long actual = configRegistry.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs();
+        long actual = configRegistry.getConfig(StacktraceConfigurationImpl.class).getSpanStackTraceMinDurationMs();
         assertThat(actual).isEqualTo(15);
     }
 
@@ -47,7 +47,7 @@ class StacktraceConfigurationTest {
     void testGetSpanStackTraceMinDurationMs_whenSpanStackTraceDefault_whenSpanFramesMinDurationIsZero_thenGetSwappedValueOfSpanFramesMinDuration() {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig(SimpleSource.forTest("span_frames_min_duration", "0ms"));
 
-        long actual = configRegistry.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs();
+        long actual = configRegistry.getConfig(StacktraceConfigurationImpl.class).getSpanStackTraceMinDurationMs();
         assertThat(actual).isEqualTo(-1);
     }
 
@@ -55,7 +55,7 @@ class StacktraceConfigurationTest {
     void testGetSpanStackTraceMinDurationMs_whenSpanStackTraceDefault_whenSpanFramesMinDurationIsNegative_thenGetSwappedValueOfSpanFramesMinDuration() {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig(SimpleSource.forTest("span_frames_min_duration", "-1ms"));
 
-        long actual = configRegistry.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs();
+        long actual = configRegistry.getConfig(StacktraceConfigurationImpl.class).getSpanStackTraceMinDurationMs();
         assertThat(actual).isEqualTo(0);
     }
 
@@ -63,7 +63,7 @@ class StacktraceConfigurationTest {
     void testGetSpanStackTraceMinDurationMs_defaultValue() {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig();
 
-        long actual = configRegistry.getConfig(StacktraceConfiguration.class).getSpanStackTraceMinDurationMs();
+        long actual = configRegistry.getConfig(StacktraceConfigurationImpl.class).getSpanStackTraceMinDurationMs();
         assertThat(actual).isEqualTo(5);
     }
 }

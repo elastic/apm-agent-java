@@ -1,1 +1,1 @@
-co.elastic.apm.agent.objectpool.ObjectPoolFactory
+co.elastic.apm.agent.objectpool.ObjectPoolFactoryImpl

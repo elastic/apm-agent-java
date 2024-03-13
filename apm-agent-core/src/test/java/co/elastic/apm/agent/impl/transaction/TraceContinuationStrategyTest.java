@@ -20,7 +20,7 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
@@ -66,37 +66,37 @@ public class TraceContinuationStrategyTest {
 
     @Test
     void continueTraceFromNonElasticSystem() {
-        traceFromSystem(false, CoreConfiguration.TraceContinuationStrategy.CONTINUE, false);
+        traceFromSystem(false, CoreConfigurationImpl.TraceContinuationStrategy.CONTINUE, false);
     }
 
     @Test
     void continueTraceFromElasticSystem() {
-        traceFromSystem(true, CoreConfiguration.TraceContinuationStrategy.CONTINUE, false);
+        traceFromSystem(true, CoreConfigurationImpl.TraceContinuationStrategy.CONTINUE, false);
     }
 
     @Test
     void restartTraceFromNonElasticSystem() {
-        traceFromSystem(false, CoreConfiguration.TraceContinuationStrategy.RESTART, true);
+        traceFromSystem(false, CoreConfigurationImpl.TraceContinuationStrategy.RESTART, true);
     }
 
     @Test
     void restartTraceFromElasticSystem() {
-        traceFromSystem(true, CoreConfiguration.TraceContinuationStrategy.RESTART, true);
+        traceFromSystem(true, CoreConfigurationImpl.TraceContinuationStrategy.RESTART, true);
     }
 
     @Test
     void restartExternalTraceFromNonElasticSystem() {
-        traceFromSystem(false, CoreConfiguration.TraceContinuationStrategy.RESTART_EXTERNAL, true);
+        traceFromSystem(false, CoreConfigurationImpl.TraceContinuationStrategy.RESTART_EXTERNAL, true);
     }
 
     @Test
     void restartExternalTraceFromElasticSystem() {
-        traceFromSystem(true, CoreConfiguration.TraceContinuationStrategy.RESTART_EXTERNAL, false);
+        traceFromSystem(true, CoreConfigurationImpl.TraceContinuationStrategy.RESTART_EXTERNAL, false);
     }
 
     @Test
     void testAssumptions() {
-        Transaction transaction = new Transaction(tracerImpl);
+        TransactionImpl transaction = new TransactionImpl(tracerImpl);
         assertThat(transaction.getTraceContext().getParentId().toString()).isEqualTo("0000000000000000");
         assertThat(transaction.getTraceContext().getId().toString()).isEqualTo("0000000000000000");
         assertThat(transaction.getTraceContext().getTraceId().toString()).isEqualTo("00000000000000000000000000000000");
@@ -106,17 +106,17 @@ public class TraceContinuationStrategyTest {
         assertThat(transaction.getTraceContext().getTraceId().toString()).isNotEqualTo("00000000000000000000000000000000");
     }
 
-    void traceFromSystem(boolean fromElastic, CoreConfiguration.TraceContinuationStrategy strategy, boolean restartExpected) {
-        doReturn(strategy).when(tracerImpl.getConfig(CoreConfiguration.class)).getTraceContinuationStrategy();
+    void traceFromSystem(boolean fromElastic, CoreConfigurationImpl.TraceContinuationStrategy strategy, boolean restartExpected) {
+        doReturn(strategy).when(tracerImpl.getConfig(CoreConfigurationImpl.class)).getTraceContinuationStrategy();
         String traceID = "ca6150c33a473fda1f3a7a0b9eb4d143";
         String parentSpanID = "abc345d9029d61ff";
 
         final Map<String, String> headerMap = new HashMap<>();
-        headerMap.put(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-"+traceID+"-"+parentSpanID+"-01");
+        headerMap.put(TraceContextImpl.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-"+traceID+"-"+parentSpanID+"-01");
         if (fromElastic) {
-            headerMap.put(TraceContext.TRACESTATE_HEADER_NAME, "es=s:1");
+            headerMap.put(TraceContextImpl.TRACESTATE_HEADER_NAME, "es=s:1");
         }
-        final Transaction transaction = tracerImpl.startChildTransaction(headerMap, TextHeaderMapAccessor.INSTANCE, ConstantSampler.of(false), 0, null);
+        final TransactionImpl transaction = tracerImpl.startChildTransaction(headerMap, TextHeaderMapAccessor.INSTANCE, ConstantSampler.of(false), 0, null);
 
         if (restartExpected) {
             assertThat(transaction.getTraceContext().getTraceId().toString()).isNotEqualTo(traceID);

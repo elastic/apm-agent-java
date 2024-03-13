@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.impl.metadata;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.configuration.ServerlessConfigurationImpl;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.util.UrlConnectionUtils;
@@ -44,10 +44,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AWS;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AZURE;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.GCP;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.NONE;
+import static co.elastic.apm.agent.configuration.CoreConfigurationImpl.CloudProvider.AWS;
+import static co.elastic.apm.agent.configuration.CoreConfigurationImpl.CloudProvider.AZURE;
+import static co.elastic.apm.agent.configuration.CoreConfigurationImpl.CloudProvider.GCP;
+import static co.elastic.apm.agent.configuration.CoreConfigurationImpl.CloudProvider.NONE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class CloudMetadataProvider {
@@ -56,16 +56,16 @@ public class CloudMetadataProvider {
     private static final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
 
     /**
-     * This method may block on multiple HTTP calls. See {@link #fetchAndParseCloudProviderInfo(CoreConfiguration.CloudProvider, int)}
+     * This method may block on multiple HTTP calls. See {@link #fetchAndParseCloudProviderInfo(CoreConfigurationImpl.CloudProvider, int)}
      * for details.
      * @param cloudProvider the configured cloud provided - used as an optimization to lookup specific APIs instead of trial-and-error
      * @param queryTimeoutMs a configured limitation for the maximum duration of each metadata discovery task
      * @return cloud provide metadata, or {@code null} if requested not to do any lookup by using
-     *          {@link co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider#NONE}
+     *          {@link CoreConfigurationImpl.CloudProvider#NONE}
      */
     @Nullable
-    static CloudProviderInfo getCloudInfoProvider(final CoreConfiguration.CloudProvider cloudProvider, final int queryTimeoutMs,
-                                                  ServerlessConfiguration serverlessConfiguration) {
+    static CloudProviderInfo getCloudInfoProvider(final CoreConfigurationImpl.CloudProvider cloudProvider, final int queryTimeoutMs,
+                                                  ServerlessConfigurationImpl serverlessConfiguration) {
 
         if (serverlessConfiguration.runsOnAwsLambda()) {
             CloudProviderInfo awsLambdaInfo = new CloudProviderInfo("aws");
@@ -84,18 +84,18 @@ public class CloudMetadataProvider {
     /**
      * Automatic discovery of cloud provider and related metadata. This method is fetching data from public APIs
      * exposed by known cloud provider services through HTTP.
-     * When a specific {@link co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider} is specified, only
+     * When a specific {@link CoreConfigurationImpl.CloudProvider} is specified, only
      * the relevant API will be queried.
-     * However, when called with {@link co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider#AUTO}, all
+     * However, when called with {@link CoreConfigurationImpl.CloudProvider#AUTO}, all
      * known endpoints are queried concurrently. In such cases, blocking is expected to be long, bounded by the
      * HTTP requests timing out.
      *
-     * @param cloudProvider   the expected {@link CoreConfiguration.CloudProvider}
+     * @param cloudProvider   the expected {@link CoreConfigurationImpl.CloudProvider}
      * @param queryTimeoutMs  timeout in milliseconds to limit the discovery duration
      * @return Automatically discovered {@link CloudProviderInfo}, or {@code null} if none found.
      */
     @Nullable
-    static CloudProviderInfo fetchAndParseCloudProviderInfo(final CoreConfiguration.CloudProvider cloudProvider, final int queryTimeoutMs) {
+    static CloudProviderInfo fetchAndParseCloudProviderInfo(final CoreConfigurationImpl.CloudProvider cloudProvider, final int queryTimeoutMs) {
 
         Throwable unexpectedError = null;
         CloudProviderInfo cloudProviderInfo = null;
@@ -137,7 +137,7 @@ public class CloudMetadataProvider {
     }
 
     @Nullable
-    private static CloudProviderInfo tryAllCloudProviders(final CoreConfiguration.CloudProvider cloudProvider, final int queryTimeoutMs)
+    private static CloudProviderInfo tryAllCloudProviders(final CoreConfigurationImpl.CloudProvider cloudProvider, final int queryTimeoutMs)
         throws InterruptedException, ExecutionException, TimeoutException {
 
         ExecutorService executor = ExecutorUtils.createThreadDaemonPool("cloud-metadata", 2, 2);
@@ -192,7 +192,7 @@ public class CloudMetadataProvider {
         return cloudProviderInfo;
     }
 
-    private static void logSummary(CoreConfiguration.CloudProvider cloudProvider,
+    private static void logSummary(CoreConfigurationImpl.CloudProvider cloudProvider,
                                    @Nullable CloudProviderInfo cloudProviderInfo, @Nullable Throwable unexpectedError) {
         if (cloudProviderInfo == null) {
             if (cloudProvider == AWS || cloudProvider == AZURE || cloudProvider == GCP) {
@@ -213,7 +213,7 @@ public class CloudMetadataProvider {
     }
 
     @Nullable
-    private static CloudProviderInfo getAwsMetadata(int queryTimeoutMs, CoreConfiguration.CloudProvider configuredProvider) throws IOException {
+    private static CloudProviderInfo getAwsMetadata(int queryTimeoutMs, CoreConfigurationImpl.CloudProvider configuredProvider) throws IOException {
         String awsTokenUrl = "http://169.254.169.254/latest/api/token";
         Map<String, String> headers = new HashMap<>(1);
         headers.put("X-aws-ec2-metadata-token-ttl-seconds", "300");

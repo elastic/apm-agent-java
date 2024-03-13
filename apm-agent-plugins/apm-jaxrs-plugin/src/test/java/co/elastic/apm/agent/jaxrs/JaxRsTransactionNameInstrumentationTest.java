@@ -22,7 +22,7 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
@@ -137,7 +137,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
      * @param path the path to make the get request against
      */
     private void doRequest(String path) {
-        final Transaction request = tracer.startRootTransaction(null)
+        final TransactionImpl request = tracer.startRootTransaction(null)
             .withType("request")
             .activate();
         try {

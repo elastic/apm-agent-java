@@ -33,7 +33,7 @@ public class MetaDataMock {
      *
      * @return a mock future, already containing the medata info
      */
-    public static Future<MetaData> create(ProcessInfo process, Service service, SystemInfo system, @Nullable CloudProviderInfo cloudProviderInfo,
+    public static Future<MetaData> create(ProcessInfo process, ServiceImpl service, SystemInfo system, @Nullable CloudProviderInfo cloudProviderInfo,
                                           Map<String, String> globalLabels, @Nullable FaaSMetaDataExtension faaSMetaDataExtension) {
         return create(new MetaData(process, service, system, cloudProviderInfo, globalLabels, faaSMetaDataExtension));
     }
@@ -46,7 +46,7 @@ public class MetaDataMock {
     public static Future<MetaData> create() {
         return create(new MetaData(
             new ProcessInfo("test-process"),
-            new Service(),
+            new ServiceImpl(),
             new SystemInfo("x64", "localhost", null, "platform"),
             null,
             Collections.emptyMap(),
@@ -64,7 +64,7 @@ public class MetaDataMock {
     public static MetaData createDefaultMock() {
         return spy(new MetaData(
             new ProcessInfo("test-process"),
-            new Service(),
+            new ServiceImpl(),
             new SystemInfo("x64", "localhost", null, "platform"),
             null,
             Collections.emptyMap(),

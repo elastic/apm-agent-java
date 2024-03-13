@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.sparkjava;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import okhttp3.OkHttpClient;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -72,7 +72,7 @@ class RoutesAdviceTest extends AbstractInstrumentationTest {
         okhttp3.Response response = httpClient.newCall(request).execute();
         assertThat(response.body().string()).isEqualTo("bar");
 
-        Transaction transaction = reporter.getFirstTransaction(500);
+        TransactionImpl transaction = reporter.getFirstTransaction(500);
         assertThat(transaction.getNameAsString()).isEqualTo("GET /foo/:bar");
         assertThat(transaction.getFrameworkName()).isEqualTo("Spark");
         assertThat(transaction.getFrameworkVersion()).isEqualTo("2.9.3");

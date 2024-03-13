@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.struts;
 
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -38,7 +38,7 @@ public class ActionProxyAdvice {
     @Nullable
     public static Object onEnterExecute(@Advice.This ActionProxy actionProxy) {
 
-        ElasticContext<?> activeContext = GlobalTracer.get().currentContext();
+        TraceState<?> activeContext = GlobalTracer.get().currentContext();
         Transaction<?> transaction = activeContext.getTransaction();
         if (transaction == null) {
             return null;

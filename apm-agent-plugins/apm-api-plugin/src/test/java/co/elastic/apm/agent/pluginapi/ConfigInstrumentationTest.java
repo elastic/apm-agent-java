@@ -20,7 +20,7 @@ package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.api.ElasticApm;
@@ -42,7 +42,6 @@ import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatException;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class ConfigInstrumentationTest {
@@ -51,13 +50,13 @@ class ConfigInstrumentationTest {
 
     private ElasticApmTracer tracer;
     private ConfigurationRegistry configurationRegistry;
-    private CoreConfiguration coreConfig;
+    private CoreConfigurationImpl coreConfig;
 
     @BeforeEach
     void setup() {
         tracer = MockTracer.createRealTracer();
         configurationRegistry = tracer.getConfigurationRegistry();
-        coreConfig = configurationRegistry.getConfig(CoreConfiguration.class);
+        coreConfig = configurationRegistry.getConfig(CoreConfigurationImpl.class);
     }
 
     @AfterEach

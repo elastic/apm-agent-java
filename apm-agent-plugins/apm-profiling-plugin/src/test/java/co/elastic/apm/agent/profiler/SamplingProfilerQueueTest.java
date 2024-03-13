@@ -20,8 +20,8 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactoryImpl;
 import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
@@ -39,12 +39,12 @@ public class SamplingProfilerQueueTest {
         System.out.println(System.getProperty("os.name"));
 
         ElasticApmTracer tracer = MockTracer.create();
-        when(tracer.getObjectPoolFactory()).thenReturn(new ObjectPoolFactory());
+        when(tracer.getObjectPoolFactory()).thenReturn(new ObjectPoolFactoryImpl());
 
         SamplingProfiler profiler = new SamplingProfiler(tracer, new SystemNanoClock());
 
         profiler.setProfilingSessionOngoing(true);
-        TraceContext traceContext = TraceContext.with64BitId(tracer);
+        TraceContextImpl traceContext = TraceContextImpl.with64BitId(tracer);
 
         assertThat(profiler.onActivation(traceContext, null)).isTrue();
         long timeAfterFirstEvent = System.nanoTime();

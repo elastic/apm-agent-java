@@ -18,15 +18,15 @@
  */
 package co.elastic.apm.agent;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.context.DestinationImpl;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
 import co.elastic.apm.agent.impl.metadata.MetaData;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
@@ -96,17 +96,17 @@ public class MockReporter implements Reporter {
      */
     private boolean gcWhenAssertingRecycling;
 
-    private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
+    private final List<TransactionImpl> transactions = Collections.synchronizedList(new ArrayList<>());
 
-    private final List<Transaction> partialTransactions = Collections.synchronizedList(new ArrayList<>());
-    private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
-    private final List<ErrorCapture> errors = Collections.synchronizedList(new ArrayList<>());
+    private final List<TransactionImpl> partialTransactions = Collections.synchronizedList(new ArrayList<>());
+    private final List<SpanImpl> spans = Collections.synchronizedList(new ArrayList<>());
+    private final List<ErrorCaptureImpl> errors = Collections.synchronizedList(new ArrayList<>());
     private final List<byte[]> bytes = new CopyOnWriteArrayList<>();
     private final List<String> logs = Collections.synchronizedList(new ArrayList<>());
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
 
-    private Consumer<Transaction> partialTransactionHandler;
+    private Consumer<TransactionImpl> partialTransactionHandler;
 
     private boolean closed;
 
@@ -197,7 +197,7 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public synchronized void reportPartialTransaction(Transaction transaction) {
+    public synchronized void reportPartialTransaction(TransactionImpl transaction) {
         if (closed) {
             return;
         }
@@ -209,12 +209,12 @@ public class MockReporter implements Reporter {
         }
     }
 
-    public void setPartialTransactionHandler(Consumer<Transaction> transactionHandler) {
+    public void setPartialTransactionHandler(Consumer<TransactionImpl> transactionHandler) {
         this.partialTransactionHandler = transactionHandler;
     }
 
     @Override
-    public synchronized void report(Transaction transaction) {
+    public synchronized void report(TransactionImpl transaction) {
         if (closed) {
             return;
         }
@@ -237,7 +237,7 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public synchronized void report(Span span) {
+    public synchronized void report(SpanImpl span) {
         if (closed) {
             return;
         }
@@ -266,7 +266,7 @@ public class MockReporter implements Reporter {
     }
 
 
-    private void verifySpanType(Span span) {
+    private void verifySpanType(SpanImpl span) {
         String type = span.getType();
         assertThat(type)
             .describedAs("span type is mandatory")
@@ -299,11 +299,11 @@ public class MockReporter implements Reporter {
 
     }
 
-    private void verifyDestinationFields(Span span) {
+    private void verifyDestinationFields(SpanImpl span) {
         if (!span.isExit()) {
             return;
         }
-        Destination destination = span.getContext().getDestination();
+        DestinationImpl destination = span.getContext().getDestination();
         if (checkDestinationAddress && !SPAN_TYPES_WITHOUT_ADDRESS.contains(span.getSubtype())) {
             // see if this span's subtype is not supported for its type
             Collection<String> unsupportedSubtypes = SPAN_SUBTYPES_WITHOUT_ADDRESS.getOrDefault(span.getType(), Collections.emptySet());
@@ -316,7 +316,7 @@ public class MockReporter implements Reporter {
         }
     }
 
-    private void verifyServiceTarget(Span span) {
+    private void verifyServiceTarget(SpanImpl span) {
         if (!span.isExit() || !checkServiceTarget) {
             return;
         }
@@ -335,7 +335,7 @@ public class MockReporter implements Reporter {
      *
      * @param transaction transaction to serialize
      */
-    public void verifyTransactionSchema(Transaction transaction) {
+    public void verifyTransactionSchema(TransactionImpl transaction) {
         verifyJsonSchemas(dsl -> dsl.toJsonString(transaction), si -> si.transactionSchema, si -> si.transactionSchemaPath);
     }
 
@@ -344,7 +344,7 @@ public class MockReporter implements Reporter {
      *
      * @param span span to serialize
      */
-    public void verifySpanSchema(Span span) {
+    public void verifySpanSchema(SpanImpl span) {
         verifyJsonSchemas(dsl -> dsl.toJsonString(span), si -> si.spanSchema, si -> si.spanSchemaPath);
     }
 
@@ -353,7 +353,7 @@ public class MockReporter implements Reporter {
      *
      * @param error error to serialize
      */
-    public void verifyErrorSchema(ErrorCapture error) {
+    public void verifyErrorSchema(ErrorCaptureImpl error) {
         verifyJsonSchemas(dsl -> dsl.toJsonString(error), si -> si.errorSchema, si -> si.errorSchemaPath);
     }
 
@@ -416,11 +416,11 @@ public class MockReporter implements Reporter {
         }
     }
 
-    public synchronized List<Transaction> getTransactions() {
+    public synchronized List<TransactionImpl> getTransactions() {
         return Collections.unmodifiableList(transactions);
     }
 
-    public synchronized List<Transaction> getPartialTransactions() {
+    public synchronized List<TransactionImpl> getPartialTransactions() {
         return Collections.unmodifiableList(partialTransactions);
     }
 
@@ -428,14 +428,14 @@ public class MockReporter implements Reporter {
         return transactions.size();
     }
 
-    public synchronized Transaction getFirstTransaction() {
+    public synchronized TransactionImpl getFirstTransaction() {
         assertThat(transactions)
             .describedAs("at least one transaction expected, none have been reported (yet)")
             .isNotEmpty();
         return transactions.get(0);
     }
 
-    public Transaction getFirstTransaction(long timeoutMs) {
+    public TransactionImpl getFirstTransaction(long timeoutMs) {
         awaitUntilAsserted(timeoutMs, () -> assertThat(getTransactions()).isNotEmpty());
         return getFirstTransaction();
     }
@@ -450,12 +450,12 @@ public class MockReporter implements Reporter {
         awaitUntilTimeout(timeoutMs, this::assertNoTransaction);
     }
 
-    public Span getFirstSpan(long timeoutMs) {
+    public SpanImpl getFirstSpan(long timeoutMs) {
         awaitUntilAsserted(timeoutMs, () -> assertThat(getSpans()).isNotEmpty());
         return getFirstSpan();
     }
 
-    public ErrorCapture getFirstError(long timeoutMs) {
+    public ErrorCaptureImpl getFirstError(long timeoutMs) {
         awaitUntilAsserted(timeoutMs, () -> assertThat(getErrors()).isNotEmpty());
         return getFirstError();
     }
@@ -501,7 +501,7 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public synchronized void report(ErrorCapture error) {
+    public synchronized void report(ErrorCaptureImpl error) {
         if (closed) {
             return;
         }
@@ -537,14 +537,14 @@ public class MockReporter implements Reporter {
         return true;
     }
 
-    public synchronized Span getFirstSpan() {
+    public synchronized SpanImpl getFirstSpan() {
         assertThat(spans)
             .describedAs("at least one span expected, none have been reported")
             .isNotEmpty();
         return spans.get(0);
     }
 
-    public synchronized List<Span> getSpans() {
+    public synchronized List<SpanImpl> getSpans() {
         return Collections.unmodifiableList(spans);
     }
 
@@ -561,11 +561,11 @@ public class MockReporter implements Reporter {
             .collect(Collectors.toList());
     }
 
-    public Span getSpanByName(String name) {
-        Optional<Span> optional = getSpans().stream().filter(s -> s.getNameAsString().equals(name)).findAny();
+    public SpanImpl getSpanByName(String name) {
+        Optional<SpanImpl> optional = getSpans().stream().filter(s -> s.getNameAsString().equals(name)).findAny();
         assertThat(optional)
             .withFailMessage("No span with name '%s' found in reported spans %s", name,
-                getSpans().stream().map(Span::getNameAsString).collect(Collectors.toList()))
+                getSpans().stream().map(SpanImpl::getNameAsString).collect(Collectors.toList()))
             .isPresent();
         return optional.get();
     }
@@ -574,7 +574,7 @@ public class MockReporter implements Reporter {
         return spans.size();
     }
 
-    public synchronized List<ErrorCapture> getErrors() {
+    public synchronized List<ErrorCaptureImpl> getErrors() {
         return Collections.unmodifiableList(errors);
     }
 
@@ -586,7 +586,7 @@ public class MockReporter implements Reporter {
         return logs.size();
     }
 
-    public synchronized ErrorCapture getFirstError() {
+    public synchronized ErrorCaptureImpl getFirstError() {
         assertThat(errors)
             .describedAs("at least one error expected, none have been reported")
             .isNotEmpty();
@@ -631,13 +631,13 @@ public class MockReporter implements Reporter {
     }
 
     /**
-     * Calls {@link AbstractSpan#decrementReferences()} for all reported transactions and spans to emulate the references being decremented
+     * Calls {@link AbstractSpanImpl#decrementReferences()} for all reported transactions and spans to emulate the references being decremented
      * after reporting to the APM Server.
      * See {@link IntakeV2ReportingEventHandler#writeEvent(ReportingEvent)}
      */
     public synchronized void decrementReferences() {
-        transactions.forEach(Transaction::decrementReferences);
-        spans.forEach(Span::decrementReferences);
+        transactions.forEach(TransactionImpl::decrementReferences);
+        spans.forEach(SpanImpl::decrementReferences);
     }
 
     /**
@@ -646,18 +646,18 @@ public class MockReporter implements Reporter {
      */
     public synchronized void assertRecycledAfterDecrementingReferences() {
 
-        List<Transaction> transactions = getTransactions();
-        List<Transaction> transactionsToFlush = transactions.stream()
+        List<TransactionImpl> transactions = getTransactions();
+        List<TransactionImpl> transactionsToFlush = transactions.stream()
             .filter(t -> !hasEmptyTraceContext(t))
             .collect(Collectors.toList());
 
-        List<Span> spans = getSpans();
-        List<Span> spansToFlush = spans.stream()
+        List<SpanImpl> spans = getSpans();
+        List<SpanImpl> spansToFlush = spans.stream()
             .filter(s -> !hasEmptyTraceContext(s))
             .collect(Collectors.toList());
 
-        transactionsToFlush.forEach(Transaction::decrementReferences);
-        spansToFlush.forEach(Span::decrementReferences);
+        transactionsToFlush.forEach(TransactionImpl::decrementReferences);
+        spansToFlush.forEach(SpanImpl::decrementReferences);
 
         if (gcWhenAssertingRecycling) {
             System.gc();
@@ -691,7 +691,7 @@ public class MockReporter implements Reporter {
 
 
         // errors are recycled directly because they have no reference counter
-        errors.forEach(ErrorCapture::recycle);
+        errors.forEach(ErrorCaptureImpl::recycle);
     }
 
     /**
@@ -739,7 +739,7 @@ public class MockReporter implements Reporter {
         }
     }
 
-    private static boolean hasEmptyTraceContext(AbstractSpan<?> item) {
+    private static boolean hasEmptyTraceContext(AbstractSpanImpl<?> item) {
         return item.getTraceContext().getId().isEmpty();
     }
 
@@ -794,7 +794,7 @@ public class MockReporter implements Reporter {
             this.errorSchemaPath = errorSchema;
 
             ConfigurationRegistry spyConfig = SpyConfiguration.createSpyConfig();
-            StacktraceConfiguration stacktraceConfiguration = spyConfig.getConfig(StacktraceConfiguration.class);
+            StacktraceConfigurationImpl stacktraceConfiguration = spyConfig.getConfig(StacktraceConfigurationImpl.class);
 
             Future<MetaData> metaData = MetaData.create(spyConfig, null);
             ApmServerClient client = mock(ApmServerClient.class);
@@ -805,7 +805,7 @@ public class MockReporter implements Reporter {
             doReturn(isLatest).when(client).supportsNonStringLabels();
             doReturn(isLatest).when(client).supportsLogsEndpoint();
 
-            SerializationConstants.init(spyConfig.getConfig(CoreConfiguration.class));
+            SerializationConstants.init(spyConfig.getConfig(CoreConfigurationImpl.class));
             this.serializer = new DslJsonSerializer(stacktraceConfiguration, client, metaData).newWriter();
         }
 

@@ -20,7 +20,7 @@ package co.elastic.apm.api;
 
 public class AbstractSpanImplAccessor {
 
-    public static co.elastic.apm.agent.impl.transaction.Transaction accessTransaction(Transaction t) {
-        return (co.elastic.apm.agent.impl.transaction.Transaction) ((TransactionImpl) t).span;
+    public static co.elastic.apm.agent.impl.transaction.TransactionImpl accessTransaction(Transaction t) {
+        return (co.elastic.apm.agent.impl.transaction.TransactionImpl) ((TransactionImpl) t).span;
     }
 }

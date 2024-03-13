@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.plugin;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.plugin.test.TestClass;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,7 +61,7 @@ class PluginInstrumentationTest extends AbstractInstrumentationTest {
         // using custom span type/sub-type not part of shared spec
         reporter.disableCheckStrictSpanType();
 
-        Transaction transaction = tracer.startRootTransaction(null);
+        TransactionImpl transaction = tracer.startRootTransaction(null);
         Objects.requireNonNull(transaction).activate()
             .withName("Plugin test transaction")
             .withType("request");
@@ -69,7 +69,7 @@ class PluginInstrumentationTest extends AbstractInstrumentationTest {
         transaction.deactivate().end();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
-        Span span = reporter.getFirstSpan();
+        SpanImpl span = reporter.getFirstSpan();
         assertThat(span.getNameAsString()).isEqualTo("traceMe");
         assertThat(span.getType()).isEqualTo("plugin");
         assertThat(span.getSubtype()).isEqualTo("external");
@@ -85,7 +85,7 @@ class PluginInstrumentationTest extends AbstractInstrumentationTest {
             // do nothing - expected
         }
         assertThat(reporter.getTransactions()).hasSize(1);
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo("TestClass#traceMe");
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getTraceContext().getTransactionId()).isEqualTo(transaction.getTraceContext().getId());

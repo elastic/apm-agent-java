@@ -20,10 +20,9 @@ package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -81,7 +80,7 @@ public class RunnableCallableForkJoinTaskInstrumentation extends ElasticApmInstr
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Nullable @Advice.Enter Object context) {
             if (context != null) {
-                ((ElasticContext<?>) context).deactivate();
+                ((TraceState<?>) context).deactivate();
             }
         }
     }

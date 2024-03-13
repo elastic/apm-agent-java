@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
+import co.elastic.apm.agent.objectpool.ObservableObjectPool;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactoryImpl;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -37,11 +37,11 @@ class PartialTransactionReporter {
 
     private final ApmServerClient apmServer;
 
-    private final ObjectPool<DslJsonSerializer.Writer> writerPool;
+    private final ObservableObjectPool<DslJsonSerializer.Writer> writerPool;
 
     private volatile boolean extensionSupportsPartialTransactions = true;
 
-    public PartialTransactionReporter(ApmServerClient apmServer, final DslJsonSerializer payloadSerializer, ObjectPoolFactory poolFactory) {
+    public PartialTransactionReporter(ApmServerClient apmServer, final DslJsonSerializer payloadSerializer, ObjectPoolFactoryImpl poolFactory) {
         this.apmServer = apmServer;
         writerPool = poolFactory.createRecyclableObjectPool(WRITER_POOL_SIZE, new Allocator<DslJsonSerializer.Writer>() {
             @Override
@@ -51,7 +51,7 @@ class PartialTransactionReporter {
         });
     }
 
-    public void reportPartialTransaction(Transaction transaction) {
+    public void reportPartialTransaction(TransactionImpl transaction) {
         if (!extensionSupportsPartialTransactions) {
             return;
         }

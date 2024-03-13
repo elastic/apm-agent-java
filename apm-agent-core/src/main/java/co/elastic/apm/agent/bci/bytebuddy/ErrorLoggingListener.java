@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.utility.JavaModule;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -35,7 +35,7 @@ public class ErrorLoggingListener extends AgentBuilder.Listener.Adapter {
                 "You may try setting the '{}' config option to 'true', but notice that it may cause VerificationErrors or other issues.",
                 typeName,
                 ((MinimumClassFileVersionValidator.UnsupportedClassFileVersionException)throwable).getMinVersion(),
-                CoreConfiguration.INSTRUMENT_ANCIENT_BYTECODE
+                CoreConfigurationImpl.INSTRUMENT_ANCIENT_BYTECODE
             );
         } else {
             if (throwable instanceof net.bytebuddy.pool.TypePool.Resolution.NoSuchTypeException) {

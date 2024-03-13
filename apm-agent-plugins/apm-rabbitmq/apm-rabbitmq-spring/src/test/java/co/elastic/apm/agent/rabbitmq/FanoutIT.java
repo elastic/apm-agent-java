@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.rabbitmq.config.FanoutConfiguration;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -46,15 +46,15 @@ public class FanoutIT extends RabbitMqTestBase {
         getReporter().awaitTransactionCount(2);
         getReporter().awaitSpanCount(2);
 
-        List<Transaction> transactionList = getReporter().getTransactions();
+        List<TransactionImpl> transactionList = getReporter().getTransactions();
         assertThat(transactionList.size()).isEqualTo(2);
-        for (Transaction transaction : transactionList) {
+        for (TransactionImpl transaction : transactionList) {
             assertThat(transaction.getNameAsString()).isEqualTo("RabbitMQ RECEIVE from foobar");
             assertThat(transaction.getSpanCount().getTotal().get()).isEqualTo(1);
         }
 
-        List<Span> testSpans = getReporter().getSpans();
-        for (Span testSpan : testSpans) {
+        List<SpanImpl> testSpans = getReporter().getSpans();
+        for (SpanImpl testSpan : testSpans) {
             assertThat(testSpan.getNameAsString()).isEqualTo("testSpan");
         }
     }

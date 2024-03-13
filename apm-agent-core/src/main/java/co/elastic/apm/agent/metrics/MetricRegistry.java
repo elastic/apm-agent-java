@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.metrics;
 
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
@@ -46,7 +46,7 @@ public class MetricRegistry {
 
     private static final Logger logger = LoggerFactory.getLogger(MetricRegistry.class);
     private final WriterReaderPhaser phaser = new WriterReaderPhaser();
-    private final ReporterConfiguration reporterConfiguration;
+    private final ReporterConfigurationImpl reporterConfiguration;
 
     private final Set<MetricsProvider> metricsProviders = Collections.newSetFromMap(new ConcurrentHashMap<MetricsProvider, Boolean>());
     private final int metricSetLimit;
@@ -72,7 +72,7 @@ public class MetricRegistry {
         }
     };
 
-    public MetricRegistry(ReporterConfiguration reporterConfiguration, MetricsConfiguration metricsConfiguration) {
+    public MetricRegistry(ReporterConfigurationImpl reporterConfiguration, MetricsConfigurationImpl metricsConfiguration) {
         this.reporterConfiguration = reporterConfiguration;
         this.metricSetLimit = metricsConfiguration.getMetricSetLimit();
     }
@@ -90,7 +90,7 @@ public class MetricRegistry {
      *               Tags can be used to create different graphs based for each value of a specific tag name, using a terms aggregation.
      *               Note that there will be a {@link MetricSet} created for each distinct set of labels.
      * @param metric this supplier will be called for every reporting cycle
-     *               ({@link co.elastic.apm.agent.report.ReporterConfiguration#metricsInterval metrics_interval)})
+     *               ({@link ReporterConfigurationImpl#metricsInterval metrics_interval)})
      * @see #add(String, Labels, DoubleSupplier)
      */
     public void addUnlessNan(String name, Labels labels, DoubleSupplier metric) {
@@ -111,7 +111,7 @@ public class MetricRegistry {
      *               Tags can be used to create different graphs based for each value of a specific tag name, using a terms aggregation.
      *               Note that there will be a {@link MetricSet} created for each distinct set of labels.
      * @param metric this supplier will be called for every reporting cycle
-     *               ({@link co.elastic.apm.agent.report.ReporterConfiguration#metricsInterval metrics_interval)})
+     *               ({@link ReporterConfigurationImpl#metricsInterval metrics_interval)})
      * @see #add(String, Labels, DoubleSupplier)
      */
     public void addUnlessNegative(String name, Labels labels, DoubleSupplier metric) {
@@ -131,7 +131,7 @@ public class MetricRegistry {
      *               Tags can be used to create different graphs based for each value of a specific tag name, using a terms aggregation.
      *               Note that there will be a {@link MetricSet} created for each distinct set of labels.
      * @param metric this supplier will be called for every reporting cycle
-     *               ({@link co.elastic.apm.agent.report.ReporterConfiguration#metricsInterval metrics_interval)})
+     *               ({@link ReporterConfigurationImpl#metricsInterval metrics_interval)})
      */
     public void add(String name, Labels labels, DoubleSupplier metric) {
         if (isDisabled(name)) {

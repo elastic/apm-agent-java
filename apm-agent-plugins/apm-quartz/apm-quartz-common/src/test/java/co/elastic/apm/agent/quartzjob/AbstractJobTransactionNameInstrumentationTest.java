@@ -21,8 +21,8 @@ package co.elastic.apm.agent.quartzjob;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,12 +73,12 @@ abstract class AbstractJobTransactionNameInstrumentationTest extends AbstractIns
         executeTestJobCreatingSpan(tracer, true);
 
         reporter.awaitTransactionCount(1);
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
 
         verifyTransaction(transaction, "TestJobCreatingSpan#execute");
 
         assertThat(reporter.getNumReportedSpans()).isEqualTo(1);
-        Span span = reporter.getFirstSpan();
+        SpanImpl span = reporter.getFirstSpan();
         assertThat(span.getTraceContext().getParentId()).isEqualTo(transaction.getTraceContext().getId());
     }
 
@@ -103,7 +103,7 @@ abstract class AbstractJobTransactionNameInstrumentationTest extends AbstractIns
         JobDetail job = buildJobDetailTestJobWithResult("dummyJobName");
         scheduler.scheduleJob(job, createTrigger());
 
-        Transaction transaction = verifyTransactionFromJobDetails(job, Outcome.SUCCESS);
+        TransactionImpl transaction = verifyTransactionFromJobDetails(job, Outcome.SUCCESS);
         assertThat(transaction.getResult()).isEqualTo("this is the result");
     }
 
@@ -115,9 +115,9 @@ abstract class AbstractJobTransactionNameInstrumentationTest extends AbstractIns
         verifyTransactionFromJobDetails(job, Outcome.FAILURE);
     }
 
-    abstract Transaction verifyTransactionFromJobDetails(JobDetail job, Outcome expectedOutcome);
+    abstract TransactionImpl verifyTransactionFromJobDetails(JobDetail job, Outcome expectedOutcome);
 
-    public Transaction verifyTransaction(Transaction transaction, String expectedName) {
+    public TransactionImpl verifyTransaction(TransactionImpl transaction, String expectedName) {
         assertThat(transaction.getType()).isEqualToIgnoringCase("scheduled");
         assertThat(transaction.getNameAsString())
             .isEqualTo(expectedName);

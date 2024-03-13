@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.objectpool.impl;
 
-import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.objectpool.ObservableObjectPool;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
@@ -29,16 +29,16 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * {@link ObjectPool} wrapper implementation that keeps track of all created object instances, and thus allows to check
+ * {@link ObservableObjectPool} wrapper implementation that keeps track of all created object instances, and thus allows to check
  * for any pooled object leak. Should only be used for testing as it keeps a reference to all in-flight pooled objects.
  *
  * @param <T> pooled object type
  */
-public class BookkeeperObjectPool<T> implements ObjectPool<T> {
+public class BookkeeperObjectPool<T> implements ObservableObjectPool<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(BookkeeperObjectPool.class);
 
-    private final ObjectPool<T> pool;
+    private final ObservableObjectPool<T> pool;
     private final Set<T> toReturn = Collections.synchronizedSet(Collections.<T>newSetFromMap(new IdentityHashMap<T, Boolean>()));
     // An ever-increasing counter for how many objects where requested from the pool
     private AtomicInteger objectCounter = new AtomicInteger();
@@ -46,7 +46,7 @@ public class BookkeeperObjectPool<T> implements ObjectPool<T> {
     /**
      * @param pool pool to wrap
      */
-    public BookkeeperObjectPool(ObjectPool<T> pool) {
+    public BookkeeperObjectPool(ObservableObjectPool<T> pool) {
         this.pool = pool;
     }
 
@@ -96,7 +96,7 @@ public class BookkeeperObjectPool<T> implements ObjectPool<T> {
      * Returns the number of times an object has been requested from the pool since its creation.
      * The returned value cannot be used as any indication as to the number of objects actually allocated by the pool.
      *
-     * @return number of times {@link ObjectPool#createInstance()} was called on this pool since its creation
+     * @return number of times {@link ObservableObjectPool#createInstance()} was called on this pool since its creation
      */
     public int getRequestedObjectCount() {
         return objectCounter.get();

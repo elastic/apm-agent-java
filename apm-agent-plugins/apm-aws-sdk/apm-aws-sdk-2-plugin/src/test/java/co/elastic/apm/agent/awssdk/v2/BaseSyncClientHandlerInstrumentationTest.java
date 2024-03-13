@@ -21,9 +21,9 @@ package co.elastic.apm.agent.awssdk.v2;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.auth.signer.AwsSignerExecutionAttribute;
@@ -82,7 +82,7 @@ public class BaseSyncClientHandlerInstrumentationTest {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         ElasticApmTracer tracer = mockInstrumentationSetup.getTracer();
 
-        Transaction transaction = tracer.startRootTransaction(null);
+        TransactionImpl transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();
         transaction
             .withName("exception-test")
@@ -91,7 +91,7 @@ public class BaseSyncClientHandlerInstrumentationTest {
             .withOutcome(Outcome.SUCCESS)
             .activate();
 
-        Span span = tracer.createExitChildSpan();
+        SpanImpl span = tracer.createExitChildSpan();
         span.withType("storage")
             .withSubtype("s3")
             .withAction("operationName");

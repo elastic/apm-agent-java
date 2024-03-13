@@ -20,7 +20,7 @@ package co.elastic.apm.agent.log4j2;
 
 import co.elastic.apm.agent.loginstr.LoggingInstrumentationTest;
 import co.elastic.apm.agent.loginstr.LoggerFacade;
-import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.logging.LoggingConfigurationImpl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.Marker;
@@ -36,8 +36,6 @@ import org.junit.jupiter.api.Disabled;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 
@@ -57,7 +55,7 @@ public class Log4j2InstrumentationTest extends LoggingInstrumentationTest {
 
     @AfterAll
     static void reInitLogging() {
-        LoggingConfiguration.init(List.of(), "");
+        LoggingConfigurationImpl.init(List.of(), "");
     }
 
     private static final Marker TEST_MARKER = MarkerManager.getMarker("TEST");

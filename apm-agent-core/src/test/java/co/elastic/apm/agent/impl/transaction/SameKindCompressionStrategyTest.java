@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.agent.impl.context.ServiceTarget;
+import co.elastic.apm.agent.impl.context.ServiceTargetImpl;
 
 class SameKindCompressionStrategyTest extends AbstractCompressionStrategyTest {
 
@@ -34,9 +34,9 @@ class SameKindCompressionStrategyTest extends AbstractCompressionStrategyTest {
     }
 
     @Override
-    protected String getCompositeSpanName(Span span) {
+    protected String getCompositeSpanName(SpanImpl span) {
         StringBuilder name = new StringBuilder().append("Calls to ");
-        ServiceTarget serviceTarget = span.getContext().getServiceTarget();
+        ServiceTargetImpl serviceTarget = span.getContext().getServiceTarget();
         name.append(serviceTarget.getType());
         name.append("/");
         name.append(serviceTarget.getName());

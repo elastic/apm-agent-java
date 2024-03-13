@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.loginstr.error;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -28,7 +28,7 @@ import static org.junit.Assert.assertEquals;
 
 public abstract class AbstractErrorLoggingInstrumentationTest extends AbstractInstrumentationTest {
 
-    private Transaction transaction;
+    private TransactionImpl transaction;
 
     @BeforeEach
     void startTransaction() {

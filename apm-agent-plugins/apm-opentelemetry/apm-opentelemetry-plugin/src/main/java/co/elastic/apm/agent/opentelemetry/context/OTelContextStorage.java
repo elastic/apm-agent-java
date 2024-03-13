@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.opentelemetry.context;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.impl.transaction.TraceStateImpl;
 import co.elastic.apm.agent.opentelemetry.tracing.OTelBridgeContext;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -66,7 +66,7 @@ public class OTelContextStorage implements ContextStorage {
     @Nullable
     @Override
     public Context current() {
-        ElasticContext<?> current = tracer.currentContext();
+        TraceStateImpl<?> current = tracer.currentContext();
         if (current.isEmpty()) {
             return null;
         }

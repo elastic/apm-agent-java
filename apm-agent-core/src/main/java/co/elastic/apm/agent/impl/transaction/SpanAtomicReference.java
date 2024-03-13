@@ -20,7 +20,7 @@ package co.elastic.apm.agent.impl.transaction;
 
 import javax.annotation.Nullable;
 
-class SpanAtomicReference<V extends AbstractSpan<?>> {
+class SpanAtomicReference<V extends AbstractSpanImpl<?>> {
 
     @Nullable
     private V ref;
@@ -28,9 +28,9 @@ class SpanAtomicReference<V extends AbstractSpan<?>> {
     private final Object LOCK = new Object();
 
     /**
-     * Increments the referenced {@link AbstractSpan} reference count and returns it. The returned span is guaranteed not to be recycled.
+     * Increments the referenced {@link AbstractSpanImpl} reference count and returns it. The returned span is guaranteed not to be recycled.
      * It is then the responsibility of the caller to decrement the ref count appropriately.
-     * @return the referenced {@link AbstractSpan} with reference count incremented, or {@code null} if no span is referenced
+     * @return the referenced {@link AbstractSpanImpl} with reference count incremented, or {@code null} if no span is referenced
      */
     @Nullable
     public V incrementReferencesAndGet() {

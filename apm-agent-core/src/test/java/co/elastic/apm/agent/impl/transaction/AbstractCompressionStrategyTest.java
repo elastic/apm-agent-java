@@ -22,7 +22,7 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.context.ServiceTarget;
+import co.elastic.apm.agent.impl.context.ServiceTargetImpl;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
@@ -81,9 +81,9 @@ abstract class AbstractCompressionStrategyTest {
                 startExitSpan(t).end();
             });
 
-            List<Span> reportedSpans = reporter.getSpans();
+            List<SpanImpl> reportedSpans = reporter.getSpans();
             assertThat(reportedSpans).hasSize(3);
-            assertThat(reportedSpans).filteredOn(Span::isComposite).isEmpty();
+            assertThat(reportedSpans).filteredOn(SpanImpl::isComposite).isEmpty();
         } finally {
             doReturn(true).when(tracer.getConfig(SpanConfiguration.class)).isSpanCompressionEnabled();
         }
@@ -92,16 +92,16 @@ abstract class AbstractCompressionStrategyTest {
     @Test
     void testCompositeSpanIsCreated() {
         runInTransactionScope(t -> {
-            Span span1 = startExitSpan(t);
+            SpanImpl span1 = startExitSpan(t);
             span1.setStartTimestamp(0);
             span1.end(1234);
-            Span span2 = startExitSpan(t);
+            SpanImpl span2 = startExitSpan(t);
             span2.setStartTimestamp(2345);
             span2.end(3456);
-            Span span3 = startExitSpan(t);
+            SpanImpl span3 = startExitSpan(t);
             span3.setStartTimestamp(3456);
             span3.end(4567);
-            Span span4 = startExitSpan(t);
+            SpanImpl span4 = startExitSpan(t);
             span4.setStartTimestamp(3467);
             span4.end(4556);
         });
@@ -110,7 +110,7 @@ abstract class AbstractCompressionStrategyTest {
             startExitSpan(t).end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 4);
         assertThat(reportedSpans.get(0).getComposite().getSum()).isEqualTo(1234 + (3456 - 2345) + (4567 - 3456) + (4556 - 3467));
@@ -129,7 +129,7 @@ abstract class AbstractCompressionStrategyTest {
             startExitSpan(t).withOutcome(Outcome.UNKNOWN).end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -147,7 +147,7 @@ abstract class AbstractCompressionStrategyTest {
             startExitSpan(t).withOutcome(Outcome.UNKNOWN).end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -164,7 +164,7 @@ abstract class AbstractCompressionStrategyTest {
             startExitSpan(t).withOutcome(Outcome.FAILURE).end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -182,7 +182,7 @@ abstract class AbstractCompressionStrategyTest {
             startExitSpan(t).withOutcome(Outcome.FAILURE).end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -196,14 +196,14 @@ abstract class AbstractCompressionStrategyTest {
     void testContextPropagationStopsRegularCompression() {
         runInTransactionScope(t -> {
             startExitSpan(t).end();
-            Span span = startExitSpan(t);
+            SpanImpl span = startExitSpan(t);
             span.propagateContext(new HashMap<String, String>(), (TextHeaderSetter<Map<String, String>>) (h, v, c) -> {
                 c.put(h, v);
             }, null);
             span.end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -218,14 +218,14 @@ abstract class AbstractCompressionStrategyTest {
         runInTransactionScope(t -> {
             startExitSpan(t).end();
             startExitSpan(t).end();
-            Span span = startExitSpan(t);
+            SpanImpl span = startExitSpan(t);
             span.propagateContext(new HashMap<String, String>(), (TextHeaderSetter<Map<String, String>>) (h, v, c) -> {
                 c.put(h, v);
             }, null);
             span.end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -242,7 +242,7 @@ abstract class AbstractCompressionStrategyTest {
             startSpan(t).end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -260,7 +260,7 @@ abstract class AbstractCompressionStrategyTest {
             startSpan(t).end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -277,7 +277,7 @@ abstract class AbstractCompressionStrategyTest {
             startExitSpan(t).withType("another_type").end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -295,7 +295,7 @@ abstract class AbstractCompressionStrategyTest {
             startExitSpan(t).withType("another_type").end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -312,7 +312,7 @@ abstract class AbstractCompressionStrategyTest {
             startExitSpan(t).withSubtype("another_subtype").end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -330,7 +330,7 @@ abstract class AbstractCompressionStrategyTest {
             startExitSpan(t).withSubtype("another_subtype").end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -344,7 +344,7 @@ abstract class AbstractCompressionStrategyTest {
     void testSpanExceedingMaxDurationStopsRegularCompression() {
         runInTransactionScope(t -> {
             startExitSpan(t).end();
-            Span span = startExitSpan(t);
+            SpanImpl span = startExitSpan(t);
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
@@ -353,7 +353,7 @@ abstract class AbstractCompressionStrategyTest {
             span.end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -368,7 +368,7 @@ abstract class AbstractCompressionStrategyTest {
         runInTransactionScope(t -> {
             startExitSpan(t).end();
             startExitSpan(t).end();
-            Span span = startExitSpan(t);
+            SpanImpl span = startExitSpan(t);
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
@@ -377,7 +377,7 @@ abstract class AbstractCompressionStrategyTest {
             span.end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -391,7 +391,7 @@ abstract class AbstractCompressionStrategyTest {
     void testDifferentDestinationServiceResourceStopsRegularCompression() {
         runInTransactionScope(t -> {
             startExitSpan(t).end();
-            Span span = startExitSpan(t);
+            SpanImpl span = startExitSpan(t);
 
             // set alternative resource from user API
             assertThat(span.getContext().getServiceTarget().withUserType(null).withUserName("another_resource").withNameOnlyDestinationResource())
@@ -401,7 +401,7 @@ abstract class AbstractCompressionStrategyTest {
             span.end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertThat(reportedSpans.get(0).isComposite()).isFalse();
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -416,10 +416,10 @@ abstract class AbstractCompressionStrategyTest {
         runInTransactionScope(t -> {
             startExitSpan(t).end();
             startExitSpan(t).end();
-            Span span = startExitSpan(t);
+            SpanImpl span = startExitSpan(t);
 
             // set alternative resource from type
-            ServiceTarget serviceTarget = span.getContext().getServiceTarget();
+            ServiceTargetImpl serviceTarget = span.getContext().getServiceTarget();
             serviceTarget.resetState();
             assertThat(serviceTarget.withType("another"))
                 .hasType("another")
@@ -428,7 +428,7 @@ abstract class AbstractCompressionStrategyTest {
             span.end();
         });
 
-        List<Span> reportedSpans = reporter.getSpans();
+        List<SpanImpl> reportedSpans = reporter.getSpans();
         assertThat(reportedSpans).hasSize(2);
         assertCompositeSpan(reportedSpans.get(0), 2);
         assertThat(reportedSpans.get(1).isComposite()).isFalse();
@@ -438,8 +438,8 @@ abstract class AbstractCompressionStrategyTest {
         assertThat(spanCount.getDropped().get()).isEqualTo(1);
     }
 
-    protected static void runInTransactionScope(Consumer<AbstractSpan<?>> r) {
-        Transaction transaction = tracer.startRootTransaction(null).withName("Some Transaction");
+    protected static void runInTransactionScope(Consumer<AbstractSpanImpl<?>> r) {
+        TransactionImpl transaction = tracer.startRootTransaction(null).withName("Some Transaction");
         try {
             r.accept(transaction);
         } finally {
@@ -447,24 +447,24 @@ abstract class AbstractCompressionStrategyTest {
         }
     }
 
-    protected Span startExitSpan(AbstractSpan<?> parent) {
-        Span span = startSpan(parent).asExit();
+    protected SpanImpl startExitSpan(AbstractSpanImpl<?> parent) {
+        SpanImpl span = startSpan(parent).asExit();
         span.getContext().getServiceTarget().withType("service-type").withName("service-name");
         return span;
     }
 
-    protected Span startSpan(AbstractSpan<?> parent) {
+    protected SpanImpl startSpan(AbstractSpanImpl<?> parent) {
         return parent.createSpan().withName(getSpanName()).withType("some_type").withSubtype("some_subtype");
     }
 
     protected abstract String getSpanName();
 
-    protected void assertCompositeSpan(Span span, int count) {
+    protected void assertCompositeSpan(SpanImpl span, int count) {
         assertThat(span.isComposite()).isTrue();
         assertThat(span.getComposite().getCount()).isEqualTo(count);
         assertThat(span.getComposite().getCompressionStrategy()).isEqualTo(compressionStrategy);
         assertThat(span.getNameAsString()).isEqualTo(getCompositeSpanName(span));
     }
 
-    protected abstract String getCompositeSpanName(Span span);
+    protected abstract String getCompositeSpanName(SpanImpl span);
 }

@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.collections;
 
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.impl.context.AbstractContext;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.context.AbstractContextImpl;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -132,7 +132,7 @@ class ReferencedCountedConcurrentHashMapTest {
     void clear() {
         WeakMap<Object, TestSpan> map = WeakConcurrentProviderImpl.createWeakReferenceCountedMap();
 
-        List<AbstractSpan<?>> list = new ArrayList<>();
+        List<AbstractSpanImpl<?>> list = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             TestSpan span = new TestSpan();
             list.add(span);
@@ -153,7 +153,7 @@ class ReferencedCountedConcurrentHashMapTest {
         key = new Object();
         TestSpan span = new TestSpan();
 
-        WeakMap<Object, AbstractSpan<?>> map = WeakConcurrentProviderImpl.createWeakReferenceCountedMap();
+        WeakMap<Object, AbstractSpanImpl<?>> map = WeakConcurrentProviderImpl.createWeakReferenceCountedMap();
 
         map.put(key, span);
 
@@ -173,15 +173,15 @@ class ReferencedCountedConcurrentHashMapTest {
     }
 
 
-    private void checkRefCount(List<AbstractSpan<?>> spans, int expected) {
+    private void checkRefCount(List<AbstractSpanImpl<?>> spans, int expected) {
         spans.forEach(span -> checkRefCount(span, expected));
     }
 
-    private void checkRefCount(AbstractSpan<?> span, int expected) {
+    private void checkRefCount(AbstractSpanImpl<?> span, int expected) {
         assertThat(span.getReferenceCount()).isEqualTo(expected);
     }
 
-    private static class TestSpan extends AbstractSpan<TestSpan> {
+    private static class TestSpan extends AbstractSpanImpl<TestSpan> {
 
         public TestSpan() {
             super(MockTracer.create());
@@ -189,12 +189,12 @@ class ReferencedCountedConcurrentHashMapTest {
 
         @Nullable
         @Override
-        public Transaction getParentTransaction() {
+        public TransactionImpl getParentTransaction() {
             return null;
         }
 
         @Override
-        public AbstractContext getContext() {
+        public AbstractContextImpl getContext() {
             return null;
         }
 
@@ -217,7 +217,7 @@ class ReferencedCountedConcurrentHashMapTest {
         protected TestSpan thiz() {
             return null;
         }
-        
+
     }
 
 }

@@ -22,7 +22,7 @@ import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
@@ -219,7 +219,7 @@ public abstract class JmsInstrumentationHelper<DESTINATION, MESSAGE, MESSAGELIST
         AbstractSpan<?> createdSpan = null;
         boolean createPollingTransaction = false;
         boolean createPollingSpan = false;
-        final ElasticContext<?> activeContext = tracer.currentContext();
+        final TraceState<?> activeContext = tracer.currentContext();
         final AbstractSpan<?> parentSpan = activeContext.getSpan();
         if (parentSpan == null) {
             createPollingTransaction = true;

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.ecs_logging;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +29,7 @@ public abstract class EcsServiceNameTest extends EcsLoggingTest {
 
     @BeforeEach
     public void setUp() {
-        doReturn("foo").when(tracer.getConfig(CoreConfiguration.class)).getServiceName();
+        doReturn("foo").when(tracer.getConfig(CoreConfigurationImpl.class)).getServiceName();
     }
 
     @Test

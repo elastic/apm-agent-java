@@ -20,16 +20,16 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.baggage.BaggageContext;
-import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.context.TransactionContextImpl;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Scope;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,7 +67,7 @@ public class BaggageTest {
         headers.put("traceparent", "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
         headers.put("baggage", "key1=val1,key2=val2");
 
-        Transaction transaction = tracer.startChildTransaction(headers, TextHeaderMapAccessor.INSTANCE, null);
+        TransactionImpl transaction = tracer.startChildTransaction(headers, TextHeaderMapAccessor.INSTANCE, null);
         assertThat(transaction.getTraceContext())
             .satisfies(tc -> assertThat(tc.getTraceId().toString()).isEqualTo("0af7651916cd43dd8448eb211c80319c"))
             .satisfies(tc -> Assertions.assertThat(tc.getParentId().toString()).isEqualTo("b9c7c989f97918e1"));
@@ -82,7 +82,7 @@ public class BaggageTest {
         Map<String, String> headers = new HashMap<>();
         headers.put("baggage", "key1=val1,key2=val2");
 
-        Transaction transaction = tracer.startChildTransaction(headers, TextHeaderMapAccessor.INSTANCE, null);
+        TransactionImpl transaction = tracer.startChildTransaction(headers, TextHeaderMapAccessor.INSTANCE, null);
         assertThat(transaction)
             .hasBaggageCount(2)
             .hasBaggage("key1", "val1")
@@ -95,12 +95,12 @@ public class BaggageTest {
         Map<String, String> headers = new HashMap<>();
         headers.put("baggage", "key1=val1");
 
-        ElasticContext<?> baggageContext = tracer.currentContext().withUpdatedBaggage()
+        TraceState<?> baggageContext = tracer.currentContext().withUpdatedBaggage()
             .put("key1", "rootval1")
             .put("key2", "rootval2")
             .buildContext()
             .activate();
-        Transaction transaction = tracer.startChildTransaction(headers, TextHeaderMapAccessor.INSTANCE, null);
+        TransactionImpl transaction = tracer.startChildTransaction(headers, TextHeaderMapAccessor.INSTANCE, null);
         baggageContext.deactivate();
 
 
@@ -112,12 +112,12 @@ public class BaggageTest {
 
     @Test
     public void checkRootTransactionInheritsCurrentBaggage() {
-        ElasticContext<?> baggageContext = tracer.currentContext().withUpdatedBaggage()
+        TraceState<?> baggageContext = tracer.currentContext().withUpdatedBaggage()
             .put("key1", "rootval1")
             .put("key2", "rootval2")
             .buildContext()
             .activate();
-        Transaction transaction = tracer.startRootTransaction(null);
+        TransactionImpl transaction = tracer.startRootTransaction(null);
         baggageContext.deactivate();
 
         assertThat(transaction)
@@ -129,10 +129,10 @@ public class BaggageTest {
 
     @Test
     public void checkSpanInheritsParentBaggage() {
-        Transaction transaction;
-        Span span1, span2, span3, span4;
+        TransactionImpl transaction;
+        SpanImpl span1, span2, span3, span4;
 
-        ElasticContext<?> baggage1 = tracer.currentContext().withUpdatedBaggage()
+        TraceState<?> baggage1 = tracer.currentContext().withUpdatedBaggage()
             .put("key1", "rootval1")
             .put("key2", "rootval2")
             .buildContext();
@@ -142,7 +142,7 @@ public class BaggageTest {
 
                 span1 = tracer.currentContext().createSpan();
 
-                ElasticContext<?> baggage2 = tracer.currentContext().withUpdatedBaggage()
+                TraceState<?> baggage2 = tracer.currentContext().withUpdatedBaggage()
                     .put("key1", "baggage2_override")
                     .buildContext();
                 try (Scope sc2 = baggage2.activateInScope()) {
@@ -153,7 +153,7 @@ public class BaggageTest {
 
                         span3 = tracer.currentContext().createSpan();
 
-                        ElasticContext<?> baggage3 = tracer.currentContext().withUpdatedBaggage()
+                        TraceState<?> baggage3 = tracer.currentContext().withUpdatedBaggage()
                             .put("key3", "baggage3_override")
                             .remove("key2")
                             .buildContext();
@@ -194,7 +194,7 @@ public class BaggageTest {
 
     @Test
     public void checkBaggagePropagationWithoutTrace() {
-        ElasticContext<?> baggage = tracer.currentContext().withUpdatedBaggage()
+        TraceState<?> baggage = tracer.currentContext().withUpdatedBaggage()
             .put("key", "val")
             .buildContext();
 
@@ -217,12 +217,12 @@ public class BaggageTest {
 
     @Test
     public void checkBaggagePropagationFromTransaction() {
-        ElasticContext<?> baggage = tracer.currentContext().withUpdatedBaggage()
+        TraceState<?> baggage = tracer.currentContext().withUpdatedBaggage()
             .put("key", "val")
             .buildContext()
             .activate();
 
-        Transaction transaction = tracer.startRootTransaction(null);
+        TransactionImpl transaction = tracer.startRootTransaction(null);
 
         baggage.deactivate();
 
@@ -239,13 +239,13 @@ public class BaggageTest {
 
     @Test
     public void checkBaggagePropagationFromSpan() {
-        ElasticContext<?> baggage = tracer.currentContext().withUpdatedBaggage()
+        TraceState<?> baggage = tracer.currentContext().withUpdatedBaggage()
             .put("key", "val")
             .buildContext()
             .activate();
 
-        Transaction transaction = tracer.startRootTransaction(null);
-        Span span = transaction.createSpan();
+        TransactionImpl transaction = tracer.startRootTransaction(null);
+        SpanImpl span = transaction.createSpan();
 
         baggage.deactivate();
 
@@ -265,17 +265,17 @@ public class BaggageTest {
     public void checkBaggageLiftingToAttributes() {
 
         doReturn(List.of(WildcardMatcher.valueOf("foo*"), WildcardMatcher.valueOf("bar*")))
-            .when(config.getConfig(CoreConfiguration.class)).getBaggageToAttach();
+            .when(config.getConfig(CoreConfigurationImpl.class)).getBaggageToAttach();
 
-        ElasticContext<?> baggage = tracer.currentContext().withUpdatedBaggage()
+        TraceState<?> baggage = tracer.currentContext().withUpdatedBaggage()
             .put("foo.key", "foo_val")
             .put("ignore", "ignore")
             .buildContext()
             .activate();
 
-        Transaction transaction = tracer.startRootTransaction(null);
+        TransactionImpl transaction = tracer.startRootTransaction(null);
 
-        Span span = transaction
+        SpanImpl span = transaction
             .withUpdatedBaggage()
             .put("foo.key", "foo_updated_val")
             .put("bar.key", "bar_val")
@@ -298,16 +298,16 @@ public class BaggageTest {
     @Test
     void testStandaloneExceptionCapturesBaggage() {
         doReturn(List.of(WildcardMatcher.valueOf("foo*"), WildcardMatcher.valueOf("bar*")))
-            .when(config.getConfig(CoreConfiguration.class)).getBaggageToAttach();
+            .when(config.getConfig(CoreConfigurationImpl.class)).getBaggageToAttach();
 
         BaggageContext parentCtx = tracer.currentContext().withUpdatedBaggage()
             .put("foo.bar", "foo_val")
             .put("ignoreme", "ignore")
             .buildContext();
 
-        ErrorCapture errorCapture = tracer.captureException(new RuntimeException(), parentCtx, null);
+        ErrorCaptureImpl errorCapture = tracer.captureException(new RuntimeException(), parentCtx, null);
 
-        TransactionContext ctx = errorCapture.getContext();
+        TransactionContextImpl ctx = errorCapture.getContext();
         assertThat(ctx.getLabel("baggage.foo.bar")).isEqualTo("foo_val");
         assertThat(ctx.getLabel("baggage.ignoreme")).isNull();
     }
@@ -316,9 +316,9 @@ public class BaggageTest {
     @Test
     void testExceptionInheritsBaggageFromParentSpan() {
         doReturn(List.of(WildcardMatcher.valueOf("foo*"), WildcardMatcher.valueOf("bar*")))
-            .when(config.getConfig(CoreConfiguration.class)).getBaggageToAttach();
+            .when(config.getConfig(CoreConfigurationImpl.class)).getBaggageToAttach();
 
-        Span parentSpan = tracer.startRootTransaction(null)
+        SpanImpl parentSpan = tracer.startRootTransaction(null)
             .withUpdatedBaggage()
             .put("foo.bar", "foo_val")
             .put("ignoreme", "ignore")
@@ -328,9 +328,9 @@ public class BaggageTest {
         parentSpan.captureException(new RuntimeException());
 
         assertThat(mockReporter.getErrors()).hasSize(1);
-        ErrorCapture errorCapture = mockReporter.getErrors().get(0);
+        ErrorCaptureImpl errorCapture = mockReporter.getErrors().get(0);
 
-        TransactionContext ctx = errorCapture.getContext();
+        TransactionContextImpl ctx = errorCapture.getContext();
         assertThat(ctx.getLabel("baggage.foo.bar")).isEqualTo("foo_val");
         assertThat(ctx.getLabel("baggage.ignoreme")).isNull();
     }

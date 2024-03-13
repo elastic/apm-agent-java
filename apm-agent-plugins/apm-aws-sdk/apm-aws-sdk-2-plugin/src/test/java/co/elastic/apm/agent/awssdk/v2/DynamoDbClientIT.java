@@ -18,9 +18,8 @@
  */
 package co.elastic.apm.agent.awssdk.v2;
 
-import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
@@ -59,7 +58,7 @@ public class DynamoDbClientIT extends AbstractAws2ClientIT {
     private DynamoDbClient dynamoDB;
     private DynamoDbAsyncClient dynamoDBAsync;
 
-    private final Consumer<Span> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
+    private final Consumer<SpanImpl> dbAssert = span -> assertThat(span.getContext().getDb().getInstance()).isEqualTo(localstack.getRegion());
 
     private static final Map<String, AttributeValue> ITEM = Stream.of(
             new AbstractMap.SimpleEntry<>("attributeOne", AttributeValue.builder().s("valueOne").build()),
@@ -85,7 +84,7 @@ public class DynamoDbClientIT extends AbstractAws2ClientIT {
 
     @Test
     public void testDynamoDbClient() {
-        Transaction transaction = startTestRootTransaction("s3-test");
+        TransactionImpl transaction = startTestRootTransaction("s3-test");
 
         newTest(() -> dynamoDB.createTable(CreateTableRequest.builder()
             .tableName(TABLE_NAME)
@@ -159,7 +158,7 @@ public class DynamoDbClientIT extends AbstractAws2ClientIT {
 
     @Test
     public void testDynamoDbClientAsync() {
-        Transaction transaction = startTestRootTransaction("s3-test");
+        TransactionImpl transaction = startTestRootTransaction("s3-test");
 
         newTest(() -> dynamoDBAsync.createTable(CreateTableRequest.builder()
             .tableName(TABLE_NAME)
@@ -209,7 +208,7 @@ public class DynamoDbClientIT extends AbstractAws2ClientIT {
             .async()
             .execute();
 
-        Span span = reporter.getSpanByName("DynamoDB Query " + TABLE_NAME);
+        SpanImpl span = reporter.getSpanByName("DynamoDB Query " + TABLE_NAME);
         assertThat(span.getContext().getDb()).hasStatement(KEY_CONDITION_EXPRESSION);
 
         newTest(() -> dynamoDBAsync.deleteTable(DeleteTableRequest.builder().tableName(TABLE_NAME).build()))

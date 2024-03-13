@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
-import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -38,7 +38,7 @@ import static org.mockito.Mockito.spy;
 
 class CGroupMetricsTest {
 
-    private final MetricRegistry metricRegistry = new MetricRegistry(mock(ReporterConfiguration.class), spy(MetricsConfiguration.class));
+    private final MetricRegistry metricRegistry = new MetricRegistry(mock(ReporterConfigurationImpl.class), spy(MetricsConfigurationImpl.class));
 
     private CGroupMetrics createUnlimitedSystemMetrics() throws URISyntaxException, IOException {
         File mountInfo = new File(getClass().getResource("/proc/unlimited/memory").toURI());

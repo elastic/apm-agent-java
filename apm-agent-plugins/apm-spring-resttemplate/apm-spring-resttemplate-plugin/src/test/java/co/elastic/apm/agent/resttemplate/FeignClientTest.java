@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.resttemplate;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.context.Http;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.context.HttpImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import feign.Feign;
@@ -46,7 +46,7 @@ public class FeignClientTest extends AbstractInstrumentationTest {
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort(), false);
 
-    private Transaction rootTransaction;
+    private TransactionImpl rootTransaction;
 
     private String baseUrl = null;
 
@@ -78,8 +78,8 @@ public class FeignClientTest extends AbstractInstrumentationTest {
 
         reporter.awaitSpanCount(1);
 
-        Span span = reporter.getFirstSpan();
-        Http http = span.getContext().getHttp();
+        SpanImpl span = reporter.getFirstSpan();
+        HttpImpl http = span.getContext().getHttp();
 
         assertThat(span.getNameAsString()).isEqualTo("GET 127.0.0.1");
         assertThat(http.getMethod()).isEqualTo("GET");

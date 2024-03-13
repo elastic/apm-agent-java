@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.resttemplate;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.context.Http;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.context.HttpImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.junit.After;
@@ -42,7 +42,7 @@ public class SprintRestTemplateIntegration extends AbstractInstrumentationTest {
 
     private final RestTemplate restTemplate;
 
-    private Transaction rootTransaction;
+    private TransactionImpl rootTransaction;
 
     private final boolean expectSpan;
 
@@ -83,8 +83,8 @@ public class SprintRestTemplateIntegration extends AbstractInstrumentationTest {
         } else {
             reporter.awaitSpanCount(1);
 
-            Span span = reporter.getFirstSpan();
-            Http http = span.getContext().getHttp();
+            SpanImpl span = reporter.getFirstSpan();
+            HttpImpl http = span.getContext().getHttp();
             assertThat(http.getMethod()).isEqualTo("GET");
             assertThat(http.getUrl().toString()).isEqualTo(url);
         }

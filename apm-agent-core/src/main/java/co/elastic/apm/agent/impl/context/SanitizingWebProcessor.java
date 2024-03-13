@@ -18,43 +18,43 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.processor.Processor;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
-import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
+import static co.elastic.apm.agent.impl.context.AbstractContextImpl.REDACTED_CONTEXT_STRING;
 
 /**
- * Sanitizes web-related fields according to the {@link CoreConfiguration#sanitizeFieldNames} setting
+ * Sanitizes web-related fields according to the {@link CoreConfigurationImpl#sanitizeFieldNames} setting
  */
 public class SanitizingWebProcessor implements Processor {
 
-    private final CoreConfiguration config;
+    private final CoreConfigurationImpl config;
 
     public SanitizingWebProcessor(ConfigurationRegistry configurationRegistry) {
-        config = configurationRegistry.getConfig(CoreConfiguration.class);
+        config = configurationRegistry.getConfig(CoreConfigurationImpl.class);
     }
 
     @Override
-    public void processBeforeReport(Transaction transaction) {
+    public void processBeforeReport(TransactionImpl transaction) {
         sanitizeContext(transaction.getContext());
     }
 
     @Override
-    public void processBeforeReport(ErrorCapture error) {
+    public void processBeforeReport(ErrorCaptureImpl error) {
         sanitizeContext(error.getContext());
     }
 
-    private void sanitizeContext(TransactionContext context) {
+    private void sanitizeContext(TransactionContextImpl context) {
         sanitizeRequest(context.getRequest());
         sanitizeMap(context.getResponse().getHeaders());
     }
 
-    private void sanitizeRequest(Request request) {
+    private void sanitizeRequest(RequestImpl request) {
         sanitizeMap(request.getHeaders());
         // cookies are stored in Request.cookies
         // storing it twice would be wasteful

@@ -20,12 +20,11 @@ package co.elastic.apm.agent.jms.javax;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import testapp.TestMessageConsumer;
 import testapp.TestMessageListener;
 import testapp.TestMsgHandler;
@@ -73,7 +72,7 @@ public class JmsMessageListenerTest {
     @Test
     public void testJmsMessageListenerPackage_defaultConfig() throws Exception {
         // default configuration
-        doReturn(Collections.emptyList()).when(config.getConfig(StacktraceConfiguration.class)).getApplicationPackages();
+        doReturn(Collections.emptyList()).when(config.getConfig(StacktraceConfigurationImpl.class)).getApplicationPackages();
 
         startAgent();
 
@@ -85,7 +84,7 @@ public class JmsMessageListenerTest {
 
     @Test
     public void testJmsMessageListenerPackage_customValue() throws Exception {
-        doReturn(Collections.emptyList()).when(config.getConfig(StacktraceConfiguration.class)).getApplicationPackages();
+        doReturn(Collections.emptyList()).when(config.getConfig(StacktraceConfigurationImpl.class)).getApplicationPackages();
         doReturn(Arrays.asList("testapp")).when(config.getConfig(MessagingConfiguration.class)).getJmsListenerPackages();
 
         startAgent();
@@ -98,7 +97,7 @@ public class JmsMessageListenerTest {
 
     @Test
     public void testJmsMessageListenerPackage_applicationPackages() throws Exception {
-        doReturn(Arrays.asList("testapp")).when(config.getConfig(StacktraceConfiguration.class)).getApplicationPackages();
+        doReturn(Arrays.asList("testapp")).when(config.getConfig(StacktraceConfigurationImpl.class)).getApplicationPackages();
 
         startAgent();
 
@@ -123,7 +122,7 @@ public class JmsMessageListenerTest {
 
         Message message = mock(Message.class);
 
-        AtomicReference<Transaction> transaction = new AtomicReference<>();
+        AtomicReference<TransactionImpl> transaction = new AtomicReference<>();
 
         switch (variant){
             case MATCHING_NAME_CONVENTION:
@@ -139,7 +138,7 @@ public class JmsMessageListenerTest {
             case LAMBDA:
                 // lambda is instrumented through wrapping on the message consumer
                 MessageListener listener = msg -> {
-                    transaction.set(GlobalTracer.get().require(Tracer.class).currentTransaction());
+                    transaction.set(GlobalTracer.get().require(ElasticApmTracer.class).currentTransaction());
                 };
                 TestMessageConsumer consumer = new TestMessageConsumer();
                 // listener should be wrapped on setter entry
@@ -169,15 +168,15 @@ public class JmsMessageListenerTest {
     // will be instrumented by default as it's an inner class
     private static class InnerClassMsgHandler implements MessageListener {
 
-        private final AtomicReference<Transaction> transaction;
+        private final AtomicReference<TransactionImpl> transaction;
 
-        public InnerClassMsgHandler(AtomicReference<Transaction> transaction) {
+        public InnerClassMsgHandler(AtomicReference<TransactionImpl> transaction) {
             this.transaction = transaction;
         }
 
         @Override
         public void onMessage(Message message) {
-            transaction.set(GlobalTracer.get().require(Tracer.class).currentTransaction());
+            transaction.set(GlobalTracer.get().require(ElasticApmTracer.class).currentTransaction());
         }
     }
 

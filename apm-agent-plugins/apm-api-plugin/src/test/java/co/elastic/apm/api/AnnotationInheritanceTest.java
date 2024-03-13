@@ -21,7 +21,7 @@ package co.elastic.apm.api;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -57,7 +57,7 @@ class AnnotationInheritanceTest {
     private void init(boolean annotationInheritanceEnabled) {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup(SpyConfiguration.createSpyConfig(), false);
         tracer = mockInstrumentationSetup.getTracer();
-        doReturn(annotationInheritanceEnabled).when(tracer.getConfig(CoreConfiguration.class)).isEnablePublicApiAnnotationInheritance();
+        doReturn(annotationInheritanceEnabled).when(tracer.getConfig(CoreConfigurationImpl.class)).isEnablePublicApiAnnotationInheritance();
         reporter = mockInstrumentationSetup.getReporter();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }

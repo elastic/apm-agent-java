@@ -23,9 +23,9 @@ import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
 import co.elastic.apm.agent.dubbo.api.impl.AnotherApiImpl;
 import co.elastic.apm.agent.dubbo.api.impl.DubboTestApiImpl;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import com.alibaba.dubbo.config.ApplicationConfig;
 import com.alibaba.dubbo.config.MethodConfig;
 import com.alibaba.dubbo.config.ProtocolConfig;
@@ -143,14 +143,14 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
         ret = (String) future.get();
         assertThat(ret).isEqualTo(arg);
 
-        Transaction transaction = reporter.getFirstTransaction(1000);
+        TransactionImpl transaction = reporter.getFirstTransaction(1000);
         validateDubboTransaction(transaction, "async");
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
-        List<Span> spans = reporter.getSpans();
+        List<SpanImpl> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
 
-        Span span = validateDubboSpan(spans.get(0), "async");
+        SpanImpl span = validateDubboSpan(spans.get(0), "async");
         assertThat(span).isAsync();
     }
 
@@ -167,16 +167,16 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
         } catch (Exception e) {
             // exception from Future will be wrapped as RpcException by dubbo implementation
             assertThat(e.getCause()).isInstanceOf(BizException.class);
-            Transaction transaction = reporter.getFirstTransaction(1000);
+            TransactionImpl transaction = reporter.getFirstTransaction(1000);
             assertThat(transaction).isNotNull();
             assertThat(reporter.getFirstSpan(500)).isNotNull();
             assertThat(reporter.getSpans()).hasSize(1);
 
             assertThat(reporter.getFirstSpan()).isAsync();
 
-            List<ErrorCapture> errors = reporter.getErrors();
+            List<ErrorCaptureImpl> errors = reporter.getErrors();
             assertThat(errors.size()).isEqualTo(2);
-            for (ErrorCapture error : errors) {
+            for (ErrorCaptureImpl error : errors) {
                 assertThat(error.getException()).isInstanceOf(BizException.class);
             }
         }

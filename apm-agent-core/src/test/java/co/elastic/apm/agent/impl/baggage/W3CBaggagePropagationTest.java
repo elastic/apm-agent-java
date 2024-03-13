@@ -42,7 +42,7 @@ public class W3CBaggagePropagationTest {
 
         @Test
         public void testComplexValue() {
-            Baggage baggage = Baggage.builder()
+            BaggageImpl baggage = BaggageImpl.builder()
                 .put("foo", "bar")
                 .put("my_key!", "hello, world!?%ä=", "metadata=blub")
                 .build();
@@ -55,7 +55,7 @@ public class W3CBaggagePropagationTest {
         }
 
         @NotNull
-        private Map<String, String> doPropagate(Baggage baggage) {
+        private Map<String, String> doPropagate(BaggageImpl baggage) {
             Map<String, String> resultHeaders = new HashMap<>();
             W3CBaggagePropagation.propagate(baggage, resultHeaders, TextHeaderMapAccessor.INSTANCE);
 
@@ -68,7 +68,7 @@ public class W3CBaggagePropagationTest {
 
         @Test
         public void testEmptyBaggage() {
-            Baggage baggage = Baggage.builder().build();
+            BaggageImpl baggage = BaggageImpl.builder().build();
 
             Map<String, String> resultHeaders = doPropagate(baggage);
 
@@ -77,7 +77,7 @@ public class W3CBaggagePropagationTest {
 
         @Test
         public void testInvalidKeysIgnored() {
-            Baggage baggage = Baggage.builder()
+            BaggageImpl baggage = BaggageImpl.builder()
                 .put("foo", "bar")
                 .put("bad,key", "42")
                 .build();
@@ -92,7 +92,7 @@ public class W3CBaggagePropagationTest {
 
         @Test
         public void testOnlyInvalidKeys() {
-            Baggage baggage = Baggage.builder()
+            BaggageImpl baggage = BaggageImpl.builder()
                 .put("bad,key", "42")
                 .build();
 
@@ -113,7 +113,7 @@ public class W3CBaggagePropagationTest {
                 "bar=baz2"
             };
 
-            Baggage.Builder resultBuilder = Baggage.builder();
+            BaggageImpl.Builder resultBuilder = BaggageImpl.builder();
             W3CBaggagePropagation.parse(baggageHeaders, new TextBaggageheaderGetter(), resultBuilder);
 
             assertThat(resultBuilder.build())
@@ -122,7 +122,7 @@ public class W3CBaggagePropagationTest {
                 .containsEntry("bar", "baz2", null)
                 .containsEntry("foo", "bar2", "overridden=meta");
 
-            Baggage.Builder utf8ResultBuilder = Baggage.builder();
+            BaggageImpl.Builder utf8ResultBuilder = BaggageImpl.builder();
             W3CBaggagePropagation.parse(baggageHeaders, new UTF8BaggageheaderGetter(), utf8ResultBuilder);
             assertThat(utf8ResultBuilder.build()).isEqualTo(resultBuilder.build());
         }
@@ -130,11 +130,11 @@ public class W3CBaggagePropagationTest {
 
         @Test
         public void testNoValue() {
-            Baggage.Builder textResultBuilder = Baggage.builder();
+            BaggageImpl.Builder textResultBuilder = BaggageImpl.builder();
             W3CBaggagePropagation.parse(Collections.emptyMap(), TextHeaderMapAccessor.INSTANCE, textResultBuilder);
             assertThat(textResultBuilder.build()).hasSize(0);
 
-            Baggage.Builder utf8ResultBuilder = Baggage.builder();
+            BaggageImpl.Builder utf8ResultBuilder = BaggageImpl.builder();
             W3CBaggagePropagation.parse(Collections.emptyMap(), Utf8HeaderMapAccessor.INSTANCE, utf8ResultBuilder);
             assertThat(textResultBuilder.build()).hasSize(0);
         }

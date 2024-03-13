@@ -21,7 +21,7 @@ package co.elastic.apm.agent.opentelemetry.tracing;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.opentelemetry.global.ElasticOpenTelemetry;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
@@ -62,12 +62,12 @@ public class OTelSpanLinkTest {
         SpanBuilder spanbuilder = tracer.spanBuilder("span");
         assertThat(spanbuilder).isInstanceOf(OTelSpanBuilder.class);
 
-        TraceContext[] contexts = new TraceContext[linkCount];
+        TraceContextImpl[] contexts = new TraceContextImpl[linkCount];
         AttributesBuilder builder = Attributes.builder();
         builder.put("key1", 33);
         builder.put("key2", true);
         for (int i = 0; i < linkCount; i++) {
-            TraceContext traceContext1 = TraceContext.with64BitId(etracer);
+            TraceContextImpl traceContext1 = TraceContextImpl.with64BitId(etracer);
             traceContext1.asRootSpan(ConstantSampler.of(false));
             SpanContext context1 = new OTelSpanContext(traceContext1);
             if (withAttributes) {
@@ -81,7 +81,7 @@ public class OTelSpanLinkTest {
         }
 
         OTelSpan span = (OTelSpan) spanbuilder.startSpan();
-        List<TraceContext> links = span.getInternalSpan().getSpanLinks();
+        List<TraceContextImpl> links = span.getInternalSpan().getSpanLinks();
 
         assertThat(links.size()).isEqualTo(linkCount);
         for (int i = 0; i < linkCount; i++) {

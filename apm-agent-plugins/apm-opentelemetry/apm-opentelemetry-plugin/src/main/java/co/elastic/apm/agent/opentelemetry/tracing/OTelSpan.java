@@ -18,11 +18,12 @@
  */
 package co.elastic.apm.agent.opentelemetry.tracing;
 
-import co.elastic.apm.agent.impl.context.Url;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.context.UrlImpl;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
@@ -46,9 +47,9 @@ public class OTelSpan implements Span {
     static final String ILLEGAL_ATTRIBUTE_VALUE_TYPE_MESSAGE_FORMAT = "`%s` attribute's value type must be boolean, `%s` is illegal";
     private static final Logger eventLogger = LoggerUtils.logOnce(LoggerFactory.getLogger(OTelSpan.class));
 
-    private final AbstractSpan<?> span;
+    private final AbstractSpanImpl<?> span;
 
-    public OTelSpan(AbstractSpan<?> span) {
+    public OTelSpan(AbstractSpanImpl<?> span) {
         this.span = span;
         span.incrementReferences();
     }
@@ -113,17 +114,17 @@ public class OTelSpan implements Span {
 
     @Override
     public void end() {
-        if (span instanceof Transaction) {
-            onTransactionEnd((Transaction) span);
-        } else if (span instanceof co.elastic.apm.agent.impl.transaction.Span) {
-            onSpanEnd((co.elastic.apm.agent.impl.transaction.Span) span);
+        if (span instanceof TransactionImpl) {
+            onTransactionEnd((TransactionImpl) span);
+        } else if (span instanceof SpanImpl) {
+            onSpanEnd((SpanImpl) span);
         }
 
         span.end();
     }
 
 
-    private void onTransactionEnd(Transaction t) {
+    private void onTransactionEnd(TransactionImpl t) {
 
         Map<String, Object> attributes = span.getOtelAttributes();
         boolean isRpc = attributes.containsKey("rpc.system");
@@ -142,7 +143,7 @@ public class OTelSpan implements Span {
         t.setFrameworkVersion(VersionUtils.getVersion(OpenTelemetry.class, "io.opentelemetry", "opentelemetry-api"));
     }
 
-    private void onSpanEnd(co.elastic.apm.agent.impl.transaction.Span s) {
+    private void onSpanEnd(SpanImpl s) {
 
         Map<String, Object> attributes = s.getOtelAttributes();
 
@@ -224,7 +225,7 @@ public class OTelSpan implements Span {
                 }
             }
 
-            netPort = Url.normalizePort(netPort, httpScheme);
+            netPort = UrlImpl.normalizePort(netPort, httpScheme);
 
             s.getContext().getServiceTarget()
                 .withType(subType)
@@ -264,10 +265,10 @@ public class OTelSpan implements Span {
 
     @Override
     public void end(long timestamp, TimeUnit unit) {
-        if (span instanceof Transaction) {
-            onTransactionEnd((Transaction) span);
-        } else if (span instanceof co.elastic.apm.agent.impl.transaction.Span) {
-            onSpanEnd((co.elastic.apm.agent.impl.transaction.Span) span);
+        if (span instanceof TransactionImpl) {
+            onTransactionEnd((TransactionImpl) span);
+        } else if (span instanceof SpanImpl) {
+            onSpanEnd((SpanImpl) span);
         }
         span.end(unit.toMicros(timestamp));
     }
@@ -282,7 +283,7 @@ public class OTelSpan implements Span {
         return span.isSampled();
     }
 
-    public AbstractSpan<?> getInternalSpan() {
+    public AbstractSpanImpl<?> getInternalSpan() {
         return span;
     }
 

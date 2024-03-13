@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.quartzjob;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
 import org.junit.jupiter.api.Test;
 import org.quartz.Job;
@@ -47,10 +47,10 @@ import static org.awaitility.Awaitility.await;
 class Quartz2JobTransactionNameInstrumentationTest extends AbstractJobTransactionNameInstrumentationTest {
 
     @Override
-    public Transaction verifyTransactionFromJobDetails(JobDetail job, Outcome expectedOutcome) {
+    public TransactionImpl verifyTransactionFromJobDetails(JobDetail job, Outcome expectedOutcome) {
         reporter.awaitTransactionCount(1);
 
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         await().untilAsserted(() -> assertThat(reporter.getTransactions().size()).isEqualTo(1));
 
         verifyTransaction(transaction, String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
@@ -128,7 +128,7 @@ class Quartz2JobTransactionNameInstrumentationTest extends AbstractJobTransactio
 
         @Override
         public void execute(JobExecutionContext context) throws JobExecutionException {
-            Transaction transaction = tracer.currentTransaction();
+            TransactionImpl transaction = tracer.currentTransaction();
             if (traced) {
                 assertThat(transaction).isNotNull();
                 transaction.createSpan().end();

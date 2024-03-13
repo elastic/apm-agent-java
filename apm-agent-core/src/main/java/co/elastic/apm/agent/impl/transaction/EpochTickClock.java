@@ -21,7 +21,7 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 /**
- * This clock makes sure that each {@link Span} and {@link Transaction} uses a consistent clock
+ * This clock makes sure that each {@link SpanImpl} and {@link TransactionImpl} uses a consistent clock
  * which does not drift in case of NTP updates or leap seconds.
  * <p>
  * The clock is initialized with wall clock time when the transaction starts and from there on

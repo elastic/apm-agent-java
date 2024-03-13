@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.vertx.v4.webclient;
 
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.vertx.AbstractVertxWebClientHelper;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
@@ -81,7 +81,7 @@ public abstract class HttpContextInstrumentation extends Vertx4Instrumentation {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void prepareRequest(@Advice.This HttpContext<?> httpContext) {
-                ElasticContext<?> currentContext = tracer.currentContext();
+                TraceState<?> currentContext = tracer.currentContext();
                 if (!currentContext.isEmpty()) {
                     currentContext.incrementReferences();
                     httpContext.set(WEB_CLIENT_PARENT_CONTEXT_KEY, currentContext);
@@ -110,7 +110,7 @@ public abstract class HttpContextInstrumentation extends Vertx4Instrumentation {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void sendRequest(@Advice.This HttpContext<?> httpContext, @Advice.Argument(value = 0) HttpClientRequest request, @Advice.FieldValue(value = "context") Context vertxContext) {
-                ElasticContext<?> parent = httpContext.get(WEB_CLIENT_PARENT_CONTEXT_KEY);
+                TraceState<?> parent = httpContext.get(WEB_CLIENT_PARENT_CONTEXT_KEY);
 
                 if (parent != null) {
                     // Setting to null removes from the context attributes map
@@ -181,7 +181,7 @@ public abstract class HttpContextInstrumentation extends Vertx4Instrumentation {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void fail(@Advice.This HttpContext<?> httpContext, @Advice.Argument(value = 0) Throwable thrown) {
-                ElasticContext<?> parent = httpContext.get(WEB_CLIENT_PARENT_CONTEXT_KEY);
+                TraceState<?> parent = httpContext.get(WEB_CLIENT_PARENT_CONTEXT_KEY);
                 if (parent != null) {
                     httpContext.set(WEB_CLIENT_PARENT_CONTEXT_KEY, null);
                     try {

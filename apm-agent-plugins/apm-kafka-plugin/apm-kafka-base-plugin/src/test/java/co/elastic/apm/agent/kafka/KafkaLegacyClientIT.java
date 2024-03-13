@@ -19,13 +19,13 @@
 package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.context.Message;
-import co.elastic.apm.agent.impl.context.SpanContext;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.context.DestinationImpl;
+import co.elastic.apm.agent.impl.context.MessageImpl;
+import co.elastic.apm.agent.impl.context.SpanContextImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -85,13 +85,13 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
     private static KafkaConsumer<String, String> replyConsumer;
     private static KafkaProducer<String, String> producer;
 
-    private final CoreConfiguration coreConfiguration;
+    private final CoreConfigurationImpl coreConfiguration;
     private final MessagingConfiguration messagingConfiguration;
 
     private TestScenario testScenario;
 
     public KafkaLegacyClientIT() {
-        this.coreConfiguration = config.getConfig(CoreConfiguration.class);
+        this.coreConfiguration = config.getConfig(CoreConfigurationImpl.class);
         this.messagingConfiguration = config.getConfig(MessagingConfiguration.class);
     }
 
@@ -140,7 +140,7 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
 
     @After
     public void endTransaction() {
-        Transaction currentTransaction = tracer.currentTransaction();
+        TransactionImpl currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
             currentTransaction.deactivate().end();
         }
@@ -205,7 +205,7 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
 
     @Test
     public void testBodyCaptureEnabled() {
-        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.ALL).when(coreConfiguration).getCaptureBody();
         testScenario = TestScenario.BODY_CAPTURE_ENABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
@@ -247,10 +247,10 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
         sendTwoRecordsAndConsumeReplies();
 
         // we expect only one span for polling the reply topic
-        List<Span> spans = reporter.getSpans();
+        List<SpanImpl> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         verifyPollSpanContents(spans.get(0));
-        List<Transaction> transactions = reporter.getTransactions();
+        List<TransactionImpl> transactions = reporter.getTransactions();
         assertThat(transactions).isEmpty();
     }
 
@@ -274,22 +274,22 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
     }
 
     private void verifyTracing() {
-        List<Span> spans = reporter.getSpans();
+        List<SpanImpl> spans = reporter.getSpans();
         // we expect two send spans to request topic and one poll span from reply topic
         assertThat(spans).hasSize(3);
-        Span sendRequestSpan0 = spans.get(0);
+        SpanImpl sendRequestSpan0 = spans.get(0);
         verifySendSpanContents(sendRequestSpan0);
-        Span sendRequestSpan1 = spans.get(1);
+        SpanImpl sendRequestSpan1 = spans.get(1);
         verifySendSpanContents(sendRequestSpan1);
 
-        List<Transaction> transactions = reporter.getTransactions();
+        List<TransactionImpl> transactions = reporter.getTransactions();
         assertThat(transactions).isEmpty();
 
-        Span pollSpan = spans.get(2);
+        SpanImpl pollSpan = spans.get(2);
         verifyPollSpanContents(pollSpan);
     }
 
-    private void verifyPollSpanContents(Span pollSpan) {
+    private void verifyPollSpanContents(SpanImpl pollSpan) {
         assertThat(pollSpan.getType()).isEqualTo("messaging");
         assertThat(pollSpan.getSubtype()).isEqualTo("kafka");
         assertThat(pollSpan.getAction()).isEqualTo("poll");
@@ -300,15 +300,15 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
             .hasNoName();
     }
 
-    private void verifySendSpanContents(Span sendSpan) {
+    private void verifySendSpanContents(SpanImpl sendSpan) {
         assertThat(sendSpan.getType()).isEqualTo("messaging");
         assertThat(sendSpan.getSubtype()).isEqualTo("kafka");
         assertThat(sendSpan.getAction()).isEqualTo("send");
         assertThat(sendSpan.getNameAsString()).isEqualTo("KafkaProducer#send to " + REQUEST_TOPIC);
-        SpanContext context = sendSpan.getContext();
-        Message message = context.getMessage();
+        SpanContextImpl context = sendSpan.getContext();
+        MessageImpl message = context.getMessage();
         assertThat(message.getQueueName()).isEqualTo(REQUEST_TOPIC);
-        Destination destination = context.getDestination();
+        DestinationImpl destination = context.getDestination();
         if (testScenario != TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED) {
             assertThat(destination.getPort()).isEqualTo(kafkaPort);
             assertThat(destination.getAddress().toString()).isEqualTo(kafka.getContainerIpAddress());

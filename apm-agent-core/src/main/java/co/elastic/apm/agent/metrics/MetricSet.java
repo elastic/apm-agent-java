@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.metrics;
 
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
 import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
@@ -32,7 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * A metric set is a collection of metrics which have the same labels.
  * <p>
  * A metric set corresponds to one document per
- * {@link co.elastic.apm.agent.report.ReporterConfiguration#metricsInterval metrics_interval} in Elasticsearch.
+ * {@link ReporterConfigurationImpl#metricsInterval metrics_interval} in Elasticsearch.
  * An alternative would be to have one document per metric but having one document for all metrics with the same labels saves disk space.
  * </p>
  * Example of some serialized metric sets:

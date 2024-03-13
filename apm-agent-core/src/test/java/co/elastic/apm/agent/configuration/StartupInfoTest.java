@@ -20,8 +20,8 @@ package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
+import co.elastic.apm.agent.logging.LoggingConfigurationImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -45,13 +45,13 @@ class StartupInfoTest {
 
     @BeforeEach
     void setUp() {
-        LoggingConfiguration.init(List.of(), "");
+        LoggingConfigurationImpl.init(List.of(), "");
 
         config = new TestConfig();
         this.configurationRegistry = ConfigurationRegistry.builder()
             .addOptionProvider(config)
-            .addOptionProvider(new CoreConfiguration())
-            .addOptionProvider(new StacktraceConfiguration())
+            .addOptionProvider(new CoreConfigurationImpl())
+            .addOptionProvider(new StacktraceConfigurationImpl())
             .addConfigSource(new SimpleSource().add("duration", "1"))
             .build();
         startupInfo = new StartupInfo();

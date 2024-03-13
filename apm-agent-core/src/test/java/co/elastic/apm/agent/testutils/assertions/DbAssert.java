@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.agent.testutils.assertions;
 
-import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.DbImpl;
 
 import javax.annotation.Nullable;
 import java.nio.CharBuffer;
 
-public class DbAssert extends BaseAssert<DbAssert, Db> {
+public class DbAssert extends BaseAssert<DbAssert, DbImpl> {
 
-    protected DbAssert(Db actual) {
+    protected DbAssert(DbImpl actual) {
         super(actual, DbAssert.class);
     }
 

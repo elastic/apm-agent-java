@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
-import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.assertj.core.api.AbstractDoubleAssert;
 import org.junit.jupiter.api.Test;
 
@@ -42,7 +42,7 @@ class JvmMemoryMetricsTest {
 
     @Test
     void testMetrics() {
-        final MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class), spy(MetricsConfiguration.class));
+        final MetricRegistry registry = new MetricRegistry(mock(ReporterConfigurationImpl.class), spy(MetricsConfigurationImpl.class));
         jvmMemoryMetrics.bindTo(registry);
 
         Stream.of(

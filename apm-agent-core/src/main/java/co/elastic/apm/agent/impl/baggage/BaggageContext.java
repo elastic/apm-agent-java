@@ -18,19 +18,19 @@
  */
 package co.elastic.apm.agent.impl.baggage;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.TraceStateImpl;
 import co.elastic.apm.agent.tracer.BaggageContextBuilder;
 
 import javax.annotation.Nullable;
 
-public class BaggageContext extends ElasticContext<BaggageContext> {
+public class BaggageContext extends TraceStateImpl<BaggageContext> {
 
     @Nullable
-    private final AbstractSpan<?> span;
-    private final Baggage baggage;
+    private final AbstractSpanImpl<?> span;
+    private final BaggageImpl baggage;
 
-    private BaggageContext(ElasticContext<?> parent, Baggage baggage) {
+    private BaggageContext(TraceStateImpl<?> parent, BaggageImpl baggage) {
         super(parent.getTracer());
         this.span = parent.getSpan();
         this.baggage = baggage;
@@ -38,12 +38,12 @@ public class BaggageContext extends ElasticContext<BaggageContext> {
 
     @Nullable
     @Override
-    public AbstractSpan<?> getSpan() {
+    public AbstractSpanImpl<?> getSpan() {
         return span;
     }
 
     @Override
-    public Baggage getBaggage() {
+    public BaggageImpl getBaggage() {
         return baggage;
     }
 
@@ -61,16 +61,16 @@ public class BaggageContext extends ElasticContext<BaggageContext> {
         }
     }
 
-    public static BaggageContext.Builder createBuilder(ElasticContext<?> parent) {
+    public static BaggageContext.Builder createBuilder(TraceStateImpl<?> parent) {
         return new Builder(parent);
     }
 
     public static class Builder implements BaggageContextBuilder {
 
-        private final ElasticContext<?> parent;
-        private final Baggage.Builder baggageBuilder;
+        private final TraceStateImpl<?> parent;
+        private final BaggageImpl.Builder baggageBuilder;
 
-        public Builder(ElasticContext<?> parent) {
+        public Builder(TraceStateImpl<?> parent) {
             this.parent = parent;
             this.baggageBuilder = parent.getBaggage().toBuilder();
         }

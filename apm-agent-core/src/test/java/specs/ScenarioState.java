@@ -20,9 +20,9 @@ package specs;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.Reporter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -53,8 +53,8 @@ public class ScenarioState {
     @Nullable
     private JsonNode apmServerResponse;
 
-    private Transaction transaction;
-    private Span span;
+    private TransactionImpl transaction;
+    private SpanImpl span;
 
     public ElasticApmTracer getTracer() {
         return Objects.requireNonNull(tracer);
@@ -112,7 +112,7 @@ public class ScenarioState {
         }
     }
 
-    public Transaction startTransaction() {
+    public TransactionImpl startTransaction() {
         if (transaction != null) {
             transaction.end();
         }
@@ -121,7 +121,7 @@ public class ScenarioState {
         return transaction;
     }
 
-    public Span startSpan() {
+    public SpanImpl startSpan() {
         if (span != null) {
             span.end();
         }
@@ -134,11 +134,11 @@ public class ScenarioState {
         return span;
     }
 
-    public Transaction getTransaction() {
+    public TransactionImpl getTransaction() {
         return transaction;
     }
 
-    public Span getSpan() {
+    public SpanImpl getSpan() {
         return span;
     }
 
@@ -147,7 +147,7 @@ public class ScenarioState {
      * @param contextType type name of the required context
      * @return the current span or transaction, based on the provided type name
      */
-    public AbstractSpan<?> getContext(String contextType) {
+    public AbstractSpanImpl<?> getContext(String contextType) {
         return contextType.equals("span") ? getSpan() : getTransaction();
     }
 }

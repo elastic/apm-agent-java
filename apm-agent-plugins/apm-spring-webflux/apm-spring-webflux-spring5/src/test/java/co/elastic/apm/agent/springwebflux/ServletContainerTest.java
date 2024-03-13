@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
 import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
 import org.junit.jupiter.api.AfterAll;
@@ -71,7 +71,7 @@ public class ServletContainerTest extends AbstractInstrumentationTest {
             .verifyComplete();
 
         // at least one transaction expected
-        Transaction transaction = reporter.getFirstTransaction(200);
+        TransactionImpl transaction = reporter.getFirstTransaction(200);
 
         // transaction naming should be set by webflux instrumentation
         AbstractServerInstrumentationTest.checkTransaction(transaction, "GET /functional/with-parameters/{id}", "GET", 200);

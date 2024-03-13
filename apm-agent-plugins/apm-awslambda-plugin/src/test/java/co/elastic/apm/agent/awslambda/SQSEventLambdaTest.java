@@ -21,9 +21,9 @@ package co.elastic.apm.agent.awslambda;
 import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.SQSEventLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
-import co.elastic.apm.agent.impl.transaction.Faas;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.FaasImpl;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import org.junit.jupiter.api.BeforeAll;
@@ -78,8 +78,8 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
         sqsMessage.setMessageAttributes(Map.of(
             "SentTimestamp", sentTimestampAttribute,
             HEADER_1_KEY, header_1_Attribute,
-            TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, traceparent_Attribute,
-            TraceContext.TRACESTATE_HEADER_NAME, tracestate_Attribute
+            TraceContextImpl.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, traceparent_Attribute,
+            TraceContextImpl.TRACESTATE_HEADER_NAME, tracestate_Attribute
         ));
         sqsMessage.setBody(MESSAGE_BODY);
         return sqsMessage;
@@ -92,7 +92,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
     }
 
     @Override
-    protected void verifyDistributedTracing(TraceContext traceContext) {
+    protected void verifyDistributedTracing(TraceContextImpl traceContext) {
         // batch processing root transaction, distributed tracing is supported through span links
         assertThat(traceContext.getParentId().isEmpty()).isTrue();
         assertThat(traceContext.getTraceState().getSampleRate()).isEqualTo(1d);
@@ -106,9 +106,9 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
     }
 
     private void verifySpanLink(String traceId, String parentId) {
-        Transaction transaction = reporter.getFirstTransaction();
-        List<TraceContext> spanLinks = transaction.getSpanLinks();
-        List<TraceContext> matchedSpanLinks = spanLinks.stream().filter(spanLink -> spanLink.getParentId().toString().equals(parentId)).collect(Collectors.toList());
+        TransactionImpl transaction = reporter.getFirstTransaction();
+        List<TraceContextImpl> spanLinks = transaction.getSpanLinks();
+        List<TraceContextImpl> matchedSpanLinks = spanLinks.stream().filter(spanLink -> spanLink.getParentId().toString().equals(parentId)).collect(Collectors.toList());
         assertThat(matchedSpanLinks).hasSize(1);
         assertThat(matchedSpanLinks.get(0).getTraceId().toString()).isEqualTo(traceId);
     }
@@ -118,7 +118,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(reporter.getPartialTransactions()).containsExactly(transaction);
         printTransactionJson(transaction);
 
@@ -140,7 +140,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
         assertThat(transaction.getContext().getCloudOrigin().getRegion()).isEqualTo(EVENT_SOURCE_REGION);
         assertThat(transaction.getContext().getCloudOrigin().getAccountId()).isEqualTo(EVENT_SOURCE_ACCOUNT_ID);
 
-        Faas faas = transaction.getFaas();
+        FaasImpl faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
         assertThat(faas.getId()).isEqualTo(TestContext.FUNCTION_ARN);
         assertThat(faas.getTrigger().getType()).isEqualTo("pubsub");
@@ -154,7 +154,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getResult()).isEqualTo("success");
@@ -168,7 +168,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isFalse();
 
-        Faas faas = transaction.getFaas();
+        FaasImpl faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
 
         assertThat(faas.getTrigger().getType()).isEqualTo("other");
@@ -196,7 +196,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getResult()).isEqualTo("success");
@@ -210,7 +210,7 @@ public class SQSEventLambdaTest extends AbstractLambdaTest<SQSEvent, Void> {
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isFalse();
 
-        Faas faas = transaction.getFaas();
+        FaasImpl faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
 
         assertThat(faas.getTrigger().getType()).isEqualTo("pubsub");

@@ -20,18 +20,18 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.common.util.Version;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.configuration.ServerlessConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.source.ConfigSources;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.objectpool.impl.BookkeeperObjectPool;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
@@ -87,8 +87,8 @@ public class ApmServerClientTest {
     private ConfigurationRegistry config;
     private ElasticApmTracer tracer;
     private TestObjectPoolFactory objectPoolFactory;
-    private ReporterConfiguration reporterConfiguration;
-    private CoreConfiguration coreConfiguration;
+    private ReporterConfigurationImpl reporterConfiguration;
+    private CoreConfigurationImpl coreConfiguration;
     private List<URL> urlList;
 
     @Before
@@ -106,8 +106,8 @@ public class ApmServerClientTest {
         apmServer2.stubFor(get(urlEqualTo("/proxy/not-found")).willReturn(notFound()));
 
         config = SpyConfiguration.createSpyConfig();
-        reporterConfiguration = config.getConfig(ReporterConfiguration.class);
-        coreConfiguration = config.getConfig(CoreConfiguration.class);
+        reporterConfiguration = config.getConfig(ReporterConfigurationImpl.class);
+        coreConfiguration = config.getConfig(CoreConfigurationImpl.class);
         objectPoolFactory = new TestObjectPoolFactory();
         config.save("server_urls", url1 + "," + url2, SpyConfiguration.CONFIG_SOURCE_NAME);
         urlList = List.of(UrlValueConverter.INSTANCE.convert(url1.toString()), UrlValueConverter.INSTANCE.convert(url2.toString()));
@@ -131,7 +131,7 @@ public class ApmServerClientTest {
     @Test
     @SuppressWarnings("unchecked")
     public void ensureSerializerDoesNotBlockOnAwsLambda() throws Exception {
-        doReturn(true).when(config.getConfig(ServerlessConfiguration.class)).runsOnAwsLambda();
+        doReturn(true).when(config.getConfig(ServerlessConfigurationImpl.class)).runsOnAwsLambda();
         ApmServerClient client = new ApmServerClient(config);
         Future<Version> serverVersionFuture = Mockito.mock(Future.class);
         doReturn(false).when(serverVersionFuture).isDone();
@@ -139,7 +139,7 @@ public class ApmServerClientTest {
         client.start(serverVersionFuture);
         Future<MetaData> metadata = MetaDataMock.create();
 
-        DslJsonSerializer dslJsonSerializer = new DslJsonSerializer(config.getConfig(StacktraceConfiguration.class), client, metadata);
+        DslJsonSerializer dslJsonSerializer = new DslJsonSerializer(config.getConfig(StacktraceConfigurationImpl.class), client, metadata);
         dslJsonSerializer.newWriter().blockUntilReady();
 
         verify(serverVersionFuture, never()).get();
@@ -165,19 +165,19 @@ public class ApmServerClientTest {
         // tests setting server_url to an empty string in configuration
         apmServerClient.start(Lists.emptyList());
 
-        BookkeeperObjectPool<Transaction> transactionPool = objectPoolFactory.getTransactionPool();
+        BookkeeperObjectPool<TransactionImpl> transactionPool = objectPoolFactory.getTransactionPool();
         int transactionsRequestedBefore = transactionPool.getRequestedObjectCount();
-        final Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader());
+        final TransactionImpl transaction = tracer.startRootTransaction(getClass().getClassLoader());
         assertThat(transactionPool.getRequestedObjectCount()).isEqualTo(transactionsRequestedBefore + 1);
         int transactionsInPoolAfterCreation = transactionPool.getObjectsInPool();
 
-        BookkeeperObjectPool<Span> spanPool = objectPoolFactory.getSpanPool();
+        BookkeeperObjectPool<SpanImpl> spanPool = objectPoolFactory.getSpanPool();
         int spansRequestedBefore = spanPool.getRequestedObjectCount();
-        final Span span = Objects.requireNonNull(transaction).createSpan();
+        final SpanImpl span = Objects.requireNonNull(transaction).createSpan();
         assertThat(transactionPool.getRequestedObjectCount()).isEqualTo(spansRequestedBefore + 1);
         int spansInPoolAfterCreation = spanPool.getObjectsInPool();
 
-        BookkeeperObjectPool<ErrorCapture> errorPool = objectPoolFactory.getErrorPool();
+        BookkeeperObjectPool<ErrorCaptureImpl> errorPool = objectPoolFactory.getErrorPool();
         int errorsRequestedBefore = errorPool.getRequestedObjectCount();
         span.captureException(new Throwable());
         assertThat(errorPool.getRequestedObjectCount()).isEqualTo(errorsRequestedBefore + 1);

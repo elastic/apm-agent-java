@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.ecs_logging.jul;
 
 import co.elastic.apm.agent.ecs_logging.EcsLoggingTest;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.logging.jul.EcsFormatter;
 import org.junit.jupiter.api.Test;
 
@@ -42,7 +42,7 @@ public class JulEcsMdcInstrumentationTest extends EcsLoggingTest {
 
     @Test
     void testActiveTransaction() {
-        Transaction transaction = startTestRootTransaction("log");
+        TransactionImpl transaction = startTestRootTransaction("log");
         try {
             String json = createLogMsg();
             assertThat(getJson(json, "transaction.id")).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
@@ -54,7 +54,7 @@ public class JulEcsMdcInstrumentationTest extends EcsLoggingTest {
 
     @Test
     void testActiveError() {
-        ErrorCapture error = new ErrorCapture(tracer);
+        ErrorCaptureImpl error = new ErrorCaptureImpl(tracer);
 
         error.activate();
         try {

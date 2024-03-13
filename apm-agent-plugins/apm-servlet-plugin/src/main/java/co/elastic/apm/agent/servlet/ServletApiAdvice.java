@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Scope;
@@ -127,7 +127,7 @@ public abstract class ServletApiAdvice {
 
             ret = transaction;
         } else if (!adapter.isAsyncDispatcherType(httpServletRequest) && coreConfig.isInstrumentationEnabled(Constants.SERVLET_API_DISPATCH)) {
-            final ElasticContext<?> activeContext = tracer.currentContext();
+            final TraceState<?> activeContext = tracer.currentContext();
             final AbstractSpan<?> parentSpan = activeContext.getSpan();
             if (parentSpan != null) {
                 Object servletPath = null;

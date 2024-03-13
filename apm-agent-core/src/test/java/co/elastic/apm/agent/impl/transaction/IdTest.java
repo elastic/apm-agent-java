@@ -26,7 +26,7 @@ class IdTest {
 
     @Test
     void testReInit() {
-        final Id id = Id.new64BitId();
+        final IdImpl id = IdImpl.new64BitId();
 
         id.fromHexString("0000000000000001", 0);
         assertThat(id.toString()).isEqualTo("0000000000000001");
@@ -39,7 +39,7 @@ class IdTest {
 
     @Test
     void testReset() {
-        final Id id = Id.new64BitId();
+        final IdImpl id = IdImpl.new64BitId();
 
         id.fromHexString("0000000000000001", 0);
         assertThat(id.toString()).isEqualTo("0000000000000001");
@@ -52,7 +52,7 @@ class IdTest {
 
     @Test
     void testInitEmpty() {
-        final Id id = Id.new64BitId();
+        final IdImpl id = IdImpl.new64BitId();
         assertThat(id.toString()).isEqualTo("0000000000000000");
         assertThat(id.isEmpty()).isTrue();
 
@@ -67,7 +67,7 @@ class IdTest {
 
     @Test
     void testFromAndToLong() {
-        final Id id = Id.new128BitId();
+        final IdImpl id = IdImpl.new128BitId();
 
         id.fromLongs(21, 42);
         assertThat(id.isEmpty()).isFalse();

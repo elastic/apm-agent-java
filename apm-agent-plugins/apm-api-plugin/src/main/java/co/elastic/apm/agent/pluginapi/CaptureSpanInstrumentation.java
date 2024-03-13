@@ -18,15 +18,16 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.sdk.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -59,11 +60,11 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
     protected static final Tracer tracer = GlobalTracer.get();
 
     private final CoreConfiguration coreConfig;
-    private final StacktraceConfiguration stacktraceConfig;
+    private final StacktraceConfigurationImpl stacktraceConfig;
 
     public CaptureSpanInstrumentation(ElasticApmTracer tracer) {
         coreConfig = tracer.getConfig(CoreConfiguration.class);
-        stacktraceConfig = tracer.getConfig(StacktraceConfiguration.class);
+        stacktraceConfig = tracer.getConfig(StacktraceConfigurationImpl.class);
     }
 
     public static class AdviceClass {
@@ -86,7 +87,7 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
                 defaultValueProvider = AnnotationValueOffsetMappingFactory.TrueDefaultValueProvider.class
             ) boolean discardable
         ) {
-            ElasticContext<?> activeContext = tracer.currentContext();
+            TraceState<?> activeContext = tracer.currentContext();
             final AbstractSpan<?> parentSpan = activeContext.getSpan();
             if (parentSpan == null) {
                 logger.debug("Not creating span for {} because there is no currently active span.", signature);
@@ -107,7 +108,7 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
                 .activate();
 
             // using deprecated API to keep compatibility with existing behavior
-            ((co.elastic.apm.agent.impl.transaction.Span) span).setType(type, subtype, action);
+            ((SpanImpl) span).setType(type, subtype, action);
 
             if (!discardable) {
                 span.setNonDiscardable();

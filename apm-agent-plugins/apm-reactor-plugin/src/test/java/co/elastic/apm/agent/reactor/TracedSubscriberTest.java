@@ -20,9 +20,9 @@ package co.elastic.apm.agent.reactor;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.baggage.BaggageContext;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
+import co.elastic.apm.agent.tracer.TraceState;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +45,7 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
     private static final Scheduler PUBLISH_SCHEDULER = Schedulers.newElastic("publish");
 
     @Nullable
-    private Transaction transaction;
+    private TransactionImpl transaction;
 
     private static long mainThreadId;
 
@@ -239,7 +239,7 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
         return Thread.currentThread().getId();
     }
 
-    static Predicate<TestObservation> inMainThread(@Nullable AbstractSpan<?> expectedContext, int expectedValue) {
+    static Predicate<TestObservation> inMainThread(@Nullable AbstractSpanImpl<?> expectedContext, int expectedValue) {
         return observation -> {
             observation.checkThread(true)
                 .checkActiveContext(expectedContext)
@@ -248,7 +248,7 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
         };
     }
 
-    static Predicate<TestObservation> inOtherThread(@Nullable ElasticContext<?> expectedContext, int expectedValue) {
+    static Predicate<TestObservation> inOtherThread(@Nullable TraceState<?> expectedContext, int expectedValue) {
         return observation -> {
             observation
                 .checkActiveContext(expectedContext)
@@ -278,7 +278,7 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
      */
     private static class TestObservation {
         @Nullable
-        private final ElasticContext<?> activeContext;
+        private final TraceState<?> activeContext;
         private final Long threadId;
         private final int value;
 
@@ -314,7 +314,7 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
             return this;
         }
 
-        TestObservation checkActiveContext(@Nullable ElasticContext<?> expectedActiveContext) {
+        TestObservation checkActiveContext(@Nullable TraceState<?> expectedActiveContext) {
             if (expectedActiveContext == null) {
                 assertThat(activeContext.isEmpty())
                     .describedAs("unexpected active context in thread %d", threadId)
@@ -334,7 +334,7 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
 
     }
 
-    private static void checkActiveContext(@Nullable AbstractSpan<?> expectedActive) {
+    private static void checkActiveContext(@Nullable AbstractSpanImpl<?> expectedActive) {
         assertThat(tracer.getActive())
             .describedAs("active context not available")
             .isNotNull()

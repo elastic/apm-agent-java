@@ -19,17 +19,17 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
-import co.elastic.apm.agent.impl.metadata.Service;
+import co.elastic.apm.agent.impl.metadata.ServiceImpl;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactoryImpl;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.report.serialize.SerializationConstants;
@@ -83,9 +83,9 @@ class ApmServerReporterIntegrationTest {
     private final ElasticApmTracer tracer = MockTracer.create();
     private volatile int statusCode = HttpStatus.OK_200;
     private volatile int acceptedEventCount = 0;
-    private ReporterConfiguration reporterConfiguration;
+    private ReporterConfigurationImpl reporterConfiguration;
 
-    private CoreConfiguration coreConfiguration;
+    private CoreConfigurationImpl coreConfiguration;
     private ApmServerReporter reporter;
 
     private ReporterMonitor mockMonitor;
@@ -141,8 +141,8 @@ class ApmServerReporterIntegrationTest {
         });
 
         ConfigurationRegistry config = tracer.getConfigurationRegistry();
-        reporterConfiguration = config.getConfig(ReporterConfiguration.class);
-        coreConfiguration = config.getConfig(CoreConfiguration.class);
+        reporterConfiguration = config.getConfig(ReporterConfigurationImpl.class);
+        coreConfiguration = config.getConfig(CoreConfigurationImpl.class);
         SerializationConstants.init(coreConfiguration);
 
         // mockito mocking does not seem to reliably work here
@@ -154,13 +154,13 @@ class ApmServerReporterIntegrationTest {
 
         doReturn(Collections.singletonList(new URL("http://localhost:" + port))).when(reporterConfiguration).getServerUrls();
         SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
-        final Service service = new Service();
+        final ServiceImpl service = new ServiceImpl();
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
         ApmServerClient apmServerClient = new ApmServerClient(config);
         apmServerClient.start();
         DslJsonSerializer payloadSerializer = new DslJsonSerializer(
-            mock(StacktraceConfiguration.class),
+            mock(StacktraceConfigurationImpl.class),
             apmServerClient,
             MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
         );
@@ -170,7 +170,7 @@ class ApmServerReporterIntegrationTest {
             payloadSerializer,
             apmServerClient);
         mockMonitor = Mockito.mock(ReporterMonitor.class);
-        reporter = new ApmServerReporter(false, reporterConfiguration, coreConfiguration, v2handler, mockMonitor, apmServerClient, payloadSerializer, new ObjectPoolFactory());
+        reporter = new ApmServerReporter(false, reporterConfiguration, coreConfiguration, v2handler, mockMonitor, apmServerClient, payloadSerializer, new ObjectPoolFactoryImpl());
         reporter.start();
     }
 
@@ -187,7 +187,7 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testReportTransaction() {
-        reporter.report(new Transaction(tracer));
+        reporter.report(new TransactionImpl(tracer));
         assertThat(reporter.flush(5, TimeUnit.SECONDS, false)).isTrue();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
@@ -206,8 +206,8 @@ class ApmServerReporterIntegrationTest {
     void testContextPropagationOnlyRespected() {
         doReturn(true).when(coreConfiguration).isContextPropagationOnly();
 
-        reporter.reportPartialTransaction(new Transaction(tracer));
-        reporter.report(new Transaction(tracer));
+        reporter.reportPartialTransaction(new TransactionImpl(tracer));
+        reporter.report(new TransactionImpl(tracer));
         assertThat(reporter.flush(5, TimeUnit.SECONDS, false)).isTrue();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(0);
@@ -219,7 +219,7 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testReportTransaction_withFlushRequest() {
-        reporter.report(new Transaction(tracer));
+        reporter.report(new TransactionImpl(tracer));
         assertThat(receivedEvents.get()).isEqualTo(0);
         assertThat(reporter.flush(5, TimeUnit.SECONDS, true)).isTrue();
         assertThat(reporter.getDropped()).isEqualTo(0);
@@ -237,7 +237,7 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testReportSpan() {
-        reporter.report(new Span(tracer));
+        reporter.report(new SpanImpl(tracer));
         reporter.flush();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
@@ -252,7 +252,7 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testReportSpan_withFlushRequest() {
-        reporter.report(new Span(tracer));
+        reporter.report(new SpanImpl(tracer));
         reporter.flush(5, TimeUnit.SECONDS, true);
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(2);
@@ -277,7 +277,7 @@ class ApmServerReporterIntegrationTest {
             }
             exchange.setStatusCode(200).endExchange();
         };
-        reporter.report(new Transaction(tracer));
+        reporter.report(new TransactionImpl(tracer));
         reporter.flush();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
@@ -285,7 +285,7 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testReportErrorCapture() {
-        reporter.report(new ErrorCapture(tracer));
+        reporter.report(new ErrorCaptureImpl(tracer));
         reporter.flush();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
@@ -300,7 +300,7 @@ class ApmServerReporterIntegrationTest {
     @Test
     void testTimeout() {
         timeout.set(TimeDuration.of("1ms"));
-        reporter.report(new Transaction(tracer));
+        reporter.report(new TransactionImpl(tracer));
         await().untilAsserted(() -> assertThat(reporter.getReported()).isEqualTo(1));
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
@@ -317,13 +317,13 @@ class ApmServerReporterIntegrationTest {
     void testFailingApmServer() {
         statusCode = HttpStatus.SERVICE_UNAVAILABLE_503;
         // try to report a few events to trigger backoff
-        reporter.report(new Transaction(tracer));
+        reporter.report(new TransactionImpl(tracer));
         reporter.flush(1, TimeUnit.SECONDS, false);
-        reporter.report(new Transaction(tracer));
+        reporter.report(new TransactionImpl(tracer));
         reporter.flush(1, TimeUnit.SECONDS, false);
-        reporter.report(new Transaction(tracer));
+        reporter.report(new TransactionImpl(tracer));
         reporter.flush(1, TimeUnit.SECONDS, false);
-        reporter.report(new Transaction(tracer));
+        reporter.report(new TransactionImpl(tracer));
 
         assertThat(v2handler.isHealthy()).isFalse();
         assertThat(reporter.flush(1, TimeUnit.SECONDS, false)).isFalse();
@@ -339,7 +339,7 @@ class ApmServerReporterIntegrationTest {
         acceptedEventCount = 2;
         // try to report a few events to trigger backoff
         for (int i = 0; i < 5; i++) {
-            reporter.report(new Transaction(tracer));
+            reporter.report(new TransactionImpl(tracer));
 
         }
         reporter.flush(1, TimeUnit.SECONDS, false);

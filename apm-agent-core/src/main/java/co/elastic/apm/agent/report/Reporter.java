@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import com.dslplatform.json.JsonWriter;
 
 import java.io.Closeable;
@@ -30,13 +30,13 @@ public interface Reporter extends Closeable {
 
     void start();
 
-    void reportPartialTransaction(Transaction transaction);
+    void reportPartialTransaction(TransactionImpl transaction);
 
-    void report(Transaction transaction);
+    void report(TransactionImpl transaction);
 
-    void report(Span span);
+    void report(SpanImpl span);
 
-    void report(ErrorCapture error);
+    void report(ErrorCaptureImpl error);
 
     void reportMetrics(JsonWriter jsonWriter);
 

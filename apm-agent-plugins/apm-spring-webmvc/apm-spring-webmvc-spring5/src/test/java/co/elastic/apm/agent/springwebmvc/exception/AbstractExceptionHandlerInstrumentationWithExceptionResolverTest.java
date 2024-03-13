@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.springwebmvc.exception;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_resolver.ExceptionResolverController;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_resolver.ExceptionResolverRuntimeException;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -48,7 +48,7 @@ public abstract class AbstractExceptionHandlerInstrumentationWithExceptionResolv
     @ParameterizedTest
     @ValueSource(booleans = {true,false})
     public void testCallApiWithExceptionThrown(boolean useAttributeBasedPropagation) throws Exception {
-        CoreConfiguration coreConfig = config.getConfig(CoreConfiguration.class);
+        CoreConfigurationImpl coreConfig = config.getConfig(CoreConfigurationImpl.class);
         doReturn(useAttributeBasedPropagation).when(coreConfig).isUseServletAttributesForExceptionPropagation();
 
         ResultActions resultActions = this.mockMvc.perform(get("/exception-resolver/throw-exception"));

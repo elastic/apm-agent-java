@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -32,8 +32,8 @@ public class ApiScopeInstrumentation extends ApiInstrumentation {
     public static class AdviceClass {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void close(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context) {
-            if (context instanceof AbstractSpan) {
-                ((AbstractSpan<?>) context).deactivate();
+            if (context instanceof AbstractSpanImpl) {
+                ((AbstractSpanImpl<?>) context).deactivate();
             }
         }
     }

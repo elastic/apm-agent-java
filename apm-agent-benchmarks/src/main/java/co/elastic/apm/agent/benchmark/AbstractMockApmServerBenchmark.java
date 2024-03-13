@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.benchmark;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import io.undertow.Undertow;
@@ -79,8 +79,8 @@ public class AbstractMockApmServerBenchmark extends AbstractBenchmark {
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(ConfigurationRegistry.builder()
                 .addConfigSource(new SimpleSource()
-                    .add(CoreConfiguration.SERVICE_NAME, "benchmark")
-                    .add(CoreConfiguration.INSTRUMENT, Boolean.toString(apmEnabled))
+                    .add(CoreConfigurationImpl.SERVICE_NAME, "benchmark")
+                    .add(CoreConfigurationImpl.INSTRUMENT, Boolean.toString(apmEnabled))
                     .add("active", Boolean.toString(apmEnabled))
                     .add("api_request_size", "10mb")
                     .add("capture_headers", "false")

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.objectpool.impl;
 
-import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.objectpool.ObservableObjectPool;
 import co.elastic.apm.agent.objectpool.ObjectPoolTest;
 import co.elastic.apm.agent.objectpool.TestRecyclable;
 import co.elastic.apm.agent.sdk.internal.util.IOUtils;
@@ -47,7 +47,7 @@ class QueueBasedObjectPoolTest extends ObjectPoolTest<QueueBasedObjectPool<TestR
         // we have to use a power of two as capacity, otherwise actual capacity will differ
         int capacity = 8;
 
-        ObjectPool<TestRecyclable> pool = QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<>(capacity), true, TestRecyclable::new);
+        ObservableObjectPool<TestRecyclable> pool = QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<>(capacity), true, TestRecyclable::new);
 
         assertThat(pool.getGarbageCreated()).isEqualTo(0);
         assertThat(pool.getObjectsInPool()).isEqualTo(capacity);

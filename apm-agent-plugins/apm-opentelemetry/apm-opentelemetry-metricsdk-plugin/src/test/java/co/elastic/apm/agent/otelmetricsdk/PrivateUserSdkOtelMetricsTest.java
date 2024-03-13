@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.otelmetricsdk;
 
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
 import io.opentelemetry.api.metrics.DoubleHistogram;
 import io.opentelemetry.api.metrics.DoubleHistogramBuilder;
 import io.opentelemetry.api.metrics.Meter;
@@ -120,7 +120,7 @@ public class PrivateUserSdkOtelMetricsTest extends AbstractOtelMetricsTest {
             View.builder().setAggregation(Aggregation.explicitBucketHistogram(List.of(1.0, 5.0))).build()
         );
 
-        MetricsConfiguration metricsConfig = config.getConfig(MetricsConfiguration.class);
+        MetricsConfigurationImpl metricsConfig = config.getConfig(MetricsConfigurationImpl.class);
         doReturn(List.of(42.0)).when(metricsConfig).getCustomMetricsHistogramBoundaries();
 
         Meter testMeter = createMeter("test");
