@@ -38,6 +38,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Differentiate Lambda URLs from API Gateway in AWS Lambda integration - {pull}3417[#3417]
+* Added lambda support for ELB triggers {pull}#3411[#3411]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
@@ -96,7 +97,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Added support for OpenTelementry Attributes db.statement and db.user - {pull}3475[#3475]
-* Added lambda support for ELB triggers {pull}#3411[#3411]
 
 [float]
 ===== Bug fixes
