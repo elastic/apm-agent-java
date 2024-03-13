@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.awslambda.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import com.amazonaws.services.lambda.runtime.Context;
 
 import javax.annotation.Nullable;
@@ -33,29 +33,29 @@ public class PlainTransactionHelper extends AbstractLambdaTransactionHelper<Obje
     @Nullable
     private static PlainTransactionHelper INSTANCE;
 
-    private PlainTransactionHelper(ElasticApmTracer tracer) {
+    private PlainTransactionHelper(Tracer tracer) {
         super(tracer);
     }
 
     public static PlainTransactionHelper getInstance() {
         if (INSTANCE == null) {
-            INSTANCE = new PlainTransactionHelper(GlobalTracer.get().require(ElasticApmTracer.class));
+            INSTANCE = new PlainTransactionHelper(GlobalTracer.get());
         }
         return INSTANCE;
     }
 
     @Override
-    protected Transaction doStartTransaction(Object input, Context lambdaContext) {
+    protected Transaction<?> doStartTransaction(Object input, Context lambdaContext) {
         return tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(lambdaContext.getClass()));
     }
 
     @Override
-    public void captureOutputForTransaction(Transaction transaction, Object output) {
+    public void captureOutputForTransaction(Transaction<?> transaction, Object output) {
         // Nothing to do here
     }
 
     @Override
-    protected void setTransactionTriggerData(Transaction transaction, Object input) {
+    protected void setTransactionTriggerData(Transaction<?> transaction, Object input) {
         transaction.getFaas().getTrigger().withType("other");
         transaction.withType(TRANSACTION_TYPE);
     }

@@ -19,9 +19,10 @@
 package co.elastic.apm.agent.metrics.builtin;
 
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.metrics.Labels;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricCollector;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricsProvider;
@@ -113,8 +114,8 @@ public class AgentOverheadMetrics extends AbstractLifecycleListener implements E
     }
 
     @Override
-    public void start(ElasticApmTracer tracer) throws Exception {
-        MetricRegistry metricRegistry = tracer.getMetricRegistry();
+    public void start(Tracer tracer) throws Exception {
+        MetricRegistry metricRegistry = tracer.require(ElasticApmTracer.class).getMetricRegistry();
         MetricsConfiguration config = tracer.getConfig(MetricsConfiguration.class);
         bindTo(metricRegistry, config);
     }

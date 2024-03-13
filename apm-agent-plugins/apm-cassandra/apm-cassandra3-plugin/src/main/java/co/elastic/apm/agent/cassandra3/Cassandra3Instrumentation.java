@@ -106,7 +106,7 @@ public abstract class Cassandra3Instrumentation extends ElasticApmInstrumentatio
             }
 
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-            public static void onExit(@Advice.Thrown @Nullable Throwable thrown, @Advice.Return @Nullable Object returnValue) {
+            public static void onExit() {
                 CassandraHelper.inSyncExecute(false);
             }
         }

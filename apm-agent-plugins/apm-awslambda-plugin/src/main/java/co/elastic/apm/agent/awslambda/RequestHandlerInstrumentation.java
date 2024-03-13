@@ -20,8 +20,8 @@ package co.elastic.apm.agent.awslambda;
 
 import co.elastic.apm.agent.awslambda.helper.AWSEventsHelper;
 import co.elastic.apm.agent.awslambda.helper.PlainTransactionHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import com.amazonaws.services.lambda.runtime.Context;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -35,7 +35,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class RequestHandlerInstrumentation extends AbstractAwsLambdaHandlerInstrumentation {
 
-    public RequestHandlerInstrumentation(ElasticApmTracer tracer) {
+    public RequestHandlerInstrumentation(Tracer tracer) {
         super(tracer);
     }
 
@@ -70,8 +70,8 @@ public class RequestHandlerInstrumentation extends AbstractAwsLambdaHandlerInstr
         public static void handlerExit(@Nullable @Advice.Enter Object transactionObj,
                                        @Nullable @Advice.Thrown Throwable thrown,
                                        @Nullable @Advice.Return Object output) {
-            if (transactionObj instanceof Transaction) {
-                Transaction transaction = (Transaction) transactionObj;
+            if (transactionObj instanceof Transaction<?>) {
+                Transaction<?> transaction = (Transaction<?>) transactionObj;
 
                 if (output != null && output.getClass().getName().startsWith("com.amazonaws.services.lambda.runtime.events")) {
                     // handler uses aws events, it's safe to assume that the AWS events classes are available

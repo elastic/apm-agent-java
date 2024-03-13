@@ -18,8 +18,9 @@
  */
 package co.elastic.apm.agent.profiler;
 
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 
 public class ProfilingFactory extends AbstractLifecycleListener {
 
@@ -35,9 +36,10 @@ public class ProfilingFactory extends AbstractLifecycleListener {
     }
 
     @Override
-    public void start(ElasticApmTracer tracer) {
+    public void start(Tracer tracer) throws Exception {
         profiler.start(tracer);
-        tracer.registerSpanListener(new ProfilingActivationListener(tracer, profiler));
+        ElasticApmTracer elasticApmTracer = tracer.require(ElasticApmTracer.class);
+        elasticApmTracer.registerSpanListener(new ProfilingActivationListener(elasticApmTracer, profiler));
     }
 
     @Override

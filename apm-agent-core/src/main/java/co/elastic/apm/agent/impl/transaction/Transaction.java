@@ -27,7 +27,7 @@ import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.sampling.Sampler;
-import co.elastic.apm.agent.metrics.Labels;
+import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
 import co.elastic.apm.agent.tracer.Outcome;
@@ -103,6 +103,9 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
 
     @Nullable
     private String frameworkVersion;
+
+    @Nullable
+    private Throwable pendingException;
 
     /**
      * Faas
@@ -337,6 +340,7 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         frameworkVersion = null;
         faas.resetState();
         wasActivated.set(false);
+        pendingException = null;
         // don't clear timerBySpanTypeAndSubtype map (see field-level javadoc)
     }
 
@@ -535,4 +539,17 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
             phaser.readerUnlock();
         }
     }
+
+
+    @Override
+    public void setPendingTransactionException(@Nullable Throwable exception) {
+        this.pendingException = exception;
+    }
+
+    @Nullable
+    @Override
+    public Throwable getPendingTransactionException() {
+        return this.pendingException;
+    }
+
 }

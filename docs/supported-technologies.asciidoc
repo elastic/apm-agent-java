@@ -359,7 +359,7 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 | 1.7.0
 
 |Apache Dubbo
-| 2.5+, except for 2.7.0, 2.7.1, and 2.7.2
+| 2.x, except for 2.7.0, 2.7.1, 2.7.2 and versions older than 2.5.0
 |
 | 1.17.0
 

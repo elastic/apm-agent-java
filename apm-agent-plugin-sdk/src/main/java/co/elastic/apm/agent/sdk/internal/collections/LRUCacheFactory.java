@@ -16,28 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.context;
+package co.elastic.apm.agent.sdk.internal.collections;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import java.util.Map;
 
-public abstract class AbstractLifecycleListener implements LifecycleListener {
-    @Override
-    public void init(ElasticApmTracer tracer) throws Exception {
-    }
+public interface LRUCacheFactory {
 
-    @Override
-    public void start(ElasticApmTracer tracer) throws Exception {
-    }
-
-    @Override
-    public void pause() throws Exception {
-    }
-
-    @Override
-    public void resume() throws Exception {
-    }
-
-    @Override
-    public void stop() throws Exception {
-    }
+    <K,V> Map<K,V> createCache(int capacity);
 }

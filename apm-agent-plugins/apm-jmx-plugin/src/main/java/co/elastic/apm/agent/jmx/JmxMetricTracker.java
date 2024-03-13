@@ -18,15 +18,16 @@
  */
 package co.elastic.apm.agent.jmx;
 
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.metrics.DoubleSupplier;
-import co.elastic.apm.agent.metrics.Labels;
-import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.tracer.GlobalLocks;
+import co.elastic.apm.agent.sdk.internal.util.ExecutorUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nullable;
@@ -54,6 +55,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class JmxMetricTracker extends AbstractLifecycleListener {
@@ -63,18 +65,26 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
     private volatile Thread logManagerPropertyPoller;
     @Nullable
     private volatile MBeanServer server;
+    private final Tracer tracer;
     private final JmxConfiguration jmxConfiguration;
-    private final MetricRegistry metricRegistry;
     @Nullable
     private volatile NotificationListener listener;
 
-    public JmxMetricTracker(ElasticApmTracer tracer) {
+    private final List<JmxMetric> failedMetrics;
+
+    @Nullable
+    private ScheduledExecutorService retryExecutor;
+
+    public JmxMetricTracker(Tracer tracer) {
+        this.tracer = tracer;
         jmxConfiguration = tracer.getConfig(JmxConfiguration.class);
-        metricRegistry = tracer.getMetricRegistry();
+
+        // using a synchronized list so adding to the list does not require synchronization
+        failedMetrics = Collections.synchronizedList(new ArrayList<JmxMetric>());
     }
 
     @Override
-    public void start(ElasticApmTracer tracer) {
+    public void start(Tracer tracer) {
         ConfigurationOption.ChangeListener<List<JmxMetric>> captureJmxListener = new ConfigurationOption.ChangeListener<List<JmxMetric>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<JmxMetric> oldValue, List<JmxMetric> newValue) {
@@ -175,19 +185,52 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         jmxConfiguration.getCaptureJmxMetrics().addChangeListener(new ConfigurationOption.ChangeListener<List<JmxMetric>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<JmxMetric> oldValue, List<JmxMetric> newValue) {
-                List<JmxMetricRegistration> oldRegistrations = compileJmxMetricRegistrations(oldValue, platformMBeanServer);
-                List<JmxMetricRegistration> newRegistrations = compileJmxMetricRegistrations(newValue, platformMBeanServer);
+                List<JmxMetric> registrationErrors = new ArrayList<JmxMetric>(); // those are not needed
+                List<JmxMetricRegistration> oldRegistrations = compileJmxMetricRegistrations(oldValue, platformMBeanServer, registrationErrors);
+
+                List<JmxMetricRegistration> newRegistrations;
+                synchronized (failedMetrics) {
+                    failedMetrics.clear();
+                    newRegistrations = compileJmxMetricRegistrations(newValue, platformMBeanServer, failedMetrics);
+                }
+
 
                 for (JmxMetricRegistration addedRegistration : removeAll(oldRegistrations, newRegistrations)) {
-                    addedRegistration.register(platformMBeanServer, metricRegistry);
+                    addedRegistration.register(platformMBeanServer, tracer);
                 }
                 for (JmxMetricRegistration deletedRegistration : removeAll(newRegistrations, oldRegistrations)) {
-                    deletedRegistration.unregister(metricRegistry);
+                    deletedRegistration.unregister(tracer);
                 }
-
             }
         });
-        register(jmxConfiguration.getCaptureJmxMetrics().get(), platformMBeanServer);
+
+        ConfigurationOption<TimeDuration> failedRetryConfig = jmxConfiguration.getFaildRetryInterval();
+        if (!failedRetryConfig.isDefault()) {
+            long retryMillis = failedRetryConfig.getValue().getMillis();
+            if (retryExecutor != null) {
+                ExecutorUtils.shutdownAndWaitTermination(retryExecutor);
+            }
+
+            retryExecutor = ExecutorUtils.createSingleThreadSchedulingDaemonPool("jmx-retry");
+            retryExecutor.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    retryFailedJmx(platformMBeanServer);
+                }
+            }, retryMillis, retryMillis, TimeUnit.MILLISECONDS);
+        }
+
+        register(jmxConfiguration.getCaptureJmxMetrics().get(), platformMBeanServer, failedMetrics);
+    }
+
+    // package-private for testing
+    void retryFailedJmx(MBeanServer platformMBeanServer) {
+        List<JmxMetric> failed = JmxMetricTracker.this.failedMetrics;
+        synchronized (failed) {
+            List<JmxMetric> toRetry = new ArrayList<>(failed);
+            failed.clear();
+            register(toRetry, platformMBeanServer, failed);
+        }
     }
 
     private void registerMBeanNotificationListener(final MBeanServer server) {
@@ -217,7 +260,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                 ObjectName metricName = jmxMetric.getObjectName();
                 if (metricName.apply(mBeanName) || matchesJbossStatisticsPool(mBeanName, metricName, server)) {
                     logger.debug("MBean added at runtime: {}", jmxMetric.getObjectName());
-                    register(Collections.singletonList(jmxMetric), server);
+                    register(Collections.singletonList(jmxMetric), server, failedMetrics);
                 }
             }
 
@@ -280,28 +323,36 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         return result;
     }
 
-    private void register(List<JmxMetric> jmxMetrics, MBeanServer server) {
-        for (JmxMetricRegistration registration : compileJmxMetricRegistrations(jmxMetrics, server)) {
-            registration.register(server, metricRegistry);
+    private void register(List<JmxMetric> jmxMetrics, MBeanServer server, List<JmxMetric> failedMetrics) {
+        for (JmxMetricRegistration registration : compileJmxMetricRegistrations(jmxMetrics, server, failedMetrics)) {
+            registration.register(server, tracer);
         }
     }
 
     /**
      * A single {@link JmxMetric} can yield multiple {@link JmxMetricRegistration}s if the {@link JmxMetric} contains multiple attributes
+     *
+     * @param jmxMetrics    JMX metrics to register
+     * @param server        MBean server
+     * @param failedMetrics list of JMX metrics that failed to register (out)
      */
-    private List<JmxMetricRegistration> compileJmxMetricRegistrations(List<JmxMetric> jmxMetrics, MBeanServer server) {
-        List<JmxMetricRegistration> registrations = new ArrayList<>();
+    private List<JmxMetricRegistration> compileJmxMetricRegistrations(List<JmxMetric> jmxMetrics, MBeanServer server, List<JmxMetric> failedMetrics) {
+        List<JmxMetricRegistration> globalRegistrations = new ArrayList<>();
         for (JmxMetric jmxMetric : jmxMetrics) {
+            List<JmxMetricRegistration> metricRegistrations = new ArrayList<>();
             try {
-                addJmxMetricRegistration(jmxMetric, registrations, server);
+                addJmxMetricRegistration(jmxMetric, metricRegistrations, server);
+                globalRegistrations.addAll(metricRegistrations);
             } catch (Exception e) {
+                failedMetrics.add(jmxMetric);
                 logger.error("Failed to register JMX metric {}", jmxMetric.toString(), e);
             }
+
         }
-        return registrations;
+        return globalRegistrations;
     }
 
-    private static void addJmxMetricRegistration(final JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, MBeanServer server) throws JMException {
+    private void addJmxMetricRegistration(final JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, MBeanServer server) throws JMException {
         Set<ObjectInstance> mbeans = server.queryMBeans(jmxMetric.getObjectName(), null);
         if (!mbeans.isEmpty()) {
             logger.debug("Found mbeans for object name {}", jmxMetric.getObjectName());
@@ -355,20 +406,21 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         return "";
     }
 
-    private static void addJmxMetricRegistration(JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, ObjectName objectName, Object value, JmxMetric.Attribute attribute, String attributeName, String metricPrepend) throws AttributeNotFoundException {
+    private void addJmxMetricRegistration(JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, ObjectName objectName, Object value, JmxMetric.Attribute attribute, String attributeName, @Nullable String metricPrepend) throws AttributeNotFoundException {
+        String effectiveAttributeName = metricPrepend == null ? attributeName : metricPrepend + attributeName;
+        boolean unsubscribeOnError = jmxConfiguration.getFaildRetryInterval().isDefault();
         if (value instanceof Number) {
             logger.debug("Found number attribute {}={}", attribute.getJmxAttributeName(), value);
             registrations.add(
                 new JmxMetricRegistration(
                     attribute.getMetricName(
-                        metricPrepend == null ?
-                            attributeName :
-                            metricPrepend + attributeName
+                        effectiveAttributeName
                     ),
                     attribute.getLabels(objectName),
                     attributeName,
                     null,
-                    objectName
+                    objectName,
+                    unsubscribeOnError
                 )
             );
         } else if (value instanceof CompositeData) {
@@ -380,14 +432,12 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                         new JmxMetricRegistration(
                             attribute.getCompositeMetricName(
                                 key,
-                                metricPrepend == null ?
-                                    attributeName :
-                                    metricPrepend + attributeName
-                            ),
+                                effectiveAttributeName),
                             attribute.getLabels(objectName),
                             attributeName,
                             key,
-                            objectName
+                            objectName,
+                            unsubscribeOnError
                         )
                     );
                 } else {
@@ -411,29 +461,35 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         @Nullable
         private final String compositeDataKey;
         private final ObjectName objectName;
+        private final boolean unsubscribeOnError;
 
-        private JmxMetricRegistration(String metricName, Labels labels, String jmxAttribute, @Nullable String compositeDataKey, ObjectName objectName) {
+        private JmxMetricRegistration(String metricName, Labels labels, String jmxAttribute, @Nullable String compositeDataKey, ObjectName objectName, boolean unsubscribeOnError) {
             this.metricName = metricName;
             this.labels = labels.immutableCopy();
             this.jmxAttribute = jmxAttribute;
             this.compositeDataKey = compositeDataKey;
             this.objectName = objectName;
+            this.unsubscribeOnError = unsubscribeOnError;
         }
 
 
-        void register(final MBeanServer server, final MetricRegistry metricRegistry) {
+        void register(final MBeanServer server, final Tracer tracer) {
             logger.debug("Registering JMX metric {} {}.{} as metric_name: {} labels: {}", objectName, jmxAttribute, compositeDataKey, metricName, labels);
-            metricRegistry.add(metricName, labels, new DoubleSupplier() {
+            tracer.addGauge(metricName, labels, new DoubleSupplier() {
                 @Override
                 public double get() {
                     try {
+                        double value;
                         if (compositeDataKey == null) {
-                            return ((Number) server.getAttribute(objectName, jmxAttribute)).doubleValue();
+                            value = ((Number) server.getAttribute(objectName, jmxAttribute)).doubleValue();
                         } else {
-                            return ((Number) ((CompositeData) server.getAttribute(objectName, jmxAttribute)).get(compositeDataKey)).doubleValue();
+                            value = ((Number) ((CompositeData) server.getAttribute(objectName, jmxAttribute)).get(compositeDataKey)).doubleValue();
                         }
+                        return value;
                     } catch (InstanceNotFoundException | AttributeNotFoundException e) {
-                        unregister(metricRegistry);
+                        if (unsubscribeOnError) {
+                            unregister(tracer);
+                        }
                         return Double.NaN;
                     } catch (Exception e) {
                         return Double.NaN;
@@ -442,9 +498,9 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
             });
         }
 
-        void unregister(MetricRegistry metricRegistry) {
+        void unregister(Tracer tracer) {
             logger.debug("Unregistering JMX metric {} {}.{} metric_name: {} labels: {}", objectName, jmxAttribute, compositeDataKey, metricName, labels);
-            metricRegistry.removeGauge(metricName, labels);
+            tracer.removeGauge(metricName, labels);
         }
 
         @Override
@@ -472,6 +528,9 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         Thread logManagerPropertyPoller = this.logManagerPropertyPoller;
         if (logManagerPropertyPoller != null) {
             logManagerPropertyPoller.interrupt();
+        }
+        if (retryExecutor != null) {
+            ExecutorUtils.shutdownAndWaitTermination(retryExecutor);
         }
     }
 }

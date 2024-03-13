@@ -18,7 +18,9 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.IndyBootstrap;
+import co.elastic.apm.agent.bci.InstrumentationStats;
 import co.elastic.apm.agent.collections.WeakReferenceCountedMap;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
@@ -26,14 +28,23 @@ import co.elastic.apm.agent.configuration.AutoDetectedServiceInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.impl.error.RedactedException;
+import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
+import co.elastic.apm.agent.impl.metadata.Framework;
+import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
+import co.elastic.apm.agent.impl.metadata.NameAndIdField;
+import co.elastic.apm.agent.impl.metadata.ServiceFactory;
+import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
+import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
+import co.elastic.apm.agent.tracer.metrics.Labels;
+import co.elastic.apm.agent.tracer.service.Service;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.tracer.LifecycleListener;
 import co.elastic.apm.agent.impl.baggage.Baggage;
 import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -62,12 +73,12 @@ import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import com.dslplatform.json.JsonWriter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
-import java.io.Closeable;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -80,6 +91,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -90,6 +102,7 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 public class ElasticApmTracer implements Tracer {
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
+    private static final Logger enabledInstrumentationsLogger = LoggerUtils.logOnce(logger);
 
     private static final WeakMap<ClassLoader, ServiceInfo> serviceInfoByClassLoader = WeakConcurrent.buildMap();
 
@@ -443,6 +456,8 @@ public class ElasticApmTracer implements Tracer {
         if (!coreConfiguration.captureExceptionDetails()) {
             return null;
         }
+
+        e = redactExceptionIfRequired(e);
 
         while (e != null && WildcardMatcher.anyMatch(coreConfiguration.getUnnestExceptions(), e.getClass().getName()) != null) {
             e = e.getCause();
@@ -941,7 +956,8 @@ public class ElasticApmTracer implements Tracer {
         return sharedPool;
     }
 
-    public void addShutdownHook(Closeable closeable) {
+    @Override
+    public void addShutdownHook(AutoCloseable closeable) {
         lifecycleListeners.add(ClosableLifecycleListenerAdapter.of(closeable));
     }
 
@@ -973,4 +989,88 @@ public class ElasticApmTracer implements Tracer {
     public ServiceInfo autoDetectedServiceInfo() {
         return AutoDetectedServiceInfo.autoDetected();
     }
+
+    @Override
+    public void reportLog(String log) {
+        reporter.reportLog(log);
+    }
+
+    @Override
+    public void reportLog(byte[] log) {
+        reporter.reportLog(log);
+    }
+
+    @Nullable
+    @Override
+    public Service createService(String ephemeralId) {
+        return new ServiceFactory().createService(
+            coreConfiguration,
+            ephemeralId,
+            configurationRegistry.getConfig(ServerlessConfiguration.class).runsOnAwsLambda()
+        );
+    }
+
+    @Override
+    @Nullable
+    public Throwable redactExceptionIfRequired(@Nullable Throwable original) {
+        if (original != null && coreConfiguration.isRedactExceptions()) {
+            return new RedactedException();
+        }
+        return original;
+    }
+
+    @Override
+    public void flush() {
+        long flushTimeout = configurationRegistry.getConfig(ServerlessConfiguration.class).getDataFlushTimeout();
+        try {
+            if (!reporter.flush(flushTimeout, TimeUnit.MILLISECONDS, true)) {
+                logger.error("APM data flush haven't completed within {} milliseconds.", flushTimeout);
+            }
+        } catch (Exception e) {
+            logger.error("An error occurred on flushing APM data.", e);
+        }
+        logEnabledInstrumentations();
+    }
+
+    private void logEnabledInstrumentations() {
+        if (enabledInstrumentationsLogger.isInfoEnabled()) {
+            InstrumentationStats instrumentationStats = ElasticApmAgent.getInstrumentationStats();
+            enabledInstrumentationsLogger.info("Used instrumentation groups: {}", instrumentationStats.getUsedInstrumentationGroups());
+        }
+    }
+
+    @Override
+    public void completeMetaData(String name, String version, String id, String region) {
+        metaDataFuture.getFaaSMetaDataExtensionFuture().complete(new FaaSMetaDataExtension(
+            new Framework(name, version),
+            new NameAndIdField(null, id),
+            region
+        ));
+    }
+
+    @Override
+    public void removeGauge(String name, Labels.Immutable labels) {
+        metricRegistry.removeGauge(name, labels);
+    }
+
+    @Override
+    public void addGauge(String name, Labels.Immutable labels, DoubleSupplier supplier) {
+        metricRegistry.add(name, labels, supplier);
+    }
+
+    @Override
+    public void submit(Runnable job) {
+        sharedPool.submit(job);
+    }
+
+    @Override
+    public void schedule(Runnable job, long interval, TimeUnit timeUnit) {
+        sharedPool.scheduleAtFixedRate(job, 0, interval, timeUnit);
+    }
+
+    @Override
+    public void reportMetric(JsonWriter metrics) {
+        reporter.reportMetrics(metrics);
+    }
+
 }

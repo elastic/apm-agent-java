@@ -18,12 +18,12 @@
  */
 package co.elastic.apm.agent.awslambda.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.context.CloudOrigin;
-import co.elastic.apm.agent.impl.context.ServiceOrigin;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.tracer.ServiceOrigin;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.metadata.CloudOrigin;
 import com.amazonaws.services.lambda.runtime.Context;
 
 import javax.annotation.Nullable;
@@ -31,7 +31,7 @@ import javax.annotation.Nullable;
 public abstract class AbstractMessageBasedTransactionHelper<I, O, R> extends AbstractLambdaTransactionHelper<I, O> {
     protected static final String TRANSACTION_TYPE = "messaging";
 
-    protected AbstractMessageBasedTransactionHelper(ElasticApmTracer tracer) {
+    protected AbstractMessageBasedTransactionHelper(Tracer tracer) {
         super(tracer);
     }
 
@@ -50,23 +50,23 @@ public abstract class AbstractMessageBasedTransactionHelper<I, O, R> extends Abs
 
     @Nullable
     @Override
-    protected Transaction doStartTransaction(I event, Context lambdaContext) {
-        Transaction transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(lambdaContext.getClass()));
+    protected Transaction<?> doStartTransaction(I event, Context lambdaContext) {
+        Transaction<?> transaction = tracer.startRootTransaction(PrivilegedActionUtils.getClassLoader(lambdaContext.getClass()));
         if (null != transaction) {
             addSpanLinks(transaction, event);
         }
         return transaction;
     }
 
-    protected abstract void addSpanLinks(Transaction transaction, I event);
+    protected abstract void addSpanLinks(Transaction<?> transaction, I event);
 
     @Override
-    public void captureOutputForTransaction(Transaction transaction, O output) {
+    public void captureOutputForTransaction(Transaction<?> transaction, O output) {
         // Nothing to do here
     }
 
     @Override
-    protected void setTransactionTriggerData(Transaction transaction, I event) {
+    protected void setTransactionTriggerData(Transaction<?> transaction, I event) {
         R record = getFirstRecord(event);
 
         transaction.withType(TRANSACTION_TYPE);

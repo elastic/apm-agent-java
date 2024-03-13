@@ -21,7 +21,7 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.AfterEach;
@@ -145,12 +145,12 @@ public class LifecycleTest {
             .reporter(new MockReporter())
             .withLifecycleListener(new AbstractLifecycleListener() {
                 @Override
-                public void init(ElasticApmTracer tracer) {
+                public void init(co.elastic.apm.agent.tracer.Tracer tracer) {
                     initialized.set(true);
                 }
 
                 @Override
-                public void start(ElasticApmTracer tracer) throws Exception {
+                public void start(co.elastic.apm.agent.tracer.Tracer tracer) throws Exception {
                     started.set(true);
                 }
             })
@@ -163,7 +163,7 @@ public class LifecycleTest {
 
     /*
      * Has an entry in
-     * src/test/resources/META-INF/services/co.elastic.apm.agent.context.LifecycleListener
+     * src/test/resources/META-INF/services/co.elastic.apm.agent.tracer.LifecycleListener
      */
     public static class TestLifecycleListener extends AbstractLifecycleListener {
 
@@ -178,7 +178,7 @@ public class LifecycleTest {
         }
 
         @Override
-        public void start(ElasticApmTracer tracer) {
+        public void start(co.elastic.apm.agent.tracer.Tracer tracer) {
             start.incrementAndGet();
         }
 

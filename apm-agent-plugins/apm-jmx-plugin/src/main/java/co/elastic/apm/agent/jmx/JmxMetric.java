@@ -18,12 +18,11 @@
  */
 package co.elastic.apm.agent.jmx;
 
-import co.elastic.apm.agent.metrics.Labels;
+import co.elastic.apm.agent.tracer.metrics.Labels;
 import org.stagemonitor.configuration.converter.AbstractValueConverter;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import java.util.ArrayList;

@@ -1,0 +1,14 @@
+github:
+  owner: "elastic"
+  repository: "apm-agent-java"
+  apm_repository: "apm"
+  apm_data_repository: "apm-data"
+  branch: "main"
+specs:
+  apm_data_path: "input/elasticapm/docs/spec/v2"
+  apm_json_path: "tests/agents/json-specs"
+  apm_gherkin_path: "tests/agents/gherkin-specs"
+apm_agent:
+  gherkin_specs_path: "apm-agent-core/src/test/resources/specs"
+  json_specs_path: "apm-agent-core/src/test/resources/json-specs"
+  server_schema_specs_path: "apm-agent-core/src/test/resources/apm-server-schema/current"

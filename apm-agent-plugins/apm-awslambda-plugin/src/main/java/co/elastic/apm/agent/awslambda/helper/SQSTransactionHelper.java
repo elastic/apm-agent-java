@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.awslambda.helper;
 
 import co.elastic.apm.agent.awslambda.SQSMessageAttributesGetter;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 
 import javax.annotation.Nullable;
@@ -34,13 +34,13 @@ public class SQSTransactionHelper extends AbstractMessageBasedTransactionHelper<
 
     private final SQSEvent.SQSMessage placeholderMessage = new SQSEvent.SQSMessage();
 
-    private SQSTransactionHelper(ElasticApmTracer tracer) {
+    private SQSTransactionHelper(Tracer tracer) {
         super(tracer);
     }
 
     public static SQSTransactionHelper getInstance() {
         if (INSTANCE == null) {
-            INSTANCE = new SQSTransactionHelper(GlobalTracer.get().require(ElasticApmTracer.class));
+            INSTANCE = new SQSTransactionHelper(GlobalTracer.get());
         }
         return INSTANCE;
     }
@@ -76,7 +76,7 @@ public class SQSTransactionHelper extends AbstractMessageBasedTransactionHelper<
     }
 
     @Override
-    protected void addSpanLinks(Transaction transaction, SQSEvent event) {
+    protected void addSpanLinks(Transaction<?> transaction, SQSEvent event) {
         List<SQSEvent.SQSMessage> records = event.getRecords();
         if (records != null && !records.isEmpty()) {
             for (SQSEvent.SQSMessage record : records) {

@@ -30,6 +30,7 @@ import io.opentelemetry.api.baggage.BaggageEntryMetadata;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.ContextKey;
 import io.opentelemetry.context.Scope;
@@ -79,6 +80,22 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         assertThat(transaction.getOtelKind())
             .describedAs("default span kind should be internal when not set explicitly")
             .isEqualTo(OTelSpanKind.INTERNAL);
+    }
+
+    @Test
+    public void testTracerBuilder() {
+        Tracer tracer = openTelemetry.tracerBuilder("foo")
+            .setSchemaUrl("bar")
+            .setInstrumentationVersion("baz")
+            .build();
+
+        tracer.spanBuilder("transaction")
+            .startSpan()
+            .end();
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+        Transaction transaction = reporter.getFirstTransaction();
+        assertThat(transaction.getNameAsString()).isEqualTo("transaction");
     }
 
     @Test

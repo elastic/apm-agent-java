@@ -75,6 +75,15 @@ public interface Request {
 
     Request addFormUrlEncodedParameters(String key, String[] values);
 
+    /**
+     * Adds a request header.
+     *
+     * @param headerName  The name of the header.
+     * @param headerValue The value of the header.
+     * @return {@code this}, for fluent method chaining
+     */
+    Request addHeader(String headerName, @Nullable String headerValue);
+
     Request addHeader(String headerName, @Nullable Enumeration<String> headerValues);
 
     Request addCookie(String cookieName, String cookieValue);

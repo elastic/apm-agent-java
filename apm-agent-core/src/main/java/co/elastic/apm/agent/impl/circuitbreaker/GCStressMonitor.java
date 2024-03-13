@@ -21,6 +21,7 @@ package co.elastic.apm.agent.impl.circuitbreaker;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
@@ -35,7 +36,7 @@ class GCStressMonitor extends StressMonitor {
     private final List<MemoryPoolMXBean> heapMBeans = new ArrayList<>();
     private final StringBuilder latestStressDetectionInfo = new StringBuilder("No stress has been detected so far.");
 
-    GCStressMonitor(ElasticApmTracer tracer) {
+    GCStressMonitor(Tracer tracer) {
         super(tracer);
         discoverMBeans();
     }

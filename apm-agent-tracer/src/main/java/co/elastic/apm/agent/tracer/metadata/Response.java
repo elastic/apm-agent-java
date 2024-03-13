@@ -40,5 +40,7 @@ public interface Response {
 
     Response withHeadersSent(boolean headersSent);
 
+    Response addHeader(String headerName, @Nullable String headerValue);
+
     Response addHeader(String headerName, @Nullable Collection<String> headerValues);
 }

@@ -5,7 +5,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.45.1-SNAPSHOT</version>
+        <version>1.48.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>spring-boot-1-5</artifactId>
@@ -27,6 +27,12 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-servlet-plugin</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-core</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

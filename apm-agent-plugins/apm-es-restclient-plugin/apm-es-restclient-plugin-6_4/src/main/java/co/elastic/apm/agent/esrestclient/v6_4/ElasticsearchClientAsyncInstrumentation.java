@@ -77,8 +77,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onAfterExecute(@Advice.Thrown @Nullable Throwable t,
-                                          @Advice.Enter @Nullable Object[] entryArgs) {
+        public static void onAfterExecute(@Advice.Enter @Nullable Object[] entryArgs) {
             if (entryArgs != null) {
                 final Span<?> span = (Span<?>) entryArgs[0];
                 if (span != null) {

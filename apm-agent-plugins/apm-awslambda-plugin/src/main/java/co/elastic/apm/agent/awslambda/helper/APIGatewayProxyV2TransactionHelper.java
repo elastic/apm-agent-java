@@ -19,12 +19,11 @@
 package co.elastic.apm.agent.awslambda.helper;
 
 import co.elastic.apm.agent.awslambda.MapTextHeaderGetter;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 
@@ -34,13 +33,13 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
     @Nullable
     private static APIGatewayProxyV2TransactionHelper INSTANCE;
 
-    private APIGatewayProxyV2TransactionHelper(ElasticApmTracer tracer) {
+    private APIGatewayProxyV2TransactionHelper(Tracer tracer) {
         super(tracer);
     }
 
     public static APIGatewayProxyV2TransactionHelper getInstance() {
         if (INSTANCE == null) {
-            INSTANCE = new APIGatewayProxyV2TransactionHelper(GlobalTracer.get().require(ElasticApmTracer.class));
+            INSTANCE = new APIGatewayProxyV2TransactionHelper(GlobalTracer.get());
         }
         return INSTANCE;
     }
@@ -74,15 +73,6 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
     }
 
     @Override
-    public String getDomainName(APIGatewayV2HTTPEvent event) {
-        APIGatewayV2HTTPEvent.RequestContext rContext = event.getRequestContext();
-        if (null == rContext) {
-            return null;
-        }
-        return rContext.getDomainName();
-    }
-
-    @Override
     protected String getApiGatewayVersion() {
         return "2.0";
     }
@@ -103,7 +93,7 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
     @Override
     protected String getStage(APIGatewayV2HTTPEvent event) {
         String stage = event.getRequestContext().getStage();
-        if (stage != null && !stage.equals("$default")) {
+        if(stage != null && !stage.equals("$default")){
             return stage;
         }
         return null;
@@ -121,5 +111,12 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
             }
         }
         return routeKey;
+    }
+
+    @Nullable
+    @Override
+    String getDomainName(APIGatewayV2HTTPEvent apiGatewayRequest) {
+        APIGatewayV2HTTPEvent.RequestContext requestContext = apiGatewayRequest.getRequestContext();
+        return requestContext != null ? requestContext.getDomainName() : null;
     }
 }
