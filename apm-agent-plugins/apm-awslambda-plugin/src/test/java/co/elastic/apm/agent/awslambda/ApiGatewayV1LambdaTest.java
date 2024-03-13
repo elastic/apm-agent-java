@@ -256,6 +256,17 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("PUT /prod/proxy-test/12345");
     }
 
+    @Test
+    public void testServiceNameAsLambdaUrl() {
+        APIGatewayProxyRequestEvent event = createInput();
+        event.getRequestContext().setDomainName("myurl.lambda-url.us-west-2.on.aws");
+        getFunction().handleRequest(event, context);
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        Transaction transaction = reporter.getFirstTransaction();
+        assertThat(transaction.getContext().getCloudOrigin().getServiceName()).isEqualTo("lambda url");
+    }
+
     @Override
     protected AbstractFunction<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> createHandler() {
         return new ApiGatewayV1LambdaFunction();

@@ -30,6 +30,7 @@ import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 
 import javax.annotation.Nullable;
 import java.nio.CharBuffer;
@@ -124,11 +125,26 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
     protected void setTransactionTriggerData(Transaction<?> transaction, I apiGatewayRequest) {
         transaction.withType(TRANSACTION_TYPE);
         CloudOrigin cloudOrigin = transaction.getContext().getCloudOrigin();
-        cloudOrigin.withServiceName("api gateway");
+        if (isLambdaUrl(apiGatewayRequest)) {
+            cloudOrigin.withServiceName("lambda url");
+        } else {
+            cloudOrigin.withServiceName("api gateway");
+        }
         cloudOrigin.withProvider("aws");
         transaction.getFaas().getTrigger().withType("http");
         transaction.getContext().getServiceOrigin().withVersion(getApiGatewayVersion());
     }
+
+    private boolean isLambdaUrl(I apiGatewayRequest) {
+        String domainName = getDomainName(apiGatewayRequest);
+        if (null == domainName) {
+            return false;
+        }
+        return domainName.contains(".lambda-url.");
+    }
+
+    @Nullable
+    abstract String getDomainName(I apiGatewayRequest);
 
     protected void setApiGatewayContextData(Transaction<?> transaction, @Nullable String requestId, @Nullable String apiId,
                                             @Nullable String domainName, @Nullable String accountId) {
