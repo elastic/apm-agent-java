@@ -45,8 +45,8 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
     }
 
     @Override
-    protected Transaction doStartTransaction(APIGatewayV2HTTPEvent apiGatewayEvent, Context lambdaContext) {
-        Transaction transaction = tracer.startChildTransaction(apiGatewayEvent.getHeaders(), MapTextHeaderGetter.INSTANCE, PrivilegedActionUtils.getClassLoader(apiGatewayEvent.getClass()));
+    protected Transaction<?> doStartTransaction(APIGatewayV2HTTPEvent apiGatewayEvent, Context lambdaContext) {
+        Transaction<?> transaction = tracer.startChildTransaction(apiGatewayEvent.getHeaders(), MapTextHeaderGetter.INSTANCE, PrivilegedActionUtils.getClassLoader(apiGatewayEvent.getClass()));
 
         APIGatewayV2HTTPEvent.RequestContext requestContext = apiGatewayEvent.getRequestContext();
         if (transaction != null) {
@@ -60,12 +60,12 @@ public class APIGatewayProxyV2TransactionHelper extends AbstractAPIGatewayTransa
     }
 
     @Override
-    public void captureOutputForTransaction(Transaction transaction, APIGatewayV2HTTPResponse responseEvent) {
+    public void captureOutputForTransaction(Transaction<?> transaction, APIGatewayV2HTTPResponse responseEvent) {
         fillHttpResponseData(transaction, responseEvent.getHeaders(), responseEvent.getStatusCode());
     }
 
     @Override
-    protected void setTransactionTriggerData(Transaction transaction, APIGatewayV2HTTPEvent apiGatewayRequest) {
+    protected void setTransactionTriggerData(Transaction<?> transaction, APIGatewayV2HTTPEvent apiGatewayRequest) {
         super.setTransactionTriggerData(transaction, apiGatewayRequest);
         APIGatewayV2HTTPEvent.RequestContext rContext = apiGatewayRequest.getRequestContext();
         setApiGatewayContextData(transaction, rContext.getRequestId(), rContext.getApiId(),

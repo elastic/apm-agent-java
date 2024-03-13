@@ -38,6 +38,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Differentiate Lambda URLs from API Gateway in AWS Lambda integration - {pull}3417[#3417]
+* Added lambda support for ELB triggers {pull}#3411[#3411]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
@@ -127,7 +128,7 @@ affect you, if you are using the OpenTelemetry API only and not the SDK. - {pull
 ===== Features
 * Added protection against invalid timestamps provided by manual instrumentation - {pull}3363[#3363]
 * Added support for AWS SDK 2.21 - {pull}3373[#3373]
-* Capture bucket and object key to Lambda transaction as OTel attributes - `aws.s3.bueckt`, `aws.s3.key` - {pull}3364[#3364]
+* Capture bucket and object key to Lambda transaction as OTel attributes - `aws.s3.bucket`, `aws.s3.key` - {pull}3364[#3364]
 * Added `context_propagation_only` configuration option - {pull}3358[#3358]
 * Added attribute[*] for JMX pattern metrics (all metrics can now be generated with `object_name[*:type=*,name=*] attribute[*]`) - {pull}3376[#3376]
 

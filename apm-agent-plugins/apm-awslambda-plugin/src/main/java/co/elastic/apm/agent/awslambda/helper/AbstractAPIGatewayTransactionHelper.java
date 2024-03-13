@@ -18,6 +18,10 @@
  */
 package co.elastic.apm.agent.awslambda.helper;
 
+import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.ServiceOrigin;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
@@ -25,12 +29,7 @@ import co.elastic.apm.agent.tracer.metadata.CloudOrigin;
 import co.elastic.apm.agent.tracer.metadata.Request;
 import co.elastic.apm.agent.tracer.metadata.Response;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.AbstractSpan;
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 
 import javax.annotation.Nullable;
 import java.nio.CharBuffer;
@@ -68,6 +67,38 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
         }
     }
 
+    @Nullable
+    protected String getHost(@Nullable Map<String, String> headers) {
+        if (null == headers) {
+            return null;
+        }
+        String host = headers.get("host");
+        if (null == host) {
+            host = headers.get("Host");
+        }
+        return host;
+    }
+
+    @Nullable
+    protected String getQueryString(@Nullable Map<String, String> queryParameters) {
+        if (null == queryParameters || queryParameters.isEmpty()) {
+            return null;
+        }
+        StringBuilder queryString = new StringBuilder();
+        int i = 0;
+        for (Map.Entry<String, String> entry : queryParameters.entrySet()) {
+            if (i > 0) {
+                queryString.append('&');
+            }
+            queryString.append(entry.getKey());
+            queryString.append('=');
+            queryString.append(entry.getValue());
+            i++;
+        }
+        return queryString.toString();
+    }
+
+
     protected void fillHttpResponseData(Transaction<?> transaction, @Nullable Map<String, String> headers, int statusCode) {
         Response response = transaction.getContext().getResponse();
         response.withFinished(true);
@@ -82,7 +113,7 @@ public abstract class AbstractAPIGatewayTransactionHelper<I, O> extends Abstract
     }
 
     private void fillUrlRelatedFields(Request request, @Nullable String serverName, @Nullable String path, @Nullable String queryString) {
-        String qString = queryString == null || queryString.trim().isEmpty() ? null: queryString;
+        String qString = queryString == null || queryString.trim().isEmpty() ? null : queryString;
         request.getUrl().fillFrom("https", serverName, 443, path, qString);
     }
 
