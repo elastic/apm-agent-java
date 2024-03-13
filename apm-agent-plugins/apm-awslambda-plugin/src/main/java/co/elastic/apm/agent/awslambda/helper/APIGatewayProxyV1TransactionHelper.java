@@ -19,10 +19,10 @@
 package co.elastic.apm.agent.awslambda.helper;
 
 import co.elastic.apm.agent.awslambda.MapTextHeaderGetter;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
@@ -34,20 +34,20 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
     @Nullable
     private static APIGatewayProxyV1TransactionHelper INSTANCE;
 
-    private APIGatewayProxyV1TransactionHelper(ElasticApmTracer tracer) {
+    private APIGatewayProxyV1TransactionHelper(Tracer tracer) {
         super(tracer);
     }
 
     public static APIGatewayProxyV1TransactionHelper getInstance() {
         if (INSTANCE == null) {
-            INSTANCE = new APIGatewayProxyV1TransactionHelper(GlobalTracer.get().require(ElasticApmTracer.class));
+            INSTANCE = new APIGatewayProxyV1TransactionHelper(GlobalTracer.get());
         }
         return INSTANCE;
     }
 
     @Override
-    protected Transaction doStartTransaction(APIGatewayProxyRequestEvent apiGatewayEvent, Context lambdaContext) {
-        Transaction transaction = tracer.startChildTransaction(apiGatewayEvent.getHeaders(), MapTextHeaderGetter.INSTANCE, PrivilegedActionUtils.getClassLoader(apiGatewayEvent.getClass()));
+    protected Transaction<?> doStartTransaction(APIGatewayProxyRequestEvent apiGatewayEvent, Context lambdaContext) {
+        Transaction<?> transaction = tracer.startChildTransaction(apiGatewayEvent.getHeaders(), MapTextHeaderGetter.INSTANCE, PrivilegedActionUtils.getClassLoader(apiGatewayEvent.getClass()));
 
         if (null != transaction) {
             String host = getHost(apiGatewayEvent.getHeaders());
@@ -60,7 +60,7 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
     }
 
     @Override
-    public void captureOutputForTransaction(Transaction transaction, APIGatewayProxyResponseEvent responseEvent) {
+    public void captureOutputForTransaction(Transaction<?> transaction, APIGatewayProxyResponseEvent responseEvent) {
         Integer statusCode = responseEvent.getStatusCode();
         if (statusCode == null) {
             statusCode = 0;
@@ -69,7 +69,7 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
     }
 
     @Override
-    protected void setTransactionTriggerData(Transaction transaction, APIGatewayProxyRequestEvent apiGatewayRequest) {
+    protected void setTransactionTriggerData(Transaction<?> transaction, APIGatewayProxyRequestEvent apiGatewayRequest) {
         super.setTransactionTriggerData(transaction, apiGatewayRequest);
         APIGatewayProxyRequestEvent.ProxyRequestContext rContext = apiGatewayRequest.getRequestContext();
 
@@ -77,6 +77,15 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
             setApiGatewayContextData(transaction, rContext.getRequestId(), rContext.getApiId(),
                 getHost(apiGatewayRequest.getHeaders()), rContext.getAccountId());
         }
+    }
+
+    @Override
+    public String getDomainName(APIGatewayProxyRequestEvent apiGatewayRequest) {
+        APIGatewayProxyRequestEvent.ProxyRequestContext rContext = apiGatewayRequest.getRequestContext();
+        if (null == rContext) {
+            return null;
+        }
+        return rContext.getDomainName();
     }
 
     @Override
@@ -108,4 +117,5 @@ public class APIGatewayProxyV1TransactionHelper extends AbstractAPIGatewayTransa
     protected String getResourcePath(APIGatewayProxyRequestEvent event) {
         return event.getRequestContext().getResourcePath();
     }
+
 }

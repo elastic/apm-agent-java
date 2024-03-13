@@ -32,6 +32,68 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 === Unreleased
 
 [float]
+===== Bug fixes
+* Fixed problems with public API annotation inheritance - {pull}3551[#3551]
+
+[float]
+===== Features
+* Differentiate Lambda URLs from API Gateway in AWS Lambda integration - {pull}3417[#3417]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.48.1]]
+==== 1.48.1 - 2024/03/06
+
+[float]
+===== Bug fixes
+* Avoid another case where we might touch application exceptions for `safe_exceptions` - {pull}3553[#3553]
+* More robust hostname detection on Windows - {pull}3556[#3556]
+
+[[release-notes-1.48.0]]
+==== 1.48.0 - 2024/03/05
+
+[float]
+===== Features
+* Bumped base alpine docker image version - {pull}3524[#3524]
+* Replace statement parser cache with an LRU cache to improve efficiency in certain cases {pull}3492[#3492]
+
+[float]
+===== Bug fixes
+* Added missing support for TracerBuilder in OpenTelemetry bridge - {pull}3535[#3535]
+* Fixed some locations to not touch exceptions when `safe_exception` is configured - {pull}3543[#3543]
+
+[float]
+===== Potentially breaking changes
+* The minimum supported OpenTelemetry version has been increased to 1.4.0 - {pull}3535[#3535]
+
+[[release-notes-1.47.1]]
+==== 1.47.1 - 2024/02/15
+
+[float]
+===== Features
+* Added internal `safe_exceptions` config option to workaround JVM bugs related to touching exceptions - {pull}3528[#3528]
+
+[float]
+===== Bug fixes
+* Cleanup extra servlet request attribute used for Spring exception handler - {pull}3527[#3527]
+
+[[release-notes-1.47.0]]
+==== 1.47.0 - 2024/02/13
+
+[float]
+===== Features
+* Added a configuration option to use queues in names of spring-rabbit transactions - {pull}3424[#3424]
+* Add option to retry JMX metrics capture in case of exception - {pull}3511[#3511]
+
+[float]
+===== Bug fixes
+* Add support to CLI attach download for new agent signature for 1.46.0+ - {pull}3513[#3513]
+
+[[release-notes-1.46.0]]
+==== 1.46.0 - 2024/01/29
+
+[float]
 ===== Features
 * Added support for OpenTelementry Attributes db.statement and db.user - {pull}3475[#3475]
 * Added lambda support for ELB triggers {pull}#3411[#3411]
@@ -41,11 +103,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 * Fixed NPE in ApacheHttpClientApiAdapter#getHostName - {pull}3479[#3479]
 * Fix span stack trace when combined with span compression - {pull}3474[#3474]
 * Fix `UnsupportedClassVersionError` java 7 compatibility for jctools - {pull}3483[#3483]
-
-
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.45.0]]
 ==== 1.45.0 - 2023/12/07

@@ -60,8 +60,11 @@ public class Response implements Recyclable, co.elastic.apm.agent.tracer.metadat
      * @param headerValue The value of the header.
      * @return {@code this}, for fluent method chaining
      */
-    public Response addHeader(String headerName, String headerValue) {
-        headers.add(headerName, headerValue);
+    @Override
+    public Response addHeader(String headerName, @Nullable String headerValue) {
+        if (headerValue != null) {
+            headers.add(headerName, headerValue);
+        }
         return this;
     }
 

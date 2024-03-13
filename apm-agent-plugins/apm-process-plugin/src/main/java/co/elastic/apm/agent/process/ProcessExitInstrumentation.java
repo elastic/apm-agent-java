@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.process;
 
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -145,7 +146,8 @@ public abstract class ProcessExitInstrumentation extends BaseProcessInstrumentat
                     return;
                 }
 
-                if (thrown instanceof IllegalThreadStateException) {
+                if (!tracer.getConfig(CoreConfiguration.class).isAvoidTouchingExceptions()
+                    && thrown instanceof IllegalThreadStateException) {
                     // this call to exitValue was invoked before the process had terminated
                     return;
                 }

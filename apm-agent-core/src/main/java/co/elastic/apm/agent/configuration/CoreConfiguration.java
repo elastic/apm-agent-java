@@ -517,6 +517,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
         .tags("added[1.44.0]")
         .buildWithDefault(false);
 
+
+    private final ConfigurationOption<Integer> safeExceptions = ConfigurationOption.<Boolean>integerOption()
+        .key("safe_exceptions")
+        .tags("internal")
+        .configurationCategory(CORE_CATEGORY)
+        .dynamic(true)
+        .buildWithDefault(0);
+
     private final ConfigurationOption<List<WildcardMatcher>> classesExcludedFromInstrumentation = ConfigurationOption
         .builder(new ValueConverter<List<WildcardMatcher>>() {
 
@@ -1161,6 +1169,20 @@ public class CoreConfiguration extends ConfigurationOptionProvider implements co
 
     public boolean isContextPropagationOnly() {
         return contextPropagationOnly.get();
+    }
+
+    public boolean isRedactExceptions() {
+        return (safeExceptions.get() & 1) != 0;
+    }
+
+    @Override
+    public boolean isAvoidTouchingExceptions() {
+        return isRedactExceptions() || !captureExceptionDetails();
+    }
+
+    @Override
+    public boolean isUseServletAttributesForExceptionPropagation() {
+        return (safeExceptions.get() & 2) == 0;
     }
 
     public enum CloudProvider {

@@ -16,42 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.context;
-
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Tracer;
+package co.elastic.apm.agent.tracer;
 
 /**
- * A {@link LifecycleListener} notifies about the start and stop event of the {@link ElasticApmTracer}.
+ * A {@link LifecycleListener} notifies about the start and stop event of the {@link Tracer}.
  * <p>
  * Implement this interface and register it as a {@linkplain java.util.ServiceLoader service} under
- * {@code src/main/resources/META-INF/services/co.elastic.apm.agent.context.LifecycleListener}.
+ * {@code src/main/resources/META-INF/services/co.elastic.apm.agent.tracer.LifecycleListener}.
  * </p>
  * <p>
- * Implementations may have a constructor with an {@link ElasticApmTracer} argument
+ * Implementations may have a constructor with an {@link Tracer} argument
  * </p>
  */
 public interface LifecycleListener {
 
     /**
-     * Callback for tracer initialization. As opposed to {@link LifecycleListener#start(ElasticApmTracer)}, which may
+     * Callback for tracer initialization. As opposed to {@link LifecycleListener#start(Tracer)}, which may
      * be called in a delay, this callback is called at the bootstrap of the JVM, before anything else start.
      * This may be useful for listeners that need to operate very early on, for example such that setup class loading
      * requirement to support OSGi systems.
      * @param tracer the tracer
      * @throws Exception
      */
-    void init(ElasticApmTracer tracer) throws Exception;
+    void init(Tracer tracer) throws Exception;
 
     /**
-     * Callback for when the {@link ElasticApmTracer} starts.
+     * Callback for when the {@link Tracer} starts.
      *
      * @param tracer The tracer.
      */
-    void start(ElasticApmTracer tracer) throws Exception;
+    void start(Tracer tracer) throws Exception;
 
     /**
-     * Callback for when {@link ElasticApmTracer#pause()} has been called.
+     * Callback for when the {@link Tracer} is paused.
      * <p>
      * Typically, this method is used to reduce overhead on the application to a minimum. This can be done by cleaning
      * up resources like object pools, as well as by avoiding tracing-related overhead.
@@ -65,7 +62,7 @@ public interface LifecycleListener {
     void pause() throws Exception;
 
     /**
-     * Callback for when {@link ElasticApmTracer#resume()} has been called.
+     * Callback for when {@link Tracer} resumes.
      * <p>
      * Typically, used in order to revert the actions taken by the {@link LifecycleListener#pause()} method, allowing
      * the agent to restore all tracing capabilities
@@ -79,7 +76,7 @@ public interface LifecycleListener {
     void resume() throws Exception;
 
     /**
-     * Callback for when {@link ElasticApmTracer#stop()} has been called.
+     * Callback for when the {@link Tracer} is stopped.
      * <p>
      * Typically, this method is used to clean up resources like thread pools
      * so that there are no class loader leaks when a webapp is redeployed in an application server.
@@ -96,17 +93,14 @@ public interface LifecycleListener {
      *         The order in which lifecycle listeners are called is non-deterministic.
      *     </li>
      *     <li>
-     *         The {@link ElasticApmTracer#getSharedSingleThreadedPool()} is shut down gracefully,
+     *         Any {@link Tracer}-managed thread pool is shut down gracefully,
      *         waiting a moment for the already scheduled tasks to be completed.
      *         This means that implementations of this method can schedule a last command to this pool that is executed before shutdown.
-     *         The {@link Tracer#getState()} will still be {@link Tracer.TracerState#RUNNING} in the tasks scheduled to
-     *         {@link ElasticApmTracer#getSharedSingleThreadedPool()} within this method.
+     *         The {@link Tracer#isRunning()} will still be {@code true} in the tasks scheduled to
+     *         complete within {@link Tracer}-managed threads within this method.
      *     </li>
      *     <li>
-     *         The tracer state is set to {@link co.elastic.apm.agent.impl.Tracer.TracerState#STOPPED}.
-     *     </li>
-     *     <li>
-     *         The {@link co.elastic.apm.agent.report.Reporter} is closed.
+     *         The tracer state is set to {@link Tracer#isRunning()} being {@code false}.
      *     </li>
      * </ol>
      *

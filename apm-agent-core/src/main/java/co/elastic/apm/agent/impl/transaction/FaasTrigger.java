@@ -22,7 +22,7 @@ import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;
 
-public class FaasTrigger implements Recyclable {
+public class FaasTrigger implements co.elastic.apm.agent.tracer.FaasTrigger, Recyclable {
 
     @Nullable
     private String type;
@@ -40,11 +40,13 @@ public class FaasTrigger implements Recyclable {
         return requestId;
     }
 
+    @Override
     public FaasTrigger withType(@Nullable String type) {
         this.type = type;
         return this;
     }
 
+    @Override
     public FaasTrigger withRequestId(@Nullable String requestId) {
         this.requestId = requestId;
         return this;

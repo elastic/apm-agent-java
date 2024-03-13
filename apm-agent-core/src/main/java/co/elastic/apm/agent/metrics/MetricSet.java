@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.metrics;
 
+import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
+import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 import javax.annotation.Nullable;

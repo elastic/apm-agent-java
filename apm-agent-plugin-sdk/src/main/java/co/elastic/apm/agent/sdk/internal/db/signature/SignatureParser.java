@@ -18,41 +18,20 @@
  */
 package co.elastic.apm.agent.sdk.internal.db.signature;
 
+import co.elastic.apm.agent.sdk.internal.collections.LRUCache;
 import co.elastic.apm.agent.sdk.internal.pooling.ObjectHandle;
 import co.elastic.apm.agent.sdk.internal.pooling.ObjectPool;
 import co.elastic.apm.agent.sdk.internal.pooling.ObjectPooling;
 
 import javax.annotation.Nullable;
+import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class SignatureParser {
 
-    /**
-     * If the cache reaches this size we assume that the application creates a lot of dynamic queries.
-     * In that case it's inefficient to try to cache these as they are not likely to be repeated.
-     * But we still pay the price of allocating a Map.Entry and a String for the signature.
-     */
-    private static final int DISABLE_CACHE_THRESHOLD = 512;
-    /**
-     * The cache management overhead is probably not worth it for short queries
-     */
-    private static final int QUERY_LENGTH_CACHE_LOWER_THRESHOLD = 64;
-    /**
-     * We don't want to keep alive references to huge query strings
-     */
-    private static final int QUERY_LENGTH_CACHE_UPPER_THRESHOLD = 10_000;
-
     private final ObjectPool<? extends ObjectHandle<Scanner>> scannerPool;
 
-    /**
-     * Not using weak keys because ORMs like Hibernate generate equal SQL strings for the same query but don't reuse the same string instance.
-     * When relying on weak keys, we would not leverage any caching benefits if the query string is collected.
-     * That means that we are leaking Strings but as the size of the map is limited that should not be an issue.
-     */
-    private final ConcurrentMap<String, String[]> signatureCache = new ConcurrentHashMap<String, String[]>(DISABLE_CACHE_THRESHOLD,
-            0.5f, Runtime.getRuntime().availableProcessors());
+    private final Map<String, String[]> signatureCache = LRUCache.createCache(1000);
 
     public SignatureParser() {
         this(new Callable<Scanner>() {
@@ -72,28 +51,21 @@ public class SignatureParser {
     }
 
     public void querySignature(String query, StringBuilder signature, @Nullable StringBuilder dbLink, boolean preparedStatement) {
-        final boolean cacheable = preparedStatement // non-prepared statements are likely to be dynamic strings
-            && QUERY_LENGTH_CACHE_LOWER_THRESHOLD < query.length()
-            && query.length() < QUERY_LENGTH_CACHE_UPPER_THRESHOLD;
-        if (cacheable) {
-            final String[] cachedSignature = signatureCache.get(query);
-            if (cachedSignature != null) {
-                signature.append(cachedSignature[0]);
-                if (dbLink != null) {
-                    dbLink.append(cachedSignature[1]);
-                }
-                return;
+
+        final String[] cachedSignature = signatureCache.get(query);
+        if (cachedSignature != null) {
+            signature.append(cachedSignature[0]);
+            if (dbLink != null) {
+                dbLink.append(cachedSignature[1]);
             }
+            return;
         }
         try (ObjectHandle<Scanner> pooledScanner = scannerPool.createInstance()) {
             Scanner scanner = pooledScanner.get();
             scanner.setQuery(query);
             parse(scanner, query, signature, dbLink);
 
-            if (cacheable && signatureCache.size() <= DISABLE_CACHE_THRESHOLD) {
-                // we don't mind a small overshoot due to race conditions
-                signatureCache.put(query, new String[]{signature.toString(), dbLink != null ? dbLink.toString() : ""});
-            }
+            signatureCache.put(query, new String[]{signature.toString(), dbLink != null ? dbLink.toString() : ""});
         }
     }
 

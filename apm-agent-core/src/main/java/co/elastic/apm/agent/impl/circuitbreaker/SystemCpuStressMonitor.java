@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl.circuitbreaker;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.util.JmxUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -45,7 +45,7 @@ public class SystemCpuStressMonitor extends StressMonitor {
     @Nullable
     private final Method systemCpuUsageMethod;
 
-    SystemCpuStressMonitor(ElasticApmTracer tracer) {
+    SystemCpuStressMonitor(Tracer tracer) {
         super(tracer);
         operatingSystemBean = ManagementFactory.getOperatingSystemMXBean();
         systemCpuUsageMethod = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getSystemCpuLoad");

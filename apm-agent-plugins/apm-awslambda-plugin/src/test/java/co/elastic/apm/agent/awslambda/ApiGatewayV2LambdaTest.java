@@ -31,6 +31,7 @@ import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 import org.junit.BeforeClass;
@@ -206,6 +207,17 @@ public class ApiGatewayV2LambdaTest extends BaseGatewayLambdaTest<APIGatewayV2HT
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("PUT /prod/proxy-test/12345");
+    }
+
+    @Test
+    public void testServiceNameAsLambdaUrl() {
+        APIGatewayV2HTTPEvent event = createInput();
+        event.getRequestContext().setDomainName("myurl.lambda-url.us-west-2.on.aws");
+        getFunction().handleRequest(event, context);
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        Transaction transaction = reporter.getFirstTransaction();
+        assertThat(transaction.getContext().getCloudOrigin().getServiceName()).isEqualTo("lambda url");
     }
 
     @Override

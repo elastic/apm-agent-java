@@ -45,6 +45,10 @@ public class JavaxAsyncContextAdviceHelper implements AsyncContextAdviceHelper<A
             new JavaxAsyncContextAdviceHelper.ApmAsyncListenerAllocator());
     }
 
+    public Tracer getTracer() {
+        return tracer;
+    }
+
     private final class ApmAsyncListenerAllocator implements Allocator<JavaxApmAsyncListener> {
         @Override
         public JavaxApmAsyncListener createInstance() {

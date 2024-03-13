@@ -19,34 +19,28 @@
 package co.elastic.apm.agent.awslambda.helper;
 
 import co.elastic.apm.agent.awslambda.MapTextHeaderGetter;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.context.CloudOrigin;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.ServiceOrigin;
-import co.elastic.apm.agent.impl.transaction.FaasTrigger;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
-import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.*;
+import co.elastic.apm.agent.tracer.metadata.CloudOrigin;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.ApplicationLoadBalancerRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.ApplicationLoadBalancerResponseEvent;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.nio.CharBuffer;
 import java.util.Map;
 
 public class ApplicationLoadBalancerRequestTransactionHelper extends AbstractAPIGatewayTransactionHelper<ApplicationLoadBalancerRequestEvent, ApplicationLoadBalancerResponseEvent> {
     @Nullable
     private static ApplicationLoadBalancerRequestTransactionHelper INSTANCE;
 
-    private ApplicationLoadBalancerRequestTransactionHelper(ElasticApmTracer tracer) {
+    private ApplicationLoadBalancerRequestTransactionHelper(Tracer tracer) {
         super(tracer);
     }
 
     public static ApplicationLoadBalancerRequestTransactionHelper getInstance() {
         if (INSTANCE == null) {
-            INSTANCE = new ApplicationLoadBalancerRequestTransactionHelper(GlobalTracer.get().require(ElasticApmTracer.class));
+            INSTANCE = new ApplicationLoadBalancerRequestTransactionHelper(GlobalTracer.get());
         }
         return INSTANCE;
     }
@@ -159,6 +153,12 @@ public class ApplicationLoadBalancerRequestTransactionHelper extends AbstractAPI
     @Nullable
     @Override
     protected String getResourcePath(ApplicationLoadBalancerRequestEvent event) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    String getDomainName(ApplicationLoadBalancerRequestEvent apiGatewayRequest) {
         return null;
     }
 }

@@ -21,10 +21,10 @@ package co.elastic.apm.agent.jul.reformatting;
 import co.elastic.apm.agent.jul.sending.JulLogSenderHandler;
 import co.elastic.apm.agent.loginstr.correlation.CorrelationIdMapAdapter;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
-import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.logging.AdditionalField;
 import co.elastic.logging.jul.EcsFormatter;
 
@@ -151,8 +151,8 @@ public abstract class AbstractJulEcsReformattingHelper<T extends Handler> extend
     protected abstract boolean isFileHandler(Handler originalHandler);
 
     @Override
-    protected T createAndStartLogSendingAppender(Reporter reporter, Formatter formatter) {
-        return (T) new JulLogSenderHandler(reporter, formatter);
+    protected T createAndStartLogSendingAppender(Tracer tracer, Formatter formatter) {
+        return (T) new JulLogSenderHandler(tracer, formatter);
     }
 
     @Override

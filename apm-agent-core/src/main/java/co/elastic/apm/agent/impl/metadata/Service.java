@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
 /**
  * Information about the instrumented Service
  */
-public class Service {
+public class Service implements co.elastic.apm.agent.tracer.service.Service {
 
     /**
      * Name and version of the Elastic APM agent
@@ -127,10 +127,8 @@ public class Service {
         return this;
     }
 
-    /**
-     * Representation of a service node
-     */
     @Nullable
+    @Override
     public Node getNode() {
         return node;
     }
@@ -143,11 +141,8 @@ public class Service {
         return this;
     }
 
-    /**
-     * Immutable name of the service emitting this event
-     * (Required)
-     */
     @Nullable
+    @Override
     public String getName() {
         return name;
     }
@@ -161,10 +156,8 @@ public class Service {
         return this;
     }
 
-    /**
-     * Environment name of the service, e.g. "production" or "staging"
-     */
     @Nullable
+    @Override
     public String getEnvironment() {
         return environment;
     }
@@ -193,10 +186,8 @@ public class Service {
         return this;
     }
 
-    /**
-     * Version of the service emitting this event
-     */
     @Nullable
+    @Override
     public String getVersion() {
         return version;
     }

@@ -8,6 +8,10 @@ metadata:
   links:
     - title: Pipeline
       url: https://buildkite.com/elastic/apm-agent-java-release
+  tags:
+    - buildkite
+    - gpg-sign
+    - maven-central
 spec:
   type: buildkite-pipeline
   owner: group:apm-agent-java
@@ -42,6 +46,10 @@ metadata:
   links:
     - title: Pipeline
       url: https://buildkite.com/elastic/apm-agent-java-snapshot
+  tags:
+    - buildkite
+    - gpg-sign
+    - maven-central
 spec:
   type: buildkite-pipeline
   owner: group:apm-agent-java
@@ -110,6 +118,9 @@ metadata:
   links:
     - title: Pipeline
       url: https://buildkite.com/elastic/apm-agent-java-opentelemetry-benchmark
+  tags:
+    - buildkite
+    - user:apmmachine
 spec:
   type: buildkite-pipeline
   owner: group:apm-agent-java
@@ -138,3 +149,93 @@ spec:
         Weekly Benchmark on main Branch:
           cronline: "@weekly"
           message: "Run the quick benchmark weekly."
+
+---
+# A Component for the release GitHub action
+#
+# yaml-language-server: $schema=https://json.schemastore.org/catalog-info.json
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: apm-agent-java-release
+  description: GitHub action to run the release process for the APM Agent Java
+  annotations:
+    backstage.io/source-location: url:https://github.com/elastic/apm-agent-java/blob/main/.github/workflows/release.yml
+    github.com/project-slug: elastic/apm-agent-java
+    github.com/team-slug: elastic/apm-agent-java
+  tags:
+    - aws-lambda
+    - github
+    - gpg-sign
+    - maven-central
+    - release
+    - user:apmmachine
+    - user:obltmachine
+  links:
+    - title: GitHub action
+      url: https://github.com/elastic/apm-agent-java/actions/workflows/release.yml
+spec:
+  type: github-actions
+  owner: group:apm-agent-java
+  lifecycle: production
+  dependsOn:
+    - "system:github-actions"
+    - "user:apmmachine"
+    - "user:obltmachine"
+
+---
+# A Component for the snapshot GitHub action
+#
+# yaml-language-server: $schema=https://json.schemastore.org/catalog-info.json
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: apm-agent-java-snapshot
+  description: GitHub action to run the snapshot process for the APM Agent Java
+  annotations:
+    backstage.io/source-location: url:https://github.com/elastic/apm-agent-java/blob/main/.github/workflows/snapshot.yml
+    github.com/project-slug: elastic/apm-agent-java
+    github.com/team-slug: elastic/apm-agent-java
+  tags:
+    - github
+    - gpg-sign
+    - maven-central
+    - snapshot
+    - user:obltmachine
+  links:
+    - title: GitHub action
+      url: https://github.com/elastic/apm-agent-java/actions/workflows/snapshot.yml
+spec:
+  type: github-actions
+  owner: group:apm-agent-java
+  lifecycle: production
+  dependsOn:
+    - "system:github-actions"
+    - "user:obltmachine"
+
+---
+# A Component for the microbenchmark GitHub action
+#
+# yaml-language-server: $schema=https://json.schemastore.org/catalog-info.json
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: apm-agent-java-microbenchmark
+  description: GitHub action to run the microbenchmark process for the APM Agent Java
+  annotations:
+    backstage.io/source-location: url:https://github.com/elastic/apm-agent-java/blob/main/.github/workflows/microbenchmark.yml
+    github.com/project-slug: elastic/apm-agent-java
+    github.com/team-slug: elastic/apm-agent-java
+  tags:
+    - github
+    - user:obltmachine
+  links:
+    - title: GitHub action
+      url: https://github.com/elastic/apm-agent-java/actions/workflows/microbenchmark.yml
+spec:
+  type: github-actions
+  owner: group:apm-agent-java
+  lifecycle: production
+  dependsOn:
+    - "system:github-actions"
+    - "user:obltmachine"

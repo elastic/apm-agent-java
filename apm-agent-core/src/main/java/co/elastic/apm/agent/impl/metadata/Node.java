@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
 /**
  * A representation of a service node, ie JVM
  */
-public class Node {
+public class Node implements co.elastic.apm.agent.tracer.service.Node {
 
     /**
      * (Optional)
@@ -37,6 +37,7 @@ public class Node {
     }
 
     @Nullable
+    @Override
     public String getName() {
         return name;
     }

@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.metrics.DslJsonUtil;
 
 import javax.annotation.Nullable;
 
@@ -31,7 +32,7 @@ public class SerializationConstants {
      */
     public static final int BUFFER_SIZE = 16384;
 
-    public static final int MAX_VALUE_LENGTH = 1024;
+    public static final int MAX_VALUE_LENGTH = DslJsonUtil.MAX_VALUE_LENGTH;
 
     @Nullable
     private static volatile SerializationConstants INSTANCE;

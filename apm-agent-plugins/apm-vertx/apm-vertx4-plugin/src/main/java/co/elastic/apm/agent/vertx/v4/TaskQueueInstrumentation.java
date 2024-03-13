@@ -60,7 +60,7 @@ public class TaskQueueInstrumentation extends Vertx4Instrumentation {
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(@Advice.Thrown @Nullable Throwable thrown) {
+        public static void onExit() {
             JavaConcurrent.allowContextPropagationOnCurrentThread();
         }
 

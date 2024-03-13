@@ -32,9 +32,9 @@ import co.elastic.apm.agent.logback.sending.LogbackLogSenderAppender;
 import co.elastic.apm.agent.loginstr.reformatting.AbstractEcsReformattingHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.logging.AdditionalField;
 import co.elastic.logging.logback.EcsEncoder;
 
@@ -158,8 +158,8 @@ class LogbackEcsReformattingHelper extends AbstractEcsReformattingHelper<OutputS
     }
 
     @Override
-    protected Appender<ILoggingEvent> createAndStartLogSendingAppender(Reporter reporter, Encoder<ILoggingEvent> formatter) {
-        LogbackLogSenderAppender appender = new LogbackLogSenderAppender(reporter, formatter);
+    protected Appender<ILoggingEvent> createAndStartLogSendingAppender(Tracer tracer, Encoder<ILoggingEvent> formatter) {
+        LogbackLogSenderAppender appender = new LogbackLogSenderAppender(tracer, formatter);
         appender.start();
         return appender;
     }

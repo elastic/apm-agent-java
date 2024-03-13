@@ -22,6 +22,7 @@ import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.rabbitmq.header.SpringRabbitMQTextHeaderGetter;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 
@@ -37,12 +38,12 @@ public class SpringAmqpTransactionHelper {
 
     @Nullable
     public Transaction<?> createTransaction(Message message, String transactionNamePrefix) {
-        String exchange = null;
+        String exchangeOrQueue = null;
         MessageProperties messageProperties = message.getMessageProperties();
         if (messageProperties != null) {
-            exchange = messageProperties.getReceivedExchange();
+            exchangeOrQueue = getExchangeOrQueue(messageProperties);
         }
-        if (exchange != null && AbstractBaseInstrumentation.isIgnored(exchange)) {
+        if (exchangeOrQueue != null && AbstractBaseInstrumentation.isIgnored(exchangeOrQueue)) {
             return null;
         }
 
@@ -58,7 +59,7 @@ public class SpringAmqpTransactionHelper {
         transaction.withType("messaging")
             .withName(transactionNamePrefix)
             .appendToName(" RECEIVE from ")
-            .appendToName(AbstractBaseInstrumentation.normalizeExchangeName(exchange));
+            .appendToName(AbstractBaseInstrumentation.normalizeExchangeName(exchangeOrQueue));
 
         transaction.setFrameworkName("Spring AMQP");
 
@@ -67,12 +68,20 @@ public class SpringAmqpTransactionHelper {
             String receivedRoutingKey = messageProperties.getReceivedRoutingKey();
             transaction.getContext().getMessage().withAge(timestamp).withRoutingKey(receivedRoutingKey);
         }
-        if (exchange != null) {
-            transaction.getContext().getMessage().withQueue(exchange);
+        if (exchangeOrQueue != null) {
+            transaction.getContext().getMessage().withQueue(exchangeOrQueue);
         }
 
         // only capture incoming messages headers for now (consistent with other messaging plugins)
         AbstractBaseInstrumentation.captureHeaders(messageProperties != null ? messageProperties.getHeaders() : null, transaction.getContext().getMessage());
         return transaction.activate();
+    }
+
+    private static String getExchangeOrQueue(MessageProperties messageProperties) {
+        if (MessagingConfiguration.RabbitMQNamingMode.QUEUE == AbstractBaseInstrumentation.getRabbitMQNamingMode()) {
+            return messageProperties.getConsumerQueue();
+        } else {
+            return messageProperties.getReceivedExchange();
+        }
     }
 }
