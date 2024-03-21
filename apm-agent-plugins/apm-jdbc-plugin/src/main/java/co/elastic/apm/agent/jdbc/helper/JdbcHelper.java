@@ -181,7 +181,7 @@ public class JdbcHelper {
             DatabaseMetaData metaData = connection.getMetaData();
             connectionMetaData = ConnectionMetaData.parse(metaData.getURL())
                 .withConnectionInstance(safeGetCatalog(connection))
-                .withConnectionUser(metaData.getUserName())
+                .withConnectionUser("dummyuser")
                 .build();
 
             if (logger.isDebugEnabled()) {
