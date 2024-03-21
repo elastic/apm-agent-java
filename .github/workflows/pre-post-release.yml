@@ -9,7 +9,7 @@ on:
         description: 'Branch or tag ref to run the workflow on'
         type: string
         required: true
-        default: 'main'
+        default: "main"
       version:
         description: 'The version to release (e.g. 1.2.3). This workflow will automatically perform the required version bumps'
         type: string
