@@ -8,7 +8,7 @@ check_version() {
     exit 1
   fi
   if [[ ! "${v}" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-    echo "The environment variable 'RELEASE_VERSION' should respect SemVer format"
+    >&2 echo "The environment variable 'RELEASE_VERSION' should respect SemVer format"
     exit 1
   fi
 }
