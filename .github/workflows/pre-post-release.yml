@@ -21,8 +21,9 @@ on:
 
 env:
   RELEASE_VERSION: ${{ inputs.version }}
+  RELEASE_VERSION_TAG: v${{ inputs.version }}
   BRANCH_NAME: ${{ inputs.phase }}-release-v${{ inputs.version }}
-  
+
 permissions:
   contents: read
   
@@ -37,7 +38,7 @@ jobs:
       - name: Validate release tag does not exist in repo
         uses: ./.github/workflows/validate-tag
         with:
-          tag: v${{ env.RELEASE_VERSION }}
+          tag: ${{ env.RELEASE_VERSION_TAG }}
 
   create-pr:
     name: "Bump versions and create PR"
@@ -67,8 +68,8 @@ jobs:
       - name: Create the release tag (post phase)
         if: inputs.phase == 'post'
         run: |
-          git tag "v${{ env.RELEASE_VERSION }}"
-          git push origin "v${{ env.RELEASE_VERSION }}"
+          git tag "${{ env.RELEASE_VERSION_TAG }}"
+          git push origin "${{ env.RELEASE_VERSION_TAG }}"
   
       - name: Create a ${{ inputs.phase }} release branch
         run: git checkout -b ${{ env.BRANCH_NAME }}
@@ -88,10 +89,10 @@ jobs:
       - name: Push the ${{ inputs.phase }} release branch
         run: |
           git add --all
-          git commit -m "${{ inputs.phase }} release: elastic-apm-agent v${{ env.RELEASE_VERSION }}"
+          git commit -m "${{ inputs.phase }} release: elastic-apm-agent ${{ env.RELEASE_VERSION_TAG }}"
           git push origin ${{ env.BRANCH_NAME }}
   
       - name: Create the ${{ inputs.phase }} release PR
-        run: gh pr create --title="${{ inputs.phase }} release v${{ env.RELEASE_VERSION }}" --base main --head ${{ env.BRANCH_NAME }} -b "${{ inputs.phase }} release v${{ env.RELEASE_VERSION }}"
+        run: gh pr create --title="${{ inputs.phase }} release ${{ env.RELEASE_VERSION_TAG }}" --base main --head ${{ env.BRANCH_NAME }} -b "${{ inputs.phase }} release ${{ env.RELEASE_VERSION_TAG }}"
         env:
           GH_TOKEN: ${{ env.GITHUB_TOKEN }}

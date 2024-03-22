@@ -40,6 +40,7 @@ concurrency:
 
 env:
   RELEASE_VERSION: ${{ inputs.version }}
+  RELEASE_VERSION_TAG: v${{ inputs.version }}
 
 jobs:
   validate-tag:
@@ -53,7 +54,7 @@ jobs:
       - name: Validate tag does not exist on current commit
         uses: ./.github/workflows/validate-tag
         with:
-          tag: v${{ env.RELEASE_VERSION }}
+          tag: ${{ env.RELEASE_VERSION_TAG }}
       - name: Validate tag match current version
         run: |
           if [ "$(mvn -q help:evaluate -Dexpression=project.version -DforceStdout)" != "${{ env.RELEASE_VERSION }}" ]; then
@@ -99,7 +100,7 @@ jobs:
         with:
           groupid: 'co.elastic.apm'
           artifactid: 'elastic-apm-agent'
-          version: ${{ inputs.version }}
+          version: ${{ env.RELEASE_VERSION }}
 
   update-major-branch:
     name: "Update Major Branch"
@@ -247,7 +248,7 @@ jobs:
     if: inputs.dry_run == false
     with:
       ref: ${{ inputs.ref }}
-      version: ${{ inputs.version }}
+      version: ${{ env.RELEASE_VERSION }}
       phase: 'post'
     secrets: inherit
 
