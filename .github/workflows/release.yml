@@ -57,7 +57,7 @@ jobs:
           tag: ${{ env.RELEASE_VERSION_TAG }}
       - name: Validate tag match current version
         run: |
-          if [ "$(mvn -q help:evaluate -Dexpression=project.version -DforceStdout)" != "${{ env.RELEASE_VERSION }}" ]; then
+          if [ "$(./mvnw -q help:evaluate -Dexpression=project.version -DforceStdout)" != "${{ env.RELEASE_VERSION }}" ]; then
             echo "Tag should match pom.xml project.version"
             exit 1
           fi
