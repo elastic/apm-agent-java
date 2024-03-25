@@ -3,12 +3,17 @@
 name: sbom
 
 on:
+  # Begin - For testing purposes only
+  push:
+    branches:
+      - "feature/sbom"
+  # End - For testing purposes only
   workflow_dispatch:
     inputs:
       branch:
         description: 'The branch to release'
         required: true
-        default: 'main'
+        default: 'feature/sbom'
       version:
         description: 'The version to release (e.g. 1.2.3). This workflow will automatically perform the required version bumps'
         required: true
