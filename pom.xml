@@ -380,17 +380,9 @@
     <build>
         <plugins>
             <plugin>
-                <artifactId>maven-release-plugin</artifactId>
-                <configuration>
-                    <useReleaseProfile>false</useReleaseProfile>
-                    <releaseProfiles>gpg</releaseProfiles>
-                    <autoVersionSubmodules>true</autoVersionSubmodules>
-                    <tagNameFormat>v@{project.version}</tagNameFormat>
-                    <checkModificationExcludes>
-                        <checkModificationExclude>**/apm-agent-benchmarks/src/main/resources/**</checkModificationExclude>
-                        <checkModificationExclude>**/apm-agent-plugins/apm-profiling-plugin/src/main/resources/**</checkModificationExclude>
-                    </checkModificationExcludes>
-                </configuration>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>2.16.2</version>
             </plugin>
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>

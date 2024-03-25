@@ -35,8 +35,12 @@ Every time there is a merge to main or any branches the whole workflow will comp
 
 ### Release process
 
-This process has been fully automated and it gets triggered manually when running the [release](https://github.com/elastic/apm-agent-java/actions/workflows/release.yml) workflow. It runs then a Buildkite pipeline in charge of generating and publishing the artifacts,
+To release a new version of apm-agent-java, you must use the two GitHub Workflows.
+Trigger the `Pre Release` workflow targeting the release version.
+After merging the PRs created by the first workflow, you can trigger the `Release` workflow targeting the release version.
+It runs then a Buildkite pipeline in charge of generating and publishing the artifacts,
 for further details please go to [the buildkite folder](../../.buildkite/README.md).
+Finally, merge the PRs created to bump version for the next iteration.
 
 The tag release follows the naming convention: `v.<major>.<minor>.<patch>`, where `<major>`, `<minor>` and `<patch>`.
 

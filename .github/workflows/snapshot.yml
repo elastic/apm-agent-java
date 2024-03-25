@@ -16,10 +16,29 @@ permissions:
   contents: read
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      is-snapshot: ${{ steps.validate-step.outputs.is-snapshot }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate version is a snapshot version
+        id: validate-step
+        run: |
+          output=false
+          if [[ "$(./mvnw -q help:evaluate -Dexpression=project.version -DforceStdout)" =~ "-SNAPSHOT" ]]; then
+            echo "This is a snapshot version"
+            output=true
+          fi
+          echo "is-snapshot=${output}" >> "$GITHUB_OUTPUT"
+
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-
+    needs:
+      - validate
+    if: ${{ contains(needs.validate.outputs.is-snapshot, 'true') }}
     steps:
       - id: buildkite
         name: Run Deploy
