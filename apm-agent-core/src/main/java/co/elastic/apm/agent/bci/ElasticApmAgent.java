@@ -163,7 +163,7 @@ public class ElasticApmAgent {
             // server log appender requires buffering log events before the config and reporter are ready.
             .withLifecycleListener(ApmServerLogAppender.getInstance().getInitListener())
             .build();
-        //initInstrumentation(tracer, instrumentation, premain);
+        initInstrumentation(tracer, instrumentation, premain);
         tracer.start(premain);
     }
 

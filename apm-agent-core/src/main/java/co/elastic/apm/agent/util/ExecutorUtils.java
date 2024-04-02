@@ -126,7 +126,7 @@ public final class ExecutorUtils {
             String threadName = ThreadUtils.addElasticApmThreadPrefix(threadPurpose);
             thread.setName(threadName);
             ClassLoader originalContextCL = PrivilegedActionUtils.getContextClassLoader(thread);
-            PrivilegedActionUtils.setContextClassLoader(thread, PrivilegedActionUtils.getClassLoader(ExecutorUtils.class));
+            //PrivilegedActionUtils.setContextClassLoader(thread, PrivilegedActionUtils.getClassLoader(ExecutorUtils.class));
             logThreadCreation(originalContextCL, threadName);
             return thread;
         }
@@ -158,7 +158,7 @@ public final class ExecutorUtils {
             String threadName = ThreadUtils.addElasticApmThreadPrefix(threadPurpose) + "-" + threadCounter.getAndIncrement();
             thread.setName(threadName);
             ClassLoader originalContextCL = PrivilegedActionUtils.getContextClassLoader(thread);
-            PrivilegedActionUtils.setContextClassLoader(thread, PrivilegedActionUtils.getClassLoader(ExecutorUtils.class));
+            //PrivilegedActionUtils.setContextClassLoader(thread, PrivilegedActionUtils.getClassLoader(ExecutorUtils.class));
             logThreadCreation(originalContextCL, threadName);
             return thread;
         }

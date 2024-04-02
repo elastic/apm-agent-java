@@ -737,7 +737,6 @@ public class ElasticApmTracer implements Tracer {
             return;
         }
         apmServerClient.start();
-        /*
         reporter.start();
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             try {
@@ -746,7 +745,6 @@ public class ElasticApmTracer implements Tracer {
                 logger.error("Failed to start " + lifecycleListener.getClass().getName(), e);
             }
         }
-        */
         tracerState = TracerState.RUNNING;
         if (recordingConfigOptionSet) {
             logger.info("Tracer switched to RUNNING state");
