@@ -31,6 +31,12 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.49.0]]
+==== 1.49.0 - 2024/04/02
+
 [float]
 ===== Bug fixes
 * Fixed problems with public API annotation inheritance - {pull}3551[#3551]
@@ -40,9 +46,6 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 * Differentiate Lambda URLs from API Gateway in AWS Lambda integration - {pull}3417[#3417]
 * Added lambda support for ELB triggers {pull}#3411[#3411]
 * Add exclusion list option for calling DatabaseMetaData.getUserName - {pull}#3568[#3568]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.48.1]]
 ==== 1.48.1 - 2024/03/06
