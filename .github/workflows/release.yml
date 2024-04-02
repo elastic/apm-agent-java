@@ -84,7 +84,6 @@ jobs:
           vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
           vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
           pipeline: apm-agent-java-release
-          pipelineCommit: ${{ env.RELEASE_VERSION }}
           waitFor: true
           printBuildLogs: false
           buildEnvVars: |
@@ -204,9 +203,24 @@ jobs:
           cat .ci/.arn-file.md >> $GITHUB_OUTPUT
           echo 'ARN_CONTENT_EOF' >> $GITHUB_OUTPUT
 
+  post-release:
+    name: "Bump versions and create PR"
+    needs:
+      - await-maven-central-artifact
+    uses: ./.github/workflows/pre-post-release.yml
+    permissions:
+      contents: write
+    if: inputs.dry_run == false
+    with:
+      ref: ${{ inputs.ref }}
+      version: ${{ inputs.version }}
+      phase: 'post'
+    secrets: inherit
+
   create-github-release:
     name: "Create GitHub Release"
     needs:
+      - post-release
       - publish-aws-lambda
       - update-major-branch
     runs-on: ubuntu-latest
@@ -237,20 +251,6 @@ jobs:
             --title="Release ${{ env.RELEASE_VERSION }}" \
             --notes="[Release Notes for ${{ env.RELEASE_VERSION }}](https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${{ steps.get_dotx_branch.outputs.dotx_branch }}.html#release-notes-${{ env.RELEASE_VERSION }})
             ${{ needs.publish-aws-lambda.outputs.arn_content }}"
-
-  post-release:
-    name: "Bump versions and create PR"
-    needs:
-      - await-maven-central-artifact
-    uses: ./.github/workflows/pre-post-release.yml
-    permissions:
-      contents: write
-    if: inputs.dry_run == false
-    with:
-      ref: ${{ inputs.ref }}
-      version: ${{ inputs.version }}
-      phase: 'post'
-    secrets: inherit
 
   notify:
     if: ${{ always() && ! inputs.dry_run }}
