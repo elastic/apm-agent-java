@@ -39,7 +39,7 @@ public class JdbcConfiguration extends ConfigurationOptionProvider {
             "\n" +
             WildcardMatcher.DOCUMENTATION
         )
-        .tags("internal")
+        .tags("internal","added[1.49.0]")
         .dynamic(true)
         .buildWithDefault(Arrays.asList(
             "hikari"

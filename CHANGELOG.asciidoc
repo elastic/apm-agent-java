@@ -39,6 +39,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ===== Features
 * Differentiate Lambda URLs from API Gateway in AWS Lambda integration - {pull}3417[#3417]
 * Added lambda support for ELB triggers {pull}#3411[#3411]
+* Add exclusion list option for calling DatabaseMetaData.getUserName - {pull}#3568[#3568]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
@@ -40,21 +41,9 @@ import java.util.List;
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
-public class JdbcGetUserNameExclusionTest {
+public class JdbcGetUserNameExclusionTest extends AbstractInstrumentationTest {
 
-    protected static ElasticApmTracer tracer;
-    protected static ConfigurationRegistry config;
     protected static JdbcConfiguration jdbcconfig;
-
-    @BeforeAll
-    @BeforeClass
-    public static synchronized void beforeAll() {
-        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
-        tracer = mockInstrumentationSetup.getTracer();
-        config = mockInstrumentationSetup.getConfig();
-        assertThat(tracer.isRunning()).isTrue();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
-    }
 
     @Test
     public void hasUsernameCorrectlyExcludes() throws SQLException {
@@ -72,12 +61,6 @@ public class JdbcGetUserNameExclusionTest {
             .getDatabaseMetaDataExclusionList();
 
         assertThat(JdbcHelper.maybeGetUserName(meta, config.getConfig(JdbcConfiguration.class))).isEqualTo(null);
-    }
-
-    @After
-    @AfterEach
-    public final void cleanUp() {
-        SpyConfiguration.reset(config);
     }
 
     public class MetadataInvocationHandler implements InvocationHandler {
