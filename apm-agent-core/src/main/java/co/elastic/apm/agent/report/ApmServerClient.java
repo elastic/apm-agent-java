@@ -114,7 +114,8 @@ public class ApmServerClient {
                 setServerUrls(reporterConfiguration.getServerUrls());
             }
         });
-        setServerUrls(Collections.unmodifiableList(shuffledUrls));
+        // TODO: why does this prevent duplicate logging?
+        // setServerUrls(Collections.unmodifiableList(shuffledUrls));
     }
 
     /**
