@@ -248,7 +248,7 @@ jobs:
     if: inputs.dry_run == false
     with:
       ref: ${{ inputs.ref }}
-      version: ${{ env.RELEASE_VERSION }}
+      version: ${{ inputs.version }}
       phase: 'post'
     secrets: inherit
 
