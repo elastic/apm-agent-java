@@ -21,18 +21,21 @@ package co.elastic.apm.agent.jdbc.helper;
 import co.elastic.apm.agent.sdk.internal.db.signature.Scanner;
 import co.elastic.apm.agent.sdk.internal.db.signature.SignatureParser;
 import co.elastic.apm.agent.tracer.AbstractSpan;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.jdbc.JdbcFilter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.Tracer;
 
 import javax.annotation.Nullable;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metaDataMap;
@@ -45,6 +48,11 @@ public class JdbcHelper {
     public static final String DB_SPAN_ACTION = "query";
 
     private static final JdbcHelper INSTANCE = new JdbcHelper();
+    private final JdbcConfiguration config;
+
+    public JdbcHelper() {
+        this.config = GlobalTracer.get().getConfig(JdbcConfiguration.class);
+    }
 
     public static JdbcHelper get() {
         return INSTANCE;
@@ -181,7 +189,7 @@ public class JdbcHelper {
             DatabaseMetaData metaData = connection.getMetaData();
             connectionMetaData = ConnectionMetaData.parse(metaData.getURL())
                 .withConnectionInstance(safeGetCatalog(connection))
-                .withConnectionUser(metaData.getUserName())
+                .withConnectionUser(maybeGetUserName(metaData, config))
                 .build();
 
             if (logger.isDebugEnabled()) {
@@ -199,6 +207,17 @@ public class JdbcHelper {
             metaDataMap.put(connection, connectionMetaData);
         }
         return connectionMetaData;
+    }
+
+    static String maybeGetUserName(DatabaseMetaData metaData, JdbcConfiguration config) throws SQLException {
+        List<String> exclusionList = config.getDatabaseMetaDataExclusionList();
+        String classname = metaData.getClass().getName();
+        for (String exclude : exclusionList) {
+            if (classname.contains(exclude)) {
+                return null;
+            }
+        }
+        return metaData.getUserName();
     }
 
     @Nullable

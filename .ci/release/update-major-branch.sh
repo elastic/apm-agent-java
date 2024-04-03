@@ -62,3 +62,10 @@ git checkout --force ${checkout_options}
 
 echo -e "\n--- move local branch ${major_branch} to match tag ${tag}"
 git reset --hard ${tag}
+
+echo -e "\n--- create new branch with updates"
+git checkout -b "update-major-${v}"
+git push origin "update-major-${v}"
+
+echo -e "\n--- create PR to update major branch"
+gh pr create --title="post release v${v}: update major branch" --base "${major_branch}" --head "update-major-${v}" -b "post release v${v}"

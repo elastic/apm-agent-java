@@ -45,7 +45,7 @@ import java.util.Objects;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
-public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
+public class ApiGatewayV1LambdaTest extends BaseGatewayLambdaTest<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
     @BeforeAll
     @BeforeClass
@@ -144,34 +144,6 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
         assertThat(faas.getTrigger().getRequestId()).isEqualTo(API_GATEWAY_REQUEST_ID);
     }
 
-    @Test
-    public void testCallWithNullInput() {
-        getFunction().handleRequest(null, context);
-
-        reporter.awaitTransactionCount(1);
-        reporter.awaitSpanCount(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
-        assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
-        assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
-        assertThat(transaction.getType()).isEqualTo("request");
-        assertThat(transaction.getResult()).isEqualTo("HTTP 2xx");
-
-        assertThat(transaction.getContext().getCloudOrigin()).isNotNull();
-        assertThat(transaction.getContext().getCloudOrigin().getProvider()).isEqualTo("aws");
-        assertThat(transaction.getContext().getCloudOrigin().getServiceName()).isNull();
-        assertThat(transaction.getContext().getCloudOrigin().getRegion()).isNull();
-        assertThat(transaction.getContext().getCloudOrigin().getAccountId()).isNull();
-
-        assertThat(transaction.getContext().getServiceOrigin().hasContent()).isFalse();
-
-        Faas faas = transaction.getFaas();
-        assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
-
-        assertThat(faas.getTrigger().getType()).isEqualTo("other");
-        assertThat(faas.getTrigger().getRequestId()).isNull();
-    }
-
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     public void testCallWithNullRequestContext(boolean isObjectNull) {
@@ -211,19 +183,6 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
     }
 
     @Test
-    public void testCallWithHErrorStatusCode() {
-        Objects.requireNonNull(context).setErrorStatusCode();
-        getFunction().handleRequest(createInput(), context);
-        reporter.awaitTransactionCount(1);
-        reporter.awaitSpanCount(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
-        assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
-        assertThat(transaction.getResult()).isEqualTo("HTTP 5xx");
-        assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
-    }
-
-    @Test
     public void testTransactionNameForRestApiSpecificRoute() {
         getFunction().handleRequest(createInput("PUT", "/prod/test/12345", "/test", "prod"), context);
         reporter.awaitTransactionCount(1);
@@ -254,6 +213,17 @@ public class ApiGatewayV1LambdaTest extends AbstractLambdaTest<APIGatewayProxyRe
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("PUT /prod/proxy-test/12345");
+    }
+
+    @Test
+    public void testServiceNameAsLambdaUrl() {
+        APIGatewayProxyRequestEvent event = createInput();
+        event.getRequestContext().setDomainName("myurl.lambda-url.us-west-2.on.aws");
+        getFunction().handleRequest(event, context);
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        Transaction transaction = reporter.getFirstTransaction();
+        assertThat(transaction.getContext().getCloudOrigin().getServiceName()).isEqualTo("lambda url");
     }
 
     @Override

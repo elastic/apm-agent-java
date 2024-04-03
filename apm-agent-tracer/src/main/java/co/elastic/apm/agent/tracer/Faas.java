@@ -16,9 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.metrics;
+package co.elastic.apm.agent.tracer;
 
-public interface DoubleSupplier {
+import javax.annotation.Nullable;
 
-    double get();
+public interface Faas {
+
+    FaasTrigger getTrigger();
+
+    Faas withId(@Nullable String id);
+
+    Faas withName(@Nullable String name);
+
+    Faas withVersion(@Nullable String version);
+
+    Faas withExecution(@Nullable String execution);
+
+    Faas withColdStart(boolean coldStart);
 }

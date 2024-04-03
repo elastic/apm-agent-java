@@ -19,9 +19,10 @@
 package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
-import co.elastic.apm.agent.metrics.DoubleSupplier;
+import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.metrics.Timer;
+import co.elastic.apm.agent.tracer.metrics.DslJsonUtil;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
@@ -80,14 +81,14 @@ public class MetricRegistrySerializer {
         boolean hasSamples;
         jw.writeByte(JsonWriter.OBJECT_START);
         {
-            DslJsonSerializer.writeFieldName("metricset", jw);
+            DslJsonUtil.writeFieldName("metricset", jw);
             jw.writeByte(JsonWriter.OBJECT_START);
             {
-                DslJsonSerializer.writeFieldName("timestamp", jw);
+                DslJsonUtil.writeFieldName("timestamp", jw);
                 NumberConverter.serialize(epochMicros, jw);
                 jw.writeByte(JsonWriter.COMMA);
                 DslJsonSerializer.serializeLabels(metricSet.getLabels(), serviceName, serviceVersion, replaceBuilder, jw);
-                DslJsonSerializer.writeFieldName("samples", jw);
+                DslJsonUtil.writeFieldName("samples", jw);
                 jw.writeByte(JsonWriter.OBJECT_START);
                 hasSamples = serializeGauges(metricSet.getGauges(), jw);
                 hasSamples |= serializeTimers(metricSet.getTimers(), hasSamples, jw);

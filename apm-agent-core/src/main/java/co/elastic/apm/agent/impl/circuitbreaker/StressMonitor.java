@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.impl.circuitbreaker;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.tracer.Tracer;
 
 abstract class StressMonitor {
 
     protected final CircuitBreakerConfiguration circuitBreakerConfiguration;
 
-    public StressMonitor(ElasticApmTracer tracer) {
+    public StressMonitor(Tracer tracer) {
         circuitBreakerConfiguration = tracer.getConfig(CircuitBreakerConfiguration.class);
     }
 

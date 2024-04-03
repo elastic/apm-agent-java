@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.48.1</version>
+        <version>1.49.0</version>
     </parent>
 
     <artifactId>apm-agent-core</artifactId>
@@ -148,11 +148,6 @@
             <artifactId>jetty-util</artifactId>
             <version>${version.jetty-server}</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.dslplatform</groupId>
-            <artifactId>dsl-json</artifactId>
-            <version>1.9.3</version>
         </dependency>
         <!--Used to test old class file versions-->
         <dependency>

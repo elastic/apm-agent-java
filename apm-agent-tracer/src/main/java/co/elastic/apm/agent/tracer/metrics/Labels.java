@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.metrics;
+package co.elastic.apm.agent.tracer.metrics;
 
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
@@ -30,10 +30,6 @@ import java.util.Objects;
  * Labels are key/value pairs and relate to <a href="https://www.elastic.co/guide/en/ecs/current/ecs-base.html#_base_field_details">ECS labels</a>.
  * However, there are also top-level labels which are not nested under the {@code labels} object,
  * for example {@link #getTransactionName()}, {@link #getTransactionType()}, {@link #getSpanType()} and {@link #getSpanSubType()}.
- * <p>
- * Metrics are structured into multiple {@link MetricSet}s.
- * For each distinct combination of {@link Labels}, there is one {@link MetricSet}.
- * </p>
  * <p>
  * Labels allow for {@link CharSequence}s as a value,
  * thus avoiding allocations for {@code transaction.name.toString()} when tracking breakdown metrics for a transaction.

@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.metrics;
 
+import co.elastic.apm.agent.tracer.metrics.Labels;
+
 public interface MetricCollector {
 
     void addMetricValue(String metric, Labels labels, double value);

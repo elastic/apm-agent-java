@@ -175,13 +175,7 @@ public class Request implements Recyclable, co.elastic.apm.agent.tracer.metadata
         return postParams;
     }
 
-    /**
-     * Adds a request header.
-     *
-     * @param headerName  The name of the header.
-     * @param headerValue The value of the header.
-     * @return {@code this}, for fluent method chaining
-     */
+    @Override
     public Request addHeader(String headerName, @Nullable String headerValue) {
         if (headerValue != null) {
             headers.add(headerName, headerValue);

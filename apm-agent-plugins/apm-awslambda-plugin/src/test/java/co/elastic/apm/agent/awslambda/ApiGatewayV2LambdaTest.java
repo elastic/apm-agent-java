@@ -31,6 +31,7 @@ import co.elastic.apm.agent.impl.transaction.Faas;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 import org.junit.BeforeClass;
@@ -46,7 +47,7 @@ import java.util.Objects;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
-public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
+public class ApiGatewayV2LambdaTest extends BaseGatewayLambdaTest<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
 
     @BeforeAll
     @BeforeClass
@@ -150,34 +151,6 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPE
         assertThat(faas.getTrigger().getRequestId()).isEqualTo(API_GATEWAY_REQUEST_ID);
     }
 
-    @Test
-    public void testCallWithNullInput() {
-        getFunction().handleRequest(null, context);
-
-        reporter.awaitTransactionCount(1);
-        reporter.awaitSpanCount(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
-        assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
-        assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
-        assertThat(transaction.getType()).isEqualTo("request");
-        assertThat(transaction.getResult()).isEqualTo("HTTP 2xx");
-
-        assertThat(transaction.getContext().getCloudOrigin()).isNotNull();
-        assertThat(transaction.getContext().getCloudOrigin().getProvider()).isEqualTo("aws");
-        assertThat(transaction.getContext().getCloudOrigin().getServiceName()).isNull();
-        assertThat(transaction.getContext().getCloudOrigin().getRegion()).isNull();
-        assertThat(transaction.getContext().getCloudOrigin().getAccountId()).isNull();
-
-        assertThat(transaction.getContext().getServiceOrigin().hasContent()).isFalse();
-
-        Faas faas = transaction.getFaas();
-        assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
-
-        assertThat(faas.getTrigger().getType()).isEqualTo("other");
-        assertThat(faas.getTrigger().getRequestId()).isNull();
-    }
-
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     public void testCallWithNullRequestContext(boolean isObjectNull) {
@@ -212,19 +185,6 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPE
     }
 
     @Test
-    public void testCallWithHErrorStatusCode() {
-        Objects.requireNonNull(context).setErrorStatusCode();
-        getFunction().handleRequest(createInput(), context);
-        reporter.awaitTransactionCount(1);
-        reporter.awaitSpanCount(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
-        assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
-        assertThat(transaction.getResult()).isEqualTo("HTTP 5xx");
-        assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
-    }
-
-    @Test
     public void testTransactionNameForRestApiSpecificRoute() {
         getFunction().handleRequest(createInput("PUT", "/prod/test", "ANY /test", "prod"), context);
         reporter.awaitTransactionCount(1);
@@ -247,6 +207,17 @@ public class ApiGatewayV2LambdaTest extends AbstractLambdaTest<APIGatewayV2HTTPE
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("PUT /prod/proxy-test/12345");
+    }
+
+    @Test
+    public void testServiceNameAsLambdaUrl() {
+        APIGatewayV2HTTPEvent event = createInput();
+        event.getRequestContext().setDomainName("myurl.lambda-url.us-west-2.on.aws");
+        getFunction().handleRequest(event, context);
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+        Transaction transaction = reporter.getFirstTransaction();
+        assertThat(transaction.getContext().getCloudOrigin().getServiceName()).isEqualTo("lambda url");
     }
 
     @Override

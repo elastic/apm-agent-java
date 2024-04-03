@@ -18,12 +18,14 @@
  */
 package co.elastic.apm.agent.awslambda.helper;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Transaction;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
+import com.amazonaws.services.lambda.runtime.events.ApplicationLoadBalancerRequestEvent;
+import com.amazonaws.services.lambda.runtime.events.ApplicationLoadBalancerResponseEvent;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
@@ -33,7 +35,7 @@ import javax.annotation.Nullable;
 public class AWSEventsHelper {
 
     @Nullable
-    public static Transaction startTransaction(Object input, Context lambdaContext) {
+    public static Transaction<?> startTransaction(Object input, Context lambdaContext) {
         if (input instanceof APIGatewayV2HTTPEvent && ((APIGatewayV2HTTPEvent) input).getRequestContext() != null
             && ((APIGatewayV2HTTPEvent) input).getRequestContext().getHttp() != null) {
             // API Gateway V2 trigger
@@ -50,15 +52,20 @@ public class AWSEventsHelper {
         } else if (input instanceof S3Event) {
             // S3 event trigger
             return S3TransactionHelper.getInstance().startTransaction((S3Event) input, lambdaContext);
+        } else if (input instanceof ApplicationLoadBalancerRequestEvent) {
+            // Load Balancer Request event trigger
+            return ApplicationLoadBalancerRequestTransactionHelper.getInstance().startTransaction((ApplicationLoadBalancerRequestEvent) input, lambdaContext);
         }
         return PlainTransactionHelper.getInstance().startTransaction(input, lambdaContext);
     }
 
-    public static void finalizeTransaction(Transaction transaction, Object output, @Nullable Throwable thrown) {
+    public static void finalizeTransaction(Transaction<?> transaction, Object output, @Nullable Throwable thrown) {
         if (output instanceof APIGatewayV2HTTPResponse) {
             APIGatewayProxyV2TransactionHelper.getInstance().finalizeTransaction(transaction, (APIGatewayV2HTTPResponse) output, thrown);
         } else if (output instanceof APIGatewayProxyResponseEvent) {
             APIGatewayProxyV1TransactionHelper.getInstance().finalizeTransaction(transaction, (APIGatewayProxyResponseEvent) output, thrown);
+        } else if (output instanceof ApplicationLoadBalancerResponseEvent) {
+            ApplicationLoadBalancerRequestTransactionHelper.getInstance().finalizeTransaction(transaction, (ApplicationLoadBalancerResponseEvent) output, thrown);
         } else {
             // use PlainTransactionHelper for all triggers that do not expect an output
             PlainTransactionHelper.getInstance().finalizeTransaction(transaction, output, thrown);
