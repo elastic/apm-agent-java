@@ -101,32 +101,6 @@ jobs:
           artifactid: 'elastic-apm-agent'
           version: ${{ env.RELEASE_VERSION }}
 
-  update-major-branch:
-    name: "Update Major Branch"
-    runs-on: ubuntu-latest
-    needs:
-      - await-maven-central-artifact
-    permissions:
-      contents: write
-    steps:
-      - uses: elastic/apm-pipeline-library/.github/actions/github-token@current
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-      - uses: elastic/apm-pipeline-library/.github/actions/setup-git@current
-        with:
-          username: ${{ env.GIT_USER }}
-          email: ${{ env.GIT_EMAIL }}
-          token: ${{ env.GITHUB_TOKEN }}
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
-          token: ${{ env.GITHUB_TOKEN }}
-      - name: Update major branch
-        if: ${{ ! inputs.dry_run }}
-        run: .ci/release/update-major-branch.sh ${{ env.RELEASE_VERSION }}
-
   build-and-push-docker-images:
     name: "Build and push docker images"
     runs-on: ubuntu-latest
@@ -217,10 +191,35 @@ jobs:
       phase: 'post'
     secrets: inherit
 
+  update-major-branch:
+    name: "Update Major Branch"
+    runs-on: ubuntu-latest
+    needs:
+      - post-release
+    permissions:
+      contents: write
+    steps:
+      - uses: elastic/apm-pipeline-library/.github/actions/github-token@current
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+      - uses: elastic/apm-pipeline-library/.github/actions/setup-git@current
+        with:
+          username: ${{ env.GIT_USER }}
+          email: ${{ env.GIT_EMAIL }}
+          token: ${{ env.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          token: ${{ env.GITHUB_TOKEN }}
+      - name: Update major branch
+        if: ${{ ! inputs.dry_run }}
+        run: .ci/release/update-major-branch.sh ${{ env.RELEASE_VERSION }}
+
   create-github-release:
     name: "Create GitHub Release"
     needs:
-      - post-release
       - publish-aws-lambda
       - update-major-branch
     runs-on: ubuntu-latest
