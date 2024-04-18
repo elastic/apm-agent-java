@@ -46,6 +46,11 @@ public class ThreadDump extends AbstractLifecycleListener {
             return;
         }
 
+        if (!log.isDebugEnabled()) {
+            log.error("thread dump option requires debug log level");
+            return;
+        }
+
         if (threadDumpInterval < 100) {
             log.error("thread dump frequency too high, adjusted to every 100ms");
             threadDumpInterval = 100;
