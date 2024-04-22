@@ -3,7 +3,6 @@ set -eo pipefail
 
 # Configure the java version
 JAVA_VERSION=$(cat .java-version | xargs | tr -dc '[:print:]')
-set +u
 # In case the HOME is not available in the context of the runner.
 if [ -z "${HOME}" ] ; then
   HOME="${BUILDKITE_BUILD_CHECKOUT_PATH}"
