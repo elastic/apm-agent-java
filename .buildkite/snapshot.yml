@@ -9,6 +9,7 @@ steps:
     artifact_paths:
       - "snapshot.txt"
       - "**/target/*"
+      - "dist.tar"
 
 notify:
   - slack: "#apm-agent-java"

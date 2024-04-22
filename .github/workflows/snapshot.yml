@@ -49,7 +49,7 @@ jobs:
           vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
           pipeline: apm-agent-java-snapshot
           artifactName: snapshots
-          artifactPath: "**/target/*"
+          artifactPath: "dist.tar"
           waitFor: true
           printBuildLogs: false
           buildEnvVars: |
@@ -58,7 +58,8 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: snapshots
-          path: target/
+
+      - run: tar xvf dist.tar
 
       - name: generate build provenance
         uses: github-early-access/generate-build-provenance@main
