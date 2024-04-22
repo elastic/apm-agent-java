@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
 # Configure the java version
 JAVA_VERSION=$(cat .java-version | xargs | tr -dc '[:print:]')
+set +u
+# In case the HOME is not available in the context of the runner.
+if [ -z "${HOME}" ] ; then
+  HOME="${BUILDKITE_BUILD_CHECKOUT_PATH}"
+  export HOME
+fi
 JAVA_HOME="${HOME}/.java/openjdk${JAVA_VERSION}"
+set -u
+
 export JAVA_HOME
 PATH="${JAVA_HOME}/bin:${PATH}"
 export PATH
