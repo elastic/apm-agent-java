@@ -48,10 +48,22 @@ jobs:
           vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
           vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
           pipeline: apm-agent-java-snapshot
-          waitFor: false
+          artifactName: snapshots
+          artifactPath: "**/target/*"
+          waitFor: true
           printBuildLogs: false
           buildEnvVars: |
             dry_run=${{ inputs.dry_run || 'false' }}
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: snapshots
+          path: target/
+
+      - name: generate build provenance
+        uses: github-early-access/generate-build-provenance@main
+        with:
+          subject-path: "${{ github.workspace }}/**/target/*.jar"
 
       - if: ${{ failure() }}
         uses: elastic/apm-pipeline-library/.github/actions/slack-message@current
