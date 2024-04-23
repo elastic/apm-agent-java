@@ -64,7 +64,7 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
     public static final String ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME = "elastic-apm-traceparent";
     public static final String W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME = "traceparent";
     public static final String TRACESTATE_HEADER_NAME = "tracestate";
-    public static final int SERIALIZED_LENGTH = 42;
+    public static final int SERIALIZED_LENGTH = 51;
     private static final int TEXT_HEADER_EXPECTED_LENGTH = 55;
     private static final int TEXT_HEADER_TRACE_ID_OFFSET = 3;
     private static final int TEXT_HEADER_PARENT_ID_OFFSET = 36;
@@ -227,6 +227,7 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
      * <p>
      * Note: the {@link #traceId} will still be 128 bit
      * </p>
+     *
      * @param tracer a valid tracer
      */
     public static TraceContext with64BitId(ElasticApmTracer tracer) {
@@ -621,7 +622,7 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
         if (o == null || getClass() != o.getClass()) return false;
         TraceContext that = (TraceContext) o;
         return id.equals(that.id) &&
-            traceId.equals(that.traceId);
+               traceId.equals(that.traceId);
     }
 
     public boolean idEquals(@Nullable TraceContext o) {
@@ -650,6 +651,8 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
         offset = traceId.toBytes(buffer, offset);
         offset = id.toBytes(buffer, offset);
         offset = transactionId.toBytes(buffer, offset);
+        buffer[offset++] = parentId.isEmpty() ? (byte) 0 : (byte) 1;
+        offset = parentId.toBytes(buffer, offset);
         buffer[offset++] = flags;
         buffer[offset++] = (byte) (discardable ? 1 : 0);
         ByteUtils.putLong(buffer, offset, clock.getOffset());
@@ -660,6 +663,12 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
         offset += traceId.fromBytes(buffer, offset);
         offset += id.fromBytes(buffer, offset);
         offset += transactionId.fromBytes(buffer, offset);
+        if (buffer[offset++] != 0) {
+            offset += parentId.fromBytes(buffer, offset);
+        } else {
+            parentId.resetState();
+            offset += 8;
+        }
         flags = buffer[offset++];
         discardable = buffer[offset++] == (byte) 1;
         clock.init(ByteUtils.getLong(buffer, offset));
@@ -670,6 +679,10 @@ public class TraceContext implements Recyclable, co.elastic.apm.agent.tracer.Tra
 
     public static long getSpanId(byte[] serializedTraceContext) {
         return ByteUtils.getLong(serializedTraceContext, 16);
+    }
+
+    public static long getParentId(byte[] serializedTraceContext) {
+        return ByteUtils.getLong(serializedTraceContext, 33);
     }
 
     public boolean traceIdAndIdEquals(byte[] serialized) {

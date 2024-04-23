@@ -79,9 +79,9 @@ public class CallTree implements Recyclable {
      * @see co.elastic.apm.agent.impl.transaction.AbstractSpan#childIds
      */
     @Nullable
-    private LongList childIds;
+    private ChildList childIds;
     @Nullable
-    private LongList maybeChildIds;
+    private ChildList maybeChildIds;
 
     public CallTree() {
     }
@@ -375,20 +375,21 @@ public class CallTree implements Recyclable {
         }
     }
 
-    int spanify(CallTree.Root root, TraceContext parentContext) {
+    int spanify(CallTree.Root root, TraceContext parentContext, TraceContext nonInferredParentContext) {
         int createdSpans = 0;
         if (activeContextOfDirectParent != null) {
             parentContext = activeContextOfDirectParent;
+            nonInferredParentContext = activeContextOfDirectParent;
         }
         Span span = null;
         if (!isPillar() || isLeaf()) {
             createdSpans++;
-            span = asSpan(root, parentContext);
+            span = asSpan(root, parentContext, nonInferredParentContext);
             this.isSpan = true;
         }
         List<CallTree> children = getChildren();
         for (int i = 0, size = children.size(); i < size; i++) {
-            createdSpans += children.get(i).spanify(root, span != null ? span.getTraceContext() : parentContext);
+            createdSpans += children.get(i).spanify(root, span != null ? span.getTraceContext() : parentContext, nonInferredParentContext);
         }
         if (span != null) {
             span.end(span.getTimestamp() + getDurationUs());
@@ -396,7 +397,7 @@ public class CallTree implements Recyclable {
         return createdSpans;
     }
 
-    protected Span asSpan(Root root, TraceContext parentContext) {
+    protected Span asSpan(Root root, TraceContext parentContext, TraceContext nonInferredParentContext) {
         transferMaybeChildIdsToChildIds();
         Span span = parentContext.createSpan(root.getEpochMicros(this.start))
             .withType("app")
@@ -410,7 +411,21 @@ public class CallTree implements Recyclable {
         }
         span.appendToName("#");
         span.appendToName(frame.getMethodName());
-        span.withChildIds(childIds);
+
+        LongList childSpanIds = null;
+        if (childIds != null) {
+            long expectedParent = nonInferredParentContext.getId().readLong(0);
+            childSpanIds = new LongList(childIds.getSize());
+            for (int i = 0; i < childIds.getSize(); i++) {
+                // to avoid cycles, we only insert child-ids if the parent of the child is also
+                // the parent of the stack of inferred spans inserted
+                if (childIds.getParentId(i) == expectedParent) {
+                    childSpanIds.add(childIds.getId(i));
+                }
+            }
+        }
+
+        span.withChildIds(childSpanIds);
 
         // we're not interested in the very bottom of the stack which contains things like accepting and handling connections
         if (!root.rootContext.idEquals(parentContext)) {
@@ -498,19 +513,20 @@ public class CallTree implements Recyclable {
      * </p>
      *
      * @param id the child span id to add to this call tree element
+     * @param parentId the parent id of the span represented by the id parameter
      */
-    public void addMaybeChildId(long id) {
+    public void addMaybeChildId(long id, long parentId) {
         if (maybeChildIds == null) {
-            maybeChildIds = new LongList();
+            maybeChildIds = new ChildList();
         }
-        maybeChildIds.add(id);
+        maybeChildIds.add(id, parentId);
     }
 
-    public void addChildId(long id) {
+    public void addChildId(long id, long parentId) {
         if (childIds == null) {
-            childIds = new LongList();
+            childIds = new ChildList();
         }
-        childIds.add(id);
+        childIds.add(id, parentId);
     }
 
     public boolean hasChildIds() {
@@ -541,7 +557,11 @@ public class CallTree implements Recyclable {
 
     void giveLastChildIdTo(CallTree giveTo) {
         if (childIds != null && !childIds.isEmpty()) {
-            giveTo.addChildId(childIds.remove(childIds.getSize() - 1));
+            int size = childIds.getSize();
+            long id = childIds.getId(size - 1);
+            long parentId = childIds.getParentId(size - 1);
+            giveTo.addChildId(id, parentId);
+            childIds.removeLast();
         }
     }
 
@@ -619,7 +639,7 @@ public class CallTree implements Recyclable {
                 long spanId = TraceContext.getSpanId(active);
                 activeSet.add(spanId);
                 if (!isNestedActivation(topOfStack)) {
-                    topOfStack.addMaybeChildId(spanId);
+                    topOfStack.addMaybeChildId(spanId, TraceContext.getParentId(active));
                 }
             }
         }
@@ -628,12 +648,12 @@ public class CallTree implements Recyclable {
             return isAnyActive(topOfStack.childIds) || isAnyActive(topOfStack.maybeChildIds);
         }
 
-        private boolean isAnyActive(@Nullable LongList spanIds) {
+        private boolean isAnyActive(@Nullable ChildList spanIds) {
             if (spanIds == null) {
                 return false;
             }
             for (int i = 0, size = spanIds.getSize(); i < size; i++) {
-                if (activeSet.contains(spanIds.get(i))) {
+                if (activeSet.contains(spanIds.getId(i))) {
                     return true;
                 }
             }
@@ -719,7 +739,7 @@ public class CallTree implements Recyclable {
             int createdSpans = 0;
             List<CallTree> callTrees = getChildren();
             for (int i = 0, size = callTrees.size(); i < size; i++) {
-                createdSpans += callTrees.get(i).spanify(this, rootContext);
+                createdSpans += callTrees.get(i).spanify(this, rootContext, rootContext);
             }
             return createdSpans;
         }

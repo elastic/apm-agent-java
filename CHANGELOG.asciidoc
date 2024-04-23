@@ -31,6 +31,10 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[float]
+===== Bug fixes
+* Fixed edge case where inferred spans could cause cycles in the trace parent-child relationships, subsequently resulting in the UI crashing - {pull}3588[#3588]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
