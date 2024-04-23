@@ -36,4 +36,4 @@ echo "--- Deploy the snapshot :package: [./mvnw $GOAL)] $DRY_RUN_MSG"
 ./mvnw -V -s .ci/settings.xml -Pgpg clean $GOAL -DskipTests --batch-mode | tee snapshot.txt
 
 echo "--- Archive the target folder with jar files"
-find . -type d -name target -exec find {} -name '*.jar' -print0 \; | xargs -0 tar -cvf dist.tar
+find . -type d -name target -exec find {} -name '*.jar' -print0 \; | xargs -0 tar -cvf "${TARBALL_FILE:-dist.tar}"

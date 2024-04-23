@@ -42,6 +42,8 @@ jobs:
     permissions:
       contents: write
       id-token: write
+    env:
+      TARBALL_FILE: dist.tar
     if: ${{ contains(needs.validate.outputs.is-snapshot, 'true') }}
     steps:
       - id: buildkite
@@ -54,18 +56,19 @@ jobs:
           pipeline: apm-agent-java-snapshot
           pipelineBranch: ${{ github.ref_name }}
           artifactName: snapshots
-          artifactPath: "dist.tar"
+          artifactPath: ${{ env.TARBALL_FILE }}
           waitFor: true
           printBuildLogs: false
           buildEnvVars: |
             dry_run=${{ inputs.dry_run || 'false' }}
+            TARBALL_FILE=${{ env.TARBALL_FILE }}
 
       - uses: actions/download-artifact@v3
         with:
           name: snapshots
 
-      - name: untar the buildkite tarbal
-        run: tar xvf dist.tar
+      - name: untar the buildkite tarball
+        run: tar xvf ${{ env.TARBALL_FILE }}
 
       - name: generate build provenance
         uses: github-early-access/generate-build-provenance@main

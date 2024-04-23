@@ -2,6 +2,9 @@ agents:
   provider: "gcp"
   image: "family/apm-agent-java-ubuntu-2204"
 
+env:
+  TARBALL_FILE: ${TARBALL_FILE:-dist.tar}
+
 steps:
   - label: "Run the snapshot"
     key: "release"
@@ -9,7 +12,7 @@ steps:
     artifact_paths:
       - "snapshot.txt"
       - "**/target/*"
-      - "dist.tar"
+      - "${TARBALL_FILE}"
 
 notify:
   - slack: "#apm-agent-java"
