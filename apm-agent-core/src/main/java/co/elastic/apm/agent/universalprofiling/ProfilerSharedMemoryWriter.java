@@ -1,0 +1,93 @@
+package co.elastic.apm.agent.universalprofiling;
+
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.otel.UniversalProfilingCorrelation;
+
+import javax.annotation.Nullable;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+public class ProfilerSharedMemoryWriter {
+
+    private static final Logger log = Logger.getLogger(ProfilerSharedMemoryWriter.class.getName());
+
+    private static final int TLS_MINOR_VERSION_OFFSET = 0;
+    private static final int TLS_VALID_OFFSET = 2;
+    private static final int TLS_TRACE_PRESENT_OFFSET = 3;
+    private static final int TLS_TRACE_FLAGS_OFFSET = 4;
+    private static final int TLS_TRACE_ID_OFFSET = 5;
+    private static final int TLS_SPAN_ID_OFFSET = 21;
+    private static final int TLS_LOCAL_ROOT_SPAN_ID_OFFSET = 29;
+    static final int TLS_STORAGE_SIZE = 37;
+
+    private static volatile int writeForMemoryBarrier = 0;
+
+    static ByteBuffer generateProcessCorrelationStorage(String serviceName, @Nullable String environment, String socketFilePath) {
+        ByteBuffer buffer = ByteBuffer.allocateDirect(4096);
+        buffer.order(ByteOrder.nativeOrder());
+        buffer.position(0);
+
+        buffer.putChar((char) 1); // layout-minor-version
+        writeUtf8Str(buffer, serviceName);
+        writeUtf8Str(buffer, environment == null ? "" : environment);
+        writeUtf8Str(buffer, socketFilePath);
+        return buffer;
+    }
+
+    private static void writeUtf8Str(ByteBuffer buffer, String str) {
+        byte[] utf8 = str.getBytes(StandardCharsets.UTF_8);
+        buffer.putInt(utf8.length);
+        buffer.put(utf8);
+    }
+
+    /**
+     * This method ensures that all writes which happened prior to this method call are not moved
+     * after the method call due to reordering.
+     *
+     * <p>This is realized based on the Java Memory Model guarantess for volatile variables. Relevant
+     * resources:
+     *
+     * <ul>
+     *   <li><a
+     *       href="https://stackoverflow.com/questions/17108541/happens-before-relationships-with-volatile-fields-and-synchronized-blocks-in-jav">StackOverflow
+     *       topic</a>
+     *   <li><a href="https://gee.cs.oswego.edu/dl/jmm/cookbook.html">JSR Compiler Cookbook</a>
+     * </ul>
+     */
+    private static void memoryStoreStoreBarrier() {
+        writeForMemoryBarrier = 42;
+    }
+
+    static void updateThreadCorrelationStorage(@Nullable AbstractSpan<?> newSpan) {
+        ByteBuffer tls = UniversalProfilingCorrelation.getCurrentThreadStorage(true, TLS_STORAGE_SIZE);
+        // tls might be null if unsupported or something went wrong on initialization
+        if (tls != null) {
+            // the valid flag is used to signal the host-agent that it is reading incomplete data
+            tls.put(TLS_VALID_OFFSET, (byte) 0);
+            memoryStoreStoreBarrier();
+            tls.putChar(TLS_MINOR_VERSION_OFFSET, (char) 1);
+
+            if (newSpan != null) {
+                Transaction tx = newSpan.getParentTransaction();
+                tls.put(TLS_TRACE_PRESENT_OFFSET, (byte) 1);
+                tls.put(TLS_TRACE_FLAGS_OFFSET, newSpan.getTraceContext().getFlags());
+                tls.position(TLS_TRACE_ID_OFFSET);
+                newSpan.getTraceContext().getTraceId().writeToBuffer(tls);
+                tls.position(TLS_SPAN_ID_OFFSET);
+                newSpan.getTraceContext().getId().writeToBuffer(tls);
+                tls.position(TLS_LOCAL_ROOT_SPAN_ID_OFFSET);
+                tx.getTraceContext().getId().writeToBuffer(tls);
+            } else {
+                tls.put(TLS_TRACE_PRESENT_OFFSET, (byte) 0);
+            }
+            memoryStoreStoreBarrier();
+            tls.put(TLS_VALID_OFFSET, (byte) 1);
+        }
+    }
+}
+

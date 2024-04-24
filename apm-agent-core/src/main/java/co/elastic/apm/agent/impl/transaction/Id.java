@@ -89,6 +89,10 @@ public class Id implements Recyclable, co.elastic.apm.agent.tracer.Id {
         return offset + data.length;
     }
 
+    public void writeToBuffer(ByteBuffer buffer) {
+        buffer.put(data);
+    }
+
     public void fromLongs(long... values) {
         if (values.length * Long.BYTES != data.length) {
             throw new IllegalArgumentException("Invalid number of long values");
