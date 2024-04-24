@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 
 targets="$(find . -type d -name 'target'|grep -v apm-agent-plugins|grep -v integration-tests|sort)"
 
