@@ -3,7 +3,7 @@ agents:
   image: "family/apm-agent-java-ubuntu-2204"
 
 env:
-  TARBALL_FILE: ${TARBALL_FILE:-dist.tar}
+  TARBALL_FILE: ${TARBALL_FILE:-artifacts.tar}
 
 steps:
   - label: "Run the release"
