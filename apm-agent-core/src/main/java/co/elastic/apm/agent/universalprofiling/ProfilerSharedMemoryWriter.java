@@ -2,19 +2,18 @@ package co.elastic.apm.agent.universalprofiling;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.otel.UniversalProfilingCorrelation;
 
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class ProfilerSharedMemoryWriter {
 
-    private static final Logger log = Logger.getLogger(ProfilerSharedMemoryWriter.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(ProfilerSharedMemoryWriter.class);
 
     private static final int TLS_MINOR_VERSION_OFFSET = 0;
     private static final int TLS_VALID_OFFSET = 2;
@@ -64,29 +63,33 @@ public class ProfilerSharedMemoryWriter {
     }
 
     static void updateThreadCorrelationStorage(@Nullable AbstractSpan<?> newSpan) {
-        ByteBuffer tls = UniversalProfilingCorrelation.getCurrentThreadStorage(true, TLS_STORAGE_SIZE);
-        // tls might be null if unsupported or something went wrong on initialization
-        if (tls != null) {
-            // the valid flag is used to signal the host-agent that it is reading incomplete data
-            tls.put(TLS_VALID_OFFSET, (byte) 0);
-            memoryStoreStoreBarrier();
-            tls.putChar(TLS_MINOR_VERSION_OFFSET, (char) 1);
+        try {
+            ByteBuffer tls = UniversalProfilingCorrelation.getCurrentThreadStorage(true, TLS_STORAGE_SIZE);
+            // tls might be null if unsupported or something went wrong on initialization
+            if (tls != null) {
+                // the valid flag is used to signal the host-agent that it is reading incomplete data
+                tls.put(TLS_VALID_OFFSET, (byte) 0);
+                memoryStoreStoreBarrier();
+                tls.putChar(TLS_MINOR_VERSION_OFFSET, (char) 1);
 
-            if (newSpan != null) {
-                Transaction tx = newSpan.getParentTransaction();
-                tls.put(TLS_TRACE_PRESENT_OFFSET, (byte) 1);
-                tls.put(TLS_TRACE_FLAGS_OFFSET, newSpan.getTraceContext().getFlags());
-                tls.position(TLS_TRACE_ID_OFFSET);
-                newSpan.getTraceContext().getTraceId().writeToBuffer(tls);
-                tls.position(TLS_SPAN_ID_OFFSET);
-                newSpan.getTraceContext().getId().writeToBuffer(tls);
-                tls.position(TLS_LOCAL_ROOT_SPAN_ID_OFFSET);
-                tx.getTraceContext().getId().writeToBuffer(tls);
-            } else {
-                tls.put(TLS_TRACE_PRESENT_OFFSET, (byte) 0);
+                if (newSpan != null) {
+                    Transaction tx = newSpan.getParentTransaction();
+                    tls.put(TLS_TRACE_PRESENT_OFFSET, (byte) 1);
+                    tls.put(TLS_TRACE_FLAGS_OFFSET, newSpan.getTraceContext().getFlags());
+                    tls.position(TLS_TRACE_ID_OFFSET);
+                    newSpan.getTraceContext().getTraceId().writeToBuffer(tls);
+                    tls.position(TLS_SPAN_ID_OFFSET);
+                    newSpan.getTraceContext().getId().writeToBuffer(tls);
+                    tls.position(TLS_LOCAL_ROOT_SPAN_ID_OFFSET);
+                    tx.getTraceContext().getId().writeToBuffer(tls);
+                } else {
+                    tls.put(TLS_TRACE_PRESENT_OFFSET, (byte) 0);
+                }
+                memoryStoreStoreBarrier();
+                tls.put(TLS_VALID_OFFSET, (byte) 1);
             }
-            memoryStoreStoreBarrier();
-            tls.put(TLS_VALID_OFFSET, (byte) 1);
+        } catch (Exception e) {
+            log.error("Failed to write profiling correlation tls", e);
         }
     }
 }

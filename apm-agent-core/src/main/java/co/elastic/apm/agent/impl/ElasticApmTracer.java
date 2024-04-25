@@ -71,6 +71,7 @@ import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
+import co.elastic.apm.agent.universalprofiling.UniversalProfilingIntegration;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import com.dslplatform.json.JsonWriter;
@@ -143,6 +144,8 @@ public class ElasticApmTracer implements Tracer {
     private final SpanConfiguration spanConfiguration;
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
+
+    private final UniversalProfilingIntegration profilingIntegration;
     private final ScheduledThreadPoolExecutor sharedPool;
     private final int approximateContextSize;
     private Sampler sampler;
@@ -261,6 +264,7 @@ public class ElasticApmTracer implements Tracer {
         // sets the assertionsEnabled flag to true if indeed enabled
         //noinspection AssertWithSideEffects
         assert assertionsEnabled = true;
+        profilingIntegration = new UniversalProfilingIntegration();
     }
 
     @Override
@@ -341,6 +345,7 @@ public class ElasticApmTracer implements Tracer {
         if (serviceInfo != null) {
             transaction.getTraceContext().setServiceInfo(serviceInfo.getServiceName(), serviceInfo.getServiceVersion());
         }
+        profilingIntegration.afterTransactionStart(transaction);
     }
 
     public Transaction noopTransaction() {
@@ -525,8 +530,9 @@ public class ElasticApmTracer implements Tracer {
         if (!transaction.isNoop() &&
             (transaction.isSampled() || apmServerClient.supportsKeepingUnsampledTransaction())) {
             // we do report non-sampled transactions (without the context)
-            reporter.report(transaction);
+            profilingIntegration.correlateAndReport(transaction);
         } else {
+            profilingIntegration.drop(transaction);
             transaction.decrementReferences();
         }
     }
@@ -633,6 +639,7 @@ public class ElasticApmTracer implements Tracer {
             logger.debug("Tracer stop stack trace: ", new Throwable("Expected - for debugging purposes"));
         }
 
+        profilingIntegration.stop();
         try {
             configurationRegistry.close();
             reporter.close();
@@ -738,6 +745,7 @@ public class ElasticApmTracer implements Tracer {
         }
         apmServerClient.start();
         reporter.start();
+        profilingIntegration.start(this);
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             try {
                 lifecycleListener.start(this);
