@@ -266,7 +266,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create ${{ env.RELEASE_VERSION }} \
+          gh release create ${{ env.RELEASE_VERSION_TAG }} \
             --title="Release ${{ env.RELEASE_VERSION }}" \
             --notes="[Release Notes for ${{ env.RELEASE_VERSION }}](https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${{ steps.get_dotx_branch.outputs.dotx_branch }}.html#release-notes-${{ env.RELEASE_VERSION }})
             ${{ needs.publish-aws-lambda.outputs.arn_content }}"
