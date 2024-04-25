@@ -34,3 +34,9 @@ fi
 
 echo "--- Deploy the snapshot :package: [./mvnw $GOAL)] $DRY_RUN_MSG"
 ./mvnw -V -s .ci/settings.xml -Pgpg clean $GOAL -DskipTests --batch-mode | tee snapshot.txt
+
+echo "--- Archive the target folder with jar files"
+echo 'gather artifacts'
+.ci/published-artifacts-list.sh | tee artifacts.list
+echo 'create tarbal'
+tar -cvf "${TARBALL_FILE:-artifacts.tar}" -T artifacts.list
