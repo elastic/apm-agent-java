@@ -74,11 +74,12 @@ public class UniversalProfilingIntegration {
             ByteBuffer processCorrelationStorage = ProfilerSharedMemoryWriter.generateProcessCorrelationStorage(
                 coreConfig.getServiceName(), coreConfig.getEnvironment(), "");
             UniversalProfilingCorrelation.setProcessStorage(processCorrelationStorage);
+            
+            isActive = true;
+            tracer.registerSpanListener(activationListener);
         } catch (Exception e) {
             log.error("Failed to start universal profiling integration", e);
         }
-        isActive = true;
-        tracer.registerSpanListener(activationListener);
     }
 
     public void stop() {
