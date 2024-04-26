@@ -12,18 +12,7 @@ elif ! docker version
 then
   echo "ERROR: Building Docker image requires Docker daemon to be running" && exit 1
 fi
-
-echo "INFO: Determining latest tag"
-if [ ! -z ${TAG_NAME+x} ]
-then
-  echo "INFO: Detected TAG_NAME variable. Probably a Jenkins instance."
-  readonly GIT_TAG_DEFAULT=$(echo $TAG_NAME|sed s/^v//)
-else
-  echo "INFO: Did not detect TAG_NAME. Examining git log for latest tag"
-  readonly GIT_TAG_DEFAULT=$(git describe --abbrev=0|sed s/^v//)
-fi
-
-readonly GIT_TAG=${GIT_TAG:-$GIT_TAG_DEFAULT}
+readonly GIT_TAG=${1}
 
 readonly SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 readonly PROJECT_ROOT=$SCRIPT_PATH/../../

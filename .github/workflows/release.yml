@@ -142,11 +142,11 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRET_ID }}
       - name: "Build docker image"
         shell: bash
-        run: ./scripts/docker-release/build_docker.sh
+        run: ./scripts/docker-release/build_docker.sh "${{ env.RELEASE_VERSION_TAG }}"
       - name: "Push docker image"
         if: ${{ ! inputs.dry_run }}
         shell: bash
-        run: ./scripts/docker-release/push_docker.sh
+        run: ./scripts/docker-release/push_docker.sh "${{ env.RELEASE_VERSION_TAG }}"
 
   publish-aws-lambda:
     name: "Publish AWS Lambda"
