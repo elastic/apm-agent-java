@@ -64,7 +64,7 @@ public class UniversalProfilingIntegration {
             return;
         }
         if (SystemInfo.isWindows(System.getProperty("os.name"))) {
-            log.warn("Universal profiling integration cannot be enabled on windows");
+            log.warn("Universal profiling integration is not supported on Windows");
             return;
         }
         try {
@@ -92,7 +92,7 @@ public class UniversalProfilingIntegration {
         }
     }
 
-    public void afterTransactionStart(Transaction startedTransactions) {
+    public void afterTransactionStart(Transaction startedTransaction) {
         //TODO: store the transaction in a map for correlating with profiling data
     }
 
