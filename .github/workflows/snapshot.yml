@@ -39,6 +39,7 @@ jobs:
     needs:
       - validate
     permissions:
+      attestations: write
       contents: write
       id-token: write
     env:

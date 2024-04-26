@@ -75,6 +75,7 @@ jobs:
     needs:
       - validate-tag
     permissions:
+      attestations: write
       contents: write
       id-token: write
     env:
