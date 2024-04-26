@@ -33,6 +33,10 @@ import co.elastic.otel.UniversalProfilingCorrelation;
 
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Random;
 
 public class UniversalProfilingIntegration {
 
@@ -42,6 +46,9 @@ public class UniversalProfilingIntegration {
 
     // Visible for testing
     volatile boolean isActive = false;
+
+    // Visible for testing
+    String socketPath = null;
 
     private ActivationListener activationListener = new ActivationListener() {
 
@@ -70,21 +77,32 @@ public class UniversalProfilingIntegration {
         try {
             log.debug("Starting universal profiling correlation");
 
+            socketPath = openProfilerSocket(config.getSocketDir());
+
             CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
             ByteBuffer processCorrelationStorage = ProfilerSharedMemoryWriter.generateProcessCorrelationStorage(
-                coreConfig.getServiceName(), coreConfig.getEnvironment(), "");
+                coreConfig.getServiceName(), coreConfig.getEnvironment(), socketPath);
             UniversalProfilingCorrelation.setProcessStorage(processCorrelationStorage);
 
             isActive = true;
             tracer.registerSpanListener(activationListener);
         } catch (Exception e) {
             log.error("Failed to start universal profiling integration", e);
+            if (socketPath != null) {
+                try {
+                    UniversalProfilingCorrelation.stopProfilerReturnChannel();
+                    socketPath = null;
+                } catch (Exception e2) {
+                    log.error("Failed to clean up universal profiling integration socket", e2);
+                }
+            }
         }
     }
 
     public void stop() {
         try {
             if (isActive) {
+                UniversalProfilingCorrelation.stopProfilerReturnChannel();
                 JvmtiAccess.destroy();
             }
         } catch (Exception e) {
@@ -113,5 +131,33 @@ public class UniversalProfilingIntegration {
 
     public void drop(Transaction endedTransaction) {
         //TODO: remove dropped transactions from correlation storage without reporting
+    }
+
+
+    private String openProfilerSocket(String socketDir) {
+        Path dir = Paths.get(socketDir);
+        if (!Files.exists(dir) && !dir.toFile().mkdirs()) {
+            throw new IllegalArgumentException("Could not create directory '" + socketDir + "'");
+        }
+        Path socketFile;
+        do {
+            socketFile = dir.resolve(randomSocketFileName());
+        } while (Files.exists(socketFile));
+
+        String absolutePath = socketFile.toAbsolutePath().toString();
+        log.debug("Opening profiler correlation socket {}", absolutePath);
+        UniversalProfilingCorrelation.startProfilerReturnChannel(absolutePath);
+        return absolutePath;
+    }
+
+    private String randomSocketFileName() {
+        StringBuilder name = new StringBuilder("essock");
+        String allowedChars = "abcdefghijklmonpqrstuvwxzyABCDEFGHIJKLMONPQRSTUVWXYZ0123456789";
+        Random rnd = new Random();
+        for (int i = 0; i < 8; i++) {
+            int idx = rnd.nextInt(allowedChars.length());
+            name.append(allowedChars.charAt(idx));
+        }
+        return name.toString();
     }
 }
