@@ -21,6 +21,8 @@ package co.elastic.apm.agent.configuration;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
+import static co.elastic.apm.agent.tracer.configuration.RangeValidator.isInRange;
+
 public class UniversalProfilingConfiguration extends ConfigurationOptionProvider {
 
     private static final String PROFILING_CATEGORY = "Profiling";
@@ -34,6 +36,7 @@ public class UniversalProfilingConfiguration extends ConfigurationOptionProvider
 
     private final ConfigurationOption<Long> bufferSize = ConfigurationOption.longOption()
         .key("universal_profiling_integration_buffer_size")
+        .addValidator(isInRange(64L, Long.MAX_VALUE))
         .tags("added[1.50.0]", "internal")
         .configurationCategory(PROFILING_CATEGORY)
         .description("The feature needs to buffer ended local-root spans for a short duration to ensure that all of its profiling data has been received." +

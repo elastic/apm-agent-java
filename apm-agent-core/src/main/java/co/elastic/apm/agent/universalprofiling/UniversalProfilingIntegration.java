@@ -74,7 +74,7 @@ public class UniversalProfilingIntegration {
             ByteBuffer processCorrelationStorage = ProfilerSharedMemoryWriter.generateProcessCorrelationStorage(
                 coreConfig.getServiceName(), coreConfig.getEnvironment(), "");
             UniversalProfilingCorrelation.setProcessStorage(processCorrelationStorage);
-            
+
             isActive = true;
             tracer.registerSpanListener(activationListener);
         } catch (Exception e) {
@@ -96,6 +96,16 @@ public class UniversalProfilingIntegration {
         //TODO: store the transaction in a map for correlating with profiling data
     }
 
+    /**
+     * This method will get invoked for ended transactions which shall be reported.
+     * This method is responsible for eventually reporting those transactions.
+     * <p>
+     * The tracer calls this method instead of reporting directly in order to allow
+     * the correlation to delay the transaction reporting until all correlation
+     * data has been received from the universal profiling host agent.
+     *
+     * @param endedTransaction the transaction to be reported
+     */
     public void correlateAndReport(Transaction endedTransaction) {
         //TODO: perform correlation and report after buffering for a certain delay
         tracer.getReporter().report(endedTransaction);
