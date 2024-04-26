@@ -36,7 +36,8 @@ public class AgentInfo {
         "com.blogspot.mydailyjava.weaklockfree",
         "com.lmax.disruptor",
         "com.dslplatform.json",
-        "com.googlecode.concurrentlinkedhashmap"
+        "com.googlecode.concurrentlinkedhashmap",
+        "co.elastic.otel"
     ));
 
     private static final Set<String> agentRootPackages = new HashSet<>(Arrays.asList(
