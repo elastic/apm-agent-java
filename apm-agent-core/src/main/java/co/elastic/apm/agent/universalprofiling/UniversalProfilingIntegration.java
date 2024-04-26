@@ -28,17 +28,33 @@ import co.elastic.apm.agent.impl.transaction.ElasticContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.otel.JvmtiAccess;
 import co.elastic.otel.UniversalProfilingCorrelation;
+import co.elastic.otel.profiler.DecodeException;
+import co.elastic.otel.profiler.ProfilerMessage;
+import co.elastic.otel.profiler.ProfilerRegistrationMessage;
+import co.elastic.otel.profiler.TraceCorrelationMessage;
 
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.Base64;
 import java.util.Random;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 public class UniversalProfilingIntegration {
+
+    /**
+     * The frequency at which the processor polls the unix domain socket for new messages from the
+     * profiler.
+     */
+    static final long POLL_FREQUENCY_MS = 20;
 
     private static final Logger log = LoggerFactory.getLogger(UniversalProfilingIntegration.class);
 
@@ -49,6 +65,8 @@ public class UniversalProfilingIntegration {
 
     // Visible for testing
     String socketPath = null;
+
+    private ScheduledExecutorService executor;
 
     private ActivationListener activationListener = new ActivationListener() {
 
@@ -84,6 +102,14 @@ public class UniversalProfilingIntegration {
                 coreConfig.getServiceName(), coreConfig.getEnvironment(), socketPath);
             UniversalProfilingCorrelation.setProcessStorage(processCorrelationStorage);
 
+            executor = ExecutorUtils.createSingleThreadSchedulingDaemonPool("profiling-integration");
+            executor.scheduleWithFixedDelay(new Runnable() {
+                @Override
+                public void run() {
+                    periodicTimer();
+                }
+            }, POLL_FREQUENCY_MS, POLL_FREQUENCY_MS, TimeUnit.MILLISECONDS);
+
             isActive = true;
             tracer.registerSpanListener(activationListener);
         } catch (Exception e) {
@@ -99,8 +125,17 @@ public class UniversalProfilingIntegration {
         }
     }
 
+    private void periodicTimer() {
+        consumeProfilerMessages();
+    }
+
     public void stop() {
         try {
+            if (executor != null) {
+                executor.shutdown();
+                executor.awaitTermination(10, TimeUnit.SECONDS);
+                executor = null;
+            }
             if (isActive) {
                 UniversalProfilingCorrelation.stopProfilerReturnChannel();
                 JvmtiAccess.destroy();
@@ -159,5 +194,38 @@ public class UniversalProfilingIntegration {
             name.append(allowedChars.charAt(idx));
         }
         return name.toString();
+    }
+
+    private void consumeProfilerMessages() {
+        try {
+            while (true) {
+                try {
+                    ProfilerMessage message =
+                        UniversalProfilingCorrelation.readProfilerReturnChannelMessage();
+                    if (message == null) {
+                        break;
+                    } else if (message instanceof TraceCorrelationMessage) {
+                        handleMessage((TraceCorrelationMessage) message);
+                    } else if (message instanceof ProfilerRegistrationMessage) {
+                        handleMessage((ProfilerRegistrationMessage) message);
+                    } else {
+                        log.debug("Received unknown message type from profiler: {}", message);
+                    }
+                } catch (DecodeException e) {
+                    log.warn("Failed to read profiler message", e);
+                    // intentionally no break here, subsequent messages might be decodeable
+                }
+            }
+        } catch (Exception e) {
+            log.error("Cannot read from profiler socket", e);
+        }
+    }
+
+    private void handleMessage(ProfilerRegistrationMessage message) {
+        //TODO: handle message
+    }
+
+    private void handleMessage(TraceCorrelationMessage message) {
+        //TODO: handle message
     }
 }
