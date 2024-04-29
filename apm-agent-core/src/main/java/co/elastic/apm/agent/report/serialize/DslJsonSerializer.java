@@ -1052,7 +1052,7 @@ public class DslJsonSerializer {
         }
 
         private void serializeOTel(Span span) {
-            serializeOtel(span, Collections.emptyList());
+            serializeOtel(span, Collections.<Id>emptyList());
         }
 
         private void serializeOTel(Transaction transaction) {
