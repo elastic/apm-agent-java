@@ -574,4 +574,8 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         id.copyFrom(idToCopy);
         this.profilingCorrelationStackTraceIds.add(id);
     }
+
+    public List<Id> getProfilingCorrelationStackTraceIds() {
+        return profilingCorrelationStackTraceIds;
+    }
 }
