@@ -37,6 +37,7 @@ import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import org.HdrHistogram.WriterReaderPhaser;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -106,6 +107,8 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
 
     @Nullable
     private Throwable pendingException;
+
+    private final ArrayList<Id> profilingCorrelationStackTraceIds = new ArrayList<>();
 
     /**
      * Faas
@@ -341,7 +344,21 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         faas.resetState();
         wasActivated.set(false);
         pendingException = null;
+        recycleProfilingCorrelationStackTraceIds();
         // don't clear timerBySpanTypeAndSubtype map (see field-level javadoc)
+    }
+
+    private void recycleProfilingCorrelationStackTraceIds() {
+        for (Id toRecycle : profilingCorrelationStackTraceIds) {
+            tracer.recycleProfilingCorrelationStackTraceId(toRecycle);
+        }
+        if (profilingCorrelationStackTraceIds.size() > 100) {
+            profilingCorrelationStackTraceIds.clear();
+            //trim overly big lists
+            profilingCorrelationStackTraceIds.trimToSize();
+        } else {
+            profilingCorrelationStackTraceIds.clear();
+        }
     }
 
     @Override
@@ -552,4 +569,9 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
         return this.pendingException;
     }
 
+    public void addProfilerCorrelationStackTrace(Id idToCopy) {
+        Id id = tracer.createProfilingCorrelationStackTraceId();
+        id.copyFrom(idToCopy);
+        this.profilingCorrelationStackTraceIds.add(id);
+    }
 }
