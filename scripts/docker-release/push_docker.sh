@@ -22,10 +22,10 @@ readonly RETRIES=3
 
 # Grab the tag we are working with
 
-readonly CUR_TAG=${1}
+readonly RELEASE_VERSION=${1}
 readonly DOCKER_REGISTRY_URL="docker.elastic.co"
 readonly DOCKER_IMAGE_NAME="observability/apm-agent-java"
-readonly DOCKER_PUSH_IMAGE="$DOCKER_REGISTRY_URL/$DOCKER_IMAGE_NAME:$CUR_TAG"
+readonly DOCKER_PUSH_IMAGE="$DOCKER_REGISTRY_URL/$DOCKER_IMAGE_NAME:$RELEASE_VERSION"
 readonly DOCKER_PUSH_IMAGE_LATEST="$DOCKER_REGISTRY_URL/$DOCKER_IMAGE_NAME:latest"
 
 # Proceed with pushing to the registry
@@ -35,9 +35,9 @@ docker push $DOCKER_PUSH_IMAGE || { echo "You may need to run 'docker login' fir
 
 readonly LATEST_TAG=$(git tag --list --sort=version:refname "v*" | grep -v RC | sed s/^v// | tail -n 1)
 
-if [ "$CUR_TAG" = "$LATEST_TAG" ]
+if [ "$RELEASE_VERSION" = "$LATEST_TAG" ]
 then
-  echo "INFO: Current version ($CUR_TAG) is the latest version. Tagging and pushing $DOCKER_PUSH_IMAGE_LATEST ..."
+  echo "INFO: Current version ($RELEASE_VERSION) is the latest version. Tagging and pushing $DOCKER_PUSH_IMAGE_LATEST ..."
   docker tag $DOCKER_PUSH_IMAGE $DOCKER_PUSH_IMAGE_LATEST
   docker push $DOCKER_PUSH_IMAGE_LATEST || { echo "You may need to run 'docker login' first and then re-run this script"; exit 1; }
 fi
