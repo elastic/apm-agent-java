@@ -181,7 +181,7 @@ jobs:
         if: ${{ ! inputs.dry_run }}
         run: |
           # Convert v1.2.3 to ver-1-2-3
-          VERSION=${RELEASE_VERSION/v/ver-}
+          VERSION=${RELEASE_VERSION_TAG/v/ver-}
           VERSION=${VERSION//./-}
           
           ELASTIC_LAYER_NAME="elastic-apm-java-${VERSION}" .ci/publish-aws.sh
