@@ -16,7 +16,7 @@ fi
 echo "INFO: Determining latest tag"
 if [ ! -z ${TAG_NAME+x} ]
 then
-  echo "INFO: Detected TAG_NAME variable. Probably a Jenkins instance."
+  echo "INFO: Detected TAG_NAME variable. Probably running in CI"
   readonly GIT_TAG_DEFAULT=$(echo $TAG_NAME|sed s/^v//)
 else
   echo "INFO: Did not detect TAG_NAME. Examining git log for latest tag"
