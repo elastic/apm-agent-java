@@ -1056,7 +1056,10 @@ public class DslJsonSerializer {
         }
 
         private void serializeOTel(Transaction transaction) {
-            serializeOtel(transaction, transaction.getProfilingCorrelationStackTraceIds());
+            List<Id> profilingCorrelationStackTraceIds = transaction.getProfilingCorrelationStackTraceIds();
+            synchronized (profilingCorrelationStackTraceIds) {
+                serializeOtel(transaction, profilingCorrelationStackTraceIds);
+            }
         }
 
         private void serializeOtel(AbstractSpan<?> span, List<Id> profilingStackTraceIds) {

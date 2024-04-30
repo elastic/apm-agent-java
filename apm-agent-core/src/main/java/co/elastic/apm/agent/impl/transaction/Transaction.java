@@ -572,9 +572,15 @@ public class Transaction extends AbstractSpan<Transaction> implements co.elastic
     public void addProfilerCorrelationStackTrace(Id idToCopy) {
         Id id = tracer.createProfilingCorrelationStackTraceId();
         id.copyFrom(idToCopy);
-        this.profilingCorrelationStackTraceIds.add(id);
+        synchronized (profilingCorrelationStackTraceIds) {
+            this.profilingCorrelationStackTraceIds.add(id);
+        }
     }
 
+    /**
+     * Returns the list of stacktrace-IDs from the profiler associated with this transaction
+     * To protect agains concurrent modifications, consumers must synchronize on the returned list.
+     */
     public List<Id> getProfilingCorrelationStackTraceIds() {
         return profilingCorrelationStackTraceIds;
     }
