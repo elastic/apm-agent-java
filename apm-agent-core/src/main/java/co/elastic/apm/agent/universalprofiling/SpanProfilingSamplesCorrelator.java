@@ -72,6 +72,10 @@ public class SpanProfilingSamplesCorrelator {
         }
     }
 
+    public void dropTransaction(Transaction transaction) {
+        transactionsById.remove(transaction.getTraceContext().getId());
+    }
+
     public void reportOrBufferTransaction(Transaction transaction) {
         if (transactionsById.remove(transaction.getTraceContext().getId()) == null) {
             // transaction is not being correlated, e.g. because it was not sampled

@@ -34,9 +34,9 @@ public class UniversalProfilingConfiguration extends ConfigurationOptionProvider
         .description("If enabled, the apm agent will correlate it's transaction with the profiling data from elastic universal profiling running on the same host.")
         .buildWithDefault(false);
 
-    private final ConfigurationOption<Long> bufferSize = ConfigurationOption.longOption()
+    private final ConfigurationOption<Integer> bufferSize = ConfigurationOption.integerOption()
         .key("universal_profiling_integration_buffer_size")
-        .addValidator(isInRange(64L, Long.MAX_VALUE))
+        .addValidator(isInRange(64, Integer.MAX_VALUE))
         .tags("added[1.50.0]", "internal")
         .configurationCategory(PROFILING_CATEGORY)
         .description("The feature needs to buffer ended local-root spans for a short duration to ensure that all of its profiling data has been received." +
@@ -44,7 +44,7 @@ public class UniversalProfilingConfiguration extends ConfigurationOptionProvider
                      "The higher the number of local root spans per second, the higher this buffer size should be set.\n" +
                      "The agent will log a warning if it is not capable of buffering a span due to insufficient buffer size. " +
                      "This will cause the span to be exported immediately instead with possibly incomplete profiling correlation data.")
-        .buildWithDefault(4096L);
+        .buildWithDefault(4096);
 
     private final ConfigurationOption<String> socketDir = ConfigurationOption.stringOption()
         .key("universal_profiling_integration_socket_dir")
@@ -60,7 +60,7 @@ public class UniversalProfilingConfiguration extends ConfigurationOptionProvider
         return enabled.get();
     }
 
-    public long getBufferSize() {
+    public int getBufferSize() {
         return bufferSize.get();
     }
 
