@@ -72,12 +72,12 @@ public class SpanProfilingSamplesCorrelator {
         }
     }
 
-    public void dropTransaction(Transaction transaction) {
+    public void stopCorrelating(Transaction transaction) {
         transactionsById.remove(transaction.getTraceContext().getId());
     }
 
     public void reportOrBufferTransaction(Transaction transaction) {
-        if (transactionsById.remove(transaction.getTraceContext().getId()) == null) {
+        if (!transactionsById.containsKey(transaction.getTraceContext().getId())) {
             // transaction is not being correlated, e.g. because it was not sampled
             // therefore no need to buffer it
             reporter.report(transaction);
@@ -126,6 +126,7 @@ public class SpanProfilingSamplesCorrelator {
                 bufferedSpan -> {
                     long elapsed = nanoClock.getNanos() - bufferedSpan.endNanoTimestamp;
                     if (elapsed >= spanBufferDurationNanos || shuttingDown) {
+                        stopCorrelating(bufferedSpan.transaction);
                         reporter.report(bufferedSpan.transaction);
                         bufferedSpan.clear();
                         return true;

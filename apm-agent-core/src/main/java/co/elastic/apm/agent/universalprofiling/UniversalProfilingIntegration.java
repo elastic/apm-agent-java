@@ -70,8 +70,9 @@ public class UniversalProfilingIntegration {
     @Nullable
     private ScheduledExecutorService executor;
 
+    // Visible for testing
     @Nullable
-    private SpanProfilingSamplesCorrelator correlator;
+    SpanProfilingSamplesCorrelator correlator;
 
     private ActivationListener activationListener = new ActivationListener() {
 
@@ -176,7 +177,7 @@ public class UniversalProfilingIntegration {
     }
 
     public void drop(Transaction endedTransaction) {
-        correlator.dropTransaction(endedTransaction);
+        correlator.stopCorrelating(endedTransaction);
     }
 
 
@@ -247,7 +248,7 @@ public class UniversalProfilingIntegration {
         tempTraceId.fromBytes(message.getTraceId(), 0);
         tempSpanId.fromBytes(message.getLocalRootSpanId(), 0);
         tempStackTraceId.fromBytes(message.getStackTraceId(), 0);
-        log.trace("Received profiler correlation message with trace.id={} transaction.id={} stacktrace.id={} count={}",
+        log.debug("Received profiler correlation message with trace.id={} transaction.id={} stacktrace.id={} count={}",
             tempTraceId, tempSpanId, tempStackTraceId, message.getSampleCount());
         correlator.correlate(tempTraceId, tempSpanId, tempStackTraceId, message.getSampleCount());
     }
