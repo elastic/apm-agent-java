@@ -2,6 +2,9 @@ agents:
   provider: "gcp"
   image: "family/apm-agent-java-ubuntu-2204"
 
+env:
+  TARBALL_FILE: ${TARBALL_FILE:-artifacts.tar}
+
 steps:
   - label: "Run the release"
     key: "release"
@@ -9,6 +12,7 @@ steps:
     artifact_paths:
       - "release.txt"
       - "**/target/*"
+      - "${TARBALL_FILE}"
 
 notify:
   - slack: "#apm-agent-java"

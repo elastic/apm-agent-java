@@ -100,6 +100,11 @@
             <artifactId>HdrHistogram</artifactId>
             <version>2.1.11</version>
         </dependency>
+        <dependency>
+            <groupId>co.elastic.otel</groupId>
+            <artifactId>jvmti-access</artifactId>
+            <version>0.3.0</version>
+        </dependency>
         <!--
         We can't use caffeine due to requiring Java 7.
         As recommended by the author, we use concurrentlinkedhashmap-lru instead:

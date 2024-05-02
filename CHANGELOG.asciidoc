@@ -33,6 +33,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 [float]
 ===== Bug fixes
+* Fixed edge case where inferred spans could cause cycles in the trace parent-child relationships, subsequently resulting in the UI crashing - {pull}3588[#3588]
 * Fix NPE in dropped spans statistics - {pull}3590[#3590]
 
 [[release-notes-1.x]]
