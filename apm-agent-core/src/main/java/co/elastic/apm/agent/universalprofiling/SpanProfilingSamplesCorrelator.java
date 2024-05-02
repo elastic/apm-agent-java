@@ -120,19 +120,23 @@ public class SpanProfilingSamplesCorrelator {
         }
     }
 
+    private final PeekingPoller.Handler<BufferedTransaction> BUFFERED_TRANSACTION_HANDLER = new PeekingPoller.Handler<BufferedTransaction>() {
+        @Override
+        public boolean handleEvent(BufferedTransaction bufferedSpan) {
+            long elapsed = nanoClock.getNanos() - bufferedSpan.endNanoTimestamp;
+            if (elapsed >= spanBufferDurationNanos || shuttingDown) {
+                stopCorrelating(bufferedSpan.transaction);
+                reporter.report(bufferedSpan.transaction);
+                bufferedSpan.clear();
+                return true;
+            }
+            return false; // span is not yet ready to be sent
+        }
+    };
+
     public synchronized void flushPendingBufferedSpans() {
         try {
-            delayedSpansPoller.poll(
-                bufferedSpan -> {
-                    long elapsed = nanoClock.getNanos() - bufferedSpan.endNanoTimestamp;
-                    if (elapsed >= spanBufferDurationNanos || shuttingDown) {
-                        stopCorrelating(bufferedSpan.transaction);
-                        reporter.report(bufferedSpan.transaction);
-                        bufferedSpan.clear();
-                        return true;
-                    }
-                    return false; // span is not yet ready to be sent
-                });
+            delayedSpansPoller.poll(BUFFERED_TRANSACTION_HANDLER);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
