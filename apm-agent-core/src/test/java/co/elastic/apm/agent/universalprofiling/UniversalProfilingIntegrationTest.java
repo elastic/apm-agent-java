@@ -38,6 +38,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -46,6 +47,9 @@ import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.function.Consumer;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
@@ -62,6 +66,16 @@ public class UniversalProfilingIntegrationTest {
 
     private TestObjectPoolFactory poolFactory;
 
+    @TempDir
+    Path tempDir;
+
+    void setupTracer() {
+        setupTracer(config -> {
+            UniversalProfilingConfiguration conf = config.getConfig(UniversalProfilingConfiguration.class);
+            doReturn(true).when(conf).isEnabled();
+            doReturn(tempDir.toAbsolutePath().toString()).when(conf).getSocketDir();
+        });
+    }
     void setupTracer(Consumer<ConfigurationRegistry> configCustomizer) {
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         configCustomizer.accept(config);
@@ -96,6 +110,7 @@ public class UniversalProfilingIntegrationTest {
 
         verify(mockTracer, never()).registerSpanListener(any());
         assertThat(universalProfilingIntegration.isActive).isFalse();
+        assertThat(universalProfilingIntegration.socketPath).isNull();
     }
 
     @Test
@@ -107,6 +122,7 @@ public class UniversalProfilingIntegrationTest {
 
         verify(mockTracer, never()).registerSpanListener(any());
         assertThat(universalProfilingIntegration.isActive).isFalse();
+        assertThat(universalProfilingIntegration.socketPath).isNull();
     }
 
     @Nested
@@ -115,8 +131,7 @@ public class UniversalProfilingIntegrationTest {
 
         @Test
         public void testNestedActivations() {
-            setupTracer(conf -> doReturn(true)
-                .when(conf.getConfig(UniversalProfilingConfiguration.class)).isEnabled());
+            setupTracer();
 
             Transaction first = tracer.startRootTransaction(null);
             Transaction second = tracer.startRootTransaction(null);
@@ -168,7 +183,9 @@ public class UniversalProfilingIntegrationTest {
         @ValueSource(strings = {"my nameßspace", ""})
         public void testProcessStoragePopulated(String environment) {
             setupTracer(conf -> {
-                doReturn(true).when(conf.getConfig(UniversalProfilingConfiguration.class)).isEnabled();
+                UniversalProfilingConfiguration profConfig = conf.getConfig(UniversalProfilingConfiguration.class);
+                doReturn(true).when(profConfig).isEnabled();
+                doReturn(tempDir.toAbsolutePath().toString()).when(profConfig).getSocketDir();
                 CoreConfiguration core = conf.getConfig(CoreConfiguration.class);
                 doReturn("service Ä 1").when(core).getServiceName();
                 doReturn(environment).when(core).getEnvironment();
@@ -179,7 +196,8 @@ public class UniversalProfilingIntegrationTest {
             assertThat(buffer.getChar()).describedAs("layout-minor-version").isEqualTo((char) 1);
             assertThat(readUtf8Str(buffer)).isEqualTo("service Ä 1");
             assertThat(readUtf8Str(buffer)).isEqualTo(environment);
-            assertThat(readUtf8Str(buffer)).describedAs("socket-path").isEqualTo("");
+            assertThat(readUtf8Str(buffer)).describedAs("socket-path")
+                    .startsWith(tempDir.toAbsolutePath().toString() + "/essock");
         }
 
         private String readUtf8Str(ByteBuffer buffer) {
@@ -219,6 +237,58 @@ public class UniversalProfilingIntegrationTest {
             Assertions.assertThat(tls.get(3)).describedAs("trace-present-flag").isEqualTo((byte) 0);
         }
     }
+
+    @DisabledOnOs(OS.WINDOWS)
+    @Nested
+    class SpanCorrelation {
+
+        @Test
+        void badSocketPath() throws Exception {
+            Path notADir = tempDir.resolve("not_a_dir");
+            Files.createFile(notADir);
+            String absPath = notADir.toAbsolutePath().toString();
+
+            ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig();
+            UniversalProfilingConfiguration config = configRegistry.getConfig(UniversalProfilingConfiguration.class);
+
+            doReturn(true).when(config).isEnabled();
+            doReturn(absPath).when(config).getSocketDir();
+
+            UniversalProfilingIntegration universalProfilingIntegration = new UniversalProfilingIntegration();
+            ElasticApmTracer mockTracer = MockTracer.create(configRegistry);
+
+            universalProfilingIntegration.start(mockTracer);
+
+            verify(mockTracer, never()).registerSpanListener(any());
+            assertThat(universalProfilingIntegration.isActive).isFalse();
+            assertThat(universalProfilingIntegration.socketPath).isNull();
+        }
+
+        @Test
+        void socketParentDirCreated() throws Exception {
+            Path subDirs = tempDir.resolve("create/me");
+            String absolute = subDirs.toAbsolutePath().toString();
+
+            ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig();
+            UniversalProfilingConfiguration config = configRegistry.getConfig(UniversalProfilingConfiguration.class);
+
+            doReturn(true).when(config).isEnabled();
+            doReturn(absolute).when(config).getSocketDir();
+
+            UniversalProfilingIntegration universalProfilingIntegration = new UniversalProfilingIntegration();
+            ElasticApmTracer mockTracer = MockTracer.create(configRegistry);
+
+            universalProfilingIntegration.start(mockTracer);
+            try {
+                assertThat(Paths.get(universalProfilingIntegration.socketPath)).exists();
+                assertThat(universalProfilingIntegration.socketPath).startsWith(absolute + "/");
+            } finally {
+                universalProfilingIntegration.stop();
+            }
+        }
+
+    }
+
 
     private static byte[] idToBytes(Id id) {
         byte[] buff = new byte[32];
