@@ -139,6 +139,7 @@ public class UniversalProfilingIntegration {
             if (isActive) {
                 UniversalProfilingCorrelation.stopProfilerReturnChannel();
                 JvmtiAccess.destroy();
+                isActive = false;
             }
         } catch (Exception e) {
             log.error("Failed to stop universal profiling integration", e);
