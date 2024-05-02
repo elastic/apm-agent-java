@@ -34,9 +34,11 @@ import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.metadata.ServiceFactory;
+import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
 import co.elastic.apm.agent.tracer.metrics.Labels;
+import co.elastic.apm.agent.tracer.pooling.Allocator;
 import co.elastic.apm.agent.tracer.service.Service;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
@@ -127,6 +129,7 @@ public class ElasticApmTracer implements Tracer {
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<ErrorCapture> errorPool;
     private final ObjectPool<TraceContext> spanLinkPool;
+    private final ObjectPool<Id> profilingCorrelationStackTraceIdPool;
     private final Reporter reporter;
     private final ObjectPoolFactory objectPoolFactory;
 
@@ -244,6 +247,13 @@ public class ElasticApmTracer implements Tracer {
 
         // span links pool allows for 10X the maximum allowed span links per span
         spanLinkPool = poolFactory.createSpanLinkPool(AbstractSpan.MAX_ALLOWED_SPAN_LINKS * 10, this);
+
+        profilingCorrelationStackTraceIdPool = poolFactory.createRecyclableObjectPool(maxPooledElements, new Allocator<Id>() {
+            @Override
+            public Id createInstance() {
+                return Id.new128BitId();
+            }
+        });
 
         sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
         coreConfiguration.getSampleRate().addChangeListener(new ConfigurationOption.ChangeListener<Double>() {
@@ -604,6 +614,10 @@ public class ElasticApmTracer implements Tracer {
         return spanLinkPool.createInstance();
     }
 
+    public Id createProfilingCorrelationStackTraceId() {
+        return profilingCorrelationStackTraceIdPool.createInstance();
+    }
+
     public void recycle(Transaction transaction) {
         transactionPool.recycle(transaction);
     }
@@ -618,6 +632,10 @@ public class ElasticApmTracer implements Tracer {
 
     public void recycle(TraceContext traceContext) {
         spanLinkPool.recycle(traceContext);
+    }
+
+    public void recycleProfilingCorrelationStackTraceId(Id id) {
+        profilingCorrelationStackTraceIdPool.recycle(id);
     }
 
     public synchronized void stop() {
