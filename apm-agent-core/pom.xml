@@ -103,7 +103,7 @@
         <dependency>
             <groupId>co.elastic.otel</groupId>
             <artifactId>jvmti-access</artifactId>
-            <version>0.3.0</version>
+            <version>0.3.1</version>
         </dependency>
         <!--
         We can't use caffeine due to requiring Java 7.

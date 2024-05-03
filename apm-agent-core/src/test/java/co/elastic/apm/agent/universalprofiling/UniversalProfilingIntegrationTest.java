@@ -366,11 +366,15 @@ public class UniversalProfilingIntegrationTest {
             tx1.end();
             Transaction tx2 = tracer.startRootTransaction(null);
             tx2.end();
-            // now the buffer should be full, transaction 3 should be sent immediately
+            //the actual buffer capacity is 2 + 1 because the peeked transaction is stored outside of the buffer
+            profilingIntegration.periodicTimer();
             Transaction tx3 = tracer.startRootTransaction(null);
             tx3.end();
+            // now the buffer should be full, transaction 4 should be sent immediately
+            Transaction tx4 = tracer.startRootTransaction(null);
+            tx4.end();
 
-            Assertions.assertThat(reporter.getTransactions()).containsExactly(tx3);
+            Assertions.assertThat(reporter.getTransactions()).containsExactly(tx4);
         }
 
         @Test
@@ -457,7 +461,7 @@ public class UniversalProfilingIntegrationTest {
             JvmtiAccessImpl.sendToProfilerReturnChannelSocket0(message.array());
         }
     }
-    
+
     private static byte[] idToBytes(Id id) {
         byte[] buff = new byte[32];
         int len = id.toBytes(buff, 0);
