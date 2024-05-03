@@ -40,6 +40,7 @@ fi
 echo "INFO: Starting Docker build for version $RELEASE_VERSION"
 
 docker build -t docker.elastic.co/$NAMESPACE/apm-agent-java:$RELEASE_VERSION \
+  --platform linux/amd64 \
   --build-arg JAR_FILE=apm-agent-java.jar \
   --build-arg HANDLER_FILE=apm-agent-lambda-layer/src/main/assembly/elastic-apm-handler .
 
