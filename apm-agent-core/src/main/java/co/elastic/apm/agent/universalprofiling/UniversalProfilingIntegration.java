@@ -159,7 +159,9 @@ public class UniversalProfilingIntegration {
     }
 
     public void afterTransactionStart(Transaction startedTransaction) {
-        correlator.onTransactionStart(startedTransaction);
+        if (correlator != null) {
+            correlator.onTransactionStart(startedTransaction);
+        }
     }
 
     /**
@@ -173,11 +175,17 @@ public class UniversalProfilingIntegration {
      * @param endedTransaction the transaction to be reported
      */
     public void correlateAndReport(Transaction endedTransaction) {
-        correlator.reportOrBufferTransaction(endedTransaction);
+        if (correlator != null) {
+            correlator.reportOrBufferTransaction(endedTransaction);
+        } else {
+            tracer.getReporter().report(endedTransaction);
+        }
     }
 
     public void drop(Transaction endedTransaction) {
-        correlator.stopCorrelating(endedTransaction);
+        if (correlator != null) {
+            correlator.stopCorrelating(endedTransaction);
+        }
     }
 
 
