@@ -55,7 +55,7 @@ public class UniversalProfilingIntegration {
      */
     static final long POLL_FREQUENCY_MS = 20;
 
-    private static final long INITIAL_SPAN_DELAY_NANOS = Duration.ofSeconds(1).toNanos();
+    private static final long INITIAL_SPAN_DELAY_NANOS = 1_000_000_000L;
 
     private static final Logger log = LoggerFactory.getLogger(UniversalProfilingIntegration.class);
 
