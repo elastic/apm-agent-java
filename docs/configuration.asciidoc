@@ -179,6 +179,9 @@ Click on a key to get more information.
 ** <<config-agent-reporter-health-metrics>>
 ** <<config-agent-background-overhead-metrics>>
 * <<config-profiling>>
+** <<config-universal-profiling-integration-enabled>>
+** <<config-universal-profiling-integration-buffer-size>>
+** <<config-universal-profiling-integration-socket-dir>>
 ** <<config-profiling-inferred-spans-enabled>>
 ** <<config-profiling-inferred-spans-logging-enabled>>
 ** <<config-profiling-inferred-spans-sampling-interval>>
@@ -2675,6 +2678,77 @@ Enables metrics which capture the resource consumption of agent background tasks
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[[config-universal-profiling-integration-enabled]]
+==== `universal_profiling_integration_enabled` (added[1.50.0])
+
+If enabled, the apm agent will correlate it's transaction with the profiling data from elastic universal profiling running on the same host.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.universal_profiling_integration_enabled` | `universal_profiling_integration_enabled` | `ELASTIC_APM_UNIVERSAL_PROFILING_INTEGRATION_ENABLED`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-universal-profiling-integration-buffer-size]]
+==== `universal_profiling_integration_buffer_size` (added[1.50.0])
+
+The feature needs to buffer ended local-root spans for a short duration to ensure that all of its profiling data has been received.This configuration option configures the buffer size in number of spans. The higher the number of local root spans per second, the higher this buffer size should be set.
+The agent will log a warning if it is not capable of buffering a span due to insufficient buffer size. This will cause the span to be exported immediately instead with possibly incomplete profiling correlation data.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `4096` | Integer | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.universal_profiling_integration_buffer_size` | `universal_profiling_integration_buffer_size` | `ELASTIC_APM_UNIVERSAL_PROFILING_INTEGRATION_BUFFER_SIZE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-universal-profiling-integration-socket-dir]]
+==== `universal_profiling_integration_socket_dir` (added[1.50.0])
+
+The extension needs to bind a socket to a file for communicating with the universal profiling host agent.This configuration option can be used to change the location. Note that the total path name (including the socket) must not exceed 100 characters due to OS restrictions.
+If unset, the value of the `java.io.tmpdir` system property will be used.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | String | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.universal_profiling_integration_socket_dir` | `universal_profiling_integration_socket_dir` | `ELASTIC_APM_UNIVERSAL_PROFILING_INTEGRATION_SOCKET_DIR`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
 [[config-profiling-inferred-spans-enabled]]
 ==== `profiling_inferred_spans_enabled` (added[1.15.0] experimental)
 
@@ -4693,6 +4767,32 @@ Example: `5ms`.
 ############################################
 # Profiling                                #
 ############################################
+
+# If enabled, the apm agent will correlate it's transaction with the profiling data from elastic universal profiling running on the same host.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# universal_profiling_integration_enabled=false
+
+# The feature needs to buffer ended local-root spans for a short duration to ensure that all of its profiling data has been received.This configuration option configures the buffer size in number of spans. The higher the number of local root spans per second, the higher this buffer size should be set.
+# The agent will log a warning if it is not capable of buffering a span due to insufficient buffer size. This will cause the span to be exported immediately instead with possibly incomplete profiling correlation data.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Integer
+# Default value: 4096
+#
+# universal_profiling_integration_buffer_size=4096
+
+# The extension needs to bind a socket to a file for communicating with the universal profiling host agent.This configuration option can be used to change the location. Note that the total path name (including the socket) must not exceed 100 characters due to OS restrictions.
+# If unset, the value of the `java.io.tmpdir` system property will be used.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
+#
+# universal_profiling_integration_socket_dir=
 
 # Set to `true` to make the agent create spans for method executions based on
 # https://github.com/jvm-profiling-tools/async-profiler[async-profiler], a sampling aka statistical profiler.

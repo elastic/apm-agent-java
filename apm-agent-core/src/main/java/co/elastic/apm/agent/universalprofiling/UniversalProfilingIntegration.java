@@ -25,6 +25,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -42,11 +43,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.Base64;
 import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 public class UniversalProfilingIntegration {
 
@@ -55,6 +54,8 @@ public class UniversalProfilingIntegration {
      * profiler.
      */
     static final long POLL_FREQUENCY_MS = 20;
+
+    private static final long INITIAL_SPAN_DELAY_NANOS = 1_000_000_000L;
 
     private static final Logger log = LoggerFactory.getLogger(UniversalProfilingIntegration.class);
 
@@ -66,7 +67,12 @@ public class UniversalProfilingIntegration {
     // Visible for testing
     String socketPath = null;
 
+    @Nullable
     private ScheduledExecutorService executor;
+
+    // Visible for testing
+    @Nullable
+    SpanProfilingSamplesCorrelator correlator;
 
     private ActivationListener activationListener = new ActivationListener() {
 
@@ -102,6 +108,8 @@ public class UniversalProfilingIntegration {
                 coreConfig.getServiceName(), coreConfig.getEnvironment(), socketPath);
             UniversalProfilingCorrelation.setProcessStorage(processCorrelationStorage);
 
+            correlator = new SpanProfilingSamplesCorrelator(config.getBufferSize(), INITIAL_SPAN_DELAY_NANOS, tracer.getReporter());
+
             executor = ExecutorUtils.createSingleThreadSchedulingDaemonPool("profiling-integration");
             executor.scheduleWithFixedDelay(new Runnable() {
                 @Override
@@ -125,8 +133,10 @@ public class UniversalProfilingIntegration {
         }
     }
 
-    private void periodicTimer() {
+    // Visible for testing
+    void periodicTimer() {
         consumeProfilerMessages();
+        correlator.flushPendingBufferedSpans();
     }
 
     public void stop() {
@@ -137,6 +147,8 @@ public class UniversalProfilingIntegration {
                 executor = null;
             }
             if (isActive) {
+                consumeProfilerMessages();
+                correlator.shutdownAndFlushAll();
                 UniversalProfilingCorrelation.stopProfilerReturnChannel();
                 JvmtiAccess.destroy();
                 isActive = false;
@@ -147,7 +159,9 @@ public class UniversalProfilingIntegration {
     }
 
     public void afterTransactionStart(Transaction startedTransaction) {
-        //TODO: store the transaction in a map for correlating with profiling data
+        if (correlator != null) {
+            correlator.onTransactionStart(startedTransaction);
+        }
     }
 
     /**
@@ -161,12 +175,17 @@ public class UniversalProfilingIntegration {
      * @param endedTransaction the transaction to be reported
      */
     public void correlateAndReport(Transaction endedTransaction) {
-        //TODO: perform correlation and report after buffering for a certain delay
-        tracer.getReporter().report(endedTransaction);
+        if (correlator != null) {
+            correlator.reportOrBufferTransaction(endedTransaction);
+        } else {
+            tracer.getReporter().report(endedTransaction);
+        }
     }
 
     public void drop(Transaction endedTransaction) {
-        //TODO: remove dropped transactions from correlation storage without reporting
+        if (correlator != null) {
+            correlator.stopCorrelating(endedTransaction);
+        }
     }
 
 
@@ -197,7 +216,7 @@ public class UniversalProfilingIntegration {
         return name.toString();
     }
 
-    private void consumeProfilerMessages() {
+    private synchronized void consumeProfilerMessages() {
         try {
             while (true) {
                 try {
@@ -223,10 +242,22 @@ public class UniversalProfilingIntegration {
     }
 
     private void handleMessage(ProfilerRegistrationMessage message) {
-        //TODO: handle message
+        //TODO: update the host.id in the reporter metadata
+        log.debug("Received profiler registration message with host.id={} and expected latency of {} millis",
+            message.getHostId(), message.getSamplesDelayMillis());
+        long delayMillis = message.getSamplesDelayMillis() + POLL_FREQUENCY_MS;
+        correlator.setSpanBufferDurationNanos(delayMillis * 1_000_000L);
     }
 
+    private final Id tempTraceId = Id.new128BitId();
+    private final Id tempSpanId = Id.new64BitId();
+    private final Id tempStackTraceId = Id.new128BitId();
     private void handleMessage(TraceCorrelationMessage message) {
-        //TODO: handle message
+        tempTraceId.fromBytes(message.getTraceId(), 0);
+        tempSpanId.fromBytes(message.getLocalRootSpanId(), 0);
+        tempStackTraceId.fromBytes(message.getStackTraceId(), 0);
+        log.trace("Received profiler correlation message with trace.id={} transaction.id={} stacktrace.id={} count={}",
+            tempTraceId, tempSpanId, tempStackTraceId, message.getSampleCount());
+        correlator.correlate(tempTraceId, tempSpanId, tempStackTraceId, message.getSampleCount());
     }
 }

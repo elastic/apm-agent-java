@@ -24,7 +24,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.UniversalProfilingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -50,10 +50,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static co.elastic.apm.agent.universalprofiling.ProfilerSharedMemoryWriter.TLS_STORAGE_SIZE;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
@@ -61,7 +65,7 @@ import static org.mockito.Mockito.verify;
 
 public class UniversalProfilingIntegrationTest {
 
-    private Tracer tracer;
+    private ElasticApmTracer tracer;
     private MockReporter reporter;
 
     private TestObjectPoolFactory poolFactory;
@@ -79,7 +83,7 @@ public class UniversalProfilingIntegrationTest {
     void setupTracer(Consumer<ConfigurationRegistry> configCustomizer) {
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         configCustomizer.accept(config);
-        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup(config);
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup(config, false);
 
         tracer = mockInstrumentationSetup.getTracer();
         reporter = mockInstrumentationSetup.getReporter();
@@ -89,9 +93,11 @@ public class UniversalProfilingIntegrationTest {
     @AfterEach
     public void cleanupTracer() {
         if (tracer != null) {
+            if (tracer.isRunning()) {
+                tracer.stop();
+            }
             reporter.assertRecycledAfterDecrementingReferences();
             poolFactory.checkAllPooledObjectsHaveBeenRecycled();
-            tracer.stop();
             tracer = null;
         }
     }
@@ -174,8 +180,6 @@ public class UniversalProfilingIntegrationTest {
             first.end();
             second.end();
             third.end();
-            assertThat(reporter.getTransactions()).containsExactly(first, second);
-            assertThat(reporter.getSpans()).containsExactly(third);
         }
 
 
@@ -242,6 +246,137 @@ public class UniversalProfilingIntegrationTest {
     @Nested
     class SpanCorrelation {
 
+
+        @Test
+        void checkCorrelationFunctional() {
+            AtomicLong clockMs = new AtomicLong(0L);
+            setupTracer();
+            UniversalProfilingIntegration profilingIntegration = tracer.getProfilingIntegration();
+            profilingIntegration.correlator.nanoClock = () -> clockMs.get() * 1_000_000L;
+
+            sendProfilerRegistrationMsg(1, "hostid");
+
+            Transaction tx1 = tracer.startRootTransaction(null);
+            Transaction tx2 = tracer.startRootTransaction(null);
+
+            Id st1 = randomStackTraceId(1);
+            sendSampleMsg(tx1, st1, 1);
+
+            // Send some garbage which should not affect our processing
+            JvmtiAccessImpl.sendToProfilerReturnChannelSocket0(new byte[]{1, 2, 3});
+
+            Id st2 = randomStackTraceId(2);
+            sendSampleMsg(tx2, st2, 2);
+
+            // ensure that the messages are processed now
+            profilingIntegration.periodicTimer();
+
+            tx1.end();
+            tx2.end();
+
+            // ensure that spans are not sent, their delay has not yet elapsed
+            assertThat(reporter.getTransactions()).isEmpty();
+
+            Id st3 = randomStackTraceId(3);
+            sendSampleMsg(tx2, st2, 1);
+            sendSampleMsg(tx1, st3, 2);
+            sendSampleMsg(tx2, st3, 1);
+
+            clockMs.set(1L + UniversalProfilingIntegration.POLL_FREQUENCY_MS);
+            // now the background thread should consume those messages and flush the spans
+            await()
+                .atMost(Duration.ofSeconds(10))
+                .untilAsserted(
+                    () -> {
+
+                        assertThat(reporter.getTransactions())
+                            .hasSize(2)
+                            .containsExactlyInAnyOrder(tx1, tx2);
+
+                        assertThat(tx1.getProfilingCorrelationStackTraceIds())
+                            .containsExactlyInAnyOrder(st1, st3, st3);
+
+                        assertThat(tx2.getProfilingCorrelationStackTraceIds())
+                            .containsExactlyInAnyOrder(st2, st2, st2, st3);
+                    });
+        }
+
+        @Test
+        void unsampledTransactionsNotCorrelated() {
+            setupTracer();
+            UniversalProfilingIntegration profilingIntegration = tracer.getProfilingIntegration();
+            profilingIntegration.correlator.nanoClock = () -> 0L;
+            doReturn(true).when(tracer.getApmServerClient()).supportsKeepingUnsampledTransaction();
+
+            sendProfilerRegistrationMsg(1, "hostid");
+
+            Transaction tx = tracer.startRootTransaction(ConstantSampler.of(false), 0L, null);
+            assertThat(tx.isSampled()).isFalse();
+
+            // Still send a stacktrace to make sure it is actually ignored
+            sendSampleMsg(tx, randomStackTraceId(1), 1);
+
+            // ensure that the messages are processed now
+            profilingIntegration.periodicTimer();
+            tx.end();
+
+            assertThat(reporter.getTransactions()).containsExactly(tx);
+            assertThat(tx.getProfilingCorrelationStackTraceIds()).isEmpty();
+        }
+
+        @Test
+        void shutdownFlushesBufferedSpans() {
+            Id st1 = randomStackTraceId(1);
+
+            setupTracer();
+            UniversalProfilingIntegration profilingIntegration = tracer.getProfilingIntegration();
+            profilingIntegration.correlator.nanoClock = () -> 0L;
+
+            sendProfilerRegistrationMsg(1, "hostid");
+            profilingIntegration.periodicTimer();
+
+            Transaction tx = tracer.startRootTransaction(null);
+            tx.end();
+
+            profilingIntegration.periodicTimer();
+            assertThat(reporter.getTransactions()).isEmpty();
+
+            sendSampleMsg(tx, st1, 1);
+            tracer.stop();
+
+            assertThat(reporter.getTransactions()).containsExactly(tx);
+            assertThat(tx.getProfilingCorrelationStackTraceIds()).containsExactly(st1);
+        }
+
+        @Test
+        void bufferCapacityExceeded() {
+            setupTracer(conf -> {
+                UniversalProfilingConfiguration profConfig = conf.getConfig(UniversalProfilingConfiguration.class);
+                doReturn(true).when(profConfig).isEnabled();
+                doReturn(tempDir.toAbsolutePath().toString()).when(profConfig).getSocketDir();
+                doReturn(2).when(profConfig).getBufferSize();
+            });
+            UniversalProfilingIntegration profilingIntegration = tracer.getProfilingIntegration();
+            profilingIntegration.correlator.nanoClock = () -> 0L;
+
+
+            sendProfilerRegistrationMsg(1, "hostid");
+            profilingIntegration.periodicTimer();
+            Transaction tx1 = tracer.startRootTransaction(null);
+            tx1.end();
+            Transaction tx2 = tracer.startRootTransaction(null);
+            tx2.end();
+            //the actual buffer capacity is 2 + 1 because the peeked transaction is stored outside of the buffer
+            profilingIntegration.periodicTimer();
+            Transaction tx3 = tracer.startRootTransaction(null);
+            tx3.end();
+            // now the buffer should be full, transaction 4 should be sent immediately
+            Transaction tx4 = tracer.startRootTransaction(null);
+            tx4.end();
+
+            Assertions.assertThat(reporter.getTransactions()).containsExactly(tx4);
+        }
+
         @Test
         void badSocketPath() throws Exception {
             Path notADir = tempDir.resolve("not_a_dir");
@@ -287,8 +422,45 @@ public class UniversalProfilingIntegrationTest {
             }
         }
 
-    }
 
+        private Id randomStackTraceId(int seed) {
+            byte[] id = new byte[16];
+            new Random(seed).nextBytes(id);
+            Id idObj = Id.new128BitId();
+            idObj.fromBytes(id, 0);
+            return idObj;
+        }
+
+        void sendSampleMsg(Transaction transaction, Id stackTraceId, int count) {
+            byte[] traceId = idToBytes(transaction.getTraceContext().getTraceId());
+            byte[] transactionId = idToBytes(transaction.getTraceContext().getId());
+
+            ByteBuffer message = ByteBuffer.allocate(46);
+            message.order(ByteOrder.nativeOrder());
+            message.putShort((short) 1); // message-type = correlation message
+            message.putShort((short) 1); // message-version
+            message.put(traceId);
+            message.put(transactionId);
+            message.put(idToBytes(stackTraceId));
+            message.putShort((short) count);
+
+            JvmtiAccessImpl.sendToProfilerReturnChannelSocket0(message.array());
+        }
+
+        void sendProfilerRegistrationMsg(int sampleDelayMillis, String hostId) {
+            byte[] hostIdUtf8 = hostId.getBytes(StandardCharsets.UTF_8);
+
+            ByteBuffer message = ByteBuffer.allocate(12 + hostIdUtf8.length);
+            message.order(ByteOrder.nativeOrder());
+            message.putShort((short) 2); // message-type = registration message
+            message.putShort((short) 1); // message-version
+            message.putInt(sampleDelayMillis);
+            message.putInt(hostIdUtf8.length);
+            message.put(hostIdUtf8);
+
+            JvmtiAccessImpl.sendToProfilerReturnChannelSocket0(message.array());
+        }
+    }
 
     private static byte[] idToBytes(Id id) {
         byte[] buff = new byte[32];

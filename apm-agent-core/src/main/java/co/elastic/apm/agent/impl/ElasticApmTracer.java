@@ -673,6 +673,10 @@ public class ElasticApmTracer implements Tracer {
     public Reporter getReporter() {
         return reporter;
     }
+    
+    public UniversalProfilingIntegration getProfilingIntegration() {
+        return profilingIntegration;
+    }
 
     public Sampler getSampler() {
         return sampler;
