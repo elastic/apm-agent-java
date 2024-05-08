@@ -42,7 +42,8 @@ public class JdbcConfiguration extends ConfigurationOptionProvider {
         .tags("internal","added[1.49.0]")
         .dynamic(true)
         .buildWithDefault(Arrays.asList(
-            "hikari"
+            "hikari",
+            "c3p0"
         ));
 
     public List<String> getDatabaseMetaDataExclusionList() {
