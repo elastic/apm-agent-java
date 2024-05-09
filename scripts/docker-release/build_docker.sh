@@ -18,11 +18,13 @@ readonly SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 readonly PROJECT_ROOT=$SCRIPT_PATH/../../
 readonly NAMESPACE="observability"
 
-if [ "$(ls -A  ${PROJECT_ROOT}elastic-apm-agent/target/*.jar)" ]
+FILE=$(ls -A ${PROJECT_ROOT}elastic-apm-agent/target/*.jar | grep -E "elastic-apm-agent-[0-9]+.[0-9]+.[0-9]+(-SNAPSHOT)?.jar" )
+
+if [ -n "${FILE}" ]
 then
   # We have build files to use
   echo "INFO: Found local build artifact. Using locally built for Docker build"
-  find -E ${PROJECT_ROOT}elastic-apm-agent/target -regex '.*/elastic-apm-agent-[0-9]+.[0-9]+.[0-9]+(-SNAPSHOT)?.jar' -exec cp {} ${PROJECT_ROOT}apm-agent-java.jar \; || echo "INFO: No locally built image found"
+  cp "${FILE}" "${PROJECT_ROOT}apm-agent-java.jar" || echo "INFO: No locally built image found"
 elif [ ! -z ${SONATYPE_FALLBACK+x} ]
 then
   echo "INFO: No local build artifact and SONATYPE_FALLBACK. Falling back to downloading artifact from Sonatype Nexus repository for version $RELEASE_VERSION"
