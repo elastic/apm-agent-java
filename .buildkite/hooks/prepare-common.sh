@@ -2,7 +2,9 @@
 set -eo pipefail
 
 # Configure the java version
-JAVA_VERSION=$(cat .java-version | xargs | tr -dc '[:print:]')
+if [ -z "$JAVA_VERSION" ] ; then
+  JAVA_VERSION=$(cat .java-version | xargs | tr -dc '[:print:]')
+fi
 set +u
 # In case the HOME is not available in the context of the runner.
 if [ -z "${HOME}" ] ; then

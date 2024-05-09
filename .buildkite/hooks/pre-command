@@ -19,6 +19,10 @@ source .buildkite/hooks/prepare-common.sh
 
 if [ "$BUILDKITE_PIPELINE_SLUG" == "apm-agent-java-opentelemetry-benchmark" ]; then
     source .buildkite/hooks/prepare-benchmark.sh
+    # NOTE: https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11323 might
+    #       support .java-version, if so then it might be worthy to read the file.
+    JAVA_VERSION=21
+    source .buildkite/hooks/prepare-common.sh
 fi
 
 if [ "$BUILDKITE_PIPELINE_SLUG" == "apm-agent-java-snapshot" ]; then
