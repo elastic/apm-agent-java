@@ -38,18 +38,24 @@ then
 fi
 
 echo "INFO: Starting Docker build for version $RELEASE_VERSION"
+for DOCKERFILE in "Dockerfile" "Dockerfile.wolfi" ; do
+  DOCKER_TAG=$RELEASE_VERSION
+  if [[ $DOCKERFILE =~ "wolfi" ]]; then
+    DOCKER_TAG="${RELEASE_VERSION}-wolfi"
+  fi
+  docker build -t docker.elastic.co/$NAMESPACE/apm-agent-java:$DOCKER_TAG \
+    --platform linux/amd64 \
+    --build-arg JAR_FILE=apm-agent-java.jar \
+    --build-arg HANDLER_FILE=apm-agent-lambda-layer/src/main/assembly/elastic-apm-handler \
+    --file $DOCKERFILE .
 
-docker build -t docker.elastic.co/$NAMESPACE/apm-agent-java:$RELEASE_VERSION \
-  --platform linux/amd64 \
-  --build-arg JAR_FILE=apm-agent-java.jar \
-  --build-arg HANDLER_FILE=apm-agent-lambda-layer/src/main/assembly/elastic-apm-handler .
-
-if [ $? -eq 0 ]
-then
-  echo "INFO: Docker image built successfully"
-else
-  echo "ERROR: Problem building Docker image!"
-fi
+  if [ $? -eq 0 ]
+  then
+    echo "INFO: Docker image built successfully"
+  else
+    echo "ERROR: Problem building Docker image!"
+  fi
+done
 
 function finish {
 
