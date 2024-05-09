@@ -37,6 +37,8 @@ then
     exit 1
 fi
 
+ls -l apm-agent-java.jar
+
 echo "INFO: Starting Docker build for version $RELEASE_VERSION"
 for DOCKERFILE in "Dockerfile" "Dockerfile.wolfi" ; do
   DOCKER_TAG=$RELEASE_VERSION
