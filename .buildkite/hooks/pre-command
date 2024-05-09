@@ -14,6 +14,9 @@ if [[ "$BUILDKITE_COMMAND" =~ .*"upload".* ]]; then
   exit 0
 fi
 
+# Run always
+source .buildkite/hooks/prepare-common.sh
+
 if [ "$BUILDKITE_PIPELINE_SLUG" == "apm-agent-java-opentelemetry-benchmark" ]; then
     source .buildkite/hooks/prepare-benchmark.sh
 fi
@@ -25,6 +28,3 @@ fi
 if [ "$BUILDKITE_PIPELINE_SLUG" == "apm-agent-java-release" ]; then
     source .buildkite/hooks/prepare-release.sh
 fi
-
-# Run always
-source .buildkite/hooks/prepare-common.sh
