@@ -10,7 +10,7 @@ set -eo pipefail
 clean_up () {
   ARG=$?
   echo "--- Deleting tmp workspace"
-  rm -rf $TMP_WORKSPACE
+  rm -rf $TMP_WORKSPACE || true
   exit $ARG
 }
 trap clean_up EXIT
