@@ -2510,7 +2510,8 @@ Starting from version 1.43.0, the classes that are part of the 'application_pack
 [[config-rabbitmq-naming-mode]]
 ==== `rabbitmq_naming_mode` (added[1.46.0])
 
-Defines whether the agent should use the exchanges or the queue for the naming of RabbitMQ Transactions. Valid options are `QUEUE` and `EXCHANGE`
+Defines whether the agent should use the exchanges or the queue for the naming of RabbitMQ Transactions. Valid options are `QUEUE` and `EXCHANGE`.
+Note that `QUEUE` only works when using RabbitMQ via spring-amqp.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -4628,7 +4629,8 @@ Example: `5ms`.
 #
 # jms_listener_packages=
 
-# Defines whether the agent should use the exchanges or the queue for the naming of RabbitMQ Transactions. Valid options are `QUEUE` and `EXCHANGE`
+# Defines whether the agent should use the exchanges or the queue for the naming of RabbitMQ Transactions. Valid options are `QUEUE` and `EXCHANGE`.
+# Note that `QUEUE` only works when using RabbitMQ via spring-amqp.
 #
 # Valid options: EXCHANGE, QUEUE
 # This setting can be changed at runtime
