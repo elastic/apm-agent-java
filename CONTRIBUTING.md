@@ -316,7 +316,7 @@ For illustration purpose, `1.2.3` will be the target release version, and the gi
    1. Download `elastic-apm-java-aws-lambda-layer-<VERSION>.zip` from the CI release job artifacts and upload it to the release draft
 1. Wait for released package to be available in [maven central](https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/)
 1. Build and push a Docker image using the instructions below
-   Use `SONATYPE_FALLBACK=1 scripts/docker-release/build_docker.sh` to build image with released artifact.
+   Use `docker build --build-arg HANDLER_FILE=apm-agent-lambda-layer/src/main/assembly/elastic-apm-handler --build-arg 'RELEASE_VERSION=<VERSION>' --tag docker.elastic.co/observability/apm-agent-java:<VERSION> .` to build image with released artifact.
    Requires credentials, thus need to delegate this manual step to someone that has them.
 1. Update [`cloudfoundry/index.yml`](cloudfoundry/index.yml) on `main`.
 1. Publish release on Github. This will notify users watching repository.
@@ -360,19 +360,20 @@ Alternatively, it is also possible to use the most recent artifact from the [Son
 repository](https://oss.sonatype.org/#nexus-search;gav~co.elastic.apm~apm-agent-java~~~).
 
 To do so, first clean any artifacts with [`./mvnw clean`](mvnw) and then run the Docker
-build script with the `SONATYPE_FALLBACK` environment variable present. For example,
+build script. For example,
 
-`SONATYPE_FALLBACK=1 scripts/docker-release/build_docker.sh`
+```shell
+docker build \
+  --build-arg HANDLER_FILE=apm-agent-lambda-layer/src/main/assembly/elastic-apm-handler \
+  --build-arg 'RELEASE_VERSION=<VERSION>' \
+  --tag docker.elastic.co/observability/apm-agent-java:<VERSION> .
+```
 
-After running the [`build_docker.sh`](scripts/docker-release/build_docker.sh) script, images can be seen by executing
+Then, images can be seen by executing
 `docker images|egrep docker.elastic.co/observability/apm-agent-java` which should
 produce output similar to the following:
 
 `docker.elastic.co/observability/apm-agent-java   1.12.0               1f45b5858d81        26 hours ago        10.6MB`
-
-No output from the above command indicates that the image did not build correctly
-and that the output of the [`build_docker.sh`](scripts/docker-release/build_docker.sh)
-script should be examined to determine the cause.
 
 
 #### Pushing a image to the Elastic repo
@@ -382,5 +383,4 @@ _Notice:_ You must have access to release secrets in order to push images.
 Prior to pushing images, you must login to the Elastic Docker repo using the correct
 credentials using the [`docker login`](https://docs.docker.com/engine/reference/commandline/login/) command.
 
-To push an image, run the [`scripts/docker-release/push_docker.sh`](scripts/docker-release/push_docker.sh)
-script with the release version. An image will be pushed.
+To push an image, run `docker push docker.elastic.co/observability/apm-agent-java:<VERSION>`. An image will be pushed.

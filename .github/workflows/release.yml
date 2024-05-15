@@ -129,12 +129,16 @@ jobs:
       - await-maven-central-artifact
       - create-github-release
     env:
-      SONATYPE_FALLBACK: 1
+      DOCKER_IMAGE_NAME: docker.elastic.co/observability/apm-agent-java
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-          fetch-depth: 0 # Load entire history as it is required for the push-script
+          fetch-depth: 0 # Load entire history as it is required for the get latest tag
+
+      - name: Get latest tag
+        run: echo "LATEST_TAG=$(git tag --list --sort=version:refname "v*" | grep -v RC | sed s/^v// | tail -n 1)" >> "${GITHUB_ENV}"
+
       - uses: elastic/apm-pipeline-library/.github/actions/docker-login@current
         with:
           registry: docker.elastic.co
@@ -142,13 +146,33 @@ jobs:
           url: ${{ secrets.VAULT_ADDR }}
           roleId: ${{ secrets.VAULT_ROLE_ID }}
           secretId: ${{ secrets.VAULT_SECRET_ID }}
-      - name: "Build docker image"
-        shell: bash
-        run: ./scripts/docker-release/build_docker.sh "${{ env.RELEASE_VERSION }}"
-      - name: "Push docker image"
-        if: ${{ ! inputs.dry_run }}
-        shell: bash
-        run: ./scripts/docker-release/push_docker.sh "${{ env.RELEASE_VERSION }}"
+
+      - name: Extract metadata (tags, labels)
+        id: docker-meta
+        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81  # v5.5.1
+        with:
+          images: ${{ env.DOCKER_IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ env.RELEASE_VERSION }}
+            type=raw,value=latest,enable=${{ contains(env.LATEST_TAG,env.RELEASE_VERSION) }}
+
+      - name: Build and push image
+        id: push
+        uses: docker/build-push-action@2cdde995de11925a030ce8070c3d77a52ffcf1c0  # v5.3.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.docker-meta.outputs.tags }}
+          labels: ${{ steps.docker-meta.outputs.labels }}
+          build-args: |
+            HANDLER_FILE=apm-agent-lambda-layer/src/main/assembly/elastic-apm-handler
+
+      - name: generate build provenance (containers)
+        uses: github-early-access/generate-build-provenance@main
+        with:
+          subject-name: "${{ env.DOCKER_IMAGE_NAME }}"
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
 
   publish-aws-lambda:
     name: "Publish AWS Lambda"
