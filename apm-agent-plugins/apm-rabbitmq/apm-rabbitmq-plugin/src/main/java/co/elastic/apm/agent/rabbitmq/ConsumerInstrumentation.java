@@ -20,6 +20,7 @@ package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration.RabbitMQNamingMode;
 import co.elastic.apm.agent.tracer.metadata.Message;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import com.rabbitmq.client.AMQP;
@@ -106,8 +107,9 @@ public class ConsumerInstrumentation extends RabbitmqBaseInstrumentation {
                 return null;
             }
 
+            String transactionNameSuffix = getExchangeOrRoutingKey(envelope);
             transaction.withType("messaging")
-                .withName("RabbitMQ RECEIVE from ").appendToName(normalizeExchangeName(exchange));
+                .withName("RabbitMQ RECEIVE from ").appendToName(normalizeExchangeName(transactionNameSuffix));
 
             transaction.setFrameworkName("RabbitMQ");
 
@@ -127,6 +129,18 @@ public class ConsumerInstrumentation extends RabbitmqBaseInstrumentation {
                 transaction.captureException(throwable)
                     .deactivate()
                     .end();
+            }
+        }
+
+        private static String getExchangeOrRoutingKey(Envelope envelope) {
+            if (null == envelope) {
+                return null;
+            }
+
+            if (RabbitMQNamingMode.ROUTING_KEY == AbstractBaseInstrumentation.getRabbitMQNamingMode()) {
+                return envelope.getRoutingKey();
+            } else {
+                return envelope.getExchange();
             }
         }
     }
