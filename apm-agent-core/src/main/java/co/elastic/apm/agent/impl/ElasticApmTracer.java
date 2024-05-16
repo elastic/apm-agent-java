@@ -34,7 +34,7 @@ import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.metadata.ServiceFactory;
-import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.*;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
@@ -51,7 +51,6 @@ import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
-import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.logging.LoggingConfigurationImpl;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.ObservableObjectPool;
@@ -126,7 +125,7 @@ public class ElasticApmTracer implements Tracer {
     private final ObservableObjectPool<SpanImpl> spanPool;
     private final ObservableObjectPool<ErrorCaptureImpl> errorPool;
     private final ObservableObjectPool<TraceContextImpl> spanLinkPool;
-    private final ObjectPool<IdImpl> profilingCorrelationStackTraceIdPool;
+    private final ObservableObjectPool<IdImpl> profilingCorrelationStackTraceIdPool;
     private final Reporter reporter;
     private final ObjectPoolFactoryImpl objectPoolFactory;
 
@@ -245,10 +244,10 @@ public class ElasticApmTracer implements Tracer {
         // span links pool allows for 10X the maximum allowed span links per span
         spanLinkPool = poolFactory.createSpanLinkPool(AbstractSpanImpl.MAX_ALLOWED_SPAN_LINKS * 10, this);
 
-        profilingCorrelationStackTraceIdPool = poolFactory.createRecyclableObjectPool(maxPooledElements, new Allocator<Id>() {
+        profilingCorrelationStackTraceIdPool = poolFactory.createRecyclableObjectPool(maxPooledElements, new Allocator<IdImpl>() {
             @Override
-            public Id createInstance() {
-                return Id.new128BitId();
+            public IdImpl createInstance() {
+                return IdImpl.new128BitId();
             }
         });
 
@@ -625,7 +624,7 @@ public class ElasticApmTracer implements Tracer {
         return spanLinkPool.createInstance();
     }
 
-    public Id createProfilingCorrelationStackTraceId() {
+    public IdImpl createProfilingCorrelationStackTraceId() {
         return profilingCorrelationStackTraceIdPool.createInstance();
     }
 
@@ -645,7 +644,7 @@ public class ElasticApmTracer implements Tracer {
         spanLinkPool.recycle(traceContext);
     }
 
-    public void recycleProfilingCorrelationStackTraceId(Id id) {
+    public void recycleProfilingCorrelationStackTraceId(IdImpl id) {
         profilingCorrelationStackTraceIdPool.recycle(id);
     }
 

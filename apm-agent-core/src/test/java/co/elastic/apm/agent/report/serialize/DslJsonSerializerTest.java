@@ -1578,15 +1578,15 @@ class DslJsonSerializerTest {
         assertThat(parent2link.get("span_id").textValue()).isEqualTo(parent2.getTraceContext().getId().toString());
     }
 
-    private static Id create128BitId(String id) {
-        Id idObj = Id.new128BitId();
+    private static IdImpl create128BitId(String id) {
+        IdImpl idObj = IdImpl.new128BitId();
         idObj.fromHexString(id, 0);
         return idObj;
     }
 
     @Test
     void testProfilingStackTraceIdSerialization() {
-        Transaction transaction = tracer.startRootTransaction(null);
+        TransactionImpl transaction = tracer.startRootTransaction(null);
 
         transaction.addProfilerCorrelationStackTrace(create128BitId("a1a2a3a4a5a6a7a8b1b2b3b4b5b6b7b8"));
         transaction.addProfilerCorrelationStackTrace(create128BitId("c1c2c3c4c5c6c7c8d1d2d3d4d5d6d7d8"));

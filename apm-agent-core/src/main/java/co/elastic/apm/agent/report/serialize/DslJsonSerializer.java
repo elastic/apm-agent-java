@@ -1028,17 +1028,17 @@ public class DslJsonSerializer {
         }
 
         private void serializeOTel(SpanImpl span) {
-            serializeOtel(span, Collections.<Id>emptyList());
+            serializeOtel(span, Collections.<IdImpl>emptyList());
         }
 
         private void serializeOTel(TransactionImpl transaction) {
-            List<Id> profilingCorrelationStackTraceIds = transaction.getProfilingCorrelationStackTraceIds();
+            List<IdImpl> profilingCorrelationStackTraceIds = transaction.getProfilingCorrelationStackTraceIds();
             synchronized (profilingCorrelationStackTraceIds) {
                 serializeOtel(transaction, profilingCorrelationStackTraceIds);
             }
         }
 
-        private void serializeOtel(AbstractSpanImpl<?> span, List<Id> profilingStackTraceIds) {
+        private void serializeOtel(AbstractSpanImpl<?> span, List<IdImpl> profilingStackTraceIds) {
             OTelSpanKind kind = span.getOtelKind();
             Map<String, Object> attributes = span.getOtelAttributes();
 

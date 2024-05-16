@@ -18,15 +18,15 @@
  */
 package co.elastic.apm.agent.universalprofiling;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.configuration.UniversalProfilingConfiguration;
 import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.impl.transaction.Id;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.IdImpl;
+import co.elastic.apm.agent.impl.transaction.TraceStateImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.util.ExecutorUtils;
@@ -42,7 +42,6 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -77,13 +76,13 @@ public class UniversalProfilingIntegration {
     private ActivationListener activationListener = new ActivationListener() {
 
         @Override
-        public void beforeActivate(AbstractSpan<?> span) {
+        public void beforeActivate(AbstractSpanImpl<?> span) {
             ProfilerSharedMemoryWriter.updateThreadCorrelationStorage(span);
         }
 
         @Override
-        public void afterDeactivate(@Nullable AbstractSpan<?> deactivatedSpan) {
-            ElasticContext<?> currentContext = tracer.currentContext();
+        public void afterDeactivate(@Nullable AbstractSpanImpl<?> deactivatedSpan) {
+            TraceStateImpl<?> currentContext = tracer.currentContext();
             ProfilerSharedMemoryWriter.updateThreadCorrelationStorage(currentContext.getSpan());
         }
     };
@@ -103,7 +102,7 @@ public class UniversalProfilingIntegration {
 
             socketPath = openProfilerSocket(config.getSocketDir());
 
-            CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
+            CoreConfigurationImpl coreConfig = tracer.getConfig(CoreConfigurationImpl.class);
             ByteBuffer processCorrelationStorage = ProfilerSharedMemoryWriter.generateProcessCorrelationStorage(
                 coreConfig.getServiceName(), coreConfig.getEnvironment(), socketPath);
             UniversalProfilingCorrelation.setProcessStorage(processCorrelationStorage);
@@ -158,7 +157,7 @@ public class UniversalProfilingIntegration {
         }
     }
 
-    public void afterTransactionStart(Transaction startedTransaction) {
+    public void afterTransactionStart(TransactionImpl startedTransaction) {
         if (correlator != null) {
             correlator.onTransactionStart(startedTransaction);
         }
@@ -174,7 +173,7 @@ public class UniversalProfilingIntegration {
      *
      * @param endedTransaction the transaction to be reported
      */
-    public void correlateAndReport(Transaction endedTransaction) {
+    public void correlateAndReport(TransactionImpl endedTransaction) {
         if (correlator != null) {
             correlator.reportOrBufferTransaction(endedTransaction);
         } else {
@@ -182,7 +181,7 @@ public class UniversalProfilingIntegration {
         }
     }
 
-    public void drop(Transaction endedTransaction) {
+    public void drop(TransactionImpl endedTransaction) {
         if (correlator != null) {
             correlator.stopCorrelating(endedTransaction);
         }
@@ -249,9 +248,9 @@ public class UniversalProfilingIntegration {
         correlator.setSpanBufferDurationNanos(delayMillis * 1_000_000L);
     }
 
-    private final Id tempTraceId = Id.new128BitId();
-    private final Id tempSpanId = Id.new64BitId();
-    private final Id tempStackTraceId = Id.new128BitId();
+    private final IdImpl tempTraceId = IdImpl.new128BitId();
+    private final IdImpl tempSpanId = IdImpl.new64BitId();
+    private final IdImpl tempStackTraceId = IdImpl.new128BitId();
     private void handleMessage(TraceCorrelationMessage message) {
         tempTraceId.fromBytes(message.getTraceId(), 0);
         tempSpanId.fromBytes(message.getLocalRootSpanId(), 0);

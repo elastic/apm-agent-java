@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.util;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
@@ -41,7 +41,7 @@ public class ThreadDump extends AbstractLifecycleListener {
     @Override
     public void start(Tracer tracer) throws Exception {
 
-        long threadDumpInterval = tracer.getConfig(CoreConfiguration.class).getThreadDumpInterval();
+        long threadDumpInterval = tracer.getConfig(CoreConfigurationImpl.class).getThreadDumpInterval();
         if (threadDumpInterval <= 0) {
             return;
         }

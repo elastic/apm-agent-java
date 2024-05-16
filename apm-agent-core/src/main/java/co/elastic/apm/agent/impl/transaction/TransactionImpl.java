@@ -109,7 +109,7 @@ public class TransactionImpl extends AbstractSpanImpl<TransactionImpl> implement
     @Nullable
     private Throwable pendingException;
 
-    private final ArrayList<Id> profilingCorrelationStackTraceIds = new ArrayList<>();
+    private final ArrayList<IdImpl> profilingCorrelationStackTraceIds = new ArrayList<>();
 
     /**
      * Faas
@@ -350,7 +350,7 @@ public class TransactionImpl extends AbstractSpanImpl<TransactionImpl> implement
     }
 
     private void recycleProfilingCorrelationStackTraceIds() {
-        for (Id toRecycle : profilingCorrelationStackTraceIds) {
+        for (IdImpl toRecycle : profilingCorrelationStackTraceIds) {
             tracer.recycleProfilingCorrelationStackTraceId(toRecycle);
         }
         if (profilingCorrelationStackTraceIds.size() > 100) {
@@ -570,8 +570,8 @@ public class TransactionImpl extends AbstractSpanImpl<TransactionImpl> implement
         return this.pendingException;
     }
 
-    public void addProfilerCorrelationStackTrace(Id idToCopy) {
-        Id id = tracer.createProfilingCorrelationStackTraceId();
+    public void addProfilerCorrelationStackTrace(IdImpl idToCopy) {
+        IdImpl id = tracer.createProfilingCorrelationStackTraceId();
         id.copyFrom(idToCopy);
         synchronized (profilingCorrelationStackTraceIds) {
             this.profilingCorrelationStackTraceIds.add(id);
@@ -582,7 +582,7 @@ public class TransactionImpl extends AbstractSpanImpl<TransactionImpl> implement
      * Returns the list of stacktrace-IDs from the profiler associated with this transaction
      * To protect agains concurrent modifications, consumers must synchronize on the returned list.
      */
-    public List<Id> getProfilingCorrelationStackTraceIds() {
+    public List<IdImpl> getProfilingCorrelationStackTraceIds() {
         return profilingCorrelationStackTraceIds;
     }
 }

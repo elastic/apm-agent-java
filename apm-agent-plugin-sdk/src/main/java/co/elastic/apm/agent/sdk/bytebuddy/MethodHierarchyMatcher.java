@@ -48,7 +48,7 @@ public class MethodHierarchyMatcher extends ElementMatcher.Junction.AbstractBase
     private final ElementMatcher<? super TypeDescription> hierarchyMatcher;
 
     MethodHierarchyMatcher(ElementMatcher<? super MethodDescription> extraMethodMatcher) {
-        this(extraMethodMatcher, not(is(TypeDescription.ForLoadedType.OBJECT)), any());
+        this(extraMethodMatcher, not(is(TypeDescription.ForLoadedType.of(Object.class))), any());
     }
 
     private MethodHierarchyMatcher(ElementMatcher<? super MethodDescription> extraMethodMatcher, ElementMatcher<? super TypeDescription> superClassMatcher, ElementMatcher<? super TypeDescription> hierachyMatcher) {
