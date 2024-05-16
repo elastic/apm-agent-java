@@ -75,7 +75,38 @@ jobs:
         with:
           subject-path: "${{ github.workspace }}/**/target/*.jar"
 
-      - if: ${{ failure() }}
+  build-docker-images:
+    name: "Build docker images"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: elastic/apm-pipeline-library/.github/actions/docker-login@current
+        with:
+          registry: docker.elastic.co
+          secret: secret/apm-team/ci/docker-registry/prod
+          url: ${{ secrets.VAULT_ADDR }}
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+      - name: prepare context for testing docker build
+        run: |
+          mkdir -p elastic-apm-agent/target
+          curl -L -s -o elastic-apm-agent/target/elastic-apm-agent-1.49.0.jar \
+            "https://oss.sonatype.org/service/local/artifact/maven/redirect?r=releases&g=co.elastic.apm&a=elastic-apm-agent&v=1.49.0"
+      - name: "Build docker image"
+        run: ./scripts/docker-release/build_docker.sh "test"
+
+  notify:
+    needs:
+      - build-docker-images
+      - deploy
+      - validate
+    runs-on: ubuntu-latest
+    steps:
+      - id: check
+        uses: elastic/apm-pipeline-library/.github/actions/check-dependent-jobs@current
+        with:
+          needs: ${{ toJSON(needs) }}
+      - if: ${{ failure() && ! inputs.dry_run }}
         uses: elastic/apm-pipeline-library/.github/actions/slack-message@current
         with:
           url: ${{ secrets.VAULT_ADDR }}

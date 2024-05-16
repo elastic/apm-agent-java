@@ -18,11 +18,13 @@ readonly SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 readonly PROJECT_ROOT=$SCRIPT_PATH/../../
 readonly NAMESPACE="observability"
 
-if [ "$(ls -A  ${PROJECT_ROOT}elastic-apm-agent/target/*.jar)" ]
+FILE=$(ls -A ${PROJECT_ROOT}elastic-apm-agent/target/*.jar | grep -E "elastic-apm-agent-[0-9]+.[0-9]+.[0-9]+(-SNAPSHOT)?.jar" )
+
+if [ -n "${FILE}" ]
 then
   # We have build files to use
   echo "INFO: Found local build artifact. Using locally built for Docker build"
-  find -E ${PROJECT_ROOT}elastic-apm-agent/target -regex '.*/elastic-apm-agent-[0-9]+.[0-9]+.[0-9]+(-SNAPSHOT)?.jar' -exec cp {} ${PROJECT_ROOT}apm-agent-java.jar \; || echo "INFO: No locally built image found"
+  cp "${FILE}" "${PROJECT_ROOT}apm-agent-java.jar" || echo "INFO: No locally built image found"
 elif [ ! -z ${SONATYPE_FALLBACK+x} ]
 then
   echo "INFO: No local build artifact and SONATYPE_FALLBACK. Falling back to downloading artifact from Sonatype Nexus repository for version $RELEASE_VERSION"
@@ -37,19 +39,27 @@ then
     exit 1
 fi
 
+ls -l apm-agent-java.jar
+
 echo "INFO: Starting Docker build for version $RELEASE_VERSION"
+for DOCKERFILE in "Dockerfile" "Dockerfile.wolfi" ; do
+  DOCKER_TAG=$RELEASE_VERSION
+  if [[ $DOCKERFILE =~ "wolfi" ]]; then
+    DOCKER_TAG="${RELEASE_VERSION}-wolfi"
+  fi
+  docker build -t docker.elastic.co/$NAMESPACE/apm-agent-java:$DOCKER_TAG \
+    --platform linux/amd64 \
+    --build-arg JAR_FILE=apm-agent-java.jar \
+    --build-arg HANDLER_FILE=apm-agent-lambda-layer/src/main/assembly/elastic-apm-handler \
+    --file $DOCKERFILE .
 
-docker build -t docker.elastic.co/$NAMESPACE/apm-agent-java:$RELEASE_VERSION \
-  --platform linux/amd64 \
-  --build-arg JAR_FILE=apm-agent-java.jar \
-  --build-arg HANDLER_FILE=apm-agent-lambda-layer/src/main/assembly/elastic-apm-handler .
-
-if [ $? -eq 0 ]
-then
-  echo "INFO: Docker image built successfully"
-else
-  echo "ERROR: Problem building Docker image!"
-fi
+  if [ $? -eq 0 ]
+  then
+    echo "INFO: Docker image built successfully"
+  else
+    echo "ERROR: Problem building Docker image!"
+  fi
+done
 
 function finish {
 

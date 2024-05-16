@@ -330,8 +330,14 @@ docker.elastic.co and are located in the `observability` namespace.
 
 For example, to download the v1.12.0 of the agent, use the following:
 
+```bash
+docker pull docker.elastic.co/observability/apm-agent-java:1.12.0
 ```
-docker pull  docker.elastic.co/observability/apm-agent-java:1.12.0
+
+In addition, you can use the `wolfi` version by adding the suffix `-wolfi`
+
+```bash
+docker pull docker.elastic.co/observability/apm-agent-java:1.12.0-wolfi
 ```
 
 #### Creating images for a Release
