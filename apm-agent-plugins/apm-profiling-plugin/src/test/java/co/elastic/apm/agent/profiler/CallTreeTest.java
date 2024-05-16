@@ -117,7 +117,7 @@ class CallTreeTest {
     @Test
     void testGiveEmptyChildIdsTo() {
         CallTree rich = new CallTree();
-        rich.addChildId(42);
+        rich.addChildId(42, 0L);
         CallTree robinHood = new CallTree();
         CallTree poor = new CallTree();
 

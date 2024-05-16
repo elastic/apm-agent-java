@@ -58,6 +58,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1026,10 +1027,22 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeOTel(AbstractSpanImpl<?> span) {
+        private void serializeOTel(SpanImpl span) {
+            serializeOtel(span, Collections.<Id>emptyList());
+        }
+
+        private void serializeOTel(TransactionImpl transaction) {
+            List<Id> profilingCorrelationStackTraceIds = transaction.getProfilingCorrelationStackTraceIds();
+            synchronized (profilingCorrelationStackTraceIds) {
+                serializeOtel(transaction, profilingCorrelationStackTraceIds);
+            }
+        }
+
+        private void serializeOtel(AbstractSpanImpl<?> span, List<Id> profilingStackTraceIds) {
             OTelSpanKind kind = span.getOtelKind();
             Map<String, Object> attributes = span.getOtelAttributes();
-            boolean hasAttributes = !attributes.isEmpty();
+
+            boolean hasAttributes = !attributes.isEmpty() || !profilingStackTraceIds.isEmpty();
             boolean hasKind = kind != null;
             if (hasKind || hasAttributes) {
                 writeFieldName("otel");
@@ -1046,11 +1059,13 @@ public class DslJsonSerializer {
                     }
                     writeFieldName("attributes");
                     jw.writeByte(OBJECT_START);
-                    int index = 0;
+                    boolean isFirstAttrib = true;
                     for (Map.Entry<String, Object> entry : attributes.entrySet()) {
-                        if (index++ > 0) {
+                        if (!isFirstAttrib) {
                             jw.writeByte(COMMA);
                         }
+                        isFirstAttrib = false;
+
                         writeFieldName(entry.getKey());
                         Object o = entry.getValue();
                         if (o instanceof Number) {
@@ -1060,6 +1075,22 @@ public class DslJsonSerializer {
                         } else if (o instanceof Boolean) {
                             BoolConverter.serialize((Boolean) o, jw);
                         }
+                    }
+                    if (!profilingStackTraceIds.isEmpty()) {
+                        if (!isFirstAttrib) {
+                            jw.writeByte(COMMA);
+                        }
+                        writeFieldName("elastic.profiler_stack_trace_ids");
+                        jw.writeByte(ARRAY_START);
+                        for (int i = 0; i < profilingStackTraceIds.size(); i++) {
+                            if (i != 0) {
+                                jw.writeByte(COMMA);
+                            }
+                            jw.writeByte(QUOTE);
+                            profilingStackTraceIds.get(i).writeAsBase64UrlSafe(jw);
+                            jw.writeByte(QUOTE);
+                        }
+                        jw.writeByte(ARRAY_END);
                     }
                     jw.writeByte(OBJECT_END);
                 }

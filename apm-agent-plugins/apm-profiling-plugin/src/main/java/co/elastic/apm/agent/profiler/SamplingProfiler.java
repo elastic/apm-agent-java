@@ -106,7 +106,7 @@ import static java.nio.file.StandardOpenOption.WRITE;
  * and at least one stack trace.
  * Once {@linkplain ActivationEvent#handleDeactivationEvent(SamplingProfiler) handling the deactivation event} of the root span in a thread
  * (after which {@link ElasticApmTracer#getActive()} would return {@code null}),
- * the {@link CallTree} is {@linkplain CallTree#spanify(CallTree.Root, TraceContextImpl) converted into regular spans}.
+ * the {@link CallTree} is {@linkplain CallTree#spanify(CallTree.Root, TraceContextImpl, TraceContextImpl) converted into regular spans}.
  * </p>
  * <p>
  * Overall, the allocation rate does not depend on the number of {@link ActivationEvent}s but only on

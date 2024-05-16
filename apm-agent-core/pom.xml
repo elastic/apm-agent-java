@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.48.2-SNAPSHOT</version>
+        <version>1.49.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-core</artifactId>
@@ -56,8 +56,7 @@
         <dependency>
             <groupId>org.jctools</groupId>
             <artifactId>jctools-core</artifactId>
-            <!-- 4.0.2 is compiled to target java 8 (for no reason I can see), so keep at 4.0.1 and check 4.0.3 https://github.com/JCTools/JCTools/issues/385 -->
-            <version>4.0.1</version>
+            <version>4.0.3</version>
         </dependency>
         <dependency>
             <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
@@ -99,6 +98,11 @@
             <groupId>org.hdrhistogram</groupId>
             <artifactId>HdrHistogram</artifactId>
             <version>2.1.11</version>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.otel</groupId>
+            <artifactId>jvmti-access</artifactId>
+            <version>0.3.1</version>
         </dependency>
         <!--
         We can't use caffeine due to requiring Java 7.

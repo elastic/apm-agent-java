@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.report.serialize.Base64SerializationUtils;
 import co.elastic.apm.agent.report.serialize.HexSerializationUtils;
 import co.elastic.apm.agent.tracer.Id;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
@@ -88,6 +89,10 @@ public class IdImpl implements Recyclable, Id {
     public int toBytes(byte[] bytes, int offset) {
         System.arraycopy(data, 0, bytes, offset, data.length);
         return offset + data.length;
+    }
+
+    public void writeToBuffer(ByteBuffer buffer) {
+        buffer.put(data);
     }
 
     public void fromLongs(long... values) {
@@ -170,6 +175,10 @@ public class IdImpl implements Recyclable, Id {
 
     public void writeAsHex(JsonWriter jw) {
         HexSerializationUtils.writeBytesAsHex(data, jw);
+    }
+
+    public void writeAsBase64UrlSafe(JsonWriter jw) {
+        Base64SerializationUtils.writeBytesAsBase64UrlSafe(data, jw);
     }
 
     public void writeAsHex(StringBuilder sb) {

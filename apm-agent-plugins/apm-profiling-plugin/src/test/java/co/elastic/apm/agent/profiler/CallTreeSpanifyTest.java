@@ -35,6 +35,7 @@ import org.junit.jupiter.api.condition.OS;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -141,8 +142,62 @@ class CallTreeSpanifyTest {
         root.spanify();
 
         assertThat(reporter.getSpans()).hasSize(2);
-        assertThat(reporter.getSpans().get(1).getTraceContext().isChildOf(spanContext));
-        assertThat(reporter.getSpans().get(0).getTraceContext().isChildOf(rootContext));
+        assertThat(reporter.getSpans().get(0).getTraceContext().isChildOf(spanContext)).isTrue();
+        assertThat(reporter.getSpans().get(1).getTraceContext().isChildOf(rootContext)).isTrue();
+    }
+
+
+    @Test
+    void testSpanWithInvertedActivation() {
+        TraceContext rootContext = CallTreeTest.rootTraceContext(tracer);
+
+        TraceContext childSpanContext = TraceContext.with64BitId(tracer);
+        TraceContext.fromParentContext().asChildOf(childSpanContext, rootContext);
+
+        NoopObjectPool<CallTree.Root> rootPool = NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer));
+        NoopObjectPool<CallTree> childPool = NoopObjectPool.ofRecyclable(CallTree::new);
+
+        CallTree.Root root = CallTree.createRoot(rootPool, childSpanContext.serialize(), rootContext.getServiceName(), rootContext.getServiceVersion(), 0);
+        root.addStackTrace(tracer, Collections.singletonList(StackFrame.of("A", "a")), 10_000, childPool, 0);
+
+        root.onActivation(rootContext.serialize(), 20_000);
+        root.onDeactivation(rootContext.serialize(), childSpanContext.serialize(), 30_000);
+
+        root.addStackTrace(tracer, Collections.singletonList(StackFrame.of("A", "a")), 40_000, childPool, 0);
+        root.end(childPool, 0);
+
+        root.spanify();
+
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getSpans().get(0).getTraceContext().isChildOf(childSpanContext)).isTrue();
+        // the inferred span should not have any span links because this
+        // span link would cause a cycle in the trace
+        assertThat(reporter.getSpans().get(0).getChildIds().getSize()).isEqualTo(0L);
+    }
+
+    @Test
+    void testSpanWithNestedActivation() {
+        TraceContext rootContext = CallTreeTest.rootTraceContext(tracer);
+
+        NoopObjectPool<CallTree.Root> rootPool = NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer));
+        NoopObjectPool<CallTree> childPool = NoopObjectPool.ofRecyclable(CallTree::new);
+
+        CallTree.Root root = CallTree.createRoot(rootPool, rootContext.serialize(), rootContext.getServiceName(), rootContext.getServiceVersion(), 0);
+        root.addStackTrace(tracer, Collections.singletonList(StackFrame.of("A", "a")), 10_000, childPool, 0);
+
+        root.onActivation(rootContext.serialize(), 20_000);
+        root.onDeactivation(rootContext.serialize(), rootContext.serialize(), 30_000);
+
+        root.addStackTrace(tracer, Collections.singletonList(StackFrame.of("A", "a")), 40_000, childPool, 0);
+        root.end(childPool, 0);
+
+        root.spanify();
+
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getSpans().get(0).getTraceContext().isChildOf(rootContext)).isTrue();
+        // the inferred span should not have any span links because this
+        // span link would cause a cycle in the trace
+        assertThat(reporter.getSpans().get(0).getChildIds().getSize()).isEqualTo(0L);
     }
 
 }

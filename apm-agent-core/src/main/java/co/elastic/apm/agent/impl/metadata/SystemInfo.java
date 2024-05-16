@@ -139,7 +139,7 @@ public class SystemInfo {
         return systemInfo.findContainerDetails();
     }
 
-    static boolean isWindows(String osName) {
+    public static boolean isWindows(String osName) {
         return osName.startsWith("Windows");
     }
 

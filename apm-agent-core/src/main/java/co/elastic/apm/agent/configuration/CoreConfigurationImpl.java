@@ -483,6 +483,13 @@ public class CoreConfigurationImpl extends ConfigurationOptionProvider implement
             "exist and use it to dump bytecode of instrumented classes.")
         .buildWithDefault("");
 
+    private final ConfigurationOption<TimeDuration> threadDumpInterval = TimeDurationValueConverter.durationOption("ms")
+        .key("thread_dump_interval")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("Triggers a thread dump at regular frequency, should be used to help configure trace_methods without knowledge of application code")
+        .buildWithDefault(TimeDuration.of("0ms"));
+
     private final ConfigurationOption<Boolean> typeMatchingWithNamePreFilter = ConfigurationOption.booleanOption()
         .key("enable_type_matching_name_pre_filtering")
         .configurationCategory(CORE_CATEGORY)
@@ -1010,6 +1017,10 @@ public class CoreConfigurationImpl extends ConfigurationOptionProvider implement
     @Nullable
     public String getBytecodeDumpPath() {
         return bytecodeDumpPath.get();
+    }
+
+    public long getThreadDumpInterval() {
+        return threadDumpInterval.get().getMillis();
     }
 
     public boolean isTypeMatchingWithNamePreFilter() {
