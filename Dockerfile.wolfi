@@ -5,3 +5,4 @@ ARG HANDLER_FILE
 COPY ${JAR_FILE} /usr/agent/elastic-apm-agent.jar
 COPY ${HANDLER_FILE} /usr/agent/elastic-apm-handler
 RUN chmod +x /usr/agent/elastic-apm-handler
+RUN ln -s /usr/agent/elastic-apm-agent.jar /javaagent.jar
