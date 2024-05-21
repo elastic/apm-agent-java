@@ -22,6 +22,7 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.AutoDetectedServiceInfo;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.baggage.BaggageContext;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.source.ConfigSources;
@@ -374,46 +375,59 @@ class ElasticApmTracerTest {
             .withObjectPoolFactory(objectPoolFactory)
             .buildAndStart();
 
-        Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader());
-        assertThat(tracer.getActive()).isNull();
-        try (Scope scope = transaction.activateInScope()) {
-            assertThat(tracer.getActive()).isEqualTo(transaction);
-            Span child1 = transaction.createSpan();
-            try (Scope childScope = child1.activateInScope()) {
-                assertThat(tracer.getActive()).isEqualTo(child1);
-                Span grandchild1 = child1.createSpan();
-                try (Scope grandchildScope = grandchild1.activateInScope()) {
-                    // latter activation should not be applied due to activation stack overflow
+        doWithNestedBaggageActivations(() -> {
+            Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader());
+            assertThat(tracer.getActive()).isNull();
+            try (Scope scope = transaction.activateInScope()) {
+                assertThat(tracer.getActive()).isEqualTo(transaction);
+                Span child1 = transaction.createSpan();
+                try (Scope childScope = child1.activateInScope()) {
                     assertThat(tracer.getActive()).isEqualTo(child1);
-                    Span ggc = grandchild1.createSpan();
-                    try (Scope ggcScope = ggc.activateInScope()) {
+                    Span grandchild1 = child1.createSpan();
+                    try (Scope grandchildScope = grandchild1.activateInScope()) {
+                        // latter activation should not be applied due to activation stack overflow
                         assertThat(tracer.getActive()).isEqualTo(child1);
-                        ggc.end();
+                        Span ggc = grandchild1.createSpan();
+                        try (Scope ggcScope = ggc.activateInScope()) {
+                            assertThat(tracer.getActive()).isEqualTo(child1);
+                            ggc.end();
+                        }
+                        grandchild1.end();
                     }
-                    grandchild1.end();
+                    assertThat(tracer.getActive()).isEqualTo(child1);
+                    child1.end();
                 }
-                assertThat(tracer.getActive()).isEqualTo(child1);
-                child1.end();
-            }
-            assertThat(tracer.getActive()).isEqualTo(transaction);
-            Span child2 = transaction.createSpan();
-            try (Scope childScope = child2.activateInScope()) {
-                assertThat(tracer.getActive()).isEqualTo(child2);
-                Span grandchild2 = child2.createSpan();
-                try (Scope grandchildScope = grandchild2.activateInScope()) {
-                    // latter activation should not be applied due to activation stack overflow
+                assertThat(tracer.getActive()).isEqualTo(transaction);
+                Span child2 = transaction.createSpan();
+                try (Scope childScope = child2.activateInScope()) {
                     assertThat(tracer.getActive()).isEqualTo(child2);
-                    grandchild2.end();
+                    Span grandchild2 = child2.createSpan();
+                    try (Scope grandchildScope = grandchild2.activateInScope()) {
+                        // latter activation should not be applied due to activation stack overflow
+                        assertThat(tracer.getActive()).isEqualTo(child2);
+                        grandchild2.end();
+                    }
+                    assertThat(tracer.getActive()).isEqualTo(child2);
+                    child2.end();
                 }
-                assertThat(tracer.getActive()).isEqualTo(child2);
-                child2.end();
+                assertThat(tracer.getActive()).isEqualTo(transaction);
+                transaction.end();
             }
-            assertThat(tracer.getActive()).isEqualTo(transaction);
-            transaction.end();
-        }
+        }, tracer, 16);
         assertThat(tracer.getActive()).isNull();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(2);
+    }
+
+    private void doWithNestedBaggageActivations(Runnable r, Tracer tracer, int nestedCount) {
+        if (nestedCount == 0) {
+            r.run();
+            return;
+        }
+        BaggageContext baggageContext = tracer.currentContext().withUpdatedBaggage().buildContext();
+        try (Scope scope = baggageContext.activateInScope()) {
+            doWithNestedBaggageActivations(r, tracer, nestedCount - 1);
+        }
     }
 
     @Test
