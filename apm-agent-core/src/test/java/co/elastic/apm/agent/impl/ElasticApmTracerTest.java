@@ -52,6 +52,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -73,9 +74,15 @@ class ElasticApmTracerTest {
 
     @BeforeEach
     void setUp() {
+        doSetup(conf -> {
+        });
+    }
+
+    void doSetup(Consumer<ConfigurationRegistry> configCustomizer) {
         objectPoolFactory = new TestObjectPoolFactory();
         reporter = new MockReporter();
         config = SpyConfiguration.createSpyConfig();
+        configCustomizer.accept(config);
 
         apmServerClient = new ApmServerClient(config);
         apmServerClient = mock(ApmServerClient.class, delegatesTo(apmServerClient));
@@ -86,6 +93,11 @@ class ElasticApmTracerTest {
             .withObjectPoolFactory(objectPoolFactory)
             .withApmServerClient(apmServerClient)
             .buildAndStart();
+    }
+
+    void setupWithCustomConfig(Consumer<ConfigurationRegistry> configCustomizer) {
+        cleanupAndCheck(); //cleanup @BeforeEach
+        doSetup(configCustomizer);
     }
 
     @AfterEach
@@ -326,11 +338,14 @@ class ElasticApmTracerTest {
 
     @Test
     void testEnableDropSpans() {
-        doReturn(1).when(tracerImpl.getConfig(CoreConfiguration.class)).getTransactionMaxSpans();
+        setupWithCustomConfig(conf -> {
+            doReturn(1).when(conf.getConfig(CoreConfiguration.class)).getTransactionMaxSpans();
+        });
         Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span.activateInScope()) {
+                assertThat(tracerImpl.getActive()).isSameAs(span); //ensure ActiveStack limit is not reached
                 assertThat(span.isSampled()).isTrue();
                 span.end();
             }

@@ -138,7 +138,10 @@ public class ElasticApmTracer implements Tracer {
     private final ThreadLocal<ActiveStack> activeStack = new ThreadLocal<ActiveStack>() {
         @Override
         protected ActiveStack initialValue() {
-            return new ActiveStack(transactionMaxSpans, emptyContext);
+            //We allow transactionMaxSpan activation plus a constant minimum of 16 to account for
+            // * the activation of the transaction itself
+            // * account for baggage updates, which also count towards the depth
+            return new ActiveStack(16 + transactionMaxSpans, emptyContext);
         }
     };
 
@@ -673,7 +676,7 @@ public class ElasticApmTracer implements Tracer {
     public Reporter getReporter() {
         return reporter;
     }
-    
+
     public UniversalProfilingIntegration getProfilingIntegration() {
         return profilingIntegration;
     }
