@@ -413,7 +413,7 @@ class ElasticApmTracerTest {
                 assertThat(tracer.getActive()).isEqualTo(transaction);
                 transaction.end();
             }
-        }, tracer, 16);
+        }, tracer, ElasticApmTracer.ACTIVATION_STACK_BASE_SIZE);
         assertThat(tracer.getActive()).isNull();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(2);

@@ -112,6 +112,7 @@ public class ElasticApmTracer implements Tracer {
     private static final Map<Class<?>, Class<? extends ConfigurationOptionProvider>> configs = new HashMap<>();
 
     public static final Set<String> TRACE_HEADER_NAMES;
+    public static final int ACTIVATION_STACK_BASE_SIZE = 16;
 
     static {
         Set<String> headerNames = new HashSet<>();
@@ -141,7 +142,7 @@ public class ElasticApmTracer implements Tracer {
             //We allow transactionMaxSpan activation plus a constant minimum of 16 to account for
             // * the activation of the transaction itself
             // * account for baggage updates, which also count towards the depth
-            return new ActiveStack(16 + transactionMaxSpans, emptyContext);
+            return new ActiveStack(ACTIVATION_STACK_BASE_SIZE + transactionMaxSpans, emptyContext);
         }
     };
 
