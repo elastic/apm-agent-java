@@ -39,6 +39,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ===== Bug fixes
 * Fixed edge case where inferred spans could cause cycles in the trace parent-child relationships, subsequently resulting in the UI crashing - {pull}3588[#3588]
 * Fix NPE in dropped spans statistics - {pull}3590[#3590]
+* Fix too small activation stack size for small `transaction_max_spans` values - {pull}3643[#3643]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
