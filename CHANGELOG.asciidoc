@@ -34,6 +34,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Added support for correlating APM data with elastic universal profiling data - {pull}3615[#3615], {pull}3602[#3602], {pull}3607[#3607], {pull}3598[#3598]
+* Excluded latest AppDynamics packages from instrumentation (`com.cisco.mtagent.*`) - {pull}3632[#3632]
 
 [float]
 ===== Bug fixes
