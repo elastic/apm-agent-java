@@ -24,11 +24,16 @@ public class Jedis5InstrumentationIT extends Jedis4InstrumentationIT {
 
     @Override
     protected void verifyShardedJedisSpan() {
-        assertTransactionWithRedisSpans("CLIENT", "CLIENT", "CLIENT", "CLIENT", "SET", "GET");
+        assertTransactionWithRedisSpans("CLIENT", "CLIENT", "PING", "SET", "GET");
     }
 
     @Override
     protected void verifyBasicJedisSpans() {
-        assertTransactionWithRedisSpans( "CLIENT", "CLIENT", "SET", "GET");
+        assertTransactionWithRedisSpans("CLIENT", "CLIENT", "PING", "SET", "GET");
+    }
+
+    @Override
+    protected void verifyBinaryJedisSpans() {
+        assertTransactionWithRedisSpans("CLIENT", "CLIENT", "PING", "CLIENT", "CLIENT", "SET", "GET");
     }
 }
