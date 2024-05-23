@@ -54,7 +54,7 @@ public class Jedis4InstrumentationIT extends Jedis1InstrumentationIT {
     }
 
     protected void verifyShardedJedisSpan() {
-        verifyBinaryJedisSpans();
+        assertTransactionWithRedisSpans("CLIENT", "CLIENT", "SET", "GET");
     }
 
     @Test
