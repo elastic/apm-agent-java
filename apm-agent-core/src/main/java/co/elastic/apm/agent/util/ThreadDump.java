@@ -95,8 +95,7 @@ public class ThreadDump extends AbstractLifecycleListener {
      */
     private static String toString(ThreadInfo threadInfo) {
         StringBuilder sb = new StringBuilder("\"" + threadInfo.getThreadName() + "\"" +
-            (threadInfo.isDaemon() ? " daemon" : "") +
-            " prio=" + threadInfo.getPriority() +
+            // note: daemon and priority now available < java9
             " Id=" + threadInfo.getThreadId() + " " +
             threadInfo.getThreadState());
         if (threadInfo.getLockName() != null) {
