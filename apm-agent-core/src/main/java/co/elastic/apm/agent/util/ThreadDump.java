@@ -33,7 +33,9 @@ import java.util.concurrent.TimeUnit;
 
 public class ThreadDump extends AbstractLifecycleListener {
 
-    private Logger log = LoggerFactory.getLogger(ThreadDump.class);
+    private static final Logger log = LoggerFactory.getLogger(ThreadDump.class);
+
+    private static final int MAX_FRAMES = 40;
 
     @Nullable
     private ScheduledThreadPoolExecutor executor;
@@ -66,7 +68,7 @@ public class ThreadDump extends AbstractLifecycleListener {
                 ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
                 StringBuilder sb = new StringBuilder();
                 for (ThreadInfo threadInfo : threadMXBean.dumpAllThreads(true, true)) {
-                    sb.append(threadInfo.toString());
+                    sb.append(ThreadDump.toString(threadInfo));
                 }
 
                 log.debug("thread dump: \n\n {}", sb);
@@ -82,4 +84,84 @@ public class ThreadDump extends AbstractLifecycleListener {
         }
         ExecutorUtils.shutdownAndWaitTermination(executor);
     }
+
+    /**
+     * Copy of {@link ThreadInfo#toString()} with a higher frame size as default implementation.
+     *
+     * @param threadInfo thread info
+     * @return thread info as string
+     */
+    private static String toString(ThreadInfo threadInfo) {
+        StringBuilder sb = new StringBuilder("\"" + threadInfo.getThreadName() + "\"" +
+            (threadInfo.isDaemon() ? " daemon" : "") +
+            " prio=" + threadInfo.getPriority() +
+            " Id=" + threadInfo.getThreadId() + " " +
+            threadInfo.getThreadState());
+        if (threadInfo.getLockName() != null) {
+            sb.append(" on " + threadInfo.getLockName());
+        }
+        if (threadInfo.getLockOwnerName() != null) {
+            sb.append(" owned by \"" + threadInfo.getLockOwnerName() +
+                "\" Id=" + threadInfo.getLockOwnerId());
+        }
+        if (threadInfo.isSuspended()) {
+            sb.append(" (suspended)");
+        }
+        if (threadInfo.isInNative()) {
+            sb.append(" (in native)");
+        }
+        sb.append('\n');
+
+        StackTraceElement[] stackTrace = threadInfo.getStackTrace();
+        int i = 0;
+        for (; i < stackTrace.length && i < MAX_FRAMES; i++) {
+            StackTraceElement ste = stackTrace[i];
+            sb.append("\tat " + ste.toString());
+            sb.append('\n');
+            if (i == 0 && threadInfo.getLockInfo() != null) {
+                Thread.State ts = threadInfo.getThreadState();
+                switch (ts) {
+                    case BLOCKED:
+                        sb.append("\t-  blocked on " + threadInfo.getLockInfo());
+                        sb.append('\n');
+                        break;
+                    case WAITING:
+                        sb.append("\t-  waiting on " + threadInfo.getLockInfo());
+                        sb.append('\n');
+                        break;
+                    case TIMED_WAITING:
+                        sb.append("\t-  waiting on " + threadInfo.getLockInfo());
+                        sb.append('\n');
+                        break;
+                    default:
+                }
+            }
+
+            for (MonitorInfo mi : threadInfo.getLockedMonitors()) {
+                if (mi.getLockedStackDepth() == i) {
+                    sb.append("\t-  locked " + mi);
+                    sb.append('\n');
+                }
+            }
+        }
+        if (i < stackTrace.length) {
+            sb.append("\t...");
+            sb.append('\n');
+        }
+
+        LockInfo[] locks = threadInfo.getLockedSynchronizers();
+        if (locks.length > 0) {
+            sb.append("\n\tNumber of locked synchronizers = " + locks.length);
+            sb.append('\n');
+            for (LockInfo li : locks) {
+                sb.append("\t- " + li);
+                sb.append('\n');
+            }
+        }
+        sb.append('\n');
+        return sb.toString();
+
+    }
+
+
 }
