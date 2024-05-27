@@ -28,6 +28,8 @@ import javax.annotation.Nullable;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
+import java.lang.management.MonitorInfo;
+import java.lang.management.LockInfo;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
