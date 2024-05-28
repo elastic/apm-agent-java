@@ -68,4 +68,4 @@ git checkout -b "update-major-${v}"
 git push origin "update-major-${v}"
 
 echo -e "\n--- create PR to update major branch"
-gh pr create --title="post release v${v}: update major branch" --base "${major_branch}" --head "update-major-${v}" -b "post release v${v}"
+gh pr create --title="post release v${v}: update major branch" --base "${major_branch}" --head "update-major-${v}" -b "post release v${v}\n\nIMPORTANT: merge this PR with merge commit and do not squash to prevent conflicts"
