@@ -10,7 +10,7 @@ on:
         required: true
         default: "main"
       version:
-        description: 'The version to release (e.g. 1.2.3). This workflow will automatically perform the required version bumps'
+        description: 'The version to release (e.g. 1.2.3). This workflow will automatically perform the required post-release version bumps'
         required: true
       skip_preparation:
         description: |
@@ -55,7 +55,7 @@ jobs:
         uses: ./.github/workflows/validate-tag
         with:
           tag: ${{ env.RELEASE_VERSION_TAG }}
-      - name: Validate tag match current version
+      - name: Validate tag match current maven project version
         run: |
           if [ "$(./mvnw -q help:evaluate -Dexpression=project.version -DforceStdout)" != "${{ env.RELEASE_VERSION }}" ]; then
             echo "Tag should match pom.xml project.version"
