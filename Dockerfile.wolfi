@@ -1,0 +1,8 @@
+FROM docker.elastic.co/wolfi/chainguard-base@sha256:9f940409f96296ef56140bcc4665c204dd499af4c32c96cc00e792558097c3f1
+RUN mkdir /usr/agent
+ARG JAR_FILE
+ARG HANDLER_FILE
+COPY ${JAR_FILE} /usr/agent/elastic-apm-agent.jar
+COPY ${HANDLER_FILE} /usr/agent/elastic-apm-handler
+RUN chmod +x /usr/agent/elastic-apm-handler
+RUN ln -s /usr/agent/elastic-apm-agent.jar /javaagent.jar

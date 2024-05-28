@@ -1584,6 +1584,31 @@ class DslJsonSerializerTest {
         assertThat(parent2link.get("span_id").textValue()).isEqualTo(parent2.getTraceContext().getId().toString());
     }
 
+    private static Id create128BitId(String id) {
+        Id idObj = Id.new128BitId();
+        idObj.fromHexString(id, 0);
+        return idObj;
+    }
+
+    @Test
+    void testProfilingStackTraceIdSerialization() {
+        Transaction transaction = tracer.startRootTransaction(null);
+
+        transaction.addProfilerCorrelationStackTrace(create128BitId("a1a2a3a4a5a6a7a8b1b2b3b4b5b6b7b8"));
+        transaction.addProfilerCorrelationStackTrace(create128BitId("c1c2c3c4c5c6c7c8d1d2d3d4d5d6d7d8"));
+
+        JsonNode transactionJson = readJsonString(writer.toJsonString(transaction));
+        JsonNode otel = transactionJson.get("otel");
+        assertThat(otel).isNotNull();
+        JsonNode attributes = otel.get("attributes");
+        assertThat(attributes).isNotNull();
+        JsonNode ids = attributes.get("elastic.profiler_stack_trace_ids");
+        assertThat(ids.isArray()).isTrue();
+        assertThat(ids.size()).isEqualTo(2);
+        assertThat(ids.get(0).asText()).isEqualTo("oaKjpKWmp6ixsrO0tba3uA");
+        assertThat(ids.get(1).asText()).isEqualTo("wcLDxMXGx8jR0tPU1dbX2A");
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void testSerializeLog(boolean asString) {

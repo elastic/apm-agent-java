@@ -4,7 +4,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-spring-webflux</artifactId>
-        <version>1.49.0</version>
+        <version>1.50.0</version>
     </parent>
 
     <artifactId>apm-spring-webflux-common</artifactId>

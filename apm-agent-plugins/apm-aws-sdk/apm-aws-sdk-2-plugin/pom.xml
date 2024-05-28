@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-aws-sdk</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.49.0</version>
+        <version>1.50.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -13,7 +13,7 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
-        <version.aws.sdk>2.25.21</version.aws.sdk>
+        <version.aws.sdk>2.25.43</version.aws.sdk>
         <version.aws.jms>2.0.0</version.aws.jms>
         <!-- AWS SDK v2 is compiled for Java 8 -->
         <maven.compiler.target>8</maven.compiler.target>

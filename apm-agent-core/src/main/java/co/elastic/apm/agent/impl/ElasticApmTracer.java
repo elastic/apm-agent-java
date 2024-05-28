@@ -34,9 +34,11 @@ import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.metadata.ServiceFactory;
+import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
 import co.elastic.apm.agent.tracer.metrics.Labels;
+import co.elastic.apm.agent.tracer.pooling.Allocator;
 import co.elastic.apm.agent.tracer.service.Service;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
@@ -71,6 +73,7 @@ import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.dispatch.HeaderGetter;
 import co.elastic.apm.agent.tracer.reference.ReferenceCounted;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
+import co.elastic.apm.agent.universalprofiling.UniversalProfilingIntegration;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import com.dslplatform.json.JsonWriter;
@@ -109,6 +112,7 @@ public class ElasticApmTracer implements Tracer {
     private static final Map<Class<?>, Class<? extends ConfigurationOptionProvider>> configs = new HashMap<>();
 
     public static final Set<String> TRACE_HEADER_NAMES;
+    public static final int ACTIVATION_STACK_BASE_SIZE = 16;
 
     static {
         Set<String> headerNames = new HashSet<>();
@@ -126,6 +130,7 @@ public class ElasticApmTracer implements Tracer {
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<ErrorCapture> errorPool;
     private final ObjectPool<TraceContext> spanLinkPool;
+    private final ObjectPool<Id> profilingCorrelationStackTraceIdPool;
     private final Reporter reporter;
     private final ObjectPoolFactory objectPoolFactory;
 
@@ -134,7 +139,10 @@ public class ElasticApmTracer implements Tracer {
     private final ThreadLocal<ActiveStack> activeStack = new ThreadLocal<ActiveStack>() {
         @Override
         protected ActiveStack initialValue() {
-            return new ActiveStack(transactionMaxSpans, emptyContext);
+            //We allow transactionMaxSpan activation plus a constant minimum of 16 to account for
+            // * the activation of the transaction itself
+            // * account for baggage updates, which also count towards the depth
+            return new ActiveStack(ACTIVATION_STACK_BASE_SIZE + transactionMaxSpans, emptyContext);
         }
     };
 
@@ -143,6 +151,8 @@ public class ElasticApmTracer implements Tracer {
     private final SpanConfiguration spanConfiguration;
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
+
+    private final UniversalProfilingIntegration profilingIntegration;
     private final ScheduledThreadPoolExecutor sharedPool;
     private final int approximateContextSize;
     private Sampler sampler;
@@ -242,6 +252,13 @@ public class ElasticApmTracer implements Tracer {
         // span links pool allows for 10X the maximum allowed span links per span
         spanLinkPool = poolFactory.createSpanLinkPool(AbstractSpan.MAX_ALLOWED_SPAN_LINKS * 10, this);
 
+        profilingCorrelationStackTraceIdPool = poolFactory.createRecyclableObjectPool(maxPooledElements, new Allocator<Id>() {
+            @Override
+            public Id createInstance() {
+                return Id.new128BitId();
+            }
+        });
+
         sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
         coreConfiguration.getSampleRate().addChangeListener(new ConfigurationOption.ChangeListener<Double>() {
             @Override
@@ -261,6 +278,7 @@ public class ElasticApmTracer implements Tracer {
         // sets the assertionsEnabled flag to true if indeed enabled
         //noinspection AssertWithSideEffects
         assert assertionsEnabled = true;
+        profilingIntegration = new UniversalProfilingIntegration();
     }
 
     @Override
@@ -341,6 +359,7 @@ public class ElasticApmTracer implements Tracer {
         if (serviceInfo != null) {
             transaction.getTraceContext().setServiceInfo(serviceInfo.getServiceName(), serviceInfo.getServiceVersion());
         }
+        profilingIntegration.afterTransactionStart(transaction);
     }
 
     public Transaction noopTransaction() {
@@ -525,8 +544,9 @@ public class ElasticApmTracer implements Tracer {
         if (!transaction.isNoop() &&
             (transaction.isSampled() || apmServerClient.supportsKeepingUnsampledTransaction())) {
             // we do report non-sampled transactions (without the context)
-            reporter.report(transaction);
+            profilingIntegration.correlateAndReport(transaction);
         } else {
+            profilingIntegration.drop(transaction);
             transaction.decrementReferences();
         }
     }
@@ -598,6 +618,10 @@ public class ElasticApmTracer implements Tracer {
         return spanLinkPool.createInstance();
     }
 
+    public Id createProfilingCorrelationStackTraceId() {
+        return profilingCorrelationStackTraceIdPool.createInstance();
+    }
+
     public void recycle(Transaction transaction) {
         transactionPool.recycle(transaction);
     }
@@ -612,6 +636,10 @@ public class ElasticApmTracer implements Tracer {
 
     public void recycle(TraceContext traceContext) {
         spanLinkPool.recycle(traceContext);
+    }
+
+    public void recycleProfilingCorrelationStackTraceId(Id id) {
+        profilingCorrelationStackTraceIdPool.recycle(id);
     }
 
     public synchronized void stop() {
@@ -633,6 +661,7 @@ public class ElasticApmTracer implements Tracer {
             logger.debug("Tracer stop stack trace: ", new Throwable("Expected - for debugging purposes"));
         }
 
+        profilingIntegration.stop();
         try {
             configurationRegistry.close();
             reporter.close();
@@ -647,6 +676,10 @@ public class ElasticApmTracer implements Tracer {
 
     public Reporter getReporter() {
         return reporter;
+    }
+
+    public UniversalProfilingIntegration getProfilingIntegration() {
+        return profilingIntegration;
     }
 
     public Sampler getSampler() {
@@ -738,6 +771,7 @@ public class ElasticApmTracer implements Tracer {
         }
         apmServerClient.start();
         reporter.start();
+        profilingIntegration.start(this);
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             try {
                 lifecycleListener.start(this);
