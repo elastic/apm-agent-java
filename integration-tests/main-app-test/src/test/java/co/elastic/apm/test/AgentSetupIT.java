@@ -41,6 +41,7 @@ class AgentSetupIT {
 
     @ParameterizedTest
     @CsvSource({
+        "openjdk:7,STANDARD",
         "openjdk:8,STANDARD",
         "openjdk:8,JAVA8_BUILD",
         "openjdk:11,STANDARD",
