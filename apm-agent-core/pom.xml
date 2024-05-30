@@ -56,7 +56,9 @@
         <dependency>
             <groupId>org.jctools</groupId>
             <artifactId>jctools-core</artifactId>
-            <version>4.0.3</version>
+            <!-- 4.0.2 and 4.0.3 should be avoided as they don't support java 7
+                see https://github.com/JCTools/JCTools/issues/392 -->
+            <version>4.0.1</version>
         </dependency>
         <dependency>
             <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
