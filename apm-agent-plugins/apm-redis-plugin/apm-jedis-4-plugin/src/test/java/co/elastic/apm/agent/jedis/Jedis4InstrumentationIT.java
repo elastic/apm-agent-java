@@ -62,6 +62,10 @@ public class Jedis4InstrumentationIT extends Jedis1InstrumentationIT {
         binaryJedis.set("foo".getBytes(), "bar".getBytes());
         assertThat(binaryJedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
 
+        verifyBinaryJedisSpans();
+    }
+
+    protected void verifyBinaryJedisSpans() {
         assertTransactionWithRedisSpans("CLIENT", "CLIENT", "SET", "GET");
     }
 }

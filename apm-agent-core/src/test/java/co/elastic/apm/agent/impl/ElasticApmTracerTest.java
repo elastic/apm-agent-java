@@ -23,6 +23,7 @@ import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.AutoDetectedServiceInfo;
 import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.impl.transaction.*;
+import co.elastic.apm.agent.impl.baggage.BaggageContext;
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.source.ConfigSources;
@@ -49,6 +50,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -70,9 +72,15 @@ class ElasticApmTracerTest {
 
     @BeforeEach
     void setUp() {
+        doSetup(conf -> {
+        });
+    }
+
+    void doSetup(Consumer<ConfigurationRegistry> configCustomizer) {
         objectPoolFactory = new TestObjectPoolFactory();
         reporter = new MockReporter();
         config = SpyConfiguration.createSpyConfig();
+        configCustomizer.accept(config);
 
         apmServerClient = new ApmServerClient(config);
         apmServerClient = mock(ApmServerClient.class, delegatesTo(apmServerClient));
@@ -83,6 +91,11 @@ class ElasticApmTracerTest {
             .withObjectPoolFactory(objectPoolFactory)
             .withApmServerClient(apmServerClient)
             .buildAndStart();
+    }
+
+    void setupWithCustomConfig(Consumer<ConfigurationRegistry> configCustomizer) {
+        cleanupAndCheck(); //cleanup @BeforeEach
+        doSetup(configCustomizer);
     }
 
     @AfterEach
@@ -323,11 +336,14 @@ class ElasticApmTracerTest {
 
     @Test
     void testEnableDropSpans() {
-        doReturn(1).when(tracerImpl.getConfig(CoreConfigurationImpl.class)).getTransactionMaxSpans();
+        setupWithCustomConfig(conf -> {
+            doReturn(1).when(config.getConfig(CoreConfigurationImpl.class)).getTransactionMaxSpans();
+        });
         TransactionImpl transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             SpanImpl span = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span.activateInScope()) {
+                assertThat(tracerImpl.getActive()).isSameAs(span); //ensure ActiveStack limit is not reached
                 assertThat(span.isSampled()).isTrue();
                 span.end();
             }
@@ -356,46 +372,59 @@ class ElasticApmTracerTest {
             .withObjectPoolFactory(objectPoolFactory)
             .buildAndStart();
 
-        TransactionImpl transaction = tracer.startRootTransaction(getClass().getClassLoader());
-        assertThat(tracer.getActive()).isNull();
-        try (Scope scope = transaction.activateInScope()) {
-            assertThat(tracer.getActive()).isEqualTo(transaction);
-            SpanImpl child1 = transaction.createSpan();
-            try (Scope childScope = child1.activateInScope()) {
-                assertThat(tracer.getActive()).isEqualTo(child1);
-                SpanImpl grandchild1 = child1.createSpan();
-                try (Scope grandchildScope = grandchild1.activateInScope()) {
-                    // latter activation should not be applied due to activation stack overflow
+        doWithNestedBaggageActivations(() -> {
+            TransactionImpl transaction = tracer.startRootTransaction(getClass().getClassLoader());
+            assertThat(tracer.getActive()).isNull();
+            try (Scope scope = transaction.activateInScope()) {
+                assertThat(tracer.getActive()).isEqualTo(transaction);
+                SpanImpl child1 = transaction.createSpan();
+                try (Scope childScope = child1.activateInScope()) {
                     assertThat(tracer.getActive()).isEqualTo(child1);
-                    SpanImpl ggc = grandchild1.createSpan();
-                    try (Scope ggcScope = ggc.activateInScope()) {
+                    SpanImpl grandchild1 = child1.createSpan();
+                    try (Scope grandchildScope = grandchild1.activateInScope()) {
+                        // latter activation should not be applied due to activation stack overflow
                         assertThat(tracer.getActive()).isEqualTo(child1);
-                        ggc.end();
+                        SpanImpl ggc = grandchild1.createSpan();
+                        try (Scope ggcScope = ggc.activateInScope()) {
+                            assertThat(tracer.getActive()).isEqualTo(child1);
+                            ggc.end();
+                        }
+                        grandchild1.end();
                     }
-                    grandchild1.end();
+                    assertThat(tracer.getActive()).isEqualTo(child1);
+                    child1.end();
                 }
-                assertThat(tracer.getActive()).isEqualTo(child1);
-                child1.end();
-            }
-            assertThat(tracer.getActive()).isEqualTo(transaction);
-            SpanImpl child2 = transaction.createSpan();
-            try (Scope childScope = child2.activateInScope()) {
-                assertThat(tracer.getActive()).isEqualTo(child2);
-                SpanImpl grandchild2 = child2.createSpan();
-                try (Scope grandchildScope = grandchild2.activateInScope()) {
-                    // latter activation should not be applied due to activation stack overflow
+                assertThat(tracer.getActive()).isEqualTo(transaction);
+                SpanImpl child2 = transaction.createSpan();
+                try (Scope childScope = child2.activateInScope()) {
                     assertThat(tracer.getActive()).isEqualTo(child2);
-                    grandchild2.end();
+                    SpanImpl grandchild2 = child2.createSpan();
+                    try (Scope grandchildScope = grandchild2.activateInScope()) {
+                        // latter activation should not be applied due to activation stack overflow
+                        assertThat(tracer.getActive()).isEqualTo(child2);
+                        grandchild2.end();
+                    }
+                    assertThat(tracer.getActive()).isEqualTo(child2);
+                    child2.end();
                 }
-                assertThat(tracer.getActive()).isEqualTo(child2);
-                child2.end();
+                assertThat(tracer.getActive()).isEqualTo(transaction);
+                transaction.end();
             }
-            assertThat(tracer.getActive()).isEqualTo(transaction);
-            transaction.end();
-        }
+        }, tracer, ElasticApmTracer.ACTIVATION_STACK_BASE_SIZE);
         assertThat(tracer.getActive()).isNull();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(2);
+    }
+
+    private void doWithNestedBaggageActivations(Runnable r, Tracer tracer, int nestedCount) {
+        if (nestedCount == 0) {
+            r.run();
+            return;
+        }
+        BaggageContext baggageContext = tracer.currentContext().withUpdatedBaggage().buildContext();
+        try (Scope scope = baggageContext.activateInScope()) {
+            doWithNestedBaggageActivations(r, tracer, nestedCount - 1);
+        }
     }
 
     @Test

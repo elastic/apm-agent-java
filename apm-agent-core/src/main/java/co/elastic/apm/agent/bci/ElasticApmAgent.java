@@ -736,6 +736,8 @@ public class ElasticApmAgent {
             .or(nameStartsWith("com.singularity."))
             .or(any(), classLoaderWithNamePrefix("com.appdynamics."))
             .or(nameStartsWith("com.appdynamics."))
+            .or(any(), classLoaderWithNamePrefix("com.cisco.mtagent."))
+            .or(nameStartsWith("com.cisco.mtagent."))
             .or(any(), classLoaderWithNamePrefix("com.instana."))
             .or(nameStartsWith("com.instana."))
             .or(any(), classLoaderWithNamePrefix("datadog."))
