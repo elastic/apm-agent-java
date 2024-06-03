@@ -416,7 +416,7 @@ class ElasticApmTracerTest {
         assertThat(reporter.getSpans()).hasSize(2);
     }
 
-    private void doWithNestedBaggageActivations(Runnable r, Tracer tracer, int nestedCount) {
+    private void doWithNestedBaggageActivations(Runnable r, ElasticApmTracer tracer, int nestedCount) {
         if (nestedCount == 0) {
             r.run();
             return;
