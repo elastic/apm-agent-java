@@ -1,6 +1,6 @@
 ---
 
-name: Pre release
+name: 'release-step-1'
 
 on:
   workflow_dispatch:
@@ -29,4 +29,6 @@ jobs:
       ref: ${{ inputs.ref }}
       version: ${{ inputs.version }}
       phase: 'pre'
+      pr_title: "[release] release-step-2 ${{ inputs.version }}"
+      pr_body: "Step 2 of the release process for version ${{ inputs.version }}: review & merge, then execute 'release-step-3' GH workflow"
     secrets: inherit

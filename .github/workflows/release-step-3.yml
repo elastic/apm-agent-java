@@ -1,6 +1,6 @@
 ---
 # Releases the agent
-name: release
+name: 'release-step-3'
 
 on:
   workflow_dispatch:
@@ -211,6 +211,8 @@ jobs:
       ref: ${{ inputs.ref }}
       version: ${{ inputs.version }}
       phase: 'post'
+      pr_title: "[release] release-step-5 ${{ inputs.version }}"
+      pr_body: "Step 5 of the release process for version ${{ inputs.version }}: review & merge"
     secrets: inherit
 
   update-major-branch:
