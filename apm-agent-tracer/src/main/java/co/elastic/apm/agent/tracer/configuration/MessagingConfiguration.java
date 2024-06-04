@@ -111,8 +111,8 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<RabbitMQNamingMode> rabbitMQNamingMode = ConfigurationOption.enumOption(RabbitMQNamingMode.class)
         .key("rabbitmq_naming_mode")
         .configurationCategory(MESSAGING_CATEGORY)
-        .description("Defines whether the agent should use the exchanges or the queue for the naming of RabbitMQ Transactions. Valid options are `QUEUE` and `EXCHANGE`.\n" +
-                     "Note that `QUEUE` only works when using RabbitMQ via spring-amqp."
+        .description("Defines whether the agent should use the exchanges, the routing key or the queue for the naming of RabbitMQ Transactions. Valid options are `QUEUE`, `ROUTING_KEY` and `EXCHANGE`.\n" +
+                     "Note that `QUEUE` only works when using RabbitMQ via spring-amqp and `ROUTING_KEY` only works for the non spring-client."
         )
         .dynamic(true)
         .tags("added[1.46.0]")
@@ -187,5 +187,9 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
          * Use queue in transaction names
          */
         QUEUE,
+        /**
+         * Use routing key in transaction names
+         */
+        ROUTING_KEY
     }
 }
