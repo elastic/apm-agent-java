@@ -10,7 +10,6 @@ There are 4 main stages that run on GitHub actions:
 There are some other stages that run for every push on the main branches:
 
 * [Microbenchmark](./microbenchmark.yml)
-* [Snapshoty](./snapshoty.yml)
 * [Sync-branches](./sync-branches.yml)
 
 ### Scenarios
@@ -53,7 +52,7 @@ The tag release follows the naming convention: `v.<major>.<minor>.<patch>`, wher
 
 ### OpenTelemetry
 
-There is a GitHub workflow in charge to populate what the workflow run in terms of jobs and steps. Those details can be seen in [here](https://ela.st/oblt-ci-cd-stats) (**NOTE**: only available for Elasticians).
+Every workflow and its logs are exported to OpenTelemetry traces/logs/metrics. Those details can be seen [here](https://ela.st/oblt-ci-cd-stats) (**NOTE**: only available for Elasticians).
 
 ## Bump automation
 
