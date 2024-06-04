@@ -18,7 +18,9 @@ readonly SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 readonly PROJECT_ROOT=$SCRIPT_PATH/../../
 readonly NAMESPACE="observability"
 
+set +e
 FILE=$(ls -A ${PROJECT_ROOT}elastic-apm-agent/target/*.jar | grep -E "elastic-apm-agent-[0-9]+.[0-9]+.[0-9]+(-SNAPSHOT)?.jar" )
+set -e
 
 if [ -n "${FILE}" ]
 then
