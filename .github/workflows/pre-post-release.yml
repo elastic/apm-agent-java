@@ -23,7 +23,7 @@ on:
         type: string
         required: true
       pr_body:
-        description: : 'pull-request body'
+        description: 'pull-request body'
         type: string
         required: true
 
