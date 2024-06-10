@@ -34,6 +34,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Bug fixes
 * Restore compatibility with Java 7 - {pull}3657[#3657]
+* Avoid `ClassCastException` and issue warning when trying to use otel span links - {pull}3672[#3672]
 
 [float]
 ===== Features
