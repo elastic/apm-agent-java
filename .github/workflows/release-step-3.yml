@@ -162,6 +162,9 @@ jobs:
       # Random region. This needs to be set in GH Actions or the usage of aws-cli will fail.
       # The default region does not matter, since we are publishing in all regions.
       AWS_DEFAULT_REGION: eu-west-1
+      # TODO: use keyless
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -170,15 +173,7 @@ jobs:
         uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw dependency:purge-local-repository package -pl apm-agent-lambda-layer
-      - uses: hashicorp/vault-action@v3.0.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          secrets: |
-            secret/observability-team/ci/service-account/apm-aws-lambda access_key_id | AWS_ACCESS_KEY_ID ;
-            secret/observability-team/ci/service-account/apm-aws-lambda secret_access_key | AWS_SECRET_ACCESS_KEY
+
       - name: Publish
         if: ${{ ! inputs.dry_run }}
         run: |
