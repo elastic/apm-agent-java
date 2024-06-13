@@ -94,7 +94,7 @@ jobs:
 
       - uses: elastic/oblt-actions/buildkite/download-artifact@v1
         with:
-          build-number: ${{ steps.buildkite-run.outputs.build }}
+          build-number: ${{ steps.buildkite-run.outputs.number }}
           path: "${{ env.TARBALL_FILE }}"
           pipeline: ${{ steps.buildkite-run.outputs.pipeline }}
           token: ${{ secrets.BUILDKITE_TOKEN }}
