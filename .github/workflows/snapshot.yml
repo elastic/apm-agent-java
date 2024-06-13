@@ -46,26 +46,24 @@ jobs:
       TARBALL_FILE: artifacts.tar
     if: ${{ contains(needs.validate.outputs.is-snapshot, 'true') }}
     steps:
-      - id: buildkite
-        name: Run Deploy
-        uses: elastic/apm-pipeline-library/.github/actions/buildkite@current
+      - id: buildkite-run
+        continue-on-error: true
+        uses: elastic/oblt-actions/buildkite/run@v1
         with:
-          vaultUrl: ${{ secrets.VAULT_ADDR }}
-          vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
-          vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
-          pipeline: apm-agent-java-snapshot
-          pipelineBranch: ${{ github.ref_name }}
-          artifactName: snapshots
-          artifactPath: ${{ env.TARBALL_FILE }}
-          waitFor: true
-          printBuildLogs: false
-          buildEnvVars: |
+          branch: ${{ github.ref_name }}
+          pipeline: "apm-agent-java-snapshot"
+          token: ${{ secrets.BUILDKITE_TOKEN }}
+          wait-for: true
+          env-vars: |
             dry_run=${{ inputs.dry_run || 'false' }}
             TARBALL_FILE=${{ env.TARBALL_FILE }}
 
-      - uses: actions/download-artifact@v3
+      - uses: elastic/oblt-actions/buildkite/download-artifact@v1
         with:
-          name: snapshots
+          build-number: ${{ steps.buildkite-run.outputs.build }}
+          path: "${{ env.TARBALL_FILE }}"
+          pipeline: ${{ steps.buildkite-run.outputs.pipeline }}
+          token: ${{ secrets.BUILDKITE_TOKEN }}
 
       - name: untar the buildkite tarball
         run: tar xvf ${{ env.TARBALL_FILE }}
@@ -108,12 +106,10 @@ jobs:
         with:
           needs: ${{ toJSON(needs) }}
       - if: ${{ failure() && ! inputs.dry_run }}
-        uses: elastic/apm-pipeline-library/.github/actions/slack-message@current
+        uses: elastic/oblt-actions/slack/send@v1
         with:
-          url: ${{ secrets.VAULT_ADDR }}
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          channel: "#apm-agent-java"
+          bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          channel-id: "#apm-agent-java"
           message: |
             :ghost: [${{ github.repository }}] Snapshot *${{ github.ref_name }}* didn't get triggered in Buildkite.
             Build: (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|here>)
