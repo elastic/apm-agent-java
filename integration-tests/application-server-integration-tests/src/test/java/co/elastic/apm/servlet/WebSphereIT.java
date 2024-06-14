@@ -53,11 +53,6 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
     }
 
     @Override
-    public boolean isHotSpotBased() {
-        return false;
-    }
-
-    @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
         return Arrays.asList(
             ServletApiTestApp.class,
