@@ -33,7 +33,6 @@ import okhttp3.Headers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
 import org.junit.After;
 import org.junit.Test;
@@ -270,17 +269,15 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     public void executeAndValidateRequest(String pathToTest, String expectedContent, Integer expectedResponseCode,
                                             Map<String, String> headersMap) throws IOException, InterruptedException {
-        final ResponseBody responseBody;
+        final String responseString;
         try (Response response = executeRequest(pathToTest, headersMap)) {
             if (expectedResponseCode != null) {
                 assertThat(response.code())
                     .withFailMessage(response + getServerLogs())
                     .isEqualTo(expectedResponseCode);
             }
-            responseBody = response.body();
+            responseString = response.body().string();
         }
-        assertThat(responseBody).isNotNull();
-        String responseString = responseBody.string();
         if (expectedContent != null) {
             assertThat(responseString)
                 .describedAs("unexpected response content")
