@@ -149,10 +149,10 @@ class CallTreeSpanifyTest {
 
     @Test
     void testSpanWithInvertedActivation() {
-        TraceContext rootContext = CallTreeTest.rootTraceContext(tracer);
+        TraceContextImpl rootContext = CallTreeTest.rootTraceContext(tracer);
 
-        TraceContext childSpanContext = TraceContext.with64BitId(tracer);
-        TraceContext.fromParentContext().asChildOf(childSpanContext, rootContext);
+        TraceContextImpl childSpanContext = TraceContextImpl.with64BitId(tracer);
+        TraceContextImpl.fromParentContext().asChildOf(childSpanContext, rootContext);
 
         NoopObjectPool<CallTree.Root> rootPool = NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer));
         NoopObjectPool<CallTree> childPool = NoopObjectPool.ofRecyclable(CallTree::new);
@@ -177,7 +177,7 @@ class CallTreeSpanifyTest {
 
     @Test
     void testSpanWithNestedActivation() {
-        TraceContext rootContext = CallTreeTest.rootTraceContext(tracer);
+        TraceContextImpl rootContext = CallTreeTest.rootTraceContext(tracer);
 
         NoopObjectPool<CallTree.Root> rootPool = NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer));
         NoopObjectPool<CallTree> childPool = NoopObjectPool.ofRecyclable(CallTree::new);
