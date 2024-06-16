@@ -18,6 +18,9 @@
  */
 package co.elastic.apm.agent.profiler;
 
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
@@ -637,7 +640,7 @@ public class CallTree implements Recyclable {
                 long spanId = TraceContextImpl.getSpanId(active);
                 activeSet.add(spanId);
                 if (!isNestedActivation(topOfStack)) {
-                    topOfStack.addMaybeChildId(spanId, TraceContext.getParentId(active));
+                    topOfStack.addMaybeChildId(spanId, TraceContextImpl.getParentId(active));
                 }
             }
         }
