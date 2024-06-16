@@ -28,12 +28,11 @@ import co.elastic.apm.agent.testutils.TestContainersUtils;
 import co.elastic.apm.servlet.tests.TestApp;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.dockerjava.api.command.StopContainerCmd;
 import okhttp3.Headers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.Response;
-import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
 import org.junit.After;
 import org.junit.Test;
@@ -49,7 +48,13 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -176,21 +181,8 @@ public abstract class AbstractServletContainerIntegrationTest {
         container.start();
 
         if (runtimeAttachSupported()) {
-            if (AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN != null) {
-                container.startCliRuntimeAttach(AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN);
-            } else {
-                container.startCliRuntimeAttach(AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN);
-            }
+            container.startCliRuntimeAttach(AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN);
         }
-    }
-
-    private static OkHttpClient setupHttpClient(boolean isDebug) {
-        final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger::info);
-        loggingInterceptor.setLevel(isDebug ? HttpLoggingInterceptor.Level.BODY : HttpLoggingInterceptor.Level.BASIC);
-        return new OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)
-            .readTimeout(isDebug ? 0 : 10, TimeUnit.SECONDS)
-            .build();
     }
 
     protected void beforeContainerStart(AgentTestContainer.AppServer container) {
@@ -216,9 +208,13 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     @After
     public final void stopServer() {
-        container.getDockerClient()
-            .stopContainerCmd(container.getContainerId())
-            .exec();
+        if (!container.isRunning()) {
+            return; // prevent NPE on container.getContainerId()
+        }
+        // allow graceful shutdown before killing and removing the container
+        try (StopContainerCmd stopContainerCmd = container.getDockerClient().stopContainerCmd(container.getContainerId())) {
+            stopContainerCmd.exec();
+        }
         container.stop();
     }
 
@@ -271,29 +267,29 @@ public abstract class AbstractServletContainerIntegrationTest {
         return transaction;
     }
 
-    public String executeAndValidateRequest(String pathToTest, String expectedContent, Integer expectedResponseCode,
+    public void executeAndValidateRequest(String pathToTest, String expectedContent, Integer expectedResponseCode,
                                             Map<String, String> headersMap) throws IOException, InterruptedException {
-        Response response = executeRequest(pathToTest, headersMap);
-        if (expectedResponseCode != null) {
-            assertThat(response.code())
-                .withFailMessage(response.toString() + getServerLogs())
-                .isEqualTo(expectedResponseCode);
+        final String responseString;
+        try (Response response = executeRequest(pathToTest, headersMap)) {
+            if (expectedResponseCode != null) {
+                assertThat(response.code())
+                    .withFailMessage(response + getServerLogs())
+                    .isEqualTo(expectedResponseCode);
+            }
+            responseString = response.body().string();
         }
-        final ResponseBody responseBody = response.body();
-        assertThat(responseBody).isNotNull();
-        String responseString = responseBody.string();
         if (expectedContent != null) {
             assertThat(responseString)
                 .describedAs("unexpected response content")
                 .contains(expectedContent);
         }
-        return responseString;
     }
 
     private void executeStatusRequestAndCheckIgnored(String statusEndpoint) throws IOException {
         Map<String, String> headers = Collections.emptyMap();
-        Response response = executeRequest(statusEndpoint, headers);
-        assertThat(response.code()).isEqualTo(200);
+        try (Response response = executeRequest(statusEndpoint, headers)) {
+            assertThat(response.code()).isEqualTo(200);
+        }
 
         try {
             Thread.sleep(200);
@@ -306,33 +302,6 @@ public abstract class AbstractServletContainerIntegrationTest {
             .describedAs("status transaction should be ignored by configuration %s", transactions)
             .isTrue();
 
-    }
-
-    public String executeAndValidatePostRequest(String pathToTest, RequestBody postBody, String expectedContent, Integer expectedResponseCode) throws IOException, InterruptedException {
-        Response response = executePostRequest(pathToTest, postBody);
-        if (expectedResponseCode != null) {
-            assertThat(response.code())
-                .withFailMessage(response.toString() + getServerLogs())
-                .isEqualTo(expectedResponseCode);
-        }
-        final ResponseBody responseBody = response.body();
-        assertThat(responseBody).isNotNull();
-        String responseString = responseBody.string();
-        if (expectedContent != null) {
-            assertThat(responseString).contains(expectedContent);
-        }
-        return responseString;
-    }
-
-    public Response executePostRequest(String pathToTest, RequestBody postBody) throws IOException {
-        if (!pathToTest.startsWith("/")) {
-            pathToTest = "/" + pathToTest;
-        }
-        return httpClient.newCall(new Request.Builder()
-                .post(postBody)
-                .url(getBaseUrl() + pathToTest)
-                .build())
-            .execute();
     }
 
     public Response executeRequest(String pathToTest, Map<String, String> headersMap) throws IOException {
@@ -368,7 +337,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         List<JsonNode> reportedSpans;
         do {
             reportedSpans = supplier.get();
-        } while (reportedSpans.size() == 0 && System.currentTimeMillis() - start < timeout);
+        } while (reportedSpans.isEmpty() && System.currentTimeMillis() - start < timeout);
         assertThat(reportedSpans)
             .describedAs("at least one span is expected")
             .isNotEmpty();
@@ -386,7 +355,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         List<JsonNode> reportedErrors;
         do {
             reportedErrors = supplier.get();
-        } while (reportedErrors.size() == 0 && System.currentTimeMillis() - start < timeoutMs);
+        } while (reportedErrors.isEmpty() && System.currentTimeMillis() - start < timeoutMs);
         assertThat(reportedErrors.size()).isEqualTo(1);
         for (JsonNode error : reportedErrors) {
             assertThat(error.get("transaction_id").textValue()).isEqualTo(transactionId);
@@ -529,16 +498,6 @@ public abstract class AbstractServletContainerIntegrationTest {
         assertThat(jsonContainer.get("id").textValue()).isEqualTo(container.getContainerId());
     }
 
-    private void addSpans(List<JsonNode> spans, JsonNode payload) {
-        final JsonNode jsonSpans = payload.get("spans");
-        if (jsonSpans != null) {
-            for (JsonNode jsonSpan : jsonSpans) {
-                mockReporter.verifyTransactionSchema(jsonSpan);
-                spans.add(jsonSpan);
-            }
-        }
-    }
-
     private void waitFor(String path) {
         Wait.forHttp(path)
             .forPort(webPort)
@@ -549,9 +508,5 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     public OkHttpClient getHttpClient() {
         return httpClient;
-    }
-
-    public boolean isHotSpotBased() {
-        return true;
     }
 }

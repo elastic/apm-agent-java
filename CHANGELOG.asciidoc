@@ -31,12 +31,17 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
-[[release-notes-1.x]]
-=== Java Agent version 1.x
-
 [float]
 ===== Bug fixes
 * Restore compatibility with Java 7 - {pull}3657[#3657]
+* Avoid `ClassCastException` and issue warning when trying to use otel span links - {pull}3672[#3672]
+
+[float]
+===== Features
+* Added option to make routing-key part of RabbitMQ transaction/span names - {pull}3636[#3636]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
 
 [[release-notes-1.50.0]]
 ==== 1.50.0 - 2024/05/28
