@@ -24,7 +24,6 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.test.AgentFileAccessor;
 import co.elastic.apm.agent.test.AgentTestContainer;
 import co.elastic.apm.agent.test.JavaExecutable;
-import co.elastic.apm.agent.testutils.TestContainersUtils;
 import co.elastic.apm.servlet.tests.TestApp;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,11 +33,15 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.logging.HttpLoggingInterceptor;
+import okhttp3.mockwebserver.Dispatcher;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
+import okio.Buffer;
+import okio.InflaterSource;
 import org.junit.After;
 import org.junit.Test;
-import org.mockserver.model.ClearType;
-import org.mockserver.model.HttpRequest;
-import org.mockserver.model.HttpResponse;
+import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
@@ -46,6 +49,7 @@ import org.testcontainers.utility.MountableFile;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -55,13 +59,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.zip.Inflater;
 
 import static co.elastic.apm.agent.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
+import static co.elastic.apm.agent.report.IntakeV2ReportingEventHandler.INTAKE_V2_FLUSH_URL;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockserver.model.HttpRequest.request;
 
 /**
  * When you want to execute the test in the IDE, execute {@code mvn clean package} before.
@@ -84,19 +91,14 @@ public abstract class AbstractServletContainerIntegrationTest {
     @Nullable
     private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
 
-    private static final MockServerContainer mockServerContainer;
+    private static final MockWebServer apmServer;
+    private static final Queue<String> receivedIntakeEvents = new ConcurrentLinkedQueue<>();
 
     private static final OkHttpClient httpClient;
 
     static {
-        mockServerContainer = new MockServerContainer()
-            .withNetworkAliases("apm-server")
-            .waitingFor(Wait.forHttp(MockServerContainer.HEALTH_ENDPOINT).forStatusCode(200))
-            .withNetwork(Network.SHARED);
-
-        if (JavaExecutable.isDebugging()) {
-            mockServerContainer.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockServerContainer.class));
-        }
+        apmServer = new MockWebServer();
+        apmServer.setDispatcher(new ApmDispatcher());
 
         final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger::info);
         loggingInterceptor.setLevel(JavaExecutable.isDebugging() ? HttpLoggingInterceptor.Level.BODY : HttpLoggingInterceptor.Level.BASIC);
@@ -105,9 +107,13 @@ public abstract class AbstractServletContainerIntegrationTest {
             .readTimeout(JavaExecutable.isDebugging() ? 0 : 10, TimeUnit.SECONDS)
             .build();
 
-        mockServerContainer.start();
-        mockServerContainer.getClient().when(request(INTAKE_V2_URL)).respond(HttpResponse.response().withStatusCode(200));
-        mockServerContainer.getClient().when(request("/")).respond(HttpResponse.response().withStatusCode(200));
+        // Start the mock apm server and expose it to any container as host.testcontainers.internal:$port
+        try {
+            apmServer.start();
+            Testcontainers.exposeHostPorts(apmServer.getPort());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private final MockReporter mockReporter = new MockReporter();
@@ -150,7 +156,7 @@ public abstract class AbstractServletContainerIntegrationTest {
 
         container
             .withNetwork(Network.SHARED)
-            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
+            .withEnv("ELASTIC_APM_SERVER_URL", "http://host.testcontainers.internal:" + apmServer.getPort())
             .withEnv("ELASTIC_APM_IGNORE_URLS", ignoreUrlConfig)
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
@@ -247,7 +253,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     public void clearMockServerLog() {
-        mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
+        receivedIntakeEvents.clear();
     }
 
     public JsonNode assertTransactionReported(String pathToTest, int expectedResponseCode) {
@@ -268,7 +274,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     public void executeAndValidateRequest(String pathToTest, String expectedContent, Integer expectedResponseCode,
-                                            Map<String, String> headersMap) throws IOException, InterruptedException {
+                                          Map<String, String> headersMap) throws IOException, InterruptedException {
         final String responseString;
         try (Response response = executeRequest(pathToTest, headersMap)) {
             if (expectedResponseCode != null) {
@@ -423,23 +429,20 @@ public abstract class AbstractServletContainerIntegrationTest {
         try {
             final List<JsonNode> events = new ArrayList<>();
             final ObjectMapper objectMapper = new ObjectMapper();
-            for (HttpRequest httpRequest : mockServerContainer.getClient().retrieveRecordedRequests(request(INTAKE_V2_URL))) {
-                final String bodyAsString = httpRequest.getBodyAsString();
-                for (String ndJsonLine : bodyAsString.split("\n")) {
-                    final JsonNode ndJson = objectMapper.readTree(ndJsonLine);
-                    if (ndJson.get(eventType) != null) {
-                        // as inferred spans are created only after the profiling session ends
-                        // they can leak into another test
-                        if (!isInferredSpan(ndJson.get(eventType))) {
-                            validateEventMetadata(bodyAsString);
-                        }
-                        events.add(ndJson.get(eventType));
+            for (String bodyAsString : receivedIntakeEvents) {
+                final JsonNode ndJson = objectMapper.readTree(bodyAsString);
+                if (ndJson.get(eventType) != null) {
+                    // as inferred spans are created only after the profiling session ends
+                    // they can leak into another test
+                    if (!isInferredSpan(ndJson.get(eventType))) {
+                        validateEventMetadata(bodyAsString);
                     }
+                    events.add(ndJson.get(eventType));
                 }
             }
             return events;
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -458,7 +461,7 @@ public abstract class AbstractServletContainerIntegrationTest {
                 }
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -508,5 +511,57 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     public OkHttpClient getHttpClient() {
         return httpClient;
+    }
+
+    /**
+     * This is modeled after {@code co.elastic.apm.awslambda.fakeserver.FakeApmServer}, except
+     * deflate instead of gzip and OkHttp instead of {@code com.sun.net.httpserver.HttpServer}.
+     */
+    private static final class ApmDispatcher extends Dispatcher {
+        @Override
+        public MockResponse dispatch(RecordedRequest request) {
+            switch (request.getPath()) {
+                case "/": // health check
+                    return new MockResponse().setBody("{\"version\": \"8.7.1\"}");
+                case INTAKE_V2_URL:
+                case INTAKE_V2_FLUSH_URL:
+                    try {
+                        readIntakeEvents(request);
+                    } catch (IOException e) {
+                        logger.error("Encountered intake request error {}", e);
+                        return new MockResponse().setResponseCode(500);
+                    }
+                    return new MockResponse().setResponseCode(202);
+            }
+            logger.error("Encountered unexpected request {}", request);
+            return new MockResponse().setResponseCode(404);
+        }
+    }
+
+    private static void readIntakeEvents(RecordedRequest request) throws IOException {
+        // The request body is compressed with deflate
+        final Buffer body;
+        String encoding = request.getHeader("Content-Encoding");
+        if (encoding == null) {
+            body = request.getBody().buffer();
+        } else if (encoding.contains("deflate")) {
+            Buffer inflated = new Buffer();
+            try (InflaterSource deflated = new InflaterSource(request.getBody(), new Inflater())) {
+                while (deflated.read(inflated, Integer.MAX_VALUE) != -1) ;
+            }
+            body = inflated;
+        } else {
+            throw new IOException("unsupported encoding: " + encoding);
+        }
+
+        // read each Newline Delimited JSON event into the queue.
+        String event;
+        while ((event = body.readUtf8Line()) != null) {
+            if (!event.startsWith("{")) {
+                throw new IOException("not NDJSON " + request);
+            } else {
+                receivedIntakeEvents.add(event);
+            }
+        }
     }
 }
