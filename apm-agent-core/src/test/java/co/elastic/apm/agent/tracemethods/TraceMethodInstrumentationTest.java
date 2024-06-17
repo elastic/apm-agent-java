@@ -22,11 +22,11 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
@@ -53,7 +53,7 @@ class TraceMethodInstrumentationTest {
     private MockReporter reporter;
     private TestObjectPoolFactory objectPoolFactory;
     private ElasticApmTracer tracer;
-    private CoreConfiguration coreConfiguration;
+    private CoreConfigurationImpl coreConfiguration;
 
     @BeforeEach
     void setUp(TestInfo testInfo) {
@@ -61,7 +61,7 @@ class TraceMethodInstrumentationTest {
         reporter = mockInstrumentationSetup.getReporter();
         objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
         ConfigurationRegistry config = mockInstrumentationSetup.getConfig();
-        coreConfiguration = config.getConfig(CoreConfiguration.class);
+        coreConfiguration = config.getConfig(CoreConfigurationImpl.class);
         doReturn(Arrays.asList(
             MethodMatcher.of("private co.elastic.apm.agent.tracemethods.TraceMethodInstrumentationTest$TestClass#traceMe*()"),
             MethodMatcher.of("private co.elastic.apm.agent.tracemethods.TraceMethodInstrumentationTest$TestDiscardableMethods#*"),
@@ -230,7 +230,7 @@ class TraceMethodInstrumentationTest {
     void testErrorCapture_TraceErrorBranch() {
         new TestErrorCapture().root();
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly("TestErrorCapture#throwException", "TestErrorCapture#catchException");
+        assertThat(reporter.getSpans().stream().map(SpanImpl::getNameAsString)).containsExactly("TestErrorCapture#throwException", "TestErrorCapture#catchException");
         assertThat(reporter.getErrors()).hasSize(1);
     }
 
@@ -350,9 +350,9 @@ class TraceMethodInstrumentationTest {
         }
 
         private void manuallyTraced() {
-            AbstractSpan<?> active = tracer.getActive();
+            AbstractSpanImpl<?> active = tracer.getActive();
             if (active != null) {
-                Span span = active.createSpan();
+                SpanImpl span = active.createSpan();
                 span.propagateContext(new HashMap<>(), (TextHeaderSetter<HashMap<String, String>>) (k, v, m) -> m.put(k, v), null);
                 span.end();
             }

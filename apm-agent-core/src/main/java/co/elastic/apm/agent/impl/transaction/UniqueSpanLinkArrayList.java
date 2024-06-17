@@ -24,16 +24,16 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * A {@link TraceContext} list that enforces uniqueness for the purpose of span links storage.
- * We cannot naturally use {@link Set} implementations because {@link TraceContext#equals} is comparing own ID with other's ID. This is
+ * A {@link TraceContextImpl} list that enforces uniqueness for the purpose of span links storage.
+ * We cannot naturally use {@link Set} implementations because {@link TraceContextImpl#equals} is comparing own ID with other's ID. This is
  * inappropriate for span links, which we consider equal if their <b>parent IDs</b> are equal.
  * So instead, we use a limited subclass of {@link ArrayList} that maintains a parent ID cache for equality checks.
  * As a side benefit, this gives us the ability to iterate over span links based on index and avoid the related iterator allocation, which
  * we wouldn't have if using a {@link Set}.
  */
-public class UniqueSpanLinkArrayList extends ArrayList<TraceContext> {
+public class UniqueSpanLinkArrayList extends ArrayList<TraceContextImpl> {
 
-    private final Set<Id> parentIdSet = new HashSet<>();
+    private final Set<IdImpl> parentIdSet = new HashSet<>();
 
     @Override
     public boolean retainAll(Collection<?> c) {
@@ -41,12 +41,12 @@ public class UniqueSpanLinkArrayList extends ArrayList<TraceContext> {
     }
 
     @Override
-    public TraceContext set(int index, TraceContext traceContext) {
+    public TraceContextImpl set(int index, TraceContextImpl traceContext) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean add(TraceContext traceContext) {
+    public boolean add(TraceContextImpl traceContext) {
         if (parentIdSet.add(traceContext.getParentId())) {
             return super.add(traceContext);
         }
@@ -54,12 +54,12 @@ public class UniqueSpanLinkArrayList extends ArrayList<TraceContext> {
     }
 
     @Override
-    public void add(int index, TraceContext traceContext) {
+    public void add(int index, TraceContextImpl traceContext) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public TraceContext remove(int index) {
+    public TraceContextImpl remove(int index) {
         throw new UnsupportedOperationException();
     }
 
@@ -75,12 +75,12 @@ public class UniqueSpanLinkArrayList extends ArrayList<TraceContext> {
     }
 
     @Override
-    public boolean addAll(Collection<? extends TraceContext> c) {
+    public boolean addAll(Collection<? extends TraceContextImpl> c) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean addAll(int index, Collection<? extends TraceContext> c) {
+    public boolean addAll(int index, Collection<? extends TraceContextImpl> c) {
         throw new UnsupportedOperationException();
     }
 

@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ScheduledExecutorServiceTest extends AbstractInstrumentationTest {
 
     private ScheduledThreadPoolExecutor scheduler;
-    private Transaction transaction;
+    private TransactionImpl transaction;
 
     @BeforeEach
     void setUp() {
@@ -53,14 +53,14 @@ public class ScheduledExecutorServiceTest extends AbstractInstrumentationTest {
 
     @Test
     void testScheduleCallable() throws Exception {
-        final ScheduledFuture<? extends AbstractSpan<?>> future = scheduler.schedule(() -> tracer.getActive(), 0, TimeUnit.SECONDS);
+        final ScheduledFuture<? extends AbstractSpanImpl<?>> future = scheduler.schedule(() -> tracer.getActive(), 0, TimeUnit.SECONDS);
         assertThat(future.get()).isEqualTo(transaction);
         assertThat(tracer.getActive()).isEqualTo(transaction);
     }
 
     @Test
     void testScheduleRunnable() throws Exception {
-        AtomicReference<AbstractSpan<?>> ref = new AtomicReference<>();
+        AtomicReference<AbstractSpanImpl<?>> ref = new AtomicReference<>();
         scheduler.schedule(() -> ref.set(tracer.getActive()), 0, TimeUnit.SECONDS).get();
         assertThat(ref.get()).isEqualTo(transaction);
         assertThat(tracer.getActive()).isEqualTo(transaction);
@@ -68,14 +68,14 @@ public class ScheduledExecutorServiceTest extends AbstractInstrumentationTest {
 
     @Test
     void testScheduleCallable_delayAndEndTransaction() throws Exception {
-        final ScheduledFuture<? extends AbstractSpan<?>> scheduledFuture = scheduler.schedule(() -> tracer.getActive(), 50, TimeUnit.MILLISECONDS);
+        final ScheduledFuture<? extends AbstractSpanImpl<?>> scheduledFuture = scheduler.schedule(() -> tracer.getActive(), 50, TimeUnit.MILLISECONDS);
         verifyEndedTransactionIsStillReferenced(scheduledFuture);
         assertThat(scheduledFuture.get()).isEqualTo(transaction);
     }
 
     @Test
     void testScheduleRunnable_delayAndEndTransaction() throws Exception {
-        AtomicReference<AbstractSpan<?>> ref = new AtomicReference<>();
+        AtomicReference<AbstractSpanImpl<?>> ref = new AtomicReference<>();
         ScheduledFuture<?> scheduledTaskFuture = scheduler.schedule(() -> ref.set(tracer.getActive()), 50, TimeUnit.MILLISECONDS);
         verifyEndedTransactionIsStillReferenced(scheduledTaskFuture);
         assertThat(ref.get()).isEqualTo(transaction);

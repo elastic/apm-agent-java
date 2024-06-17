@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.testutils.assertions;
 
-import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.context.DestinationImpl;
 
-public class DestinationAssert extends BaseAssert<DestinationAssert, Destination> {
+public class DestinationAssert extends BaseAssert<DestinationAssert, DestinationImpl> {
 
-    DestinationAssert(Destination actual) {
+    DestinationAssert(DestinationImpl actual) {
         super(actual, DestinationAssert.class);
     }
 

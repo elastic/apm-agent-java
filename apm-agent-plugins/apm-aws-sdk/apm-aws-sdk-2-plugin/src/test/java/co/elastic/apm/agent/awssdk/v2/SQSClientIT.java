@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.awssdk.v2;
 
 import co.elastic.apm.agent.awssdk.common.AbstractSQSClientIT;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,9 +55,9 @@ public class SQSClientIT extends AbstractSQSClientIT {
     private SqsClient sqs;
     private SqsAsyncClient sqsAsync;
 
-    private final Consumer<Span> messagingAssert = span -> assertThat(span.getContext().getMessage().getQueueName()).isEqualTo(SQS_QUEUE_NAME);
+    private final Consumer<SpanImpl> messagingAssert = span -> assertThat(span.getContext().getMessage().getQueueName()).isEqualTo(SQS_QUEUE_NAME);
 
-    CoreConfiguration coreConfiguration;
+    CoreConfigurationImpl coreConfiguration;
     MessagingConfiguration messagingConfiguration;
 
     public SQSClientIT() {
@@ -66,7 +66,7 @@ public class SQSClientIT extends AbstractSQSClientIT {
 
     @BeforeEach
     public void setupClient() {
-        coreConfiguration = tracer.getConfig(CoreConfiguration.class);
+        coreConfiguration = tracer.getConfig(CoreConfigurationImpl.class);
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
 
         sqs = SqsClient.builder().endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.SQS))
@@ -84,7 +84,7 @@ public class SQSClientIT extends AbstractSQSClientIT {
 
     @Test
     public void testSQSClient() {
-        Transaction transaction = startTestRootTransaction("sqs-test");
+        TransactionImpl transaction = startTestRootTransaction("sqs-test");
 
         newTest(() -> sqs.createQueue(CreateQueueRequest.builder().queueName(SQS_QUEUE_NAME).build()))
             .operationName("CreateQueue")
@@ -163,7 +163,7 @@ public class SQSClientIT extends AbstractSQSClientIT {
 
     @Test
     public void testAsyncSQSClient() {
-        Transaction transaction = startTestRootTransaction("sqs-test");
+        TransactionImpl transaction = startTestRootTransaction("sqs-test");
 
         newTest(() -> sqsAsync.createQueue(CreateQueueRequest.builder().queueName(SQS_QUEUE_NAME).build()))
             .operationName("CreateQueue")
@@ -253,7 +253,7 @@ public class SQSClientIT extends AbstractSQSClientIT {
         final StringBuilder queueUrl = new StringBuilder();
         queueUrl.append(sqs.getQueueUrl(GetQueueUrlRequest.builder().queueName(SQS_QUEUE_NAME).build()).queueUrl());
 
-        Transaction transaction = startTestRootTransaction("sqs-test");
+        TransactionImpl transaction = startTestRootTransaction("sqs-test");
         transaction.withType("messaging");
 
         sqs.sendMessage(SendMessageRequest.builder()
@@ -276,7 +276,7 @@ public class SQSClientIT extends AbstractSQSClientIT {
         final StringBuilder queueUrl = new StringBuilder();
         queueUrl.append(sqsAsync.getQueueUrl(GetQueueUrlRequest.builder().queueName(SQS_QUEUE_NAME).build()).join().queueUrl());
 
-        Transaction transaction = startTestRootTransaction("sqs-test");
+        TransactionImpl transaction = startTestRootTransaction("sqs-test");
         transaction.withType("messaging");
 
         sqsAsync.sendMessage(SendMessageRequest.builder()
@@ -300,7 +300,7 @@ public class SQSClientIT extends AbstractSQSClientIT {
         final StringBuilder queueUrl = new StringBuilder();
         queueUrl.append(sqs.getQueueUrl(GetQueueUrlRequest.builder().queueName(SQS_QUEUE_NAME).build()).queueUrl());
 
-        Transaction transaction = startTestRootTransaction("sqs-test");
+        TransactionImpl transaction = startTestRootTransaction("sqs-test");
         transaction.withType("messaging");
 
         sqs.receiveMessage(ReceiveMessageRequest.builder().queueUrl(queueUrl.toString()).build());

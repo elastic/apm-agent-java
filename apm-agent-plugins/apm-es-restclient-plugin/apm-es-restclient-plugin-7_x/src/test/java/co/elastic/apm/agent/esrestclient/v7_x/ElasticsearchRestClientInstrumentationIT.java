@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.esrestclient.v7_x;
 
 import co.elastic.apm.agent.esrestclient.v6_4.AbstractEs6_4ClientInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -137,7 +137,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
         // This ends the span synchronously
         cancellable.cancel();
 
-        Span searchSpan = reporter.getFirstSpan(500);
+        SpanImpl searchSpan = reporter.getFirstSpan(500);
         validateSpan(searchSpan)
             .method("POST").pathName("/%s/_search", INDEX)
             .statusCode(-1)
@@ -160,12 +160,12 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
             return;
         }
 
-        AbstractSpan<?> active = tracer.getActive();
-        assertThat(active).isInstanceOf(Transaction.class);
+        AbstractSpanImpl<?> active = tracer.getActive();
+        assertThat(active).isInstanceOf(TransactionImpl.class);
 
         reporter.reset();
 
-        AtomicReference<AbstractSpan<?>> observedActive = new AtomicReference<>();
+        AtomicReference<AbstractSpanImpl<?>> observedActive = new AtomicReference<>();
         CountDownLatch endLatch = new CountDownLatch(1);
 
         RestClient restClient = clientBuilder.build();

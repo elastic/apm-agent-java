@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.scheduled;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,8 +31,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractScheduledInstrumentationTest extends AbstractInstrumentationTest {
 
-    protected static List<Transaction> checkTransactions(AbstractCounter counter, int expectedCount, String expectedName) {
-        List<Transaction> transactions = reporter.getTransactions();
+    protected static List<TransactionImpl> checkTransactions(AbstractCounter counter, int expectedCount, String expectedName) {
+        List<TransactionImpl> transactions = reporter.getTransactions();
         assertThat(transactions).hasSize(counter.getInvocationCount()).hasSize(expectedCount);
         transactions.forEach(t -> {
             assertThat(t.getNameAsString()).isEqualTo(expectedName);
@@ -40,9 +40,9 @@ public abstract class AbstractScheduledInstrumentationTest extends AbstractInstr
         return transactions;
     }
 
-    protected static void checkOutcome(List<Transaction> transactions, Outcome outcome) {
+    protected static void checkOutcome(List<TransactionImpl> transactions, Outcome outcome) {
         assertThat(transactions.stream()
-            .map(AbstractSpan::getOutcome)
+            .map(AbstractSpanImpl::getOutcome)
             .collect(Collectors.toSet()))
             .containsExactly(outcome);
     }

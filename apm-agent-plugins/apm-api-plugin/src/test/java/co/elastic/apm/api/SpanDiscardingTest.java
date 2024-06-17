@@ -19,7 +19,8 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractApiTest;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import org.junit.jupiter.api.Test;
 
@@ -62,12 +63,12 @@ public class SpanDiscardingTest extends AbstractApiTest {
     }
 
     private void doTest(Scenario scenario) {
-        doReturn(TimeDuration.of("100ms")).when(config.getConfig(CoreConfiguration.class)).getSpanMinDuration();
+        doReturn(TimeDuration.of("100ms")).when(config.getConfig(CoreConfigurationImpl.class)).getSpanMinDuration();
         Transaction transaction = ElasticApm.startTransaction();
         try (Scope activate = transaction.activate()) {
             parentSpan(scenario);
         }
-        List<co.elastic.apm.agent.impl.transaction.Span> spans = reporter.getSpans();
+        List<SpanImpl> spans = reporter.getSpans();
         switch (scenario) {
             case DISCARD:
             case DISCARD_TRACED_ANNOTATION:

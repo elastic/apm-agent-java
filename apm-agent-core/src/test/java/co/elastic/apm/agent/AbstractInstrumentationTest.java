@@ -20,13 +20,13 @@ package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.collections.WeakConcurrentProviderImpl;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -49,7 +49,7 @@ public abstract class AbstractInstrumentationTest {
 
     /**
      * Set to a valid path in order to make byte buddy dump instrumented classes.
-     * We cannot use the {@link co.elastic.apm.agent.configuration.CoreConfiguration#bytecodeDumpPath} config because
+     * We cannot use the {@link CoreConfigurationImpl#bytecodeDumpPath} config because
      * the way it works is by setting the related byte buddy system property, which is set statically, and since we use
      * Mockito for agent configs, byte buddy gets loaded early and this property gets set before our configuration
      * can be applied.
@@ -99,7 +99,7 @@ public abstract class AbstractInstrumentationTest {
         validateRecycling = false;
     }
 
-    public static Tracer getTracer() {
+    public static ElasticApmTracer getTracer() {
         return tracer;
     }
 
@@ -150,8 +150,8 @@ public abstract class AbstractInstrumentationTest {
      * @param name transaction name
      * @return root transaction
      */
-    protected Transaction startTestRootTransaction(String name) {
-        Transaction transaction = tracer.startRootTransaction(null);
+    protected TransactionImpl startTestRootTransaction(String name) {
+        TransactionImpl transaction = tracer.startRootTransaction(null);
 
         assertThat(transaction).isNotNull();
 
@@ -168,7 +168,7 @@ public abstract class AbstractInstrumentationTest {
      *
      * @return root transaction
      */
-    protected Transaction startTestRootTransaction() {
+    protected TransactionImpl startTestRootTransaction() {
         return startTestRootTransaction("test root transaction");
     }
 

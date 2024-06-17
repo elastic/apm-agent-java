@@ -31,7 +31,7 @@ class ServiceTargetTest {
 
     @Test
     void createEmpty() {
-        ServiceTarget serviceTarget = new ServiceTarget();
+        ServiceTargetImpl serviceTarget = new ServiceTargetImpl();
         assertThat(serviceTarget).isEmpty();
         assertThat(serviceTarget).isNotSetByUser();
         assertThat(serviceTarget).hasNoName();
@@ -40,7 +40,7 @@ class ServiceTargetTest {
 
     @Test
     void typeOnly() {
-        ServiceTarget serviceTarget = new ServiceTarget();
+        ServiceTargetImpl serviceTarget = new ServiceTargetImpl();
         String serviceType = "service-type";
 
         assertThat(serviceTarget.withType(serviceType))
@@ -58,7 +58,7 @@ class ServiceTargetTest {
 
     @Test
     void typeAndName() {
-        ServiceTarget serviceTarget = new ServiceTarget();
+        ServiceTargetImpl serviceTarget = new ServiceTargetImpl();
 
         assertThat(serviceTarget.withType("service-type").withName("service-name"))
             .hasType("service-type")
@@ -78,7 +78,7 @@ class ServiceTargetTest {
 
     @Test
     void userValuePriority_userValuesAfter() {
-        ServiceTarget serviceTarget = new ServiceTarget();
+        ServiceTargetImpl serviceTarget = new ServiceTargetImpl();
 
         serviceTarget.withType("type").withName("name");
         assertThat(serviceTarget).hasType("type").hasName("name").isNotSetByUser();
@@ -89,7 +89,7 @@ class ServiceTargetTest {
 
     @Test
     void userValuePriority_userValuesBefore() {
-        ServiceTarget serviceTarget = new ServiceTarget();
+        ServiceTargetImpl serviceTarget = new ServiceTargetImpl();
 
         assertThat(serviceTarget.withUserType("user-type")).hasType("user-type").isSetByUser();
         assertThat(serviceTarget.withUserName("user-name")).hasName("user-name").isSetByUser();
@@ -103,7 +103,7 @@ class ServiceTargetTest {
 
     @Test
     void userValuePriority_userValuesStillModifiable() {
-        ServiceTarget serviceTarget = new ServiceTarget();
+        ServiceTargetImpl serviceTarget = new ServiceTargetImpl();
 
         assertThat(serviceTarget.withUserType("user-type")).hasType("user-type").isSetByUser();
         assertThat(serviceTarget.withUserName("user-name")).hasName("user-name").isSetByUser();
@@ -116,7 +116,7 @@ class ServiceTargetTest {
     void emptyOrNullUserDestinationResourceIsIgnored() {
         // using null or empty value should allow user to empty service target
         Stream.of("", null).forEach(value -> {
-            ServiceTarget serviceTarget = new ServiceTarget();
+            ServiceTargetImpl serviceTarget = new ServiceTargetImpl();
             assertThat(serviceTarget.withUserName(value))
                 .isEmpty()
                 .isSetByUser();
@@ -126,7 +126,7 @@ class ServiceTargetTest {
 
     @Test
     void userResourceWithoutExplicitType() {
-        ServiceTarget serviceTarget = new ServiceTarget();
+        ServiceTargetImpl serviceTarget = new ServiceTargetImpl();
         serviceTarget.withName("user-resource").withNameOnlyDestinationResource();
         assertThat(serviceTarget)
             .hasName("user-resource")
@@ -135,7 +135,7 @@ class ServiceTargetTest {
 
     @Test
     void setDestinationResourceFromHostAndPort() {
-        ServiceTarget serviceTarget = new ServiceTarget().withType("test").withName("name");
+        ServiceTargetImpl serviceTarget = new ServiceTargetImpl().withType("test").withName("name");
         assertThat(serviceTarget)
             .describedAs("destination resource should be inferred from type an name")
             .hasDestinationResource("test/name");
@@ -170,29 +170,29 @@ class ServiceTargetTest {
     @Test
     void testCopy() {
         testCopy(st -> st.withType("type"),
-            ServiceTarget::getType);
+            ServiceTargetImpl::getType);
 
         testCopy(st -> st.withType("type").withName("name"),
-            ServiceTarget::getType,
+            ServiceTargetImpl::getType,
             st -> st.getName().toString());
 
         testCopy(st -> st.withUserType("user-type").withUserName("user-resource").withNameOnlyDestinationResource(),
-            ServiceTarget::getType,
+            ServiceTargetImpl::getType,
             st -> st.getName().toString(),
             st -> st.getDestinationResource().toString(),
-            ServiceTarget::isSetByUser);
+            ServiceTargetImpl::isSetByUser);
 
     }
 
-    private void testCopy(Function<ServiceTarget, ServiceTarget> setOperation, Function<ServiceTarget, Object>... getOperations) {
-        ServiceTarget original = new ServiceTarget();
+    private void testCopy(Function<ServiceTargetImpl, ServiceTargetImpl> setOperation, Function<ServiceTargetImpl, Object>... getOperations) {
+        ServiceTargetImpl original = new ServiceTargetImpl();
         setOperation.apply(original);
 
-        ServiceTarget copy = new ServiceTarget();
+        ServiceTargetImpl copy = new ServiceTargetImpl();
         copy.copyFrom(original);
 
         List<Object> results = new ArrayList<>();
-        for (Function<ServiceTarget, Object> operation : getOperations) {
+        for (Function<ServiceTargetImpl, Object> operation : getOperations) {
             Object resultOnOriginal = operation.apply(original);
             Object resultOnCopy = operation.apply(copy);
             assertThat(resultOnCopy).isEqualTo(resultOnOriginal);
@@ -212,7 +212,7 @@ class ServiceTargetTest {
 
     @Test
     void testHostPort() {
-        ServiceTarget st = new ServiceTarget()
+        ServiceTargetImpl st = new ServiceTargetImpl()
             .withHostPortName("host", 99)
             .withNameOnlyDestinationResource();
 
@@ -229,7 +229,7 @@ class ServiceTargetTest {
     @Test
     void emptyOrNullUserType() {
         Stream.of("", null).forEach(type -> {
-            ServiceTarget st = new ServiceTarget().withUserType(type).withName("name");
+            ServiceTargetImpl st = new ServiceTargetImpl().withUserType(type).withName("name");
             assertThat(st).hasDestinationResource("name");
         });
 

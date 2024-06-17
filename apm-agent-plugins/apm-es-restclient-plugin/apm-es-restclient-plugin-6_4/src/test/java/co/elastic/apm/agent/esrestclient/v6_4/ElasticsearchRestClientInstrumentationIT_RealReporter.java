@@ -19,24 +19,20 @@
 package co.elastic.apm.agent.esrestclient.v6_4;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.metadata.Agent;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
-import co.elastic.apm.agent.impl.metadata.Service;
+import co.elastic.apm.agent.impl.metadata.ServiceImpl;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
-import co.elastic.apm.agent.report.ApmServerClient;
-import co.elastic.apm.agent.report.ApmServerReporter;
-import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
-import co.elastic.apm.agent.report.Reporter;
-import co.elastic.apm.agent.report.ReporterConfiguration;
-import co.elastic.apm.agent.report.ReporterMonitor;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactoryImpl;
+import co.elastic.apm.agent.report.*;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -126,19 +122,19 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         client.indices().create(new CreateIndexRequest(INDEX), RequestOptions.DEFAULT);
 
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
-        ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        CoreConfiguration coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
+        ReporterConfigurationImpl reporterConfiguration = configurationRegistry.getConfig(ReporterConfigurationImpl.class);
+        CoreConfigurationImpl coreConfiguration = configurationRegistry.getConfig(CoreConfigurationImpl.class);
         doReturn(0).when(reporterConfiguration).getMaxQueueSize();
-        StacktraceConfiguration stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
+        StacktraceConfigurationImpl stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfigurationImpl.class);
         doReturn(30).when(stacktraceConfiguration).getStackTraceLimit();
         SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
-        final Service service = new Service().withName("Eyal-ES-client-test").withAgent(new Agent("java", "Test"));
+        final ServiceImpl service = new ServiceImpl().withName("Eyal-ES-client-test").withAgent(new Agent("java", "Test"));
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
         ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry);
         apmServerClient.start();
         DslJsonSerializer payloadSerializer = new DslJsonSerializer(
-            mock(StacktraceConfiguration.class),
+            mock(StacktraceConfigurationImpl.class),
             apmServerClient,
             MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
         );
@@ -147,7 +143,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
             processorEventHandler,
             payloadSerializer,
             apmServerClient);
-        realReporter = new ApmServerReporter(true, reporterConfiguration, coreConfiguration, v2handler, ReporterMonitor.NOOP, apmServerClient, payloadSerializer, new ObjectPoolFactory());
+        realReporter = new ApmServerReporter(true, reporterConfiguration, coreConfiguration, v2handler, ReporterMonitor.NOOP, apmServerClient, payloadSerializer, new ObjectPoolFactoryImpl());
         realReporter.start();
 
         tracer = new ElasticApmTracerBuilder()
@@ -177,7 +173,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
 
     @After
     public void endTransaction() {
-        Transaction currentTransaction = tracer.currentTransaction();
+        TransactionImpl currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
             currentTransaction.end();
         }

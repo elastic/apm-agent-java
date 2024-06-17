@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 
 /**
- * A callback for {@link AbstractSpan} activation and deactivation events
+ * A callback for {@link AbstractSpanImpl} activation and deactivation events
  * <p>
  * The constructor can optionally have a {@link ElasticApmTracer} parameter.
  * </p>
@@ -29,22 +29,22 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 public interface ActivationListener {
 
     /**
-     * A callback for {@link AbstractSpan#activate()}
+     * A callback for {@link AbstractSpanImpl#activate()}
      *
-     * @param span the {@link AbstractSpan} that is being activated
+     * @param span the {@link AbstractSpanImpl} that is being activated
      * @throws Throwable if there was an error while calling this method
      */
-    void beforeActivate(AbstractSpan<?> span) throws Throwable;
+    void beforeActivate(AbstractSpanImpl<?> span) throws Throwable;
 
     /**
-     * A callback for {@link AbstractSpan#deactivate()}
+     * A callback for {@link AbstractSpanImpl#deactivate()}
      * <p>
-     * Note: the corresponding span may already be {@link AbstractSpan#end() ended} and {@link AbstractSpan#resetState() recycled}.
-     * That's why there is no {@link AbstractSpan} parameter.
+     * Note: the corresponding span may already be {@link AbstractSpanImpl#end() ended} and {@link AbstractSpanImpl#resetState() recycled}.
+     * That's why there is no {@link AbstractSpanImpl} parameter.
      * </p>
      *
      * @param deactivatedSpan the context that has just been deactivated
      * @throws Throwable if there was an error while calling this method
      */
-    void afterDeactivate(AbstractSpan<?> deactivatedSpan) throws Throwable;
+    void afterDeactivate(AbstractSpanImpl<?> deactivatedSpan) throws Throwable;
 }

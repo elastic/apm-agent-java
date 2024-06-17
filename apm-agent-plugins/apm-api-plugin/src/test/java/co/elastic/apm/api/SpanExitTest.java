@@ -19,7 +19,7 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractApiTest;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -41,7 +41,7 @@ public class SpanExitTest extends AbstractApiTest {
 
     @Test
     void captureSpan() {
-        Span span = scenario(this::doCaptureSpan);
+        SpanImpl span = scenario(this::doCaptureSpan);
         assertThat(span)
             .hasName("SpanExitTest#doCaptureSpan")
             .hasType("app")
@@ -55,7 +55,7 @@ public class SpanExitTest extends AbstractApiTest {
 
     @Test
     void captureSpanExit1() {
-        Span span = scenario(this::doCaptureSpanExit1);
+        SpanImpl span = scenario(this::doCaptureSpanExit1);
         assertThat(span)
             .hasName("SpanExitTest#doCaptureSpanExit1")
             .hasType("app")
@@ -69,7 +69,7 @@ public class SpanExitTest extends AbstractApiTest {
 
     @Test
     void captureSpanExit2() {
-        Span span = scenario(this::doCaptureSpanExit2);
+        SpanImpl span = scenario(this::doCaptureSpanExit2);
         assertThat(span)
             .hasName("SpanExitTest#doCaptureSpanExit2")
             .hasType("app")
@@ -84,7 +84,7 @@ public class SpanExitTest extends AbstractApiTest {
 
     @Test
     void captureSpanExit3() {
-        Span span = scenario(this::doCaptureSpanExit3);
+        SpanImpl span = scenario(this::doCaptureSpanExit3);
         assertThat(span)
             .hasName("SpanExitTest#doCaptureSpanExit3")
             .hasType("app")
@@ -102,7 +102,7 @@ public class SpanExitTest extends AbstractApiTest {
 
     @Test
     void traced() {
-        Span span = scenario(this::doTraced);
+        SpanImpl span = scenario(this::doTraced);
         assertThat(span)
             .hasName("SpanExitTest#doTraced")
             .hasType("app")
@@ -115,7 +115,7 @@ public class SpanExitTest extends AbstractApiTest {
 
     @Test
     void tracedExit1() {
-        Span span = scenario(this::doTracedExit1);
+        SpanImpl span = scenario(this::doTracedExit1);
         assertThat(span)
             .hasName("SpanExitTest#doTracedExit1")
             .hasType("app")
@@ -129,7 +129,7 @@ public class SpanExitTest extends AbstractApiTest {
 
     @Test
     void tracedExit2() {
-        Span span = scenario(this::doTracedExit2);
+        SpanImpl span = scenario(this::doTracedExit2);
         assertThat(span)
             .hasName("SpanExitTest#doTracedExit2")
             .hasType("other")
@@ -144,7 +144,7 @@ public class SpanExitTest extends AbstractApiTest {
 
     @Test
     void tracedExit3() {
-        Span span = scenario(this::doTracedExit3);
+        SpanImpl span = scenario(this::doTracedExit3);
         assertThat(span)
             .hasName("SpanExitTest#doTracedExit3")
             .hasType("app")
@@ -160,13 +160,13 @@ public class SpanExitTest extends AbstractApiTest {
 
     // common
 
-    private Span scenario(Runnable task) {
+    private SpanImpl scenario(Runnable task) {
         Transaction transaction = ElasticApm.startTransaction();
         try (Scope activate = transaction.activate()) {
             task.run();
         }
         transaction.end();
-        List<Span> spans = reporter.getSpans();
+        List<SpanImpl> spans = reporter.getSpans();
         assertThat(spans)
             .describedAs("only a single span is expected to be created")
             .hasSize(1);

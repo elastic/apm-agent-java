@@ -19,12 +19,12 @@
 package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.context.Db;
-import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.context.Http;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.context.DbImpl;
+import co.elastic.apm.agent.impl.context.DestinationImpl;
+import co.elastic.apm.agent.impl.context.HttpImpl;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -87,25 +87,25 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     @After
     public void endTransaction() {
-        Transaction currentTransaction = tracer.currentTransaction();
+        TransactionImpl currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
             currentTransaction.deactivate().end();
         }
     }
 
     public void assertThatErrorsExistWhenDeleteNonExistingIndex() {
-        List<ErrorCapture> errorCaptures = reporter.getErrors();
+        List<ErrorCaptureImpl> errorCaptures = reporter.getErrors();
         assertThat(errorCaptures).hasSize(1);
-        ErrorCapture errorCapture = errorCaptures.get(0);
+        ErrorCaptureImpl errorCapture = errorCaptures.get(0);
         assertThat(errorCapture.getException()).isNotNull();
     }
 
-    protected EsSpanValidationBuilder validateSpan(Span spanToValidate) {
+    protected EsSpanValidationBuilder validateSpan(SpanImpl spanToValidate) {
         return new EsSpanValidationBuilder(spanToValidate, async);
     }
 
     protected EsSpanValidationBuilder validateSpan() {
-        List<Span> spans = reporter.getSpans();
+        List<SpanImpl> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         return validateSpan(spans.get(0));
     }
@@ -114,7 +114,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
         private static final ObjectMapper jackson = new ObjectMapper();
 
-        private final Span span;
+        private final SpanImpl span;
 
         private boolean statementExpectedNonNull = false;
 
@@ -140,7 +140,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
         private boolean isAsyncRequest;
 
-        public EsSpanValidationBuilder(Span spanToValidate, boolean isAsyncRequest) {
+        public EsSpanValidationBuilder(SpanImpl spanToValidate, boolean isAsyncRequest) {
             this.span = spanToValidate;
             this.isAsyncRequest = isAsyncRequest;
         }
@@ -238,7 +238,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
 
         private void checkHttpContext() {
-            Http http = span.getContext().getHttp();
+            HttpImpl http = span.getContext().getHttp();
             assertThat(http).isNotNull();
             if (expectedHttpMethod != null) {
                 assertThat(http.getMethod()).isEqualTo(expectedHttpMethod);
@@ -250,7 +250,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         }
 
         private void checkDbContext() {
-            Db db = span.getContext().getDb();
+            DbImpl db = span.getContext().getDb();
             assertThat(db.getType()).isEqualTo(ELASTICSEARCH);
             CharSequence statement = db.getStatementBuffer();
             if (statementExpectedNonNull) {
@@ -284,7 +284,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         }
 
         private void checkDestinationContext() {
-            Destination destination = span.getContext().getDestination();
+            DestinationImpl destination = span.getContext().getDestination();
             assertThat(destination).isNotNull();
             if (reporter.checkDestinationAddress()) {
                 assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());

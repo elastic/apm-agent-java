@@ -22,24 +22,20 @@ import co.elastic.apm.agent.awslambda.lambdas.AbstractFunction;
 import co.elastic.apm.agent.awslambda.lambdas.ApiGatewayV1LambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.ApplicationLoadBalancerRequestLambdaFunction;
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.context.Url;
-import co.elastic.apm.agent.impl.transaction.Faas;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.impl.context.RequestImpl;
+import co.elastic.apm.agent.impl.context.ResponseImpl;
+import co.elastic.apm.agent.impl.context.UrlImpl;
+import co.elastic.apm.agent.impl.transaction.FaasImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
-import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.ApplicationLoadBalancerRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.ApplicationLoadBalancerResponseEvent;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
-import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
@@ -94,25 +90,25 @@ public class ApplicationLoadBalancerRequestEventLambdaTest extends BaseGatewayLa
 
     @Test
     public void testBasicCall() {
-        doReturn(CoreConfiguration.EventType.ALL).when(config.getConfig(CoreConfiguration.class)).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.ALL).when(config.getConfig(CoreConfigurationImpl.class)).getCaptureBody();
         getFunction().handleRequest(createInput(), context);
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo("FUNCTION_NAME");
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getResult()).isEqualTo("HTTP 2xx");
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
         assertThat(reporter.getPartialTransactions()).containsExactly(transaction);
 
-        Request request = transaction.getContext().getRequest();
+        RequestImpl request = transaction.getContext().getRequest();
         assertThat(request.getMethod()).isEqualTo(HTTP_METHOD);
         assertThat(request.getBody()).isNull();
         assertThat(request.getHttpVersion()).isNull();
 
-        Url url = request.getUrl();
+        UrlImpl url = request.getUrl();
         assertThat(url.getHostname()).isEqualTo("blabla.com");
         assertThat(url.getPort()).isEqualTo(443);
         assertThat(url.getPathname()).isEqualTo("/toolz/api/v2.0/downloadPDF/PDF_2020-09-11_11-06-01.pdf");
@@ -128,7 +124,7 @@ public class ApplicationLoadBalancerRequestEventLambdaTest extends BaseGatewayLa
         assertThat(headers.get("connection")).isEqualTo("Keep-Alive");
         assertThat(headers.get("accept-encoding")).isEqualTo("gzip,deflate");
 
-        Response response = transaction.getContext().getResponse();
+        ResponseImpl response = transaction.getContext().getResponse();
         assertThat(response.getStatusCode()).isEqualTo(ApiGatewayV1LambdaFunction.EXPECTED_STATUS_CODE);
         assertThat(response.getHeaders()).isNotNull();
         assertThat(response.getHeaders().get(ApiGatewayV1LambdaFunction.EXPECTED_RESPONSE_HEADER_1_KEY)).isEqualTo(ApiGatewayV1LambdaFunction.EXPECTED_RESPONSE_HEADER_1_VALUE);
@@ -145,7 +141,7 @@ public class ApplicationLoadBalancerRequestEventLambdaTest extends BaseGatewayLa
         assertThat(transaction.getContext().getServiceOrigin().getId()).isEqualTo("arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-279XGJDqGZ5rsrHC2Fjr/49e9d65c45c6791a");
         assertThat(transaction.getContext().getServiceOrigin().getVersion()).isNull();
 
-        Faas faas = transaction.getFaas();
+        FaasImpl faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
         assertThat(faas.getId()).isEqualTo(TestContext.FUNCTION_ARN);
         assertThat(faas.getTrigger().getType()).isEqualTo("http");
@@ -163,7 +159,7 @@ public class ApplicationLoadBalancerRequestEventLambdaTest extends BaseGatewayLa
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getResult()).isEqualTo("HTTP 2xx");
@@ -178,7 +174,7 @@ public class ApplicationLoadBalancerRequestEventLambdaTest extends BaseGatewayLa
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isFalse();
 
-        Faas faas = transaction.getFaas();
+        FaasImpl faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
 
         assertThat(faas.getTrigger().getType()).isEqualTo("http");

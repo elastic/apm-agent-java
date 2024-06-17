@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Transaction;
@@ -63,7 +63,7 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
         @SuppressWarnings("unused")
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void pollStart() {
-            final ElasticContext<?> activeContext = tracer.currentContext();
+            final TraceState<?> activeContext = tracer.currentContext();
             final AbstractSpan<?> activeSpan = activeContext.getSpan();
             if (activeSpan == null) {
                 return;

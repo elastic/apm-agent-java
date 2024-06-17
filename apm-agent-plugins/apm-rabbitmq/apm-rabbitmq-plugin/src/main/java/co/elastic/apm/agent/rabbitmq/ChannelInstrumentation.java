@@ -22,7 +22,7 @@ import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderSetter;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import com.rabbitmq.client.AMQP;
@@ -155,7 +155,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                 return new Object[]{properties, exitSpan};
             }
 
-            private static AMQP.BasicProperties propagateTraceContext(ElasticContext<?> toPropagate,
+            private static AMQP.BasicProperties propagateTraceContext(TraceState<?> toPropagate,
                                                                       @Nullable AMQP.BasicProperties originalBasicProperties) {
                 AMQP.BasicProperties properties = originalBasicProperties;
                 if (properties == null) {

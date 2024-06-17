@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.vertx.webclient;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
@@ -48,7 +48,7 @@ public abstract class AbstractVertxWebClientTest extends AbstractHttpClientInstr
         // This property is needed as otherwise Vert.x event loop threads won't have a context class loader (null)
         // which leads to NullPointerExceptions when spans are JSON validated in Unit tests
         System.setProperty("vertx.disableTCCL", "true");
-        AbstractSpan activeSpan = tracer.getActive();
+        AbstractSpanImpl activeSpan = tracer.getActive();
 
         // deactivate current span to avoid tracing web client creation for JUnit test
         activeSpan.deactivate();
@@ -88,7 +88,7 @@ public abstract class AbstractVertxWebClientTest extends AbstractHttpClientInstr
             // expected
         }
 
-        ErrorCapture error = reporter.getFirstError(500);
+        ErrorCaptureImpl error = reporter.getFirstError(500);
         assertThat(error.getException()).isNotNull();
         assertThat(error.getException().getClass()).isNotNull();
         assertThat(error.getException().getMessage()).contains("not-existing.com");

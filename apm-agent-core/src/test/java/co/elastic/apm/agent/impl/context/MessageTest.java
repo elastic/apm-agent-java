@@ -28,7 +28,7 @@ class MessageTest {
 
     @Test
     void testResetState() {
-        Message message = createMessage(100L, "test-body", "test-q", "test-*", Map.of("test-header", "test-value"));
+        MessageImpl message = createMessage(100L, "test-body", "test-q", "test-*", Map.of("test-header", "test-value"));
 
         message.resetState();
 
@@ -41,8 +41,8 @@ class MessageTest {
 
     @Test
     void testCopyFrom() {
-        Message firstMessage = createMessage(100L, "test-body", "test-q", "test-*", Map.of("test-header", "test-value"));
-        Message secondMessage = createMessage(999L, "updated-body", "updated-test-q", "updated-test-*", Map.of("updated-test-header", "updated-test-value"));
+        MessageImpl firstMessage = createMessage(100L, "test-body", "test-q", "test-*", Map.of("test-header", "test-value"));
+        MessageImpl secondMessage = createMessage(999L, "updated-body", "updated-test-q", "updated-test-*", Map.of("updated-test-header", "updated-test-value"));
 
         firstMessage.copyFrom(secondMessage);
 
@@ -59,8 +59,8 @@ class MessageTest {
         assertThat(firstMessageBody.toString()).isEqualTo("updated-body");
     }
 
-    private Message createMessage(long age, String body, String queue, String routingKey, Map<String, String> headers) {
-        Message message = new Message()
+    private MessageImpl createMessage(long age, String body, String queue, String routingKey, Map<String, String> headers) {
+        MessageImpl message = new MessageImpl()
             .withAge(age)
             .withBody(body)
             .withQueue(queue)

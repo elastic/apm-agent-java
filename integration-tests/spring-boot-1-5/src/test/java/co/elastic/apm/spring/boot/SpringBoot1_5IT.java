@@ -21,8 +21,8 @@ package co.elastic.apm.spring.boot;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.Before;
@@ -76,7 +76,7 @@ public class SpringBoot1_5IT {
 
         // the transaction might not have been reported yet, as the http call returns when the ServletOutputStream has been closed,
         // which is before the transaction has ended
-        Transaction firstTransaction = reporter.getFirstTransaction(500);
+        TransactionImpl firstTransaction = reporter.getFirstTransaction(500);
         assertThat(firstTransaction.getNameAsString()).isEqualTo("TestApp#greeting");
         assertThat(firstTransaction.getFrameworkName()).isEqualTo("Spring Web MVC");
         assertThat(firstTransaction.getFrameworkVersion()).isEqualTo("4.3.25.RELEASE");
@@ -88,7 +88,7 @@ public class SpringBoot1_5IT {
         assertThat(restTemplate.getForObject("http://localhost:" + port + "/script.js", String.class))
             .contains("// empty test script");
 
-        Transaction firstTransaction = reporter.getFirstTransaction(500);
+        TransactionImpl firstTransaction = reporter.getFirstTransaction(500);
         assertThat(firstTransaction.getNameAsString()).isEqualTo("ResourceHttpRequestHandler");
         assertThat(firstTransaction.getFrameworkName()).isEqualTo("Spring Web MVC");
         assertThat(firstTransaction.getFrameworkVersion()).isEqualTo("4.3.25.RELEASE");

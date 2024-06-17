@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.testutils.assertions;
 
-import co.elastic.apm.agent.impl.context.ServiceTarget;
+import co.elastic.apm.agent.impl.context.ServiceTargetImpl;
 
-public class ServiceTargetAssert extends BaseAssert<ServiceTargetAssert, ServiceTarget> {
+public class ServiceTargetAssert extends BaseAssert<ServiceTargetAssert, ServiceTargetImpl> {
 
-    ServiceTargetAssert(ServiceTarget actual) {
+    ServiceTargetAssert(ServiceTargetImpl actual) {
         super(actual, ServiceTargetAssert.class);
     }
 

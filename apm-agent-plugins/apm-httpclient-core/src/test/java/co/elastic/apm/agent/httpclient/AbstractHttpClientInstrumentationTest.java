@@ -19,17 +19,16 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
-import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.context.Http;
+import co.elastic.apm.agent.impl.context.DestinationImpl;
+import co.elastic.apm.agent.impl.context.HttpImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.tracer.ElasticContext;
-import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
@@ -54,7 +53,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static co.elastic.apm.agent.impl.transaction.TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME;
+import static co.elastic.apm.agent.impl.transaction.TraceContextImpl.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME;
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
@@ -70,7 +69,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort().dynamicHttpsPort(), false);
 
-    private ElasticContext<?> emptyContext;
+    private TraceState<?> emptyContext;
 
     @Before
     public final void setUpWiremock() {
@@ -99,7 +98,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @After
     public final void after() {
-        Transaction transaction = tracer.currentTransaction();
+        TransactionImpl transaction = tracer.currentTransaction();
         assertThat(transaction).isNotNull();
         transaction.deactivate().end();
         assertThat(reporter.getTransactions()).hasSize(1);
@@ -117,7 +116,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Test
     public void testDisabledOutgoingHeaders() {
-        doReturn(true).when(config.getConfig(CoreConfiguration.class)).isOutgoingTraceContextHeadersInjectionDisabled();
+        doReturn(true).when(config.getConfig(CoreConfigurationImpl.class)).isOutgoingTraceContextHeadersInjectionDisabled();
         String path = "/";
         performGetWithinTransaction(path);
         expectSpan(path).withoutTraceContextHeaders().verify();
@@ -126,7 +125,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     @Test
     public void testContextPropagationFromExitParent() {
         String path = "/";
-        Span exitSpan = Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(tracer.currentTransaction()).createExitSpan()));
+        SpanImpl exitSpan = Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(tracer.currentTransaction()).createExitSpan()));
         try {
             exitSpan.withType("custom").withSubtype("exit");
             exitSpan.getContext().getDestination().withAddress("test-host").withPort(6000);
@@ -142,7 +141,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Test
     public void testBaggagePropagatedWithoutTrace() {
-        ElasticContext<?> baggageOnly = emptyContext.withUpdatedBaggage()
+        TraceState<?> baggageOnly = emptyContext.withUpdatedBaggage()
             .put("foo", "bar")
             .buildContext();
         try (Scope scope = baggageOnly.activateInScope()) {
@@ -211,7 +210,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/redirect";
         performGetWithinTransaction(path);
 
-        Span span = expectSpan(path).verify();
+        SpanImpl span = expectSpan(path).verify();
 
         verifyTraceContextHeaders(span, "/redirect");
         verifyTraceContextHeaders(span, "/");
@@ -224,7 +223,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/circular-redirect";
         performGetWithinTransaction(path);
 
-        Span span = reporter.getFirstSpan(500);
+        SpanImpl span = reporter.getFirstSpan(500);
         assertThat(span).isNotNull();
 
         assertThat(reporter.getSpans()).hasSize(1);
@@ -324,17 +323,17 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             return this;
         }
 
-        public Span verify() {
+        public SpanImpl verify() {
             assertThat(reporter.getFirstSpan(500)).isNotNull();
             assertThat(reporter.getSpans()).hasSize(1);
-            Span span = reporter.getSpans().get(0);
+            SpanImpl span = reporter.getSpans().get(0);
 
             int port = https ? wireMockRule.httpsPort() : wireMockRule.port();
 
             String schema = https ? "https" : "http";
             String baseUrl = String.format("%s://%s:%d", schema, host, port);
 
-            Http httpContext = span.getContext().getHttp();
+            HttpImpl httpContext = span.getContext().getHttp();
 
             assertThat(span)
                 .hasName(String.format("%s %s", httpContext.getMethod(), host))
@@ -356,7 +355,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
                 assertThat(span).isAsync();
             }
 
-            Destination destination = span.getContext().getDestination();
+            DestinationImpl destination = span.getContext().getDestination();
             int addressStartIndex = (host.startsWith("[")) ? 1 : 0;
             int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
             assertThat(destination.getAddress().toString()).isEqualTo(host.substring(addressStartIndex, addressEndIndex));
@@ -372,7 +371,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
                     verifyTraceContextHeaders(span, path);
                 } else {
                     findLoggedRequests(path).forEach(request ->
-                        assertThat(TraceContext.containsTraceContextTextHeaders(request, HeaderAccessor.INSTANCE)).isFalse()
+                        assertThat(TraceContextImpl.containsTraceContextTextHeaders(request, HeaderAccessor.INSTANCE)).isFalse()
                     );
                 }
             }
@@ -381,13 +380,13 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         }
     }
 
-    private void verifyTraceContextHeaders(Span span, String path) {
+    private void verifyTraceContextHeaders(SpanImpl span, String path) {
         Map<String, String> headerMap = new HashMap<>();
         span.propagateContext(headerMap, TextHeaderMapAccessor.INSTANCE, TextHeaderMapAccessor.INSTANCE);
         assertThat(headerMap).isNotEmpty();
         final List<LoggedRequest> loggedRequests = findLoggedRequests(path);
         loggedRequests.forEach(request -> {
-            assertThat(TraceContext.containsTraceContextTextHeaders(request, HeaderAccessor.INSTANCE)).isTrue();
+            assertThat(TraceContextImpl.containsTraceContextTextHeaders(request, HeaderAccessor.INSTANCE)).isTrue();
             AtomicInteger headerCount = new AtomicInteger();
             HeaderAccessor.INSTANCE.forEach(
                 W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME,
@@ -397,7 +396,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             );
             assertThat(headerCount.get()).isEqualTo(1);
             headerMap.forEach((key, value) -> assertThat(request.getHeader(key)).isEqualTo(value));
-            Transaction transaction = tracer.startChildTransaction(request, new HeaderAccessor(), AbstractHttpClientInstrumentationTest.class.getClassLoader());
+            TransactionImpl transaction = tracer.startChildTransaction(request, new HeaderAccessor(), AbstractHttpClientInstrumentationTest.class.getClassLoader());
             assertThat(transaction).isNotNull();
             assertThat(transaction.getTraceContext().getTraceId()).isEqualTo(span.getTraceContext().getTraceId());
             assertThat(transaction.getTraceContext().getParentId()).isEqualTo(span.getTraceContext().getId());

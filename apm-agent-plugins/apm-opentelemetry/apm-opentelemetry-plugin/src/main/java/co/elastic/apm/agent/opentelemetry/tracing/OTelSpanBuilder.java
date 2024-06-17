@@ -19,11 +19,11 @@
 package co.elastic.apm.agent.opentelemetry.tracing;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.baggage.Baggage;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.baggage.BaggageImpl;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import co.elastic.apm.agent.impl.transaction.MultiValueMapAccessor;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.opentelemetry.baggage.OtelBaggage;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
@@ -147,10 +147,10 @@ class OTelSpanBuilder implements SpanBuilder {
 
     @Override
     public Span startSpan() {
-        AbstractSpan<?> span;
+        AbstractSpanImpl<?> span;
 
-        Baggage parentBaggage;
-        AbstractSpan<?> parentSpan = null;
+        BaggageImpl parentBaggage;
+        AbstractSpanImpl<?> parentSpan = null;
         Context remoteContext = null;
 
         if (parent != null) {
@@ -181,8 +181,8 @@ class OTelSpanBuilder implements SpanBuilder {
         }
         span.withName(spanName);
 
-        if (span instanceof Transaction) {
-            Transaction t = ((Transaction) span);
+        if (span instanceof TransactionImpl) {
+            TransactionImpl t = ((TransactionImpl) span);
             t.setFrameworkName("OpenTelemetry API");
 
             String otelVersion = VersionUtils.getVersion(OpenTelemetry.class, "io.opentelemetry", "opentelemetry-api");
@@ -199,7 +199,7 @@ class OTelSpanBuilder implements SpanBuilder {
 
         // Add the links to the span
         for (int i = 0; i < links.size(); i++) {
-            span.addSpanLink(TraceContext.fromParentContext(), ((OTelSpanContext) links.get(i)).getElasticTraceContext());
+            span.addSpanLink(TraceContextImpl.fromParentContext(), ((OTelSpanContext) links.get(i)).getElasticTraceContext());
 
         }
 

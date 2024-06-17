@@ -20,8 +20,8 @@ package co.elastic.apm.agent.awslambda;
 
 import co.elastic.apm.agent.awslambda.lambdas.TestContext;
 import co.elastic.apm.agent.impl.metadata.MetaData;
-import co.elastic.apm.agent.impl.transaction.Faas;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.FaasImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
@@ -58,7 +58,7 @@ public abstract class AbstractPlainLambdaTest extends AbstractLambdaTest<Object,
         reporter.awaitSpanCount(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("child-span");
         assertThat(reporter.getFirstSpan().getTransaction()).isEqualTo(reporter.getFirstTransaction());
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo(TestContext.FUNCTION_NAME);
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
@@ -73,7 +73,7 @@ public abstract class AbstractPlainLambdaTest extends AbstractLambdaTest<Object,
 
         assertThat(transaction.getContext().getServiceOrigin().hasContent()).isFalse();
 
-        Faas faas = transaction.getFaas();
+        FaasImpl faas = transaction.getFaas();
         assertThat(faas.getExecution()).isEqualTo(TestContext.AWS_REQUEST_ID);
         assertThat(faas.getId()).isEqualTo(TestContext.FUNCTION_ARN);
         assertThat(faas.getName()).isEqualTo(TestContext.FUNCTION_NAME);

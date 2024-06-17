@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.impl.metadata;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
-import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.configuration.ServerlessConfigurationImpl;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import co.elastic.apm.agent.util.CompletableFuture;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -39,7 +39,7 @@ public class MetaData {
      * Service
      * (Required)
      */
-    private final Service service;
+    private final ServiceImpl service;
     /**
      * Process
      */
@@ -58,7 +58,7 @@ public class MetaData {
     private final ArrayList<String> globalLabelKeys;
     private final ArrayList<String> globalLabelValues;
 
-    MetaData(ProcessInfo process, Service service, SystemInfo system, @Nullable CloudProviderInfo cloudProviderInfo,
+    MetaData(ProcessInfo process, ServiceImpl service, SystemInfo system, @Nullable CloudProviderInfo cloudProviderInfo,
              Map<String, String> globalLabels, @Nullable FaaSMetaDataExtension faasMetaDataExtension) {
         this.process = process;
         this.service = service;
@@ -86,8 +86,8 @@ public class MetaData {
      * Creates a metadata to be used with all events sent by the agent.
      * <p>
      * NOTE: This method is blocking, possibly for several seconds, on outgoing HTTP requests, fetching for cloud
-     * metadata, unless the {@link CoreConfiguration#getCloudProvider() cloud_provider} config option is set to
-     * {@link CoreConfiguration.CloudProvider#NONE NONE}.
+     * metadata, unless the {@link CoreConfigurationImpl#getCloudProvider() cloud_provider} config option is set to
+     * {@link CoreConfigurationImpl.CloudProvider#NONE NONE}.
      * </p>
      *
      * @param configurationRegistry agent config
@@ -99,13 +99,13 @@ public class MetaData {
             ephemeralId = UUID.randomUUID().toString();
         }
 
-        final CoreConfiguration coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
+        final CoreConfigurationImpl coreConfiguration = configurationRegistry.getConfig(CoreConfigurationImpl.class);
 
-        final ServerlessConfiguration serverlessConfiguration = configurationRegistry.getConfig(ServerlessConfiguration.class);
+        final ServerlessConfigurationImpl serverlessConfiguration = configurationRegistry.getConfig(ServerlessConfigurationImpl.class);
         final ServiceFactory serviceFactory = new ServiceFactory();
-        final Service service = serviceFactory.createService(coreConfiguration, ephemeralId, serverlessConfiguration.runsOnAwsLambda());
+        final ServiceImpl service = serviceFactory.createService(coreConfiguration, ephemeralId, serverlessConfiguration.runsOnAwsLambda());
         final ProcessInfo processInformation = ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation();
-        if (!configurationRegistry.getConfig(ReporterConfiguration.class).isIncludeProcessArguments()) {
+        if (!configurationRegistry.getConfig(ReporterConfigurationImpl.class).isIncludeProcessArguments()) {
             processInformation.getArgv().clear();
         }
 
@@ -163,7 +163,7 @@ public class MetaData {
      *
      * @return the service name
      */
-    public Service getService() {
+    public ServiceImpl getService() {
         return service;
     }
 
