@@ -108,9 +108,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         // copy java agent binaries
         container.withJavaAgentBinaries();
 
-        if (runtimeAttachSupported()) {
-            container.startCliRuntimeAttach(AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN);
-        } else {
+        if (!runtimeAttachSupported()) {
             // use the -javaagent argument when not using runtime attach
             container.withJavaAgentArgument(AgentFileAccessor.Variant.STANDARD);
         }
@@ -137,7 +135,7 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     @Before
     public final void startServer() {
-        // @Before has no deterministic order in JUnit 4, so perform two functions in one method
+        // @Before has no deterministic order in JUnit 4, so perform two functions in one method.
 
         // Setup configuration for all test webapps. This allows re-use of the container for all tests.
         List<String> ignoreUrls = new ArrayList<>();
@@ -162,10 +160,15 @@ public abstract class AbstractServletContainerIntegrationTest {
             container.deploy(Paths.get(testApp.getAppFilePath()));
         }
 
-        // Finally, start the container used for all test apps.
+        // Now, start the container used for all test apps.
         container.withEnv("ELASTIC_APM_SERVER_URL", "http://host.testcontainers.internal:" + apmServer.getPort());
         beforeContainerStart(container);
         container.start();
+
+        // Once the container is started, we can attach to it.
+        if (runtimeAttachSupported()) {
+            container.startCliRuntimeAttach(AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN);
+        }
     }
 
     protected void beforeContainerStart(AgentTestContainer.AppServer container) {
