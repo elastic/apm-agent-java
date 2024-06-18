@@ -35,7 +35,7 @@ import okhttp3.Response;
 import okhttp3.logging.HttpLoggingInterceptor;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -74,8 +74,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public abstract class AbstractServletContainerIntegrationTest {
     private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
 
-    @ClassRule
-    public static ApmServerRule apmServer = new ApmServerRule();
+    @Rule
+    public ApmServerRule apmServer = new ApmServerRule();
 
     /**
      * Set to a specific version to manually test downloading of agent from maven central using the slim cli tool.
