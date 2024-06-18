@@ -33,15 +33,10 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.logging.HttpLoggingInterceptor;
-import okhttp3.mockwebserver.Dispatcher;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
-import okio.Buffer;
-import okio.InflaterSource;
 import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
-import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
@@ -59,15 +54,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.zip.Inflater;
 
-import static co.elastic.apm.agent.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
-import static co.elastic.apm.agent.report.IntakeV2ReportingEventHandler.INTAKE_V2_FLUSH_URL;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -84,6 +74,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 public abstract class AbstractServletContainerIntegrationTest {
     private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
 
+    @ClassRule
+    public static ApmServerRule apmServer = new ApmServerRule();
+
     /**
      * Set to a specific version to manually test downloading of agent from maven central using the slim cli tool.
      * Only relevant for Servlet containers for which {@link #runtimeAttachSupported()} returns {@code true}.
@@ -91,33 +84,9 @@ public abstract class AbstractServletContainerIntegrationTest {
     @Nullable
     private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
 
-    private static final MockWebServer apmServer;
-    private static final Queue<String> receivedIntakeEvents = new ConcurrentLinkedQueue<>();
-
-    private static final OkHttpClient httpClient;
-
-    static {
-        apmServer = new MockWebServer();
-        apmServer.setDispatcher(new ApmDispatcher());
-
-        final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger::info);
-        loggingInterceptor.setLevel(JavaExecutable.isDebugging() ? HttpLoggingInterceptor.Level.BODY : HttpLoggingInterceptor.Level.BASIC);
-        httpClient = new OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)
-            .readTimeout(JavaExecutable.isDebugging() ? 0 : 10, TimeUnit.SECONDS)
-            .build();
-
-        // Start the mock apm server and expose it to any container as host.testcontainers.internal:$port
-        try {
-            apmServer.start();
-            Testcontainers.exposeHostPorts(apmServer.getPort());
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
+    private final OkHttpClient httpClient;
 
     private final MockReporter mockReporter = new MockReporter();
-    private final int webPort;
     private final String expectedDefaultServiceName;
     private final String containerName;
     private final AgentTestContainer.AppServer container;
@@ -125,7 +94,13 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     protected AbstractServletContainerIntegrationTest(AgentTestContainer.AppServer container, String expectedDefaultServiceName) {
         this.container = container;
-        this.webPort = container.getHttpPort();
+
+        final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger::info);
+        loggingInterceptor.setLevel(JavaExecutable.isDebugging() ? HttpLoggingInterceptor.Level.BODY : HttpLoggingInterceptor.Level.BASIC);
+        this.httpClient = new OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .readTimeout(JavaExecutable.isDebugging() ? 0 : 10, TimeUnit.SECONDS)
+            .build();
 
         // automatic remote debug for all
         container.withRemoteDebug();
@@ -133,31 +108,15 @@ public abstract class AbstractServletContainerIntegrationTest {
         // copy java agent binaries
         container.withJavaAgentBinaries();
 
-        if (!runtimeAttachSupported()) {
+        if (runtimeAttachSupported()) {
+            container.startCliRuntimeAttach(AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN);
+        } else {
             // use the -javaagent argument when not using runtime attach
             container.withJavaAgentArgument(AgentFileAccessor.Variant.STANDARD);
         }
 
-        this.expectedDefaultServiceName = expectedDefaultServiceName;
-        this.containerName = container.getContainerName();
-
-        List<String> ignoreUrls = new ArrayList<>();
-        for (TestApp app : getTestApps()) {
-            ignoreUrls.add(String.format("/%s/status*", app.getDeploymentContext()));
-            for (String ignorePath : app.getPathsToIgnore()) {
-                if (ignorePath.startsWith("/")) {
-                    ignorePath = ignorePath.substring(1);
-                }
-                ignoreUrls.add(String.format("/%s/%s", app.getDeploymentContext(), ignorePath));
-            }
-        }
-        ignoreUrls.add("/favicon.ico");
-        String ignoreUrlConfig = String.join(",", ignoreUrls);
-
         container
             .withNetwork(Network.SHARED)
-            .withEnv("ELASTIC_APM_SERVER_URL", "http://host.testcontainers.internal:" + apmServer.getPort())
-            .withEnv("ELASTIC_APM_IGNORE_URLS", ignoreUrlConfig)
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
             .withEnv("ELASTIC_APM_METRICS_INTERVAL", "1s")
@@ -169,7 +128,30 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_PROFILING_SPANS_ENABLED", "true")
             .withEnv("ELASTIC_APM_APPLICATION_PACKAGES", "co.elastic") // allows to use API annotations, we have to use a broad package due to multiple apps
             .withEnv("ELASTIC_APM_SPAN_COMPRESSION_ENABLED", "false")
+            .withMemoryLimit(4096)
             .withStartupTimeout(Duration.ofMinutes(5));
+
+        this.expectedDefaultServiceName = expectedDefaultServiceName;
+        this.containerName = container.getContainerName();
+    }
+
+    @Before
+    public final void startServer() {
+        // @Before has no deterministic order in JUnit 4, so perform two functions in one method
+
+        // Setup configuration for all test webapps. This allows re-use of the container for all tests.
+        List<String> ignoreUrls = new ArrayList<>();
+        for (TestApp app : getTestApps()) {
+            ignoreUrls.add(String.format("/%s/status*", app.getDeploymentContext()));
+            for (String ignorePath : app.getPathsToIgnore()) {
+                if (ignorePath.startsWith("/")) {
+                    ignorePath = ignorePath.substring(1);
+                }
+                ignoreUrls.add(String.format("/%s/%s", app.getDeploymentContext(), ignorePath));
+            }
+        }
+        ignoreUrls.add("/favicon.ico");
+        container.withEnv("ELASTIC_APM_IGNORE_URLS", String.join(",", ignoreUrls));
 
         for (TestApp testApp : getTestApps()) {
             testApp.getAdditionalEnvVariables()
@@ -180,15 +162,10 @@ public abstract class AbstractServletContainerIntegrationTest {
             container.deploy(Paths.get(testApp.getAppFilePath()));
         }
 
-        container.withMemoryLimit(4096);
-
+        // Finally, start the container used for all test apps.
+        container.withEnv("ELASTIC_APM_SERVER_URL", "http://host.testcontainers.internal:" + apmServer.getPort());
         beforeContainerStart(container);
-
         container.start();
-
-        if (runtimeAttachSupported()) {
-            container.startCliRuntimeAttach(AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN);
-        }
     }
 
     protected void beforeContainerStart(AgentTestContainer.AppServer container) {
@@ -253,7 +230,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     public void clearMockServerLog() {
-        receivedIntakeEvents.clear();
+        apmServer.clearIntakeEvents();
     }
 
     public JsonNode assertTransactionReported(String pathToTest, int expectedResponseCode) {
@@ -429,7 +406,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         try {
             final List<JsonNode> events = new ArrayList<>();
             final ObjectMapper objectMapper = new ObjectMapper();
-            for (String bodyAsString : receivedIntakeEvents) {
+            for (String bodyAsString : apmServer.getIntakeEvents()) {
                 final JsonNode ndJson = objectMapper.readTree(bodyAsString);
                 if (ndJson.get(eventType) != null) {
                     // as inferred spans are created only after the profiling session ends
@@ -503,7 +480,7 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     private void waitFor(String path) {
         Wait.forHttp(path)
-            .forPort(webPort)
+            .forPort(container.getHttpPort())
             .forStatusCode(200)
             .withStartupTimeout(Duration.ofMinutes(JavaExecutable.isDebugging() ? 1_000 : 5))
             .waitUntilReady(container);
@@ -511,57 +488,5 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     public OkHttpClient getHttpClient() {
         return httpClient;
-    }
-
-    /**
-     * This is modeled after {@code co.elastic.apm.awslambda.fakeserver.FakeApmServer}, except
-     * deflate instead of gzip and OkHttp instead of {@code com.sun.net.httpserver.HttpServer}.
-     */
-    private static final class ApmDispatcher extends Dispatcher {
-        @Override
-        public MockResponse dispatch(RecordedRequest request) {
-            switch (request.getPath()) {
-                case "/": // health check
-                    return new MockResponse().setBody("{\"version\": \"8.7.1\"}");
-                case INTAKE_V2_URL:
-                case INTAKE_V2_FLUSH_URL:
-                    try {
-                        readIntakeEvents(request);
-                    } catch (IOException e) {
-                        logger.error("Encountered intake request error {}", e);
-                        return new MockResponse().setResponseCode(500);
-                    }
-                    return new MockResponse().setResponseCode(202);
-            }
-            logger.error("Encountered unexpected request {}", request);
-            return new MockResponse().setResponseCode(404);
-        }
-    }
-
-    private static void readIntakeEvents(RecordedRequest request) throws IOException {
-        // The request body is compressed with deflate
-        final Buffer body;
-        String encoding = request.getHeader("Content-Encoding");
-        if (encoding == null) {
-            body = request.getBody().buffer();
-        } else if (encoding.contains("deflate")) {
-            Buffer inflated = new Buffer();
-            try (InflaterSource deflated = new InflaterSource(request.getBody(), new Inflater())) {
-                while (deflated.read(inflated, Integer.MAX_VALUE) != -1) ;
-            }
-            body = inflated;
-        } else {
-            throw new IOException("unsupported encoding: " + encoding);
-        }
-
-        // read each Newline Delimited JSON event into the queue.
-        String event;
-        while ((event = body.readUtf8Line()) != null) {
-            if (!event.startsWith("{")) {
-                throw new IOException("not NDJSON " + request);
-            } else {
-                receivedIntakeEvents.add(event);
-            }
-        }
     }
 }
