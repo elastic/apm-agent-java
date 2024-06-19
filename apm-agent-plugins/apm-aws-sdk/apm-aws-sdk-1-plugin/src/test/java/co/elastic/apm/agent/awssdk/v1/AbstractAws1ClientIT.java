@@ -22,7 +22,7 @@ import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
 
 public abstract class AbstractAws1ClientIT extends AbstractAwsClientIT {
 
-    public static final String LOCALSTACK_VERSION = "0.14.2";
+    public static final String LOCALSTACK_VERSION = "3.5.0";
 
     public AbstractAws1ClientIT() {
         super(LOCALSTACK_VERSION);

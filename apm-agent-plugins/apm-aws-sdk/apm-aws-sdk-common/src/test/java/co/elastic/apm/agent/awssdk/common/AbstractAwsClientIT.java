@@ -55,7 +55,7 @@ public abstract class AbstractAwsClientIT extends AbstractInstrumentationTest {
 
     public AbstractAwsClientIT(String localstackVersion) {
         DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:" + localstackVersion);
-        localstack = new LocalStackContainer(localstackImage).withServices(localstackService());
+        localstack = new LocalStackContainer(localstackImage).withServices(localstackService()).withEnv("SQS_ENDPOINT_STRATEGY", "dynamic");
     }
 
     protected abstract String awsService();
