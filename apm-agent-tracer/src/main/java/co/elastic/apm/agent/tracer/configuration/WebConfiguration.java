@@ -128,7 +128,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.50.0]", "internal")
         .description("Configures for which content types the HTTP request bodies should be recorded.")
         .dynamic(true)
-        .buildWithDefault(Collections.emptyList());
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
     public List<WildcardMatcher> getIgnoreUrls() {
         return ignoreUrls.get();
