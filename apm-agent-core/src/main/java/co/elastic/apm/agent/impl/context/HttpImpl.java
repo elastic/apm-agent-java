@@ -36,6 +36,9 @@ public class HttpImpl implements Recyclable, Http {
     @Nullable
     private String method;
 
+    @Nullable
+    private StringBuilder requestBody;
+
     /**
      * Status code of the response
      */
@@ -66,6 +69,15 @@ public class HttpImpl implements Recyclable, Http {
     }
 
     @Override
+    @Nullable
+    public StringBuilder getRequestBody(boolean initialize) {
+        if (initialize && requestBody == null) {
+            requestBody = new StringBuilder();
+        }
+        return requestBody;
+    }
+
+    @Override
     public HttpImpl withUrl(@Nullable String url) {
         if (url != null) {
             this.url.withFull(url);
@@ -90,6 +102,7 @@ public class HttpImpl implements Recyclable, Http {
         url.resetState();
         method = null;
         statusCode = 0;
+        requestBody = null;
     }
 
     public boolean hasContent() {

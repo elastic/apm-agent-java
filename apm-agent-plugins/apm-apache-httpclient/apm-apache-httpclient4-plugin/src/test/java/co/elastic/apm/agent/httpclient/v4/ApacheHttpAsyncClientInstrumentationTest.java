@@ -18,15 +18,19 @@
  */
 package co.elastic.apm.agent.httpclient.v4;
 
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.UnsupportedSchemeException;
+import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.assertj.core.api.Assertions;
@@ -34,11 +38,16 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doReturn;
 
 public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
@@ -125,5 +134,42 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
         Assertions.assertThat(reporter.getSpans()).hasSize(1);
     }
 
+    @Test
+    public void testPostBodyCapture() throws IOException, ExecutionException, InterruptedException {
+        doReturn(Collections.singletonList(WildcardMatcher.matchAll()))
+            .when(getConfig().getConfig(WebConfiguration.class)).getCaptureClientRequestContentTypes();
 
+        StringBuilder longString = new StringBuilder();
+        for (int i = 0; i < 200; i++) {
+            longString.append(String.format("line %1$4d\n", i));
+        }
+        HttpPost request = new HttpPost(getBaseUrl() + "/");
+        request.setEntity(new InputStreamEntity(new ByteArrayInputStream(longString.toString().getBytes(StandardCharsets.UTF_8))));
+
+        final CompletableFuture<HttpResponse> responseFuture = new CompletableFuture<>();
+
+        client.execute(request, new FutureCallback<>() {
+            @Override
+            public void completed(HttpResponse result) {
+                responseFuture.complete(result);
+            }
+
+            @Override
+            public void failed(Exception ex) {
+                responseFuture.completeExceptionally(ex);
+            }
+
+            @Override
+            public void cancelled() {
+                responseFuture.cancel(true);
+            }
+        });
+        responseFuture.get();
+
+
+        expectSpan("/")
+            .withRequestBodySatisfying(body -> {
+                // assertThat(body).endsWith("line  101\nline");
+            }).verify();
+    }
 }

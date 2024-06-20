@@ -22,6 +22,9 @@ import javax.annotation.Nullable;
 
 public interface Http {
 
+    @Nullable
+    StringBuilder getRequestBody(boolean initialize);
+
     /**
      * URL used for the outgoing HTTP call
      */

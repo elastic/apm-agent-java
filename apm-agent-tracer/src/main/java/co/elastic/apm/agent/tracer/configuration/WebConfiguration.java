@@ -121,6 +121,15 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
+    private final ConfigurationOption<List<WildcardMatcher>> captureClientRequestContentTypes = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("capture_http_client_request_content_types")
+        .configurationCategory(HTTP_CATEGORY)
+        .tags("added[1.50.0]", "internal")
+        .description("Configures for which content types the HTTP request bodies should be recorded.")
+        .dynamic(true)
+        .buildWithDefault(Collections.emptyList());
+
     public List<WildcardMatcher> getIgnoreUrls() {
         return ignoreUrls.get();
     }
@@ -139,6 +148,10 @@ public class WebConfiguration extends ConfigurationOptionProvider {
 
     public List<WildcardMatcher> getCaptureContentTypes() {
         return captureContentTypes.get();
+    }
+
+    public List<WildcardMatcher> getCaptureClientRequestContentTypes() {
+        return captureClientRequestContentTypes.get();
     }
 
 }

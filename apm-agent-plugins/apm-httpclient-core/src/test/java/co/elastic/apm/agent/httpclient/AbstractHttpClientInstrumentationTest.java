@@ -26,6 +26,7 @@ import co.elastic.apm.agent.impl.context.HttpImpl;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.TraceState;
@@ -52,6 +53,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import static co.elastic.apm.agent.impl.transaction.TraceContextImpl.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME;
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
@@ -292,6 +294,8 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         private boolean traceContextHeaders = true;
         private boolean requestExecuted = true;
 
+        private Consumer<String> requestBodyVerification = null;
+
         private VerifyBuilder(String path) {
             this.path = path;
         }
@@ -323,6 +327,11 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             return this;
         }
 
+        public VerifyBuilder withRequestBodySatisfying(Consumer<String> requestBodyVerification) {
+            this.requestBodyVerification = requestBodyVerification;
+            return this;
+        }
+
         public SpanImpl verify() {
             assertThat(reporter.getFirstSpan(500)).isNotNull();
             assertThat(reporter.getSpans()).hasSize(1);
@@ -349,6 +358,14 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
                 assertThat(span).hasOutcome(ResultUtil.getOutcomeByHttpClientStatus(status));
             } else {
                 assertThat(span).hasOutcome(Outcome.FAILURE);
+            }
+
+            StringBuilder reqBody = span.getContext().getHttp().getRequestBody(false);
+            if (reqBody != null) {
+                assertThat(reqBody).hasSizeLessThan(1025); //IntakeV2 max allowed is 1024
+            }
+            if (requestBodyVerification != null) {
+                requestBodyVerification.accept(reqBody == null ? null : reqBody.toString());
             }
 
             if (isAsync()) {
