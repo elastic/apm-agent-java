@@ -1028,21 +1028,21 @@ public class DslJsonSerializer {
         }
 
         private void serializeOTel(SpanImpl span) {
-            serializeOtel(span, Collections.<IdImpl>emptyList());
+            serializeOtel(span, Collections.<IdImpl>emptyList(), span.getContext().getHttp().getRequestBody(false));
         }
 
         private void serializeOTel(TransactionImpl transaction) {
             List<IdImpl> profilingCorrelationStackTraceIds = transaction.getProfilingCorrelationStackTraceIds();
             synchronized (profilingCorrelationStackTraceIds) {
-                serializeOtel(transaction, profilingCorrelationStackTraceIds);
+                serializeOtel(transaction, profilingCorrelationStackTraceIds, null);
             }
         }
 
-        private void serializeOtel(AbstractSpanImpl<?> span, List<IdImpl> profilingStackTraceIds) {
+        private void serializeOtel(AbstractSpanImpl<?> span, List<IdImpl> profilingStackTraceIds, @Nullable CharSequence httpRequestBody) {
             OTelSpanKind kind = span.getOtelKind();
             Map<String, Object> attributes = span.getOtelAttributes();
 
-            boolean hasAttributes = !attributes.isEmpty() || !profilingStackTraceIds.isEmpty();
+            boolean hasAttributes = !attributes.isEmpty() || !profilingStackTraceIds.isEmpty() || httpRequestBody != null;
             boolean hasKind = kind != null;
             if (hasKind || hasAttributes) {
                 writeFieldName("otel");
@@ -1091,6 +1091,13 @@ public class DslJsonSerializer {
                             jw.writeByte(QUOTE);
                         }
                         jw.writeByte(ARRAY_END);
+                    }
+                    if (httpRequestBody != null) {
+                        if (!isFirstAttrib) {
+                            jw.writeByte(COMMA);
+                        }
+                        writeFieldName("http_client_request_body");
+                        jw.writeString(httpRequestBody);
                     }
                     jw.writeByte(OBJECT_END);
                 }
