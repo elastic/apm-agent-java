@@ -169,7 +169,7 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
 
         expectSpan("/")
             .withRequestBodySatisfying(body -> {
-                // assertThat(body).endsWith("line  101\nline");
+                assertThat(body).endsWith("line  101\nline");
             }).verify();
     }
 }
