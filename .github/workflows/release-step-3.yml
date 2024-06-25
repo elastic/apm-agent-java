@@ -165,7 +165,7 @@ jobs:
           command: ./mvnw dependency:purge-local-repository package -pl apm-agent-lambda-layer
       - uses: elastic/oblt-actions/aws/auth@v1.10.0
         with:
-          aws-region: '267093732750'
+          aws-account-id: '267093732750'
       - name: Publish
         if: ${{ ! inputs.dry_run }}
         run: |
