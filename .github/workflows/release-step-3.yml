@@ -150,6 +150,9 @@ jobs:
 
   publish-aws-lambda:
     name: "Publish AWS Lambda"
+    permissions:
+      contents: read
+      id-token: write
     runs-on: ubuntu-latest
     needs:
       - await-maven-central-artifact
