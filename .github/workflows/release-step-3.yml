@@ -155,13 +155,6 @@ jobs:
       - await-maven-central-artifact
     outputs:
       arn_content: ${{ steps.arn_output.outputs.arn_content }}
-    env:
-      # Random region. This needs to be set in GH Actions or the usage of aws-cli will fail.
-      # The default region does not matter, since we are publishing in all regions.
-      AWS_DEFAULT_REGION: eu-west-1
-      # TODO: use keyless
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -170,7 +163,9 @@ jobs:
         uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw dependency:purge-local-repository package -pl apm-agent-lambda-layer
-
+      - uses: elastic/oblt-actions/aws/auth@v1.10.0
+        with:
+          aws-region: '267093732750'
       - name: Publish
         if: ${{ ! inputs.dry_run }}
         run: |
