@@ -1,5 +1,7 @@
 ---
 # Releases the agent
+# Renaming this file will break the AWS authentication.
+# Contact the observablt-robots team if you need to rename this file.
 name: 'release-step-3'
 
 on:
