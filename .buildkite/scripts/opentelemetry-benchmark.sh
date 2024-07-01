@@ -34,7 +34,7 @@ docker run -dp 127.0.0.1:8027:8027 $CONTAINER_NAME
 popd
 
 echo "--- Build opentelemetry-java-instrumentation"
-git clone https://github.com/open-telemetry/opentelemetry-java-instrumentation.git --depth 1 --branch main
+git clone https://github.com/v1v/opentelemetry-java-instrumentation.git --depth 1 --branch feature/store-hplogs
 pushd opentelemetry-java-instrumentation/
 ./gradlew assemble
 
