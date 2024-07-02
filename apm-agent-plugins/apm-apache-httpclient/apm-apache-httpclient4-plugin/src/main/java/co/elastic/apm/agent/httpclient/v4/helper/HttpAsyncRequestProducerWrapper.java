@@ -85,6 +85,7 @@ public class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer
         // trace context propagation
         if (request != null) {
             if (span != null) {
+                RequestBodyCaptureRegistry.potentiallyCaptureRequestBody(request, span);
                 RequestLine requestLine = request.getRequestLine();
                 if (requestLine != null) {
                     String method = requestLine.getMethod();

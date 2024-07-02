@@ -59,4 +59,6 @@ public class LegacyApacheHttpClientBasicHttpRequestInstrumentationTest extends A
             throw (Exception) e.getTargetException();
         }
     }
+    
+
 }

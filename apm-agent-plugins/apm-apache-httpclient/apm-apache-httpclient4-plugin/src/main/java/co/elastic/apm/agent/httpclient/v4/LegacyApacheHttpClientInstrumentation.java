@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.httpclient.v4.helper.RequestBodyCaptureRegistry;
 import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Outcome;
@@ -101,6 +102,7 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                 span = HttpClientHelper.startHttpClientSpan(activeContext, method, uri, hostName);
 
                 if (span != null) {
+                    RequestBodyCaptureRegistry.potentiallyCaptureRequestBody(request, span);
                     span.activate();
                 }
             }

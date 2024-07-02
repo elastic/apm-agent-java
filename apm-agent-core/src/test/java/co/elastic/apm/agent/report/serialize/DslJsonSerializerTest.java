@@ -425,6 +425,17 @@ class DslJsonSerializerTest {
         assertThat(http.get("status_code").intValue()).isEqualTo(523);
     }
 
+    @Test
+    void testSpanHttpRequestBodySerialization() {
+        SpanImpl span = new SpanImpl(tracer);
+        span.getContext().getHttp().getRequestBody(true).append("foobar");
+
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
+        JsonNode otel = spanJson.get("otel");
+        JsonNode attribs = otel.get("attributes");
+        assertThat(attribs.get("http_client_request_body").textValue()).isEqualTo("foobar");
+    }
+
     public static boolean[][] getContentCombinations() {
         return new boolean[][]{
             {true, true, true, true},
