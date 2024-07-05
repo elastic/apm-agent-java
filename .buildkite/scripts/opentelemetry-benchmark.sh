@@ -26,6 +26,14 @@ BENCHMARKS_JAR=$(ls -1 benchmarks*.jar)
 BENCHMARKS_JAR_FILE="$(pwd)/$BENCHMARKS_JAR"
 echo "$BENCHMARKS_JAR_FILE has been downloaded."
 
+echo "--- Download the latest elastic-otel-agent artifact"
+distro_run_id=$(gh run list --repo elastic/elastic-otel-java --branch main --status success --workflow build.yml -L 1 --json databaseId --jq '.[].databaseId')
+gh run download "$distro_run_id" --repo elastic/elastic-otel-java -n elastic-otel-javaagent
+ELASTIC_OTEL_DISTRO_SNAPSHOT_JAR=$(ls -1 elastic-otel-javaagent-*SNAPSHOT.jar)
+ELASTIC_OTEL_DISTRO_SNAPSHOT_JAR_FILE="$(pwd)/$ELASTIC_OTEL_DISTRO_SNAPSHOT_JAR"
+echo "$ELASTIC_OTEL_DISTRO_SNAPSHOT_JAR_FILE has been downloaded."
+
+
 echo "--- Start APM Server mock"
 git clone https://github.com/elastic/apm-k8s-attacher.git
 pushd apm-k8s-attacher/test/mock
@@ -41,11 +49,16 @@ pushd opentelemetry-java-instrumentation/
 echo "--- Customise the elastic opentelemetry java instrumentation"
 pushd benchmark-overhead
 cp "$ELASTIC_SNAPSHOT_JAR_FILE" .
-ELASTIC_SNAPSHOT_ENTRY="new Agent(\\\"elastic-snapshot\\\",\\\"latest available snapshot version from elastic main\\\",\\\"file://$PWD/$ELASTIC_SNAPSHOT_JAR\\\", java.util.List.of(\\\"-Delastic.apm.server_url=http://host.docker.internal:8027/\\\"))"
+cp "$ELASTIC_OTEL_DISTRO_SNAPSHOT_JAR_FILE" .
 ELASTIC_LATEST_VERSION=$(curl -s https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/ | perl -ne 's/<.*?>//g; if(s/^([\d\.]+).*$/$1/){print}' | sort -V | tail -1)
+ELASTIC_OTEL_DISTRO_LATEST_VERSION=$(curl -s https://repo1.maven.org/maven2/co/elastic/otel/elastic-otel-javaagent/ | perl -ne 's/<.*?>//g; if(s/^([\d\.]+).*$/$1/){print}' | sort -V | tail -1)
+ELASTIC_SNAPSHOT_ENTRY="new Agent(\\\"elastic-snapshot\\\",\\\"latest available snapshot version from elastic main\\\",\\\"file://$PWD/$ELASTIC_SNAPSHOT_JAR\\\", java.util.List.of(\\\"-Delastic.apm.server_url=http://host.docker.internal:8027/\\\"))"
 ELASTIC_LATEST_ENTRY="new Agent(\\\"elastic-latest\\\",\\\"latest available released version from elastic main\\\",\\\"https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/$ELASTIC_LATEST_VERSION/elastic-apm-agent-$ELASTIC_LATEST_VERSION.jar\\\", java.util.List.of(\\\"-Delastic.apm.server_url=http://host.docker.internal:8027/\\\"))"
 ELASTIC_LATEST_ENTRY2="new Agent(\\\"elastic-async\\\",\\\"latest available released version from elastic main\\\",\\\"https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/$ELASTIC_LATEST_VERSION/elastic-apm-agent-$ELASTIC_LATEST_VERSION.jar\\\", java.util.List.of(\\\"-Delastic.apm.delay_agent_premain_ms=15000\\\",\\\"-Delastic.apm.server_url=http://host.docker.internal:8027/\\\"))"
-NEW_LINE="              .withAgents(Agent.NONE, Agent.LATEST_RELEASE, Agent.LATEST_SNAPSHOT, $ELASTIC_LATEST_ENTRY, $ELASTIC_LATEST_ENTRY2, $ELASTIC_SNAPSHOT_ENTRY)"
+ELASTIC_OTEL_DISTRO_SNAPSHOT_ENTRY="new Agent(\\\"distro-snapshot\\\",\\\"latest available snapshot version from elastic-otel-java main\\\",\\\"file://$PWD/$ELASTIC_OTEL_DISTRO_SNAPSHOT_JAR\\\")"
+ELASTIC_OTEL_DISTRO_LATEST_ENTRY="new Agent(\\\"distro-latest\\\",\\\"latest available released version from elastic-otel-java\\\",\\\"https://repo1.maven.org/maven2/co/elastic/otel/elastic-otel-javaagent/$ELASTIC_OTEL_DISTRO_LATEST_VERSION/elastic-otel-javaagent-$ELASTIC_OTEL_DISTRO_LATEST_VERSION.jar\\\")"
+ELASTIC_OTEL_DISTRO_LATEST_INFERRED_SPANS_ENTRY="new Agent(\\\"distro-infspans\\\",\\\"latest available released version from elastic-otel-java with inferred-spans enabled\\\",\\\"https://repo1.maven.org/maven2/co/elastic/otel/elastic-otel-javaagent/$ELASTIC_OTEL_DISTRO_LATEST_VERSION/elastic-otel-javaagent-$ELASTIC_OTEL_DISTRO_LATEST_VERSION.jar\\\", java.util.List.of(\\\"-Delastic.otel.inferred.spans.enabled=true\\\"))"
+NEW_LINE="              .withAgents(Agent.NONE, Agent.LATEST_RELEASE, Agent.LATEST_SNAPSHOT, $ELASTIC_LATEST_ENTRY, $ELASTIC_LATEST_ENTRY2, $ELASTIC_SNAPSHOT_ENTRY, $ELASTIC_OTEL_DISTRO_SNAPSHOT_ENTRY, $ELASTIC_OTEL_DISTRO_LATEST_ENTRY, $ELASTIC_OTEL_DISTRO_LATEST_INFERRED_SPANS_ENTRY)"
 echo $NEW_LINE
 perl -i -ne "if (/withAgents/) {print \"$NEW_LINE\n\"}else{print}" src/test/java/io/opentelemetry/config/Configs.java
 
