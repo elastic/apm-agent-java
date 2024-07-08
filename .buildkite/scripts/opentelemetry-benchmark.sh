@@ -61,21 +61,23 @@ ELASTIC_OTEL_DISTRO_FEATURE_ENTRIES=""
 for FEATURE in "infspan" "cloudres" "up-integ" "spanstack" ; do
   FEATURE_ARGS=""
   if [ "$FEATURE" = "infspan" ]; then
-    FEATURE_ARGS="$FEATURE_ARGS -Delastic.otel.inferred.spans.enabled=true"
+    FEATURE_ARGS="$FEATURE_ARGS, \\\"-Delastic.otel.inferred.spans.enabled=true\\\""
   fi
   if [ "$FEATURE" != "cloudres" ]; then
-    FEATURE_ARGS="$FEATURE_ARGS -Dotel.resource.providers.aws.enabled=false -Dotel.resource.providers.gcp.enabled=false"
+    FEATURE_ARGS="$FEATURE_ARGS, \\\"-Dotel.resource.providers.aws.enabled=false\\\", \\\"-Dotel.resource.providers.gcp.enabled=false\\\""
   fi
 
   if [ "$FEATURE" = "up-integ" ]; then
-    FEATURE_ARGS="$FEATURE_ARGS -Delastic.otel.universal.profiling.integration.enabled=true"
+    FEATURE_ARGS="$FEATURE_ARGS, \\\"-Delastic.otel.universal.profiling.integration.enabled=true\\\""
   else
-    FEATURE_ARGS="$FEATURE_ARGS -Delastic.otel.universal.profiling.integration.enabled=false"
+    FEATURE_ARGS="$FEATURE_ARGS, \\\"-Delastic.otel.universal.profiling.integration.enabled=false\\\""
   fi
   if [ "$FEATURE" != "spanstack" ]; then
-    FEATURE_ARGS="$FEATURE_ARGS -Delastic.otel.span.stack.trace.min.duration=-1"
+    FEATURE_ARGS="$FEATURE_ARGS, \\\"-Delastic.otel.span.stack.trace.min.duration=-1\\\""
   fi
-  ELASTIC_OTEL_DISTRO_FEATURE_ENTRIES="$ELASTIC_OTEL_DISTRO_FEATURE_ENTRIES, new Agent(\\\"distro-$FEATURE\\\",\\\"latest available snapshot version from elastic-otel-java main with only feature $FEATURE enabled\\\",\\\"file://$PWD/$ELASTIC_OTEL_DISTRO_SNAPSHOT_JAR\\\", java.util.List.of(\\\"$FEATURE_ARGS\\\"))"
+  # Remove leading ", "
+  FEATURE_ARGS="${FEATURE_ARGS:2}"
+  ELASTIC_OTEL_DISTRO_FEATURE_ENTRIES="$ELASTIC_OTEL_DISTRO_FEATURE_ENTRIES, new Agent(\\\"distro-$FEATURE\\\",\\\"latest available snapshot version from elastic-otel-java main with only feature $FEATURE enabled\\\",\\\"file://$PWD/$ELASTIC_OTEL_DISTRO_SNAPSHOT_JAR\\\", java.util.List.of($FEATURE_ARGS))"
 done
 NEW_LINE="              .withAgents(Agent.NONE, Agent.LATEST_RELEASE, Agent.LATEST_SNAPSHOT, $ELASTIC_LATEST_ENTRY, $ELASTIC_LATEST_ENTRY2, $ELASTIC_SNAPSHOT_ENTRY, $ELASTIC_OTEL_DISTRO_SNAPSHOT_ENTRY, $ELASTIC_OTEL_DISTRO_LATEST_ENTRY $ELASTIC_OTEL_DISTRO_FEATURE_ENTRIES)"
 echo $NEW_LINE
