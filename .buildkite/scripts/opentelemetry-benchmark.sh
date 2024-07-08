@@ -57,8 +57,27 @@ ELASTIC_LATEST_ENTRY="new Agent(\\\"elastic-latest\\\",\\\"latest available rele
 ELASTIC_LATEST_ENTRY2="new Agent(\\\"elastic-async\\\",\\\"latest available released version from elastic main\\\",\\\"https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/$ELASTIC_LATEST_VERSION/elastic-apm-agent-$ELASTIC_LATEST_VERSION.jar\\\", java.util.List.of(\\\"-Delastic.apm.delay_agent_premain_ms=15000\\\",\\\"-Delastic.apm.server_url=http://host.docker.internal:8027/\\\"))"
 ELASTIC_OTEL_DISTRO_SNAPSHOT_ENTRY="new Agent(\\\"distro-snapshot\\\",\\\"latest available snapshot version from elastic-otel-java main\\\",\\\"file://$PWD/$ELASTIC_OTEL_DISTRO_SNAPSHOT_JAR\\\")"
 ELASTIC_OTEL_DISTRO_LATEST_ENTRY="new Agent(\\\"distro-latest\\\",\\\"latest available released version from elastic-otel-java\\\",\\\"https://repo1.maven.org/maven2/co/elastic/otel/elastic-otel-javaagent/$ELASTIC_OTEL_DISTRO_LATEST_VERSION/elastic-otel-javaagent-$ELASTIC_OTEL_DISTRO_LATEST_VERSION.jar\\\")"
-ELASTIC_OTEL_DISTRO_LATEST_INFERRED_SPANS_ENTRY="new Agent(\\\"distro-infspans\\\",\\\"latest available released version from elastic-otel-java with inferred-spans enabled\\\",\\\"https://repo1.maven.org/maven2/co/elastic/otel/elastic-otel-javaagent/$ELASTIC_OTEL_DISTRO_LATEST_VERSION/elastic-otel-javaagent-$ELASTIC_OTEL_DISTRO_LATEST_VERSION.jar\\\", java.util.List.of(\\\"-Delastic.otel.inferred.spans.enabled=true\\\"))"
-NEW_LINE="              .withAgents(Agent.NONE, Agent.LATEST_RELEASE, Agent.LATEST_SNAPSHOT, $ELASTIC_LATEST_ENTRY, $ELASTIC_LATEST_ENTRY2, $ELASTIC_SNAPSHOT_ENTRY, $ELASTIC_OTEL_DISTRO_SNAPSHOT_ENTRY, $ELASTIC_OTEL_DISTRO_LATEST_ENTRY, $ELASTIC_OTEL_DISTRO_LATEST_INFERRED_SPANS_ENTRY)"
+ELASTIC_OTEL_DISTRO_FEATURE_ENTRIES=""
+for FEATURE in "infspan" "cloudres" "up-integ" "spanstack" ; do
+  FEATURE_ARGS=""
+  if [ "$FEATURE" = "infspan" ]; then
+    FEATURE_ARGS="$FEATURE_ARGS -Delastic.otel.inferred.spans.enabled=true"
+  fi
+  if [ "$FEATURE" != "cloudres" ]; then
+    FEATURE_ARGS="$FEATURE_ARGS -Dotel.resource.providers.aws.enabled=false -Dotel.resource.providers.gcp.enabled=false"
+  fi
+
+  if [ "$FEATURE" = "up-integ" ]; then
+    FEATURE_ARGS="$FEATURE_ARGS -Delastic.otel.universal.profiling.integration.enabled=true"
+  else
+    FEATURE_ARGS="$FEATURE_ARGS -Delastic.otel.universal.profiling.integration.enabled=false"
+  fi
+  if [ "$FEATURE" != "spanstack" ]; then
+    FEATURE_ARGS="$FEATURE_ARGS -Delastic.otel.span.stack.trace.min.duration=-1"
+  fi
+  ELASTIC_OTEL_DISTRO_FEATURE_ENTRIES="$ELASTIC_OTEL_DISTRO_FEATURE_ENTRIES, new Agent(\\\"distro-$FEATURE\\\",\\\"latest available snapshot version from elastic-otel-java main with only feature $FEATURE enabled\\\",\\\"file://$PWD/$ELASTIC_OTEL_DISTRO_SNAPSHOT_JAR\\\", java.util.List.of(\\\"$FEATURE_ARGS\\\"))"
+done
+NEW_LINE="              .withAgents(Agent.NONE, Agent.LATEST_RELEASE, Agent.LATEST_SNAPSHOT, $ELASTIC_LATEST_ENTRY, $ELASTIC_LATEST_ENTRY2, $ELASTIC_SNAPSHOT_ENTRY, $ELASTIC_OTEL_DISTRO_SNAPSHOT_ENTRY, $ELASTIC_OTEL_DISTRO_LATEST_ENTRY $ELASTIC_OTEL_DISTRO_FEATURE_ENTRIES)"
 echo $NEW_LINE
 perl -i -ne "if (/withAgents/) {print \"$NEW_LINE\n\"}else{print}" src/test/java/io/opentelemetry/config/Configs.java
 
