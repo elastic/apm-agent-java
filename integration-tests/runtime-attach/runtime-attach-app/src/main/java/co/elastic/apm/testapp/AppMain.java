@@ -79,6 +79,10 @@ public class AppMain implements AppJmx {
                 Map<String, String> config = new HashMap<>();
                 config.put("service_name", "self-attach-external-config");
                 config.put("config_file", agentConfig.getAbsolutePath());
+
+                // user-provided map might have null values and be un-modifiable
+                // thus we must test it to ensure it's working as expected
+                config.put("null_config_entry", null);
                 ElasticApmAttacher.attach(Collections.unmodifiableMap(config));
             }
         }
