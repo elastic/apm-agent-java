@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.tracer.Outcome;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
@@ -119,7 +119,7 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
             setUp();
             reporter.resetChecks();
         }
-        Span firstSpan = reporter.getFirstSpan(500);
+        SpanImpl firstSpan = reporter.getFirstSpan(500);
         assertThat(firstSpan).isNotNull();
         assertThat(firstSpan.getOutcome()).isEqualTo(Outcome.FAILURE);
         Assertions.assertThat(reporter.getSpans()).hasSize(1);

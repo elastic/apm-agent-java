@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.log4j2;
 
 import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
-import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.logging.LoggingConfigurationImpl;
 import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -47,7 +47,7 @@ public class Log4j2InstrumentationTestVersions extends Log4j2InstrumentationTest
 
     @AfterClass
     public static void reInitLogging() {
-        LoggingConfiguration.init(List.of(), "");
+        LoggingConfigurationImpl.init(List.of(), "");
     }
 
     @Before

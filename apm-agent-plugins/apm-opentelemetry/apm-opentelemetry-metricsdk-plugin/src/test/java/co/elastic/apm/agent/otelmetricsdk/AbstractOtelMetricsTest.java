@@ -22,11 +22,11 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import co.elastic.apm.agent.util.AtomicDouble;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.DoubleCounter;
@@ -81,7 +81,7 @@ public abstract class AbstractOtelMetricsTest {
     protected static ConfigurationRegistry config;
 
 
-    private ReporterConfiguration reporterConfig;
+    private ReporterConfigurationImpl reporterConfig;
 
     /**
      * The meter provider is lazily initialized on first usage (when {@link #createMeter(String)} is called).
@@ -99,7 +99,7 @@ public abstract class AbstractOtelMetricsTest {
         reporter = mockInstrumentationSetup.getReporter();
 
         //Metrics export should work even with instrument=false
-        CoreConfiguration coreConfig = config.getConfig(CoreConfiguration.class);
+        CoreConfigurationImpl coreConfig = config.getConfig(CoreConfigurationImpl.class);
         doReturn(false).when(coreConfig).isInstrument();
 
         assertThat(tracer.isRunning()).isTrue();
@@ -115,7 +115,7 @@ public abstract class AbstractOtelMetricsTest {
     @BeforeEach
     public void setup() {
         SpyConfiguration.reset(config);
-        reporterConfig = config.getConfig(ReporterConfiguration.class);
+        reporterConfig = config.getConfig(ReporterConfigurationImpl.class);
         // we use explicit flush in tests instead of periodic reporting to prevent flakyness
         doReturn(1_000_000L).when(reporterConfig).getMetricsIntervalMs();
         meterProvider = null;
@@ -279,7 +279,7 @@ public abstract class AbstractOtelMetricsTest {
 
     @Test
     public void testDedotSettingIgnored() {
-        MetricsConfiguration config = tracer.getConfig(MetricsConfiguration.class);
+        MetricsConfigurationImpl config = tracer.getConfig(MetricsConfigurationImpl.class);
         doReturn(true).when(config).isDedotCustomMetrics();
 
         Meter meter1 = createMeter("test");
@@ -295,7 +295,7 @@ public abstract class AbstractOtelMetricsTest {
 
     @Test
     public void testMetricDisabling() {
-        MetricsConfiguration config = tracer.getConfig(MetricsConfiguration.class);
+        MetricsConfigurationImpl config = tracer.getConfig(MetricsConfigurationImpl.class);
         doReturn(List.of(
             WildcardMatcher.valueOf("metric.a")
         )).when(reporterConfig).getDisableMetrics();
@@ -588,7 +588,7 @@ public abstract class AbstractOtelMetricsTest {
 
     @Test
     public void testHistogram() {
-        MetricsConfiguration metricsConfig = config.getConfig(MetricsConfiguration.class);
+        MetricsConfigurationImpl metricsConfig = config.getConfig(MetricsConfigurationImpl.class);
         doReturn(List.of(5d, 10d, 25d)).when(metricsConfig).getCustomMetricsHistogramBoundaries();
 
         Meter testMeter = createMeter("test");
@@ -641,7 +641,7 @@ public abstract class AbstractOtelMetricsTest {
      */
     @Test
     public void testDefaultHistogramBuckets() {
-        MetricsConfiguration metricsConfig = config.getConfig(MetricsConfiguration.class);
+        MetricsConfigurationImpl metricsConfig = config.getConfig(MetricsConfigurationImpl.class);
         List<Double> boundaries = metricsConfig.getCustomMetricsHistogramBoundaries();
         assertThat(boundaries).isNotEmpty();
 

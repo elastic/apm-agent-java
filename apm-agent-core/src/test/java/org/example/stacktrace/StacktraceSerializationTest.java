@@ -20,9 +20,9 @@ package org.example.stacktrace;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -48,7 +48,7 @@ import static org.mockito.Mockito.mock;
 class StacktraceSerializationTest {
 
     private List<JsonNode> stacktrace;
-    private StacktraceConfiguration stacktraceConfiguration;
+    private StacktraceConfigurationImpl stacktraceConfiguration;
     private DslJsonSerializer.Writer serializer;
     private ObjectMapper objectMapper;
     private ElasticApmTracer tracer;
@@ -56,7 +56,7 @@ class StacktraceSerializationTest {
     @BeforeEach
     void setUp() throws IOException {
         tracer = MockTracer.createRealTracer();
-        stacktraceConfiguration = tracer.getConfig(StacktraceConfiguration.class);
+        stacktraceConfiguration = tracer.getConfig(StacktraceConfigurationImpl.class);
         // always enable
         doReturn(0L).when(stacktraceConfiguration).getSpanStackTraceMinDurationMs();
         serializer = new DslJsonSerializer(stacktraceConfiguration, mock(ApmServerClient.class), tracer.getMetaDataFuture())
@@ -143,8 +143,8 @@ class StacktraceSerializationTest {
 
 
     private List<JsonNode> getStackTrace() throws IOException {
-        final Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader());
-        final Span span = transaction.createSpan();
+        final TransactionImpl transaction = tracer.startRootTransaction(getClass().getClassLoader());
+        final SpanImpl span = transaction.createSpan();
         span.end();
         transaction.end();
         return StreamSupport.stream(objectMapper

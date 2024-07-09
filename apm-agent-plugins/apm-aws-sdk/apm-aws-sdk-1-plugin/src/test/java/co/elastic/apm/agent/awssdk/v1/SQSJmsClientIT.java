@@ -18,15 +18,13 @@
  */
 package co.elastic.apm.agent.awssdk.v1;
 
-import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import co.elastic.apm.agent.tracer.Scope;
 import com.amazon.sqs.javamessaging.AmazonSQSMessagingClientWrapper;
 import com.amazon.sqs.javamessaging.ProviderConfiguration;
@@ -61,12 +59,12 @@ public class SQSJmsClientIT extends AbstractAws1ClientIT {
     SQSConnection connection;
     SQSConnection receivingConnection;
     AmazonSQS sqs;
-    CoreConfiguration coreConfiguration;
+    CoreConfigurationImpl coreConfiguration;
     MessagingConfiguration messagingConfiguration;
 
     @BeforeEach
     public void setupClient() throws JMSException {
-        coreConfiguration = tracer.getConfig(CoreConfiguration.class);
+        coreConfiguration = tracer.getConfig(CoreConfigurationImpl.class);
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
 
         sqs = AmazonSQSClient.builder()
@@ -92,7 +90,7 @@ public class SQSJmsClientIT extends AbstractAws1ClientIT {
     public void testSend() throws JMSException {
         client.createQueue(SQS_QUEUE_NAME);
 
-        Transaction transaction = startTestRootTransaction("sqs-test");
+        TransactionImpl transaction = startTestRootTransaction("sqs-test");
 
         Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
         Queue queue = session.createQueue(SQS_QUEUE_NAME);
@@ -114,7 +112,7 @@ public class SQSJmsClientIT extends AbstractAws1ClientIT {
         client.createQueue(SQS_QUEUE_NAME);
 
         // SEND message
-        Transaction sendTransaction = startTestRootTransaction("sqs-test-send");
+        TransactionImpl sendTransaction = startTestRootTransaction("sqs-test-send");
 
         Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
         Queue queue = session.createQueue(SQS_QUEUE_NAME);
@@ -133,7 +131,7 @@ public class SQSJmsClientIT extends AbstractAws1ClientIT {
         receivingConnection.start();
 
 
-        Transaction receiveTransaction = startTestRootTransaction("sqs-test-receive");
+        TransactionImpl receiveTransaction = startTestRootTransaction("sqs-test-receive");
 
         Message receivedMessage = consumer.receive(2000);
         assertThat(receivedMessage.getStringProperty("traceparent")).isNotNull();
@@ -147,7 +145,7 @@ public class SQSJmsClientIT extends AbstractAws1ClientIT {
 
         assertThat(reporter.getNumReportedTransactions()).isEqualTo(2);
         assertThat(reporter.getNumReportedSpans()).isEqualTo(4);
-        Span jmsReceiveSpan = reporter.getSpanByName("JMS RECEIVE from queue " + SQS_QUEUE_NAME);
+        SpanImpl jmsReceiveSpan = reporter.getSpanByName("JMS RECEIVE from queue " + SQS_QUEUE_NAME);
         assertThat(reporter.getSpanByName("SQS DELETE from " + SQS_QUEUE_NAME).isChildOf(jmsReceiveSpan)).isTrue();
         assertThat(jmsReceiveSpan.isChildOf(receiveTransaction)).isTrue();
         assertThat(reporter.getSpans()).allSatisfy(span -> assertThat(span).isSync());
@@ -159,7 +157,7 @@ public class SQSJmsClientIT extends AbstractAws1ClientIT {
         client.createQueue(SQS_QUEUE_NAME);
 
         // SEND message
-        Transaction sendTransaction = startTestRootTransaction("sqs-test-send");
+        TransactionImpl sendTransaction = startTestRootTransaction("sqs-test-send");
 
         Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
         Queue queue = session.createQueue(SQS_QUEUE_NAME);
@@ -206,7 +204,7 @@ public class SQSJmsClientIT extends AbstractAws1ClientIT {
         receivingConnection.start();
 
         // SEND message
-        Transaction sendTransaction = startTestRootTransaction("sqs-test-send");
+        TransactionImpl sendTransaction = startTestRootTransaction("sqs-test-send");
 
         Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
         Queue queue = session.createQueue(SQS_QUEUE_NAME);
@@ -222,9 +220,9 @@ public class SQSJmsClientIT extends AbstractAws1ClientIT {
         receivingSession.close();
         assertThat(reporter.getNumReportedTransactions()).isEqualTo(2);
 
-        Optional<Transaction> optTransaction = reporter.getTransactions().stream().filter(t -> t.getNameAsString().startsWith("JMS RECEIVE")).findAny();
+        Optional<TransactionImpl> optTransaction = reporter.getTransactions().stream().filter(t -> t.getNameAsString().startsWith("JMS RECEIVE")).findAny();
         assertThat(optTransaction.isPresent()).isTrue();
-        Transaction receivingTransaction = optTransaction.get();
+        TransactionImpl receivingTransaction = optTransaction.get();
 
         assertThat(reporter.getNumReportedSpans()).isEqualTo(3);
         assertThat(reporter.getSpanByName("on-message-child").isChildOf(receivingTransaction)).isTrue();
@@ -245,7 +243,7 @@ public class SQSJmsClientIT extends AbstractAws1ClientIT {
         receivingConnection.start();
 
         // SEND message
-        Transaction sendTransaction = startTestRootTransaction("sqs-test-send");
+        TransactionImpl sendTransaction = startTestRootTransaction("sqs-test-send");
 
         sqs.sendMessage(queueUrl, MESSAGE_BODY);
 
@@ -256,9 +254,9 @@ public class SQSJmsClientIT extends AbstractAws1ClientIT {
         receivingSession.close();
         assertThat(reporter.getNumReportedTransactions()).isEqualTo(2);
 
-        Optional<Transaction> optTransaction = reporter.getTransactions().stream().filter(t -> t.getNameAsString().startsWith("JMS RECEIVE")).findAny();
+        Optional<TransactionImpl> optTransaction = reporter.getTransactions().stream().filter(t -> t.getNameAsString().startsWith("JMS RECEIVE")).findAny();
         assertThat(optTransaction.isPresent()).isTrue();
-        Transaction receivingTransaction = optTransaction.get();
+        TransactionImpl receivingTransaction = optTransaction.get();
 
         assertThat(reporter.getNumReportedSpans()).isEqualTo(2);
         assertThat(reporter.getSpanByName("on-message-child").isChildOf(receivingTransaction)).isTrue();
@@ -297,11 +295,11 @@ public class SQSJmsClientIT extends AbstractAws1ClientIT {
         @Override
         public void onMessage(Message message) {
             try {
-                Tracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
+                ElasticApmTracer tracer = GlobalTracer.get().require(ElasticApmTracer.class);
                 assertThat(tracer).isNotNull();
-                AbstractSpan<?> parent = tracer.getActive();
+                AbstractSpanImpl<?> parent = tracer.getActive();
                 assertThat(parent).isNotNull();
-                Span child = parent.createSpan();
+                SpanImpl child = parent.createSpan();
                 assertThat(child).isNotNull();
                 child.withName("on-message-child");
                 try (Scope ignored = child.activateInScope()) {

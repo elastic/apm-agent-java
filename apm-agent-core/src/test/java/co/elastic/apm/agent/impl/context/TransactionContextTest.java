@@ -27,33 +27,33 @@ class TransactionContextTest {
 
     @Test
     void testCopyFrom() {
-        TransactionContext context = createContext();
-        TransactionContext copyOfContext = new TransactionContext();
+        TransactionContextImpl context = createContext();
+        TransactionContextImpl copyOfContext = new TransactionContextImpl();
         copyOfContext.copyFrom(context);
         assertThat(toJson(context)).isEqualTo(toJson(copyOfContext));
     }
 
     @Test
     void testCopyFromCopiesTags() {
-        TransactionContext context = new TransactionContext();
+        TransactionContextImpl context = new TransactionContextImpl();
         context.addLabel("foo", "bar");
-        TransactionContext copyOfContext = new TransactionContext();
+        TransactionContextImpl copyOfContext = new TransactionContextImpl();
         copyOfContext.copyFrom(context);
         assertThat(copyOfContext.getLabel("foo")).isEqualTo("bar");
     }
 
     @Test
     void testCopyFromDoNotCopyCustom() {
-        TransactionContext context = new TransactionContext();
+        TransactionContextImpl context = new TransactionContextImpl();
         context.addCustom("foo", "bar");
-        TransactionContext copyOfContext = new TransactionContext();
+        TransactionContextImpl copyOfContext = new TransactionContextImpl();
         copyOfContext.copyFrom(context);
         assertThat(copyOfContext.hasCustom()).isFalse();
     }
 
-    private TransactionContext createContext() {
-        TransactionContext context = new TransactionContext();
-        Request request = context.getRequest();
+    private TransactionContextImpl createContext() {
+        TransactionContextImpl context = new TransactionContextImpl();
+        RequestImpl request = context.getRequest();
         request.withHttpVersion("1.1");
         request.withMethod("POST");
         request.withBodyBuffer().append("Hello World");

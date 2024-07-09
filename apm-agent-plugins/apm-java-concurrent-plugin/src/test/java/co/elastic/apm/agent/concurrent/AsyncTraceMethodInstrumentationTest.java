@@ -21,7 +21,7 @@ package co.elastic.apm.agent.concurrent;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.matcher.MethodMatcher;
@@ -44,14 +44,14 @@ class AsyncTraceMethodInstrumentationTest {
 
     private MockReporter reporter;
     private ElasticApmTracer tracer;
-    private CoreConfiguration coreConfiguration;
+    private CoreConfigurationImpl coreConfiguration;
 
     @BeforeEach
     void setUp(TestInfo testInfo) {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         reporter = mockInstrumentationSetup.getReporter();
         ConfigurationRegistry config = mockInstrumentationSetup.getConfig();
-        coreConfiguration = config.getConfig(CoreConfiguration.class);
+        coreConfiguration = config.getConfig(CoreConfigurationImpl.class);
         MethodMatcher testTraceMethodMatcher = MethodMatcher.of("private co.elastic.apm.agent.concurrent.AsyncTraceMethodInstrumentationTest$TestAsyncTraceMethodsClass#*");
         doReturn(Arrays.asList(testTraceMethodMatcher)).when(coreConfiguration).getTraceMethods();
 
@@ -66,7 +66,7 @@ class AsyncTraceMethodInstrumentationTest {
         }
 
         tracer = mockInstrumentationSetup.getTracer();
-        assertThat(tracer.getConfig(CoreConfiguration.class).getTraceMethods()).containsExactly(testTraceMethodMatcher);
+        assertThat(tracer.getConfig(CoreConfigurationImpl.class).getTraceMethods()).containsExactly(testTraceMethodMatcher);
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 

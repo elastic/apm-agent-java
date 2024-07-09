@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.springwebmvc;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -192,7 +192,7 @@ public abstract class AbstractSpringTransactionNameInstrumentationTest extends A
 
             @GetMapping("/test")
             public CharSequence test() {
-                Transaction currentTransaction = tracer.currentTransaction();
+                TransactionImpl currentTransaction = tracer.currentTransaction();
                 assertThat(currentTransaction).isNotNull();
                 return currentTransaction.getNameAsString();
             }

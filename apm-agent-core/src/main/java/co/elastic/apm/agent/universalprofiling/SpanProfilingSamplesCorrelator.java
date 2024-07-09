@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.universalprofiling;
 
 
-import co.elastic.apm.agent.impl.transaction.Id;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.IdImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -43,7 +43,7 @@ public class SpanProfilingSamplesCorrelator {
      * However, this is highly unlikely (see <a href="https://en.wikipedia.org/wiki/Birthday_problem">birthday problem</a>) and even if
      * it were to happen, the only consequences would be a potentially incorrect correlation for the two colliding transactions.
      */
-    private final ConcurrentHashMap<Id, Transaction> transactionsById = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<IdImpl, TransactionImpl> transactionsById = new ConcurrentHashMap<>();
 
     private final Reporter reporter;
 
@@ -89,17 +89,17 @@ public class SpanProfilingSamplesCorrelator {
         spanBufferDurationNanos = nanos;
     }
 
-    public void onTransactionStart(Transaction transaction) {
+    public void onTransactionStart(TransactionImpl transaction) {
         if (transaction.isSampled()) {
             transactionsById.put(transaction.getTraceContext().getId(), transaction);
         }
     }
 
-    public void stopCorrelating(Transaction transaction) {
+    public void stopCorrelating(TransactionImpl transaction) {
         transactionsById.remove(transaction.getTraceContext().getId());
     }
 
-    public void reportOrBufferTransaction(Transaction transaction) {
+    public void reportOrBufferTransaction(TransactionImpl transaction) {
         if (!transactionsById.containsKey(transaction.getTraceContext().getId())) {
             // transaction is not being correlated, e.g. because it was not sampled
             // therefore no need to buffer it
@@ -130,8 +130,8 @@ public class SpanProfilingSamplesCorrelator {
     }
 
     public synchronized void correlate(
-        Id traceId, Id transactionId, Id stackTraceId, int count) {
-        Transaction tx = transactionsById.get(transactionId);
+        IdImpl traceId, IdImpl transactionId, IdImpl stackTraceId, int count) {
+        TransactionImpl tx = transactionsById.get(transactionId);
         if (tx != null) {
             // this branch should be true practically always unless there was a collision in transactionsById
             // nonetheless for the unlikely case that it happens, we at least prevent wrongly adding data to another transaction
@@ -182,7 +182,7 @@ public class SpanProfilingSamplesCorrelator {
 
     private static class BufferedTransaction implements MoveableEvent<BufferedTransaction> {
 
-        Transaction transaction;
+        TransactionImpl transaction;
         long endNanoTimestamp;
 
         @Override
@@ -198,9 +198,9 @@ public class SpanProfilingSamplesCorrelator {
             endNanoTimestamp = -1;
         }
 
-        public static final EventTranslatorTwoArg<BufferedTransaction, Transaction, Long> TRANSLATOR = new EventTranslatorTwoArg<BufferedTransaction, Transaction, Long>() {
+        public static final EventTranslatorTwoArg<BufferedTransaction, TransactionImpl, Long> TRANSLATOR = new EventTranslatorTwoArg<BufferedTransaction, TransactionImpl, Long>() {
             @Override
-            public void translateTo(BufferedTransaction event, long sequence, Transaction transaction, Long timestamp) {
+            public void translateTo(BufferedTransaction event, long sequence, TransactionImpl transaction, Long timestamp) {
                 event.transaction = transaction;
                 event.endNanoTimestamp = timestamp;
             }

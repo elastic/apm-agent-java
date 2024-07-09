@@ -19,7 +19,8 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractApiTest;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,8 +35,8 @@ class SpanDestinationApiTest extends AbstractApiTest {
     public static final int INTERNAL_PORT = 9001;
     public static final String INTERNAL_RESOURCE = "internal-resource";
 
-    private co.elastic.apm.agent.impl.transaction.Transaction internalTransaction;
-    private co.elastic.apm.agent.impl.transaction.Span internalSpan;
+    private TransactionImpl internalTransaction;
+    private SpanImpl internalSpan;
 
     @BeforeEach
     void setUp() {
@@ -201,7 +202,7 @@ class SpanDestinationApiTest extends AbstractApiTest {
             .hasDestinationResource("my-resource");
     }
 
-    private Span getSpan() {
+    private SpanImpl getSpan() {
         internalSpan.deactivate().end();
         return reporter.getFirstSpan();
     }

@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockFilterConfig;
 import org.springframework.mock.web.MockServletConfig;
@@ -98,7 +98,7 @@ class InitServiceNameInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     private void assertServiceInfo() {
-        TraceContext traceContext = reporter.getFirstTransaction().getTraceContext();
+        TraceContextImpl traceContext = reporter.getFirstTransaction().getTraceContext();
         assertThat(traceContext.getServiceName()).isEqualTo("service-name-from-manifest");
         assertThat(traceContext.getServiceVersion()).isEqualTo("1.42.0");
     }

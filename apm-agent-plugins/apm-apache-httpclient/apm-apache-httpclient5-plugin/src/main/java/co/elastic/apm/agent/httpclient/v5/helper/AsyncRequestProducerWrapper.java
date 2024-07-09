@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.httpclient.v5.helper;
 
 
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
@@ -38,7 +38,7 @@ public class AsyncRequestProducerWrapper implements AsyncRequestProducer, Recycl
     private volatile AsyncRequestProducer delegate;
 
     @Nullable
-    private ElasticContext<?> toPropagate;
+    private TraceState<?> toPropagate;
 
     @Nullable
     private Span<?> span;
@@ -48,7 +48,7 @@ public class AsyncRequestProducerWrapper implements AsyncRequestProducer, Recycl
     }
 
     public AsyncRequestProducerWrapper with(AsyncRequestProducer delegate, @Nullable Span<?> span,
-                                            ElasticContext<?> toPropagate) {
+                                            TraceState<?> toPropagate) {
         this.span = span;
         toPropagate.incrementReferences();
         this.toPropagate = toPropagate;

@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
@@ -29,7 +29,7 @@ public class TracerConfiguration extends ConfigurationOptionProvider {
         .key(RECORDING)
         .aliasKeys("active")
         .tags("added[1.15.0]")
-        .configurationCategory(CoreConfiguration.CORE_CATEGORY)
+        .configurationCategory(CoreConfigurationImpl.CORE_CATEGORY)
         .description("NOTE: This option was available in older versions through the `active` key. The old key is still \n" +
             "supported in newer versions, but it is now deprecated.\n" +
             "\n" +

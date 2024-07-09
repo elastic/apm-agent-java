@@ -60,7 +60,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private long reported;
     private long dropped;
 
-    public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
+    public IntakeV2ReportingEventHandler(ReporterConfigurationImpl reporterConfiguration, ProcessorEventHandler processorEventHandler,
                                          DslJsonSerializer payloadSerializer, ApmServerClient apmServerClient) {
         super(reporterConfiguration, payloadSerializer, apmServerClient);
         this.processorEventHandler = processorEventHandler;

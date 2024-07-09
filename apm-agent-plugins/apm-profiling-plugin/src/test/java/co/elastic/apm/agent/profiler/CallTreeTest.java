@@ -21,16 +21,13 @@ package co.elastic.apm.agent.profiler;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.transaction.*;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.StackFrame;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.objectpool.NoopObjectPool;
-import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.objectpool.ObservableObjectPool;
 import co.elastic.apm.agent.objectpool.impl.ListBasedObjectPool;
 import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
 import org.junit.jupiter.api.AfterEach;
@@ -84,9 +81,9 @@ class CallTreeTest {
 
     @Test
     void testCallTree() {
-        TraceContext traceContext = TraceContext.with64BitId(MockTracer.create());
+        TraceContextImpl traceContext = TraceContextImpl.with64BitId(MockTracer.create());
         CallTree.Root root = CallTree.createRoot(NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), traceContext.getServiceVersion(), 0);
-        ObjectPool<CallTree> callTreePool = ListBasedObjectPool.ofRecyclable(new ArrayList<>(), Integer.MAX_VALUE, CallTree::new);
+        ObservableObjectPool<CallTree> callTreePool = ListBasedObjectPool.ofRecyclable(new ArrayList<>(), Integer.MAX_VALUE, CallTree::new);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0, callTreePool, 0);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10), callTreePool, 0);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20), callTreePool, 0);
@@ -322,7 +319,7 @@ class CallTreeTest {
      */
     @Test
     void testDectivationBeforeEnd_DontStealChildIdsOfUnrelatedActivations() throws Exception {
-        Map<String, AbstractSpan<?>> spans = assertCallTree(new String[]{
+        Map<String, AbstractSpanImpl<?>> spans = assertCallTree(new String[]{
             "      c c ",
             "      b b ",
             "a   a a aa",
@@ -350,7 +347,7 @@ class CallTreeTest {
      */
     @Test
     void testDectivationBeforeEnd_DontStealChildIdsOfUnrelatedActivations_Nested() throws Exception {
-        Map<String, AbstractSpan<?>> spans = assertCallTree(new String[]{
+        Map<String, AbstractSpanImpl<?>> spans = assertCallTree(new String[]{
             "       c  c ",
             "       b  b ",
             "a   a  a  aa",
@@ -487,7 +484,7 @@ class CallTreeTest {
      */
     @Test
     void testNestedActivation() throws Exception {
-        Map<String, AbstractSpan<?>> spans = assertCallTree(new String[]{
+        Map<String, AbstractSpanImpl<?>> spans = assertCallTree(new String[]{
             "a  a  a",
             " 12 21 "
         }, new Object[][] {
@@ -507,7 +504,7 @@ class CallTreeTest {
      */
     @Test
     void testNestedActivationAfterMethodEnds_RootChangesToC() throws Exception {
-        Map<String, AbstractSpan<?>> spans = assertCallTree(new String[]{
+        Map<String, AbstractSpanImpl<?>> spans = assertCallTree(new String[]{
             " bbb        ",
             " aaa  ccc   ",
             "1   23   321"
@@ -564,7 +561,7 @@ class CallTreeTest {
      */
     @Test
     void testNestedActivationAfterMethodEnds_CommonAncestorA() throws Exception {
-        Map<String, AbstractSpan<?>> spans = assertCallTree(new String[]{
+        Map<String, AbstractSpanImpl<?>> spans = assertCallTree(new String[]{
             "  b b b  ccc    ",
             " aa a a  aaa  a ",
             "1  2 2 34   43 1"
@@ -855,7 +852,7 @@ class CallTreeTest {
         assertCallTree(stackTraces, expectedTree, null);
     }
 
-    private Map<String, AbstractSpan<?>> assertCallTree(String[] stackTraces, Object[][] expectedTree, @Nullable Object[][] expectedSpans) throws Exception {
+    private Map<String, AbstractSpanImpl<?>> assertCallTree(String[] stackTraces, Object[][] expectedTree, @Nullable Object[][] expectedSpans) throws Exception {
         CallTree.Root root = getCallTree(tracer, stackTraces);
         StringBuilder expectedResult = new StringBuilder();
         for (int i = 0; i < expectedTree.length; i++) {
@@ -879,7 +876,7 @@ class CallTreeTest {
 
         if (expectedSpans != null) {
             root.spanify();
-            Map<String, AbstractSpan<?>> spans = reporter.getSpans()
+            Map<String, AbstractSpanImpl<?>> spans = reporter.getSpans()
                 .stream()
                 .collect(toMap(
                     s -> s.getNameAsString().replaceAll(".*#", ""),
@@ -896,7 +893,7 @@ class CallTreeTest {
                 String parentName = getParentName(expectedSpans, i, nestingLevel);
                 assertThat(spans).containsKey(spanName);
                 assertThat(spans).containsKey(parentName);
-                AbstractSpan<?> span = spans.get(spanName);
+                AbstractSpanImpl<?> span = spans.get(spanName);
                 assertThat(span.isChildOf(spans.get(parentName)))
                     .withFailMessage("Expected %s (%s) to be a child of %s (%s) but was %s (%s)",
                         spanName, span.getTraceContext().getId(),
@@ -904,7 +901,7 @@ class CallTreeTest {
                         reporter.getSpans()
                             .stream()
                             .filter(s -> s.getTraceContext().getId().equals(span.getTraceContext().getParentId())).findAny()
-                            .map(Span::getNameAsString)
+                            .map(SpanImpl::getNameAsString)
                             .orElse(null),
                         span.getTraceContext().getParentId())
                     .isTrue();
@@ -915,14 +912,14 @@ class CallTreeTest {
                         reporter.getSpans()
                             .stream()
                             .filter(s -> s.getTraceContext().getId().equals(span.getTraceContext().getParentId())).findAny()
-                            .map(Span::getNameAsString)
+                            .map(SpanImpl::getNameAsString)
                             .orElse(null),
                         span.getTraceContext().getParentId())
                     .isFalse();
                 assertThat(span.getDuration())
                     .describedAs("Unexpected duration for span %s", span)
                     .isEqualTo(durationMs * 1000);
-                assertThat(Objects.requireNonNullElse(((Span) span).getStackFrames(), List.<StackFrame>of())
+                assertThat(Objects.requireNonNullElse(((SpanImpl) span).getStackFrames(), List.<StackFrame>of())
                     .stream()
                     .map(StackFrame::getMethodName)
                     .collect(Collectors.toList()))
@@ -960,12 +957,12 @@ class CallTreeTest {
         FixedNanoClock nanoClock = (FixedNanoClock) profilingFactory.getNanoClock();
         nanoClock.setNanoTime(0);
         profiler.setProfilingSessionOngoing(true);
-        Transaction transaction = tracer
+        TransactionImpl transaction = tracer
             .startRootTransaction(ConstantSampler.of(true), 0, null)
             .withName("Call Tree Root")
             .activate();
         transaction.getTraceContext().getClock().init(0, 0);
-        Map<String, AbstractSpan<?>> spanMap = new HashMap<>();
+        Map<String, AbstractSpanImpl<?>> spanMap = new HashMap<>();
         List<StackTraceEvent> stackTraceEvents = new ArrayList<>();
         for (int i = 0; i < stackTraces[0].length(); i++) {
             nanoClock.setNanoTime(i * TimeUnit.MILLISECONDS.toNanos(10));
@@ -1014,17 +1011,17 @@ class CallTreeTest {
         }
     }
 
-    private static void handleSpanEvent(ElasticApmTracer tracer, Map<String, AbstractSpan<?>> spanMap, String name, long nanoTime) {
+    private static void handleSpanEvent(ElasticApmTracer tracer, Map<String, AbstractSpanImpl<?>> spanMap, String name, long nanoTime) {
         if (!spanMap.containsKey(name)) {
-            Span span = tracer.getActive().createSpan(nanoTime / 1000).appendToName(name).activate();
+            SpanImpl span = tracer.getActive().createSpan(nanoTime / 1000).appendToName(name).activate();
             spanMap.put(name, span);
         } else {
             spanMap.get(name).deactivate().end(nanoTime / 1000);
         }
     }
 
-    public static TraceContext rootTraceContext(ElasticApmTracer tracer) {
-        TraceContext traceContext = TraceContext.with64BitId(tracer);
+    public static TraceContextImpl rootTraceContext(ElasticApmTracer tracer) {
+        TraceContextImpl traceContext = TraceContextImpl.with64BitId(tracer);
         traceContext.asRootSpan(ConstantSampler.of(true));
         return traceContext;
     }

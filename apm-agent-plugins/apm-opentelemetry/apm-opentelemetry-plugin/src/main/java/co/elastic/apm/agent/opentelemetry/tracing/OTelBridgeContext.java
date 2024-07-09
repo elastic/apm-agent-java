@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.opentelemetry.tracing;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.baggage.Baggage;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.impl.baggage.BaggageImpl;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.TraceStateImpl;
 import co.elastic.apm.agent.opentelemetry.baggage.OtelBaggage;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Context;
@@ -32,9 +32,9 @@ import javax.annotation.Nullable;
 import java.util.Objects;
 
 /**
- * Bridge implementation of OpenTelemetry {@link Context} that allows to provide compatibility with {@link ElasticContext}.
+ * Bridge implementation of OpenTelemetry {@link Context} that allows to provide compatibility with {@link TraceStateImpl}.
  */
-public class OTelBridgeContext extends ElasticContext<OTelBridgeContext> implements Context, Scope {
+public class OTelBridgeContext extends TraceStateImpl<OTelBridgeContext> implements Context, Scope {
 
     /**
      * Original root context as returned by {@link Context#root()} before instrumentation.
@@ -86,7 +86,7 @@ public class OTelBridgeContext extends ElasticContext<OTelBridgeContext> impleme
      * @param currentContext elastic (currently active) context
      * @return bridged context with span as active
      */
-    public static OTelBridgeContext wrapElasticActiveSpan(ElasticApmTracer tracer, ElasticContext<?> currentContext) {
+    public static OTelBridgeContext wrapElasticActiveSpan(ElasticApmTracer tracer, TraceStateImpl<?> currentContext) {
         if (root == null) {
             // Ensure that root context is being accessed at least once to capture the original root
             // OTel 1.0 directly calls ArrayBasedContext.root() which is not publicly accessible, later versions delegate
@@ -108,7 +108,7 @@ public class OTelBridgeContext extends ElasticContext<OTelBridgeContext> impleme
 
     @Nullable
     @Override
-    public AbstractSpan<?> getSpan() {
+    public AbstractSpanImpl<?> getSpan() {
         // get otel span from context
         Span span = Span.fromContext(otelContext);
         if (span instanceof OTelSpan) {
@@ -118,11 +118,11 @@ public class OTelBridgeContext extends ElasticContext<OTelBridgeContext> impleme
     }
 
     @Override
-    public Baggage getBaggage() {
+    public BaggageImpl getBaggage() {
         io.opentelemetry.api.baggage.Baggage otelBaggage = io.opentelemetry.api.baggage.Baggage.fromContext(otelContext);
 
         if (otelBaggage == null || otelBaggage.isEmpty()) {
-            return Baggage.EMPTY;
+            return BaggageImpl.EMPTY;
         }
         return OtelBaggage.toElasticBaggage(otelBaggage);
     }

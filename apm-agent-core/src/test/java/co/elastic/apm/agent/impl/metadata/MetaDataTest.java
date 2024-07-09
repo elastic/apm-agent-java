@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.impl.metadata;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.configuration.ServerlessConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.util.CustomEnvVariables;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,9 +38,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AUTO;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AWS;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.NONE;
+import static co.elastic.apm.agent.configuration.CoreConfigurationImpl.CloudProvider.AUTO;
+import static co.elastic.apm.agent.configuration.CoreConfigurationImpl.CloudProvider.AWS;
+import static co.elastic.apm.agent.configuration.CoreConfigurationImpl.CloudProvider.NONE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.doReturn;
@@ -48,20 +48,20 @@ import static org.mockito.Mockito.doReturn;
 class MetaDataTest extends CustomEnvVariables {
 
     private static ConfigurationRegistry config;
-    private static CoreConfiguration coreConfiguration;
-    private static ServerlessConfiguration serverlessConfiguration;
+    private static CoreConfigurationImpl coreConfiguration;
+    private static ServerlessConfigurationImpl serverlessConfiguration;
     @Nullable
-    private static CoreConfiguration.CloudProvider currentCloudProvider;
+    private static CoreConfigurationImpl.CloudProvider currentCloudProvider;
 
     @BeforeAll
     static void setup() {
         config = SpyConfiguration.createSpyConfig();
-        coreConfiguration = config.getConfig(CoreConfiguration.class);
-        serverlessConfiguration = config.getConfig(ServerlessConfiguration.class);
+        coreConfiguration = config.getConfig(CoreConfigurationImpl.class);
+        serverlessConfiguration = config.getConfig(ServerlessConfigurationImpl.class);
         // calling the blocking method directly, so we can start tests only after proper discovery
         CloudProviderInfo cloudProviderInfo = CloudMetadataProvider.fetchAndParseCloudProviderInfo(AUTO, 1000);
         if (cloudProviderInfo != null) {
-            currentCloudProvider = CoreConfiguration.CloudProvider.valueOf(cloudProviderInfo.getProvider().toUpperCase());
+            currentCloudProvider = CoreConfigurationImpl.CloudProvider.valueOf(cloudProviderInfo.getProvider().toUpperCase());
         }
     }
 
@@ -83,7 +83,7 @@ class MetaDataTest extends CustomEnvVariables {
     void testCloudProvider_ForAWSLambda_fromEnvVariables() throws Exception {
         MetaData awsLambdaMetaData = createAwsLambdaMetaData();
 
-        Service service = awsLambdaMetaData.getService();
+        ServiceImpl service = awsLambdaMetaData.getService();
         assertThat(Objects.requireNonNull(service.getRuntime()).getName()).isEqualTo("lambda-execution");
         assertThat(Objects.requireNonNull(service.getNode()).getName()).isEqualTo("lambda-log-stream");
         Framework framework = service.getFramework();
@@ -106,7 +106,7 @@ class MetaDataTest extends CustomEnvVariables {
         doReturn("test-service-version").when(coreConfiguration).getServiceVersion();
         MetaData awsLambdaMetaData = createAwsLambdaMetaData();
 
-        Service service = awsLambdaMetaData.getService();
+        ServiceImpl service = awsLambdaMetaData.getService();
         assertThat(service.getName()).isEqualTo("test-service");
         assertThat(service.getVersion()).isEqualTo("test-service-version");
         assertThat(Objects.requireNonNull(service.getNode()).getName()).isEqualTo("test-service-node-name");
@@ -135,8 +135,8 @@ class MetaDataTest extends CustomEnvVariables {
     }
 
     @ParameterizedTest
-    @EnumSource(value = CoreConfiguration.CloudProvider.class, names = {"AWS", "GCP", "AZURE"})
-    void testCloudProvider_SingleProvider(CoreConfiguration.CloudProvider provider) throws InterruptedException, ExecutionException, TimeoutException {
+    @EnumSource(value = CoreConfigurationImpl.CloudProvider.class, names = {"AWS", "GCP", "AZURE"})
+    void testCloudProvider_SingleProvider(CoreConfigurationImpl.CloudProvider provider) throws InterruptedException, ExecutionException, TimeoutException {
         doReturn(provider).when(coreConfiguration).getCloudProvider();
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
         // In AWS we may need two timeouts - one for the API token and one for the metadata itself
@@ -179,11 +179,11 @@ class MetaDataTest extends CustomEnvVariables {
         verifyMetaData(metaData, AUTO);
     }
 
-    private void verifyMetaData(MetaData metaData, CoreConfiguration.CloudProvider cloudProvider) {
+    private void verifyMetaData(MetaData metaData, CoreConfigurationImpl.CloudProvider cloudProvider) {
         verifyMetaData(metaData, cloudProvider, null);
     }
 
-    private void verifyMetaData(MetaData metaData, CoreConfiguration.CloudProvider cloudProvider, @Nullable String configuredHostname) {
+    private void verifyMetaData(MetaData metaData, CoreConfigurationImpl.CloudProvider cloudProvider, @Nullable String configuredHostname) {
         assertThat(metaData.getService()).isNotNull();
         assertThat(metaData.getProcess()).isNotNull();
         SystemInfo system = metaData.getSystem();

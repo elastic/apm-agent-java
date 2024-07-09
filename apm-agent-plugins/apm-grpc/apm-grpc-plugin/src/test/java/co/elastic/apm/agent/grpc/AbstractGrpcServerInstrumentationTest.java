@@ -21,8 +21,8 @@ package co.elastic.apm.agent.grpc;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcApp;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,7 +69,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
 
         reporter.awaitTransactionCount(2);
 
-        for (Transaction transaction : reporter.getTransactions()) {
+        for (TransactionImpl transaction : reporter.getTransactions()) {
             checkUnaryTransactionSuccess(transaction);
         }
     }
@@ -95,7 +95,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         String msg = app.sayHelloAsync("bob", 0).get();
         assertThat(msg).isEqualTo("hello(bob)");
 
-        Transaction transaction = getFirstTransaction();
+        TransactionImpl transaction = getFirstTransaction();
         checkUnaryTransactionSuccess(transaction);
     }
 
@@ -103,7 +103,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         assertThat(app.sayHello(name, 0))
             .isNull();
 
-        Transaction transaction = getFirstTransaction();
+        TransactionImpl transaction = getFirstTransaction();
         checkUnaryTransaction(transaction, expectedResult, expectedOutcome);
     }
 
@@ -187,11 +187,11 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         reporter.awaitTransactionCount(1);
     }
 
-    private static void checkUnaryTransactionSuccess(Transaction transaction) {
+    private static void checkUnaryTransactionSuccess(TransactionImpl transaction) {
         checkUnaryTransaction(transaction, "OK", Outcome.SUCCESS);
     }
 
-    private static void checkUnaryTransaction(Transaction transaction, String expectedResult, Outcome expectedOutcome) {
+    private static void checkUnaryTransaction(TransactionImpl transaction, String expectedResult, Outcome expectedOutcome) {
         assertThat(transaction).isNotNull();
         assertThat(transaction.getNameAsString()).isEqualTo("helloworld.Hello/SayHello");
         assertThat(transaction.getType()).isEqualTo("request");
@@ -204,7 +204,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         getReporter().assertNoTransaction(100);
     }
 
-    private static Transaction getFirstTransaction() {
+    private static TransactionImpl getFirstTransaction() {
         return getReporter().getFirstTransaction(1000);
     }
 

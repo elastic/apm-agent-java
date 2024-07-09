@@ -111,8 +111,8 @@ public class SpanCompressionIT {
     }
 
 
-    private static void runInTransactionScope(BiFunction<AbstractSpan<?>, Integer, Runnable> r) {
-        Transaction transaction = tracer.startRootTransaction(null).withName("Some Transaction");
+    private static void runInTransactionScope(BiFunction<AbstractSpanImpl<?>, Integer, Runnable> r) {
+        TransactionImpl transaction = tracer.startRootTransaction(null).withName("Some Transaction");
         try {
             CompletableFuture<?>[] tasks = new CompletableFuture<?>[numberOfSpans];
             for (int i = 0; i < numberOfSpans; ++i) {
@@ -125,25 +125,25 @@ public class SpanCompressionIT {
         }
     }
 
-    private static void createSpan(AbstractSpan<?> parent, long startTimestamp, long endTimestamp) {
-        Span span = parent.createSpan().withName("Some Name").withType("app");
+    private static void createSpan(AbstractSpanImpl<?> parent, long startTimestamp, long endTimestamp) {
+        SpanImpl span = parent.createSpan().withName("Some Name").withType("app");
         span.setStartTimestamp(startTimestamp);
         span.end(endTimestamp);
     }
 
-    private static void createExitSpan(AbstractSpan<?> parent, long startTimestamp, long endTimestamp, String subtype) {
-        Span span = parent.createSpan().asExit().withName("Some Other Name").withType("db").withSubtype(subtype);
+    private static void createExitSpan(AbstractSpanImpl<?> parent, long startTimestamp, long endTimestamp, String subtype) {
+        SpanImpl span = parent.createSpan().asExit().withName("Some Other Name").withType("db").withSubtype(subtype);
         span.getContext().getDestination().withAddress("127.0.0.1").withPort(5432);
         span.setStartTimestamp(startTimestamp);
         span.end(endTimestamp);
     }
 
-    private static void assertReportedSpans(List<Span> reportedSpans) {
+    private static void assertReportedSpans(List<SpanImpl> reportedSpans) {
         int numberOfReportedSpans = reportedSpans.stream()
             .mapToInt(s -> s.isComposite() ? s.getComposite().getCount() : 1)
             .sum();
         assertThat(numberOfReportedSpans).isEqualTo(numberOfReportedSpans);
-        assertThat(reportedSpans).filteredOn(Span::isComposite)
+        assertThat(reportedSpans).filteredOn(SpanImpl::isComposite)
             .allSatisfy(span -> {
                 int numberOfCompositeSpans = span.getComposite().getCount();
                 assertThat(span.getDuration()).isGreaterThanOrEqualTo(1000L + numberOfCompositeSpans - 1L);

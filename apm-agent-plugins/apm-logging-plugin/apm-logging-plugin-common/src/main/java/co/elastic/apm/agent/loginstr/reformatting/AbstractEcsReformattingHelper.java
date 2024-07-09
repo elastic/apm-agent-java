@@ -28,11 +28,8 @@ import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import co.elastic.apm.agent.tracer.configuration.LoggingConfiguration;
-import co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration;
 import co.elastic.apm.agent.tracer.service.Service;
-import co.elastic.apm.agent.tracer.service.ServiceAwareTracer;
 
 import javax.annotation.Nullable;
 import java.util.List;

@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.vertx.helper;
 
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
@@ -51,13 +51,13 @@ public abstract class CommonVertxServerClientTest extends AbstractVertxWebTest {
         reporter.awaitTransactionCount(2);
         reporter.awaitSpanCount(1);
 
-        List<Transaction> transactions = reporter.getTransactions();
+        List<TransactionImpl> transactions = reporter.getTransactions();
         assertThat(transactions.stream().map(t -> t.getNameAsString())).containsAll(Set.of("GET /downstream", "GET /" + targetPath));
 
-        Transaction firstTransaction = transactions.stream().filter(t -> t.getNameAsString().contains(targetPath)).findFirst().get();
-        Transaction secondTransaction = transactions.stream().filter(t -> t.getNameAsString().contains("downstream")).findFirst().get();
+        TransactionImpl firstTransaction = transactions.stream().filter(t -> t.getNameAsString().contains(targetPath)).findFirst().get();
+        TransactionImpl secondTransaction = transactions.stream().filter(t -> t.getNameAsString().contains("downstream")).findFirst().get();
 
-        Span exitSpan = reporter.getFirstSpan();
+        SpanImpl exitSpan = reporter.getFirstSpan();
         assertThat(exitSpan.isChildOf(firstTransaction)).isTrue();
         assertThat(secondTransaction.isChildOf(exitSpan)).isTrue();
 
@@ -73,16 +73,16 @@ public abstract class CommonVertxServerClientTest extends AbstractVertxWebTest {
         reporter.awaitTransactionCount(2);
         reporter.awaitSpanCount(2);
 
-        List<Transaction> transactions = reporter.getTransactions();
+        List<TransactionImpl> transactions = reporter.getTransactions();
         assertThat(transactions.stream().map(t -> t.getNameAsString())).containsAll(Set.of("GET /downstream",
             "GET /with-extra-span/" + targetPath));
 
-        Transaction firstTransaction = transactions.stream().filter(t -> t.getNameAsString().contains(targetPath)).findFirst().get();
-        Transaction secondTransaction = transactions.stream().filter(t -> t.getNameAsString().contains("downstream")).findFirst().get();
+        TransactionImpl firstTransaction = transactions.stream().filter(t -> t.getNameAsString().contains(targetPath)).findFirst().get();
+        TransactionImpl secondTransaction = transactions.stream().filter(t -> t.getNameAsString().contains("downstream")).findFirst().get();
 
-        List<Span> spans = reporter.getSpans();
-        Span exitSpan = spans.stream().filter(s -> s.getNameAsString().contains("GET")).findFirst().get();
-        Span customSpan = spans.stream().filter(s -> s.getNameAsString().equals("custom-child-span")).findFirst().get();
+        List<SpanImpl> spans = reporter.getSpans();
+        SpanImpl exitSpan = spans.stream().filter(s -> s.getNameAsString().contains("GET")).findFirst().get();
+        SpanImpl customSpan = spans.stream().filter(s -> s.getNameAsString().equals("custom-child-span")).findFirst().get();
 
         assertThat(customSpan.isChildOf(firstTransaction)).isTrue();
         assertThat(exitSpan.isChildOf(customSpan)).isTrue();

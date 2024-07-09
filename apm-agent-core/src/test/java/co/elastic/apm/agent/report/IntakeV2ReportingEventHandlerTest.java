@@ -20,16 +20,16 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.common.util.Version;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
-import co.elastic.apm.agent.impl.metadata.Service;
+import co.elastic.apm.agent.impl.metadata.ServiceImpl;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.dslplatform.json.DslJson;
@@ -103,11 +103,11 @@ class IntakeV2ReportingEventHandlerTest {
         mockApmServer2.start();
 
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
-        final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        final CoreConfiguration coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
+        final ReporterConfigurationImpl reporterConfiguration = configurationRegistry.getConfig(ReporterConfigurationImpl.class);
+        final CoreConfigurationImpl coreConfiguration = configurationRegistry.getConfig(CoreConfigurationImpl.class);
         SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
         final ProcessInfo title = new ProcessInfo("title");
-        final Service service = new Service();
+        final ServiceImpl service = new ServiceImpl();
         apmServerClient = new ApmServerClient(configurationRegistry);
         apmServerClient.start(List.of(
             new URL(HTTP_LOCALHOST + mockApmServer1.port()),
@@ -118,21 +118,21 @@ class IntakeV2ReportingEventHandlerTest {
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
             new DslJsonSerializer(
-                mock(StacktraceConfiguration.class),
+                mock(StacktraceConfigurationImpl.class),
                 apmServerClient,
                 MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
             ),
             apmServerClient);
 
         final ProcessInfo title1 = new ProcessInfo("title");
-        final Service service1 = new Service();
+        final ServiceImpl service1 = new ServiceImpl();
         ApmServerClient nonConnectedApmServerClient = new ApmServerClient(configurationRegistry);
         nonConnectedApmServerClient.start(List.of(new URL("http://non.existing:8080")));
         nonConnectedReportingEventHandler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
             new DslJsonSerializer(
-                mock(StacktraceConfiguration.class),
+                mock(StacktraceConfigurationImpl.class),
                 nonConnectedApmServerClient,
                 MetaDataMock.create(title1, service1, system, null, Collections.emptyMap(), null)
             ),
@@ -244,21 +244,21 @@ class IntakeV2ReportingEventHandlerTest {
 
     private void reportTransaction(IntakeV2ReportingEventHandler reportingEventHandler) throws Exception {
         final ReportingEvent reportingEvent = new ReportingEvent();
-        reportingEvent.setTransaction(new Transaction(MockTracer.create()));
+        reportingEvent.setTransaction(new TransactionImpl(MockTracer.create()));
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 
     private void reportSpan() throws Exception {
         final ReportingEvent reportingEvent = new ReportingEvent();
-        reportingEvent.setSpan(new Span(MockTracer.create()));
+        reportingEvent.setSpan(new SpanImpl(MockTracer.create()));
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 
     private void reportError() throws Exception {
         final ReportingEvent reportingEvent = new ReportingEvent();
-        reportingEvent.setError(new ErrorCapture(MockTracer.create()));
+        reportingEvent.setError(new ErrorCaptureImpl(MockTracer.create()));
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }

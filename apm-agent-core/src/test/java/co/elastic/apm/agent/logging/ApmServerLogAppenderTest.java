@@ -84,7 +84,7 @@ class ApmServerLogAppenderTest {
         ApmServerReporter reporter = mock(ApmServerReporter.class);
         doReturn(reporter).when(tracer).getReporter();
 
-        LoggingConfiguration config = tracer.getConfig(LoggingConfiguration.class);
+        LoggingConfigurationImpl config = tracer.getConfig(LoggingConfigurationImpl.class);
         doReturn(true).when(config).getSendLogs();
         appender.getInitListener().init(tracer);
 
@@ -117,7 +117,7 @@ class ApmServerLogAppenderTest {
         verifyNoInteractions(reporter);
 
         ElasticApmTracer tracer = MockTracer.create();
-        LoggingConfiguration config = tracer.getConfig(LoggingConfiguration.class);
+        LoggingConfigurationImpl config = tracer.getConfig(LoggingConfigurationImpl.class);
         doReturn(enabled).when(config).getSendLogs();
         doReturn(reporter).when(tracer).getReporter();
 

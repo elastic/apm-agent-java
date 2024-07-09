@@ -40,9 +40,9 @@ public class W3CBaggagePropagation {
 
     public static final String BAGGAGE_HEADER_NAME = "baggage";
 
-    private static final HeaderGetter.HeaderConsumer<String, Baggage.Builder> STRING_PARSING_CONSUMER = new HeaderGetter.HeaderConsumer<String, Baggage.Builder>() {
+    private static final HeaderGetter.HeaderConsumer<String, BaggageImpl.Builder> STRING_PARSING_CONSUMER = new HeaderGetter.HeaderConsumer<String, BaggageImpl.Builder>() {
         @Override
-        public void accept(@Nullable String headerValue, Baggage.Builder state) {
+        public void accept(@Nullable String headerValue, BaggageImpl.Builder state) {
             if (headerValue != null) {
                 try {
                     new Parser(headerValue).parseInto(state);
@@ -54,9 +54,9 @@ public class W3CBaggagePropagation {
     };
 
 
-    private static final HeaderGetter.HeaderConsumer<byte[], Baggage.Builder> UTF8_BYTES_PARSING_CONSUMER = new HeaderGetter.HeaderConsumer<byte[], Baggage.Builder>() {
+    private static final HeaderGetter.HeaderConsumer<byte[], BaggageImpl.Builder> UTF8_BYTES_PARSING_CONSUMER = new HeaderGetter.HeaderConsumer<byte[], BaggageImpl.Builder>() {
         @Override
-        public void accept(@Nullable byte[] headerValue, Baggage.Builder state) {
+        public void accept(@Nullable byte[] headerValue, BaggageImpl.Builder state) {
             if (headerValue != null) {
                 try {
                     STRING_PARSING_CONSUMER.accept(new String(headerValue, StandardCharsets.UTF_8), state);
@@ -68,19 +68,19 @@ public class W3CBaggagePropagation {
     };
 
     @SuppressWarnings("unchecked")
-    public static <T, C> void parse(C carrier, HeaderGetter<T, C> headerGetter, Baggage.Builder into) {
-        HeaderGetter.HeaderConsumer<T, Baggage.Builder> consumer;
+    public static <T, C> void parse(C carrier, HeaderGetter<T, C> headerGetter, BaggageImpl.Builder into) {
+        HeaderGetter.HeaderConsumer<T, BaggageImpl.Builder> consumer;
         if (headerGetter instanceof TextHeaderGetter) {
-            consumer = (HeaderGetter.HeaderConsumer<T, Baggage.Builder>) STRING_PARSING_CONSUMER;
+            consumer = (HeaderGetter.HeaderConsumer<T, BaggageImpl.Builder>) STRING_PARSING_CONSUMER;
         } else if (headerGetter instanceof UTF8ByteHeaderGetter) {
-            consumer = (HeaderGetter.HeaderConsumer<T, Baggage.Builder>) UTF8_BYTES_PARSING_CONSUMER;
+            consumer = (HeaderGetter.HeaderConsumer<T, BaggageImpl.Builder>) UTF8_BYTES_PARSING_CONSUMER;
         } else {
             throw new IllegalArgumentException("HeaderGetter must be either a TextHeaderGetter or UTF8ByteHeaderGetter: " + headerGetter.getClass().getName());
         }
         headerGetter.forEach(BAGGAGE_HEADER_NAME, carrier, into, consumer);
     }
 
-    public static <T, C> void propagate(Baggage baggage, C carrier, HeaderSetter<T, C> setter) {
+    public static <T, C> void propagate(BaggageImpl baggage, C carrier, HeaderSetter<T, C> setter) {
         if (baggage.isEmpty()) {
             return;
         }
@@ -91,7 +91,7 @@ public class W3CBaggagePropagation {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> T getTextHeader(Baggage baggage, HeaderSetter<T, ?> setter) {
+    private static <T> T getTextHeader(BaggageImpl baggage, HeaderSetter<T, ?> setter) {
         if (setter instanceof TextHeaderSetter) {
             return (T) getTextHeaderString(baggage);
         } else if (setter instanceof UTF8ByteHeaderSetter) {
@@ -102,13 +102,13 @@ public class W3CBaggagePropagation {
     }
 
     @Nullable
-    private static byte[] getTextHeaderUtf8Bytes(Baggage baggage) {
+    private static byte[] getTextHeaderUtf8Bytes(BaggageImpl baggage) {
         getTextHeaderString(baggage); //ensures that the string-header is computed and cached
         return baggage.getCachedSerializedW3CHeaderUtf8();
     }
 
     @Nullable
-    private static String getTextHeaderString(Baggage baggage) {
+    private static String getTextHeaderString(BaggageImpl baggage) {
         String header = baggage.getCachedSerializedW3CHeader();
         if (header == null) {
             header = encodeToHeader(baggage);
@@ -121,7 +121,7 @@ public class W3CBaggagePropagation {
     }
 
 
-    private static String encodeToHeader(Baggage baggage) {
+    private static String encodeToHeader(BaggageImpl baggage) {
         StringBuilder header = new StringBuilder();
         for (String key : baggage.keys()) {
             String value = baggage.get(key);

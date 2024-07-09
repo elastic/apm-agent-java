@@ -22,7 +22,7 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -140,7 +140,7 @@ public class JakartaeeJaxRsTransactionNameInstrumentationTest extends JerseyTest
      * @param path the path to make the get request against
      */
     private void doRequest(String path) {
-        final Transaction request = tracer.startRootTransaction(null)
+        final TransactionImpl request = tracer.startRootTransaction(null)
             .withType("request")
             .activate();
         try {

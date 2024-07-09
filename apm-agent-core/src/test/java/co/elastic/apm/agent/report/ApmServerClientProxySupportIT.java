@@ -226,7 +226,7 @@ public class ApmServerClientProxySupportIT {
 
     private static ApmServerClient createAndStartClient(boolean useProxy) {
         ConfigurationRegistry spyConfig = SpyConfiguration.createSpyConfig();
-        ReporterConfiguration config = spyConfig.getConfig(ReporterConfiguration.class);
+        ReporterConfigurationImpl config = spyConfig.getConfig(ReporterConfigurationImpl.class);
 
         doReturn(Collections.singletonList(useProxy ? proxyUrl : directUrl)).when(config).getServerUrls();
         ApmServerClient client = new ApmServerClient(spyConfig);

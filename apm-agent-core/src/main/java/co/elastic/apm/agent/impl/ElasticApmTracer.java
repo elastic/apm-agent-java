@@ -25,17 +25,18 @@ import co.elastic.apm.agent.collections.WeakReferenceCountedMap;
 import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.AutoDetectedServiceInfo;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
+import co.elastic.apm.agent.configuration.ServerlessConfigurationImpl;
 import co.elastic.apm.agent.impl.error.RedactedException;
 import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
 import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.MetaDataFuture;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.metadata.ServiceFactory;
-import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.*;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
 import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
@@ -44,24 +45,19 @@ import co.elastic.apm.agent.tracer.service.ServiceInfo;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.tracer.LifecycleListener;
-import co.elastic.apm.agent.impl.baggage.Baggage;
+import co.elastic.apm.agent.impl.baggage.BaggageImpl;
 import co.elastic.apm.agent.impl.baggage.W3CBaggagePropagation;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
+import co.elastic.apm.agent.logging.LoggingConfigurationImpl;
 import co.elastic.apm.agent.metrics.MetricRegistry;
-import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import co.elastic.apm.agent.objectpool.ObservableObjectPool;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactoryImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
-import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -116,7 +112,7 @@ public class ElasticApmTracer implements Tracer {
 
     static {
         Set<String> headerNames = new HashSet<>();
-        headerNames.addAll(TraceContext.TRACE_TEXTUAL_HEADERS);
+        headerNames.addAll(TraceContextImpl.TRACE_TEXTUAL_HEADERS);
         headerNames.add(W3CBaggagePropagation.BAGGAGE_HEADER_NAME);
         TRACE_HEADER_NAMES = Collections.unmodifiableSet(headerNames);
     }
@@ -126,15 +122,15 @@ public class ElasticApmTracer implements Tracer {
     private final ConfigurationRegistry configurationRegistry;
     private final ApmServerClient apmServerClient;
     private final List<LifecycleListener> lifecycleListeners = new CopyOnWriteArrayList<>();
-    private final ObjectPool<Transaction> transactionPool;
-    private final ObjectPool<Span> spanPool;
-    private final ObjectPool<ErrorCapture> errorPool;
-    private final ObjectPool<TraceContext> spanLinkPool;
-    private final ObjectPool<Id> profilingCorrelationStackTraceIdPool;
+    private final ObservableObjectPool<TransactionImpl> transactionPool;
+    private final ObservableObjectPool<SpanImpl> spanPool;
+    private final ObservableObjectPool<ErrorCaptureImpl> errorPool;
+    private final ObservableObjectPool<TraceContextImpl> spanLinkPool;
+    private final ObservableObjectPool<IdImpl> profilingCorrelationStackTraceIdPool;
     private final Reporter reporter;
-    private final ObjectPoolFactory objectPoolFactory;
+    private final ObjectPoolFactoryImpl objectPoolFactory;
 
-    private final EmptyElasticContext emptyContext;
+    private final EmptyTraceState emptyContext;
 
     private final ThreadLocal<ActiveStack> activeStack = new ThreadLocal<ActiveStack>() {
         @Override
@@ -146,7 +142,7 @@ public class ElasticApmTracer implements Tracer {
         }
     };
 
-    private final CoreConfiguration coreConfiguration;
+    private final CoreConfigurationImpl coreConfiguration;
     private final int transactionMaxSpans;
     private final SpanConfiguration spanConfiguration;
     private final List<ActivationListener> activationListeners;
@@ -172,12 +168,12 @@ public class ElasticApmTracer implements Tracer {
 
     static {
         checkClassloader();
-        configs.put(co.elastic.apm.agent.tracer.configuration.CoreConfiguration.class, CoreConfiguration.class);
-        configs.put(co.elastic.apm.agent.tracer.configuration.LoggingConfiguration.class, LoggingConfiguration.class);
-        configs.put(co.elastic.apm.agent.tracer.configuration.MetricsConfiguration.class, MetricsConfiguration.class);
-        configs.put(co.elastic.apm.agent.tracer.configuration.ReporterConfiguration.class, ReporterConfiguration.class);
-        configs.put(co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration.class, ServerlessConfiguration.class);
-        configs.put(co.elastic.apm.agent.tracer.configuration.StacktraceConfiguration.class, StacktraceConfiguration.class);
+        configs.put(co.elastic.apm.agent.tracer.configuration.CoreConfiguration.class, CoreConfigurationImpl.class);
+        configs.put(co.elastic.apm.agent.tracer.configuration.LoggingConfiguration.class, LoggingConfigurationImpl.class);
+        configs.put(co.elastic.apm.agent.tracer.configuration.MetricsConfiguration.class, MetricsConfigurationImpl.class);
+        configs.put(co.elastic.apm.agent.tracer.configuration.ReporterConfiguration.class, ReporterConfigurationImpl.class);
+        configs.put(co.elastic.apm.agent.tracer.configuration.ServerlessConfiguration.class, ServerlessConfigurationImpl.class);
+        configs.put(co.elastic.apm.agent.tracer.configuration.StacktraceConfiguration.class, StacktraceConfigurationImpl.class);
     }
 
     private static void checkClassloader() {
@@ -219,17 +215,17 @@ public class ElasticApmTracer implements Tracer {
 
     }
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, MetricRegistry metricRegistry, Reporter reporter, ObjectPoolFactory poolFactory,
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, MetricRegistry metricRegistry, Reporter reporter, ObjectPoolFactoryImpl poolFactory,
                      ApmServerClient apmServerClient, final String ephemeralId, MetaDataFuture metaDataFuture) {
-        this.emptyContext = new EmptyElasticContext(this);
+        this.emptyContext = new EmptyTraceState(this);
         this.metricRegistry = metricRegistry;
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.apmServerClient = apmServerClient;
         this.ephemeralId = ephemeralId;
         this.metaDataFuture = metaDataFuture;
-        int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
-        coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
+        int maxPooledElements = configurationRegistry.getConfig(ReporterConfigurationImpl.class).getMaxQueueSize() * 2;
+        coreConfiguration = configurationRegistry.getConfig(CoreConfigurationImpl.class);
         transactionMaxSpans = coreConfiguration.getTransactionMaxSpans();
         spanConfiguration = configurationRegistry.getConfig(SpanConfiguration.class);
 
@@ -250,12 +246,12 @@ public class ElasticApmTracer implements Tracer {
         errorPool = poolFactory.createErrorPool(maxPooledElements / 2, this);
 
         // span links pool allows for 10X the maximum allowed span links per span
-        spanLinkPool = poolFactory.createSpanLinkPool(AbstractSpan.MAX_ALLOWED_SPAN_LINKS * 10, this);
+        spanLinkPool = poolFactory.createSpanLinkPool(AbstractSpanImpl.MAX_ALLOWED_SPAN_LINKS * 10, this);
 
-        profilingCorrelationStackTraceIdPool = poolFactory.createRecyclableObjectPool(maxPooledElements, new Allocator<Id>() {
+        profilingCorrelationStackTraceIdPool = poolFactory.createRecyclableObjectPool(maxPooledElements, new Allocator<IdImpl>() {
             @Override
-            public Id createInstance() {
-                return Id.new128BitId();
+            public IdImpl createInstance() {
+                return IdImpl.new128BitId();
             }
         });
 
@@ -283,32 +279,38 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     @Nullable
-    public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader) {
+    public TransactionImpl startRootTransaction(@Nullable ClassLoader initiatingClassLoader) {
         return startRootTransaction(sampler, -1, currentContext().getBaggage(), initiatingClassLoader);
     }
 
-    @Override
     @Nullable
-    public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader, long epochMicro) {
+    public TransactionImpl startRootTransaction(@Nullable ClassLoader initiatingClassLoader, long epochMicro) {
         return startRootTransaction(sampler, epochMicro, currentContext().getBaggage(), initiatingClassLoader);
     }
 
     @Nullable
-    @Override
-    public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader, Baggage baseBaggage, long epochMicro) {
+    public TransactionImpl startRootTransaction(@Nullable ClassLoader initiatingClassLoader, BaggageImpl baseBaggage, long epochMicro) {
         return startRootTransaction(sampler, epochMicro, baseBaggage, initiatingClassLoader);
     }
 
-
     @Nullable
-    public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+    public TransactionImpl startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         return startRootTransaction(sampler, epochMicros, currentContext().getBaggage(), initiatingClassLoader);
     }
 
-    @Override
+    /**
+     * Starts a trace-root transaction with a specified sampler and start timestamp
+     *
+     * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
+     * @param epochMicros           the start timestamp
+     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
+     *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
+     *                              for log correlation.
+     * @return a transaction that will be the root of the current trace if the agent is currently RUNNING; null otherwise
+     */
     @Nullable
-    public Transaction startRootTransaction(Sampler sampler, long epochMicros, Baggage baseBaggage, @Nullable ClassLoader initiatingClassLoader) {
-        Transaction transaction = null;
+    public TransactionImpl startRootTransaction(Sampler sampler, long epochMicros, BaggageImpl baseBaggage, @Nullable ClassLoader initiatingClassLoader) {
+        TransactionImpl transaction = null;
         if (isRunning()) {
             transaction = createTransaction().startRoot(epochMicros, sampler, baseBaggage);
             afterTransactionStart(initiatingClassLoader, transaction);
@@ -316,29 +318,40 @@ public class ElasticApmTracer implements Tracer {
         return transaction;
     }
 
-    @Override
     @Nullable
-    public <T, C> Transaction startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, @Nullable ClassLoader initiatingClassLoader) {
-        return startChildTransaction(headerCarrier, headersGetter, sampler, -1, initiatingClassLoader);
+    public <T, C> TransactionImpl startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headerGetter, @Nullable ClassLoader initiatingClassLoader) {
+        return startChildTransaction(headerCarrier, headerGetter, sampler, -1, initiatingClassLoader);
     }
 
-    @Override
     @Nullable
-    public <T, C> Transaction startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, @Nullable ClassLoader initiatingClassLoader, Baggage baseBaggage, long epochMicros) {
+    public <T, C> TransactionImpl startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, @Nullable ClassLoader initiatingClassLoader, BaggageImpl baseBaggage, long epochMicros) {
         return startChildTransaction(headerCarrier, headersGetter, sampler, epochMicros, initiatingClassLoader);
     }
 
-    @Override
+    /**
+     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
+     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
+     * available), then it will be started as the root transaction of the trace.
+     *
+     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
+     * @param headersGetter         provides the trace context headers required in order to create a child transaction
+     * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
+     * @param epochMicros           the start timestamp
+     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
+     *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
+     *                              for log correlation.
+     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
+     */
     @Nullable
-    public <T, C> Transaction startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, Sampler sampler,
-                                                    long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+    public <T, C> TransactionImpl startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, Sampler sampler,
+                                                        long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         return startChildTransaction(headerCarrier, headersGetter, sampler, epochMicros, currentContext().getBaggage(), initiatingClassLoader);
     }
 
     @Nullable
-    private <T, C> Transaction startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, Sampler sampler,
-                                                     long epochMicros, Baggage baseBaggage, @Nullable ClassLoader initiatingClassLoader) {
-        Transaction transaction = null;
+    private <T, C> TransactionImpl startChildTransaction(@Nullable C headerCarrier, HeaderGetter<T, C> headersGetter, Sampler sampler,
+                                                         long epochMicros, BaggageImpl baseBaggage, @Nullable ClassLoader initiatingClassLoader) {
+        TransactionImpl transaction = null;
         if (isRunning()) {
             transaction = createTransaction().start(headerCarrier,
                 headersGetter, epochMicros, sampler, baseBaggage);
@@ -347,7 +360,7 @@ public class ElasticApmTracer implements Tracer {
         return transaction;
     }
 
-    private void afterTransactionStart(@Nullable ClassLoader initiatingClassLoader, Transaction transaction) {
+    private void afterTransactionStart(@Nullable ClassLoader initiatingClassLoader, TransactionImpl transaction) {
         if (logger.isDebugEnabled()) {
             logger.debug("startTransaction {}", transaction);
             if (logger.isTraceEnabled()) {
@@ -362,12 +375,12 @@ public class ElasticApmTracer implements Tracer {
         profilingIntegration.afterTransactionStart(transaction);
     }
 
-    public Transaction noopTransaction() {
+    public TransactionImpl noopTransaction() {
         return createTransaction().startNoop();
     }
 
-    private Transaction createTransaction() {
-        Transaction transaction = transactionPool.createInstance();
+    private TransactionImpl createTransaction() {
+        TransactionImpl transaction = transactionPool.createInstance();
         while (transaction.getReferenceCount() != 0) {
             logger.warn("Tried to start a transaction with a non-zero reference count {} {}", transaction.getReferenceCount(), transaction);
             transaction = transactionPool.createInstance();
@@ -377,14 +390,14 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     @Nullable
-    public Transaction currentTransaction() {
+    public TransactionImpl currentTransaction() {
         return currentContext().getTransaction();
     }
 
     @Nullable
     @Override
-    public ErrorCapture getActiveError() {
-        return ErrorCapture.getActive();
+    public ErrorCaptureImpl getActiveError() {
+        return ErrorCaptureImpl.getActive();
     }
 
     /**
@@ -408,12 +421,12 @@ public class ElasticApmTracer implements Tracer {
      * @param <T>                 the type of the parent context
      * @return a new started span
      */
-    public <T> Span startSpan(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, Baggage baggage) {
+    public <T> SpanImpl startSpan(TraceContextImpl.ChildContextCreator<T> childContextCreator, T parentContext, BaggageImpl baggage) {
         return startSpan(childContextCreator, parentContext, baggage, -1);
     }
 
-    public Span startSpan(AbstractSpan<?> parent, Baggage baggage, long epochMicros) {
-        return startSpan(TraceContext.fromParent(), parent, baggage, epochMicros);
+    public SpanImpl startSpan(AbstractSpanImpl<?> parent, BaggageImpl baggage, long epochMicros) {
+        return startSpan(TraceContextImpl.fromParent(), parent, baggage, epochMicros);
     }
 
     /**
@@ -421,12 +434,12 @@ public class ElasticApmTracer implements Tracer {
      * @param epochMicros   the start timestamp of the span in microseconds after epoch
      * @return a new started span
      */
-    public <T> Span startSpan(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, Baggage baggage, long epochMicros) {
+    public <T> SpanImpl startSpan(TraceContextImpl.ChildContextCreator<T> childContextCreator, T parentContext, BaggageImpl baggage, long epochMicros) {
         return createSpan().start(childContextCreator, parentContext, baggage, epochMicros);
     }
 
-    private Span createSpan() {
-        Span span = spanPool.createInstance();
+    private SpanImpl createSpan() {
+        SpanImpl span = spanPool.createInstance();
         while (span.getReferenceCount() != 0) {
             logger.warn("Tried to start a span with a non-zero reference count {} {}", span.getReferenceCount(), span);
             span = spanPool.createInstance();
@@ -434,19 +447,17 @@ public class ElasticApmTracer implements Tracer {
         return span;
     }
 
-    @Override
     public void captureAndReportException(@Nullable Throwable e, ClassLoader initiatingClassLoader) {
-        ErrorCapture errorCapture = captureException(System.currentTimeMillis() * 1000, e, currentContext(), initiatingClassLoader);
+        ErrorCaptureImpl errorCapture = captureException(System.currentTimeMillis() * 1000, e, currentContext(), initiatingClassLoader);
         if (errorCapture != null) {
             errorCapture.end();
         }
     }
 
-    @Override
     @Nullable
-    public String captureAndReportException(long epochMicros, @Nullable Throwable e, ElasticContext<?> parentContext) {
+    public String captureAndReportException(long epochMicros, @Nullable Throwable e, TraceStateImpl<?> parentContext) {
         String id = null;
-        ErrorCapture errorCapture = captureException(epochMicros, e, parentContext, null);
+        ErrorCaptureImpl errorCapture = captureException(epochMicros, e, parentContext, null);
         if (errorCapture != null) {
             id = errorCapture.getTraceContext().getId().toString();
             errorCapture.end();
@@ -454,20 +465,19 @@ public class ElasticApmTracer implements Tracer {
         return id;
     }
 
-    @Override
     @Nullable
-    public ErrorCapture captureException(@Nullable Throwable e, ElasticContext<?> parentContext, @Nullable ClassLoader initiatingClassLoader) {
+    public ErrorCaptureImpl captureException(@Nullable Throwable e, TraceStateImpl<?> parentContext, @Nullable ClassLoader initiatingClassLoader) {
         return captureException(System.currentTimeMillis() * 1000, e, parentContext, initiatingClassLoader);
     }
 
     @Nullable
     @Override
-    public ErrorCapture captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader) {
+    public ErrorCaptureImpl captureException(@Nullable Throwable e, @Nullable ClassLoader initiatingClassLoader) {
         return captureException(System.currentTimeMillis() * 1000, e, currentContext(), initiatingClassLoader);
     }
 
     @Nullable
-    private ErrorCapture captureException(long epochMicros, @Nullable Throwable e, ElasticContext<?> parentContext, @Nullable ClassLoader initiatingClassLoader) {
+    private ErrorCaptureImpl captureException(long epochMicros, @Nullable Throwable e, TraceStateImpl<?> parentContext, @Nullable ClassLoader initiatingClassLoader) {
         if (!isRunning() || e == null) {
             return null;
         }
@@ -484,10 +494,10 @@ public class ElasticApmTracer implements Tracer {
 
         // note: if we add inheritance support for exception filtering, caching would be required for performance
         if (e != null && !WildcardMatcher.isAnyMatch(coreConfiguration.getIgnoreExceptions(), e.getClass().getName())) {
-            ErrorCapture error = errorPool.createInstance();
+            ErrorCaptureImpl error = errorPool.createInstance();
             error.withTimestamp(epochMicros);
             error.setException(e);
-            Transaction currentTransaction = currentTransaction();
+            TransactionImpl currentTransaction = currentTransaction();
             if (currentTransaction != null) {
                 if (currentTransaction.getNameForSerialization().length() > 0) {
                     error.setTransactionName(currentTransaction.getNameForSerialization());
@@ -495,7 +505,7 @@ public class ElasticApmTracer implements Tracer {
                 error.setTransactionType(currentTransaction.getType());
                 error.setTransactionSampled(currentTransaction.isSampled());
             }
-            AbstractSpan<?> parent = parentContext.getSpan();
+            AbstractSpanImpl<?> parent = parentContext.getSpan();
             if (parent != null) {
                 error.asChildOf(parent);
                 // don't discard spans leading up to an error, otherwise they'd point to an invalid parent
@@ -508,7 +518,7 @@ public class ElasticApmTracer implements Tracer {
                 }
             }
             parentContext.getBaggage()
-                .storeBaggageInContext(error.getContext(), getConfig(CoreConfiguration.class).getBaggageToAttach());
+                .storeBaggageInContext(error.getContext(), getConfig(CoreConfigurationImpl.class).getBaggageToAttach());
             return error;
         }
         return null;
@@ -533,7 +543,7 @@ public class ElasticApmTracer implements Tracer {
         return configuration;
     }
 
-    public void endTransaction(Transaction transaction) {
+    public void endTransaction(TransactionImpl transaction) {
         if (logger.isDebugEnabled()) {
             logger.debug("endTransaction {}", transaction);
             if (logger.isTraceEnabled()) {
@@ -551,11 +561,11 @@ public class ElasticApmTracer implements Tracer {
         }
     }
 
-    public void reportPartialTransaction(Transaction transaction) {
+    public void reportPartialTransaction(TransactionImpl transaction) {
         reporter.reportPartialTransaction(transaction);
     }
 
-    public void endSpan(Span span) {
+    public void endSpan(SpanImpl span) {
         if (logger.isDebugEnabled()) {
             logger.debug("endSpan {}", span);
             if (logger.isTraceEnabled()) {
@@ -564,7 +574,7 @@ public class ElasticApmTracer implements Tracer {
         }
 
         if (!span.isSampled()) {
-            Transaction transaction = span.getTransaction();
+            TransactionImpl transaction = span.getTransaction();
             if (transaction != null) {
                 transaction.captureDroppedSpan(span);
             }
@@ -584,7 +594,7 @@ public class ElasticApmTracer implements Tracer {
         }
         if (span.isDiscarded()) {
             logger.debug("Discarding span {}", span);
-            Transaction transaction = span.getTransaction();
+            TransactionImpl transaction = span.getTransaction();
             if (transaction != null) {
                 transaction.captureDroppedSpan(span);
             }
@@ -595,12 +605,12 @@ public class ElasticApmTracer implements Tracer {
         reportSpan(span);
     }
 
-    private void reportSpan(Span span) {
-        AbstractSpan<?> parent = span.getParent();
+    private void reportSpan(SpanImpl span) {
+        AbstractSpanImpl<?> parent = span.getParent();
         if (parent != null && parent.isDiscarded()) {
             logger.warn("Reporting a child of an discarded span. The current span '{}' will not be shown in the UI. Consider deactivating span_min_duration.", span);
         }
-        Transaction transaction = span.getTransaction();
+        TransactionImpl transaction = span.getTransaction();
         if (transaction != null) {
             transaction.getSpanCount().getReported().incrementAndGet();
         }
@@ -610,35 +620,35 @@ public class ElasticApmTracer implements Tracer {
         reporter.report(span);
     }
 
-    public void endError(ErrorCapture error) {
+    public void endError(ErrorCaptureImpl error) {
         reporter.report(error);
     }
 
-    public TraceContext createSpanLink() {
+    public TraceContextImpl createSpanLink() {
         return spanLinkPool.createInstance();
     }
 
-    public Id createProfilingCorrelationStackTraceId() {
+    public IdImpl createProfilingCorrelationStackTraceId() {
         return profilingCorrelationStackTraceIdPool.createInstance();
     }
 
-    public void recycle(Transaction transaction) {
+    public void recycle(TransactionImpl transaction) {
         transactionPool.recycle(transaction);
     }
 
-    public void recycle(Span span) {
+    public void recycle(SpanImpl span) {
         spanPool.recycle(span);
     }
 
-    public void recycle(ErrorCapture error) {
+    public void recycle(ErrorCaptureImpl error) {
         errorPool.recycle(error);
     }
 
-    public void recycle(TraceContext traceContext) {
+    public void recycle(TraceContextImpl traceContext) {
         spanLinkPool.recycle(traceContext);
     }
 
-    public void recycleProfilingCorrelationStackTraceId(Id id) {
+    public void recycleProfilingCorrelationStackTraceId(IdImpl id) {
         profilingCorrelationStackTraceIdPool.recycle(id);
     }
 
@@ -670,7 +680,7 @@ public class ElasticApmTracer implements Tracer {
         }
         //Shutting down logging resets the log level to OFF - subsequent tests in the class will get no log output, hence the guard
         if (!assertionsEnabled) {
-            LoggingConfiguration.shutdown();
+            LoggingConfigurationImpl.shutdown();
         }
     }
 
@@ -687,7 +697,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @Override
-    public ObjectPoolFactory getObjectPoolFactory() {
+    public ObjectPoolFactoryImpl getObjectPoolFactory() {
         return objectPoolFactory;
     }
 
@@ -729,7 +739,7 @@ public class ElasticApmTracer implements Tracer {
      *                jvm parameter); false otherwise
      */
     public synchronized void start(boolean premain) {
-        long delayInitMs = getConfig(CoreConfiguration.class).getDelayTracerStartMs();
+        long delayInitMs = getConfig(CoreConfigurationImpl.class).getDelayTracerStartMs();
         if (premain && shouldDelayOnPremain()) {
             delayInitMs = Math.max(delayInitMs, 5000L);
         }
@@ -853,17 +863,15 @@ public class ElasticApmTracer implements Tracer {
         return tracerState == TracerState.RUNNING;
     }
 
-    @Override
     @Nullable
-    public Span createExitChildSpan() {
-        AbstractSpan<?> active = getActive();
+    public SpanImpl createExitChildSpan() {
+        AbstractSpanImpl<?> active = getActive();
         if (active == null) {
             return null;
         }
         return active.createExitSpan();
     }
 
-    @Override
     public TracerState getState() {
         return tracerState;
     }
@@ -882,13 +890,13 @@ public class ElasticApmTracer implements Tracer {
      * @return the currently active context, {@literal null} if there is none.
      */
 
-    public ElasticContext<?> currentContext() {
+    public TraceStateImpl<?> currentContext() {
         return activeStack.get().currentContext();
     }
 
     @Nullable
     @Override
-    public AbstractSpan<?> getActive() {
+    public AbstractSpanImpl<?> getActive() {
         return currentContext().getSpan();
     }
 
@@ -901,15 +909,15 @@ public class ElasticApmTracer implements Tracer {
      * @param <T>          wrapper type
      * @return newly (or previously) created wrapper
      */
-    public <T extends ElasticContext<T>> T wrapActiveContextIfRequired(Class<T> wrapperClass, Callable<T> wrapFunction) {
+    public <T extends TraceStateImpl<T>> T wrapActiveContextIfRequired(Class<T> wrapperClass, Callable<T> wrapFunction) {
         return activeStack.get().wrapActiveContextIfRequired(wrapperClass, wrapFunction, approximateContextSize);
     }
 
-    public void activate(ElasticContext<?> context) {
+    public void activate(TraceStateImpl<?> context) {
         activeStack.get().activate(context, activationListeners);
     }
 
-    public Scope activateInScope(final ElasticContext<?> context) {
+    public Scope activateInScope(final TraceStateImpl<?> context) {
         // already in scope
         if (currentContext() == context) {
             return NoopScope.INSTANCE;
@@ -928,7 +936,7 @@ public class ElasticApmTracer implements Tracer {
         };
     }
 
-    public void deactivate(ElasticContext<?> context) {
+    public void deactivate(TraceStateImpl<?> context) {
         activeStack.get().deactivate(context, activationListeners, assertionsEnabled);
     }
 
@@ -962,7 +970,6 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @Nullable
-    @Override
     public ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader initiatingClassLoader) {
         if (initiatingClassLoader == null) {
             return null;
@@ -1040,7 +1047,7 @@ public class ElasticApmTracer implements Tracer {
         return new ServiceFactory().createService(
             coreConfiguration,
             ephemeralId,
-            configurationRegistry.getConfig(ServerlessConfiguration.class).runsOnAwsLambda()
+            configurationRegistry.getConfig(ServerlessConfigurationImpl.class).runsOnAwsLambda()
         );
     }
 
@@ -1055,7 +1062,7 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     public void flush() {
-        long flushTimeout = configurationRegistry.getConfig(ServerlessConfiguration.class).getDataFlushTimeout();
+        long flushTimeout = configurationRegistry.getConfig(ServerlessConfigurationImpl.class).getDataFlushTimeout();
         try {
             if (!reporter.flush(flushTimeout, TimeUnit.MILLISECONDS, true)) {
                 logger.error("APM data flush haven't completed within {} milliseconds.", flushTimeout);
@@ -1102,9 +1109,35 @@ public class ElasticApmTracer implements Tracer {
         sharedPool.scheduleAtFixedRate(job, 0, interval, timeUnit);
     }
 
-    @Override
     public void reportMetric(JsonWriter metrics) {
         reporter.reportMetrics(metrics);
     }
 
+    /**
+     * An enumeration used to represent the current tracer state.
+     */
+    public enum TracerState {
+        /**
+         * The agent's state before it has been started for the first time.
+         */
+        UNINITIALIZED,
+
+        /**
+         * Indicates that the agent is currently fully functional - tracing, monitoring and sending data to the APM server.
+         */
+        RUNNING,
+
+        /**
+         * The agent is mostly idle, consuming minimal resources, ready to quickly resume back to RUNNING. When the agent
+         * is PAUSED, it is not tracing and not communicating with the APM server. However, classes are still instrumented
+         * and threads are still alive.
+         */
+        PAUSED,
+
+        /**
+         * Indicates that the agent had been stopped.
+         * NOTE: this state is irreversible- the agent cannot resume if it has already been stopped.
+         */
+        STOPPED
+    }
 }

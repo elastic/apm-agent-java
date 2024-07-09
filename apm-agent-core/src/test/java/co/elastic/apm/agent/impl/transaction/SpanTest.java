@@ -22,7 +22,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.Utf8HeaderMapAccessor;
-import co.elastic.apm.agent.impl.baggage.Baggage;
+import co.elastic.apm.agent.impl.baggage.BaggageImpl;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.tracer.Outcome;
@@ -51,7 +51,7 @@ public class SpanTest {
 
     @Test
     void resetState() {
-        Span span = new Span(tracer)
+        SpanImpl span = new SpanImpl(tracer)
             .withName("SELECT FROM product_types")
             .withType("db")
             .withSubtype("postgresql")
@@ -72,9 +72,9 @@ public class SpanTest {
 
     @Test
     void testOutcomeExplicitlyToUnknown() {
-        Transaction transaction = tracer.startRootTransaction(null);
+        TransactionImpl transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();
-        Span span = transaction.createSpan()
+        SpanImpl span = transaction.createSpan()
             .withName("SELECT FROM product_types")
             .withType("db")
             .withSubtype("postgresql")
@@ -89,7 +89,7 @@ public class SpanTest {
 
     @Test
     void normalizeEmptyFields() {
-        Span span = new Span(tracer)
+        SpanImpl span = new SpanImpl(tracer)
             .withName("span");
 
         assertThat(span.withType("").getType()).isNull();
@@ -101,11 +101,11 @@ public class SpanTest {
     @MethodSource("typeTestArguments")
     void normalizeType(String type, String expectedType) {
 
-        Transaction transaction = new Transaction(tracer);
-        transaction.startRoot(0, ConstantSampler.of(true), Baggage.EMPTY);
+        TransactionImpl transaction = new TransactionImpl(tracer);
+        transaction.startRoot(0, ConstantSampler.of(true), BaggageImpl.EMPTY);
         try {
-            Span span = new Span(tracer);
-            span.start(TraceContext.fromParent(), transaction, Baggage.EMPTY, -1L);
+            SpanImpl span = new SpanImpl(tracer);
+            span.start(TraceContextImpl.fromParent(), transaction, BaggageImpl.EMPTY, -1L);
             assertThat(span.getType())
                 .describedAs("span type should not be set by default")
                 .isNull();
@@ -129,12 +129,12 @@ public class SpanTest {
     @Test
     void testSpanLinks() {
         TestObjectPoolFactory objectPoolFactory = (TestObjectPoolFactory) tracer.getObjectPoolFactory();
-        Transaction transaction = tracer.startRootTransaction(null);
-        Span testSpan = Objects.requireNonNull(transaction).createSpan();
+        TransactionImpl transaction = tracer.startRootTransaction(null);
+        SpanImpl testSpan = Objects.requireNonNull(transaction).createSpan();
         assertThat(objectPoolFactory.getSpanLinksPool().getObjectsInPool()).isEqualTo(0);
         assertThat(objectPoolFactory.getSpanLinksPool().getRequestedObjectCount()).isEqualTo(0);
         assertThat(testSpan.getSpanLinks()).isEmpty();
-        Span parent1 = transaction.createSpan();
+        SpanImpl parent1 = transaction.createSpan();
         Map<String, String> textTraceContextCarrier = new HashMap<>();
         parent1.propagateContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE, null);
         assertThat(testSpan.addSpanLink(
@@ -144,7 +144,7 @@ public class SpanTest {
         assertThat(objectPoolFactory.getSpanLinksPool().getObjectsInPool()).isEqualTo(0);
         assertThat(objectPoolFactory.getSpanLinksPool().getRequestedObjectCount()).isEqualTo(1);
         assertThat(testSpan.getSpanLinks()).hasSize(1);
-        Span parent2 = transaction.createSpan();
+        SpanImpl parent2 = transaction.createSpan();
         Map<String, String> utfTraceContextCarrier = new HashMap<>();
         parent2.propagateContext(utfTraceContextCarrier, Utf8HeaderMapAccessor.INSTANCE, null);
         assertThat(testSpan.addSpanLink(
@@ -153,7 +153,7 @@ public class SpanTest {
         ).isTrue();
         assertThat(objectPoolFactory.getSpanLinksPool().getObjectsInPool()).isEqualTo(0);
         assertThat(objectPoolFactory.getSpanLinksPool().getRequestedObjectCount()).isEqualTo(2);
-        List<TraceContext> spanLinks = testSpan.getSpanLinks();
+        List<TraceContextImpl> spanLinks = testSpan.getSpanLinks();
         assertThat(spanLinks).hasSize(2);
         assertThat(spanLinks.get(0).getTraceId()).isEqualTo(parent1.getTraceContext().getTraceId());
         assertThat(spanLinks.get(0).getParentId()).isEqualTo(parent1.getTraceContext().getId());
@@ -166,10 +166,10 @@ public class SpanTest {
 
     @Test
     void testSpanLinksUniqueness() {
-        Transaction transaction = tracer.startRootTransaction(null);
-        Span testSpan = Objects.requireNonNull(transaction).createSpan();
+        TransactionImpl transaction = tracer.startRootTransaction(null);
+        SpanImpl testSpan = Objects.requireNonNull(transaction).createSpan();
         assertThat(testSpan.getSpanLinks()).isEmpty();
-        Span parent1 = transaction.createSpan();
+        SpanImpl parent1 = transaction.createSpan();
         Map<String, String> textTraceContextCarrier = new HashMap<>();
         parent1.propagateContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE, null);
         assertThat(testSpan.addSpanLink(
@@ -195,11 +195,11 @@ public class SpanTest {
     }
 
     /**
-     * A utility to enable arbitrary tests to set an existing {@link Span} state without making this functionality globally accessible
+     * A utility to enable arbitrary tests to set an existing {@link SpanImpl} state without making this functionality globally accessible
      * @param recorded should the provided trace context be recorded
      * @param span a span of which state is to be set
      */
-    public static void setRecorded(boolean recorded, Span span) {
+    public static void setRecorded(boolean recorded, SpanImpl span) {
         span.getTraceContext().setRecorded(recorded);
     }
 }

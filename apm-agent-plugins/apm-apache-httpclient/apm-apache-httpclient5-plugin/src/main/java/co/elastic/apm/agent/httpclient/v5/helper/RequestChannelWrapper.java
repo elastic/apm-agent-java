@@ -22,7 +22,7 @@ package co.elastic.apm.agent.httpclient.v5.helper;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.apache.hc.core5.http.EntityDetails;
@@ -41,7 +41,7 @@ public class RequestChannelWrapper implements RequestChannel, Recyclable {
     private volatile RequestChannel delegate;
 
     @Nullable
-    private ElasticContext<?> toPropagate;
+    private TraceState<?> toPropagate;
 
     @Nullable
     private Span<?> span;
@@ -51,7 +51,7 @@ public class RequestChannelWrapper implements RequestChannel, Recyclable {
 
     public RequestChannelWrapper with(RequestChannel delegate,
                                       @Nullable Span<?> span,
-                                      ElasticContext<?> toPropagate) {
+                                      TraceState<?> toPropagate) {
         this.span = span;
         toPropagate.incrementReferences();
         this.toPropagate = toPropagate;

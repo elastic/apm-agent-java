@@ -20,15 +20,15 @@ package co.elastic.apm.agent.universalprofiling;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.UniversalProfilingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Id;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.IdImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.otel.JvmtiAccessImpl;
 import org.assertj.core.api.Assertions;
@@ -139,9 +139,9 @@ public class UniversalProfilingIntegrationTest {
         public void testNestedActivations() {
             setupTracer();
 
-            Transaction first = tracer.startRootTransaction(null);
-            Transaction second = tracer.startRootTransaction(null);
-            Span third = second.createSpan();
+            TransactionImpl first = tracer.startRootTransaction(null);
+            TransactionImpl second = tracer.startRootTransaction(null);
+            SpanImpl third = second.createSpan();
 
             checkTlsIs(null);
 
@@ -190,7 +190,7 @@ public class UniversalProfilingIntegrationTest {
                 UniversalProfilingConfiguration profConfig = conf.getConfig(UniversalProfilingConfiguration.class);
                 doReturn(true).when(profConfig).isEnabled();
                 doReturn(tempDir.toAbsolutePath().toString()).when(profConfig).getSocketDir();
-                CoreConfiguration core = conf.getConfig(CoreConfiguration.class);
+                CoreConfigurationImpl core = conf.getConfig(CoreConfigurationImpl.class);
                 doReturn("service Ä 1").when(core).getServiceName();
                 doReturn(environment).when(core).getEnvironment();
             });
@@ -212,7 +212,7 @@ public class UniversalProfilingIntegrationTest {
         }
     }
 
-    static void checkTlsIs(@Nullable AbstractSpan<?> span) {
+    static void checkTlsIs(@Nullable AbstractSpanImpl<?> span) {
         ByteBuffer tls = JvmtiAccessImpl.createThreadProfilingCorrelationBufferAlias(TLS_STORAGE_SIZE);
         if (tls != null) {
             tls.order(ByteOrder.nativeOrder());
@@ -256,16 +256,16 @@ public class UniversalProfilingIntegrationTest {
 
             sendProfilerRegistrationMsg(1, "hostid");
 
-            Transaction tx1 = tracer.startRootTransaction(null);
-            Transaction tx2 = tracer.startRootTransaction(null);
+            TransactionImpl tx1 = tracer.startRootTransaction(null);
+            TransactionImpl tx2 = tracer.startRootTransaction(null);
 
-            Id st1 = randomStackTraceId(1);
+            IdImpl st1 = randomStackTraceId(1);
             sendSampleMsg(tx1, st1, 1);
 
             // Send some garbage which should not affect our processing
             JvmtiAccessImpl.sendToProfilerReturnChannelSocket0(new byte[]{1, 2, 3});
 
-            Id st2 = randomStackTraceId(2);
+            IdImpl st2 = randomStackTraceId(2);
             sendSampleMsg(tx2, st2, 2);
 
             // ensure that the messages are processed now
@@ -277,7 +277,7 @@ public class UniversalProfilingIntegrationTest {
             // ensure that spans are not sent, their delay has not yet elapsed
             assertThat(reporter.getTransactions()).isEmpty();
 
-            Id st3 = randomStackTraceId(3);
+            IdImpl st3 = randomStackTraceId(3);
             sendSampleMsg(tx2, st2, 1);
             sendSampleMsg(tx1, st3, 2);
             sendSampleMsg(tx2, st3, 1);
@@ -310,7 +310,7 @@ public class UniversalProfilingIntegrationTest {
 
             sendProfilerRegistrationMsg(1, "hostid");
 
-            Transaction tx = tracer.startRootTransaction(ConstantSampler.of(false), 0L, null);
+            TransactionImpl tx = tracer.startRootTransaction(ConstantSampler.of(false), 0L, null);
             assertThat(tx.isSampled()).isFalse();
 
             // Still send a stacktrace to make sure it is actually ignored
@@ -326,7 +326,7 @@ public class UniversalProfilingIntegrationTest {
 
         @Test
         void shutdownFlushesBufferedSpans() {
-            Id st1 = randomStackTraceId(1);
+            IdImpl st1 = randomStackTraceId(1);
 
             setupTracer();
             UniversalProfilingIntegration profilingIntegration = tracer.getProfilingIntegration();
@@ -335,7 +335,7 @@ public class UniversalProfilingIntegrationTest {
             sendProfilerRegistrationMsg(1, "hostid");
             profilingIntegration.periodicTimer();
 
-            Transaction tx = tracer.startRootTransaction(null);
+            TransactionImpl tx = tracer.startRootTransaction(null);
             tx.end();
 
             profilingIntegration.periodicTimer();
@@ -362,16 +362,16 @@ public class UniversalProfilingIntegrationTest {
 
             sendProfilerRegistrationMsg(1, "hostid");
             profilingIntegration.periodicTimer();
-            Transaction tx1 = tracer.startRootTransaction(null);
+            TransactionImpl tx1 = tracer.startRootTransaction(null);
             tx1.end();
-            Transaction tx2 = tracer.startRootTransaction(null);
+            TransactionImpl tx2 = tracer.startRootTransaction(null);
             tx2.end();
             //the actual buffer capacity is 2 + 1 because the peeked transaction is stored outside of the buffer
             profilingIntegration.periodicTimer();
-            Transaction tx3 = tracer.startRootTransaction(null);
+            TransactionImpl tx3 = tracer.startRootTransaction(null);
             tx3.end();
             // now the buffer should be full, transaction 4 should be sent immediately
-            Transaction tx4 = tracer.startRootTransaction(null);
+            TransactionImpl tx4 = tracer.startRootTransaction(null);
             tx4.end();
 
             Assertions.assertThat(reporter.getTransactions()).containsExactly(tx4);
@@ -423,15 +423,15 @@ public class UniversalProfilingIntegrationTest {
         }
 
 
-        private Id randomStackTraceId(int seed) {
+        private IdImpl randomStackTraceId(int seed) {
             byte[] id = new byte[16];
             new Random(seed).nextBytes(id);
-            Id idObj = Id.new128BitId();
+            IdImpl idObj = IdImpl.new128BitId();
             idObj.fromBytes(id, 0);
             return idObj;
         }
 
-        void sendSampleMsg(Transaction transaction, Id stackTraceId, int count) {
+        void sendSampleMsg(TransactionImpl transaction, IdImpl stackTraceId, int count) {
             byte[] traceId = idToBytes(transaction.getTraceContext().getTraceId());
             byte[] transactionId = idToBytes(transaction.getTraceContext().getId());
 
@@ -462,7 +462,7 @@ public class UniversalProfilingIntegrationTest {
         }
     }
 
-    private static byte[] idToBytes(Id id) {
+    private static byte[] idToBytes(IdImpl id) {
         byte[] buff = new byte[32];
         int len = id.toBytes(buff, 0);
         byte[] result = new byte[len];

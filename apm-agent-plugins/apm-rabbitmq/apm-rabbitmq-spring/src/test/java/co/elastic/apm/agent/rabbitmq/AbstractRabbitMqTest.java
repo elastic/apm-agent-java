@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import org.junit.Test;
 
@@ -31,7 +31,6 @@ import static co.elastic.apm.agent.rabbitmq.RabbitMQIT.checkTransaction;
 import static co.elastic.apm.agent.rabbitmq.RabbitMQIT.getNonRootTransaction;
 import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_NAME;
 import static co.elastic.apm.agent.rabbitmq.TestConstants.TOPIC_EXCHANGE_NAME;
-import static co.elastic.apm.agent.tracer.configuration.MessagingConfiguration.JmsStrategy.POLLING;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.doReturn;
 
@@ -42,9 +41,9 @@ public abstract class AbstractRabbitMqTest extends RabbitMqTestBase {
     @Test
     public void verifyThatTransactionWithSpanCreated() {
         rabbitTemplate.convertAndSend(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, MESSAGE);
-        Transaction receiveTransaction = reporter.getFirstTransaction(1000);
+        TransactionImpl receiveTransaction = reporter.getFirstTransaction(1000);
         checkTransaction(receiveTransaction, TOPIC_EXCHANGE_NAME, "Spring AMQP");
-        Span testSpan = reporter.getFirstSpan(1000);
+        SpanImpl testSpan = reporter.getFirstSpan(1000);
         assertThat(testSpan.getNameAsString()).isEqualTo("testSpan");
         assertThat(testSpan.getType()).isEqualTo("custom");
         checkParentChild(receiveTransaction, testSpan);
@@ -56,9 +55,9 @@ public abstract class AbstractRabbitMqTest extends RabbitMqTestBase {
         doReturn(MessagingConfiguration.RabbitMQNamingMode.QUEUE).when(messagingConfiguration).getRabbitMQNamingMode();
 
         rabbitTemplate.convertAndSend(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, MESSAGE);
-        Transaction receiveTransaction = reporter.getFirstTransaction(1000);
+        TransactionImpl receiveTransaction = reporter.getFirstTransaction(1000);
         checkTransaction(receiveTransaction, QUEUE_NAME, "Spring AMQP");
-        Span testSpan = reporter.getFirstSpan(1000);
+        SpanImpl testSpan = reporter.getFirstSpan(1000);
         assertThat(testSpan.getNameAsString()).isEqualTo("testSpan");
         assertThat(testSpan.getType()).isEqualTo("custom");
         checkParentChild(receiveTransaction, testSpan);
@@ -66,23 +65,23 @@ public abstract class AbstractRabbitMqTest extends RabbitMqTestBase {
 
     @Test
     public void verifyThatTransactionWithSpanCreated_DistributedTracing() {
-        Transaction rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
+        TransactionImpl rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
         rabbitTemplate.convertAndSend(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, MESSAGE);
         rootTransaction.deactivate().end();
 
         getReporter().awaitTransactionCount(2);
         getReporter().awaitSpanCount(2);
 
-        Transaction receiveTransaction = getNonRootTransaction(rootTransaction, getReporter().getTransactions());
+        TransactionImpl receiveTransaction = getNonRootTransaction(rootTransaction, getReporter().getTransactions());
         checkTransaction(receiveTransaction, TOPIC_EXCHANGE_NAME, "Spring AMQP");
         assertThat(receiveTransaction.getSpanCount().getTotal().get()).isEqualTo(1);
 
-        List<Span> spans = getReporter().getSpans();
-        Span sendSpan = spans.stream().filter(span -> span.getType().equals("messaging")).findFirst().get();
+        List<SpanImpl> spans = getReporter().getSpans();
+        SpanImpl sendSpan = spans.stream().filter(span -> span.getType().equals("messaging")).findFirst().get();
         checkSendSpan(sendSpan, TOPIC_EXCHANGE_NAME, LOCALHOST_ADDRESS, container.getAmqpPort());
         checkParentChild(sendSpan, receiveTransaction);
 
-        Span testSpan = spans.stream().filter(span -> span.getType().equals("custom")).findFirst().get();
+        SpanImpl testSpan = spans.stream().filter(span -> span.getType().equals("custom")).findFirst().get();
         assertThat(testSpan.getNameAsString()).isEqualTo("testSpan");
         checkParentChild(receiveTransaction, testSpan);
     }
@@ -90,27 +89,27 @@ public abstract class AbstractRabbitMqTest extends RabbitMqTestBase {
     @Test
     public void verifyTransactionWithDefaultExchangeName() {
         rabbitTemplate.convertAndSend(TestConstants.QUEUE_NAME, MESSAGE);
-        Transaction receiveTransaction = reporter.getFirstTransaction(1000);
+        TransactionImpl receiveTransaction = reporter.getFirstTransaction(1000);
         checkTransaction(receiveTransaction, "", "Spring AMQP");
         assertThat(receiveTransaction.getSpanCount().getTotal().get()).isEqualTo(1);
-        Span testSpan = reporter.getFirstSpan(1000);
+        SpanImpl testSpan = reporter.getFirstSpan(1000);
         assertThat(testSpan.getNameAsString()).isEqualTo("testSpan");
     }
 
     @Test
     public void verifyTransactionWithDefaultExchangeName_DistributedTracing() {
-        Transaction rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
+        TransactionImpl rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
         rabbitTemplate.convertAndSend(TestConstants.QUEUE_NAME, MESSAGE);
         rootTransaction.deactivate().end();
 
         getReporter().awaitTransactionCount(2);
         getReporter().awaitSpanCount(2);
 
-        Transaction receiveTransaction = getNonRootTransaction(rootTransaction, getReporter().getTransactions());
+        TransactionImpl receiveTransaction = getNonRootTransaction(rootTransaction, getReporter().getTransactions());
         checkTransaction(receiveTransaction, "", "Spring AMQP");
         assertThat(receiveTransaction.getSpanCount().getTotal().get()).isEqualTo(1);
 
-        Span sendSpan = getReporter().getSpans().stream().filter(span -> span.getType().equals("messaging")).findFirst().get();
+        SpanImpl sendSpan = getReporter().getSpans().stream().filter(span -> span.getType().equals("messaging")).findFirst().get();
         checkSendSpan(sendSpan, "", LOCALHOST_ADDRESS, container.getAmqpPort());
         checkParentChild(sendSpan, receiveTransaction);
     }

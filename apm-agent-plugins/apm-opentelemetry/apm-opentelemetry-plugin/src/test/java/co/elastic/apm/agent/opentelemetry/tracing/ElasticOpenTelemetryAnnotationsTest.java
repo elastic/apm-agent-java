@@ -18,8 +18,9 @@
  */
 package co.elastic.apm.agent.opentelemetry.tracing;
 
-import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TraceStateImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.testutils.assertions.Assertions;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
@@ -55,7 +56,7 @@ public class ElasticOpenTelemetryAnnotationsTest extends AbstractOpenTelemetryTe
     public void withSpanAnnotationTestWithMethodSignatureSpanName() {
         executeSpanInTransactionAndAssertTransaction((ignore) -> fooSpan());
 
-        co.elastic.apm.agent.impl.transaction.Span firstSpan = reporter.getFirstSpan();
+        SpanImpl firstSpan = reporter.getFirstSpan();
         assertThat(firstSpan.getNameAsString()).isEqualTo("ElasticOpenTelemetryAnnotationsTest#fooSpan");
         assertThat(reporter.getFirstSpan().isChildOf(reporter.getFirstTransaction())).isTrue();
     }
@@ -64,7 +65,7 @@ public class ElasticOpenTelemetryAnnotationsTest extends AbstractOpenTelemetryTe
     public void withSpanAnnotationTestWithSpanNameFromAnnotation() {
         executeSpanInTransactionAndAssertTransaction((ignore) -> barSpan());
 
-        co.elastic.apm.agent.impl.transaction.Span firstSpan = reporter.getFirstSpan();
+        SpanImpl firstSpan = reporter.getFirstSpan();
         assertThat(firstSpan.getNameAsString()).isEqualTo("barSpan");
         assertThat(reporter.getFirstSpan().isChildOf(reporter.getFirstTransaction())).isTrue();
     }
@@ -73,7 +74,7 @@ public class ElasticOpenTelemetryAnnotationsTest extends AbstractOpenTelemetryTe
     public void withSpanAnnotationSpanAttributes() {
         executeSpanInTransactionAndAssertTransaction((ignore) -> fooSpanWithAttrs("foobar", "objectAsString", 2073, 2.69));
 
-        co.elastic.apm.agent.impl.transaction.Span firstSpan = reporter.getFirstSpan();
+        SpanImpl firstSpan = reporter.getFirstSpan();
         assertThat(firstSpan.getNameAsString()).isEqualTo("ElasticOpenTelemetryAnnotationsTest#fooSpanWithAttrs");
         assertThat(firstSpan.isChildOf(reporter.getFirstTransaction())).isTrue();
         assertThat(firstSpan.getOtelAttributes().get("attr1")).isEqualTo("foobar");
@@ -93,7 +94,7 @@ public class ElasticOpenTelemetryAnnotationsTest extends AbstractOpenTelemetryTe
 
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
-        Transaction reportedTransaction = reporter.getFirstTransaction();
+        TransactionImpl reportedTransaction = reporter.getFirstTransaction();
         assertThat(reportedTransaction.getNameAsString()).isEqualTo("transaction");
     }
 
@@ -122,7 +123,7 @@ public class ElasticOpenTelemetryAnnotationsTest extends AbstractOpenTelemetryTe
     private void checkNoActiveContext() {
         Assertions.assertThat(tracer.currentContext())
             .describedAs("no active elastic context is expected")
-            .satisfies(ElasticContext::isEmpty);
+            .satisfies(TraceStateImpl::isEmpty);
         assertThat(Context.current())
             .describedAs("no active otel context is expected")
             .isSameAs(Context.root())

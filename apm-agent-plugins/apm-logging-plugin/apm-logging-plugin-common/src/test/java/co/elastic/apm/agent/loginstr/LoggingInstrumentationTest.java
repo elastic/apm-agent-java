@@ -19,12 +19,12 @@
 package co.elastic.apm.agent.loginstr;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.configuration.LogEcsReformatting;
-import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.logging.LoggingConfigurationImpl;
 import co.elastic.apm.agent.logging.TestUtils;
 import co.elastic.apm.agent.loginstr.correlation.AbstractLogCorrelationHelper;
 import co.elastic.apm.agent.loginstr.reformatting.Utils;
@@ -75,10 +75,10 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     private final SimpleDateFormat timestampFormat;
     private final SimpleDateFormat utcTimestampFormat;
 
-    private LoggingConfiguration loggingConfig;
+    private LoggingConfigurationImpl loggingConfig;
     private String serviceName;
-    private Transaction transaction;
-    private Span childSpan;
+    private TransactionImpl transaction;
+    private SpanImpl childSpan;
 
     public LoggingInstrumentationTest() {
         logger = createLoggerFacade();
@@ -91,11 +91,11 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     @Before
     @BeforeEach
     public void setup() throws Exception {
-        doReturn(SERVICE_VERSION).when(config.getConfig(CoreConfiguration.class)).getServiceVersion();
-        doReturn(ENVIRONMENT).when(config.getConfig(CoreConfiguration.class)).getEnvironment();
-        doReturn(SERVICE_NODE_NAME).when(config.getConfig(CoreConfiguration.class)).getServiceNodeName();
+        doReturn(SERVICE_VERSION).when(config.getConfig(CoreConfigurationImpl.class)).getServiceVersion();
+        doReturn(ENVIRONMENT).when(config.getConfig(CoreConfigurationImpl.class)).getEnvironment();
+        doReturn(SERVICE_NODE_NAME).when(config.getConfig(CoreConfigurationImpl.class)).getServiceNodeName();
 
-        loggingConfig = config.getConfig(LoggingConfiguration.class);
+        loggingConfig = config.getConfig(LoggingConfigurationImpl.class);
         doReturn(ADDITIONAL_FIELDS).when(loggingConfig).getLogEcsReformattingAdditionalFields();
 
         logger.open();
@@ -354,7 +354,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         final JsonNode errorJsonNode = ecsLogLineTree.get(AbstractLogCorrelationHelper.ERROR_ID_MDC_KEY);
         if (isErrorLine) {
             assertThat(errorJsonNode).describedAs("missing error ID").isNotNull();
-            List<ErrorCapture> errors = reporter.getErrors().stream()
+            List<ErrorCaptureImpl> errors = reporter.getErrors().stream()
                 .filter(error -> errorJsonNode.textValue().equals(error.getTraceContext().getId().toString()))
                 .collect(Collectors.toList());
             assertThat(errors).hasSize(1);

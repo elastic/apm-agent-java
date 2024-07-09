@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.ecs_logging;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +29,7 @@ public abstract class EcsServiceVersionTest extends EcsLoggingTest {
 
     @BeforeEach
     public void setUp() {
-        doReturn("1.0").when(tracer.getConfig(CoreConfiguration.class)).getServiceVersion();
+        doReturn("1.0").when(tracer.getConfig(CoreConfigurationImpl.class)).getServiceVersion();
     }
 
     @Test

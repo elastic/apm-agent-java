@@ -116,7 +116,6 @@
         <!-- -dependencies versions -->
         <version.error_prone>2.2.0</version.error_prone>
         <version.h2>1.4.196</version.h2>
-        <version.jackson>2.14.2</version.jackson>
         <version.junit>5.9.1</version.junit>
         <version.junit.vintage>4.13.2</version.junit.vintage>
         <version.okhttp>4.12.0</version.okhttp>
@@ -129,10 +128,10 @@
         <version.ecs.logging>1.6.0</version.ecs.logging>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.4.0</version.json-schema-validator>
+        <version.json-schema-validator>1.4.3</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.14.14</version.byte-buddy>
-        <version.asm>9.6</version.asm>
+        <version.byte-buddy>1.14.17</version.byte-buddy>
+        <version.asm>9.7</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
         <version.mockito>5.12.0</version.mockito>
@@ -666,6 +665,13 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>2.17.1</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.ivy</groupId>
                 <artifactId>ivy</artifactId>
                 <version>2.5.2</version>
@@ -748,7 +754,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.25.3</version>
+            <version>3.26.0</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -791,7 +797,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${version.jackson}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

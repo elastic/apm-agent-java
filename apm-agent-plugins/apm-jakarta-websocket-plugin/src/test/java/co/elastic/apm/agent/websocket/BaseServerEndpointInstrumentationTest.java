@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.websocket;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.websocket.endpoint.WebSocketEndpoint;
 import org.junit.jupiter.api.Test;
 
@@ -35,7 +35,7 @@ abstract class BaseServerEndpointInstrumentationTest extends AbstractInstrumenta
 
     @Test
     void testOnOpenWithActiveTransaction() {
-        Transaction transaction = startTestRootTransaction();
+        TransactionImpl transaction = startTestRootTransaction();
         try {
             serverEndpoint.onOpen();
         } finally {
@@ -54,7 +54,7 @@ abstract class BaseServerEndpointInstrumentationTest extends AbstractInstrumenta
 
     @Test
     void testOnMessage() {
-        Transaction transaction = startTestRootTransaction();
+        TransactionImpl transaction = startTestRootTransaction();
         try {
             serverEndpoint.onMessage("");
         } finally {
@@ -66,7 +66,7 @@ abstract class BaseServerEndpointInstrumentationTest extends AbstractInstrumenta
 
     @Test
     void testOnError() {
-        Transaction transaction = startTestRootTransaction();
+        TransactionImpl transaction = startTestRootTransaction();
         try {
             serverEndpoint.onError();
         } finally {
@@ -78,7 +78,7 @@ abstract class BaseServerEndpointInstrumentationTest extends AbstractInstrumenta
 
     @Test
     void testOnClose() {
-        Transaction transaction = startTestRootTransaction();
+        TransactionImpl transaction = startTestRootTransaction();
         try {
             serverEndpoint.onClose();
         } finally {
@@ -95,7 +95,7 @@ abstract class BaseServerEndpointInstrumentationTest extends AbstractInstrumenta
     protected abstract String getFrameworkVersion();
 
     private void assertReportedTransactionNameAndFramework(String methodName) {
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getNameAsString()).isEqualTo(getWebSocketServerEndpointClassName() + '#' + methodName);
         assertThat(transaction.getFrameworkName()).isEqualTo(getFrameworkName());

@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.opentelemetry.baggage;
 
+import co.elastic.apm.agent.impl.baggage.BaggageImpl;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import io.opentelemetry.api.baggage.Baggage;
@@ -26,9 +27,9 @@ import io.opentelemetry.api.baggage.BaggageEntryMetadata;
 
 public class OtelBaggage {
 
-    private static final WeakMap<Baggage, co.elastic.apm.agent.impl.baggage.Baggage> translationCache = WeakConcurrent.buildMap();
+    private static final WeakMap<Baggage, BaggageImpl> translationCache = WeakConcurrent.buildMap();
 
-    public static Baggage fromElasticBaggage(co.elastic.apm.agent.impl.baggage.Baggage elasticBaggage) {
+    public static Baggage fromElasticBaggage(BaggageImpl elasticBaggage) {
         BaggageBuilder builder = Baggage.builder();
         for (String key : elasticBaggage.keys()) {
             builder.put(key, elasticBaggage.get(key), BaggageEntryMetadata.create(elasticBaggage.getMetadata(key)));
@@ -39,13 +40,13 @@ public class OtelBaggage {
         return result;
     }
 
-    public static co.elastic.apm.agent.impl.baggage.Baggage toElasticBaggage(Baggage otelBaggage) {
+    public static BaggageImpl toElasticBaggage(Baggage otelBaggage) {
         if (otelBaggage == null || otelBaggage.isEmpty()) {
-            return co.elastic.apm.agent.impl.baggage.Baggage.EMPTY;
+            return BaggageImpl.EMPTY;
         }
-        co.elastic.apm.agent.impl.baggage.Baggage translated = translationCache.get(otelBaggage);
+        BaggageImpl translated = translationCache.get(otelBaggage);
         if (translated == null) {
-            co.elastic.apm.agent.impl.baggage.Baggage.Builder builder = co.elastic.apm.agent.impl.baggage.Baggage.builder();
+            BaggageImpl.Builder builder = BaggageImpl.builder();
             otelBaggage.forEach((key, value) -> {
                 String metadata = value.getMetadata().getValue();
                 builder.put(key, value.getValue(), metadata.isEmpty() ? null : metadata);

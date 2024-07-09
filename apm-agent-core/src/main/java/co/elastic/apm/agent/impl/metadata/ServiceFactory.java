@@ -24,15 +24,15 @@ import co.elastic.apm.agent.util.VersionUtils;
 
 public class ServiceFactory {
 
-    public Service createService(CoreConfiguration coreConfiguration, String ephemeralId, boolean runsOnAwsLambda) {
-        Service service = new Service()
+    public ServiceImpl createService(CoreConfiguration coreConfiguration, String ephemeralId, boolean runsOnAwsLambda) {
+        ServiceImpl service = new ServiceImpl()
             .withName(coreConfiguration.getServiceName())
             .withVersion(coreConfiguration.getServiceVersion())
             .withEnvironment(coreConfiguration.getEnvironment())
             .withAgent(new Agent("java", VersionUtils.getAgentVersion(), ephemeralId, coreConfiguration))
             .withRuntime(new RuntimeInfo("Java", System.getProperty("java.version")))
             .withLanguage(new Language("Java", System.getProperty("java.version")))
-            .withNode(new Node(coreConfiguration.getServiceNodeName()));
+            .withNode(new NodeImpl(coreConfiguration.getServiceNodeName()));
 
         if (runsOnAwsLambda) {
             augmentServiceForAWSLambda(service);
@@ -40,17 +40,17 @@ public class ServiceFactory {
         return service;
     }
 
-    private void augmentServiceForAWSLambda(Service service) {
+    private void augmentServiceForAWSLambda(ServiceImpl service) {
         String runtimeName = PrivilegedActionUtils.getEnv("AWS_EXECUTION_ENV");
         runtimeName = null != runtimeName ? runtimeName : "AWS_Lambda_java";
         service.withRuntime(new RuntimeInfo(runtimeName, System.getProperty("java.version")));
 
-        Node node = service.getNode();
+        NodeImpl node = service.getNode();
         String nodeName = (node != null) ? node.getName() : null;
         if (nodeName == null || nodeName.isEmpty()) {
             String serviceNodeName = PrivilegedActionUtils.getEnv("AWS_LAMBDA_LOG_STREAM_NAME");
             if (null != serviceNodeName) {
-                service.withNode(new Node(serviceNodeName));
+                service.withNode(new NodeImpl(serviceNodeName));
             }
         }
     }

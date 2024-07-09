@@ -18,13 +18,13 @@
  */
 package co.elastic.apm.agent.testutils.assertions;
 
-import co.elastic.apm.agent.impl.baggage.Baggage;
-import co.elastic.apm.agent.impl.context.Db;
-import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.context.ServiceTarget;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.ElasticContext;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.baggage.BaggageImpl;
+import co.elastic.apm.agent.impl.context.DbImpl;
+import co.elastic.apm.agent.impl.context.DestinationImpl;
+import co.elastic.apm.agent.impl.context.ServiceTargetImpl;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.TraceStateImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.testutils.assertions.metrics.MetricSetsAssert;
 
 import java.util.Collection;
@@ -34,27 +34,27 @@ public class Assertions extends org.assertj.core.api.Assertions {
     private Assertions() {
     }
 
-    public static ServiceTargetAssert assertThat(ServiceTarget serviceTarget) {
+    public static ServiceTargetAssert assertThat(ServiceTargetImpl serviceTarget) {
         return new ServiceTargetAssert(serviceTarget);
     }
 
-    public static DestinationAssert assertThat(Destination destination) {
+    public static DestinationAssert assertThat(DestinationImpl destination) {
         return new DestinationAssert(destination);
     }
 
-    public static SpanAssert assertThat(Span span) {
+    public static SpanAssert assertThat(SpanImpl span) {
         return new SpanAssert(span);
     }
 
-    public static DbAssert assertThat(Db db) {
+    public static DbAssert assertThat(DbImpl db) {
         return new DbAssert(db);
     }
 
-    public static AbstractSpanAssert<?, ?> assertThat(AbstractSpan<?> span) {
+    public static AbstractSpanAssert<?, ?> assertThat(AbstractSpanImpl<?> span) {
         return new AbstractSpanAssert<>(span, AbstractSpanAssert.class);
     }
 
-    public static ElasticContextAssert<?, ?> assertThat(ElasticContext<?> span) {
+    public static ElasticContextAssert<?, ?> assertThat(TraceStateImpl<?> span) {
         return new ElasticContextAssert<>(span, ElasticContextAssert.class);
     }
 
@@ -62,7 +62,7 @@ public class Assertions extends org.assertj.core.api.Assertions {
         return new MetricSetsAssert(metricsetsJson);
     }
 
-    public static BaggageAssert assertThat(Baggage baggage) {
+    public static BaggageAssert assertThat(BaggageImpl baggage) {
         return new BaggageAssert(baggage);
     }
 }

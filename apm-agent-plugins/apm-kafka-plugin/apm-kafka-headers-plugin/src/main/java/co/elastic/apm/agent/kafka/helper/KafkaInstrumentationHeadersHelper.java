@@ -21,7 +21,7 @@ package co.elastic.apm.agent.kafka.helper;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
@@ -116,7 +116,7 @@ public class KafkaInstrumentationHeadersHelper {
         }
     }
 
-    public void setOutgoingTraceContextHeaders(ElasticContext<?> toPropagate, ProducerRecord<?, ?> producerRecord) {
+    public void setOutgoingTraceContextHeaders(TraceState<?> toPropagate, ProducerRecord<?, ?> producerRecord) {
         toPropagate.propagateContext(producerRecord, KafkaRecordHeaderAccessor.instance(), null);
     }
 

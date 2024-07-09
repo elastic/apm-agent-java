@@ -20,14 +20,14 @@ package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
@@ -93,7 +93,7 @@ public class KafkaIT_RealReporter {
     private static KafkaConsumer<String, String> replyConsumer;
     private static KafkaProducer<String, String> producer;
 
-    private static CoreConfiguration coreConfiguration;
+    private static CoreConfigurationImpl coreConfiguration;
     private static MessagingConfiguration messagingConfiguration;
 
     private static TestScenario testScenario;
@@ -126,7 +126,7 @@ public class KafkaIT_RealReporter {
         );
 
         config = SpyConfiguration.createSpyConfig();
-        StacktraceConfiguration stacktraceConfiguration = config.getConfig(StacktraceConfiguration.class);
+        StacktraceConfigurationImpl stacktraceConfiguration = config.getConfig(StacktraceConfigurationImpl.class);
         doReturn(30).when(stacktraceConfiguration).getStackTraceLimit();
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
@@ -135,7 +135,7 @@ public class KafkaIT_RealReporter {
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
         testScenario = TestScenario.NORMAL;
 
-        coreConfiguration = config.getConfig(CoreConfiguration.class);
+        coreConfiguration = config.getConfig(CoreConfigurationImpl.class);
         messagingConfiguration = config.getConfig(MessagingConfiguration.class);
     }
 
@@ -150,7 +150,7 @@ public class KafkaIT_RealReporter {
 
     @Before
     public void startTransaction() {
-        Transaction transaction;
+        TransactionImpl transaction;
         transaction = tracer.startRootTransaction(null);
         if (transaction != null) {
             transaction.activate()
@@ -163,7 +163,7 @@ public class KafkaIT_RealReporter {
 
     @After
     public void endAndReportTransaction() {
-        Transaction currentTransaction = tracer.currentTransaction();
+        TransactionImpl currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
             currentTransaction.deactivate().end();
         }
@@ -222,7 +222,7 @@ public class KafkaIT_RealReporter {
 
     @Test
     public void testBodyCaptureEnabled() {
-        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.ALL).when(coreConfiguration).getCaptureBody();
         testScenario = TestScenario.BODY_CAPTURE_ENABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
@@ -391,7 +391,7 @@ public class KafkaIT_RealReporter {
                                 producer.send(new ProducerRecord<>(REPLY_TOPIC, REPLY_KEY, record.value()));
                             }
                         } else if (iterationMode == RecordIterationMode.ITERATE_WITHIN_TRANSACTION) {
-                            Transaction transaction = Objects.requireNonNull(tracer.startRootTransaction(null))
+                            TransactionImpl transaction = Objects.requireNonNull(tracer.startRootTransaction(null))
                                 .withName("Batch-processing Transaction")
                                 .activate();
                             if (records.isEmpty()) {

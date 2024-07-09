@@ -43,19 +43,17 @@ package co.elastic.apm.agent.rabbitmq;
  */
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.*;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.context.DestinationImpl;
 import co.elastic.apm.agent.impl.context.Headers;
-import co.elastic.apm.agent.impl.context.Message;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.context.MessageImpl;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration.RabbitMQNamingMode;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -98,7 +96,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
     private static final String IMAGE = "rabbitmq:3.7-management-alpine";
     private static final RabbitMQContainer container = new RabbitMQContainer(IMAGE);
 
-    private static final String ROUTING_KEY = "test.key";
+    private static final String TEST_ROUTING_KEY = "test.key";
 
     private static final byte[] MSG = "Testing APM!".getBytes();
 
@@ -155,8 +153,8 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
     void bodyCaptureNotSupported() throws IOException, InterruptedException {
         // body capture is not supported because at the RabbitMQ driver level
         // the message is provided as a byte array.
-        CoreConfiguration config = AbstractInstrumentationTest.config.getConfig(CoreConfiguration.class);
-        doReturn(CoreConfiguration.EventType.ALL).when(config).getCaptureBody();
+        CoreConfigurationImpl config = AbstractInstrumentationTest.config.getConfig(CoreConfigurationImpl.class);
+        doReturn(CoreConfigurationImpl.EventType.ALL).when(config).getCaptureBody();
 
         performTest(
             emptyProperties(),
@@ -183,7 +181,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
 
     @Test
     void headersCaptureDisabled() throws IOException, InterruptedException {
-        CoreConfiguration coreConfiguration = config.getConfig(CoreConfiguration.class);
+        CoreConfigurationImpl coreConfiguration = config.getConfig(CoreConfigurationImpl.class);
         doReturn(false).when(coreConfiguration).isCaptureHeaders();
 
         testHeadersCapture(Map.of("message-header", "header value"), Map.of(), false);
@@ -191,7 +189,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
 
     @Test
     void headersCaptureSanitize() throws IOException, InterruptedException {
-        CoreConfiguration coreConfiguration = config.getConfig(CoreConfiguration.class);
+        CoreConfigurationImpl coreConfiguration = config.getConfig(CoreConfigurationImpl.class);
         doReturn(List.of(WildcardMatcher.valueOf("secret*"))).when(coreConfiguration).getSanitizeFieldNames();
 
         testHeadersCapture(
@@ -203,7 +201,8 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
             ), true);
     }
 
-    private void testHeadersCapture(Map<String, String> headersMap, Map<String, String> expectedHeaders, boolean expectTracingHeaders) throws IOException, InterruptedException {
+    private void testHeadersCapture(Map<String, String> headersMap, Map<String, String> expectedHeaders,
+        boolean expectTracingHeaders) throws IOException, InterruptedException {
         performTest(
             propertiesMap(headersMap),
             false,
@@ -228,6 +227,15 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         });
     }
 
+    @Test
+    void routingKeyInTransactionName() throws IOException, InterruptedException {
+        MessagingConfiguration messagingConfiguration = config.getConfig(MessagingConfiguration.class);
+        doReturn(RabbitMQNamingMode.ROUTING_KEY).when(messagingConfiguration).getRabbitMQNamingMode();
+
+        performTest(emptyProperties(), false, randString("exchange"), "different-routing-key",
+            (mt, ms) -> {});
+    }
+
     private void performTest(@Nullable AMQP.BasicProperties properties) throws IOException, InterruptedException {
         performTest(properties, false, randString("exchange"), (mt, ms) -> {
         });
@@ -236,11 +244,20 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
     private void performTest(@Nullable AMQP.BasicProperties properties,
                              boolean shouldIgnore,
                              String channelName,
-                             BiConsumer<Message, Message> messageCheck) throws IOException, InterruptedException {
+                             BiConsumer<MessageImpl, MessageImpl> messageCheck) throws IOException, InterruptedException {
+
+        performTest(properties, shouldIgnore, channelName, TEST_ROUTING_KEY, messageCheck);
+    }
+
+    private void performTest(@Nullable AMQP.BasicProperties properties,
+        boolean shouldIgnore,
+        String channelName,
+        String routingKey,
+        BiConsumer<MessageImpl, MessageImpl> messageCheck) throws IOException, InterruptedException {
 
         Channel channel = connection.createChannel();
         String exchange = createExchange(channel, channelName);
-        String queue = createQueue(channel, exchange);
+        String queue = createQueue(channel, exchange, routingKey);
 
         CountDownLatch messageReceived = new CountDownLatch(1);
 
@@ -248,7 +265,8 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
             // using an anonymous class to ensure class matching is properly applied
 
             @Override
-            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
+            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties,
+                byte[] body) throws IOException {
                 assertThat(properties).isNotNull();
                 Map<String, Object> headers = properties.getHeaders();
 
@@ -262,9 +280,9 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
             }
         });
 
-        Transaction rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
+        TransactionImpl rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
 
-        channel.basicPublish(exchange, ROUTING_KEY, properties, MSG);
+        channel.basicPublish(exchange, routingKey, properties, MSG);
 
         endRootTransaction(rootTransaction);
 
@@ -285,17 +303,17 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
             return;
         }
 
-
         // 2 transactions, 1 span expected
         getReporter().awaitTransactionCount(2);
         getReporter().awaitSpanCount(1);
 
-        Transaction childTransaction = getNonRootTransaction(rootTransaction, getReporter().getTransactions());
+        TransactionImpl childTransaction = getNonRootTransaction(rootTransaction, getReporter().getTransactions());
 
-        checkTransaction(childTransaction, exchange);
+        String transactionNameSuffix = !routingKey.equals(TEST_ROUTING_KEY) ? routingKey: exchange;
+        checkTransaction(childTransaction, exchange, transactionNameSuffix, "RabbitMQ");
 
-        Span span = getReporter().getSpans().get(0);
-        checkSendSpan(span, exchange);
+        SpanImpl span = getReporter().getSpans().get(0);
+        checkSendSpan(span, exchange, transactionNameSuffix);
 
         // span should be child of the first transaction
         checkParentChild(rootTransaction, span);
@@ -303,13 +321,11 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         checkParentChild(span, childTransaction);
 
         // common assertions on span & transaction message
-        Message spanMessage = span.getContext().getMessage();
-        Message transactionMessage = childTransaction.getContext().getMessage();
-
+        MessageImpl spanMessage = span.getContext().getMessage();
+        MessageImpl transactionMessage = childTransaction.getContext().getMessage();
 
         // test-specific assertions on captured message
         messageCheck.accept(transactionMessage, spanMessage);
-
     }
 
     @Test
@@ -324,12 +340,12 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
 
-        Span pollingSpan = findSpanByAction("poll");
+        SpanImpl pollingSpan = findSpanByAction("poll");
         checkPollSpan(pollingSpan, null, queueName, "<unknown>", false);
     }
 
     @NotNull
-    private Span findSpanByAction(String action) {
+    private SpanImpl findSpanByAction(String action) {
         return reporter.getSpans().stream().filter(span -> Objects.requireNonNull(span.getAction()).equals(action)).findFirst().get();
     }
 
@@ -345,10 +361,10 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(2);
 
-        Span sendSpan = findSpanByAction("send");
+        SpanImpl sendSpan = findSpanByAction("send");
         checkSendSpan(sendSpan, exchange);
 
-        Span pollingSpan = findSpanByAction("poll");
+        SpanImpl pollingSpan = findSpanByAction("poll");
         checkPollSpan(pollingSpan, sendSpan, queueName, exchange, true);
     }
 
@@ -395,7 +411,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
     private String declareAndBindQueue(String queue, String exchange, Channel channel) {
         try {
             channel.queueDeclare(queue, false, false, false, null);
-            channel.queueBind(queue, exchange, ROUTING_KEY);
+            channel.queueBind(queue, exchange, TEST_ROUTING_KEY);
             return queue;
         } catch (IOException e) {
             throw new IllegalStateException(e);
@@ -407,13 +423,13 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
 
         String queue = createQueue.get();
 
-        Transaction rootTransaction = null;
+        TransactionImpl rootTransaction = null;
         if (withinTransaction) {
             rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
         }
 
         if (withResult) {
-            channel.basicPublish(exchange, ROUTING_KEY, emptyProperties(), MSG);
+            channel.basicPublish(exchange, TEST_ROUTING_KEY, emptyProperties(), MSG);
         }
         channel.basicGet(queue, true);
 
@@ -467,7 +483,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
             .build();
 
 
-        Transaction rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
+        TransactionImpl rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
 
         channel.basicPublish(exchange, rpcQueueName, properties, MSG);
 
@@ -509,10 +525,10 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         // parent/child relationships are used to find who is who as we don't have other fields like name
         // to distinguish them
 
-        Span clientRequestRpc = null;
-        Span serverReplyRpc = null;
-        for (Span s : getReporter().getSpans()) {
-            Id spanParentId = s.getTraceContext().getParentId();
+        SpanImpl clientRequestRpc = null;
+        SpanImpl serverReplyRpc = null;
+        for (SpanImpl s : getReporter().getSpans()) {
+            IdImpl spanParentId = s.getTraceContext().getParentId();
             if (rootTransaction.getTraceContext().getId().equals(spanParentId)) {
                 // client request is child of root transaction
                 assertThat(clientRequestRpc).isNull();
@@ -525,11 +541,11 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         assertThat(clientRequestRpc).isNotNull();
         assertThat(serverReplyRpc).isNotNull();
 
-        Transaction serverSideRpc = null;
-        Transaction clientSideRpc = null;
-        for (Transaction t : getReporter().getTransactions()) {
+        TransactionImpl serverSideRpc = null;
+        TransactionImpl clientSideRpc = null;
+        for (TransactionImpl t : getReporter().getTransactions()) {
             if (t != rootTransaction) {
-                Id transactionParentId = t.getTraceContext().getParentId();
+                IdImpl transactionParentId = t.getTraceContext().getParentId();
                 if (clientRequestRpc.getTraceContext().getId().equals(transactionParentId)) {
                     assertThat(serverSideRpc).isNull();
                     serverSideRpc = t;
@@ -557,13 +573,13 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
 
     }
 
-    private void endRootTransaction(Transaction rootTransaction) {
+    private void endRootTransaction(TransactionImpl rootTransaction) {
         rootTransaction.deactivate().end();
     }
 
-    static Transaction getNonRootTransaction(Transaction rootTransaction, List<Transaction> transactions) {
-        Transaction childTransaction = null;
-        for (Transaction t : transactions) {
+    static TransactionImpl getNonRootTransaction(TransactionImpl rootTransaction, List<TransactionImpl> transactions) {
+        TransactionImpl childTransaction = null;
+        for (TransactionImpl t : transactions) {
             if (t != rootTransaction) {
                 assertThat(childTransaction).isNull();
                 childTransaction = t;
@@ -573,9 +589,9 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         return childTransaction;
     }
 
-    private String createQueue(Channel channel, String exchange) throws IOException {
+    private String createQueue(Channel channel, String exchange, String routingKey) throws IOException {
         String queueName = channel.queueDeclare().getQueue();
-        channel.queueBind(queueName, exchange, ROUTING_KEY);
+        channel.queueBind(queueName, exchange, routingKey);
         return queueName;
     }
 
@@ -603,7 +619,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         return new AMQP.BasicProperties.Builder().headers(new HashMap<>()).build();
     }
 
-    static void checkParentChild(AbstractSpan<?> parent, AbstractSpan<?> child) {
+    static void checkParentChild(AbstractSpanImpl<?> parent, AbstractSpanImpl<?> child) {
         assertThat(child.getTraceContext().getParentId())
             .describedAs("child (%s) should be a child of (%s)", child, parent)
             .isEqualTo(parent.getTraceContext().getId());
@@ -613,14 +629,18 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
             .isEqualTo(parent.getTraceContext().getTraceId());
     }
 
-    private static void checkTransaction(Transaction transaction, String exchange) {
+    private static void checkTransaction(TransactionImpl transaction, String exchange) {
         checkTransaction(transaction, exchange, "RabbitMQ");
     }
 
-    static void checkTransaction(Transaction transaction, String exchange, String frameworkName) {
+    static void checkTransaction(TransactionImpl transaction, String exchange, String frameworkName) {
+        checkTransaction(transaction, exchange, exchange, frameworkName);
+    }
+
+    static void checkTransaction(TransactionImpl transaction, String exchange, String transactionNameSuffix, String frameworkName) {
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getNameAsString())
-            .isEqualTo("RabbitMQ RECEIVE from %s", exchange.isEmpty() ? "<default>" : exchange);
+            .isEqualTo("RabbitMQ RECEIVE from %s", transactionNameSuffix.isEmpty() ? "<default>" : transactionNameSuffix);
         assertThat(transaction.getFrameworkName()).isEqualTo(frameworkName);
 
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
@@ -628,7 +648,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         checkMessage(transaction.getContext().getMessage(), exchange, true);
     }
 
-    private static void checkMessage(Message message, String queueName, boolean withRoutingKeyCheck) {
+    private static void checkMessage(MessageImpl message, String queueName, boolean withRoutingKeyCheck) {
         assertThat(message.getQueueName()).isEqualTo(queueName);
 
         // RabbitMQ does not provide timestamp by default
@@ -641,7 +661,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
     }
 
 
-    private static void checkMessageBodyNotCaptured(Message message) {
+    private static void checkMessageBodyNotCaptured(MessageImpl message) {
         assertThat(message.getBodyForRead()).describedAs("body capture isn't supported").isNull();
     }
 
@@ -651,7 +671,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         "traceparent"
     };
 
-    private static void checkDistributedTracingHeaders(Message message, boolean expectTracingHeaders) {
+    private static void checkDistributedTracingHeaders(MessageImpl message, boolean expectTracingHeaders) {
         HashMap<String, String> headersMap = getHeadersMap(message);
         if (expectTracingHeaders) {
             assertThat(headersMap)
@@ -664,7 +684,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         }
     }
 
-    private static void checkHeaders(Message message, Map<String, String> expectedHeaders) {
+    private static void checkHeaders(MessageImpl message, Map<String, String> expectedHeaders) {
         HashMap<String, String> headersMap = getHeadersMap(message);
         for (String key : DISTRIBUTED_TRACING_HEADERS) {
             headersMap.remove(key);
@@ -674,22 +694,31 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
             .containsAllEntriesOf(expectedHeaders);
     }
 
-    private static HashMap<String, String> getHeadersMap(Message message) {
+    private static HashMap<String, String> getHeadersMap(MessageImpl message) {
         Headers headers = message.getHeaders();
         HashMap<String, String> headersMap = new HashMap<>();
         headers.forEach(h -> headersMap.put(h.getKey(), h.getValue().toString()));
         return headersMap;
     }
 
-    private static void checkSendSpan(Span span, String exchange) {
-        checkSendSpan(span, exchange, connection.getAddress().getHostAddress(), connection.getPort());
+    private static void checkSendSpan(SpanImpl span, String exchange) {
+        checkSendSpan(span, exchange, exchange, connection.getAddress().getHostAddress(), connection.getPort());
     }
 
-    static void checkSendSpan(Span span, String exchange, String host, int port) {
+    private static void checkSendSpan(SpanImpl span, String exchange, String spanNameSuffix) {
+        checkSendSpan(span, exchange, spanNameSuffix, connection.getAddress().getHostAddress(), connection.getPort());
+    }
+
+    static void checkSendSpan(SpanImpl span, String exchange, String host, int port) {
+        checkSendSpan(span, exchange, exchange, host, port);
+    }
+
+    static void checkSendSpan(SpanImpl span, String exchange, String spanNameSuffix, String host, int port) {
         String exchangeName = exchange.isEmpty() ? "<default>" : exchange;
+        String spanName = spanNameSuffix.isEmpty() ? "<default>" : spanNameSuffix;
         checkSpanCommon(span,
             "send",
-            String.format("RabbitMQ SEND to %s", exchangeName),
+            String.format("RabbitMQ SEND to %s", spanName),
             exchangeName,
             true
         );
@@ -697,7 +726,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         checkSpanDestination(span, host, port, String.format("rabbitmq/%s", exchangeName));
     }
 
-    private static void checkPollSpan(Span pollSpan, @Nullable Span sendSpan, String queue, String normalizedExchange, boolean withRoutingKeyCheck) {
+    private static void checkPollSpan(SpanImpl pollSpan, @Nullable SpanImpl sendSpan, String queue, String normalizedExchange, boolean withRoutingKeyCheck) {
         checkSpanCommon(pollSpan,
             "poll",
             String.format("RabbitMQ POLL from %s", queue),
@@ -710,7 +739,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
             String.format("rabbitmq/%s", normalizedExchange)
         );
 
-        List<TraceContext> spanLinks = pollSpan.getSpanLinks();
+        List<TraceContextImpl> spanLinks = pollSpan.getSpanLinks();
         if (sendSpan != null) {
             assertThat(spanLinks).hasSize(1);
             assertThat(spanLinks.get(0).getTraceId()).isEqualTo(sendSpan.getTraceContext().getTraceId());
@@ -720,7 +749,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         }
     }
 
-    private static void checkSpanCommon(Span span, String expectedAction, String expectedName, String expectedQueueName, boolean withRoutingKeyCheck) {
+    private static void checkSpanCommon(SpanImpl span, String expectedAction, String expectedName, String expectedQueueName, boolean withRoutingKeyCheck) {
         assertThat(span.getType()).isEqualTo("messaging");
         assertThat(span.getSubtype()).isEqualTo("rabbitmq");
         assertThat(span.getAction()).isEqualTo(expectedAction);
@@ -733,8 +762,8 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
 
-    static void checkSpanDestination(Span span, String expectedHostAddress, int expectedPort, String expectedResource) {
-        Destination destination = span.getContext().getDestination();
+    static void checkSpanDestination(SpanImpl span, String expectedHostAddress, int expectedPort, String expectedResource) {
+        DestinationImpl destination = span.getContext().getDestination();
         assertThat(destination.getAddress().toString()).isEqualTo(expectedHostAddress);
         assertThat(destination.getPort()).isEqualTo(expectedPort);
 

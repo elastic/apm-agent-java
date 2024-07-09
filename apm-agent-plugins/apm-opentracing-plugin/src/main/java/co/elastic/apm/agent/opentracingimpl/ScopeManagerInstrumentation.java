@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.opentracingimpl;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -56,8 +56,8 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
         public static class AdviceClass {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
-                if (context instanceof AbstractSpan<?>) {
-                    ((AbstractSpan<?>) context).activate();
+                if (context instanceof AbstractSpanImpl<?>) {
+                    ((AbstractSpanImpl<?>) context).activate();
                 }
             }
         }

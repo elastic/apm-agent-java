@@ -21,9 +21,9 @@ package co.elastic.apm.agent.micrometer;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Clock;
@@ -52,7 +52,7 @@ public class MicrometerInstrumentationTest {
     @Before
     public void setUp() {
         config = SpyConfiguration.createSpyConfig();
-        doReturn(50L).when(config.getConfig(ReporterConfiguration.class)).getMetricsIntervalMs();
+        doReturn(50L).when(config.getConfig(ReporterConfigurationImpl.class)).getMetricsIntervalMs();
         reporter = new MockReporter();
         lastMeasuredMetricSetNumber = 0;
         lastFooSamples = 0;
@@ -73,7 +73,7 @@ public class MicrometerInstrumentationTest {
 
     @Test
     public void testReportedWhenInstrumentConfigDisabled() {
-        doReturn(false).when(config.getConfig(CoreConfiguration.class)).isInstrument();
+        doReturn(false).when(config.getConfig(CoreConfigurationImpl.class)).isInstrument();
         ElasticApmAgent.initInstrumentation(MockTracer.createRealTracer(reporter, config), ByteBuddyAgent.install());
         SimpleMeterRegistry registry = new SimpleMeterRegistry(new OneSecondStepSimpleConfig(), Clock.SYSTEM);
         registry.counter("foo").increment();

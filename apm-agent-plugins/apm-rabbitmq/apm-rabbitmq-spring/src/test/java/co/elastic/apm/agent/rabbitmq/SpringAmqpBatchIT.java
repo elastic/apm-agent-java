@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.rabbitmq;
 
 
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.rabbitmq.components.batch.BatchListenerComponent;
 import co.elastic.apm.agent.rabbitmq.config.BatchConfiguration;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
@@ -63,17 +63,17 @@ public class SpringAmqpBatchIT extends RabbitMqTestBase {
 
         getReporter().awaitTransactionCount(4);
 
-        List<Transaction> transactionList = getReporter().getTransactions();
+        List<TransactionImpl> transactionList = getReporter().getTransactions();
 
         assertThat(transactionList.size()).isEqualTo(4);
-        for (Transaction transaction : transactionList) {
+        for (TransactionImpl transaction : transactionList) {
             assertThat(transaction.getNameAsString()).isEqualTo("Spring AMQP RECEIVE from <default>");
             assertThat(transaction.getSpanCount().getTotal().get()).isEqualTo(1);
         }
 
-        List<Span> spans = getReporter().getSpans();
+        List<SpanImpl> spans = getReporter().getSpans();
         assertThat(spans.size()).isEqualTo(4);
-        for (Span span : spans) {
+        for (SpanImpl span : spans) {
             assertThat(span.getNameAsString()).isEqualTo("testSpan");
         }
     }
@@ -82,7 +82,7 @@ public class SpringAmqpBatchIT extends RabbitMqTestBase {
     public void testTransactionPerMessage_withDistributedTracing() {
         doReturn(MessagingConfiguration.BatchStrategy.SINGLE_HANDLING).when(config.getConfig(MessagingConfiguration.class)).getMessageBatchStrategy();
 
-        Transaction rootTraceTransaction = getTracer().startRootTransaction(null);
+        TransactionImpl rootTraceTransaction = getTracer().startRootTransaction(null);
         Objects.requireNonNull(rootTraceTransaction).activate();
 
         batchingRabbitTemplate.convertAndSend(TestConstants.QUEUE_NAME, "hello");
@@ -95,30 +95,30 @@ public class SpringAmqpBatchIT extends RabbitMqTestBase {
         // 4 custom spans and 2 send spans because batch size is configured to 2
         getReporter().awaitSpanCount(6);
 
-        List<Span> customSpans = getReporter().getSpans().stream()
+        List<SpanImpl> customSpans = getReporter().getSpans().stream()
             .filter(span -> Objects.equals(span.getType(), "custom"))
             .sorted(Comparator.comparing(span -> span.getTraceContext().getId().toString()))
             .collect(Collectors.toList());
         assertThat(customSpans.size()).isEqualTo(4);
-        for (Span span : customSpans) {
+        for (SpanImpl span : customSpans) {
             assertThat(span.getNameAsString()).isEqualTo("testSpan");
             assertThat(span.getTraceContext().getTraceId().toString()).isEqualTo(traceId);
         }
 
-        List<Span> sendSpans = getReporter().getSpans().stream()
+        List<SpanImpl> sendSpans = getReporter().getSpans().stream()
             .filter(span -> Objects.equals(span.getType(), "messaging"))
             .sorted(Comparator.comparing(span -> span.getTraceContext().getId().toString()))
             .collect(Collectors.toList());
         assertThat(sendSpans.size()).isEqualTo(2);
-        for (Span span : sendSpans) {
+        for (SpanImpl span : sendSpans) {
             assertThat(span.getNameAsString()).isEqualTo("RabbitMQ SEND to <default>");
             assertThat(span.getTraceContext().getTraceId().toString()).isEqualTo(traceId);
         }
 
         getReporter().awaitTransactionCount(4);
-        List<Transaction> transactionList = new ArrayList<>(getReporter().getTransactions());
+        List<TransactionImpl> transactionList = new ArrayList<>(getReporter().getTransactions());
         assertThat(transactionList.size()).isEqualTo(4);
-        for (Transaction transaction : transactionList) {
+        for (TransactionImpl transaction : transactionList) {
             assertThat(transaction.getNameAsString()).isEqualTo("Spring AMQP RECEIVE from <default>");
             assertThat(transaction.getSpanCount().getTotal().get()).isEqualTo(1);
             assertThat(transaction.getTraceContext().getTraceId().toString()).isEqualTo(traceId);
@@ -138,7 +138,7 @@ public class SpringAmqpBatchIT extends RabbitMqTestBase {
 
     @Test
     public void testTransactionPerBatch() {
-        Transaction rootTraceTransaction = getTracer().startRootTransaction(null);
+        TransactionImpl rootTraceTransaction = getTracer().startRootTransaction(null);
         Objects.requireNonNull(rootTraceTransaction).activate();
 
         batchingRabbitTemplate.convertAndSend(TestConstants.QUEUE_NAME, "hello");
@@ -148,14 +148,14 @@ public class SpringAmqpBatchIT extends RabbitMqTestBase {
 
         // expecting one transaction per batch, of which configured size is 2
         getReporter().awaitTransactionCount(2);
-        List<Transaction> transactionList = getReporter().getTransactions();
+        List<TransactionImpl> transactionList = getReporter().getTransactions();
         getReporter().awaitUntilTimeout(200, () -> assertThat(transactionList.size()).isEqualTo(2));
 
-        List<Span> spans = getReporter().getSpans();
+        List<SpanImpl> spans = getReporter().getSpans();
         // Expecting 2 send spans (one per two-message batch) and 4 custom test-spans
         assertThat(spans.size()).isEqualTo(6);
 
-        List<Span> sendSpans = getReporter().getSpans().stream()
+        List<SpanImpl> sendSpans = getReporter().getSpans().stream()
             .filter(span -> Objects.equals(span.getNameAsString(), "RabbitMQ SEND to <default>"))
             .collect(Collectors.toList());
         assertThat(sendSpans.size()).isEqualTo(2);
@@ -164,7 +164,7 @@ public class SpringAmqpBatchIT extends RabbitMqTestBase {
             assertThat(span.getTraceContext().getParentId()).isEqualTo(rootTraceTransaction.getTraceContext().getId());
         });
 
-        List<Span> testSpans = getReporter().getSpans().stream()
+        List<SpanImpl> testSpans = getReporter().getSpans().stream()
             .filter(span -> Objects.equals(span.getNameAsString(), "testSpan"))
             .collect(Collectors.toList());
         assertThat(testSpans.size()).isEqualTo(4);
@@ -174,7 +174,7 @@ public class SpringAmqpBatchIT extends RabbitMqTestBase {
             assertThat(span.getTraceContext().getTraceId()).isNotEqualTo(rootTraceTransaction.getTraceContext().getTraceId());
         });
 
-        for (Transaction transaction : transactionList) {
+        for (TransactionImpl transaction : transactionList) {
             assertThat(transaction.getNameAsString()).isEqualTo("Spring AMQP Message Batch Processing");
             assertThat(transaction.getSpanCount().getTotal().get()).isEqualTo(2);
             assertThat(testSpans.stream()
@@ -183,10 +183,10 @@ public class SpringAmqpBatchIT extends RabbitMqTestBase {
             ).isEqualTo(2);
             assertThat(transaction.getTraceContext().getTraceId()).isNotEqualTo(rootTraceTransaction.getTraceContext().getTraceId());
 
-            List<TraceContext> spanLinks = transaction.getSpanLinks();
+            List<TraceContextImpl> spanLinks = transaction.getSpanLinks();
             // we expect one span link because each batch of two messages is related to a single send span
             assertThat(spanLinks.size()).isEqualTo(1);
-            TraceContext spanLink = spanLinks.get(0);
+            TraceContextImpl spanLink = spanLinks.get(0);
             assertThat(sendSpans.stream().anyMatch(sendSpan -> sendSpan.getTraceContext().getId().equals(spanLink.getParentId()))).isTrue();
             assertThat(sendSpans.stream().anyMatch(sendSpan -> sendSpan.getTraceContext().getTraceId().equals(spanLink.getTraceId()))).isTrue();
         }
