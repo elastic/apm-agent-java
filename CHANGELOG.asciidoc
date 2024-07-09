@@ -36,6 +36,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 * Restore compatibility with Java 7 - {pull}3657[#3657]
 * Avoid `ClassCastException` and issue warning when trying to use otel span links - {pull}3672[#3672]
 * Avoid `NullPointerException` with runtime attach API and invalid map entries - {pull}3712[#3712]
+* Enhance invalid state JMX metrics handling - {pull}3713[#3713]
 
 [float]
 ===== Features
