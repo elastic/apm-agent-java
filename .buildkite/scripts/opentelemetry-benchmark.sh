@@ -83,6 +83,9 @@ NEW_LINE="              .withAgents(Agent.NONE, Agent.LATEST_RELEASE, Agent.LATE
 echo $NEW_LINE
 perl -i -ne "if (/withAgents/) {print \"$NEW_LINE\n\"}else{print}" src/test/java/io/opentelemetry/config/Configs.java
 
+echo "--- Customise JFR configuration"
+sed -i -e 's/<selection name="memory-profiling" default="off"/<selection name="memory-profiling" default="medium"/' src/test/resources/overhead.jfc
+
 echo "--- Run tests of benchmark-overhead"
 ./gradlew test
 
