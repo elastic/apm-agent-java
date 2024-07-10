@@ -1,3 +1,5 @@
+# Config file for `updatecli compose ...`.
+# https://www.updatecli.io/docs/core/compose/
 policies:
   - name: Handle apm-data server specs
     policy: ghcr.io/elastic/oblt-updatecli-policies/apm/apm-data-spec:0.2.0@sha256:7069c0773d44a74c4c8103b4d9957b468f66081ee9d677238072fe11c4d2197c
@@ -16,3 +18,9 @@ policies:
     values:
       - .ci/updatecli/values.d/scm.yml
       - .ci/updatecli/values.d/apm-json-specs.yml
+
+  - name: Update Updatecli policies
+    policy: ghcr.io/updatecli/policies/autodiscovery/updatecli:0.4.0@sha256:254367f5b1454fd6032b88b314450cd3b6d5e8d5b6c953eb242a6464105eb869
+    values:
+      - .ci/updatecli/values.d/scm.yml
+      - .ci/updatecli/values.d/update-compose.yml
