@@ -12,7 +12,7 @@ policies:
       - .ci/updatecli/values.d/scm.yml
       - .ci/updatecli/values.d/apm-gherkin.yml
   - name: Handle apm json specs
-    policy: ghcr.io/elastic/oblt-updatecli-policies/apm/apm-json-specs:0.2.0@sha256:969a6d21eabd6ebea66cb29b35294a273d6dbc0f7da78589c416aedf08728e78
+    policy: ghcr.io/elastic/oblt-updatecli-policies/apm/apm-json-specs:0.3.0@sha256:f01667138f2a3a52aa23c556a174d6cdba1209f475d67a73e2aec2d3189b0bb9
     values:
       - .ci/updatecli/values.d/scm.yml
       - .ci/updatecli/values.d/apm-json-specs.yml
