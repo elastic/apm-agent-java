@@ -2,23 +2,20 @@
 # https://www.updatecli.io/docs/core/compose/
 policies:
   - name: Handle apm-data server specs
-    policy: ghcr.io/elastic/oblt-updatecli-policies/apm/apm-data-spec:0.2.0@sha256:7069c0773d44a74c4c8103b4d9957b468f66081ee9d677238072fe11c4d2197c
+    policy: ghcr.io/elastic/oblt-updatecli-policies/apm/apm-data-spec:0.3.0@sha256:e7cdc38653afecaf9fad748356f545da6eb48bb9262665ff563cda974defb6f5
     values:
       - .ci/updatecli/values.d/scm.yml
       - .ci/updatecli/values.d/apm-data-spec.yml
-
   - name: Handle apm gherkin specs
     policy: ghcr.io/elastic/oblt-updatecli-policies/apm/apm-gherkin:0.2.0@sha256:26a30ad2b98a6e4cb17fb88a28fa3277ced8ca862d6388943afaafbf8ee96e7d
     values:
       - .ci/updatecli/values.d/scm.yml
       - .ci/updatecli/values.d/apm-gherkin.yml
-
   - name: Handle apm json specs
     policy: ghcr.io/elastic/oblt-updatecli-policies/apm/apm-json-specs:0.2.0@sha256:969a6d21eabd6ebea66cb29b35294a273d6dbc0f7da78589c416aedf08728e78
     values:
       - .ci/updatecli/values.d/scm.yml
       - .ci/updatecli/values.d/apm-json-specs.yml
-
   - name: Update Updatecli policies
     policy: ghcr.io/updatecli/policies/autodiscovery/updatecli:0.4.0@sha256:254367f5b1454fd6032b88b314450cd3b6d5e8d5b6c953eb242a6464105eb869
     values:
