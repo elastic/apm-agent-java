@@ -30,6 +30,8 @@ public class HttpImpl implements Recyclable, Http {
      */
     private final UrlImpl url = new UrlImpl();
 
+    private final BodyCaptureImpl requestBody = new BodyCaptureImpl();
+
     /**
      * HTTP method used by this HTTP outgoing span
      */
@@ -69,11 +71,7 @@ public class HttpImpl implements Recyclable, Http {
     }
 
     @Override
-    @Nullable
-    public StringBuilder getRequestBody(boolean initialize) {
-        if (initialize && requestBody == null) {
-            requestBody = new StringBuilder();
-        }
+    public BodyCaptureImpl getRequestBody() {
         return requestBody;
     }
 
@@ -100,9 +98,9 @@ public class HttpImpl implements Recyclable, Http {
     @Override
     public void resetState() {
         url.resetState();
+        requestBody.resetState();
         method = null;
         statusCode = 0;
-        requestBody = null;
     }
 
     public boolean hasContent() {
@@ -111,9 +109,4 @@ public class HttpImpl implements Recyclable, Http {
             statusCode > 0;
     }
 
-    public void copyFrom(HttpImpl other) {
-        url.copyFrom(other.url);
-        method = other.method;
-        statusCode = other.statusCode;
-    }
 }

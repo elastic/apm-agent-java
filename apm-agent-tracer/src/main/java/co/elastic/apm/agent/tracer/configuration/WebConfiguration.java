@@ -29,6 +29,8 @@ import java.util.List;
 
 public class WebConfiguration extends ConfigurationOptionProvider {
 
+    public static final int MAX_BODY_CAPTURE_BYTES = 1024;
+
     private static final String HTTP_CATEGORY = "HTTP";
 
     private final ConfigurationOption<List<WildcardMatcher>> captureContentTypes = ConfigurationOption
