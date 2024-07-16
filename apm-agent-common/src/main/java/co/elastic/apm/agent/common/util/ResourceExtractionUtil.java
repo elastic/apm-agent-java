@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.common.util;
 
+import co.elastic.apm.agent.common.JvmRuntimeInfo;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
@@ -99,7 +101,9 @@ public class ResourceExtractionUtil {
                     }
                 }
             } catch (FileAlreadyExistsException e) {
-                try (FileChannel channel = FileChannel.open(tempFile, READ, NOFOLLOW_LINKS)) {
+                try (FileChannel channel = JvmRuntimeInfo.ofCurrentVM().isZos() ?
+                        FileChannel.open(tempFile, READ) :
+                        FileChannel.open(tempFile, READ, NOFOLLOW_LINKS)) {
                     // wait until other JVM instances have fully written the file
                     // multiple JVMs can read the file at the same time
                     try (FileLock readLock = channel.lock(0, Long.MAX_VALUE, true)) {
