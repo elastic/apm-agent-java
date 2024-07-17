@@ -33,7 +33,7 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
         STARTED
     }
 
-    private CaptureState state;
+    private volatile CaptureState state;
 
     private final StringBuilder charset;
 
@@ -62,7 +62,11 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
     @Override
     public void markEligibleForCapturing() {
         if (state == CaptureState.NOT_ELIGIBLE) {
-            state = CaptureState.ELIGIBLE;
+            synchronized (this) {
+                if (state == CaptureState.NOT_ELIGIBLE) {
+                    state = CaptureState.ELIGIBLE;
+                }
+            }
         }
     }
 
@@ -72,17 +76,21 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
     }
 
     @Override
-    public boolean startCapture(@Nullable String charset, int numBytesToCapture) {
+    public boolean startCapture(@Nullable String requestCharset, int numBytesToCapture) {
         if (numBytesToCapture > WebConfiguration.MAX_BODY_CAPTURE_BYTES) {
             throw new IllegalArgumentException("Capturing " + numBytesToCapture + " bytes is not supported");
         }
         if (state == CaptureState.ELIGIBLE) {
-            if (charset != null) {
-                this.charset.append(charset);
+            synchronized (this) {
+                if (state == CaptureState.ELIGIBLE) {
+                    if (requestCharset != null) {
+                        this.charset.append(requestCharset);
+                    }
+                    this.numBytesToCapture = numBytesToCapture;
+                    state = CaptureState.STARTED;
+                    return true;
+                }
             }
-            this.numBytesToCapture = numBytesToCapture;
-            state = CaptureState.STARTED;
-            return true;
         }
         return false;
     }
