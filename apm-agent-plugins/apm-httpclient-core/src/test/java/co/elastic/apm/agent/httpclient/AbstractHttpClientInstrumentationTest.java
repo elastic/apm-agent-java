@@ -21,17 +21,18 @@ package co.elastic.apm.agent.httpclient;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
+import co.elastic.apm.agent.impl.context.BodyCaptureImpl;
 import co.elastic.apm.agent.impl.context.DestinationImpl;
 import co.elastic.apm.agent.impl.context.HttpImpl;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
-import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
-import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Scope;
+import co.elastic.apm.agent.tracer.TraceState;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.util.ResultUtil;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.HttpHeader;
@@ -46,6 +47,8 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -114,6 +117,29 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/";
         performGetWithinTransaction(path);
         expectSpan(path).verify();
+    }
+
+    @Test
+    public void testPostBodyCapture() throws Exception {
+        if (!isBodyCapturingSupported()) {
+            return;
+        }
+        doReturn(5).when(config.getConfig(WebConfiguration.class)).getCaptureClientRequestBytes();
+        byte[] content = "Hello World!".getBytes(StandardCharsets.UTF_8);
+        String path = "/";
+        performPost(getBaseUrl() + path, content, "text/plain; charset=utf-8");
+        expectSpan(path)
+            .withRequestBodySatisfying(body -> {
+                ByteBuffer buffer = body.getBody();
+                assertThat(buffer).isNotNull();
+                int numBytes = buffer.position();
+                buffer.position(0);
+                byte[] contentBytes = new byte[numBytes];
+                buffer.get(contentBytes);
+                assertThat(contentBytes).isEqualTo("Hello".getBytes(StandardCharsets.UTF_8));
+                assertThat(Objects.toString(body.getCharset())).isEqualTo("utf-8");
+            })
+            .verify();
     }
 
     @Test
@@ -250,6 +276,11 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     // assumption
+    protected boolean isBodyCapturingSupported() {
+        return false;
+    }
+
+    // assumption
     protected boolean isErrorOnCircularRedirectSupported() {
         return isRedirectFollowingSupported();
     }
@@ -282,6 +313,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     protected abstract void performGet(String path) throws Exception;
 
+    protected void performPost(String path, byte[] content, String contentTypeHeader) throws Exception {
+        throw new UnsupportedOperationException();
+    }
+
     protected VerifyBuilder expectSpan(String path) {
         return new VerifyBuilder(path);
     }
@@ -294,7 +329,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         private boolean traceContextHeaders = true;
         private boolean requestExecuted = true;
 
-        private Consumer<String> requestBodyVerification = null;
+        private Consumer<? super BodyCaptureImpl> requestBodyVerification = null;
 
         private VerifyBuilder(String path) {
             this.path = path;
@@ -327,7 +362,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             return this;
         }
 
-        public VerifyBuilder withRequestBodySatisfying(Consumer<String> requestBodyVerification) {
+        public VerifyBuilder withRequestBodySatisfying(Consumer<? super BodyCaptureImpl> requestBodyVerification) {
             this.requestBodyVerification = requestBodyVerification;
             return this;
         }
@@ -360,12 +395,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
                 assertThat(span).hasOutcome(Outcome.FAILURE);
             }
 
-            StringBuilder reqBody = span.getContext().getHttp().getRequestBody(false);
-            if (reqBody != null) {
-                assertThat(reqBody).hasSizeLessThan(1025); //IntakeV2 max allowed is 1024
-            }
+            BodyCaptureImpl reqBody = span.getContext().getHttp().getRequestBody();
             if (requestBodyVerification != null) {
-                requestBodyVerification.accept(reqBody == null ? null : reqBody.toString());
+                requestBodyVerification.accept(reqBody);
             }
 
             if (isAsync()) {

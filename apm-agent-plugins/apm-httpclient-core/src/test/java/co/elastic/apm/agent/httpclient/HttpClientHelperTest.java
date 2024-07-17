@@ -123,4 +123,17 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
         HttpClientHelper.startHttpClientSpan(tracer.getActive(), "GET", new URI(s), null)
             .end();
     }
+
+    @Test
+    void testContentTypeCharsetExtraction() {
+        assertThat(HttpClientHelper.extractCharsetFromContentType("multipart/form-data; boundary=---------------------------974767299852498929531610575"))
+            .isNull();
+        assertThat(HttpClientHelper.extractCharsetFromContentType("Content-Type: text/html; charset=utf-8"))
+            .isEqualTo("utf-8");
+        assertThat(HttpClientHelper.extractCharsetFromContentType("Content-Type: text/html; charset = foobar;baz"))
+            .isEqualTo("foobar");
+        assertThat(HttpClientHelper.extractCharsetFromContentType("Content-Type: application/json; charset = \"foo bar\";baz"))
+            .isEqualTo("foo bar");
+
+    }
 }

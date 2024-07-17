@@ -18,9 +18,7 @@
  */
 package co.elastic.apm.agent.httpclient.v4;
 
-import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
-import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -29,16 +27,9 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.stream.Collectors;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doReturn;
 
 public class ApacheHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
@@ -61,24 +52,18 @@ public class ApacheHttpClientInstrumentationTest extends AbstractHttpClientInstr
         response.close();
     }
 
-    @Test
-    public void testPostBodyCapture() throws IOException {
-        doReturn(Collections.singletonList(WildcardMatcher.matchAll()))
-            .when(getConfig().getConfig(WebConfiguration.class)).getCaptureClientRequestContentTypes();
+    @Override
+    protected boolean isBodyCapturingSupported() {
+        return true;
+    }
 
-        StringBuilder longString = new StringBuilder();
-        for (int i = 0; i < 200; i++) {
-            longString.append(String.format("line %1$4d\n", i));
-        }
-        HttpPost request = new HttpPost(getBaseUrl() + "/");
-        request.setEntity(new InputStreamEntity(new ByteArrayInputStream(longString.toString().getBytes(StandardCharsets.UTF_8))));
+    @Override
+    protected void performPost(String path, byte[] content, String contentTypeHeader) throws Exception {
+        HttpPost request = new HttpPost(path);
+        request.setEntity(new InputStreamEntity(new ByteArrayInputStream(content)));
+        request.setHeader("Content-Type", contentTypeHeader);
 
         client.execute(request);
-
-        expectSpan("/")
-            .withRequestBodySatisfying(body -> {
-                assertThat(body).endsWith("line  101\nline");
-            }).verify();
     }
 
 }

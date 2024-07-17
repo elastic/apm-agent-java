@@ -27,6 +27,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.baggage.BaggageImpl;
 import co.elastic.apm.agent.impl.context.AbstractContextImpl;
+import co.elastic.apm.agent.impl.context.BodyCaptureImpl;
 import co.elastic.apm.agent.impl.context.DestinationImpl;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.RequestImpl;
@@ -46,8 +47,13 @@ import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
-import co.elastic.apm.agent.impl.transaction.*;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.IdImpl;
+import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.StackFrame;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.sdk.internal.util.IOUtils;
@@ -428,7 +434,11 @@ class DslJsonSerializerTest {
     @Test
     void testSpanHttpRequestBodySerialization() {
         SpanImpl span = new SpanImpl(tracer);
-        span.getContext().getHttp().getRequestBody(true).append("foobar");
+
+        BodyCaptureImpl bodyCapture = span.getContext().getHttp().getRequestBody();
+        bodyCapture.markEligibleForCapturing();
+        bodyCapture.startCapture("utf-8", 50);
+        bodyCapture.append("foobar".getBytes(StandardCharsets.UTF_8), 0, 6);
 
         JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode otel = spanJson.get("otel");

@@ -38,9 +38,6 @@ public class HttpImpl implements Recyclable, Http {
     @Nullable
     private String method;
 
-    @Nullable
-    private StringBuilder requestBody;
-
     /**
      * Status code of the response
      */

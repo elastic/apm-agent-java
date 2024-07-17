@@ -19,14 +19,13 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.metadata.BodyCapture;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.OutputStream;
 
 public class RequestBodyRecordingOutputStream extends OutputStream {
-
-    public static final int MAX_LENGTH = 1024;
 
     private final OutputStream delegate;
 
@@ -42,17 +41,18 @@ public class RequestBodyRecordingOutputStream extends OutputStream {
     @Override
     public void write(int b) throws IOException {
         try {
-            appendToBody((char) b);
+            appendToBody((byte) b);
         } finally {
             delegate.write(b);
         }
     }
 
-    protected void appendToBody(char b) {
+    protected void appendToBody(byte b) {
         if (clientSpan != null) {
-            StringBuilder body = clientSpan.getContext().getHttp().getRequestBody(true);
-            if (body.length() < MAX_LENGTH) {
-                body.append(b);
+            BodyCapture body = clientSpan.getContext().getHttp().getRequestBody();
+            body.append(b);
+            if (body.isFull()) {
+                releaseSpan();
             }
         }
     }
@@ -77,10 +77,10 @@ public class RequestBodyRecordingOutputStream extends OutputStream {
 
     protected void appendToBody(byte[] b, int off, int len) {
         if (clientSpan != null) {
-            StringBuilder body = clientSpan.getContext().getHttp().getRequestBody(true);
-            int remaining = Math.min(MAX_LENGTH - body.length(), len);
-            for (int i = 0; i < remaining; i++) {
-                body.append((char) b[off + i]);
+            BodyCapture body = clientSpan.getContext().getHttp().getRequestBody();
+            body.append(b, off, len);
+            if (body.isFull()) {
+                releaseSpan();
             }
         }
     }

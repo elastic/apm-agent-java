@@ -60,7 +60,7 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
         public static Object onBeforeExecute(@Advice.Argument(0) HttpRoute route,
                                              @Advice.Argument(1) HttpRequestWrapper request) throws URISyntaxException {
             Span<?> span = startSpan(tracer, adapter, request, route.getTargetHost(), RequestHeaderAccessor.INSTANCE);
-            RequestBodyCaptureRegistry.potentiallyCaptureRequestBody(request, span);
+            RequestBodyCaptureRegistry.potentiallyCaptureRequestBody(request, tracer.getActive());
             return span;
         }
 

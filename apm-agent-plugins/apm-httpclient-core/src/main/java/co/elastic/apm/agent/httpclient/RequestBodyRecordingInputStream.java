@@ -19,15 +19,13 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.metadata.BodyCapture;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 
 public class RequestBodyRecordingInputStream extends InputStream {
-
-    public static final int MAX_LENGTH = 1024;
 
     private final InputStream delegate;
 
@@ -41,21 +39,22 @@ public class RequestBodyRecordingInputStream extends InputStream {
     }
 
 
-    protected void appendToBody(char b) {
+    protected void appendToBody(byte b) {
         if (clientSpan != null) {
-            StringBuilder body = clientSpan.getContext().getHttp().getRequestBody(true);
-            if (body.length() < MAX_LENGTH) {
-                body.append(b);
+            BodyCapture requestBody = clientSpan.getContext().getHttp().getRequestBody();
+            requestBody.append(b);
+            if (requestBody.isFull()) {
+                releaseSpan();
             }
         }
     }
 
     protected void appendToBody(byte[] b, int off, int len) {
         if (clientSpan != null) {
-            StringBuilder body = clientSpan.getContext().getHttp().getRequestBody(true);
-            int remaining = Math.min(MAX_LENGTH - body.length(), len);
-            for (int i = 0; i < remaining; i++) {
-                body.append((char) b[off + i]);
+            BodyCapture requestBody = clientSpan.getContext().getHttp().getRequestBody();
+            requestBody.append(b, off, len);
+            if (requestBody.isFull()) {
+                releaseSpan();
             }
         }
     }
@@ -73,7 +72,7 @@ public class RequestBodyRecordingInputStream extends InputStream {
         if (character == -1) {
             releaseSpan();
         } else {
-            appendToBody((char) character);
+            appendToBody((byte) character);
         }
         return character;
     }

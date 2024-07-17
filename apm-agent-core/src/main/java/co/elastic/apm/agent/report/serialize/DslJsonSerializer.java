@@ -18,8 +18,23 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
-import co.elastic.apm.agent.impl.context.*;
+import co.elastic.apm.agent.impl.context.AbstractContextImpl;
+import co.elastic.apm.agent.impl.context.BodyCaptureImpl;
+import co.elastic.apm.agent.impl.context.CloudOriginImpl;
+import co.elastic.apm.agent.impl.context.DbImpl;
+import co.elastic.apm.agent.impl.context.DestinationImpl;
+import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.HttpImpl;
+import co.elastic.apm.agent.impl.context.MessageImpl;
+import co.elastic.apm.agent.impl.context.RequestImpl;
+import co.elastic.apm.agent.impl.context.ResponseImpl;
+import co.elastic.apm.agent.impl.context.ServiceOriginImpl;
+import co.elastic.apm.agent.impl.context.ServiceTargetImpl;
+import co.elastic.apm.agent.impl.context.SocketImpl;
+import co.elastic.apm.agent.impl.context.SpanContextImpl;
+import co.elastic.apm.agent.impl.context.TransactionContextImpl;
+import co.elastic.apm.agent.impl.context.UrlImpl;
+import co.elastic.apm.agent.impl.context.UserImpl;
 import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
 import co.elastic.apm.agent.impl.metadata.Agent;
 import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
@@ -33,16 +48,26 @@ import co.elastic.apm.agent.impl.metadata.RuntimeInfo;
 import co.elastic.apm.agent.impl.metadata.ServiceImpl;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
-import co.elastic.apm.agent.impl.transaction.*;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.Composite;
+import co.elastic.apm.agent.impl.transaction.DroppedSpanStats;
+import co.elastic.apm.agent.impl.transaction.FaasImpl;
+import co.elastic.apm.agent.impl.transaction.FaasTriggerImpl;
+import co.elastic.apm.agent.impl.transaction.IdImpl;
+import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
+import co.elastic.apm.agent.impl.transaction.SpanCount;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
-import co.elastic.apm.agent.tracer.metrics.Labels;
+import co.elastic.apm.agent.impl.transaction.StackFrame;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
-import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import co.elastic.apm.agent.tracer.metrics.DslJsonUtil;
+import co.elastic.apm.agent.tracer.metrics.Labels;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
@@ -54,6 +79,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -1028,7 +1054,22 @@ public class DslJsonSerializer {
         }
 
         private void serializeOTel(SpanImpl span) {
-            serializeOtel(span, Collections.<IdImpl>emptyList(), span.getContext().getHttp().getRequestBody(false));
+            serializeOtel(span, Collections.<IdImpl>emptyList(), requestBodyToString(span.getContext().getHttp().getRequestBody()));
+        }
+
+        @Nullable
+        private CharSequence requestBodyToString(BodyCaptureImpl requestBody) {
+            //TODO: perform proper, charset aware conversion to string
+            ByteBuffer buffer = requestBody.getBody();
+            if (buffer == null || buffer.position() == 0) {
+                return null;
+            }
+            buffer.flip();
+            StringBuilder result = new StringBuilder();
+            while (buffer.hasRemaining()) {
+                result.append((char) buffer.get());
+            }
+            return result;
         }
 
         private void serializeOTel(TransactionImpl transaction) {
