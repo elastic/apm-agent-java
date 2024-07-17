@@ -118,7 +118,7 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
         if (bodyBuffer == null) {
             return false;
         }
-        return bodyBuffer.position() < numBytesToCapture;
+        return bodyBuffer.position() >= numBytesToCapture;
     }
 
     @Nullable
