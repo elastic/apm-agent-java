@@ -142,6 +142,55 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             .verify();
     }
 
+
+    /**
+     * This test verifies
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testPostBodyCaptureForExistingSpan() throws Exception {
+        if (!isBodyCapturingSupported()) {
+            return;
+        }
+        doReturn(1024).when(config.getConfig(WebConfiguration.class)).getCaptureClientRequestBytes();
+        byte[] content = "Hello World!".getBytes(StandardCharsets.UTF_8);
+        String path = "/";
+
+        SpanImpl capture = createExitSpan("capture");
+        capture.getContext().getHttp().getRequestBody().markEligibleForCapturing();
+        capture.activate();
+        try {
+            performPost(getBaseUrl() + path, content, "application/json; charset=iso-8859-1");
+        } finally {
+            capture.deactivate().end();
+        }
+
+        //Do not not capture body for "noCapture" because it is not marked eligible
+        SpanImpl noCapture = createExitSpan("no-capture");
+        noCapture.activate();
+        try {
+            performPost(getBaseUrl() + path, content, "application/json; charset=iso-8859-1");
+        } finally {
+            noCapture.deactivate().end();
+        }
+
+        assertThat(reporter.getSpans())
+            .containsExactly(capture, noCapture);
+
+        BodyCaptureImpl captureBody = capture.getContext().getHttp().getRequestBody();
+        assertThat(captureBody.getBody()).isNotNull();
+        assertThat(Objects.toString(captureBody.getCharset())).isEqualTo("iso-8859-1");
+        byte[] data = new byte[captureBody.getBody().position()];
+        captureBody.getBody().position(0);
+        captureBody.getBody().get(data);
+        assertThat(data).isEqualTo(content);
+
+        BodyCaptureImpl noCaptureBody = noCapture.getContext().getHttp().getRequestBody();
+        assertThat(noCaptureBody.getBody()).isNull();
+        assertThat(noCaptureBody.getCharset()).isNull();
+    }
+
     @Test
     public void testDisabledOutgoingHeaders() {
         doReturn(true).when(config.getConfig(CoreConfigurationImpl.class)).isOutgoingTraceContextHeadersInjectionDisabled();
@@ -153,11 +202,8 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     @Test
     public void testContextPropagationFromExitParent() {
         String path = "/";
-        SpanImpl exitSpan = Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(tracer.currentTransaction()).createExitSpan()));
+        SpanImpl exitSpan = createExitSpan("exit");
         try {
-            exitSpan.withType("custom").withSubtype("exit");
-            exitSpan.getContext().getDestination().withAddress("test-host").withPort(6000);
-            exitSpan.getContext().getServiceTarget().withType("test-resource");
             exitSpan.activate();
             performGetWithinTransaction(path);
             verifyTraceContextHeaders(exitSpan, path);
@@ -165,6 +211,14 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         } finally {
             exitSpan.deactivate().end();
         }
+    }
+
+    private static SpanImpl createExitSpan(String name) {
+        SpanImpl exitSpan = Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(tracer.currentTransaction()).createExitSpan()));
+        exitSpan.withName(name).withType("custom").withSubtype("exit");
+        exitSpan.getContext().getDestination().withAddress("test-host").withPort(6000);
+        exitSpan.getContext().getServiceTarget().withType("test-resource");
+        return exitSpan;
     }
 
     @Test

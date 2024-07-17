@@ -27,17 +27,21 @@ import co.elastic.apm.agent.impl.context.ServiceTargetImpl;
 import co.elastic.apm.agent.impl.context.SpanContextImpl;
 import co.elastic.apm.agent.impl.context.UrlImpl;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
-import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.SpanEndListener;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
+import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.util.CharSequenceUtils;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 public class SpanImpl extends AbstractSpanImpl<SpanImpl> implements Recyclable, Span<SpanImpl> {
@@ -74,6 +78,8 @@ public class SpanImpl extends AbstractSpanImpl<SpanImpl> implements Recyclable, 
     private TransactionImpl transaction;
     @Nullable
     private List<StackFrame> stackFrames;
+
+    private final Set<SpanEndListener<? super SpanImpl>> endListeners = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     /**
      * If a span is non-discardable, all the spans leading up to it are non-discardable as well
@@ -174,6 +180,16 @@ public class SpanImpl extends AbstractSpanImpl<SpanImpl> implements Recyclable, 
         return this;
     }
 
+    @Override
+    public void addEndListener(SpanEndListener<? super SpanImpl> listener) {
+        endListeners.add(listener);
+    }
+
+    @Override
+    public void removeEndListener(SpanEndListener<? super SpanImpl> listener) {
+        endListeners.remove(listener);
+    }
+
 
     /**
      * Sets span.type, span.subtype and span.action. If no subtype and action are provided, assumes the legacy usage of hierarchical
@@ -221,6 +237,9 @@ public class SpanImpl extends AbstractSpanImpl<SpanImpl> implements Recyclable, 
 
     @Override
     public void beforeEnd(long epochMicros) {
+        for (SpanEndListener<? super SpanImpl> endListener : endListeners) {
+            endListener.onEnd(this);
+        }
         // set outcome when not explicitly set by user nor instrumentation
         if (outcomeNotSet()) {
             Outcome outcome;
@@ -476,6 +495,7 @@ public class SpanImpl extends AbstractSpanImpl<SpanImpl> implements Recyclable, 
         super.resetState();
         context.resetState();
         composite.resetState();
+        endListeners.clear();
         stacktrace = null;
         subtype = null;
         action = null;
