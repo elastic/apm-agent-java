@@ -127,7 +127,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Integer> captureClientRequestBytes = ConfigurationOption.integerOption()
         .addValidator(isInRange(0, MAX_BODY_CAPTURE_BYTES))
-        .key("capture_http_client_request_body")
+        .key("capture_http_client_request_body_size")
         .configurationCategory(HTTP_CATEGORY)
         .tags("added[1.50.0]", "internal")
         .description("Configures how many bytes of http-client request bodies shall be captured. " +

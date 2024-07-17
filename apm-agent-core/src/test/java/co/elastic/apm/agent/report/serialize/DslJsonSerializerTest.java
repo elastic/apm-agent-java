@@ -443,7 +443,7 @@ class DslJsonSerializerTest {
         JsonNode spanJson = readJsonString(writer.toJsonString(span));
         JsonNode otel = spanJson.get("otel");
         JsonNode attribs = otel.get("attributes");
-        assertThat(attribs.get("http_client_request_body").textValue()).isEqualTo("foobar");
+        assertThat(attribs.get("http.request.body.content").textValue()).isEqualTo("foobar");
     }
 
     public static boolean[][] getContentCombinations() {

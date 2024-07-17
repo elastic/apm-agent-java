@@ -1137,7 +1137,7 @@ public class DslJsonSerializer {
                         if (!isFirstAttrib) {
                             jw.writeByte(COMMA);
                         }
-                        writeFieldName("http_client_request_body");
+                        writeFieldName("http.request.body.content");
                         jw.writeString(httpRequestBody);
                     }
                     jw.writeByte(OBJECT_END);

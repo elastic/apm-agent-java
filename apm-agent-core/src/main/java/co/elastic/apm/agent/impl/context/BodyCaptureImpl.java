@@ -35,10 +35,10 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
 
     private CaptureState state;
 
-    private StringBuilder charset;
+    private final StringBuilder charset;
 
     /**
-     * The number of bytes to capture.
+     * The maximum number of bytes to capture, if the body is longer remaining bytes will be dropped.
      */
     private int numBytesToCapture;
 
