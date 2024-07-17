@@ -77,6 +77,10 @@ As a result, when an exception is reported to the logger:
 - An `error.id` is generated and injected into logger MDC for the duration of the logger invocation
 - Logger output will contain the `error.id` if the log format allows it (plaintext still requires some configuration)
 
+Please note we capture the exception, not the message passed to the `logger.error`.
+
+To collect the message passed to the `logger.error`, you would need to ingest the logs of the application (see {apm-guide-ref}/log-correlation.html[Log correlation]).
+
 [float]
 [[log-sending]]
 === Log sending (experimental)
