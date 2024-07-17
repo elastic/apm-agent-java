@@ -78,7 +78,7 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
     @Override
     public boolean startCapture(@Nullable String requestCharset, int numBytesToCapture) {
         if (numBytesToCapture > WebConfiguration.MAX_BODY_CAPTURE_BYTES) {
-            throw new IllegalArgumentException("Capturing " + numBytesToCapture + " bytes is not supported");
+            throw new IllegalArgumentException("Capturing " + numBytesToCapture + " bytes is not supported, maximum is " + WebConfiguration.MAX_BODY_CAPTURE_BYTES + " bytes");
         }
         if (state == CaptureState.ELIGIBLE) {
             synchronized (this) {
