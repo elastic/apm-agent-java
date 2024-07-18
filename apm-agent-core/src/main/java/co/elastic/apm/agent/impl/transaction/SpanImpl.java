@@ -79,7 +79,8 @@ public class SpanImpl extends AbstractSpanImpl<SpanImpl> implements Recyclable, 
     @Nullable
     private List<StackFrame> stackFrames;
 
-    private final Set<SpanEndListener<? super SpanImpl>> endListeners = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Set<SpanEndListener<? super SpanImpl>> endListeners =
+        Collections.newSetFromMap(new ConcurrentHashMap<SpanEndListener<? super SpanImpl>, Boolean>());
 
     /**
      * If a span is non-discardable, all the spans leading up to it are non-discardable as well
