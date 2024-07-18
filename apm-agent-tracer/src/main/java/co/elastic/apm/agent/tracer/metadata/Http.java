@@ -39,4 +39,6 @@ public interface Http {
 
     @Nullable
     String getMethod();
+
+    BodyCapture getRequestBody();
 }

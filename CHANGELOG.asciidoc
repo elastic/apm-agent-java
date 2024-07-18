@@ -41,6 +41,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Added option to make routing-key part of RabbitMQ transaction/span names - {pull}3636[#3636]
+* Added internal option for capturing request bodies for apache httpclient v4 - {pull}3692[#3692]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

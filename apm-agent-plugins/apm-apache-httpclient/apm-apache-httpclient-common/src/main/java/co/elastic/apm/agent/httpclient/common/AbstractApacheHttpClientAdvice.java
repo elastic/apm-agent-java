@@ -34,7 +34,7 @@ public abstract class AbstractApacheHttpClientAdvice {
 
     public static <REQUEST, WRAPPER extends REQUEST, HTTPHOST, RESPONSE,
         HeaderAccessor extends TextHeaderSetter<REQUEST> &
-            TextHeaderGetter<REQUEST>> Object startSpan(final Tracer tracer,
+            TextHeaderGetter<REQUEST>> Span<?> startSpan(final Tracer tracer,
                                                         final ApacheHttpClientApiAdapter<REQUEST, WRAPPER, HTTPHOST, RESPONSE> adapter,
                                                         final WRAPPER request,
                                                         @Nullable final HTTPHOST httpHost,

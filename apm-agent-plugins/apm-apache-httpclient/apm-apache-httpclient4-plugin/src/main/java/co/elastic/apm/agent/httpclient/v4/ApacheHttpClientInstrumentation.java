@@ -20,7 +20,11 @@ package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpClientAdvice;
 import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpClient4ApiAdapter;
+import co.elastic.apm.agent.httpclient.v4.helper.RequestBodyCaptureRegistry;
 import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -47,13 +51,17 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrumentation {
 
     public static class ApacheHttpClient4Advice extends AbstractApacheHttpClientAdvice {
+        private static final Logger logger = LoggerFactory.getLogger(ApacheHttpClient4Advice.class);
+
         private static final ApacheHttpClient4ApiAdapter adapter = ApacheHttpClient4ApiAdapter.get();
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(0) HttpRoute route,
                                              @Advice.Argument(1) HttpRequestWrapper request) throws URISyntaxException {
-            return startSpan(tracer, adapter, request, route.getTargetHost(), RequestHeaderAccessor.INSTANCE);
+            Span<?> span = startSpan(tracer, adapter, request, route.getTargetHost(), RequestHeaderAccessor.INSTANCE);
+            RequestBodyCaptureRegistry.potentiallyCaptureRequestBody(request, tracer.getActive());
+            return span;
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

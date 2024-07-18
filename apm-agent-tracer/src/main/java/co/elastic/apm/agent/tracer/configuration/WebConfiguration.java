@@ -27,7 +27,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static co.elastic.apm.agent.tracer.configuration.RangeValidator.isInRange;
+
 public class WebConfiguration extends ConfigurationOptionProvider {
+
+    public static final int MAX_BODY_CAPTURE_BYTES = 1024;
 
     private static final String HTTP_CATEGORY = "HTTP";
 
@@ -121,6 +125,17 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
+    private final ConfigurationOption<Integer> captureClientRequestBytes = ConfigurationOption.integerOption()
+        .addValidator(isInRange(0, MAX_BODY_CAPTURE_BYTES))
+        .key("capture_http_client_request_body_size")
+        .configurationCategory(HTTP_CATEGORY)
+        .tags("added[1.50.0]", "internal")
+        .description("Configures how many bytes of http-client request bodies shall be captured. " +
+                     "Note that only request bodies will be captured for content types matching the capture_body_content_types configuration. " +
+                     " The maximum allowed value is " + MAX_BODY_CAPTURE_BYTES + " , a value of 0 disables body capturing")
+        .dynamic(true)
+        .buildWithDefault(0);
+
     public List<WildcardMatcher> getIgnoreUrls() {
         return ignoreUrls.get();
     }
@@ -139,6 +154,10 @@ public class WebConfiguration extends ConfigurationOptionProvider {
 
     public List<WildcardMatcher> getCaptureContentTypes() {
         return captureContentTypes.get();
+    }
+
+    public int getCaptureClientRequestBytes() {
+        return captureClientRequestBytes.get();
     }
 
 }
