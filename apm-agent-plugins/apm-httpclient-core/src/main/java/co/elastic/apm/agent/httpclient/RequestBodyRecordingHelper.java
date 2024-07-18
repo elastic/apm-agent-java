@@ -11,11 +11,14 @@ class RequestBodyRecordingHelper implements SpanEndListener<Span<?>> {
      * Instead, we only hold a reference to the span for the time it is not ended.
      * This is ensured via the {@link #onEnd(Span)} callback.
      */
-    private Span<?> clientSpan;
+    // Visible for testing
+    Span<?> clientSpan;
 
     public RequestBodyRecordingHelper(Span<?> clientSpan) {
-        this.clientSpan = clientSpan;
-        clientSpan.addEndListener(this);
+        if (!clientSpan.isFinished()) {
+            this.clientSpan = clientSpan;
+            clientSpan.addEndListener(this);
+        }
     }
 
     void appendToBody(byte b) {

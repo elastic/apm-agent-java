@@ -27,6 +27,7 @@ import co.elastic.apm.agent.impl.context.HttpImpl;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
+import co.elastic.apm.agent.sdk.internal.util.IOUtils;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.TraceState;
@@ -132,11 +133,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             .withRequestBodySatisfying(body -> {
                 ByteBuffer buffer = body.getBody();
                 assertThat(buffer).isNotNull();
-                int numBytes = buffer.position();
-                buffer.position(0);
-                byte[] contentBytes = new byte[numBytes];
-                buffer.get(contentBytes);
-                assertThat(contentBytes).isEqualTo("Hello".getBytes(StandardCharsets.UTF_8));
+                assertThat(IOUtils.copyToByteArray(buffer)).isEqualTo("Hello".getBytes(StandardCharsets.UTF_8));
                 assertThat(Objects.toString(body.getCharset())).isEqualTo("utf-8");
             })
             .verify();
@@ -181,10 +178,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         BodyCaptureImpl captureBody = capture.getContext().getHttp().getRequestBody();
         assertThat(captureBody.getBody()).isNotNull();
         assertThat(Objects.toString(captureBody.getCharset())).isEqualTo("iso-8859-1");
-        byte[] data = new byte[captureBody.getBody().position()];
-        captureBody.getBody().position(0);
-        captureBody.getBody().get(data);
-        assertThat(data).isEqualTo(content);
+        assertThat(IOUtils.copyToByteArray(captureBody.getBody())).isEqualTo(content);
 
         BodyCaptureImpl noCaptureBody = noCapture.getContext().getHttp().getRequestBody();
         assertThat(noCaptureBody.getBody()).isNull();

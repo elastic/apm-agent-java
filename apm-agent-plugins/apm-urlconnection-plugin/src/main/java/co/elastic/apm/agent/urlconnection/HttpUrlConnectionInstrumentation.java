@@ -109,6 +109,7 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
         public static void exit(HttpURLConnection thiz, @Nullable Throwable t, int responseCode, @Nullable Span<?> spanObject) {
             if (callDepth.isNestedCallAndDecrement()) {
                 if (responseCode != -1 || t != null) {
+                    // Request has ended, no need to longer hold onto the span for request body capture
                     captureBodyForSpan.remove(thiz);
                 }
             }

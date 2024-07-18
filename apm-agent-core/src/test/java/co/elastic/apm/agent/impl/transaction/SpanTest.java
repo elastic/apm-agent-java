@@ -26,6 +26,8 @@ import co.elastic.apm.agent.impl.baggage.BaggageImpl;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.SpanEndListener;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -36,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -85,6 +88,31 @@ public class SpanTest {
         span.end();
 
         assertThat(span.getOutcome()).isEqualTo(Outcome.UNKNOWN);
+    }
+
+    @Test
+    void checkEndListenersConcurrencySafe() {
+        TransactionImpl transaction = new TransactionImpl(tracer);
+        transaction.startRoot(0, ConstantSampler.of(true), BaggageImpl.EMPTY);
+        try {
+            SpanImpl span = new SpanImpl(tracer);
+            span.start(TraceContextImpl.fromParent(), transaction, BaggageImpl.EMPTY, -1L);
+
+            AtomicInteger invocationCounter = new AtomicInteger();
+            SpanEndListener<Span<?>> callback = new SpanEndListener<Span<?>>() {
+                @Override
+                public void onEnd(Span<?> span) {
+                    span.removeEndListener(this);
+                    invocationCounter.incrementAndGet();
+                }
+            };
+            span.addEndListener(callback);
+            span.end();
+            assertThat(invocationCounter.get()).isEqualTo(1);
+        } finally {
+            transaction.end();
+        }
+
     }
 
     @Test

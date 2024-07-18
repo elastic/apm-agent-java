@@ -196,6 +196,6 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
         for (byte b : content) {
             urlConnection.getOutputStream().write(b);
         }
-        urlConnection.getInputStream();
+        urlConnection.getResponseCode();
     }
 }
