@@ -71,7 +71,7 @@ public class IOUtils {
             return null;
         }
         try {
-            Charset charset = Charset.forName(charsetName);
+            final Charset charset = Charset.forName(charsetName);
             decoderPool = ObjectPooling.createWithDefaultFactory(new Callable<CharsetDecoder>() {
                 @Override
                 public CharsetDecoder call() throws Exception {
