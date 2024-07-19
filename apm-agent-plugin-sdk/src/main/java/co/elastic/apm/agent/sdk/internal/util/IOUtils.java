@@ -277,6 +277,28 @@ public class IOUtils {
         void readInto(S source, ByteBuffer into);
     }
 
+    /**
+     * @param input       the byte data to decode
+     * @param output      the buffer to decode into
+     * @param charsetName the name of the charset
+     * @return null, if the charset is not known/supported. Otherwise the result of the decoding operation.
+     */
+    @Nullable
+    public static CoderResult decode(ByteBuffer input, CharBuffer output, String charsetName) {
+        try (ObjectHandle<CharsetDecoder> decoderHandle = getPooledCharsetDecoder(charsetName)) {
+            if (decoderHandle == null) {
+                return null; //charset is unsupported
+            }
+            CharsetDecoder charsetDecoder = decoderHandle.get();
+            try {
+                final CoderResult coderResult = charsetDecoder.decode(input, output, true);
+                charsetDecoder.flush(output);
+                return coderResult;
+            } finally {
+                charsetDecoder.reset();
+            }
+        }
+    }
 
     private static CoderResult decode(CharBuffer charBuffer, ByteBuffer buffer, CharsetDecoder charsetDecoder) {
         try {
