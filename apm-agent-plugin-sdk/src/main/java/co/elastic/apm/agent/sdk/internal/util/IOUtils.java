@@ -23,6 +23,7 @@ import co.elastic.apm.agent.sdk.internal.pooling.ObjectHandle;
 import co.elastic.apm.agent.sdk.internal.pooling.ObjectPool;
 import co.elastic.apm.agent.sdk.internal.pooling.ObjectPooling;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.Buffer;

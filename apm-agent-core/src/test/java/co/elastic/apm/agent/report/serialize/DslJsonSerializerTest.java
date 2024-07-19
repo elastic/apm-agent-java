@@ -442,10 +442,10 @@ class DslJsonSerializerTest {
         assertThat(emptyBody).isEqualTo("");
 
         String invalidCharset = extractRequestBodyJson(createSpanWithRequestBody("testö".getBytes("utf-8"), "bad charset!"));
-        assertThat(invalidCharset).isEqualTo("testￃﾶ");
+        assertThat(invalidCharset).isEqualTo("testÃ¶");
 
         String noCharset = extractRequestBodyJson(createSpanWithRequestBody("testö".getBytes("utf-8"), null));
-        assertThat(noCharset).isEqualTo("testￃﾶ");
+        assertThat(noCharset).isEqualTo("testÃ¶");
 
         String utf8 = extractRequestBodyJson(createSpanWithRequestBody("special charßßß!äöü".getBytes("utf-8"), "utf-8"));
         assertThat(utf8).isEqualTo("special charßßß!äöü");
@@ -454,7 +454,7 @@ class DslJsonSerializerTest {
         assertThat(utf16).isEqualTo("special charßßß!äöü");
 
         String invalidUtf8Sequence = extractRequestBodyJson(createSpanWithRequestBody(new byte[]{'t', 'e', 's', 't', (byte) 0xC2, (byte) 0xC2}, "utf-8"));
-        assertThat(invalidUtf8Sequence).isEqualTo("testￂￂ");
+        assertThat(invalidUtf8Sequence).isEqualTo("testÂÂ");
     }
 
     private String extractRequestBodyJson(SpanImpl span) {

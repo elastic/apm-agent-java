@@ -1177,7 +1177,7 @@ public class DslJsonSerializer {
             ((Buffer) bodyBytes).position(0);
             ((Buffer) charBuffer).clear();
             while (bodyBytes.hasRemaining()) {
-                charBuffer.put((char) bodyBytes.get());
+                charBuffer.put((char) (((int) bodyBytes.get()) & 0xFF));
             }
         }
 
