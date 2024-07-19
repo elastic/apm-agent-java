@@ -28,26 +28,71 @@ import java.io.InputStream;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
+import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class IOUtils {
 
     protected static final int BYTE_BUFFER_CAPACITY = 2048;
 
-    private static class DecoderWithBuffer {
-        final ByteBuffer byteBuffer = java.nio.ByteBuffer.allocate(BYTE_BUFFER_CAPACITY);
-        final CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
-    }
-
-    private static final ObjectPool<? extends ObjectHandle<DecoderWithBuffer>> POOL = ObjectPooling.createWithDefaultFactory(new Callable<DecoderWithBuffer>() {
+    private static final ObjectPool<? extends ObjectHandle<ByteBuffer>> BYTE_BUFFER_POOL = ObjectPooling.createWithDefaultFactory(new Callable<ByteBuffer>() {
         @Override
-        public DecoderWithBuffer call() throws Exception {
-            return new DecoderWithBuffer();
+        public ByteBuffer call() throws Exception {
+            return ByteBuffer.allocate(BYTE_BUFFER_CAPACITY);
         }
     });
+
+    private static final Set<String> UNSUPPORTED_CHARSETS = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    private static final Map<String, ObjectPool<? extends ObjectHandle<CharsetDecoder>>> DECODER_POOLS
+        = new ConcurrentHashMap<String, ObjectPool<? extends ObjectHandle<CharsetDecoder>>>();
+
+    private static final String UTF8_CHARSET_NAME = StandardCharsets.UTF_8.name().toLowerCase();
+
+    @Nullable
+    private static ObjectHandle<CharsetDecoder> getPooledCharsetDecoder(String charsetName) {
+        if (!isLowerCase(charsetName)) {
+            charsetName = charsetName.toLowerCase();
+        }
+        ObjectPool<? extends ObjectHandle<CharsetDecoder>> decoderPool = DECODER_POOLS.get(charsetName);
+        if (decoderPool != null) {
+            return decoderPool.createInstance();
+        }
+        if (UNSUPPORTED_CHARSETS.contains(charsetName)) {
+            return null;
+        }
+        try {
+            Charset charset = Charset.forName(charsetName);
+            decoderPool = ObjectPooling.createWithDefaultFactory(new Callable<CharsetDecoder>() {
+                @Override
+                public CharsetDecoder call() throws Exception {
+                    return charset.newDecoder();
+                }
+            });
+            DECODER_POOLS.put(charsetName, decoderPool);
+            return decoderPool.createInstance();
+        } catch (IllegalCharsetNameException | UnsupportedCharsetException e) {
+            UNSUPPORTED_CHARSETS.add(charsetName);
+            return null;
+        }
+    }
+
+    private static boolean isLowerCase(String charsetName) {
+        for (int i = 0; i < charsetName.length(); i++) {
+            if (!Character.isLowerCase(charsetName.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
 
 
     /**
@@ -67,9 +112,12 @@ public class IOUtils {
      */
     public static boolean readUtf8Stream(final InputStream is, final CharBuffer charBuffer) throws IOException {
         // to be compatible with Java 8, we have to cast to buffer because of different return types
-        try (ObjectHandle<DecoderWithBuffer> pooled = POOL.createInstance()) {
-            final ByteBuffer buffer = pooled.get().byteBuffer;
-            final CharsetDecoder charsetDecoder = pooled.get().decoder;
+        try (
+            ObjectHandle<ByteBuffer> bufferHandle = BYTE_BUFFER_POOL.createInstance();
+            ObjectHandle<CharsetDecoder> decoderHandle = getPooledCharsetDecoder(UTF8_CHARSET_NAME);
+        ) {
+            final ByteBuffer buffer = bufferHandle.get();
+            final CharsetDecoder charsetDecoder = decoderHandle.get();
             try {
                 final byte[] bufferArray = buffer.array();
                 for (int read = is.read(bufferArray); read != -1; read = is.read(bufferArray)) {
@@ -143,9 +191,11 @@ public class IOUtils {
      * @return a {@link CoderResult}, indicating the success or failure of the decoding
      */
     public static CoderResult decodeUtf8Bytes(final byte[] bytes, final int offset, final int length, final CharBuffer charBuffer) {
-        try (ObjectHandle<DecoderWithBuffer> pooled = POOL.createInstance()) {
-            final ByteBuffer pooledBuffer = pooled.get().byteBuffer;
-            final CharsetDecoder charsetDecoder = pooled.get().decoder;
+        try (
+            ObjectHandle<ByteBuffer> bufferHandle = BYTE_BUFFER_POOL.createInstance();
+            ObjectHandle<CharsetDecoder> decoderHandle = getPooledCharsetDecoder(UTF8_CHARSET_NAME);
+        ) {
+            final ByteBuffer pooledBuffer = bufferHandle.get();
             // to be compatible with Java 8, we have to cast to buffer because of different return types
             final ByteBuffer buffer;
             if (pooledBuffer.capacity() < length) {
@@ -157,7 +207,7 @@ public class IOUtils {
                 ((Buffer) buffer).position(0);
                 ((Buffer) buffer).limit(length);
             }
-            return decode(charBuffer, buffer, charsetDecoder);
+            return decode(charBuffer, buffer, decoderHandle.get());
         }
     }
 
@@ -183,21 +233,25 @@ public class IOUtils {
      */
     public static CoderResult decodeUtf8Byte(final byte b, final CharBuffer charBuffer) {
         // to be compatible with Java 8, we have to cast to buffer because of different return types
-        try (ObjectHandle<DecoderWithBuffer> pooled = POOL.createInstance()) {
-            final ByteBuffer buffer = pooled.get().byteBuffer;
-            final CharsetDecoder charsetDecoder = pooled.get().decoder;
+        try (
+            ObjectHandle<ByteBuffer> bufferHandle = BYTE_BUFFER_POOL.createInstance();
+            ObjectHandle<CharsetDecoder> decoderHandle = getPooledCharsetDecoder(UTF8_CHARSET_NAME);
+        ) {
+            final ByteBuffer buffer = bufferHandle.get();
             buffer.put(b);
             ((Buffer) buffer).position(0);
             ((Buffer) buffer).limit(1);
-            return decode(charBuffer, buffer, charsetDecoder);
+            return decode(charBuffer, buffer, decoderHandle.get());
         }
     }
 
     public static <T> CoderResult decodeUtf8BytesFromSource(ByteSourceReader<T> reader, T src, final CharBuffer dest) {
         // to be compatible with Java 8, we have to cast to buffer because of different return types
-        try (ObjectHandle<DecoderWithBuffer> pooled = POOL.createInstance()) {
-            final ByteBuffer buffer = pooled.get().byteBuffer;
-            final CharsetDecoder charsetDecoder = pooled.get().decoder;
+        try (
+            ObjectHandle<ByteBuffer> bufferHandle = BYTE_BUFFER_POOL.createInstance();
+            ObjectHandle<CharsetDecoder> decoderHandle = getPooledCharsetDecoder(UTF8_CHARSET_NAME);
+        ) {
+            final ByteBuffer buffer = bufferHandle.get();
             int readableBytes = reader.availableBytes(src);
             CoderResult result = null;
             while (readableBytes > 0) {
@@ -206,7 +260,7 @@ public class IOUtils {
                 ((Buffer) buffer).position(0);
                 reader.readInto(src, buffer);
                 ((Buffer) buffer).position(0);
-                result = decode(dest, buffer, charsetDecoder);
+                result = decode(dest, buffer, decoderHandle.get());
                 if (result.isError() || result.isOverflow()) {
                     return result;
                 }
