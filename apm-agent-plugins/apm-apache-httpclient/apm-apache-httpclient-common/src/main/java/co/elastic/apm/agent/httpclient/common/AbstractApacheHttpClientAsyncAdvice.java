@@ -20,8 +20,8 @@ package co.elastic.apm.agent.httpclient.common;
 
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Tracer;
 
 public abstract class AbstractApacheHttpClientAsyncAdvice {
@@ -40,6 +40,7 @@ public abstract class AbstractApacheHttpClientAsyncAdvice {
         TraceState<?> activeContext = tracer.currentContext();
         Span<?> span = activeContext.createExitSpan();
         if (span != null) {
+            span.getContext().getHttp().getRequestBody().markEligibleForCapturing();
             span.withType(HttpClientHelper.EXTERNAL_TYPE)
                 .withSubtype(HttpClientHelper.HTTP_SUBTYPE)
                 .withSync(false)

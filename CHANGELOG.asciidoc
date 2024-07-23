@@ -37,10 +37,12 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 * Avoid `ClassCastException` and issue warning when trying to use otel span links - {pull}3672[#3672]
 * Avoid `NullPointerException` with runtime attach API and invalid map entries - {pull}3712[#3712]
 * Enhance invalid state JMX metrics handling - {pull}3713[#3713]
+* Skips using NOFOLLOW_LINKS file open option when running on z/OS as it's unsupported there - {pull}3722[#3722]
 
 [float]
 ===== Features
 * Added option to make routing-key part of RabbitMQ transaction/span names - {pull}3636[#3636]
+* Added internal option for capturing request bodies for apache httpclient v4 - {pull}3692[#3692]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
