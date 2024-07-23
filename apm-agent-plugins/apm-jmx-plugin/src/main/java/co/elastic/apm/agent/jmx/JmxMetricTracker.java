@@ -46,6 +46,8 @@ import javax.management.NotificationListener;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 import javax.management.RuntimeMBeanException;
+import javax.management.MBeanException;
+import javax.management.ReflectionException;
 import javax.management.openmbean.CompositeData;
 import javax.management.relation.MBeanServerNotificationFilter;
 import java.lang.management.ManagementFactory;
@@ -367,27 +369,35 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                     MBeanInfo info = server.getMBeanInfo(objectName);
                     MBeanAttributeInfo[] attrInfo = info.getAttributes();
                     for (MBeanAttributeInfo attr : attrInfo) {
-                        try {
-                            final Object value = server.getAttribute(objectName, attr.getName());
-                            addJmxMetricRegistration(jmxMetric, registrations, objectName, value, attribute, attr.getName(), metricPrepend);
-                        } catch (AttributeNotFoundException e) {
-                            logger.warn("Can't create metric '{}' because attribute '{}' could not be found", jmxMetric, attribute.getJmxAttributeName());
-                        } catch (RuntimeMBeanException e) {
-                            if (e.getCause() instanceof UnsupportedOperationException) {
-                                //ignore this attribute
-                            } else {
-                                throw e;
-                            }
-                        }
+                        String attributeName = attr.getName();
+                        tryAddJmxMetric(jmxMetric, registrations, server, attribute, objectName, attributeName, metricPrepend);
                     }
                 } else {
-                    final Object value = server.getAttribute(objectName, attribute.getJmxAttributeName());
-                    try {
-                        addJmxMetricRegistration(jmxMetric, registrations, objectName, value, attribute, attribute.getJmxAttributeName(), null);
-                    } catch (AttributeNotFoundException e) {
-                        logger.warn("Can't create metric '{}' because attribute '{}' could not be found", jmxMetric, attribute.getJmxAttributeName());
-                    }
+                    String attributeName = attribute.getJmxAttributeName();
+                    tryAddJmxMetric(jmxMetric, registrations, server, attribute, objectName, attributeName, null);
                 }
+            }
+        }
+    }
+
+    private void tryAddJmxMetric(JmxMetric jmxMetric,
+                                 List<JmxMetricRegistration> registrations,
+                                 MBeanServer server,
+                                 JmxMetric.Attribute attribute,
+                                 ObjectName objectName,
+                                 String attributeName,
+                                 @Nullable String metricPrepend) throws MBeanException, InstanceNotFoundException, ReflectionException {
+
+        try {
+            Object value = server.getAttribute(objectName, attributeName);
+            addJmxMetricRegistration(jmxMetric, registrations, objectName, value, attribute, attributeName, metricPrepend);
+        } catch (AttributeNotFoundException e) {
+            logger.warn("Can't create metric '{}' because attribute '{}' could not be found", jmxMetric, attributeName);
+        } catch (RuntimeMBeanException e) {
+            if (e.getCause() instanceof UnsupportedOperationException) {
+                // silently ignore this attribute, won't retry as it's not a transient runtime exception
+            } else {
+                throw e;
             }
         }
     }
@@ -486,7 +496,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                             value = ((Number) ((CompositeData) server.getAttribute(objectName, jmxAttribute)).get(compositeDataKey)).doubleValue();
                         }
                         return value;
-                    } catch (InstanceNotFoundException | AttributeNotFoundException e) {
+                    } catch (InstanceNotFoundException | AttributeNotFoundException | RuntimeMBeanException e) {
                         if (unsubscribeOnError) {
                             unregister(tracer);
                         }
