@@ -23,6 +23,8 @@ import co.elastic.apm.agent.httpclient.common.ApacheHttpClientApiAdapter;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.StatusLine;
@@ -32,7 +34,7 @@ import org.apache.http.client.methods.HttpRequestWrapper;
 
 import java.net.URI;
 
-public class ApacheHttpClient4ApiAdapter implements ApacheHttpClientApiAdapter<HttpRequest, HttpRequestWrapper, HttpHost, CloseableHttpResponse> {
+public class ApacheHttpClient4ApiAdapter implements ApacheHttpClientApiAdapter<HttpRequest, HttpRequestWrapper, HttpHost, CloseableHttpResponse, HttpEntity> {
     private static final ApacheHttpClient4ApiAdapter INSTANCE = new ApacheHttpClient4ApiAdapter();
 
     private final Tracer tracer = GlobalTracer.get();
@@ -57,6 +59,14 @@ public class ApacheHttpClient4ApiAdapter implements ApacheHttpClientApiAdapter<H
     @Override
     public CharSequence getHostName(HttpHost httpHost, HttpRequestWrapper request) {
         return httpHost.getHostName();
+    }
+
+    @Override
+    public HttpEntity getRequestEntity(HttpRequest request) {
+        if (request instanceof HttpEntityEnclosingRequest) {
+            return ((HttpEntityEnclosingRequest) request).getEntity();
+        }
+        return null;
     }
 
     @Override

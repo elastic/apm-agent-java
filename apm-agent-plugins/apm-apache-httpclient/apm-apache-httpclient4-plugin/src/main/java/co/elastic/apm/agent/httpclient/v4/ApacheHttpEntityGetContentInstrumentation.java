@@ -18,12 +18,7 @@
  */
 package co.elastic.apm.agent.httpclient.v4;
 
-import co.elastic.apm.agent.httpclient.RequestBodyRecordingInputStream;
-import co.elastic.apm.agent.httpclient.RequestBodyRecordingOutputStream;
-import co.elastic.apm.agent.httpclient.v4.helper.RequestBodyCaptureRegistry;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpRequestBodyCaptureAdvice;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -32,8 +27,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.http.HttpEntity;
 
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URISyntaxException;
 
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -42,25 +35,16 @@ import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
-import static net.bytebuddy.matcher.ElementMatchers.returns;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class ApacheHttpEntityGetContentInstrumentation extends BaseApacheHttpClientInstrumentation {
 
-    public static class ApacheHttpEntityGetContentAdvice {
-
-        private static final Logger logger = LoggerFactory.getLogger(ApacheHttpEntityGetContentAdvice.class);
+    public static class ApacheHttpEntityGetContentAdvice extends AbstractApacheHttpRequestBodyCaptureAdvice {
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         @Advice.AssignReturned.ToReturned
-        public static InputStream onExit(@Advice.This HttpEntity thiz, @Advice.Return InputStream content) throws URISyntaxException {
-            Span<?> clientSpan = RequestBodyCaptureRegistry.removeSpanFor(thiz);
-            if (clientSpan != null) {
-                logger.debug("Wrapping input stream for request body capture for HttpEntity {} ({}) for span {}", thiz.getClass().getName(), System.identityHashCode(thiz), clientSpan);
-                return new RequestBodyRecordingInputStream(content, clientSpan);
-            }
-            return content;
+        public static InputStream onExit(@Advice.This HttpEntity thiz, @Advice.Return InputStream content) {
+            return maybeCaptureRequestBodyInputStream(thiz, content);
         }
     }
 
