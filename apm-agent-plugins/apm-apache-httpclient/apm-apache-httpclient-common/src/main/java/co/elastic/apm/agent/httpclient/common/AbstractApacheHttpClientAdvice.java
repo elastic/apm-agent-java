@@ -20,9 +20,9 @@ package co.elastic.apm.agent.httpclient.common;
 
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
@@ -34,11 +34,11 @@ public abstract class AbstractApacheHttpClientAdvice {
 
     public static <REQUEST, WRAPPER extends REQUEST, HTTPHOST, RESPONSE,
         HeaderAccessor extends TextHeaderSetter<REQUEST> &
-            TextHeaderGetter<REQUEST>> Span<?> startSpan(final Tracer tracer,
-                                                        final ApacheHttpClientApiAdapter<REQUEST, WRAPPER, HTTPHOST, RESPONSE> adapter,
-                                                        final WRAPPER request,
-                                                        @Nullable final HTTPHOST httpHost,
-                                                        final HeaderAccessor headerAccessor) throws URISyntaxException {
+            TextHeaderGetter<REQUEST>, HTTPENTITY> Span<?> startSpan(final Tracer tracer,
+                                                                     final ApacheHttpClientApiAdapter<REQUEST, WRAPPER, HTTPHOST, RESPONSE, HTTPENTITY> adapter,
+                                                                     final WRAPPER request,
+                                                                     @Nullable final HTTPHOST httpHost,
+                                                                     final HeaderAccessor headerAccessor) throws URISyntaxException {
         TraceState<?> traceState = tracer.currentContext();
         Span<?> span = null;
         if (traceState.getSpan() != null) {
@@ -51,10 +51,11 @@ public abstract class AbstractApacheHttpClientAdvice {
         return span;
     }
 
-    public static <REQUEST, WRAPPER extends REQUEST, HTTPHOST, RESPONSE> void endSpan(ApacheHttpClientApiAdapter<REQUEST, WRAPPER, HTTPHOST, RESPONSE> adapter,
-                                                                                      Object spanObj,
-                                                                                      Throwable t,
-                                                                                      RESPONSE response) {
+    public static <REQUEST, WRAPPER extends REQUEST, HTTPHOST, RESPONSE, HTTPENTITY>
+    void endSpan(ApacheHttpClientApiAdapter<REQUEST, WRAPPER, HTTPHOST, RESPONSE, HTTPENTITY> adapter,
+                 Object spanObj,
+                 Throwable t,
+                 RESPONSE response) {
         Span<?> span = (Span<?>) spanObj;
         if (span == null) {
             return;

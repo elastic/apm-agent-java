@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.httpclient.v4.helper;
+package co.elastic.apm.agent.httpclient.common;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -25,10 +25,8 @@ import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpEntityEnclosingRequest;
-import org.apache.http.HttpRequest;
 
 import javax.annotation.Nullable;
 
@@ -52,25 +50,26 @@ public class RequestBodyCaptureRegistry {
     }
 
 
-    public static void potentiallyCaptureRequestBody(HttpRequest request, @Nullable AbstractSpan<?> span) {
-        if (HttpClientHelper.startRequestBodyCapture(span, request, RequestHeaderAccessor.INSTANCE)) {
-            if (request instanceof HttpEntityEnclosingRequest) {
-                HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
-                if (entity != null) {
-                    logger.debug("Enabling request capture for entity {}() for span {}", entity.getClass().getName(), System.identityHashCode(entity), span);
-                    MapHolder.captureBodyFor(entity, (Span<?>) span);
-                } else {
-                    logger.debug("HttpEntity is null for span {}", span);
-                }
+    public static <REQUEST, HTTPENTITY> void potentiallyCaptureRequestBody(
+        REQUEST request,
+        @Nullable AbstractSpan<?> span,
+        ApacheHttpClientEntityAccessor<REQUEST, HTTPENTITY> adapter,
+        TextHeaderGetter<REQUEST> headerGetter
+    ) {
+        if (HttpClientHelper.startRequestBodyCapture(span, request, headerGetter)) {
+            HTTPENTITY httpEntity = adapter.getRequestEntity(request);
+            if (httpEntity != null) {
+                logger.debug("Enabling request capture for entity {}() for span {}", httpEntity.getClass().getName(), System.identityHashCode(httpEntity), span);
+                MapHolder.captureBodyFor(httpEntity, (Span<?>) span);
             } else {
-                logger.debug("Not capturing request body because {} is not an HttpEntityEnclosingRequest", request.getClass().getName());
+                logger.debug("Not capturing request body because HttpEntity is null for span {}", span);
             }
         }
     }
 
     @Nullable
-    public static Span<?> removeSpanFor(HttpEntity entity) {
-        return MapHolder.removeSpanFor(entity);
+    public static Span<?> removeSpanFor(Object httpEntity) {
+        return MapHolder.removeSpanFor(httpEntity);
     }
 
 }

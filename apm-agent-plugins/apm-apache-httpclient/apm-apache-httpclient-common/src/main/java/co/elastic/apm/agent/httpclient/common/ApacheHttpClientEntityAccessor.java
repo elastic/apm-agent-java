@@ -18,22 +18,9 @@
  */
 package co.elastic.apm.agent.httpclient.common;
 
-
 import javax.annotation.Nullable;
-import java.net.URI;
-import java.net.URISyntaxException;
 
-public interface ApacheHttpClientApiAdapter<REQUEST, WRAPPER extends REQUEST, HTTPHOST, RESPONSE, HTTPENTITY> extends ApacheHttpClientEntityAccessor<REQUEST, HTTPENTITY> {
-    String getMethod(WRAPPER request);
-
-    URI getUri(WRAPPER request) throws URISyntaxException;
-
+public interface ApacheHttpClientEntityAccessor<REQUEST, HTTPENTITY> {
     @Nullable
-    CharSequence getHostName(@Nullable HTTPHOST httpHost, WRAPPER request);
-
-    int getResponseCode(RESPONSE response);
-
-    boolean isCircularRedirectException(Throwable t);
-
-    boolean isNotNullStatusLine(RESPONSE response);
+    HTTPENTITY getRequestEntity(REQUEST request);
 }

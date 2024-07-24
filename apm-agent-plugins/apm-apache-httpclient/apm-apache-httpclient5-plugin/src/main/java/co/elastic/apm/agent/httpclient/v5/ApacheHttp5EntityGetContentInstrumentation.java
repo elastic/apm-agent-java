@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.httpclient.v4;
+package co.elastic.apm.agent.httpclient.v5;
 
 import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpRequestBodyCaptureAdvice;
 import net.bytebuddy.asm.Advice;
@@ -24,9 +24,9 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.apache.http.HttpEntity;
+import org.apache.hc.core5.http.HttpEntity;
 
-import java.io.OutputStream;
+import java.io.InputStream;
 
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -35,51 +35,43 @@ import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class ApacheHttpEntityWriteToInstrumentation extends BaseApacheHttpClientInstrumentation {
+public class ApacheHttp5EntityGetContentInstrumentation extends BaseApacheHttpClient5Instrumentation {
 
-    public static class ApacheHttpEntityWriteToAdvice extends AbstractApacheHttpRequestBodyCaptureAdvice {
-
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        @Advice.AssignReturned.ToArguments(@Advice.AssignReturned.ToArguments.ToArgument(0))
-        public static OutputStream onEnter(@Advice.This HttpEntity thiz, @Advice.Argument(0) OutputStream drain) {
-            return maybeCaptureRequestBodyOutputStream(thiz, drain);
-        }
+    public static class ApacheHttpEntityGetContentAdvice extends AbstractApacheHttpRequestBodyCaptureAdvice {
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void onExit(@Advice.Enter OutputStream potentiallyWrappedStream) {
-            releaseRequestBodyOutputStream(potentiallyWrappedStream);
+        @Advice.AssignReturned.ToReturned
+        public static InputStream onExit(@Advice.This HttpEntity thiz, @Advice.Return InputStream content) {
+            return maybeCaptureRequestBodyInputStream(thiz, content);
         }
     }
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.httpclient.v4.ApacheHttpEntityWriteToInstrumentation$ApacheHttpEntityWriteToAdvice";
+        return "co.elastic.apm.agent.httpclient.v5.ApacheHttp5EntityGetContentInstrumentation$ApacheHttpEntityGetContentAdvice";
     }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return not(isBootstrapClassLoader())
-            .and(classLoaderCanLoadClass("org.apache.http.HttpEntity"));
+        return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("org.apache.hc.core5.http.HttpEntity"));
     }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("org.apache.http").and(nameContains("Entity"));
+        return nameStartsWith("org.apache.hc").and(nameContains("Entity"));
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.apache.http.HttpEntity"));
+        return hasSuperType(named("org.apache.hc.core5.http.HttpEntity"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("writeTo")
-            .and(takesArguments(1))
-            .and(takesArgument(0, OutputStream.class));
+        return named("getContent")
+            .and(takesArguments(0));
     }
 
 }

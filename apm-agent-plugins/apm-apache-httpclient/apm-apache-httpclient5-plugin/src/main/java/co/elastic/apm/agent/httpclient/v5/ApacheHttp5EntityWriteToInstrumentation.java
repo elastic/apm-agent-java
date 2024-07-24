@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.httpclient.v4;
+package co.elastic.apm.agent.httpclient.v5;
 
 import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpRequestBodyCaptureAdvice;
 import net.bytebuddy.asm.Advice;
@@ -24,7 +24,7 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.apache.http.HttpEntity;
+import org.apache.hc.core5.http.HttpEntity;
 
 import java.io.OutputStream;
 
@@ -38,7 +38,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class ApacheHttpEntityWriteToInstrumentation extends BaseApacheHttpClientInstrumentation {
+public class ApacheHttp5EntityWriteToInstrumentation extends BaseApacheHttpClient5Instrumentation {
 
     public static class ApacheHttpEntityWriteToAdvice extends AbstractApacheHttpRequestBodyCaptureAdvice {
 
@@ -56,23 +56,22 @@ public class ApacheHttpEntityWriteToInstrumentation extends BaseApacheHttpClient
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.httpclient.v4.ApacheHttpEntityWriteToInstrumentation$ApacheHttpEntityWriteToAdvice";
+        return "co.elastic.apm.agent.httpclient.v5.ApacheHttp5EntityWriteToInstrumentation$ApacheHttpEntityWriteToAdvice";
     }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return not(isBootstrapClassLoader())
-            .and(classLoaderCanLoadClass("org.apache.http.HttpEntity"));
+        return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("org.apache.hc.core5.http.HttpEntity"));
     }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("org.apache.http").and(nameContains("Entity"));
+        return nameStartsWith("org.apache.hc").and(nameContains("Entity"));
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.apache.http.HttpEntity"));
+        return hasSuperType(named("org.apache.hc.core5.http.HttpEntity"));
     }
 
     @Override
