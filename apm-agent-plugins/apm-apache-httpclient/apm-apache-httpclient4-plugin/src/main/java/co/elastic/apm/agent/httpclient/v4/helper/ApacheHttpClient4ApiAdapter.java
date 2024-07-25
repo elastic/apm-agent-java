@@ -32,6 +32,7 @@ import org.apache.http.client.CircularRedirectException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpRequestWrapper;
 
+import javax.annotation.Nullable;
 import java.net.URI;
 
 public class ApacheHttpClient4ApiAdapter implements ApacheHttpClientApiAdapter<HttpRequest, HttpRequestWrapper, HttpHost, CloseableHttpResponse, HttpEntity> {
@@ -67,6 +68,12 @@ public class ApacheHttpClient4ApiAdapter implements ApacheHttpClientApiAdapter<H
             return ((HttpEntityEnclosingRequest) request).getEntity();
         }
         return null;
+    }
+
+    @Override
+    @Nullable
+    public byte[] getSimpleBodyBytes(HttpRequest request) {
+        return null; //Apache v4 client only provides body via HttpEntity
     }
 
     @Override

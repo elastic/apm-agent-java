@@ -52,17 +52,24 @@ public class RequestBodyCaptureRegistry {
 
     public static <REQUEST, HTTPENTITY> void potentiallyCaptureRequestBody(
         REQUEST request,
-        @Nullable AbstractSpan<?> span,
+        @Nullable AbstractSpan<?> abstractSpan,
         ApacheHttpClientEntityAccessor<REQUEST, HTTPENTITY> adapter,
         TextHeaderGetter<REQUEST> headerGetter
     ) {
-        if (HttpClientHelper.startRequestBodyCapture(span, request, headerGetter)) {
-            HTTPENTITY httpEntity = adapter.getRequestEntity(request);
-            if (httpEntity != null) {
-                logger.debug("Enabling request capture for entity {}() for span {}", httpEntity.getClass().getName(), System.identityHashCode(httpEntity), span);
-                MapHolder.captureBodyFor(httpEntity, (Span<?>) span);
+        if (HttpClientHelper.startRequestBodyCapture(abstractSpan, request, headerGetter)) {
+            Span<?> span = (Span<?>) abstractSpan;
+            byte[] simpleBytes = adapter.getSimpleBodyBytes(request);
+            if (simpleBytes != null) {
+                logger.debug("Captured simple request body for span {}", abstractSpan);
+                span.getContext().getHttp().getRequestBody().append(simpleBytes, 0, simpleBytes.length);
             } else {
-                logger.debug("Not capturing request body because HttpEntity is null for span {}", span);
+                HTTPENTITY httpEntity = adapter.getRequestEntity(request);
+                if (httpEntity != null) {
+                    logger.debug("Enabling request capture for entity {}() for span {}", httpEntity.getClass().getName(), System.identityHashCode(httpEntity), abstractSpan);
+                    MapHolder.captureBodyFor(httpEntity, span);
+                } else {
+                    logger.debug("Not capturing request body because HttpEntity is null for span {}", abstractSpan);
+                }
             }
         }
     }
