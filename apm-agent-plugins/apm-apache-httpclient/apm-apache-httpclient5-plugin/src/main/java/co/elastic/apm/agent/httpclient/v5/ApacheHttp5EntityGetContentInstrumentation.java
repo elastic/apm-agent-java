@@ -20,24 +20,16 @@ package co.elastic.apm.agent.httpclient.v5;
 
 import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpRequestBodyCaptureAdvice;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.hc.core5.http.HttpEntity;
 
 import java.io.InputStream;
 
-import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class ApacheHttp5EntityGetContentInstrumentation extends BaseApacheHttpClient5Instrumentation {
+public class ApacheHttp5EntityGetContentInstrumentation extends BaseApacheHttp5EntityInstrumentation {
 
     public static class ApacheHttpEntityGetContentAdvice extends AbstractApacheHttpRequestBodyCaptureAdvice {
 
@@ -51,21 +43,6 @@ public class ApacheHttp5EntityGetContentInstrumentation extends BaseApacheHttpCl
     @Override
     public String getAdviceClassName() {
         return "co.elastic.apm.agent.httpclient.v5.ApacheHttp5EntityGetContentInstrumentation$ApacheHttpEntityGetContentAdvice";
-    }
-
-    @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("org.apache.hc.core5.http.HttpEntity"));
-    }
-
-    @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("org.apache.hc").and(nameContains("Entity"));
-    }
-
-    @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.apache.hc.core5.http.HttpEntity"));
     }
 
     @Override

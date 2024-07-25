@@ -74,6 +74,7 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
         charset.setLength(0);
         if (bodyBuffer != null) {
             BYTE_BUFFER_POOL.recycle(bodyBuffer);
+            bodyBuffer = null;
         }
     }
 
