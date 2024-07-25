@@ -25,6 +25,7 @@ import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import org.apache.hc.client5.http.CircularRedirectException;
+import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.routing.RoutingSupport;
 import org.apache.hc.core5.http.ClassicHttpRequest;
@@ -76,6 +77,15 @@ public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<H
 
             return null;
         }
+    }
+
+    @Nullable
+    @Override
+    public byte[] getSimpleBodyBytes(HttpRequest httpRequest) {
+        if (httpRequest instanceof SimpleHttpRequest) {
+            return ((SimpleHttpRequest) httpRequest).getBodyBytes();
+        }
+        return null;
     }
 
     @Override

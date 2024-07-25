@@ -23,4 +23,7 @@ import javax.annotation.Nullable;
 public interface ApacheHttpClientEntityAccessor<REQUEST, HTTPENTITY> {
     @Nullable
     HTTPENTITY getRequestEntity(REQUEST request);
+
+    @Nullable
+    byte[] getSimpleBodyBytes(REQUEST request);
 }
