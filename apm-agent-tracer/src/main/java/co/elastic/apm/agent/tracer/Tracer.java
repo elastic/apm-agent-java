@@ -112,7 +112,6 @@ public interface Tracer {
     void flush();
 
     void completeMetaData(String name, String version, String id, String region);
-
     @Nullable
     ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader initiatingClassLoader);
 

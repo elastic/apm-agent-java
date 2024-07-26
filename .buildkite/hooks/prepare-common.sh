@@ -35,7 +35,6 @@ fi
 
 # Validate java is available in the runner.
 java -version
-
 echo "--- Prepare github secrets :vault:"
 VAULT_SECRET_PATH=kv/ci-shared/observability-ci/github-bot-user
 GITHUB_SECRET=$(vault kv get -field token "${VAULT_SECRET_PATH}")
