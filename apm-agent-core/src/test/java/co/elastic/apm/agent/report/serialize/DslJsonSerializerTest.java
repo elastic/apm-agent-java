@@ -437,7 +437,8 @@ class DslJsonSerializerTest {
 
         BodyCaptureImpl bodyCapture = span.getContext().getHttp().getRequestBody();
         bodyCapture.markEligibleForCapturing();
-        bodyCapture.startCapture("utf-8", 50);
+        bodyCapture.markPreconditionsPassed("utf-8", 50);
+        bodyCapture.startCapture();
         bodyCapture.append("foobar".getBytes(StandardCharsets.UTF_8), 0, 6);
 
         JsonNode spanJson = readJsonString(writer.toJsonString(span));

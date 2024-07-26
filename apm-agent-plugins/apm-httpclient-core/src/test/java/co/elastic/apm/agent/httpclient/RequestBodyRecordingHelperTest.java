@@ -40,7 +40,8 @@ public class RequestBodyRecordingHelperTest {
         SpanImpl span = rootTx.createSpan();
         BodyCaptureImpl spanBody = span.getContext().getHttp().getRequestBody();
         spanBody.markEligibleForCapturing();
-        spanBody.startCapture(null, 100);
+        spanBody.markPreconditionsPassed(null, 100);
+        spanBody.startCapture();
 
         RequestBodyRecordingHelper helper = new RequestBodyRecordingHelper(span);
         helper.appendToBody(new byte[]{1, 2, 3, 4}, 1, 2);

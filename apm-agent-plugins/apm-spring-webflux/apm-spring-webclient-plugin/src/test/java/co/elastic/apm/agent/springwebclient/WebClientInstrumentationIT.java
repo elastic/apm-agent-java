@@ -24,6 +24,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 import java.util.Arrays;
@@ -81,6 +82,19 @@ public class WebClientInstrumentationIT {
         @Override
         protected void performGet(String path) throws Exception {
             webClient.get().uri(path).exchangeToMono(response -> response.bodyToMono(String.class)).block();
+        }
+
+        @Override
+        protected boolean isBodyCapturingSupported() {
+            return true;
+        }
+
+        @Override
+        protected void performPost(String path, byte[] content, String contentTypeHeader) throws Exception {
+            webClient.post().uri(path)
+                .header("Content-Type", contentTypeHeader)
+                .body(Mono.just(content), byte[].class)
+                .exchangeToMono(response -> response.bodyToMono(String.class)).block();
         }
     }
 }

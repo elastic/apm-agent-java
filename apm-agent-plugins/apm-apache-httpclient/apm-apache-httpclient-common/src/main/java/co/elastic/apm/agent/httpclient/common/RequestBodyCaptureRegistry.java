@@ -56,7 +56,7 @@ public class RequestBodyCaptureRegistry {
         ApacheHttpClientEntityAccessor<REQUEST, HTTPENTITY> adapter,
         TextHeaderGetter<REQUEST> headerGetter
     ) {
-        if (HttpClientHelper.startRequestBodyCapture(abstractSpan, request, headerGetter)) {
+        if (HttpClientHelper.checkAndStartRequestBodyCapture(abstractSpan, request, headerGetter)) {
             Span<?> span = (Span<?>) abstractSpan;
             byte[] simpleBytes = adapter.getSimpleBodyBytes(request);
             if (simpleBytes != null) {
