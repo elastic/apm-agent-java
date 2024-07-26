@@ -32,7 +32,8 @@ public class BodyCaptureImplTest {
     public void testAppendTruncation() {
         BodyCaptureImpl capture = new BodyCaptureImpl();
         capture.markEligibleForCapturing();
-        capture.startCapture("foobar", 10);
+        capture.markPreconditionsPassed("foobar", 10);
+        capture.startCapture();
         assertThat(capture.isFull()).isFalse();
 
         capture.append("123Hello World!".getBytes(StandardCharsets.UTF_8), 3, 5);
@@ -55,21 +56,28 @@ public class BodyCaptureImplTest {
         BodyCaptureImpl capture = new BodyCaptureImpl();
 
         assertThat(capture.isEligibleForCapturing()).isFalse();
-        assertThat(capture.startCapture("foobar", 42))
+        assertThat(capture.havePreconditionsBeenChecked()).isFalse();
+        assertThat(capture.startCapture())
             .isFalse();
         assertThatThrownBy(() -> capture.append((byte) 42)).isInstanceOf(IllegalStateException.class);
 
         capture.markEligibleForCapturing();
         assertThat(capture.isEligibleForCapturing()).isTrue();
+        assertThat(capture.havePreconditionsBeenChecked()).isFalse();
         assertThatThrownBy(() -> capture.append((byte) 42)).isInstanceOf(IllegalStateException.class);
 
-        assertThat(capture.startCapture("foobar", 42))
-            .isTrue();
+        capture.markPreconditionsPassed("foobar", 42);
+        assertThat(capture.isEligibleForCapturing()).isTrue();
+        assertThat(capture.havePreconditionsBeenChecked()).isTrue();
+
+
+        assertThat(capture.startCapture()).isTrue();
         capture.append((byte) 42); //ensure no exception thrown
 
         // startCapture should return true only once
-        assertThat(capture.startCapture("foobar", 42))
-            .isFalse();
+        assertThat(capture.havePreconditionsBeenChecked()).isTrue();
+        assertThat(capture.startCapture()).isFalse();
+        assertThat(capture.havePreconditionsBeenChecked()).isTrue();
 
         capture.resetState();
         assertThat(capture.getCharset()).isNull();

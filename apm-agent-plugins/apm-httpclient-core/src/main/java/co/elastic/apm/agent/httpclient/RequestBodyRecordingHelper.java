@@ -4,7 +4,7 @@ import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.SpanEndListener;
 import co.elastic.apm.agent.tracer.metadata.BodyCapture;
 
-class RequestBodyRecordingHelper implements SpanEndListener<Span<?>> {
+public class RequestBodyRecordingHelper implements SpanEndListener<Span<?>> {
 
     /**
      * We do not need to participate in span reference counting here.
@@ -21,17 +21,21 @@ class RequestBodyRecordingHelper implements SpanEndListener<Span<?>> {
         }
     }
 
-    void appendToBody(byte b) {
+
+    public boolean appendToBody(byte b) {
         if (clientSpan != null) {
             BodyCapture requestBody = clientSpan.getContext().getHttp().getRequestBody();
             requestBody.append(b);
             if (requestBody.isFull()) {
                 releaseSpan();
+            } else {
+                return true;
             }
         }
+        return false;
     }
 
-    void appendToBody(byte[] b, int off, int len) {
+    public void appendToBody(byte[] b, int off, int len) {
         if (clientSpan != null) {
             BodyCapture requestBody = clientSpan.getContext().getHttp().getRequestBody();
             requestBody.append(b, off, len);
