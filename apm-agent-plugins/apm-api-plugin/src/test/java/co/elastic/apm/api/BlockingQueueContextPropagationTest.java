@@ -19,6 +19,8 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractApiTest;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -87,7 +89,7 @@ public class BlockingQueueContextPropagationTest extends AbstractApiTest {
         // important for waiting on the queue reader thread to finish the span
         assertThat(result.get()).isEqualTo(transaction.getId());
 
-        co.elastic.apm.agent.impl.transaction.Transaction reportedTransaction = reporter.getFirstTransaction();
+        TransactionImpl reportedTransaction = reporter.getFirstTransaction();
         assertThat(reportedTransaction).isNotNull();
         assertThat(reportedTransaction.getTraceContext().getId().toString()).isEqualTo(transaction.getId());
         assertThat(reportedTransaction.getTimestamp()).isEqualTo(startTime);
@@ -120,7 +122,7 @@ public class BlockingQueueContextPropagationTest extends AbstractApiTest {
         // important for waiting on the queue reader thread to finish the span
         assertThat(result.get()).isEqualTo(asyncSpanId);
 
-        co.elastic.apm.agent.impl.transaction.Transaction reportedTransaction = reporter.getFirstTransaction();
+        TransactionImpl reportedTransaction = reporter.getFirstTransaction();
         assertThat(reportedTransaction).isNotNull();
         long transactionTimestamp = reportedTransaction.getTimestamp();
         assertThat(transactionTimestamp).isEqualTo(startTime);
@@ -129,7 +131,7 @@ public class BlockingQueueContextPropagationTest extends AbstractApiTest {
             TimeUnit.MILLISECONDS.toMicros(70)
         );
 
-        co.elastic.apm.agent.impl.transaction.Span reportedSpan = reporter.getFirstSpan();
+        SpanImpl reportedSpan = reporter.getFirstSpan();
         assertThat(reportedSpan.getTraceContext().getTraceId()).isEqualTo(reportedTransaction.getTraceContext().getTraceId());
         assertThat(reportedSpan).isNotNull();
         assertThat(reportedSpan.getType()).isEqualTo("async");

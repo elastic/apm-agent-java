@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -77,7 +77,7 @@ public class ApmServerConfigurationSourceTest {
         apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
         mockLogger = mock(Logger.class);
         configurationSource = new ApmServerConfigurationSource(
-            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient, MetaDataMock.create()),
+            new DslJsonSerializer(mock(StacktraceConfigurationImpl.class), apmServerClient, MetaDataMock.create()),
             apmServerClient,
             mockLogger
         );
@@ -100,7 +100,7 @@ public class ApmServerConfigurationSourceTest {
 
     @Test
     public void testRemoteConfigDisabled() {
-        doReturn(false).when(config.getConfig(CoreConfiguration.class)).isCentralConfigEnabled();
+        doReturn(false).when(config.getConfig(CoreConfigurationImpl.class)).isCentralConfigEnabled();
         configurationSource.fetchConfig(config);
         assertThat(configurationSource.getValue("foo")).isNull();
         mockApmServer.verify(0, postRequestedFor(urlEqualTo("/config/v1/agents")));

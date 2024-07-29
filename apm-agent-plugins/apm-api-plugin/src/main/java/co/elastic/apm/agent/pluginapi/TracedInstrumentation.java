@@ -21,12 +21,12 @@ package co.elastic.apm.agent.pluginapi;
 import co.elastic.apm.agent.sdk.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -65,11 +65,11 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
     public static final Logger logger = LoggerFactory.getLogger(TracedInstrumentation.class);
 
     private final CoreConfiguration coreConfig;
-    private final StacktraceConfiguration stacktraceConfig;
+    private final StacktraceConfigurationImpl stacktraceConfig;
 
     public TracedInstrumentation(ElasticApmTracer tracer) {
         coreConfig = tracer.getConfig(CoreConfiguration.class);
-        stacktraceConfig = tracer.getConfig(StacktraceConfiguration.class);
+        stacktraceConfig = tracer.getConfig(StacktraceConfigurationImpl.class);
     }
 
     public static class AdviceClass {
@@ -93,7 +93,7 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
                 defaultValueProvider = AnnotationValueOffsetMappingFactory.TrueDefaultValueProvider.class
             ) boolean discardable) {
 
-            final ElasticContext<?> activeContext = tracer.currentContext();
+            final TraceState<?> activeContext = tracer.currentContext();
             final AbstractSpan<?> parentSpan = activeContext.getSpan();
             if (parentSpan != null) {
                 if (activeContext.shouldSkipChildSpanCreation()) {

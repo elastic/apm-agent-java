@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.hibernatesearch;
 
 import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
 
@@ -32,7 +32,7 @@ public final class HibernateSearchHelper {
     public static Span<?> createAndActivateSpan(final Tracer tracer, final String methodName,
                                                 final String query) {
 
-        ElasticContext<?> active = tracer.currentContext();
+        TraceState<?> active = tracer.currentContext();
         AbstractSpan<?> activeSpan = active.getSpan();
         // avoid creating the same span twice for example, when an instrumented API is wrapped
         if (activeSpan == null || activeSpan instanceof Span<?> && HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE

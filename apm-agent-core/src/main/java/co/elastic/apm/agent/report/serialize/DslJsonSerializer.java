@@ -18,53 +18,55 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
-import co.elastic.apm.agent.impl.context.AbstractContext;
-import co.elastic.apm.agent.impl.context.CloudOrigin;
-import co.elastic.apm.agent.impl.context.Db;
-import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.context.AbstractContextImpl;
+import co.elastic.apm.agent.impl.context.BodyCaptureImpl;
+import co.elastic.apm.agent.impl.context.CloudOriginImpl;
+import co.elastic.apm.agent.impl.context.DbImpl;
+import co.elastic.apm.agent.impl.context.DestinationImpl;
 import co.elastic.apm.agent.impl.context.Headers;
-import co.elastic.apm.agent.impl.context.Http;
-import co.elastic.apm.agent.impl.context.Message;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.context.ServiceOrigin;
-import co.elastic.apm.agent.impl.context.ServiceTarget;
-import co.elastic.apm.agent.impl.context.Socket;
-import co.elastic.apm.agent.impl.context.SpanContext;
-import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.impl.context.Url;
-import co.elastic.apm.agent.impl.context.User;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.context.HttpImpl;
+import co.elastic.apm.agent.impl.context.MessageImpl;
+import co.elastic.apm.agent.impl.context.RequestImpl;
+import co.elastic.apm.agent.impl.context.ResponseImpl;
+import co.elastic.apm.agent.impl.context.ServiceOriginImpl;
+import co.elastic.apm.agent.impl.context.ServiceTargetImpl;
+import co.elastic.apm.agent.impl.context.SocketImpl;
+import co.elastic.apm.agent.impl.context.SpanContextImpl;
+import co.elastic.apm.agent.impl.context.TransactionContextImpl;
+import co.elastic.apm.agent.impl.context.UrlImpl;
+import co.elastic.apm.agent.impl.context.UserImpl;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
 import co.elastic.apm.agent.impl.metadata.Agent;
 import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
 import co.elastic.apm.agent.impl.metadata.Framework;
 import co.elastic.apm.agent.impl.metadata.Language;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
-import co.elastic.apm.agent.impl.metadata.Node;
+import co.elastic.apm.agent.impl.metadata.NodeImpl;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
 import co.elastic.apm.agent.impl.metadata.RuntimeInfo;
-import co.elastic.apm.agent.impl.metadata.Service;
+import co.elastic.apm.agent.impl.metadata.ServiceImpl;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import co.elastic.apm.agent.impl.transaction.Composite;
 import co.elastic.apm.agent.impl.transaction.DroppedSpanStats;
-import co.elastic.apm.agent.impl.transaction.Faas;
-import co.elastic.apm.agent.impl.transaction.FaasTrigger;
-import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.FaasImpl;
+import co.elastic.apm.agent.impl.transaction.FaasTriggerImpl;
+import co.elastic.apm.agent.impl.transaction.IdImpl;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
-import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.SpanCount;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.tracer.metrics.Labels;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.tracer.metrics.DslJsonUtil;
+import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import co.elastic.apm.agent.tracer.metrics.DslJsonUtil;
 import com.dslplatform.json.BoolConverter;
@@ -78,6 +80,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -103,7 +106,7 @@ public class DslJsonSerializer {
     private static final List<String> excludedStackFramesPrefixes = Arrays.asList("java.lang.reflect.", "com.sun.", "sun.", "jdk.internal.");
 
 
-    private final StacktraceConfiguration stacktraceConfiguration;
+    private final StacktraceConfigurationImpl stacktraceConfiguration;
     private final ApmServerClient apmServerClient;
 
     private final Future<MetaData> metaData;
@@ -111,7 +114,7 @@ public class DslJsonSerializer {
     private byte[] serializedMetaData;
     private boolean serializedActivationMethod;
 
-    public DslJsonSerializer(StacktraceConfiguration stacktraceConfiguration, ApmServerClient apmServerClient, final Future<MetaData> metaData) {
+    public DslJsonSerializer(StacktraceConfigurationImpl stacktraceConfiguration, ApmServerClient apmServerClient, final Future<MetaData> metaData) {
         this.stacktraceConfiguration = stacktraceConfiguration;
         this.apmServerClient = apmServerClient;
         this.metaData = metaData;
@@ -182,7 +185,7 @@ public class DslJsonSerializer {
         }
     }
 
-    private static void serializeService(final Service service, final StringBuilder replaceBuilder, final JsonWriter jw, boolean supportsAgentActivationMethod) {
+    private static void serializeService(final ServiceImpl service, final StringBuilder replaceBuilder, final JsonWriter jw, boolean supportsAgentActivationMethod) {
         DslJsonUtil.writeFieldName("service", jw);
         jw.writeByte(JsonWriter.OBJECT_START);
 
@@ -205,7 +208,7 @@ public class DslJsonSerializer {
             serializeFramework(framework, replaceBuilder, jw);
         }
 
-        final Node node = service.getNode();
+        final NodeImpl node = service.getNode();
         if (node != null && node.hasContents()) {
             serializeNode(node, replaceBuilder, jw);
         }
@@ -219,7 +222,7 @@ public class DslJsonSerializer {
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    private static void serializeService(@Nullable final CharSequence serviceName, @Nullable final CharSequence serviceVersion, @Nullable ServiceTarget serviceTarget, final StringBuilder replaceBuilder, final JsonWriter jw) {
+    private static void serializeService(@Nullable final CharSequence serviceName, @Nullable final CharSequence serviceVersion, @Nullable ServiceTargetImpl serviceTarget, final StringBuilder replaceBuilder, final JsonWriter jw) {
         boolean hasServiceTarget = (serviceTarget != null && serviceTarget.hasContent());
         if (serviceName == null && !hasServiceTarget) {
             return;
@@ -302,7 +305,7 @@ public class DslJsonSerializer {
         jw.writeByte(COMMA);
     }
 
-    private static void serializeNode(final Node node, final StringBuilder replaceBuilder, final JsonWriter jw) {
+    private static void serializeNode(final NodeImpl node, final StringBuilder replaceBuilder, final JsonWriter jw) {
         DslJsonUtil.writeFieldName("node", jw);
         jw.writeByte(JsonWriter.OBJECT_START);
         writeLastField("configured_name", node.getName(), replaceBuilder, jw);
@@ -771,7 +774,7 @@ public class DslJsonSerializer {
             DslJsonSerializer.this.waitForMetadata();
         }
 
-        public void serializeTransactionNdJson(Transaction transaction) {
+        public void serializeTransactionNdJson(TransactionImpl transaction) {
             jw.writeByte(JsonWriter.OBJECT_START);
             writeFieldName("transaction");
             serializeTransaction(transaction);
@@ -779,7 +782,7 @@ public class DslJsonSerializer {
             jw.writeByte(NEW_LINE);
         }
 
-        public void serializeSpanNdJson(Span span) {
+        public void serializeSpanNdJson(SpanImpl span) {
             jw.writeByte(JsonWriter.OBJECT_START);
             writeFieldName("span");
             serializeSpan(span);
@@ -787,7 +790,7 @@ public class DslJsonSerializer {
             jw.writeByte(NEW_LINE);
         }
 
-        public void serializeErrorNdJson(ErrorCapture error) {
+        public void serializeErrorNdJson(ErrorCaptureImpl error) {
             jw.writeByte(JsonWriter.OBJECT_START);
             writeFieldName("error");
             serializeError(error);
@@ -861,7 +864,7 @@ public class DslJsonSerializer {
             jw.writeByte(NEW_LINE);
         }
 
-        private void serializeError(ErrorCapture errorCapture) {
+        private void serializeError(ErrorCaptureImpl errorCapture) {
             jw.writeByte(JsonWriter.OBJECT_START);
 
             writeTimestamp(errorCapture.getTimestamp());
@@ -876,7 +879,7 @@ public class DslJsonSerializer {
             jw.writeByte(JsonWriter.OBJECT_END);
         }
 
-        private void serializeErrorTransactionInfo(ErrorCapture.TransactionInfo errorTransactionInfo) {
+        private void serializeErrorTransactionInfo(ErrorCaptureImpl.TransactionInfo errorTransactionInfo) {
             writeFieldName("transaction");
             jw.writeByte(JsonWriter.OBJECT_START);
             writeField("name", errorTransactionInfo.getName());
@@ -913,7 +916,7 @@ public class DslJsonSerializer {
             jw.writeByte(JsonWriter.OBJECT_END);
         }
 
-        public String toJsonString(final Transaction transaction) {
+        public String toJsonString(final TransactionImpl transaction) {
             jw.reset();
             serializeTransaction(transaction);
             final String s = jw.toString();
@@ -921,7 +924,7 @@ public class DslJsonSerializer {
             return s;
         }
 
-        public String toJsonString(Span span) {
+        public String toJsonString(SpanImpl span) {
             jw.reset();
             serializeSpan(span);
             final String s = jw.toString();
@@ -929,7 +932,7 @@ public class DslJsonSerializer {
             return s;
         }
 
-        public String toJsonString(final ErrorCapture error) {
+        public String toJsonString(final ErrorCaptureImpl error) {
             jw.reset();
             serializeError(error);
             final String s = jw.toString();
@@ -958,8 +961,8 @@ public class DslJsonSerializer {
             jw.writeByte(COMMA);
         }
 
-        private void serializeTransaction(final Transaction transaction) {
-            TraceContext traceContext = transaction.getTraceContext();
+        private void serializeTransaction(final TransactionImpl transaction) {
+            TraceContextImpl traceContext = transaction.getTraceContext();
 
             jw.writeByte(OBJECT_START);
             writeTimestamp(transaction.getTimestamp());
@@ -985,7 +988,7 @@ public class DslJsonSerializer {
             jw.writeByte(OBJECT_END);
         }
 
-        private void serializeTraceContext(TraceContext traceContext, boolean serializeTransactionId) {
+        private void serializeTraceContext(TraceContextImpl traceContext, boolean serializeTransactionId) {
             // errors might only have an id
             writeNonLastIdField("id", traceContext.getId());
             if (!traceContext.getTraceId().isEmpty()) {
@@ -1000,8 +1003,8 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeSpan(final Span span) {
-            TraceContext traceContext = span.getTraceContext();
+        private void serializeSpan(final SpanImpl span) {
+            TraceContextImpl traceContext = span.getTraceContext();
             jw.writeByte(OBJECT_START);
             writeField("name", span.getNameForSerialization());
             writeTimestamp(span.getTimestamp());
@@ -1032,7 +1035,7 @@ public class DslJsonSerializer {
             jw.writeByte(OBJECT_END);
         }
 
-        private void serializeSpanLinks(List<TraceContext> spanLinks) {
+        private void serializeSpanLinks(List<TraceContextImpl> spanLinks) {
             if (!spanLinks.isEmpty()) {
                 writeFieldName("links");
                 jw.writeByte(ARRAY_START);
@@ -1040,7 +1043,7 @@ public class DslJsonSerializer {
                     if (i > 0) {
                         jw.writeByte(COMMA);
                     }
-                    TraceContext traceContext = spanLinks.get(i);
+                    TraceContextImpl traceContext = spanLinks.get(i);
                     jw.writeByte(OBJECT_START);
                     writeNonLastIdField("trace_id", traceContext.getTraceId());
                     writeIdField("span_id", traceContext.getParentId());
@@ -1051,22 +1054,37 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeOTel(Span span) {
-            serializeOtel(span, Collections.<Id>emptyList());
+        private void serializeOTel(SpanImpl span) {
+            serializeOtel(span, Collections.<IdImpl>emptyList(), requestBodyToString(span.getContext().getHttp().getRequestBody()));
         }
 
-        private void serializeOTel(Transaction transaction) {
-            List<Id> profilingCorrelationStackTraceIds = transaction.getProfilingCorrelationStackTraceIds();
+        @Nullable
+        private CharSequence requestBodyToString(BodyCaptureImpl requestBody) {
+            //TODO: perform proper, charset aware conversion to string
+            ByteBuffer buffer = requestBody.getBody();
+            if (buffer == null || buffer.position() == 0) {
+                return null;
+            }
+            buffer.flip();
+            StringBuilder result = new StringBuilder();
+            while (buffer.hasRemaining()) {
+                result.append((char) buffer.get());
+            }
+            return result;
+        }
+
+        private void serializeOTel(TransactionImpl transaction) {
+            List<IdImpl> profilingCorrelationStackTraceIds = transaction.getProfilingCorrelationStackTraceIds();
             synchronized (profilingCorrelationStackTraceIds) {
-                serializeOtel(transaction, profilingCorrelationStackTraceIds);
+                serializeOtel(transaction, profilingCorrelationStackTraceIds, null);
             }
         }
 
-        private void serializeOtel(AbstractSpan<?> span, List<Id> profilingStackTraceIds) {
+        private void serializeOtel(AbstractSpanImpl<?> span, List<IdImpl> profilingStackTraceIds, @Nullable CharSequence httpRequestBody) {
             OTelSpanKind kind = span.getOtelKind();
             Map<String, Object> attributes = span.getOtelAttributes();
 
-            boolean hasAttributes = !attributes.isEmpty() || !profilingStackTraceIds.isEmpty();
+            boolean hasAttributes = !attributes.isEmpty() || !profilingStackTraceIds.isEmpty() || httpRequestBody != null;
             boolean hasKind = kind != null;
             if (hasKind || hasAttributes) {
                 writeFieldName("otel");
@@ -1116,6 +1134,13 @@ public class DslJsonSerializer {
                         }
                         jw.writeByte(ARRAY_END);
                     }
+                    if (httpRequestBody != null) {
+                        if (!isFirstAttrib) {
+                            jw.writeByte(COMMA);
+                        }
+                        writeFieldName("http.request.body.content");
+                        jw.writeString(httpRequestBody);
+                    }
                     jw.writeByte(OBJECT_END);
                 }
 
@@ -1146,7 +1171,7 @@ public class DslJsonSerializer {
             jw.writeByte(COMMA);
         }
 
-        private void serializeServiceNameWithFramework(@Nullable final Transaction transaction, final TraceContext traceContext, final ServiceOrigin serviceOrigin) {
+        private void serializeServiceNameWithFramework(@Nullable final TransactionImpl transaction, final TraceContextImpl traceContext, final ServiceOriginImpl serviceOrigin) {
             String serviceName = traceContext.getServiceName();
             String serviceVersion = traceContext.getServiceVersion();
             boolean isFrameworkNameNotNull = transaction != null && transaction.getFrameworkName() != null;
@@ -1166,7 +1191,7 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeServiceOrigin(final ServiceOrigin serviceOrigin) {
+        private void serializeServiceOrigin(final ServiceOriginImpl serviceOrigin) {
             writeFieldName("origin");
             jw.writeByte(OBJECT_START);
             if (null != serviceOrigin.getId()) {
@@ -1180,7 +1205,7 @@ public class DslJsonSerializer {
             jw.writeByte(COMMA);
         }
 
-        private void serializeCloudOrigin(final CloudOrigin cloudOrigin) {
+        private void serializeCloudOrigin(final CloudOriginImpl cloudOrigin) {
             writeFieldName("cloud");
             jw.writeByte(OBJECT_START);
 
@@ -1216,7 +1241,7 @@ public class DslJsonSerializer {
          *
          * @param span serialized span
          */
-        private void serializeSpanType(Span span) {
+        private void serializeSpanType(SpanImpl span) {
             writeFieldName("type");
             String type = span.getType();
             if (type != null) {
@@ -1342,7 +1367,7 @@ public class DslJsonSerializer {
             jw.writeByte(OBJECT_END);
         }
 
-        private void serializeSpanContext(SpanContext context, TraceContext traceContext) {
+        private void serializeSpanContext(SpanContextImpl context, TraceContextImpl traceContext) {
             writeFieldName("context");
             jw.writeByte(OBJECT_START);
 
@@ -1359,7 +1384,7 @@ public class DslJsonSerializer {
             jw.writeByte(COMMA);
         }
 
-        private void serializeDestination(Destination destination, @Nullable CharSequence resource) {
+        private void serializeDestination(DestinationImpl destination, @Nullable CharSequence resource) {
             if (destination.hasContent() || resource != null) {
                 writeFieldName("destination");
                 jw.writeByte(OBJECT_START);
@@ -1406,7 +1431,7 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeDestinationCloud(boolean isCloudHasContent, Destination.Cloud cloud) {
+        private void serializeDestinationCloud(boolean isCloudHasContent, DestinationImpl.CloudImpl cloud) {
             if (isCloudHasContent) {
                 writeFieldName("cloud");
                 jw.writeByte(OBJECT_START);
@@ -1415,7 +1440,7 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeMessageContext(final Message message) {
+        private void serializeMessageContext(final MessageImpl message) {
             if (message.hasContent()) {
                 writeFieldName("message");
                 jw.writeByte(OBJECT_START);
@@ -1463,7 +1488,7 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeFaas(final Faas faas) {
+        private void serializeFaas(final FaasImpl faas) {
             if (faas.hasContent()) {
                 writeFieldName("faas");
                 jw.writeByte(OBJECT_START);
@@ -1478,7 +1503,7 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeFaasTrigger(final FaasTrigger trigger) {
+        private void serializeFaasTrigger(final FaasTriggerImpl trigger) {
             if (trigger.hasContent()) {
                 writeFieldName("trigger");
                 jw.writeByte(OBJECT_START);
@@ -1489,7 +1514,7 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeDbContext(final Db db) {
+        private void serializeDbContext(final DbImpl db) {
             if (db.hasContent()) {
                 writeFieldName("db");
                 jw.writeByte(OBJECT_START);
@@ -1519,7 +1544,7 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeHttpContext(final Http http) {
+        private void serializeHttpContext(final HttpImpl http) {
             if (http.hasContent()) {
                 writeFieldName("http");
                 jw.writeByte(OBJECT_START);
@@ -1574,7 +1599,7 @@ public class DslJsonSerializer {
             jw.writeByte(COMMA);
         }
 
-        private void serializeContext(@Nullable final Transaction transaction, final TransactionContext context, TraceContext traceContext) {
+        private void serializeContext(@Nullable final TransactionImpl transaction, final TransactionContextImpl context, TraceContextImpl traceContext) {
             writeFieldName("context");
             jw.writeByte(OBJECT_START);
             serializeServiceNameWithFramework(transaction, traceContext, context.getServiceOrigin());
@@ -1602,7 +1627,7 @@ public class DslJsonSerializer {
         }
 
         // visible for testing
-        void serializeLabels(AbstractContext context) {
+        void serializeLabels(AbstractContextImpl context) {
             if (context.hasLabels()) {
                 serializeStringKeyScalarValueMap(context.getLabelIterator(), replaceBuilder, jw, false, apmServerClient.supportsNonStringLabels());
             } else {
@@ -1611,7 +1636,7 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeResponse(final Response response) {
+        private void serializeResponse(final ResponseImpl response) {
             if (response.hasContent()) {
                 writeFieldName("response");
                 jw.writeByte(OBJECT_START);
@@ -1625,7 +1650,7 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeRequest(final Request request) {
+        private void serializeRequest(final RequestImpl request) {
             if (request.hasContent()) {
                 writeFieldName("request");
                 jw.writeByte(OBJECT_START);
@@ -1660,7 +1685,7 @@ public class DslJsonSerializer {
         }
 
         // visible for testing
-        void serializeUrl(final Url url) {
+        void serializeUrl(final UrlImpl url) {
             jw.writeByte(OBJECT_START);
             writeField("full", url.getFull());
             writeField("hostname", url.getHostname());
@@ -1682,7 +1707,7 @@ public class DslJsonSerializer {
             jw.writeByte(OBJECT_END);
         }
 
-        private void serializeSocket(final Socket socket) {
+        private void serializeSocket(final SocketImpl socket) {
             writeFieldName("socket");
             jw.writeByte(OBJECT_START);
             writeLastField("remote_address", socket.getRemoteAddress());
@@ -1740,7 +1765,7 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeUser(final User user) {
+        private void serializeUser(final UserImpl user) {
             writeFieldName("user");
             jw.writeByte(OBJECT_START);
             writeField("domain", user.getDomain());
@@ -1834,12 +1859,12 @@ public class DslJsonSerializer {
             DslJsonUtil.writeFieldName(fieldName, jw);
         }
 
-        private void writeNonLastIdField(String fieldName, Id id) {
+        private void writeNonLastIdField(String fieldName, IdImpl id) {
             writeIdField(fieldName, id);
             jw.writeByte(COMMA);
         }
 
-        private void writeIdField(String fieldName, Id id) {
+        private void writeIdField(String fieldName, IdImpl id) {
             writeFieldName(fieldName);
             jw.writeByte(JsonWriter.QUOTE);
             id.writeAsHex(jw);

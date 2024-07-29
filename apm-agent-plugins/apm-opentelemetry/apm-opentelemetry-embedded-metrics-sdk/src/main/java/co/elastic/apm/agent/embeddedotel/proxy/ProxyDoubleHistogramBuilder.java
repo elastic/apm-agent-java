@@ -18,7 +18,7 @@
  */
 package co.elastic.apm.agent.embeddedotel.proxy;
 
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import io.opentelemetry.api.metrics.DoubleHistogramBuilder;
 
@@ -31,7 +31,7 @@ public class ProxyDoubleHistogramBuilder {
     public ProxyDoubleHistogramBuilder(DoubleHistogramBuilder delegate) {
         this.delegate = delegate;
         //apply default bucket boundaries
-        List<Double> boundaries = GlobalTracer.get().getConfig(MetricsConfiguration.class).getCustomMetricsHistogramBoundaries();
+        List<Double> boundaries = GlobalTracer.get().getConfig(MetricsConfigurationImpl.class).getCustomMetricsHistogramBoundaries();
         delegate.setExplicitBucketBoundariesAdvice(boundaries);
     }
 

@@ -21,11 +21,14 @@ package co.elastic.apm.agent.httpclient.v4;
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 public class ApacheHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
@@ -47,6 +50,20 @@ public class ApacheHttpClientInstrumentationTest extends AbstractHttpClientInstr
         CloseableHttpResponse response = client.execute(new HttpGet(path));
         response.getStatusLine().getStatusCode();
         response.close();
+    }
+
+    @Override
+    protected boolean isBodyCapturingSupported() {
+        return true;
+    }
+
+    @Override
+    protected void performPost(String path, byte[] content, String contentTypeHeader) throws Exception {
+        HttpPost request = new HttpPost(path);
+        request.setEntity(new InputStreamEntity(new ByteArrayInputStream(content)));
+        request.setHeader("Content-Type", contentTypeHeader);
+
+        client.execute(request);
     }
 
 }

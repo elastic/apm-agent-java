@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.opentracingimpl;
 
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -66,15 +66,15 @@ public abstract class ApmSpanInstrumentation extends OpenTracingBridgeInstrument
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void finishInternal(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable Object context,
                                               @Advice.Argument(0) long finishMicros) {
-                if (context instanceof AbstractSpan<?>) {
-                    doFinishInternal((AbstractSpan<?>) context, finishMicros);
+                if (context instanceof AbstractSpanImpl<?>) {
+                    doFinishInternal((AbstractSpanImpl<?>) context, finishMicros);
                 }
             }
 
-            public static void doFinishInternal(AbstractSpan<?> abstractSpan, long finishMicros) {
+            public static void doFinishInternal(AbstractSpanImpl<?> abstractSpan, long finishMicros) {
                 abstractSpan.incrementReferences();
-                if (abstractSpan instanceof Transaction) {
-                    Transaction transaction = (Transaction) abstractSpan;
+                if (abstractSpan instanceof TransactionImpl) {
+                    TransactionImpl transaction = (TransactionImpl) abstractSpan;
                     if (transaction.getType() == null) {
                         if (transaction.getContext().getRequest().hasContent()) {
                             transaction.withType(co.elastic.apm.agent.tracer.Transaction.TYPE_REQUEST);
@@ -99,8 +99,8 @@ public abstract class ApmSpanInstrumentation extends OpenTracingBridgeInstrument
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static void setOperationName(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable Object context,
                                                 @Advice.Argument(0) @Nullable String operationName) {
-                if (context instanceof AbstractSpan<?>) {
-                    ((AbstractSpan<?>) context).withName(operationName, PRIORITY_USER_SUPPLIED);
+                if (context instanceof AbstractSpanImpl<?>) {
+                    ((AbstractSpanImpl<?>) context).withName(operationName, PRIORITY_USER_SUPPLIED);
                 } else {
                     logger.warn("Calling setOperationName on an already finished span");
                 }
@@ -119,8 +119,8 @@ public abstract class ApmSpanInstrumentation extends OpenTracingBridgeInstrument
                                    @Advice.Argument(0) long epochTimestampMicros,
                                    @Advice.Argument(1) Map<String, ?> fields) {
 
-                if (context instanceof AbstractSpan<?>) {
-                    AbstractSpan<?> span = (AbstractSpan<?>) context;
+                if (context instanceof AbstractSpanImpl<?>) {
+                    AbstractSpanImpl<?> span = (AbstractSpanImpl<?>) context;
                     if ("error".equals(fields.get("event"))) {
                         final Object errorObject = fields.get("error.object");
                         if (errorObject instanceof Throwable) {
@@ -152,28 +152,28 @@ public abstract class ApmSpanInstrumentation extends OpenTracingBridgeInstrument
                 if (value == null) {
                     return;
                 }
-                if (abstractSpanObj instanceof Transaction) {
-                    handleTransactionTag((Transaction) abstractSpanObj, key, value);
-                } else if (abstractSpanObj instanceof Span) {
-                    handleSpanTag((Span) abstractSpanObj, key, value);
+                if (abstractSpanObj instanceof TransactionImpl) {
+                    handleTransactionTag((TransactionImpl) abstractSpanObj, key, value);
+                } else if (abstractSpanObj instanceof SpanImpl) {
+                    handleSpanTag((SpanImpl) abstractSpanObj, key, value);
                 } else {
                     logger.warn("Calling setTag on an already finished span");
                 }
             }
 
-            private static void handleTransactionTag(Transaction transaction, String key, Object value) {
+            private static void handleTransactionTag(TransactionImpl transaction, String key, Object value) {
                 if (!handleSpecialTransactionTag(transaction, key, value)) {
                     addTag(transaction, key, value);
                 }
             }
 
-            private static void handleSpanTag(Span span, String key, Object value) {
+            private static void handleSpanTag(SpanImpl span, String key, Object value) {
                 if (!handleSpecialSpanTag(span, key, value)) {
                     addTag(span, key, value);
                 }
             }
 
-            private static void addTag(AbstractSpan<?> transaction, String key, Object value) {
+            private static void addTag(AbstractSpanImpl<?> transaction, String key, Object value) {
                 if (value instanceof Number) {
                     transaction.addLabel(key, (Number) value);
                 } else if (value instanceof Boolean) {
@@ -185,7 +185,7 @@ public abstract class ApmSpanInstrumentation extends OpenTracingBridgeInstrument
 
             // unfortunately, we can't use the constants in io.opentracing.tag.Tags,
             // as we can't declare a direct dependency on the OT API
-            private static boolean handleSpecialTransactionTag(Transaction transaction, String key, Object value) {
+            private static boolean handleSpecialTransactionTag(TransactionImpl transaction, String key, Object value) {
                 if ("type".equals(key)) {
                     transaction.withType(value.toString());
                     return true;
@@ -228,7 +228,7 @@ public abstract class ApmSpanInstrumentation extends OpenTracingBridgeInstrument
                 return false;
             }
 
-            private static boolean handleSpecialSpanTag(Span span, String key, Object value) {
+            private static boolean handleSpecialSpanTag(SpanImpl span, String key, Object value) {
                 //noinspection IfCanBeSwitch
                 if ("type".equals(key)) {
                     if (span.getSubtype() == null && span.getAction() == null) {

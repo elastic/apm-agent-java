@@ -20,12 +20,12 @@ package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
+import static co.elastic.apm.agent.impl.context.AbstractContextImpl.REDACTED_CONTEXT_STRING;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SanitizingWebProcessorTest {
@@ -39,7 +39,7 @@ class SanitizingWebProcessorTest {
 
     @Test
     void processTransactions() {
-        Transaction transaction = new Transaction(MockTracer.create());
+        TransactionImpl transaction = new TransactionImpl(MockTracer.create());
         fillContext(transaction.getContext());
 
         processor.processBeforeReport(transaction);
@@ -49,7 +49,7 @@ class SanitizingWebProcessorTest {
 
     @Test
     void processErrors() {
-        final ErrorCapture errorCapture = new ErrorCapture(MockTracer.create());
+        final ErrorCaptureImpl errorCapture = new ErrorCaptureImpl(MockTracer.create());
         fillContext(errorCapture.getContext());
 
         processor.processBeforeReport(errorCapture);
@@ -57,7 +57,7 @@ class SanitizingWebProcessorTest {
         assertContainsNoSensitiveInformation(errorCapture.getContext());
     }
 
-    private void fillContext(TransactionContext context) {
+    private void fillContext(TransactionContextImpl context) {
         context.getRequest().addCookie("JESESSIONID", "CAFEBABE");
         context.getRequest().addCookie("non-sensitive", "foo");
         context.getRequest().addFormUrlEncodedParameter("cretidCard", "1234 1234 1234 1234");
@@ -70,7 +70,7 @@ class SanitizingWebProcessorTest {
         context.getResponse().addHeader("Content-Length", "-1");
     }
 
-    private void assertContainsNoSensitiveInformation(TransactionContext context) {
+    private void assertContainsNoSensitiveInformation(TransactionContextImpl context) {
         assertThat(context.getRequest().getCookies().get("JESESSIONID")).isEqualTo(REDACTED_CONTEXT_STRING);
         assertThat(context.getRequest().getCookies().get("non-sensitive")).isEqualTo("foo");
 

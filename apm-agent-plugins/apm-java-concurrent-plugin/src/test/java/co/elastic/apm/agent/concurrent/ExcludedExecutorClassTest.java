@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ExcludedExecutorClassTest extends AbstractInstrumentationTest {
 
     private ExecutorService executor;
-    private Transaction transaction;
+    private TransactionImpl transaction;
 
     @Before
     public void setUp() {

@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.esrestclient.v8_x;
 
 import co.elastic.apm.agent.esrestclient.AbstractEsClientInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
@@ -187,7 +187,7 @@ public class Elasticsearch8JavaIT extends AbstractEsClientInstrumentationTest {
         // todo: investigate this - no errors captured, because in this case ResponseListener#onSuccess is invoked instead of onFailure
         // assertThatErrorsExistWhenDeleteNonExistingIndex();
 
-        Span span = reporter.getFirstSpan();
+        SpanImpl span = reporter.getFirstSpan();
         assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
         validateSpan(span)
             .method("DELETE")
@@ -201,7 +201,7 @@ public class Elasticsearch8JavaIT extends AbstractEsClientInstrumentationTest {
     public void testDocumentScenario() throws Exception {
         // 1. Index a document and validate span content
         prepareDefaultDocumentAndIndex();
-        List<Span> spans = reporter.getSpans();
+        List<SpanImpl> spans = reporter.getSpans();
         try {
             assertThat(spans).hasSize(1);
             validateSpan(spans.get(0))
@@ -223,7 +223,7 @@ public class Elasticsearch8JavaIT extends AbstractEsClientInstrumentationTest {
             verifyTotalHits(response.hits());
             spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
-            Span searchSpan = spans.get(0);
+            SpanImpl searchSpan = spans.get(0);
 
             validateSpan(searchSpan)
                 .method("POST")
@@ -248,7 +248,7 @@ public class Elasticsearch8JavaIT extends AbstractEsClientInstrumentationTest {
 
             spans = reporter.getSpans();
             assertThat(spans).hasSize(2);
-            Span updateSpan = spans.get(0);
+            SpanImpl updateSpan = spans.get(0);
             validateSpan(updateSpan)
                 .method("POST")
                 .endpointName("update")
@@ -436,9 +436,9 @@ public class Elasticsearch8JavaIT extends AbstractEsClientInstrumentationTest {
             assertThat(items.size()).isEqualTo(1);
             MultiSearchItem multiSearchItem = (MultiSearchItem) items.get(0)._get();
             verifyTotalHits(multiSearchItem.hits());
-            List<Span> spans = reporter.getSpans();
+            List<SpanImpl> spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
-            Span span = spans.get(0);
+            SpanImpl span = spans.get(0);
 
             validateSpan(span)
                 .method("POST")

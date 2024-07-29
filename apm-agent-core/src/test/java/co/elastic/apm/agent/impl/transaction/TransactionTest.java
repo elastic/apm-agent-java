@@ -20,12 +20,12 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.TransactionUtils;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.baggage.Baggage;
+import co.elastic.apm.agent.impl.baggage.BaggageImpl;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.report.serialize.SerializationConstants;
@@ -49,11 +49,11 @@ public class TransactionTest {
 
     @BeforeEach
     void setUp() {
-        CoreConfiguration coreConfig = MockTracer.createRealTracer().getConfig(CoreConfiguration.class);
+        CoreConfigurationImpl coreConfig = MockTracer.createRealTracer().getConfig(CoreConfigurationImpl.class);
         SerializationConstants.init(coreConfig);
 
         jsonSerializer = new DslJsonSerializer(
-            mock(StacktraceConfiguration.class),
+            mock(StacktraceConfigurationImpl.class),
             mock(ApmServerClient.class),
             MetaDataMock.create()
         ).newWriter();
@@ -61,15 +61,15 @@ public class TransactionTest {
 
     @Test
     void resetState() {
-        final Transaction transaction = new Transaction(MockTracer.create());
+        final TransactionImpl transaction = new TransactionImpl(MockTracer.create());
         TransactionUtils.fillTransaction(transaction);
         transaction.resetState();
-        assertThat(jsonSerializer.toJsonString(transaction)).isEqualTo(jsonSerializer.toJsonString(new Transaction(MockTracer.create())));
+        assertThat(jsonSerializer.toJsonString(transaction)).isEqualTo(jsonSerializer.toJsonString(new TransactionImpl(MockTracer.create())));
     }
 
     @Test
     void getSetOutcome() {
-        Transaction transaction = new Transaction(MockTracer.create());
+        TransactionImpl transaction = new TransactionImpl(MockTracer.create());
 
         assertThat(transaction.getOutcome())
             .describedAs("default outcome should be unknown")
@@ -105,9 +105,9 @@ public class TransactionTest {
     @ParameterizedTest
     @MethodSource("typeTestArguments")
     void normalizeType(String type, String expectedType) {
-        Transaction transaction = new Transaction(MockTracer.createRealTracer());
+        TransactionImpl transaction = new TransactionImpl(MockTracer.createRealTracer());
 
-        transaction.startRoot(0, ConstantSampler.of(true), Baggage.EMPTY);
+        transaction.startRoot(0, ConstantSampler.of(true), BaggageImpl.EMPTY);
         assertThat(transaction.getType())
             .describedAs("transaction type should not be set by default")
             .isNull();
@@ -132,9 +132,9 @@ public class TransactionTest {
         int limit = 3;
 
         ElasticApmTracer tracer = MockTracer.createRealTracer();
-        doReturn(limit).when(tracer.getConfig(CoreConfiguration.class)).getTransactionMaxSpans();
+        doReturn(limit).when(tracer.getConfig(CoreConfigurationImpl.class)).getTransactionMaxSpans();
 
-        Transaction transaction = tracer.startRootTransaction(TransactionTest.class.getClassLoader());
+        TransactionImpl transaction = tracer.startRootTransaction(TransactionTest.class.getClassLoader());
         assertThat(transaction).isNotNull();
         transaction.activate();
 
@@ -172,11 +172,11 @@ public class TransactionTest {
     }
 
     /**
-     * A utility to enable arbitrary tests to set an existing {@link Transaction} state without making this functionality globally accessible
+     * A utility to enable arbitrary tests to set an existing {@link TransactionImpl} state without making this functionality globally accessible
      * @param recorded should the provided trace context be recorded
      * @param transaction a span of which state is to be set
      */
-    public static void setRecorded(boolean recorded, Transaction transaction) {
+    public static void setRecorded(boolean recorded, TransactionImpl transaction) {
         transaction.getTraceContext().setRecorded(recorded);
     }
 }

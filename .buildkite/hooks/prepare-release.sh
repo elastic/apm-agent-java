@@ -35,5 +35,5 @@ echo "$KEYPASS_SECRET" | gpg --batch --import "$KEY_FILE"
 echo "--- Configure git context :git:"
 # Configure the committer since the maven release requires to push changes to GitHub
 # This will help with the SLSA requirements.
-git config --global user.email "infra-root+apmmachine@elastic.co"
-git config --global user.name "apmmachine"
+git config --global user.email "${GIT_EMAIL}"
+git config --global user.name "${GIT_USER}"

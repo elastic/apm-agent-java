@@ -21,7 +21,7 @@ package co.elastic.apm.agent.pluginapi;
 import co.elastic.apm.agent.sdk.bytebuddy.AnnotationValueOffsetMappingFactory.AnnotationValueExtractor;
 import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
@@ -62,11 +62,11 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
     public static final Logger logger = LoggerFactory.getLogger(CaptureTransactionInstrumentation.class);
 
     private final CoreConfiguration coreConfig;
-    private final StacktraceConfiguration stacktraceConfig;
+    private final StacktraceConfigurationImpl stacktraceConfig;
 
     public CaptureTransactionInstrumentation(ElasticApmTracer tracer) {
         coreConfig = tracer.getConfig(CoreConfiguration.class);
-        stacktraceConfig = tracer.getConfig(StacktraceConfiguration.class);
+        stacktraceConfig = tracer.getConfig(StacktraceConfigurationImpl.class);
     }
 
     public static class AdviceClass {

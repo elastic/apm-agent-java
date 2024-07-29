@@ -26,7 +26,7 @@
 
 package co.elastic.apm.agent.impl.baggage.otel;
 
-import co.elastic.apm.agent.impl.baggage.Baggage;
+import co.elastic.apm.agent.impl.baggage.BaggageImpl;
 
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
@@ -63,7 +63,7 @@ public class Parser {
         reset(0);
     }
 
-    public void parseInto(Baggage.Builder baggageBuilder) {
+    public void parseInto(BaggageImpl.Builder baggageBuilder) {
         for (int i = 0, n = baggageHeader.length(); i < n; i++) {
             char current = baggageHeader.charAt(i);
 
@@ -141,7 +141,7 @@ public class Parser {
     }
 
     private static void putBaggage(
-        Baggage.Builder baggage,
+        BaggageImpl.Builder baggage,
         @Nullable String key,
         @Nullable String value,
         @Nullable String metadataValue) {

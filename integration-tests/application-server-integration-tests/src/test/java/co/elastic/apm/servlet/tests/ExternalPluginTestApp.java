@@ -19,7 +19,6 @@
 package co.elastic.apm.servlet.tests;
 
 import co.elastic.apm.agent.tracer.service.ServiceInfo;
-import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -91,7 +90,7 @@ public abstract class ExternalPluginTestApp extends TestApp {
 
     /**
      * Since we test custom transaction creation through the external plugin, the service name for this transaction cannot be
-     * captured through the {@link Tracer#setServiceInfoForClassLoader(ClassLoader, ServiceInfo)} mechanism.
+     * captured through the {@link co.elastic.apm.agent.impl.ElasticApmTracer#setServiceInfoForClassLoader(ClassLoader, ServiceInfo)} mechanism.
      */
     @Nullable
     @Override

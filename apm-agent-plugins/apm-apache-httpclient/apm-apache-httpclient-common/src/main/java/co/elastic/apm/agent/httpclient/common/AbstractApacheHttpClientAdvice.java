@@ -20,7 +20,7 @@ package co.elastic.apm.agent.httpclient.common;
 
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -34,15 +34,15 @@ public abstract class AbstractApacheHttpClientAdvice {
 
     public static <REQUEST, WRAPPER extends REQUEST, HTTPHOST, RESPONSE,
         HeaderAccessor extends TextHeaderSetter<REQUEST> &
-            TextHeaderGetter<REQUEST>> Object startSpan(final Tracer tracer,
+            TextHeaderGetter<REQUEST>> Span<?> startSpan(final Tracer tracer,
                                                         final ApacheHttpClientApiAdapter<REQUEST, WRAPPER, HTTPHOST, RESPONSE> adapter,
                                                         final WRAPPER request,
                                                         @Nullable final HTTPHOST httpHost,
                                                         final HeaderAccessor headerAccessor) throws URISyntaxException {
-        ElasticContext<?> elasticContext = tracer.currentContext();
+        TraceState<?> traceState = tracer.currentContext();
         Span<?> span = null;
-        if (elasticContext.getSpan() != null) {
-            span = HttpClientHelper.startHttpClientSpan(elasticContext, adapter.getMethod(request), adapter.getUri(request), adapter.getHostName(httpHost, request));
+        if (traceState.getSpan() != null) {
+            span = HttpClientHelper.startHttpClientSpan(traceState, adapter.getMethod(request), adapter.getUri(request), adapter.getHostName(httpHost, request));
             if (span != null) {
                 span.activate();
             }

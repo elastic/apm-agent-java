@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
 import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
-import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,7 +32,7 @@ class ThreadMetricsTest {
 
     private static final double NUM_ADDED_THREADS = 12.0;
     private final ThreadMetrics threadMetrics = new ThreadMetrics();
-    private MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class), spy(MetricsConfiguration.class));
+    private MetricRegistry registry = new MetricRegistry(mock(ReporterConfigurationImpl.class), spy(MetricsConfigurationImpl.class));
 
     @Test
     void testThreadCount() {

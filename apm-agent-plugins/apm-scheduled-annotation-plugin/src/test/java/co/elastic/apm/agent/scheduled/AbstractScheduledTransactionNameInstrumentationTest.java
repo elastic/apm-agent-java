@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.scheduled;
 
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -35,7 +35,7 @@ abstract class AbstractScheduledTransactionNameInstrumentationTest extends Abstr
         jeeCounter.scheduled();
         jeeCounter.scheduled();
         jeeCounter.scheduled();
-        List<Transaction> transactions = checkTransactions(jeeCounter, 3, "JeeCounterImpl#scheduled");
+        List<TransactionImpl> transactions = checkTransactions(jeeCounter, 3, "JeeCounterImpl#scheduled");
         checkOutcome(transactions, Outcome.SUCCESS);
     }
 
@@ -44,7 +44,7 @@ abstract class AbstractScheduledTransactionNameInstrumentationTest extends Abstr
         JeeCounter jeeCounter = createJeeCounterImpl();
         jeeCounter.scheduledJava7Repeatable();
         jeeCounter.scheduledJava7Repeatable();
-        List<Transaction> transactions = checkTransactions(jeeCounter, 2, "JeeCounterImpl#scheduledJava7Repeatable");
+        List<TransactionImpl> transactions = checkTransactions(jeeCounter, 2, "JeeCounterImpl#scheduledJava7Repeatable");
         checkOutcome(transactions, Outcome.SUCCESS);
     }
 
@@ -54,7 +54,7 @@ abstract class AbstractScheduledTransactionNameInstrumentationTest extends Abstr
 
         assertThatThrownBy(throwCounter::throwingException);
 
-        List<Transaction> transactions = checkTransactions(throwCounter, 1, "ThrowingCounterImpl#throwingException");
+        List<TransactionImpl> transactions = checkTransactions(throwCounter, 1, "ThrowingCounterImpl#throwingException");
         checkOutcome(transactions, Outcome.FAILURE);
     }
 

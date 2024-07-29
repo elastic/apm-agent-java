@@ -49,7 +49,7 @@ public class TraceContextW3CTest {
                     final boolean traceparentValid = testCase.get("is_traceparent_valid").booleanValue();
 
                     ElasticApmTracer tracer = MockTracer.create();
-                    final TraceContext traceContext = TraceContext.with64BitId(tracer);
+                    final TraceContextImpl traceContext = TraceContextImpl.with64BitId(tracer);
                     softly.assertThat(traceContext.asChildOf(traceParentHeader))
                         .withFailMessage("Expected '%s' to be %s", traceParentHeader, traceparentValid ? "valid" : "invalid")
                         .isEqualTo(traceparentValid);

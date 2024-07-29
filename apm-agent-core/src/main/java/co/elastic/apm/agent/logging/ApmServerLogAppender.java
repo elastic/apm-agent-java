@@ -47,7 +47,7 @@ public class ApmServerLogAppender extends AbstractAppender {
     private static ApmServerLogAppender INSTANCE;
 
     @Nullable
-    private volatile LoggingConfiguration config;
+    private volatile LoggingConfigurationImpl config;
     @Nullable
     private volatile Reporter reporter;
 
@@ -105,12 +105,12 @@ public class ApmServerLogAppender extends AbstractAppender {
         return new AbstractLifecycleListener() {
             @Override
             public void init(Tracer tracer) throws Exception {
-                initStreaming(tracer.getConfig(LoggingConfiguration.class), tracer.require(ElasticApmTracer.class).getReporter());
+                initStreaming(tracer.getConfig(LoggingConfigurationImpl.class), tracer.require(ElasticApmTracer.class).getReporter());
             }
         };
     }
 
-    private void initStreaming(LoggingConfiguration config, Reporter reporter) {
+    private void initStreaming(LoggingConfigurationImpl config, Reporter reporter) {
         if (isAgentInitialized()) {
             throw new IllegalStateException("streaming already initialized");
         }

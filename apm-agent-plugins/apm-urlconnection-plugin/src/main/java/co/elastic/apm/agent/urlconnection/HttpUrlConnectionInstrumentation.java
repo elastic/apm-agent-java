@@ -24,11 +24,10 @@ import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -86,7 +85,7 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
                 boolean actuallyConnected = connected || responseCode != -1;
 
                 boolean isNestedCall = callDepth.isNestedCallAndIncrement();
-                ElasticContext<?> activeContext = tracer.currentContext();
+                TraceState<?> activeContext = tracer.currentContext();
                 AbstractSpan<?> parentSpan = activeContext.getSpan();
                 Span<?> span = null;
                 if (parentSpan != null) {

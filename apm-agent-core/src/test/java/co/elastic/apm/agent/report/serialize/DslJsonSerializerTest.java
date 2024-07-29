@@ -20,19 +20,19 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.configuration.ServerlessConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
-import co.elastic.apm.agent.impl.Tracer;
-import co.elastic.apm.agent.impl.baggage.Baggage;
-import co.elastic.apm.agent.impl.context.AbstractContext;
-import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.baggage.BaggageImpl;
+import co.elastic.apm.agent.impl.context.AbstractContextImpl;
+import co.elastic.apm.agent.impl.context.BodyCaptureImpl;
+import co.elastic.apm.agent.impl.context.DestinationImpl;
 import co.elastic.apm.agent.impl.context.Headers;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.Url;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.context.RequestImpl;
+import co.elastic.apm.agent.impl.context.UrlImpl;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
 import co.elastic.apm.agent.impl.metadata.Agent;
 import co.elastic.apm.agent.impl.metadata.CloudProviderInfo;
 import co.elastic.apm.agent.impl.metadata.FaaSMetaDataExtension;
@@ -42,18 +42,18 @@ import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.NameAndIdField;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
-import co.elastic.apm.agent.impl.metadata.Service;
+import co.elastic.apm.agent.impl.metadata.ServiceImpl;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.IdImpl;
 import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.sdk.internal.util.IOUtils;
@@ -102,13 +102,13 @@ class DslJsonSerializerTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
+        StacktraceConfigurationImpl stacktraceConfiguration = mock(StacktraceConfigurationImpl.class);
         doReturn(15).when(stacktraceConfiguration).getStackTraceLimit();
         apmServerClient = mock(ApmServerClient.class);
         metaData = MetaDataMock.create();
         objectMapper = new ObjectMapper();
         tracer = MockTracer.createRealTracer();
-        SerializationConstants.init(tracer.getConfig(CoreConfiguration.class));
+        SerializationConstants.init(tracer.getConfig(CoreConfigurationImpl.class));
 
         DslJsonSerializer serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData);
         writer = serializer.newWriter();
@@ -149,7 +149,7 @@ class DslJsonSerializerTest {
 
         doReturn(useNumericPort).when(apmServerClient).supportsNumericUrlPort();
 
-        Url url = new Url()
+        UrlImpl url = new UrlImpl()
             .withPort(42)
             .withHostname("hostname")
             .withProtocol("http")
@@ -168,9 +168,9 @@ class DslJsonSerializerTest {
 
     @Test
     void testErrorSerialization() {
-        Transaction transaction = new Transaction(tracer);
-        transaction.startRoot(-1, ConstantSampler.of(true), Baggage.EMPTY);
-        ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
+        TransactionImpl transaction = new TransactionImpl(tracer);
+        transaction.startRoot(-1, ConstantSampler.of(true), BaggageImpl.EMPTY);
+        ErrorCaptureImpl error = new ErrorCaptureImpl(tracer).asChildOf(transaction).withTimestamp(5000);
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
         error.setTransactionName(new StringBuilder("Test Transaction"));
@@ -201,11 +201,11 @@ class DslJsonSerializerTest {
 
     @Test
     void testErrorSerializationAllFrames() {
-        StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
+        StacktraceConfigurationImpl stacktraceConfiguration = mock(StacktraceConfigurationImpl.class);
         doReturn(-1).when(stacktraceConfiguration).getStackTraceLimit();
         writer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData).newWriter();
 
-        ErrorCapture error = new ErrorCapture(tracer).withTimestamp(5000);
+        ErrorCaptureImpl error = new ErrorCaptureImpl(tracer).withTimestamp(5000);
         Exception exception = new Exception("test");
         error.setException(exception);
 
@@ -216,10 +216,10 @@ class DslJsonSerializerTest {
 
     @Test
     void testErrorSerializationWithEmptyTraceId() {
-        Transaction transaction = new Transaction(tracer);
-        transaction.startRoot(-1, ConstantSampler.of(true), Baggage.EMPTY);
+        TransactionImpl transaction = new TransactionImpl(tracer);
+        transaction.startRoot(-1, ConstantSampler.of(true), BaggageImpl.EMPTY);
         transaction.getTraceContext().getTraceId().resetState();
-        ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
+        ErrorCaptureImpl error = new ErrorCaptureImpl(tracer).asChildOf(transaction).withTimestamp(5000);
 
         JsonNode errorTree = readJsonString(writer.toJsonString(error));
 
@@ -240,7 +240,7 @@ class DslJsonSerializerTest {
     @Test
     void testErrorSerializationOutsideTrace() {
         MockReporter reporter = new MockReporter();
-        Tracer tracer = MockTracer.createRealTracer(reporter);
+        ElasticApmTracer tracer = MockTracer.createRealTracer(reporter);
         tracer.captureAndReportException(new Exception("test"), getClass().getClassLoader());
 
         String errorJson = writer.toJsonString(reporter.getFirstError());
@@ -261,7 +261,7 @@ class DslJsonSerializerTest {
     void testErrorSerializationWithExceptionCause() {
         // testing outside trace is enough to test exception serialization logic
         MockReporter reporter = new MockReporter();
-        Tracer tracer = MockTracer.createRealTracer(reporter);
+        ElasticApmTracer tracer = MockTracer.createRealTracer(reporter);
 
         Exception cause2 = new IllegalStateException("second cause");
         Exception cause1 = new RuntimeException("first cause", cause2);
@@ -336,7 +336,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testNullTransactionHeaders() {
-        Transaction transaction = new Transaction(tracer);
+        TransactionImpl transaction = new TransactionImpl(tracer);
         transaction.getContext().getRequest().addHeader("foo", (String) null);
         transaction.getContext().getRequest().addHeader("baz", (Enumeration<String>) null);
         transaction.getContext().getRequest().getHeaders().add("bar", null);
@@ -350,7 +350,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testMessageHeaders() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("messaging").withSubtype("kafka");
 
@@ -380,7 +380,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanTypeSerialization() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("template.jsf.render.view");
         JsonNode spanJson = readJsonString(writer.toJsonString(span));
@@ -395,19 +395,19 @@ class DslJsonSerializerTest {
         spanJson = readJsonString(writer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template.jsf_lifecycle.render_view");
 
-        span = new Span(tracer);
+        span = new SpanImpl(tracer);
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("template").withAction("jsf.render");
         spanJson = readJsonString(writer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template..jsf_render");
 
-        span = new Span(tracer);
+        span = new SpanImpl(tracer);
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("template").withSubtype("jsf.render");
         spanJson = readJsonString(writer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template.jsf_render");
 
-        span = new Span(tracer);
+        span = new SpanImpl(tracer);
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withSubtype("jsf").withAction("render");
         spanJson = readJsonString(writer.toJsonString(span));
@@ -416,7 +416,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanHttpContextSerialization() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.getContext().getHttp()
             .withMethod("GET")
             .withStatusCode(523)
@@ -429,6 +429,21 @@ class DslJsonSerializerTest {
         assertThat(http.get("method").textValue()).isEqualTo("GET");
         assertThat(http.get("url").textValue()).isEqualTo("http://whatever.com/path");
         assertThat(http.get("status_code").intValue()).isEqualTo(523);
+    }
+
+    @Test
+    void testSpanHttpRequestBodySerialization() {
+        SpanImpl span = new SpanImpl(tracer);
+
+        BodyCaptureImpl bodyCapture = span.getContext().getHttp().getRequestBody();
+        bodyCapture.markEligibleForCapturing();
+        bodyCapture.startCapture("utf-8", 50);
+        bodyCapture.append("foobar".getBytes(StandardCharsets.UTF_8), 0, 6);
+
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
+        JsonNode otel = spanJson.get("otel");
+        JsonNode attribs = otel.get("attributes");
+        assertThat(attribs.get("http.request.body.content").textValue()).isEqualTo("foobar");
     }
 
     public static boolean[][] getContentCombinations() {
@@ -451,8 +466,8 @@ class DslJsonSerializerTest {
         boolean hasPort = contentCombination[1];
         boolean hasServiceTargetContent = contentCombination[2];
         boolean hasCloudContent = contentCombination[3];
-        Span span = new Span(MockTracer.create());
-        Destination dest = span.getContext().getDestination();
+        SpanImpl span = new SpanImpl(MockTracer.create());
+        DestinationImpl dest = span.getContext().getDestination();
         if (hasAddress) {
             dest.withAddress("whatever.com");
         }
@@ -509,7 +524,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testTransactionNullFrameworkNameSerialization() {
-        Transaction transaction = new Transaction(tracer);
+        TransactionImpl transaction = new TransactionImpl(tracer);
         transaction.getTraceContext().setServiceInfo("service-name", null);
         transaction.setUserFrameworkName(null);
         JsonNode transactionJson = readJsonString(writer.toJsonString(transaction));
@@ -518,7 +533,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testTransactionEmptyFrameworkNameSerialization() {
-        Transaction transaction = new Transaction(tracer);
+        TransactionImpl transaction = new TransactionImpl(tracer);
         transaction.getTraceContext().setServiceInfo("service-name", null);
         transaction.setUserFrameworkName("");
         JsonNode transactionJson = readJsonString(writer.toJsonString(transaction));
@@ -527,7 +542,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanInvalidDestinationSerialization() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.getContext().getDestination().withAddress(null).withPort(-1);
 
         span.getContext().getServiceTarget().withUserName("").withNameOnlyDestinationResource();
@@ -540,7 +555,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanValidPortSerialization() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.getContext().getDestination().withAddress(null).withPort(8090);
 
         JsonNode spanJson = readJsonString(writer.toJsonString(span));
@@ -553,7 +568,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanValidAddressAndPortSerialization() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.getContext().getDestination().withAddress("test").withPort(8090);
 
         JsonNode spanJson = readJsonString(writer.toJsonString(span));
@@ -566,7 +581,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanValidAddressSerialization() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.getContext().getDestination().withAddress("test").withPort(0);
 
         JsonNode spanJson = readJsonString(writer.toJsonString(span));
@@ -579,7 +594,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanValidServiceResourceSerialization() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.getContext().getDestination().withAddress("").withPort(0);
         span.getContext().getServiceTarget().withType("test").withName("resource");
 
@@ -598,7 +613,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanValidServiceAndAddressResourceSerialization() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.getContext().getDestination().withAddress("test-address").withPort(0);
 
         span.getContext().getServiceTarget().withType("test").withName("test-resource").withNameOnlyDestinationResource();
@@ -618,7 +633,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanMessageContextSerialization() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.getContext().getMessage()
             .withRoutingKey("routing-key")
             .withQueue("test-queue")
@@ -651,7 +666,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanMessageContextSerializationWithoutRoutingKey() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.getContext().getMessage()
             .withQueue("test-queue")
             .withBody("test-body")
@@ -666,7 +681,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanMessageContextInvalidTimestamp() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.getContext().getMessage()
             .withQueue("test-queue");
 
@@ -683,7 +698,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanDbContextSerialization() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.getContext().getDb()
             .withAffectedRowsCount(5)
             .withInstance("test-instance")
@@ -700,11 +715,11 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanChildIdSerialization() {
-        Id id1 = Id.new64BitId();
+        IdImpl id1 = IdImpl.new64BitId();
         id1.setToRandomValue();
-        Id id2 = Id.new64BitId();
+        IdImpl id2 = IdImpl.new64BitId();
         id2.setToRandomValue();
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.withChildIds(LongList.of(id1.getLeastSignificantBits(), id2.getLeastSignificantBits()));
 
         JsonNode spanJson = readJsonString(writer.toJsonString(span));
@@ -730,7 +745,7 @@ class DslJsonSerializerTest {
         doReturn(kubernetes).when(systemInfo).getKubernetesInfo();
         doReturn("9 3/4").when(systemInfo).getPlatform(); // this terrible pun is intentional
 
-        Service service = new Service()
+        ServiceImpl service = new ServiceImpl()
             .withAgent(new Agent("MyAgent", "1.11.1"))
             .withFramework(new Framework("Lambda_Java", "1.2.3"))
             .withName("MyService")
@@ -743,7 +758,7 @@ class DslJsonSerializerTest {
 
         CloudProviderInfo cloudProviderInfo = createCloudProviderInfo();
         writer = new DslJsonSerializer(
-            mock(StacktraceConfiguration.class),
+            mock(StacktraceConfigurationImpl.class),
             apmServerClient,
             MetaDataMock.create(
                 processInfo, service, systemInfo, cloudProviderInfo,
@@ -824,8 +839,8 @@ class DslJsonSerializerTest {
     @Test
     void testConfiguredServiceNodeName() throws Exception {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig();
-        doReturn("Custom-Node-Name").when(configRegistry.getConfig(CoreConfiguration.class)).getServiceNodeName();
-        writer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient, MetaData.create(configRegistry, null)).newWriter();
+        doReturn("Custom-Node-Name").when(configRegistry.getConfig(CoreConfigurationImpl.class)).getServiceNodeName();
+        writer = new DslJsonSerializer(mock(StacktraceConfigurationImpl.class), apmServerClient, MetaData.create(configRegistry, null)).newWriter();
         writer.blockUntilReady();
         writer.appendMetaDataNdJsonToStream();
         JsonNode metaDataJson = readJsonString(writer.toString()).get("metadata");
@@ -840,7 +855,7 @@ class DslJsonSerializerTest {
     @Test
     void testTransactionContextSerialization() {
 
-        Transaction transaction = new Transaction(tracer);
+        TransactionImpl transaction = new TransactionImpl(tracer);
 
         // test only the most recent server here
         doReturn(true).when(apmServerClient).supportsMultipleHeaderValues();
@@ -851,7 +866,7 @@ class DslJsonSerializerTest {
             .withEmail("user@email.com")
             .withUsername("bob");
 
-        Request request = transaction.getContext().getRequest();
+        RequestImpl request = transaction.getContext().getRequest();
 
         request.withMethod("PUT")
             .withHttpVersion("5.0")
@@ -889,7 +904,7 @@ class DslJsonSerializerTest {
         transaction.getContext().getServiceOrigin().withName("origin_service_name").withId("origin_service_id").withVersion("origin_service_version");
         transaction.getContext().getCloudOrigin().withRegion("origin_cloud_region").withAccountId("origin_cloud_account_id").withProvider("origin_cloud_provider").withServiceName("origin_cloud_service_name");
 
-        TraceContext ctx = transaction.getTraceContext();
+        TraceContextImpl ctx = transaction.getTraceContext();
 
         String serviceName = RandomStringUtils.randomAlphabetic(5);
         String serviceVersion = RandomStringUtils.randomAlphabetic(5);
@@ -985,8 +1000,8 @@ class DslJsonSerializerTest {
 
     @Test
     void testBodyBuffer() throws IOException {
-        final Transaction transaction = createRootTransaction();
-        Request request = transaction.getContext().getRequest();
+        final TransactionImpl transaction = createRootTransaction();
+        RequestImpl request = transaction.getContext().getRequest();
         final CharBuffer bodyBuffer = request.withBodyBuffer();
         IOUtils.decodeUtf8Bytes("{f".getBytes(StandardCharsets.UTF_8), bodyBuffer);
         IOUtils.decodeUtf8Bytes(new byte[]{0, 0, 'o', 'o', 0}, 2, 2, bodyBuffer);
@@ -1008,8 +1023,8 @@ class DslJsonSerializerTest {
      */
     @Test
     void testNonFlippedTransactionBodyBuffer() throws IOException {
-        final Transaction transaction = createRootTransaction();
-        Request request = transaction.getContext().getRequest();
+        final TransactionImpl transaction = createRootTransaction();
+        RequestImpl request = transaction.getContext().getRequest();
         request.withBodyBuffer().append("TEST");
         final String content = writer.toJsonString(transaction);
         System.out.println(content);
@@ -1019,13 +1034,13 @@ class DslJsonSerializerTest {
 
     @Test
     void testBodyBufferCopy() throws IOException {
-        final Transaction transaction = createRootTransaction();
-        Request request = transaction.getContext().getRequest();
+        final TransactionImpl transaction = createRootTransaction();
+        RequestImpl request = transaction.getContext().getRequest();
         final CharBuffer bodyBuffer = request.withBodyBuffer();
         IOUtils.decodeUtf8Bytes("{foo}".getBytes(StandardCharsets.UTF_8), bodyBuffer);
         request.endOfBufferInput();
 
-        Transaction copy = createRootTransaction();
+        TransactionImpl copy = createRootTransaction();
         copy.getContext().copyFrom(transaction.getContext());
 
         assertThat(objectMapper.readTree(writer.toJsonString(copy)).get("context"))
@@ -1034,7 +1049,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testCustomContext() throws Exception {
-        final Transaction transaction = createRootTransaction();
+        final TransactionImpl transaction = createRootTransaction();
         transaction.addCustomContext("string", "foo");
         final String longString = RandomStringUtils.randomAlphanumeric(10001);
         transaction.addCustomContext("long_string", longString);
@@ -1050,7 +1065,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testJsonSchemaDslJsonEmptyValues() throws IOException {
-        Transaction transaction = new Transaction(tracer);
+        TransactionImpl transaction = new TransactionImpl(tracer);
         final String content = writer.toJsonString(transaction);
         System.out.println(content);
         JsonNode transactionNode = objectMapper.readTree(content);
@@ -1271,11 +1286,11 @@ class DslJsonSerializerTest {
         // because metadata is serialized only once, we need to ensure it's properly updated whenever needed
         // in particular when going from 'apm server version unknown' to 'apm server version known'
 
-        StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
+        StacktraceConfigurationImpl stacktraceConfiguration = mock(StacktraceConfigurationImpl.class);
         apmServerClient = mock(ApmServerClient.class);
         doReturn(value1).when(apmServerClient).supportsActivationMethod();
 
-        Service service = mock(Service.class);
+        ServiceImpl service = mock(ServiceImpl.class);
         Agent agent = new Agent("java-test", "1.0.0");
         doReturn(agent).when(service).getAgent();
         MetaData mockMetada = MetaDataMock.createDefaultMock();
@@ -1316,11 +1331,11 @@ class DslJsonSerializerTest {
     }
 
     private MetaData createMetaData() throws Exception {
-        return createMetaData(SystemInfo.create("hostname", 0, mock(ServerlessConfiguration.class)));
+        return createMetaData(SystemInfo.create("hostname", 0, mock(ServerlessConfigurationImpl.class)));
     }
 
     private MetaData createMetaData(SystemInfo system) throws Exception {
-        Service service = new Service().withAgent(new Agent("name", "version")).withName("name");
+        ServiceImpl service = new ServiceImpl().withAgent(new Agent("name", "version")).withName("name");
         final ProcessInfo processInfo = new ProcessInfo("title");
         processInfo.getArgv().add("test");
         return MetaDataMock.create(processInfo, service, system, createCloudProviderInfo(), new HashMap<>(0), createFaaSMetaDataExtension()).get();
@@ -1346,22 +1361,22 @@ class DslJsonSerializerTest {
         );
     }
 
-    private Transaction createRootTransaction(Sampler sampler) {
-        Transaction t = new Transaction(tracer);
-        t.startRoot(0, sampler, Baggage.EMPTY);
+    private TransactionImpl createRootTransaction(Sampler sampler) {
+        TransactionImpl t = new TransactionImpl(tracer);
+        t.startRoot(0, sampler, BaggageImpl.EMPTY);
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().withFull("http://localhost:8080/foo/bar");
         return t;
     }
 
-    private Transaction createRootTransaction() {
+    private TransactionImpl createRootTransaction() {
         return createRootTransaction(ConstantSampler.of(true));
     }
 
     @Test
     void testSpanStackFrameSerialization() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.setStackTrace(Arrays.asList(StackFrame.of("foo.Bar", "baz"), StackFrame.of("foo.Bar$Baz", "qux")));
 
         JsonNode spanJson = readJsonString(writer.toJsonString(span));
@@ -1394,10 +1409,10 @@ class DslJsonSerializerTest {
 
     private void testRootTransactionSampleRate(boolean sampled, double samplerRate, @Nullable Double expectedRate) {
         Sampler sampler = mock(Sampler.class);
-        doReturn(sampled).when(sampler).isSampled(any(Id.class));
+        doReturn(sampled).when(sampler).isSampled(any(IdImpl.class));
         doReturn(samplerRate).when(sampler).getSampleRate();
 
-        Transaction transaction = createRootTransaction(sampler);
+        TransactionImpl transaction = createRootTransaction(sampler);
 
         JsonNode jsonTransaction = readJsonString(writer.toJsonString(transaction));
 
@@ -1415,15 +1430,15 @@ class DslJsonSerializerTest {
     void testSampledSpan_rateFromParent() {
 
         Sampler sampler = mock(Sampler.class);
-        doReturn(true).when(sampler).isSampled(any(Id.class));
+        doReturn(true).when(sampler).isSampled(any(IdImpl.class));
         doReturn(0.42d).when(sampler).getSampleRate();
 
-        Transaction transaction = createRootTransaction(sampler);
-        TraceContext transactionContext = transaction.getTraceContext();
+        TransactionImpl transaction = createRootTransaction(sampler);
+        TraceContextImpl transactionContext = transaction.getTraceContext();
         assertThat(transactionContext.isSampled()).isTrue();
         assertThat(transactionContext.getSampleRate()).isEqualTo(0.42d);
 
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.getTraceContext().asChildOf(transactionContext);
 
         JsonNode jsonSpan = readJsonString(writer.toJsonString(span));
@@ -1434,10 +1449,10 @@ class DslJsonSerializerTest {
     @Test
     void testNonSampledTransaction() {
         Sampler sampler = mock(Sampler.class);
-        doReturn(false).when(sampler).isSampled(any(Id.class));
+        doReturn(false).when(sampler).isSampled(any(IdImpl.class));
         doReturn(0.42d).when(sampler).getSampleRate();
-        Transaction transaction = createRootTransaction(sampler);
-        TraceContext transactionContext = transaction.getTraceContext();
+        TransactionImpl transaction = createRootTransaction(sampler);
+        TraceContextImpl transactionContext = transaction.getTraceContext();
         assertThat(transactionContext.isSampled()).isFalse();
         assertThat(transactionContext.getSampleRate()).isEqualTo(0.0d);
         JsonNode transactionSpan = readJsonString(writer.toJsonString(transaction));
@@ -1450,7 +1465,7 @@ class DslJsonSerializerTest {
         // older versions of APM server do not support multi-value headers
         // thus we should make sure to not break those
 
-        Transaction transaction = createRootTransaction();
+        TransactionImpl transaction = createRootTransaction();
 
         transaction.getContext().getRequest()
             .addHeader("user-agent", "user-agent1")
@@ -1491,14 +1506,14 @@ class DslJsonSerializerTest {
 
     @Test
     void testOTelSpanSerialization() {
-        Span span = new Span(tracer).withName("otel span");
+        SpanImpl span = new SpanImpl(tracer).withName("otel span");
         testOTelSpanSerialization(span, s -> readJsonString(writer.toJsonString(s)));
 
-        Transaction transaction = new Transaction(MockTracer.create()).withName("otel span");
+        TransactionImpl transaction = new TransactionImpl(MockTracer.create()).withName("otel span");
         testOTelSpanSerialization(transaction, t -> readJsonString(writer.toJsonString(t)));
     }
 
-    private <T extends AbstractSpan<T>> void testOTelSpanSerialization(T context, Function<T, JsonNode> toJson) {
+    private <T extends AbstractSpanImpl<T>> void testOTelSpanSerialization(T context, Function<T, JsonNode> toJson) {
 
         assertThat(context.getOtelKind())
             .describedAs("otel span kind should not be set by default")
@@ -1537,7 +1552,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testNonCompositeSpan() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
 
         JsonNode jsonSpan = readJsonString(writer.toJsonString(span));
         assertThat(jsonSpan.get("composite")).isNull();
@@ -1545,7 +1560,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testCompositeSpan() {
-        Span span = new Span(tracer);
+        SpanImpl span = new SpanImpl(tracer);
         span.getComposite().init(1234, "exact_match");
 
         JsonNode jsonSpan = readJsonString(writer.toJsonString(span));
@@ -1560,12 +1575,12 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanLinksSerialization() {
-        Transaction transaction = tracer.startRootTransaction(null);
-        Span parent1 = Objects.requireNonNull(transaction).createSpan();
+        TransactionImpl transaction = tracer.startRootTransaction(null);
+        SpanImpl parent1 = Objects.requireNonNull(transaction).createSpan();
         Map<String, String> textTraceContextCarrier = new HashMap<>();
         parent1.propagateContext(textTraceContextCarrier, TextHeaderMapAccessor.INSTANCE, null);
         transaction.addSpanLink(TextHeaderMapAccessor.INSTANCE, textTraceContextCarrier);
-        Span parent2 = transaction.createSpan();
+        SpanImpl parent2 = transaction.createSpan();
         Map<String, String> binaryTraceContextCarrier = new HashMap<>();
         parent2.propagateContext(binaryTraceContextCarrier, TextHeaderMapAccessor.INSTANCE, null);
         transaction.addSpanLink(TextHeaderMapAccessor.INSTANCE, binaryTraceContextCarrier);
@@ -1584,15 +1599,15 @@ class DslJsonSerializerTest {
         assertThat(parent2link.get("span_id").textValue()).isEqualTo(parent2.getTraceContext().getId().toString());
     }
 
-    private static Id create128BitId(String id) {
-        Id idObj = Id.new128BitId();
+    private static IdImpl create128BitId(String id) {
+        IdImpl idObj = IdImpl.new128BitId();
         idObj.fromHexString(id, 0);
         return idObj;
     }
 
     @Test
     void testProfilingStackTraceIdSerialization() {
-        Transaction transaction = tracer.startRootTransaction(null);
+        TransactionImpl transaction = tracer.startRootTransaction(null);
 
         transaction.addProfilerCorrelationStackTrace(create128BitId("a1a2a3a4a5a6a7a8b1b2b3b4b5b6b7b8"));
         transaction.addProfilerCorrelationStackTrace(create128BitId("c1c2c3c4c5c6c7c8d1d2d3d4d5d6d7d8"));
@@ -1696,7 +1711,7 @@ class DslJsonSerializerTest {
     }
 
     private String serializeTags(Map<String, Object> tags) {
-        final AbstractContext context = new AbstractContext() {
+        final AbstractContextImpl context = new AbstractContextImpl() {
         };
         for (Map.Entry<String, Object> entry : tags.entrySet()) {
             if (entry.getValue() instanceof String) {

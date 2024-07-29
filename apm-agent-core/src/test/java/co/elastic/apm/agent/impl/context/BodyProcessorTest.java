@@ -19,38 +19,38 @@
 package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
-import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
+import static co.elastic.apm.agent.impl.context.AbstractContextImpl.REDACTED_CONTEXT_STRING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
 class BodyProcessorTest {
 
     private BodyProcessor bodyProcessor;
-    private CoreConfiguration config;
+    private CoreConfigurationImpl config;
     private ElasticApmTracer tracer;
 
     @BeforeEach
     void setUp() {
         ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         bodyProcessor = new BodyProcessor(configurationRegistry);
-        config = configurationRegistry.getConfig(CoreConfiguration.class);
+        config = configurationRegistry.getConfig(CoreConfigurationImpl.class);
         tracer = MockTracer.create(configurationRegistry);
     }
 
     @Test
     void processBeforeReport_Transaction_EventTypeAll() {
-        doReturn(CoreConfiguration.EventType.ALL).when(config).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.ALL).when(config).getCaptureBody();
 
-        final Transaction transaction = processTransaction();
+        final TransactionImpl transaction = processTransaction();
 
         assertThat(transaction.getContext().getRequest().getBody().toString()).isEqualTo("foo");
         assertThat(transaction.getContext().getMessage().getBodyForRead().toString()).isEqualTo("bar");
@@ -58,9 +58,9 @@ class BodyProcessorTest {
 
     @Test
     void processBeforeReport_Transaction_EventTypeTransaction() {
-        doReturn(CoreConfiguration.EventType.TRANSACTIONS).when(config).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.TRANSACTIONS).when(config).getCaptureBody();
 
-        final Transaction transaction = processTransaction();
+        final TransactionImpl transaction = processTransaction();
 
         assertThat(transaction.getContext().getRequest().getBody().toString()).isEqualTo("foo");
         assertThat(transaction.getContext().getMessage().getBodyForRead().toString()).isEqualTo("bar");
@@ -68,9 +68,9 @@ class BodyProcessorTest {
 
     @Test
     void processBeforeReport_Transaction_EventTypeError() {
-        doReturn(CoreConfiguration.EventType.ERRORS).when(config).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.ERRORS).when(config).getCaptureBody();
 
-        final Transaction transaction = processTransaction();
+        final TransactionImpl transaction = processTransaction();
 
         assertThat(transaction.getContext().getRequest().getBody().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
         assertThat(transaction.getContext().getMessage().getBodyForRead().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
@@ -78,9 +78,9 @@ class BodyProcessorTest {
 
     @Test
     void processBeforeReport_Transaction_EventTypeOff() {
-        doReturn(CoreConfiguration.EventType.OFF).when(config).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.OFF).when(config).getCaptureBody();
 
-        final Transaction transaction = processTransaction();
+        final TransactionImpl transaction = processTransaction();
 
         assertThat(transaction.getContext().getRequest().getBody().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
         assertThat(transaction.getContext().getMessage().getBodyForRead().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
@@ -88,9 +88,9 @@ class BodyProcessorTest {
 
     @Test
     void processBeforeReport_Error_EventTypeAll() {
-        doReturn(CoreConfiguration.EventType.ALL).when(config).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.ALL).when(config).getCaptureBody();
 
-        final ErrorCapture error = processError();
+        final ErrorCaptureImpl error = processError();
 
         assertThat(error.getContext().getRequest().getBody().toString()).isEqualTo("foo");
         assertThat(error.getContext().getMessage().getBodyForRead().toString()).isEqualTo("bar");
@@ -98,9 +98,9 @@ class BodyProcessorTest {
 
     @Test
     void processBeforeReport_Error_EventTypeTransaction() {
-        doReturn(CoreConfiguration.EventType.TRANSACTIONS).when(config).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.TRANSACTIONS).when(config).getCaptureBody();
 
-        final ErrorCapture error = processError();
+        final ErrorCaptureImpl error = processError();
 
         assertThat(error.getContext().getRequest().getBody().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
         assertThat(error.getContext().getMessage().getBodyForRead().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
@@ -108,9 +108,9 @@ class BodyProcessorTest {
 
     @Test
     void processBeforeReport_Error_EventTypeError() {
-        doReturn(CoreConfiguration.EventType.ERRORS).when(config).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.ERRORS).when(config).getCaptureBody();
 
-        final ErrorCapture error = processError();
+        final ErrorCaptureImpl error = processError();
 
         assertThat(error.getContext().getRequest().getBody().toString()).isEqualTo("foo");
         assertThat(error.getContext().getMessage().getBodyForRead().toString()).isEqualTo("bar");
@@ -118,17 +118,17 @@ class BodyProcessorTest {
 
     @Test
     void processBeforeReport_Error_EventTypeOff() {
-        doReturn(CoreConfiguration.EventType.OFF).when(config).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.OFF).when(config).getCaptureBody();
 
-        final ErrorCapture error = processError();
+        final ErrorCaptureImpl error = processError();
 
         assertThat(error.getContext().getRequest().getBody().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
         assertThat(error.getContext().getMessage().getBodyForRead().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
     }
 
-    private Transaction processTransaction() {
-        final Transaction transaction = new Transaction(tracer);
-        Request request = transaction.getContext().getRequest();
+    private TransactionImpl processTransaction() {
+        final TransactionImpl transaction = new TransactionImpl(tracer);
+        RequestImpl request = transaction.getContext().getRequest();
         request.withBodyBuffer().append("foo");
         request.endOfBufferInput();
         transaction.getContext().getMessage().withBody("bar");
@@ -136,9 +136,9 @@ class BodyProcessorTest {
         return transaction;
     }
 
-    private ErrorCapture processError() {
-        final ErrorCapture error = new ErrorCapture(tracer);
-        Request request = error.getContext().getRequest();
+    private ErrorCaptureImpl processError() {
+        final ErrorCaptureImpl error = new ErrorCaptureImpl(tracer);
+        RequestImpl request = error.getContext().getRequest();
         request.withBodyBuffer().append("foo");
         request.endOfBufferInput();
         error.getContext().getMessage().withBody("bar");

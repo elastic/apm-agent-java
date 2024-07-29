@@ -7,13 +7,6 @@ ES_USER_SECRET=$(vault read -field=es_user secret/ci/elastic-apm-agent-java/open
 ES_PASS_SECRET=$(vault read -field=es_pass secret/ci/elastic-apm-agent-java/opentelemetry-benchmark)
 export ES_URL_SECRET ES_USER_SECRET ES_PASS_SECRET
 
-echo "--- Prepare github secrets :vault:"
-GITHUB_SECRET=$(vault kv get -field token "kv/ci-shared/observability-ci/github-apmmachine")
-GH_TOKEN=$GITHUB_SECRET
-export GITHUB_SECRET GH_TOKEN
-GITHUB_USERNAME=apmmachine
-export GITHUB_USERNAME
-
 echo "--- Install gh :github:"
 GH_URL=https://github.com/cli/cli/releases/download/v2.37.0/gh_2.37.0_linux_amd64.tar.gz
 GH_HOME=$(pwd)/.gh

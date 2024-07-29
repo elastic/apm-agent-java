@@ -20,11 +20,11 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.configuration.ServerlessConfiguration;
+import co.elastic.apm.agent.configuration.ServerlessConfigurationImpl;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
@@ -79,7 +79,7 @@ public class PartialTransactionTest {
         ApmServerClient client = new ApmServerClient(spyConfig);
         client.start(List.of(new URL(apmServer.getRuntimeInfo().getHttpBaseUrl())));
 
-        StacktraceConfiguration stackTraceConfig = spyConfig.getConfig(StacktraceConfiguration.class);
+        StacktraceConfigurationImpl stackTraceConfig = spyConfig.getConfig(StacktraceConfigurationImpl.class);
         DslJsonSerializer serializer = new DslJsonSerializer(stackTraceConfig, client, MetaDataMock.create());
 
         PartialTransactionReporter partialTransactionReporter = new PartialTransactionReporter(client, serializer, objectPoolFactory);
@@ -96,10 +96,10 @@ public class PartialTransactionTest {
     @Test
     public void testReportAwsLambdaTransaction() {
         apmServer.stubFor(post(urlEqualTo("/register/transaction")).willReturn(aResponse().withStatus(200)));
-        ServerlessConfiguration serverlessConfig = spyConfig.getConfig(ServerlessConfiguration.class);
+        ServerlessConfigurationImpl serverlessConfig = spyConfig.getConfig(ServerlessConfigurationImpl.class);
         doReturn(true).when(serverlessConfig).runsOnAwsLambda();
 
-        Transaction tx1 = tracer
+        TransactionImpl tx1 = tracer
             .startRootTransaction(null)
             .withName("faas-transaction");
         tx1.getFaas().withExecution("foo-bar-id");
@@ -135,7 +135,7 @@ public class PartialTransactionTest {
         tx1.deactivate().end();
         apmServer.verify(1, postRequestedFor(urlEqualTo("/register/transaction")));
 
-        Transaction tx2 = tracer
+        TransactionImpl tx2 = tracer
             .startRootTransaction(null)
             .withName("second-faas-transaction");
         tx2.getFaas().withExecution("baz-id");
@@ -170,10 +170,10 @@ public class PartialTransactionTest {
     @Test
     public void testNoMoreReportingAfter4xx() {
         apmServer.stubFor(post(urlEqualTo("/register/transaction")).willReturn(aResponse().withStatus(404)));
-        ServerlessConfiguration serverlessConfig = spyConfig.getConfig(ServerlessConfiguration.class);
+        ServerlessConfigurationImpl serverlessConfig = spyConfig.getConfig(ServerlessConfigurationImpl.class);
         doReturn(true).when(serverlessConfig).runsOnAwsLambda();
 
-        Transaction tx1 = tracer
+        TransactionImpl tx1 = tracer
             .startRootTransaction(null)
             .withName("faas-transaction");
         tx1.getFaas().withExecution("foo-bar-id");
@@ -182,7 +182,7 @@ public class PartialTransactionTest {
 
         tx1.deactivate().end();
 
-        Transaction tx2 = tracer
+        TransactionImpl tx2 = tracer
             .startRootTransaction(null)
             .withName("faas-transaction");
         tx2.getFaas().withExecution("foo-bar-id");
@@ -196,10 +196,10 @@ public class PartialTransactionTest {
     @Test
     public void testNonLambdaTransactionNotReported() {
         apmServer.stubFor(post(urlEqualTo("/register/transaction")).willReturn(aResponse().withStatus(200)));
-        ServerlessConfiguration serverlessConfig = spyConfig.getConfig(ServerlessConfiguration.class);
+        ServerlessConfigurationImpl serverlessConfig = spyConfig.getConfig(ServerlessConfigurationImpl.class);
         doReturn(true).when(serverlessConfig).runsOnAwsLambda();
 
-        Transaction transaction = tracer.startRootTransaction(null).withName("nonfaas-transaction");
+        TransactionImpl transaction = tracer.startRootTransaction(null).withName("nonfaas-transaction");
         transaction.activate();
 
         apmServer.verify(0, postRequestedFor(urlEqualTo("/register/transaction")));

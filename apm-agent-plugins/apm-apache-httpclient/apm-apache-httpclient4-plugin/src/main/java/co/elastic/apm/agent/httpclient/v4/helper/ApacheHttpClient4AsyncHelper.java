@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.httpclient.v4.helper;
 
 import co.elastic.apm.agent.httpclient.common.ApacheHttpClientAsyncHelper;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -66,7 +66,7 @@ public class ApacheHttpClient4AsyncHelper implements ApacheHttpClientAsyncHelper
     }
 
     public HttpAsyncRequestProducerWrapper wrapRequestProducer(HttpAsyncRequestProducer requestProducer, @Nullable Span<?> span,
-                                                               ElasticContext<?> toPropagate) {
+                                                               TraceState<?> toPropagate) {
         return requestProducerWrapperObjectPool.createInstance().with(requestProducer, span, toPropagate);
     }
 

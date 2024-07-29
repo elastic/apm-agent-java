@@ -18,11 +18,12 @@
  */
 package co.elastic.apm.agent.profiler;
 
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.profiler.collections.LongHashSet;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -71,12 +72,12 @@ public class CallTree implements Recyclable {
      * Used in {@link #spanify} to override the parent.
      */
     @Nullable
-    private TraceContext activeContextOfDirectParent;
+    private TraceContextImpl activeContextOfDirectParent;
     private long deactivationTimestamp = -1;
     private boolean isSpan;
     private int depth;
     /**
-     * @see co.elastic.apm.agent.impl.transaction.AbstractSpan#childIds
+     * @see AbstractSpanImpl#childIds
      */
     @Nullable
     private ChildList childIds;
@@ -115,12 +116,12 @@ public class CallTree implements Recyclable {
         return parent;
     }
 
-    public void activation(TraceContext traceContext, long activationTimestamp) {
+    public void activation(TraceContextImpl traceContext, long activationTimestamp) {
         this.activeContextOfDirectParent = traceContext;
         this.activationTimestamp = activationTimestamp;
     }
 
-    protected void handleDeactivation(TraceContext deactivatedSpan, long activationTimestamp, long deactivationTimestamp) {
+    protected void handleDeactivation(TraceContextImpl deactivatedSpan, long activationTimestamp, long deactivationTimestamp) {
         if (deactivatedSpan.idEquals(activeContextOfDirectParent)) {
             this.deactivationTimestamp = deactivationTimestamp;
         } else {
@@ -167,7 +168,7 @@ public class CallTree implements Recyclable {
      * @param minDurationNs
      * @param root
      */
-    protected CallTree addFrame(List<StackFrame> stackFrames, int index, @Nullable TraceContext activeSpan, long activationTimestamp, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs, Root root) {
+    protected CallTree addFrame(List<StackFrame> stackFrames, int index, @Nullable TraceContextImpl activeSpan, long activationTimestamp, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs, Root root) {
         count++;
         lastSeen = nanoTime;
         //     c ee   ← traceContext not set - they are not a child of the active span but the frame below them
@@ -227,7 +228,7 @@ public class CallTree implements Recyclable {
         }
     }
 
-    private CallTree addChild(StackFrame frame, List<StackFrame> stackFrames, int index, @Nullable TraceContext traceContext, long activationTimestamp, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs, Root root) {
+    private CallTree addChild(StackFrame frame, List<StackFrame> stackFrames, int index, @Nullable TraceContextImpl traceContext, long activationTimestamp, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs, Root root) {
         CallTree callTree = callTreePool.createInstance();
         callTree.set(this, frame, nanoTime);
         if (traceContext != null) {
@@ -375,13 +376,13 @@ public class CallTree implements Recyclable {
         }
     }
 
-    int spanify(CallTree.Root root, TraceContext parentContext, TraceContext nonInferredParentContext) {
+    int spanify(CallTree.Root root, TraceContextImpl parentContext, TraceContextImpl nonInferredParentContext) {
         int createdSpans = 0;
         if (activeContextOfDirectParent != null) {
             parentContext = activeContextOfDirectParent;
             nonInferredParentContext = activeContextOfDirectParent;
         }
-        Span span = null;
+        SpanImpl span = null;
         if (!isPillar() || isLeaf()) {
             createdSpans++;
             span = asSpan(root, parentContext, nonInferredParentContext);
@@ -397,9 +398,9 @@ public class CallTree implements Recyclable {
         return createdSpans;
     }
 
-    protected Span asSpan(Root root, TraceContext parentContext, TraceContext nonInferredParentContext) {
+    protected SpanImpl asSpan(Root root, TraceContextImpl parentContext, TraceContextImpl nonInferredParentContext) {
         transferMaybeChildIdsToChildIds();
-        Span span = parentContext.createSpan(root.getEpochMicros(this.start))
+        SpanImpl span = parentContext.createSpan(root.getEpochMicros(this.start))
             .withType("app")
             .withSubtype("inferred");
 
@@ -493,8 +494,8 @@ public class CallTree implements Recyclable {
 
     /**
      * When a regular span is activated,
-     * we want it's {@link TraceContext#getId() span.id} to be added to the call tree that represents the
-     * {@linkplain CallTree.Root#topOfStack top of the stack} to ensure correct parent/child relationships via re-parenting (See also {@link Span#childIds}).
+     * we want it's {@link TraceContextImpl#getId() span.id} to be added to the call tree that represents the
+     * {@linkplain CallTree.Root#topOfStack top of the stack} to ensure correct parent/child relationships via re-parenting (See also {@link SpanImpl#childIds}).
      * <p>
      * However, the {@linkplain CallTree.Root#topOfStack current top of the stack} may turn out to not be the right target.
      * Consider this example:
@@ -593,23 +594,23 @@ public class CallTree implements Recyclable {
          * The context of the thread root,
          * mostly a transaction or a span which got activated in an auxiliary thread
          */
-        protected TraceContext rootContext;
+        protected TraceContextImpl rootContext;
         /**
          * The context of the transaction or span which is currently {@link ElasticApmTracer#getActive() active}.
          * This is lazily deserialized from {@link #activeSpanSerialized} if there's an actual {@linkplain #addStackTrace stack trace}
          * for this activation.
          */
         @Nullable
-        private TraceContext activeSpan;
+        private TraceContextImpl activeSpan;
         /**
          * The timestamp of when {@link #activeSpan} got activated
          */
         private long activationTimestamp = -1;
         /**
          * The context of the transaction or span which is currently {@link ElasticApmTracer#getActive() active},
-         * in its {@linkplain TraceContext#serialize serialized} form.
+         * in its {@linkplain TraceContextImpl#serialize serialized} form.
          */
-        private byte[] activeSpanSerialized = new byte[TraceContext.SERIALIZED_LENGTH];
+        private byte[] activeSpanSerialized = new byte[TraceContextImpl.SERIALIZED_LENGTH];
         @Nullable
         private CallTree previousTopOfStack;
         @Nullable
@@ -618,7 +619,7 @@ public class CallTree implements Recyclable {
         private final LongHashSet activeSet = new LongHashSet();
 
         public Root(ElasticApmTracer tracer) {
-            this.rootContext = TraceContext.with64BitId(tracer);
+            this.rootContext = TraceContextImpl.with64BitId(tracer);
         }
 
         private void set(byte[] traceContext, @Nullable String serviceName, @Nullable String serviceVersion, long nanoTime) {
@@ -636,10 +637,10 @@ public class CallTree implements Recyclable {
         public void onActivation(byte[] active, long timestamp) {
             setActiveSpan(active, timestamp);
             if (topOfStack != null) {
-                long spanId = TraceContext.getSpanId(active);
+                long spanId = TraceContextImpl.getSpanId(active);
                 activeSet.add(spanId);
                 if (!isNestedActivation(topOfStack)) {
-                    topOfStack.addMaybeChildId(spanId, TraceContext.getParentId(active));
+                    topOfStack.addMaybeChildId(spanId, TraceContextImpl.getParentId(active));
                 }
             }
         }
@@ -673,7 +674,7 @@ public class CallTree implements Recyclable {
             // that's because isNestedActivation is only called if topOfStack != null
             // this optimizes for the case where we have no stack traces for a fast executing transaction
             if (topOfStack != null) {
-                long spanId = TraceContext.getSpanId(deactivated);
+                long spanId = TraceContextImpl.getSpanId(deactivated);
                 activeSet.remove(spanId);
             }
         }
@@ -684,7 +685,7 @@ public class CallTree implements Recyclable {
             boolean firstFrameAfterActivation = false;
             if (activeSpan == null) {
                 firstFrameAfterActivation = true;
-                activeSpan = TraceContext.with64BitId(tracer);
+                activeSpan = TraceContextImpl.with64BitId(tracer);
                 activeSpan.deserialize(activeSpanSerialized, rootContext.getServiceName(), rootContext.getServiceVersion());
             }
             previousTopOfStack = topOfStack;
@@ -726,12 +727,12 @@ public class CallTree implements Recyclable {
 
         /**
          * Creates spans for call tree nodes if they are either not a {@linkplain #isPillar() pillar} or are a {@linkplain #isLeaf() leaf}.
-         * Nodes which are not converted to {@link Span}s are part of the {@link Span#stackFrames} for the nodes which do get converted to a span.
+         * Nodes which are not converted to {@link SpanImpl}s are part of the {@link SpanImpl#stackFrames} for the nodes which do get converted to a span.
          * <p>
          * Parent/child relationships with the regular spans are maintained.
          * One exception is that an inferred span can't be the parent of a regular span.
          * That is because the regular spans have already been reported once the inferred spans are created.
-         * In the future, we might make it possible to update the {@link TraceContext#parentId}
+         * In the future, we might make it possible to update the {@link TraceContextImpl#parentId}
          * of a regular span so that it correctly reflects being a child of an inferred span.
          * </p>
          */
@@ -744,7 +745,7 @@ public class CallTree implements Recyclable {
             return createdSpans;
         }
 
-        public TraceContext getRootContext() {
+        public TraceContextImpl getRootContext() {
             return rootContext;
         }
 

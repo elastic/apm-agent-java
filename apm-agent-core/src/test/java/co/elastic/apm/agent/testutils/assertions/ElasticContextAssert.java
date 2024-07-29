@@ -18,9 +18,9 @@
  */
 package co.elastic.apm.agent.testutils.assertions;
 
-import co.elastic.apm.agent.impl.transaction.ElasticContext;
+import co.elastic.apm.agent.impl.transaction.TraceStateImpl;
 
-public class ElasticContextAssert<SELF extends ElasticContextAssert<SELF, ACTUAL>, ACTUAL extends ElasticContext<?>> extends BaseAssert<SELF, ACTUAL> {
+public class ElasticContextAssert<SELF extends ElasticContextAssert<SELF, ACTUAL>, ACTUAL extends TraceStateImpl<?>> extends BaseAssert<SELF, ACTUAL> {
 
     protected ElasticContextAssert(ACTUAL actual, Class<SELF> selfType) {
         super(actual, selfType);

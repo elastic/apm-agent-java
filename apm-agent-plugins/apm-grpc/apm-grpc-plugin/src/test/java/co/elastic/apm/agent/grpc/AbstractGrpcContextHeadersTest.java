@@ -21,9 +21,9 @@ package co.elastic.apm.agent.grpc;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcApp;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,7 +61,7 @@ public abstract class AbstractGrpcContextHeadersTest extends AbstractInstrumenta
         // transaction 1 (root transaction) will do the gRPC call and create a span
         // transaction 2 will handle the gRPC call and create a transaction
 
-        Transaction transaction1 = createRootTransaction();
+        TransactionImpl transaction1 = createRootTransaction();
         try {
 
             assertThat(app.sayHello("oscar", 0)).isEqualTo("hello(oscar)");
@@ -76,20 +76,20 @@ public abstract class AbstractGrpcContextHeadersTest extends AbstractInstrumenta
                 .hasSize(2);
         });
 
-        List<Transaction> transactions = reporter.getTransactions();
+        List<TransactionImpl> transactions = reporter.getTransactions();
         assertThat(transactions).hasSize(2);
 
         assertThat(transactions).contains(transaction1);
 
-        Transaction transaction2 = transactions.stream()
+        TransactionImpl transaction2 = transactions.stream()
             .filter((t) -> !t.equals(transaction1))
             .findFirst()
             .orElseThrow(() -> null);
 
-        List<Span> spans = reporter.getSpans();
+        List<SpanImpl> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
 
-        Span span = spans.get(0);
+        SpanImpl span = spans.get(0);
 
         assertThat(transaction2.isChildOf(span))
             .describedAs("server transaction parent %s should be client span %s",
@@ -99,14 +99,14 @@ public abstract class AbstractGrpcContextHeadersTest extends AbstractInstrumenta
 
     }
 
-    private static Transaction createRootTransaction() {
+    private static TransactionImpl createRootTransaction() {
         return tracer.startRootTransaction(AbstractGrpcClientInstrumentationTest.class.getClassLoader())
             .withName("root")
             .withType("test")
             .activate();
     }
 
-    private static void endRootTransaction(Transaction transaction) {
+    private static void endRootTransaction(TransactionImpl transaction) {
         transaction
             .withOutcome(Outcome.SUCCESS)
             .deactivate()

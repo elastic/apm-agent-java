@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.httpclient.v4.helper;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.apache.http.HttpException;
@@ -39,7 +39,7 @@ public class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer
     private volatile HttpAsyncRequestProducer delegate;
 
     @Nullable
-    private ElasticContext<?> toPropagate;
+    private TraceState<?> toPropagate;
 
     @Nullable
     private Span<?> span;
@@ -59,7 +59,7 @@ public class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer
      * @return the {@link HttpAsyncRequestProducer} wrapper
      */
     public HttpAsyncRequestProducerWrapper with(HttpAsyncRequestProducer delegate, @Nullable Span<?> span,
-                                                ElasticContext<?> toPropagate) {
+                                                TraceState<?> toPropagate) {
         // Order is important due to visibility - write to delegate last on this (initiating) thread
         this.span = span;
         toPropagate.incrementReferences();
@@ -85,6 +85,7 @@ public class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer
         // trace context propagation
         if (request != null) {
             if (span != null) {
+                RequestBodyCaptureRegistry.potentiallyCaptureRequestBody(request, span);
                 RequestLine requestLine = request.getRequestLine();
                 if (requestLine != null) {
                     String method = requestLine.getMethod();

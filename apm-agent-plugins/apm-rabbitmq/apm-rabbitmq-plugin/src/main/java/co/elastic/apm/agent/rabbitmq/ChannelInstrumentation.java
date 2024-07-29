@@ -22,8 +22,9 @@ import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderSetter;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -137,10 +138,9 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                 if (exitSpan != null) {
 
                     exchange = normalizeExchangeName(exchange);
-
+                    String transactionNameSuffix = normalizeExchangeName(resolveTransactionNameSuffix(exchange, routingKey));
                     exitSpan.withAction("send")
-                        .withName("RabbitMQ SEND to ").appendToName(exchange);
-
+                        .withName("RabbitMQ SEND to ").appendToName(transactionNameSuffix);
                 }
 
                 properties = propagateTraceContext(tracer.currentContext(), properties);
@@ -155,7 +155,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                 return new Object[]{properties, exitSpan};
             }
 
-            private static AMQP.BasicProperties propagateTraceContext(ElasticContext<?> toPropagate,
+            private static AMQP.BasicProperties propagateTraceContext(TraceState<?> toPropagate,
                                                                       @Nullable AMQP.BasicProperties originalBasicProperties) {
                 AMQP.BasicProperties properties = originalBasicProperties;
                 if (properties == null) {
@@ -172,6 +172,15 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                 toPropagate.propagateContext(headersWithContext, RabbitMQTextHeaderSetter.INSTANCE, null);
 
                 return properties.builder().headers(headersWithContext).build();
+            }
+
+            private static String resolveTransactionNameSuffix(String exchange, String routingKey) {
+
+                if (MessagingConfiguration.RabbitMQNamingMode.ROUTING_KEY == AbstractBaseInstrumentation.getRabbitMQNamingMode()) {
+                    return routingKey;
+                } else {
+                    return exchange;
+                }
             }
 
             @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)

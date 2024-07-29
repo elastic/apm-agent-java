@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.awssdk.v1;
 
 import co.elastic.apm.agent.awssdk.common.AbstractSQSClientIT;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -52,9 +52,9 @@ public class SQSClientIT extends AbstractSQSClientIT {
     private AmazonSQS sqs;
     private AmazonSQSAsync sqsAsync;
 
-    private final Consumer<Span> messagingAssert = span -> assertThat(span.getContext().getMessage().getQueueName()).isEqualTo(SQS_QUEUE_NAME);
+    private final Consumer<SpanImpl> messagingAssert = span -> assertThat(span.getContext().getMessage().getQueueName()).isEqualTo(SQS_QUEUE_NAME);
 
-    CoreConfiguration coreConfiguration;
+    CoreConfigurationImpl coreConfiguration;
     MessagingConfiguration messagingConfiguration;
 
     public SQSClientIT() {
@@ -63,7 +63,7 @@ public class SQSClientIT extends AbstractSQSClientIT {
 
     @BeforeEach
     public void setupClient() {
-        coreConfiguration = tracer.getConfig(CoreConfiguration.class);
+        coreConfiguration = tracer.getConfig(CoreConfigurationImpl.class);
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
 
         sqs = AmazonSQSClient.builder()
@@ -79,7 +79,7 @@ public class SQSClientIT extends AbstractSQSClientIT {
 
     @Test
     public void testSQSClient() {
-        Transaction transaction = startTestRootTransaction("sqs-test");
+        TransactionImpl transaction = startTestRootTransaction("sqs-test");
 
         newTest(() -> sqs.createQueue(SQS_QUEUE_NAME))
             .operationName("CreateQueue")
@@ -158,7 +158,7 @@ public class SQSClientIT extends AbstractSQSClientIT {
 
     @Test
     public void testAsyncSQSClient() {
-        Transaction transaction = startTestRootTransaction("sqs-test");
+        TransactionImpl transaction = startTestRootTransaction("sqs-test");
 
         newTest(() -> sqsAsync.createQueueAsync(SQS_QUEUE_NAME))
             .operationName("CreateQueue")

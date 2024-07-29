@@ -19,13 +19,13 @@
 package co.elastic.apm.agent.dubbo;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.test.TestPort;
 import co.elastic.apm.agent.tracer.Outcome;
 import org.junit.jupiter.api.AfterAll;
@@ -45,7 +45,7 @@ import static org.mockito.Mockito.doReturn;
 
 public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumentationTest {
 
-    private static CoreConfiguration coreConfig;
+    private static CoreConfigurationImpl coreConfig;
 
     @Nullable
     private static DubboTestApi dubboTestApi;
@@ -54,7 +54,7 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
 
     @BeforeAll
     static void initInstrumentation() {
-        coreConfig = tracer.getConfig(CoreConfiguration.class);
+        coreConfig = tracer.getConfig(CoreConfigurationImpl.class);
     }
 
     @BeforeEach
@@ -71,14 +71,14 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
             dubboTestApi = buildDubboTestApi(port, backendPort);
         }
 
-        doReturn(CoreConfiguration.EventType.OFF).when(coreConfig).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.OFF).when(coreConfig).getCaptureBody();
 
         startTestRootTransaction("dubbo test");
     }
 
     @AfterEach
     void afterEach() {
-        Transaction transaction = tracer.currentTransaction();
+        TransactionImpl transaction = tracer.currentTransaction();
         if (transaction != null) {
             transaction.deactivate().end();
         }
@@ -125,15 +125,15 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
 
         // transaction on the receiving side
         reporter.awaitTransactionCount(1);
-        Transaction transaction = reporter.getFirstTransaction();
+        TransactionImpl transaction = reporter.getFirstTransaction();
         validateDubboTransaction(transaction, "normalReturn");
 
         // span on the emitting side (outgoing from this method)
         reporter.awaitSpanCount(1);
-        Span span = validateDubboSpan(reporter.getFirstSpan(), "normalReturn");
+        SpanImpl span = validateDubboSpan(reporter.getFirstSpan(), "normalReturn");
         assertThat(span).isSync();
 
-        List<ErrorCapture> errors = reporter.getErrors();
+        List<ErrorCaptureImpl> errors = reporter.getErrors();
         assertThat(errors.size()).isEqualTo(0);
     }
 
@@ -147,9 +147,9 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
             assertThat(e).isInstanceOf(BizException.class);
         }
 
-        List<ErrorCapture> errors = reporter.getErrors();
+        List<ErrorCaptureImpl> errors = reporter.getErrors();
         assertThat(errors).hasSize(2);
-        for (ErrorCapture error : errors) {
+        for (ErrorCaptureImpl error : errors) {
             assertThat(error.getException()).isInstanceOf(BizException.class);
         }
 
@@ -179,20 +179,20 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         assertThat(reporter.getFirstSpan(5000)).isNotNull();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(2);
-        List<ErrorCapture> errors = reporter.getErrors();
+        List<ErrorCaptureImpl> errors = reporter.getErrors();
         assertThat(errors).hasSize(1);
         assertThat(errors.get(0).getException()).isInstanceOf(BizException.class);
 
         assertThat(reporter.getSpanByName("DubboTestApi#asyncNoReturn")).isAsync();
     }
 
-    public void validateDubboTransaction(Transaction transaction, String methodName) {
+    public void validateDubboTransaction(TransactionImpl transaction, String methodName) {
         assertThat(transaction)
             .hasType("request")
             .hasName("DubboTestApi#" + methodName);
     }
 
-    public static Span validateDubboSpan(Span span, String methodName) {
+    public static SpanImpl validateDubboSpan(SpanImpl span, String methodName) {
         assertThat(span)
             .hasName("DubboTestApi#" + methodName)
             .hasType("external")
@@ -225,8 +225,8 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         assertThat(reporter.getTransactions()).hasSize(2);
         assertThat(reporter.getSpans()).hasSize(2);
 
-        Map<String, Transaction> transactionMap = buildMap(reporter.getTransactions());
-        Map<String, Span> spanMap = buildMap(reporter.getSpans());
+        Map<String, TransactionImpl> transactionMap = buildMap(reporter.getTransactions());
+        Map<String, SpanImpl> spanMap = buildMap(reporter.getSpans());
 
         String testApiName = "DubboTestApi#willInvokeAnotherApi";
         String anotherApiName = "AnotherApi#echo";
@@ -241,7 +241,7 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
             .isEqualTo(transactionMap.get(anotherApiName).getTraceContext().getParentId().toString());
     }
 
-    public <T extends AbstractSpan<?>> Map<String, T> buildMap(List<T> list) {
+    public <T extends AbstractSpanImpl<?>> Map<String, T> buildMap(List<T> list) {
         Map<String, T> map = new HashMap<>();
         for (T t : list) {
             map.put(t.getNameAsString(), t);

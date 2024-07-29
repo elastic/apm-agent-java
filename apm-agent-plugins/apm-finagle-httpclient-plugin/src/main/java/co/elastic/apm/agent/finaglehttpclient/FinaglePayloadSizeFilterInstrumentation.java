@@ -23,7 +23,7 @@ import co.elastic.apm.agent.finaglehttpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -31,7 +31,6 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.dispatch.HeaderUtils;
 import com.twitter.finagle.http.Request;
 import com.twitter.finagle.http.Response;
 import com.twitter.finagle.tracing.Trace;
@@ -128,7 +127,7 @@ public class FinaglePayloadSizeFilterInstrumentation extends ElasticApmInstrumen
             if (request == null || INBOUND_REQUEST_CLASS.isInstance(request)) {
                 return null;
             }
-            ElasticContext<?> parentContext = tracer.currentContext();
+            TraceState<?> parentContext = tracer.currentContext();
             AbstractSpan<?> parent = parentContext.getSpan();
             Span<?> span = null;
             if (parent != null) {

@@ -20,6 +20,7 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
@@ -33,7 +34,7 @@ import java.util.stream.Collectors;
 /**
  * Can be used in combination with the files created by
  * {@link ProfilingConfiguration#backupDiagnosticFiles} to replay the creation of profiler-inferred spans.
- * This is useful, for example, to troubleshoot why {@link co.elastic.apm.agent.impl.transaction.Span#childIds} are set as expected.
+ * This is useful, for example, to troubleshoot why {@link SpanImpl#childIds} are set as expected.
  */
 public class SamplingProfilerReplay {
 

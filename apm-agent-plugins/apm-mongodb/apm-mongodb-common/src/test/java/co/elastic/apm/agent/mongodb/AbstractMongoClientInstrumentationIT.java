@@ -19,10 +19,9 @@
 package co.elastic.apm.agent.mongodb;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.testutils.TestContainersUtils;
 import co.elastic.apm.agent.testutils.assertions.DbAssert;
@@ -71,7 +70,7 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
 
     @After
     public void endTransaction() throws Exception {
-        Transaction currentTransaction = tracer.currentTransaction();
+        TransactionImpl currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
             currentTransaction.deactivate().end();
         }
@@ -100,7 +99,7 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
         // trying to drop when it does not exist creates an error
         dropCollection();
 
-        List<Span> spans = reporter.getSpans();
+        List<SpanImpl> spans = reporter.getSpans();
         assertThat(spans).hasSize(3);
 
         verifySpan(spans.get(0), getSpanName("create"), Outcome.SUCCESS);
@@ -235,7 +234,7 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
     private void checkReportedSpans(String... operations) {
         assertThat(reporter.getNumReportedSpans()).isEqualTo(operations.length);
 
-        List<Span> spans = reporter.getSpans();
+        List<SpanImpl> spans = reporter.getSpans();
         assertThat(spans).hasSize(operations.length);
         for (int i = 0; i < operations.length; i++) {
             verifySpan(spans.get(i), getSpanName(operations[i]), Outcome.SUCCESS);
@@ -246,7 +245,7 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
         return false;
     }
 
-    private void verifySpan(Span span, String expectedName, Outcome expectedOutcome) {
+    private void verifySpan(SpanImpl span, String expectedName, Outcome expectedOutcome) {
 
         assertThat(span)
             .hasName(expectedName)

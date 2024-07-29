@@ -19,19 +19,18 @@
 package co.elastic.apm.agent.opentelemetry.tracing;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.baggage.Baggage;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.baggage.BaggageImpl;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import co.elastic.apm.agent.impl.transaction.MultiValueMapAccessor;
-import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
-import co.elastic.apm.agent.tracer.Outcome;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.opentelemetry.baggage.OtelBaggage;
-import co.elastic.apm.agent.sdk.logging.Logger;
-import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
@@ -53,7 +52,8 @@ import java.util.concurrent.TimeUnit;
 
 class OTelSpanBuilder implements SpanBuilder {
 
-    private static final Logger addLinkLogger = LoggerUtils.logOnce(LoggerFactory.getLogger(OTelSpanBuilder.class));
+    private static final Logger addLinkLogger1 = LoggerUtils.logOnce(LoggerFactory.getLogger(OTelSpanBuilder.class));
+    private static final Logger addLinkLogger2 = LoggerUtils.logOnce(LoggerFactory.getLogger(OTelSpanBuilder.class));
 
     private final String spanName;
     private final ElasticApmTracer elasticApmTracer;
@@ -86,15 +86,19 @@ class OTelSpanBuilder implements SpanBuilder {
 
     @Override
     public SpanBuilder addLink(SpanContext spanContext) {
+        if (!(spanContext instanceof OTelSpanContext)) {
+            addLinkLogger2.warn("Adding arbitrary span context to links is currently unsupported");
+            return this;
+        }
         links.add(spanContext);
         return this;
     }
 
     @Override
-    public SpanBuilder addLink(SpanContext spanContext, Attributes attributes1) {
+    public SpanBuilder addLink(SpanContext spanContext, @Nullable Attributes attributes1) {
         addLink(spanContext);
         if (attributes1 != null && !attributes1.isEmpty()) {
-            addLinkLogger.warn("Adding attributes to links is currently unsupported - the links have been added but with no attributes, the following attributes have been ignored: %s",attributes1);
+            addLinkLogger1.warn("Adding attributes to links is currently unsupported - the links have been added but with no attributes, the following attributes have been ignored: %s", attributes1);
         }
         return this;
     }
@@ -143,10 +147,10 @@ class OTelSpanBuilder implements SpanBuilder {
 
     @Override
     public Span startSpan() {
-        AbstractSpan<?> span;
+        AbstractSpanImpl<?> span;
 
-        Baggage parentBaggage;
-        AbstractSpan<?> parentSpan = null;
+        BaggageImpl parentBaggage;
+        AbstractSpanImpl<?> parentSpan = null;
         Context remoteContext = null;
 
         if (parent != null) {
@@ -177,12 +181,12 @@ class OTelSpanBuilder implements SpanBuilder {
         }
         span.withName(spanName);
 
-        if (span instanceof Transaction) {
-            Transaction t = ((Transaction) span);
+        if (span instanceof TransactionImpl) {
+            TransactionImpl t = ((TransactionImpl) span);
             t.setFrameworkName("OpenTelemetry API");
 
             String otelVersion = VersionUtils.getVersion(OpenTelemetry.class, "io.opentelemetry", "opentelemetry-api");
-            if(otelVersion != null){
+            if (otelVersion != null) {
                 t.setFrameworkVersion(otelVersion);
             }
         }
@@ -195,7 +199,7 @@ class OTelSpanBuilder implements SpanBuilder {
 
         // Add the links to the span
         for (int i = 0; i < links.size(); i++) {
-            span.addSpanLink(TraceContext.fromParentContext(), ((OTelSpanContext) links.get(i)).getElasticTraceContext());
+            span.addSpanLink(TraceContextImpl.fromParentContext(), ((OTelSpanContext) links.get(i)).getElasticTraceContext());
 
         }
 

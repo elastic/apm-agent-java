@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactoryImpl;
 import co.elastic.apm.agent.report.disruptor.ExponentionallyIncreasingSleepingWaitStrategy;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -44,24 +44,24 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 
 /**
- * This reporter asynchronously reports {@link Transaction}s to the APM server
+ * This reporter asynchronously reports {@link TransactionImpl}s to the APM server
  * <p>
- * It uses a Disruptor/ring buffer to decouple the {@link Transaction} producing threads from the thread that actually sends the payload
+ * It uses a Disruptor/ring buffer to decouple the {@link TransactionImpl} producing threads from the thread that actually sends the payload
  * </p>
  */
 public class ApmServerReporter implements Reporter {
 
     private static final Logger logger = LoggerFactory.getLogger(ApmServerReporter.class);
 
-    private static final EventTranslatorOneArg<ReportingEvent, Transaction> TRANSACTION_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Transaction>() {
+    private static final EventTranslatorOneArg<ReportingEvent, TransactionImpl> TRANSACTION_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, TransactionImpl>() {
         @Override
-        public void translateTo(ReportingEvent event, long sequence, Transaction t) {
+        public void translateTo(ReportingEvent event, long sequence, TransactionImpl t) {
             event.setTransaction(t);
         }
     };
-    private static final EventTranslatorOneArg<ReportingEvent, Span> SPAN_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Span>() {
+    private static final EventTranslatorOneArg<ReportingEvent, SpanImpl> SPAN_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, SpanImpl>() {
         @Override
-        public void translateTo(ReportingEvent event, long sequence, Span s) {
+        public void translateTo(ReportingEvent event, long sequence, SpanImpl s) {
             event.setSpan(s);
         }
     };
@@ -85,9 +85,9 @@ public class ApmServerReporter implements Reporter {
             event.setWakeupEvent();
         }
     };
-    private static final EventTranslatorOneArg<ReportingEvent, ErrorCapture> ERROR_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, ErrorCapture>() {
+    private static final EventTranslatorOneArg<ReportingEvent, ErrorCaptureImpl> ERROR_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, ErrorCaptureImpl>() {
         @Override
-        public void translateTo(ReportingEvent event, long sequence, ErrorCapture error) {
+        public void translateTo(ReportingEvent event, long sequence, ErrorCaptureImpl error) {
             event.setError(error);
         }
     };
@@ -133,16 +133,16 @@ public class ApmServerReporter implements Reporter {
 
     private final PartialTransactionReporter partialTransactionReporter;
 
-    private final CoreConfiguration coreConfiguration;
+    private final CoreConfigurationImpl coreConfiguration;
 
     public ApmServerReporter(boolean dropTransactionIfQueueFull,
-                             ReporterConfiguration reporterConfiguration,
-                             CoreConfiguration coreConfiguration,
+                             ReporterConfigurationImpl reporterConfiguration,
+                             CoreConfigurationImpl coreConfiguration,
                              ReportingEventHandler reportingEventHandler,
                              ReporterMonitor monitor,
                              ApmServerClient apmServer,
                              DslJsonSerializer serializer,
-                             ObjectPoolFactory poolFactory
+                             ObjectPoolFactoryImpl poolFactory
 
     ) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
@@ -168,14 +168,14 @@ public class ApmServerReporter implements Reporter {
     }
 
     @Override
-    public void reportPartialTransaction(Transaction transaction) {
+    public void reportPartialTransaction(TransactionImpl transaction) {
         if (!coreConfiguration.isContextPropagationOnly()) {
             partialTransactionReporter.reportPartialTransaction(transaction);
         }
     }
 
     @Override
-    public void report(Transaction transaction) {
+    public void report(TransactionImpl transaction) {
         if (!tryAddEventToRingBuffer(transaction, TRANSACTION_EVENT_TRANSLATOR, ReportingEvent.ReportingEventType.TRANSACTION)) {
             transaction.decrementReferences();
         }
@@ -185,7 +185,7 @@ public class ApmServerReporter implements Reporter {
     }
 
     @Override
-    public void report(Span span) {
+    public void report(SpanImpl span) {
         if (!tryAddEventToRingBuffer(span, SPAN_EVENT_TRANSLATOR, ReportingEvent.ReportingEventType.SPAN)) {
             span.decrementReferences();
         }
@@ -287,7 +287,7 @@ public class ApmServerReporter implements Reporter {
     }
 
     @Override
-    public void report(ErrorCapture error) {
+    public void report(ErrorCaptureImpl error) {
         if (!tryAddEventToRingBuffer(error, ERROR_EVENT_TRANSLATOR, ReportingEvent.ReportingEventType.ERROR)) {
             error.recycle();
         }

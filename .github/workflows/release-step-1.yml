@@ -1,0 +1,34 @@
+---
+
+name: 'release-step-1'
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch or tag ref to run the workflow on'
+        required: true
+        default: "main"
+      version:
+        description: 'The version to release (e.g. 1.2.3). This workflow will automatically perform the required version bumps'
+        required: true
+
+permissions:
+  contents: read
+      
+concurrency:
+  group: ${{ github.workflow }}
+      
+jobs:
+  pre-release:
+    name: "Bump versions and create PR"
+    uses: ./.github/workflows/pre-post-release.yml
+    permissions:
+      contents: write
+    with:
+      ref: ${{ inputs.ref }}
+      version: ${{ inputs.version }}
+      phase: 'pre'
+      pr_title: "[release] release-step-2 ${{ inputs.version }}"
+      pr_body: "Step 2 of the release process for version ${{ inputs.version }}: review & merge, then execute 'release-step-3' GH workflow"
+    secrets: inherit

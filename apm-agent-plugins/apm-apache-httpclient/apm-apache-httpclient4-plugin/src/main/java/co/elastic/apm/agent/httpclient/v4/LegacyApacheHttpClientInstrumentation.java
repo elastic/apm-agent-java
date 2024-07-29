@@ -19,10 +19,11 @@
 package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.httpclient.v4.helper.RequestBodyCaptureRegistry;
 import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
-import co.elastic.apm.agent.tracer.ElasticContext;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -80,7 +81,7 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(0) @Nullable HttpHost host,
                                              @Advice.Argument(1) HttpRequest request) {
-            final ElasticContext<?> activeContext = tracer.currentContext();
+            final TraceState<?> activeContext = tracer.currentContext();
             Span<?> span = null;
             if (activeContext.getSpan() != null) {
                 String hostName = (host != null) ? host.getHostName() : null;
@@ -105,6 +106,7 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                 }
             }
 
+            RequestBodyCaptureRegistry.potentiallyCaptureRequestBody(request, tracer.getActive());
             tracer.currentContext().propagateContext(request, RequestHeaderAccessor.INSTANCE, RequestHeaderAccessor.INSTANCE);
             return span;
         }

@@ -19,15 +19,15 @@
 package co.elastic.apm.agent.httpserver;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.context.Socket;
-import co.elastic.apm.agent.impl.context.Url;
+import co.elastic.apm.agent.impl.context.RequestImpl;
+import co.elastic.apm.agent.impl.context.ResponseImpl;
+import co.elastic.apm.agent.impl.context.SocketImpl;
+import co.elastic.apm.agent.impl.context.UrlImpl;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -105,19 +105,19 @@ class HttpHandlerTest extends AbstractInstrumentationTest {
         assertThat(httpResponse.code()).isEqualTo(expectedStatus);
         assertThat(httpResponse.body().string()).isEmpty();
 
-        Transaction transaction = reporter.getFirstTransaction(500);
+        TransactionImpl transaction = reporter.getFirstTransaction(500);
         assertThat(transaction.getTraceContext().getParentId().toString()).isEqualTo("0000000000000000");
         assertThat(transaction.getType()).isEqualTo(co.elastic.apm.agent.tracer.Transaction.TYPE_REQUEST);
         assertThat(transaction.getNameAsString()).isEqualTo("GET /status_%d", expectedStatus);
         assertThat(transaction.getResult()).isEqualTo(ResultUtil.getResultByHttpStatus(expectedStatus));
         assertThat(transaction.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpServerStatus(expectedStatus));
 
-        Request request = transaction.getContext().getRequest();
+        RequestImpl request = transaction.getContext().getRequest();
 
-        Socket socket = request.getSocket();
+        SocketImpl socket = request.getSocket();
         assertThat(socket.getRemoteAddress()).isEqualTo("127.0.0.1");
 
-        Url url = request.getUrl();
+        UrlImpl url = request.getUrl();
         assertThat(url.getProtocol()).isEqualTo("http");
         assertThat(url.getHostname()).isEqualTo("localhost");
         assertThat(url.getPort()).isEqualTo(httpServer.getAddress().getPort());
@@ -130,7 +130,7 @@ class HttpHandlerTest extends AbstractInstrumentationTest {
 
         assertThat(request.getHeaders().get("Foo")).isEqualTo("abc");
 
-        Response response = transaction.getContext().getResponse();
+        ResponseImpl response = transaction.getContext().getResponse();
         assertThat(response.getStatusCode()).isEqualTo(expectedStatus);
 
         assertThat(response.getHeaders().get("Bar")).isEqualTo("xyz");
@@ -149,7 +149,7 @@ class HttpHandlerTest extends AbstractInstrumentationTest {
         assertThat(httpResponse.code()).isEqualTo(200);
         assertThat(httpResponse.body().string()).isEmpty();
 
-        TraceContext traceContext = reporter.getFirstTransaction(500).getTraceContext();
+        TraceContextImpl traceContext = reporter.getFirstTransaction(500).getTraceContext();
         assertThat(traceContext.getTraceId().toString()).isEqualTo("e00fef7cc6023c8e2c02d003cf50a266");
         assertThat(traceContext.getParentId().toString()).isEqualTo("a048a11f61713b66");
 

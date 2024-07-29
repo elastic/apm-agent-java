@@ -35,3 +35,10 @@ fi
 
 # Validate java is available in the runner.
 java -version
+echo "--- Prepare github secrets :vault:"
+VAULT_SECRET_PATH=kv/ci-shared/observability-ci/github-bot-user
+GITHUB_SECRET=$(vault kv get -field token "${VAULT_SECRET_PATH}")
+GIT_USER=$(vault kv get -field username "${VAULT_SECRET_PATH}")
+GIT_EMAIL=$(vault kv get -field email "${VAULT_SECRET_PATH}")
+GH_TOKEN=$GITHUB_SECRET
+export GITHUB_SECRET GH_TOKEN GIT_USER GIT_EMAIL

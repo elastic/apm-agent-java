@@ -21,7 +21,7 @@ package co.elastic.apm.agent.grpc;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracer.AbstractSpan;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -296,7 +296,7 @@ public class GrpcHelper {
      * @return client call span (activated) or {@literal null} if not within an exit span.
      */
     @Nullable
-    public Span<?> onClientCallCreationEntry(ElasticContext<?> parent,
+    public Span<?> onClientCallCreationEntry(TraceState<?> parent,
                                              @Nullable MethodDescriptor<?, ?> method,
                                              @Nullable String authority) {
 
@@ -333,7 +333,7 @@ public class GrpcHelper {
      * This is the 2nd method called during client call execution, the next is {@link #clientCallStartEnter(ClientCall, ClientCall.Listener, Metadata)}.
      *
      * @param clientCall    client call
-     * @param spanFromEntry span created at {@link #onClientCallCreationEntry(ElasticContext, MethodDescriptor, String)}
+     * @param spanFromEntry span created at {@link #onClientCallCreationEntry(TraceState, MethodDescriptor, String)}
      */
     public void onClientCallCreationExit(@Nullable ClientCall<?, ?> clientCall, @Nullable Span<?> spanFromEntry) {
         if (clientCall != null) {

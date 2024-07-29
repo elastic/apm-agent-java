@@ -21,7 +21,7 @@ package co.elastic.apm.agent.okhttp;
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
@@ -83,7 +83,7 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
                 callback = CallbackWrapperCreator.INSTANCE.wrap(callback, span);
             }
 
-            ElasticContext<?> currentContext = tracer.currentContext();
+            TraceState<?> currentContext = tracer.currentContext();
             if (currentContext.isPropagationRequired(request, OkHttp3RequestHeaderGetter.INSTANCE)) {
                 Request.Builder builder = originalRequest.newBuilder();
                 currentContext.propagateContext(builder, OkHttp3RequestHeaderSetter.INSTANCE, request, OkHttp3RequestHeaderGetter.INSTANCE);

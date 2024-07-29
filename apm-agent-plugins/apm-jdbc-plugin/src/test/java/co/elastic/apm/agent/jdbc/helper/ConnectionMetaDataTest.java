@@ -21,7 +21,7 @@ package co.elastic.apm.agent.jdbc.helper;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -376,7 +376,7 @@ class ConnectionMetaDataTest {
         // to make sure that at least the known ones always fit
         try {
 
-            Transaction transaction = tracer.startRootTransaction(this.getClass().getClassLoader());
+            TransactionImpl transaction = tracer.startRootTransaction(this.getClass().getClassLoader());
             assertThat(transaction).isNotNull();
             transaction.createSpan()
                 .withType("db")

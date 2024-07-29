@@ -18,6 +18,14 @@ on:
         description: 'Pre or post release phase'
         type: string # valid values are 'pre' or 'post'
         required: true
+      pr_title:
+        description: 'pull-request title'
+        type: string
+        required: true
+      pr_body:
+        description: 'pull-request body'
+        type: string
+        required: true
 
 env:
   RELEASE_VERSION: ${{ inputs.version }}
@@ -47,24 +55,15 @@ jobs:
       - validate-tag
     permissions:
       contents: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}
     steps:
-      - uses: elastic/apm-pipeline-library/.github/actions/github-token@current
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-  
-      - uses: elastic/apm-pipeline-library/.github/actions/setup-git@current
-        with:
-          username: ${{ env.GIT_USER }}
-          email: ${{ env.GIT_EMAIL }}
-          token: ${{ env.GITHUB_TOKEN }}
-  
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
           token: ${{ env.GITHUB_TOKEN }}
   
+      - uses: elastic/oblt-actions/git/setup@v1
       - name: Create the release tag (post phase)
         if: inputs.phase == 'post'
         run: |
@@ -91,8 +90,7 @@ jobs:
           git add --all
           git commit -m "${{ inputs.phase }} release: elastic-apm-agent ${{ env.RELEASE_VERSION_TAG }}"
           git push origin ${{ env.BRANCH_NAME }}
-  
       - name: Create the ${{ inputs.phase }} release PR
-        run: gh pr create --title="${{ inputs.phase }} release ${{ env.RELEASE_VERSION_TAG }}" --base main --head ${{ env.BRANCH_NAME }} -b "${{ inputs.phase }} release ${{ env.RELEASE_VERSION_TAG }}"
+        run: gh pr create --title="${{ inputs.pr_title }}" --base main --head ${{ env.BRANCH_NAME }} -b "${{ inputs.pr_body }}"
         env:
           GH_TOKEN: ${{ env.GITHUB_TOKEN }}

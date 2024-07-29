@@ -18,11 +18,11 @@
  */
 package co.elastic.apm.agent.awssdk.common;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import co.elastic.apm.agent.common.util.WildcardMatcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
 public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
-    protected CoreConfiguration coreConfiguration;
+    protected CoreConfigurationImpl coreConfiguration;
     protected MessagingConfiguration messagingConfiguration;
 
     public AbstractSQSClientIT(String localstackVersion) {
@@ -44,18 +44,18 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
 
     @BeforeEach
     public void setupConfig() {
-        coreConfiguration = tracer.getConfig(CoreConfiguration.class);
+        coreConfiguration = tracer.getConfig(CoreConfigurationImpl.class);
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"sync", "async"})
     public void testReceiveOneMessageWithinTransaction(String clientType) {
-        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.ALL).when(coreConfiguration).getCaptureBody();
 
         String queueUrl = setupQueue();
 
-        Transaction parentTransaction = startTestRootTransaction("parent-transaction");
+        TransactionImpl parentTransaction = startTestRootTransaction("parent-transaction");
         sendMessage(queueUrl);
         parentTransaction.deactivate().end();
 
@@ -66,7 +66,7 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
             e.printStackTrace();
         }
 
-        Transaction transaction = startTestRootTransaction("sqs-test");
+        TransactionImpl transaction = startTestRootTransaction("sqs-test");
 
         if (clientType.equals("async")) {
             receiveMessagesAsync(queueUrl);
@@ -79,11 +79,11 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
         assertThat(reporter.getNumReportedTransactions()).isEqualTo(2);
         assertThat(reporter.getNumReportedSpans()).isEqualTo(3);
 
-        Optional<Transaction> optTransaction = reporter.getTransactions().stream().filter(t -> t.getNameAsString().equals("sqs-test")).findFirst();
+        Optional<TransactionImpl> optTransaction = reporter.getTransactions().stream().filter(t -> t.getNameAsString().equals("sqs-test")).findFirst();
         assertThat(optTransaction.isPresent()).isTrue();
-        Transaction sqsTransaction = optTransaction.get();
+        TransactionImpl sqsTransaction = optTransaction.get();
 
-        Span receivingSpan = reporter.getSpanByName("SQS POLL from " + SQS_QUEUE_NAME);
+        SpanImpl receivingSpan = reporter.getSpanByName("SQS POLL from " + SQS_QUEUE_NAME);
         assertThat(receivingSpan.getContext().getMessage().getQueueName()).isEqualTo(SQS_QUEUE_NAME);
         assertThat(receivingSpan.getContext().getMessage().getAge()).isGreaterThan(0);
         assertThat(receivingSpan.getContext().getMessage().getBodyForRead()).isNotNull();
@@ -98,11 +98,11 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
     @ParameterizedTest
     @ValueSource(strings = {"sync", "async"})
     public void testReceiveOneMessageOutsideATransaction(String clientType) {
-        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.ALL).when(coreConfiguration).getCaptureBody();
 
         String queueUrl = setupQueue();
 
-        Transaction parentTransaction = startTestRootTransaction("parent-transaction");
+        TransactionImpl parentTransaction = startTestRootTransaction("parent-transaction");
         sendMessage(queueUrl);
         parentTransaction.deactivate().end();
 
@@ -122,15 +122,15 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
         assertThat(reporter.getNumReportedTransactions()).isEqualTo(2);
         assertThat(reporter.getNumReportedSpans()).isEqualTo(2);
 
-        Optional<Transaction> optTransaction = reporter.getTransactions().stream().filter(t -> t.getNameAsString().startsWith("SQS RECEIVE from")).findFirst();
+        Optional<TransactionImpl> optTransaction = reporter.getTransactions().stream().filter(t -> t.getNameAsString().startsWith("SQS RECEIVE from")).findFirst();
         assertThat(optTransaction.isPresent()).isTrue();
-        Transaction sqsTransaction = optTransaction.get();
+        TransactionImpl sqsTransaction = optTransaction.get();
         assertThat(sqsTransaction.getSpanLinks()).isEmpty();
 
-        Span childSpan = reporter.getSpanByName("custom-child-span");
+        SpanImpl childSpan = reporter.getSpanByName("custom-child-span");
         assertThat(childSpan.isChildOf(sqsTransaction)).isTrue();
 
-        Span sendingSpan = reporter.getSpanByName("SQS SEND to " + SQS_QUEUE_NAME);
+        SpanImpl sendingSpan = reporter.getSpanByName("SQS SEND to " + SQS_QUEUE_NAME);
 
         assertThat(sqsTransaction.getContext().getMessage().getQueueName()).isEqualTo(SQS_QUEUE_NAME);
         assertThat(sqsTransaction.getContext().getMessage().getAge()).isGreaterThan(0);
@@ -142,11 +142,11 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
     @ParameterizedTest
     @ValueSource(strings = {"sync", "async"})
     public void testReceiveMultipleMessagesOutsideATransaction(String clientType) {
-        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.ALL).when(coreConfiguration).getCaptureBody();
 
         String queueUrl = setupQueue();
 
-        Transaction parentTransaction = startTestRootTransaction("parent-transaction");
+        TransactionImpl parentTransaction = startTestRootTransaction("parent-transaction");
         sendMessage(queueUrl);
         sendMessage(queueUrl);
         sendMessage(queueUrl);
@@ -184,11 +184,11 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
     @ParameterizedTest
     @ValueSource(strings = {"sync", "async"})
     public void testReceiveMultipleMessagesWithinATransaction(String clientType) {
-        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
+        doReturn(CoreConfigurationImpl.EventType.ALL).when(coreConfiguration).getCaptureBody();
 
         String queueUrl = setupQueue();
 
-        Transaction parentTransaction = startTestRootTransaction("parent-transaction");
+        TransactionImpl parentTransaction = startTestRootTransaction("parent-transaction");
         sendMessage(queueUrl);
         sendMessage(queueUrl);
         sendMessage(queueUrl);
@@ -201,7 +201,7 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
             e.printStackTrace();
         }
 
-        Transaction transaction = startTestRootTransaction("sqs-test");
+        TransactionImpl transaction = startTestRootTransaction("sqs-test");
 
         if (clientType.equals("async")) {
             receiveMessagesAsync(queueUrl, 3);
@@ -213,7 +213,7 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
 
         assertThat(reporter.getNumReportedTransactions()).isEqualTo(2);
         assertThat(reporter.getNumReportedSpans()).isEqualTo(7);
-        Span receivingSpan = reporter.getSpanByName("SQS POLL from some-test-sqs-queue");
+        SpanImpl receivingSpan = reporter.getSpanByName("SQS POLL from some-test-sqs-queue");
         assertThat(receivingSpan.getSpanLinks()).isNotNull();
         assertThat(receivingSpan.getSpanLinks()).hasSize(3);
         long numCustomSpans = reporter.getSpans().stream().filter(t -> t.getNameAsString().startsWith("custom")).count();
@@ -232,7 +232,7 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
         String queueUrl = setupQueue();
         String ignoredQueueUrl = setupIgnoreQueue();
 
-        Transaction transaction = startTestRootTransaction("sqs-test");
+        TransactionImpl transaction = startTestRootTransaction("sqs-test");
 
         if (clientType.equals("async")) {
             executeAsyncQueueExclusion(queueUrl, ignoredQueueUrl);
@@ -253,7 +253,7 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
 
         String queueUrl = setupQueue();
 
-        Transaction transaction = startTestRootTransaction("sqs-test");
+        TransactionImpl transaction = startTestRootTransaction("sqs-test");
 
         if (clientType.equals("async")) {
             receiveMessagesAsync(queueUrl);
@@ -283,9 +283,9 @@ public abstract class AbstractSQSClientIT extends AbstractAwsClientIT {
     }
 
     protected void executeChildSpan() {
-        AbstractSpan<?> active = tracer.getActive();
+        AbstractSpanImpl<?> active = tracer.getActive();
         assertThat(active).isNotNull();
-        Span childSpan = active.createSpan();
+        SpanImpl childSpan = active.createSpan();
         assertThat(childSpan).isNotNull();
         childSpan.withName("custom-child-span");
         childSpan.activate();

@@ -23,7 +23,7 @@ import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.ElasticContext;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -96,7 +96,7 @@ public class HttpClient3Instrumentation extends ElasticApmInstrumentation {
 
         @Nullable
         private static Span<?> startClientSpan(HttpMethod httpMethod, HostConfiguration hostConfiguration) {
-            final ElasticContext<?> activeContext = tracer.currentContext();
+            final TraceState<?> activeContext = tracer.currentContext();
             if (activeContext.getSpan() == null) {
                 return null;
             }

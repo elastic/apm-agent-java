@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.opentracingimpl;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToFields.ToField;
 import net.bytebuddy.description.method.MethodDescription;
@@ -75,10 +75,10 @@ public abstract class ExternalSpanContextInstrumentation extends OpenTracingBrid
             @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static String onExit(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object childTraceContextObj) {
-                if (!(childTraceContextObj instanceof TraceContext)) {
+                if (!(childTraceContextObj instanceof TraceContextImpl)) {
                     return null;
                 }
-                return ((TraceContext) childTraceContextObj).getTraceId().toString();
+                return ((TraceContextImpl) childTraceContextObj).getTraceId().toString();
             }
         }
     }
@@ -106,19 +106,19 @@ public abstract class ExternalSpanContextInstrumentation extends OpenTracingBrid
             @Advice.AssignReturned.ToReturned
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static String onExit(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable Object childTraceContextObj) {
-                if (!(childTraceContextObj instanceof TraceContext)) {
+                if (!(childTraceContextObj instanceof TraceContextImpl)) {
                     return null;
                 }
-                return ((TraceContext) childTraceContextObj).getParentId().toString();
+                return ((TraceContextImpl) childTraceContextObj).getParentId().toString();
             }
         }
     }
 
     @Nullable
-    public static TraceContext parseTextMap(Iterable<Map.Entry<String, String>> textMap) {
+    public static TraceContextImpl parseTextMap(Iterable<Map.Entry<String, String>> textMap) {
         ElasticApmTracer tracer = OpenTracingBridgeInstrumentation.tracer.require(ElasticApmTracer.class);
         if (tracer != null) {
-            TraceContext childTraceContext = TraceContext.with64BitId(tracer);
+            TraceContextImpl childTraceContext = TraceContextImpl.with64BitId(tracer);
             if (childTraceContext.asChildOf(textMap, OpenTracingTextMapBridge.instance())) {
                 return childTraceContext;
             }

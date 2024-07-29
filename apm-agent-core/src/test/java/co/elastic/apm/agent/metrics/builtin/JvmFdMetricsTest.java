@@ -18,10 +18,10 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.configuration.MetricsConfiguration;
+import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
+import co.elastic.apm.agent.report.ReporterConfigurationImpl;
 import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
-import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -44,7 +44,7 @@ class JvmFdMetricsTest {
     })
     @DisabledOnOs(OS.WINDOWS)
     void testMetrics(String metric) {
-        MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class), spy(MetricsConfiguration.class));
+        MetricRegistry registry = new MetricRegistry(mock(ReporterConfigurationImpl.class), spy(MetricsConfigurationImpl.class));
         jvmFdMetrics.bindTo(registry);
 
         assertThat(registry.getGaugeValue(metric, Labels.EMPTY))
@@ -61,7 +61,7 @@ class JvmFdMetricsTest {
     })
     @EnabledOnOs(OS.WINDOWS)
     void testMetricsDisabledOnWindows(String metric) {
-        MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class), spy(MetricsConfiguration.class));
+        MetricRegistry registry = new MetricRegistry(mock(ReporterConfigurationImpl.class), spy(MetricsConfigurationImpl.class));
         jvmFdMetrics.bindTo(registry);
 
         assertThat(registry.getGauge(metric, Labels.EMPTY)).isNull();

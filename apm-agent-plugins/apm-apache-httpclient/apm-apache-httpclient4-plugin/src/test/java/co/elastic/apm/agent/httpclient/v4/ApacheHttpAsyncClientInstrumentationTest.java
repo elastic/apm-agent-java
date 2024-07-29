@@ -19,14 +19,16 @@
 package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.tracer.Outcome;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.UnsupportedSchemeException;
+import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.assertj.core.api.Assertions;
@@ -34,6 +36,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
@@ -89,6 +92,39 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
         responseFuture.get();
     }
 
+    @Override
+    protected boolean isBodyCapturingSupported() {
+        return true;
+    }
+
+    @Override
+    protected void performPost(String path, byte[] data, String contentTypeHeader) throws Exception {
+        final CompletableFuture<HttpResponse> responseFuture = new CompletableFuture<>();
+
+        HttpClientContext httpClientContext = HttpClientContext.create();
+        HttpPost request = new HttpPost(path);
+        request.setEntity(new InputStreamEntity(new ByteArrayInputStream(data)));
+        request.setHeader("Content-Type", contentTypeHeader);
+        client.execute(request, httpClientContext, new FutureCallback<>() {
+            @Override
+            public void completed(HttpResponse result) {
+                responseFuture.complete(result);
+            }
+
+            @Override
+            public void failed(Exception ex) {
+                responseFuture.completeExceptionally(ex);
+            }
+
+            @Override
+            public void cancelled() {
+                responseFuture.cancel(true);
+            }
+        });
+
+        responseFuture.get();
+    }
+
     @Test
     public void testSpanFinishOnEarlyException() throws Exception {
 
@@ -119,11 +155,10 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
             setUp();
             reporter.resetChecks();
         }
-        Span firstSpan = reporter.getFirstSpan(500);
+        SpanImpl firstSpan = reporter.getFirstSpan(500);
         assertThat(firstSpan).isNotNull();
         assertThat(firstSpan.getOutcome()).isEqualTo(Outcome.FAILURE);
         Assertions.assertThat(reporter.getSpans()).hasSize(1);
     }
-
 
 }

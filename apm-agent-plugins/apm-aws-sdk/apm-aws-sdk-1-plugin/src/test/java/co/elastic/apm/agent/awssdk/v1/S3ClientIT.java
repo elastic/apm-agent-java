@@ -18,8 +18,7 @@
  */
 package co.elastic.apm.agent.awssdk.v1;
 
-import co.elastic.apm.agent.awssdk.common.AbstractAwsClientIT;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
@@ -50,7 +49,7 @@ public class S3ClientIT extends AbstractAws1ClientIT {
 
     @Test
     public void testS3Client() {
-        Transaction transaction = startTestRootTransaction("s3-test");
+        TransactionImpl transaction = startTestRootTransaction("s3-test");
 
         newTest(() -> s3.createBucket(BUCKET_NAME))
             .operationName("CreateBucket")

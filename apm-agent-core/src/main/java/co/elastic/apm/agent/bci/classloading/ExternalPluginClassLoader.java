@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.bci.classloading;
 
 import co.elastic.apm.agent.common.util.AgentInfo;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
@@ -38,7 +38,7 @@ import static co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader.starts
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
- * Loads plugins from {@link CoreConfiguration#getPluginsDir() plugins_dir}
+ * Loads plugins from {@link CoreConfigurationImpl#getPluginsDir() plugins_dir}
  *
  * @see co.elastic.apm.agent.bci.IndyBootstrap
  */

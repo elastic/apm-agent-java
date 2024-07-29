@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.universalprofiling;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.otel.UniversalProfilingCorrelation;
@@ -80,7 +80,7 @@ public class ProfilerSharedMemoryWriter {
         writeForMemoryBarrier = 42;
     }
 
-    static void updateThreadCorrelationStorage(@Nullable AbstractSpan<?> newSpan) {
+    static void updateThreadCorrelationStorage(@Nullable AbstractSpanImpl<?> newSpan) {
         try {
             ByteBuffer tls = UniversalProfilingCorrelation.getCurrentThreadStorage(true, TLS_STORAGE_SIZE);
             // tls might be null if unsupported or something went wrong on initialization
@@ -91,7 +91,7 @@ public class ProfilerSharedMemoryWriter {
                 tls.putChar(TLS_MINOR_VERSION_OFFSET, (char) 1);
 
                 if (newSpan != null) {
-                    Transaction tx = newSpan.getParentTransaction();
+                    TransactionImpl tx = newSpan.getParentTransaction();
                     tls.put(TLS_TRACE_PRESENT_OFFSET, (byte) 1);
                     tls.put(TLS_TRACE_FLAGS_OFFSET, newSpan.getTraceContext().getFlags());
                     tls.position(TLS_TRACE_ID_OFFSET);

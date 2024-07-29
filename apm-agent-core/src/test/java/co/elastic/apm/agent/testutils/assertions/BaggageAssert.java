@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.agent.testutils.assertions;
 
-import co.elastic.apm.agent.impl.baggage.Baggage;
+import co.elastic.apm.agent.impl.baggage.BaggageImpl;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
 
-public class BaggageAssert extends BaseAssert<BaggageAssert, Baggage> {
+public class BaggageAssert extends BaseAssert<BaggageAssert, BaggageImpl> {
 
-    protected BaggageAssert(Baggage actual) {
+    protected BaggageAssert(BaggageImpl actual) {
         super(actual, BaggageAssert.class);
     }
 
