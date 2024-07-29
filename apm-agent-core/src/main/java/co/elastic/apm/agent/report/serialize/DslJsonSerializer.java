@@ -68,7 +68,6 @@ import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.tracer.metrics.DslJsonUtil;
 import co.elastic.apm.agent.tracer.metrics.Labels;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
-import co.elastic.apm.agent.tracer.metrics.DslJsonUtil;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;

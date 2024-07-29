@@ -35,6 +35,7 @@ Every time there is a merge to main or any branches the whole workflow will comp
 ### Release process
 
 To release a new version of apm-agent-java, you must use the two GitHub Workflows.
+
 - Trigger the `release-step-1` GH workflow
   - parameters: version to release
   - will open `release-step-2` PR

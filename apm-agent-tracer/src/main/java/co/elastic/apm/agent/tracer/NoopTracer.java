@@ -168,6 +168,7 @@ class NoopTracer implements Tracer {
     @Override
     public void reportMetric(JsonWriter metrics) {
     }
+
     @Nullable
     @Override
     public ServiceInfo getServiceInfoForClassLoader(@Nullable ClassLoader initiatingClassLoader) {

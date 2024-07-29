@@ -64,6 +64,7 @@ jobs:
           token: ${{ env.GITHUB_TOKEN }}
   
       - uses: elastic/oblt-actions/git/setup@v1
+
       - name: Create the release tag (post phase)
         if: inputs.phase == 'post'
         run: |
@@ -90,6 +91,7 @@ jobs:
           git add --all
           git commit -m "${{ inputs.phase }} release: elastic-apm-agent ${{ env.RELEASE_VERSION_TAG }}"
           git push origin ${{ env.BRANCH_NAME }}
+
       - name: Create the ${{ inputs.phase }} release PR
         run: gh pr create --title="${{ inputs.pr_title }}" --base main --head ${{ env.BRANCH_NAME }} -b "${{ inputs.pr_body }}"
         env:

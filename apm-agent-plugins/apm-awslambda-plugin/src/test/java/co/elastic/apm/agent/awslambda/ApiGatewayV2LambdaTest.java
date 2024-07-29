@@ -30,7 +30,6 @@ import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.FaasImpl;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
-import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 import org.junit.BeforeClass;
