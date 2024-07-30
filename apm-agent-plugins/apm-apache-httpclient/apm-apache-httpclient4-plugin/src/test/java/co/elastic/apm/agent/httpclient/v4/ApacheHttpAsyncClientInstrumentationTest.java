@@ -98,6 +98,11 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
     }
 
     @Override
+    public void testPostBodyCaptureForExistingSpan() throws Exception {
+        //TODO: async http client instrumentation does not support capturing bodies for existing spans yet
+    }
+
+    @Override
     protected void performPost(String path, byte[] data, String contentTypeHeader) throws Exception {
         final CompletableFuture<HttpResponse> responseFuture = new CompletableFuture<>();
 

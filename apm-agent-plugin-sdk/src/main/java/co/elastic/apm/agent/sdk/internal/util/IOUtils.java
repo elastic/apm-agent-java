@@ -23,6 +23,7 @@ import co.elastic.apm.agent.sdk.internal.pooling.ObjectHandle;
 import co.elastic.apm.agent.sdk.internal.pooling.ObjectPool;
 import co.elastic.apm.agent.sdk.internal.pooling.ObjectPooling;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.Buffer;
@@ -215,6 +216,17 @@ public class IOUtils {
 
             return result == null ? CoderResult.OVERFLOW : result;
         }
+    }
+
+    @Nullable
+    public static byte[] copyToByteArray(@Nullable ByteBuffer buf) {
+        if (buf == null) {
+            return null;
+        }
+        byte[] data = new byte[buf.position()];
+        buf.position(0);
+        buf.get(data);
+        return data;
     }
 
     public interface ByteSourceReader<S> {

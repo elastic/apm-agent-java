@@ -108,7 +108,7 @@ public class CallDepth {
         return decrement() != 0;
     }
 
-    private int get() {
+    public int get() {
         Integer callDepthForCurrentThread = callDepthPerThread.get();
         if (callDepthForCurrentThread == null) {
             callDepthForCurrentThread = 0;

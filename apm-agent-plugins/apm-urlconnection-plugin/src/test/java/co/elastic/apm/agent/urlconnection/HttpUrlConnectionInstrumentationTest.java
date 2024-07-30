@@ -181,4 +181,21 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
         assertThat(reporter.getErrors()).hasSize(1);
     }
 
+    @Override
+    protected boolean isBodyCapturingSupported() {
+        return true;
+    }
+
+    @Override
+    protected void performPost(String path, byte[] content, String contentTypeHeader) throws Exception {
+        final HttpURLConnection urlConnection = (HttpURLConnection) new URL(path).openConnection();
+        urlConnection.setDoOutput(true);
+        urlConnection.setRequestProperty("Content-Type", contentTypeHeader);
+
+        //We call getOutputStream over and over again to ensure our instrumentation deals with that aswell
+        for (byte b : content) {
+            urlConnection.getOutputStream().write(b);
+        }
+        urlConnection.getResponseCode();
+    }
 }
