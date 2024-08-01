@@ -51,8 +51,7 @@ public class SimpleMethodSignatureOffsetMappingFactory implements Advice.OffsetM
             public Target resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner,
                                   Advice.ArgumentHandler argumentHandler, Sort sort) {
                 final String className = instrumentedMethod.getDeclaringType().getTypeName();
-                String simpleClassName = className.substring(className.lastIndexOf('$') + 1);
-                simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf('.') + 1);
+                final String simpleClassName = ClassNameParser.parse(className);
                 final String signature = String.format("%s#%s", simpleClassName, instrumentedMethod.getName());
                 return Target.ForStackManipulation.of(signature);
             }
