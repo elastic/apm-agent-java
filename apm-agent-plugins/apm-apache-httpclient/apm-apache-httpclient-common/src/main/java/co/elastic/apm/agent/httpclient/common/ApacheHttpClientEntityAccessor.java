@@ -16,34 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.tracer;
+package co.elastic.apm.agent.httpclient.common;
 
 import javax.annotation.Nullable;
 
-public interface Span<T extends Span<T>> extends AbstractSpan<T> {
-
-    @Override
-    SpanContext getContext();
+public interface ApacheHttpClientEntityAccessor<REQUEST, HTTPENTITY> {
+    @Nullable
+    HTTPENTITY getRequestEntity(REQUEST request);
 
     @Nullable
-    String getSubtype();
-
-    /**
-     * Sets the span's subtype, related to the  (eg: 'mysql', 'postgresql', 'jsf' etc)
-     */
-    T withSubtype(@Nullable String subtype);
-
-    boolean isExit();
-
-    @Nullable
-    String getAction();
-
-    /**
-     * Action related to this span (eg: 'query', 'render' etc)
-     */
-    T withAction(@Nullable String action);
-
-    void addEndListener(SpanEndListener<? super T> listener);
-
-    void removeEndListener(SpanEndListener<? super T> listener);
+    byte[] getSimpleBodyBytes(REQUEST request);
 }

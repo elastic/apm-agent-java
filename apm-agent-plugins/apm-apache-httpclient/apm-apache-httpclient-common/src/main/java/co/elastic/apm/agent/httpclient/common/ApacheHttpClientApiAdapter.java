@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public interface ApacheHttpClientApiAdapter<REQUEST, WRAPPER extends REQUEST, HTTPHOST, RESPONSE> {
+public interface ApacheHttpClientApiAdapter<REQUEST, WRAPPER extends REQUEST, HTTPHOST, RESPONSE, HTTPENTITY> extends ApacheHttpClientEntityAccessor<REQUEST, HTTPENTITY> {
     String getMethod(WRAPPER request);
 
     URI getUri(WRAPPER request) throws URISyntaxException;

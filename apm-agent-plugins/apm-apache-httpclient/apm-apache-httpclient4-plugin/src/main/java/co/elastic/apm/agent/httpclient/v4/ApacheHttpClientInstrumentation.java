@@ -19,8 +19,8 @@
 package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpClientAdvice;
+import co.elastic.apm.agent.httpclient.common.RequestBodyCaptureRegistry;
 import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpClient4ApiAdapter;
-import co.elastic.apm.agent.httpclient.v4.helper.RequestBodyCaptureRegistry;
 import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
@@ -60,7 +60,7 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
         public static Object onBeforeExecute(@Advice.Argument(0) HttpRoute route,
                                              @Advice.Argument(1) HttpRequestWrapper request) throws URISyntaxException {
             Span<?> span = startSpan(tracer, adapter, request, route.getTargetHost(), RequestHeaderAccessor.INSTANCE);
-            RequestBodyCaptureRegistry.potentiallyCaptureRequestBody(request, tracer.getActive());
+            RequestBodyCaptureRegistry.potentiallyCaptureRequestBody(request, tracer.getActive(), adapter, RequestHeaderAccessor.INSTANCE);
             return span;
         }
 

@@ -19,14 +19,15 @@
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.httpclient.RequestBodyRecordingOutputStream;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.tracer.AbstractSpan;
 import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.reference.ReferenceCountedMap;
 import net.bytebuddy.asm.Advice;
@@ -36,6 +37,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
@@ -54,6 +56,8 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
     public static final Tracer tracer = GlobalTracer.get(); // must be public!
 
     public static final ReferenceCountedMap<HttpURLConnection, Span<?>> inFlightSpans = tracer.newReferenceCountedMap();
+    public static final ReferenceCountedMap<HttpURLConnection, Span<?>> captureBodyForSpan = tracer.newReferenceCountedMap();
+
     public static final CallDepth callDepth = CallDepth.get(HttpUrlConnectionInstrumentation.class);
 
     @Override
@@ -71,6 +75,80 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
         return hasSuperType(is(HttpURLConnection.class)).and(not(named("sun.net.www.protocol.https.HttpsURLConnectionImpl")));
     }
 
+    public static class CreateSpanAdviceHelper {
+
+        public static Span<?> enter(HttpURLConnection thiz, boolean connectedField, int responseCodeField) {
+
+            //With HEAD requests the connectedField stays false
+            boolean actuallyConnected = connectedField || responseCodeField != -1;
+
+            boolean isNestedCall = callDepth.isNestedCallAndIncrement();
+            TraceState<?> activeContext = tracer.currentContext();
+            AbstractSpan<?> parentSpan = activeContext.getSpan();
+            Span<?> span = null;
+            if (parentSpan != null) {
+                span = inFlightSpans.get(thiz);
+                if (span == null && !actuallyConnected) {
+                    final URL url = thiz.getURL();
+                    span = HttpClientHelper.startHttpClientSpan(activeContext, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
+                }
+                if (!isNestedCall && span != null) {
+                    span.activate();
+                } else {
+                    span = null; //do not deactivate this span on exit
+                }
+            }
+
+            if (!isNestedCall && !actuallyConnected) {
+                tracer.currentContext().propagateContext(thiz, UrlConnectionPropertyAccessor.instance(), UrlConnectionPropertyAccessor.instance());
+            }
+
+            return span;
+        }
+
+        public static void exit(HttpURLConnection thiz, @Nullable Throwable t, int responseCode, @Nullable Span<?> spanObject) {
+            if (callDepth.isNestedCallAndDecrement()) {
+                if (responseCode != -1 || t != null) {
+                    // Request has ended, no need to longer hold onto the span for request body capture
+                    captureBodyForSpan.remove(thiz);
+                }
+            }
+            Span<?> span = (Span<?>) spanObject;
+            if (span == null) {
+                return;
+            }
+            try {
+                if (responseCode != -1) {
+                    inFlightSpans.remove(thiz);
+                    // if the response code is set, the connection has been established via getOutputStream
+                    // if the response code is unset even after getOutputStream has been called, there will be an exception
+                    // checking if "finished" to avoid multiple endings on nested calls
+                    if (!span.isFinished()) {
+                        span.getContext().getHttp().withStatusCode(responseCode);
+                        span.captureException(t).end();
+                    }
+                } else if (t != null) {
+                    inFlightSpans.remove(thiz);
+
+                    // an exception here is synonym of failure, for example with circular redirects
+                    // checking if "finished" to avoid multiple endings on nested calls
+                    if (!span.isFinished()) {
+                        span.captureException(t)
+                            .withOutcome(Outcome.FAILURE)
+                            .end();
+                    }
+                } else {
+                    // if connect or getOutputStream has been called we can't end the span right away
+                    // we have to store associate it with thiz HttpURLConnection instance and end once getInputStream has been called
+                    // note that this could happen on another thread
+                    inFlightSpans.put(thiz, span);
+                }
+            } finally {
+                span.deactivate();
+            }
+        }
+
+    }
     public static class CreateSpanInstrumentation extends HttpUrlConnectionInstrumentation {
 
         public static class AdviceClass {
@@ -78,86 +156,71 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object enter(@Advice.This HttpURLConnection thiz,
                                        @Advice.FieldValue("connected") boolean connected,
-                                       @Advice.FieldValue("responseCode") int responseCode,
-                                       @Advice.Origin String signature) {
-
-                //With HEAD requests the connected stays false
-                boolean actuallyConnected = connected || responseCode != -1;
-
-                boolean isNestedCall = callDepth.isNestedCallAndIncrement();
-                TraceState<?> activeContext = tracer.currentContext();
-                AbstractSpan<?> parentSpan = activeContext.getSpan();
-                Span<?> span = null;
-                if (parentSpan != null) {
-                    span = inFlightSpans.get(thiz);
-                    if (span == null && !actuallyConnected) {
-                        final URL url = thiz.getURL();
-                        span = HttpClientHelper.startHttpClientSpan(activeContext, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
-                    }
-                    if (!isNestedCall && span != null) {
-                        span.activate();
-                    } else {
-                        span = null; //do not deactivate this span on exit
-                    }
-                }
-
-                if (!isNestedCall && !actuallyConnected) {
-                    tracer.currentContext().propagateContext(thiz, UrlConnectionPropertyAccessor.instance(), UrlConnectionPropertyAccessor.instance());
-                }
-
-                return span;
+                                       @Advice.FieldValue("responseCode") int responseCode
+            ) {
+                return CreateSpanAdviceHelper.enter(thiz, connected, responseCode);
             }
 
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
             public static void exit(@Advice.This HttpURLConnection thiz,
                                     @Advice.Thrown @Nullable Throwable t,
                                     @Advice.FieldValue("responseCode") int responseCode,
-                                    @Advice.Enter @Nullable Object spanObject,
-                                    @Advice.Origin String signature) {
-
-                callDepth.decrement();
-                Span<?> span = (Span<?>) spanObject;
-                if (span == null) {
-                    return;
-                }
-                try {
-                    if (responseCode != -1) {
-                        inFlightSpans.remove(thiz);
-                        // if the response code is set, the connection has been established via getOutputStream
-                        // if the response code is unset even after getOutputStream has been called, there will be an exception
-                        // checking if "finished" to avoid multiple endings on nested calls
-                        if (!span.isFinished()) {
-                            span.getContext().getHttp().withStatusCode(responseCode);
-                            span.captureException(t).end();
-                        }
-                    } else if (t != null) {
-                        inFlightSpans.remove(thiz);
-
-                        // an exception here is synonym of failure, for example with circular redirects
-                        // checking if "finished" to avoid multiple endings on nested calls
-                        if (!span.isFinished()) {
-                            span.captureException(t)
-                                .withOutcome(Outcome.FAILURE)
-                                .end();
-                        }
-                    } else {
-                        // if connect or getOutputStream has been called we can't end the span right away
-                        // we have to store associate it with thiz HttpURLConnection instance and end once getInputStream has been called
-                        // note that this could happen on another thread
-                        inFlightSpans.put(thiz, span);
-                    }
-                } finally {
-                    span.deactivate();
-                }
+                                    @Advice.Enter @Nullable Object spanObject
+            ) {
+                CreateSpanAdviceHelper.exit(thiz, t, responseCode, (Span<?>) spanObject);
             }
+
         }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("connect").and(takesArguments(0))
-                .or(named("getOutputStream").and(takesArguments(0)))
                 .or(named("getInputStream").and(takesArguments(0)))
                 .or(named("getResponseCode").and(takesArguments(0)));
+        }
+    }
+
+    public static class GetOutputStreamInstrumentation extends HttpUrlConnectionInstrumentation {
+
+        public static class AdviceClass {
+            @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object enter(@Advice.This HttpURLConnection thiz,
+                                       @Advice.FieldValue("connected") boolean connected,
+                                       @Advice.FieldValue("responseCode") int responseCode
+            ) {
+                return CreateSpanAdviceHelper.enter(thiz, connected, responseCode);
+            }
+
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            @Advice.AssignReturned.ToReturned
+            public static OutputStream exit(@Advice.This HttpURLConnection thiz,
+                                            @Advice.Return OutputStream outputStream,
+                                            @Advice.Thrown @Nullable Throwable t,
+                                            @Advice.FieldValue("responseCode") int responseCode,
+                                            @Advice.Enter @Nullable Object spanObject
+            ) {
+                if (callDepth.get() == 1 && t == null) { //only wrap on the outermost call and if no exception occurred
+                    Span<?> captureBodyFor = captureBodyForSpan.get(thiz);
+                    if (captureBodyFor == null) {
+                        AbstractSpan<?> currentSpan = tracer.getActive();
+                        if (HttpClientHelper.checkAndStartRequestBodyCapture(currentSpan, thiz, UrlConnectionPropertyAccessor.instance())) {
+                            captureBodyFor = (Span<?>) currentSpan;
+                            captureBodyForSpan.put(thiz, captureBodyFor);
+                        }
+                    }
+                    if (captureBodyFor != null && !captureBodyFor.isFinished()) {
+                        outputStream = new RequestBodyRecordingOutputStream(outputStream, captureBodyFor);
+                    }
+                }
+                CreateSpanAdviceHelper.exit(thiz, t, responseCode, (Span<?>) spanObject);
+                return outputStream;
+            }
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("getOutputStream").and(takesArguments(0));
         }
     }
 
@@ -172,6 +235,7 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
             public static void afterDisconnect(@Advice.This HttpURLConnection thiz,
                                                @Advice.Thrown @Nullable Throwable t,
                                                @Advice.FieldValue("responseCode") int responseCode) {
+                captureBodyForSpan.remove(thiz);
                 Span<?> span = inFlightSpans.remove(thiz);
                 if (span != null) {
                     span.captureException(t)

@@ -22,15 +22,19 @@ package co.elastic.apm.agent.httpclient.v5;
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.InputStreamEntity;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 public class ApacheHttpClientExecuteOpenInstrumentationTest extends AbstractHttpClientInstrumentationTest {
@@ -59,20 +63,34 @@ public class ApacheHttpClientExecuteOpenInstrumentationTest extends AbstractHttp
         return false;
     }
 
+    private final HttpClientResponseHandler<String> responseHandler = response -> {
+        int status = response.getCode();
+        if (status >= 200 && status < 300) {
+            HttpEntity entity = response.getEntity();
+            return entity != null ? EntityUtils.toString(entity) : null;
+        } else {
+            throw new ClientProtocolException("Unexpected response status: " + status);
+        }
+    };
+
     @Override
     protected void performGet(String path) throws Exception {
-        HttpClientResponseHandler<String> responseHandler = response -> {
-            int status = response.getCode();
-            if (status >= 200 && status < 300) {
-                HttpEntity entity = response.getEntity();
-                String res = entity != null ? EntityUtils.toString(entity) : null;
-                return res;
-            } else {
-                throw new ClientProtocolException("Unexpected response status: " + status);
-            }
-        };
-
         ClassicHttpResponse response = client.executeOpen(null, new HttpGet(path), null);
+        responseHandler.handleResponse(response);
+    }
+
+    @Override
+    protected boolean isBodyCapturingSupported() {
+        return true;
+    }
+
+    @Override
+    protected void performPost(String path, byte[] content, String contentTypeHeader) throws Exception {
+        HttpPost request = new HttpPost(path);
+        request.setEntity(new InputStreamEntity(new ByteArrayInputStream(content), ContentType.parse(contentTypeHeader)));
+        request.setHeader("Content-Type", contentTypeHeader);
+
+        ClassicHttpResponse response = client.executeOpen(null, request, null);
         responseHandler.handleResponse(response);
     }
 }

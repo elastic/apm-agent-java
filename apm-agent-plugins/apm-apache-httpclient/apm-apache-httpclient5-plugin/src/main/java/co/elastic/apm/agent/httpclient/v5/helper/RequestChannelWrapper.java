@@ -20,10 +20,11 @@ package co.elastic.apm.agent.httpclient.v5.helper;
 
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
+import co.elastic.apm.agent.httpclient.common.RequestBodyCaptureRegistry;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.apache.hc.core5.http.EntityDetails;
 import org.apache.hc.core5.http.HttpException;
@@ -78,6 +79,7 @@ public class RequestChannelWrapper implements RequestChannel, Recyclable {
 
             if (httpRequest != null) {
                 if (span != null) {
+                    RequestBodyCaptureRegistry.potentiallyCaptureRequestBody(httpRequest, span, ApacheHttpClient5ApiAdapter.get(), RequestHeaderAccessor.INSTANCE);
                     String host = null;
                     String protocol = null;
                     int port = -1;
