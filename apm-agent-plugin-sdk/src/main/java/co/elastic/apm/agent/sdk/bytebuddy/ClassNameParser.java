@@ -26,6 +26,18 @@ public class ClassNameParser {
      * Utility class, do not instantiate
      */
     private ClassNameParser() {}
+    private static String getNestedClassName(String className) {
+        int dollarIndex = className.lastIndexOf('$');
+        String innerClassName = className.substring(dollarIndex + 1);
+        if(innerClassName.matches("\\d+")) {
+            // this is an anonymous inner class
+            // we don't want to include the number in the class name
+            className = className.substring(0, dollarIndex);
+        } else {
+            className = innerClassName;
+        }
+        return className;
+    }
     /**
      * Parses the simple class name from a class name
      * @param className
@@ -39,16 +51,12 @@ public class ClassNameParser {
                 // this can happen if the source code was in Scala and the object keyword was used
                 // https://www.toptal.com/scala/scala-bytecode-and-the-jvm
                 className = className.substring(0, className.length() - 1);
-            } else {
-                int dollarIndex = className.lastIndexOf('$');
-                String innerClassName = className.substring(dollarIndex + 1);
-                if(innerClassName.matches("\\d+")) {
-                    // this is an anonymous inner class
-                    // we don't want to include the number in the class name
-                    className = className.substring(0, dollarIndex);
-                } else {
-                    className = innerClassName;
+                if(className.contains("$"))
+                {
+                	className = getNestedClassName(className);
                 }
+            } else {
+                className = getNestedClassName(className);
             }
         }
         return className;

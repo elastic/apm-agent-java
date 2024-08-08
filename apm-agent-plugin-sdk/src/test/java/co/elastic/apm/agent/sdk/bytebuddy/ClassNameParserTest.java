@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 import co.elastic.apm.agent.sdk.bytebuddy.clazzes.ParentClass.InnerClass;
+import co.elastic.apm.agent.sdk.bytebuddy.clazzes.ParentObject.ChildScalaObject$;
 import co.elastic.apm.agent.sdk.bytebuddy.clazzes.SimpleClass;
 import co.elastic.apm.agent.sdk.bytebuddy.clazzes.AnonymousClass;
 import co.elastic.apm.agent.sdk.bytebuddy.clazzes.Dollar$Class;
@@ -56,5 +57,10 @@ class ClassNameParserTest {
     void testScalaObjectClassName() {
         String className = ClassNameParser.parse(ScalaObject$.class.getName());
         assertThat(className).isEqualTo("ScalaObject");
+    }
+    @Test
+    void testNestedScalaObjectClassName() {
+        String className = ClassNameParser.parse(ChildScalaObject$.class.getName());
+        assertThat(className).isEqualTo("ChildScalaObject");
     }
 }
