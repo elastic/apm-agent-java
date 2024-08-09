@@ -2,5 +2,13 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "local>elastic/renovate-config"
+  ],
+  "packageRules": [
+    {
+      "matchDepType": [
+        "test", "provided" 
+      ],
+      "requireDependencyDashboardApproval": true
+    }
   ]
 }
