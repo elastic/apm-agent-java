@@ -31,6 +31,9 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+===== Bug fixes
+* Improve automatic span class name detection for Scala and nested/anonymous classes - {pull}3746[#3746]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
