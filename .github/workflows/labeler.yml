@@ -30,7 +30,7 @@ jobs:
         username: ${{ github.actor }}
         token: ${{ secrets.APM_TECH_USER_TOKEN }}
     - name: Add community and triage lables
-      if: contains(steps.is_elastic_member.outputs.result, 'false') && github.actor != 'dependabot[bot]'
+      if: contains(steps.is_elastic_member.outputs.result, 'false') && github.actor != 'dependabot[bot]' && github.actor != 'elastic-renovate-prod[bot]'
       uses: actions/github-script@v7
       with:
         script: |
@@ -41,7 +41,7 @@ jobs:
             labels: ["community", "triage"]
           })
     - name: Add comment for community PR
-      if: contains(steps.is_elastic_member.outputs.result, 'false') && github.actor != 'dependabot[bot]'
+      if: contains(steps.is_elastic_member.outputs.result, 'false') && github.actor != 'dependabot[bot]' && github.actor != 'elastic-renovate-prod[bot]'
       uses: wow-actions/auto-comment@v1
       with:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
