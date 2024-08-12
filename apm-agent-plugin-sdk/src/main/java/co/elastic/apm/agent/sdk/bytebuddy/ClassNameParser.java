@@ -26,10 +26,23 @@ public class ClassNameParser {
      * Utility class, do not instantiate
      */
     private ClassNameParser() {}
+    /**
+     * returns true if the string only contains digits
+     * @param str the string to check
+     * @return
+     */
+    private static boolean isNumeric(String str) {
+    	for(int i = 0; i< str.length(); i++) {
+    		if(!Character.isDigit(str.charAt(i))) {
+        		return false;
+    		}
+    	}
+    	return true;
+    }
     private static String getNestedClassName(String className) {
         int dollarIndex = className.lastIndexOf('$');
         String innerClassName = className.substring(dollarIndex + 1);
-        if(innerClassName.matches("\\d+")) {
+        if(isNumeric(innerClassName)) {
             // this is an anonymous inner class
             // we don't want to include the number in the class name
             className = className.substring(0, dollarIndex);
