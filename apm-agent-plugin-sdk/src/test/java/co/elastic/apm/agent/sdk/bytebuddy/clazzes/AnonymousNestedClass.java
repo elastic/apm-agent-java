@@ -18,19 +18,22 @@
  */
 package co.elastic.apm.agent.sdk.bytebuddy.clazzes;
 
-public class ParentClass {
-
-    public static class InnerClass {
-    	public static Class<?> getAnonymousClass() {
-	        return new Object() {
-	            @Override
-	            public String toString() {
-	                return "foo";
-	            }
-	        }.getClass();
-	    }
-    	public static class NestedInnerClass {
-    		
-    	}
+public class AnonymousNestedClass {
+    public static Class<?> getAnonymousClass() {
+    	Factory f = new Factory() {
+            @Override
+            public Object getObject() {
+                return new Object() {
+                    @Override
+                    public String toString() {
+                        return "foo";
+                    }
+                };
+            }
+        };
+        return f.getObject().getClass();
+    }
+    public static interface Factory {
+    	Object getObject();
     }
 }

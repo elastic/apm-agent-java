@@ -39,13 +39,38 @@ public class ClassNameParser {
     	}
     	return true;
     }
+    /**
+     * this method parses the anonymous class name from the full class name
+     * @param className
+     * @return
+     */
+    private static String getAnonymousClassName(String className) {
+    	int lastDollarIndex = className.lastIndexOf('$');
+    	int currentDollarIndex;
+    	String nestedClassName;
+    	// we do not want to show just a number for anonymous classes, so we walk back until we find a named (normal or nested) class
+    	do {
+    		currentDollarIndex = className.lastIndexOf('$', lastDollarIndex -1);
+    		nestedClassName = className.substring(currentDollarIndex + 1, lastDollarIndex);
+    		lastDollarIndex = currentDollarIndex;
+    	} while(currentDollarIndex != -1 && isNumeric(nestedClassName));
+        return className.substring(currentDollarIndex + 1);
+    }
+    /**
+     * Parses the class name from nested and anonymous classes (containing a $ sign)
+     * <p>
+     * Note: We cannot know if the $ sign is part of the class name or denotes a nested/anonymous class. As $ signs should not be used in class names anyway,
+     *       we handle them always as a class separator
+     * </p>
+     * @param className
+     * @return
+     */
     private static String getNestedClassName(String className) {
         int dollarIndex = className.lastIndexOf('$');
         String innerClassName = className.substring(dollarIndex + 1);
         if(isNumeric(innerClassName)) {
             // this is an anonymous inner class
-            // we don't want to include the number in the class name
-            className = className.substring(0, dollarIndex);
+        	className = getAnonymousClassName(className);
         } else {
             className = innerClassName;
         }

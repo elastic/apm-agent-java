@@ -23,9 +23,11 @@ import static org.assertj.core.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 import co.elastic.apm.agent.sdk.bytebuddy.clazzes.ParentClass.InnerClass;
+import co.elastic.apm.agent.sdk.bytebuddy.clazzes.ParentClass.InnerClass.NestedInnerClass;
 import co.elastic.apm.agent.sdk.bytebuddy.clazzes.ParentObject.ChildScalaObject$;
 import co.elastic.apm.agent.sdk.bytebuddy.clazzes.SimpleClass;
 import co.elastic.apm.agent.sdk.bytebuddy.clazzes.AnonymousClass;
+import co.elastic.apm.agent.sdk.bytebuddy.clazzes.AnonymousNestedClass;
 import co.elastic.apm.agent.sdk.bytebuddy.clazzes.Dollar$Class;
 import co.elastic.apm.agent.sdk.bytebuddy.clazzes.ScalaObject$;
 
@@ -42,6 +44,11 @@ class ClassNameParserTest {
         assertThat(className).isEqualTo("InnerClass");
     }
     @Test
+    void testDoubleNestedClassName() {
+        String className = ClassNameParser.parse(NestedInnerClass.class.getName());
+        assertThat(className).isEqualTo("NestedInnerClass");
+    }
+    @Test
     void testDollarClassName() {
         String className = ClassNameParser.parse(Dollar$Class.class.getName());
         //We have no way to know if the class name is Dollar$Class or Class is a nested class of Dollar
@@ -51,7 +58,17 @@ class ClassNameParserTest {
     @Test
     void testAnonymousClassName() {
         String className = ClassNameParser.parse(AnonymousClass.getAnonymousClass().getName());
-        assertThat(className).isEqualTo("AnonymousClass");
+        assertThat(className).isEqualTo("AnonymousClass$1");
+    }
+    @Test
+    void testAnonymousNestedClassName() {
+        String className = ClassNameParser.parse(InnerClass.getAnonymousClass().getName());
+        assertThat(className).isEqualTo("InnerClass$1");
+    }
+    @Test
+    void testAnonymousInAnonymousClassName() {
+        String className = ClassNameParser.parse(AnonymousNestedClass.getAnonymousClass().getName());
+        assertThat(className).isEqualTo("AnonymousNestedClass$1$1");
     }
     @Test
     void testScalaObjectClassName() {
