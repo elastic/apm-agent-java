@@ -61,4 +61,22 @@ public class RequestBodyRecordingHelperTest {
         assertThat(endedHelper.clientSpan).isNull();
     }
 
+    @Test
+    public void ensureLimitRespected() {
+        SpanImpl span = rootTx.createSpan();
+        BodyCaptureImpl spanBody = span.getContext().getHttp().getRequestBody();
+        spanBody.markEligibleForCapturing();
+        spanBody.startCapture(null, 3);
+
+        RequestBodyRecordingHelper helper = new RequestBodyRecordingHelper(span);
+        helper.appendToBody((byte) 1);
+        helper.appendToBody(new byte[]{2, 3, 4, 5}, 1, 2);
+        helper.appendToBody((byte) 6);
+
+        assertThat(IOUtils.copyToByteArray(spanBody.getBody())).containsExactly(1, 3, 4);
+        assertThat(helper.clientSpan).isNull();
+
+        span.end();
+    }
+
 }
