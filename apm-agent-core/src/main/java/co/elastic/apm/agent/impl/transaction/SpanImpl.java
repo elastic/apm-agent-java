@@ -46,6 +46,11 @@ import java.util.concurrent.TimeUnit;
 
 public class SpanImpl extends AbstractSpanImpl<SpanImpl> implements Recyclable, Span<SpanImpl> {
 
+    /**
+     * Protection against excessive memory usage and span ending run times:
+     * We limit the maximum allowed number of end listeners.
+     */
+    static final int MAX_END_LISTENERS = 100;
     private static final Logger logger = LoggerFactory.getLogger(SpanImpl.class);
     public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
     private static long lastSpanMaxWarningTimestamp;
@@ -183,7 +188,16 @@ public class SpanImpl extends AbstractSpanImpl<SpanImpl> implements Recyclable, 
 
     @Override
     public void addEndListener(SpanEndListener<? super SpanImpl> listener) {
-        endListeners.add(listener);
+        if (endListeners.size() < MAX_END_LISTENERS) {
+            endListeners.add(listener);
+        } else {
+            if (logger.isDebugEnabled()) {
+                logger.warn("Not adding span end listener because limit is reached: {}," +
+                            " throwable stacktrace will be added for debugging", listener, new Throwable());
+            } else {
+                logger.warn("Not adding span end listener because limit is reached: {}", listener);
+            }
+        }
     }
 
     @Override
