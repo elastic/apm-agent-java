@@ -272,6 +272,17 @@ public class IOUtils {
         }
     }
 
+    @Nullable
+    public static byte[] copyToByteArray(@Nullable ByteBuffer buf) {
+        if (buf == null) {
+            return null;
+        }
+        byte[] data = new byte[buf.position()];
+        buf.position(0);
+        buf.get(data);
+        return data;
+    }
+
     public interface ByteSourceReader<S> {
         int availableBytes(S source);
 
