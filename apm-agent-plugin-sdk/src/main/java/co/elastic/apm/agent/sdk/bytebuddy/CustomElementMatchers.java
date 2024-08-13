@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.sdk.bytebuddy;
 
 import co.elastic.apm.agent.sdk.internal.InternalUtil;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import net.bytebuddy.description.NamedElement;
@@ -45,9 +45,7 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
-import static net.bytebuddy.matcher.ElementMatchers.none;
+import static net.bytebuddy.matcher.ElementMatchers.*;
 
 public class CustomElementMatchers {
 
@@ -273,7 +271,10 @@ public class CustomElementMatchers {
                     }
 
                     // reading manifest if library packaged as a jar
-                    if(version == null) {
+                    //
+                    // doing this after maven properties is important as it might report executable jar version
+                    // when application is packaged as a "fat jar"
+                    if (version == null) {
                         Manifest manifest = jarFile.getManifest();
                         if (manifest != null) {
                             Attributes attributes = manifest.getMainAttributes();
