@@ -73,6 +73,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-urlconnection-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-apache-httpclient5-plugin</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>

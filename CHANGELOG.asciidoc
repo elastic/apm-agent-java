@@ -31,7 +31,9 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[float]
 ===== Bug fixes
+* Fix log4j2 log correlation with shaded application jar - {pull}3764[#3764]
 * Improve automatic span class name detection for Scala and nested/anonymous classes - {pull}3746[#3746]
 
 [[release-notes-1.x]]
