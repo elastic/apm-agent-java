@@ -81,7 +81,6 @@ class CustomElementMatchersTest {
     void testSemVerFallbackOnMavenProperties(@TempDir Path tempDir) throws URISyntaxException, IOException {
         // Relying on Apache httpclient-4.5.6.jar
         // creates a copy of the jar without the manifest so we should parse maven properties
-
         URL originalUrl = HttpClient.class.getProtectionDomain().getCodeSource().getLocation();
         Path modifiedJar = tempDir.resolve("test.jar");
         try {
@@ -90,7 +89,7 @@ class CustomElementMatchersTest {
             Map<String, String> fsProperties = new HashMap<>();
             fsProperties.put("create", "false");
 
-            URI fsUri = URI.create("jar:file://" + modifiedJar.toAbsolutePath());
+            URI fsUri = URI.create("jar:" + modifiedJar.toUri().toString());
             try (FileSystem zipFs = FileSystems.newFileSystem(fsUri, fsProperties)) {
                 Files.delete(zipFs.getPath("META-INF", "MANIFEST.MF"));
             }
