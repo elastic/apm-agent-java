@@ -89,7 +89,7 @@ class CustomElementMatchersTest {
             Map<String, String> fsProperties = new HashMap<>();
             fsProperties.put("create", "false");
 
-            URI fsUri = URI.create("jar:" + modifiedJar.toUri().toString());
+            URI fsUri = URI.create("jar:" + modifiedJar.toUri());
             try (FileSystem zipFs = FileSystems.newFileSystem(fsUri, fsProperties)) {
                 Files.delete(zipFs.getPath("META-INF", "MANIFEST.MF"));
             }
