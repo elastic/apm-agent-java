@@ -103,10 +103,6 @@ public class SpringRestTemplateInstrumentationTest extends AbstractHttpClientIns
                 // We do not support body capturing for OkHttp yet
                 return false;
             }
-            if (restTemplate.getRequestFactory() instanceof HttpComponentsClientHttpRequestFactory) {
-                //apache http client v5 is also not supported yet
-                return false;
-            }
             return true;
         }
 

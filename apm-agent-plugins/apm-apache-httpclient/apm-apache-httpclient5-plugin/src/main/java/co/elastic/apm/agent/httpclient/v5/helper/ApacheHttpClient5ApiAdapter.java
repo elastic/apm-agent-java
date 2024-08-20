@@ -25,9 +25,12 @@ import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import org.apache.hc.client5.http.CircularRedirectException;
+import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.routing.RoutingSupport;
 import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpEntityContainer;
 import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpRequest;
@@ -36,7 +39,7 @@ import javax.annotation.Nullable;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<HttpRequest, ClassicHttpRequest, HttpHost, CloseableHttpResponse> {
+public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<HttpRequest, ClassicHttpRequest, HttpHost, CloseableHttpResponse, HttpEntity> {
     private static final ApacheHttpClient5ApiAdapter INSTANCE = new ApacheHttpClient5ApiAdapter();
 
     private static final Logger logger = LoggerFactory.getLogger(ApacheHttpClient5ApiAdapter.class);
@@ -76,6 +79,15 @@ public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<H
         }
     }
 
+    @Nullable
+    @Override
+    public byte[] getSimpleBodyBytes(HttpRequest httpRequest) {
+        if (httpRequest instanceof SimpleHttpRequest) {
+            return ((SimpleHttpRequest) httpRequest).getBodyBytes();
+        }
+        return null;
+    }
+
     @Override
     public int getResponseCode(CloseableHttpResponse closeableHttpResponse) {
         return closeableHttpResponse.getCode();
@@ -93,5 +105,14 @@ public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<H
     public boolean isNotNullStatusLine(CloseableHttpResponse closeableHttpResponse) {
         // HTTP response messages in HttpClient 5.x no longer have a status line.
         return true;
+    }
+
+    @Nullable
+    @Override
+    public HttpEntity getRequestEntity(HttpRequest httpRequest) {
+        if (httpRequest instanceof HttpEntityContainer) {
+            return ((HttpEntityContainer) httpRequest).getEntity();
+        }
+        return null;
     }
 }
