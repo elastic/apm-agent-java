@@ -147,6 +147,7 @@ Click on a key to get more information.
 ** <<config-transaction-ignore-user-agents>>
 ** <<config-use-path-as-transaction-name>>
 ** <<config-url-groups>>
+** <<config-capture-http-client-request-body-size>>
 * <<config-huge-traces>>
 ** <<config-span-compression-enabled>>
 ** <<config-span-compression-exact-match-max-duration>>
@@ -1827,6 +1828,35 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.url_groups` | `url_groups` | `ELASTIC_APM_URL_GROUPS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-capture-http-client-request-body-size]]
+==== `capture_http_client_request_body_size` (added[1.52.0] experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+Configures that the first n bytes of http-client request bodies shall be captured. Note that only request bodies will be captured for content types matching the <<config-transaction-name-groups,`transaction_name_groups`>> configuration. The maximum allowed value is 1024, a value of 0 disables body capturing.
+
+Currently only support for Apache Http Client v4 and v5, HttpUrlConnection, Spring Webflux WebClient and other frameworks building on top of these (e.g. Spring RestTemplate).
+
+The body will be stored in the `labels.http_request_body_content` field on the span documents.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0` | Integer | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.capture_http_client_request_body_size` | `capture_http_client_request_body_size` | `ELASTIC_APM_CAPTURE_HTTP_CLIENT_REQUEST_BODY_SIZE`
 |============
 
 [[config-huge-traces]]
@@ -4330,6 +4360,18 @@ Example: `5ms`.
 # Default value: 
 #
 # url_groups=
+
+# Configures that the first n bytes of http-client request bodies shall be captured. Note that only request bodies will be captured for content types matching the <<config-transaction-name-groups,`transaction_name_groups`>> configuration. The maximum allowed value is 1024, a value of 0 disables body capturing.
+# 
+# Currently only support for Apache Http Client v4 and v5, HttpUrlConnection, Spring Webflux WebClient and other frameworks building on top of these (e.g. Spring RestTemplate).
+# 
+# The body will be stored in the `labels.http_request_body_content` field on the span documents.
+#
+# This setting can be changed at runtime
+# Type: Integer
+# Default value: 0
+#
+# capture_http_client_request_body_size=0
 
 ############################################
 # Huge Traces                              #

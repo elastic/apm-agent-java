@@ -129,10 +129,12 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .addValidator(isInRange(0, MAX_BODY_CAPTURE_BYTES))
         .key("capture_http_client_request_body_size")
         .configurationCategory(HTTP_CATEGORY)
-        .tags("added[1.50.0]", "internal")
-        .description("Configures how many bytes of http-client request bodies shall be captured. " +
-                     "Note that only request bodies will be captured for content types matching the capture_body_content_types configuration. " +
-                     " The maximum allowed value is " + MAX_BODY_CAPTURE_BYTES + " , a value of 0 disables body capturing")
+        .tags("added[1.52.0]", "experimental")
+        .description("Configures that the first n bytes of http-client request bodies shall be captured. " +
+                     "Note that only request bodies will be captured for content types matching the <<config-transaction-name-groups,`transaction_name_groups`>> configuration. " +
+                     "The maximum allowed value is " + MAX_BODY_CAPTURE_BYTES + ", a value of 0 disables body capturing.\n\n" +
+                     "Currently only support for Apache Http Client v4 and v5, HttpUrlConnection, Spring Webflux WebClient and other frameworks building on top of these (e.g. Spring RestTemplate).\n\n" +
+                     "The body will be stored in the `labels.http_request_body_content` field on the span documents.")
         .dynamic(true)
         .buildWithDefault(0);
 
