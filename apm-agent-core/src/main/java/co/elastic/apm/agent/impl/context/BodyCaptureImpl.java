@@ -46,11 +46,11 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
         });
 
     private enum CaptureState {
-        NOT_ELIGIBLE,
-        ELIGIBLE,
-        PRECONDITIONS_PASSED,
-        PRECONDITIONS_FAILED,
-        STARTED
+        NOT_ELIGIBLE, // initial state
+        ELIGIBLE, // eligible but before preconditions evaluation
+        PRECONDITIONS_PASSED, // post preconditions (passed), can start capture
+        PRECONDITIONS_FAILED, // post preconditions (failed), no body will be captured
+        STARTED // the body capturing has been started, a buffer was acquired
     }
 
     private volatile CaptureState state;
@@ -106,10 +106,9 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
     @Override
     public void markPreconditionsFailed() {
         synchronized (this) {
-            if (state != CaptureState.ELIGIBLE) {
-                throw new IllegalStateException("state is " + state);
+            if (state == CaptureState.ELIGIBLE) {
+                state = CaptureState.PRECONDITIONS_FAILED;
             }
-            state = CaptureState.PRECONDITIONS_FAILED;
         }
     }
 

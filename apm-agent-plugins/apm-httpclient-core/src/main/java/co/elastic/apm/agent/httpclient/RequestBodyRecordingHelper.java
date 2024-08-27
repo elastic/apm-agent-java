@@ -22,6 +22,10 @@ public class RequestBodyRecordingHelper implements SpanEndListener<Span<?>> {
     }
 
 
+    /**
+     * @param b the byte to append
+     * @return false, if the body buffer is full and future calls would be no-op. True otherwise.
+     */
     public boolean appendToBody(byte b) {
         if (clientSpan != null) {
             BodyCapture requestBody = clientSpan.getContext().getHttp().getRequestBody();

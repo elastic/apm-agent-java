@@ -88,26 +88,28 @@ public class ClientHttpRequestInstrumentation extends ElasticApmInstrumentation 
             // Note that activateRecording would return null on subsequent calls for the same span
             // This is important because writeAndFlushWith might be built on top of writeWith (or the other way round)
             // The removal helps to not double capture the body in this case.
-            if (activeRecording != null) {
-                RecordingConsumer recordingConsumer = new RecordingConsumer(activeRecording);
-                if (methodName.equals("writeWith")) {
-                    Publisher<? extends DataBuffer> actualPublisher = (Publisher<? extends DataBuffer>) bodyPublisher;
-                    return Flux.from(actualPublisher)
-                        .doOnNext(recordingConsumer);
-                } else if (methodName.equals("writeAndFlushWith")) {
-                    Publisher<? extends Publisher<? extends DataBuffer>> actualPublisher
-                        = (Publisher<? extends Publisher<? extends DataBuffer>>) bodyPublisher;
-                    return Flux.from(actualPublisher)
-                        .map(new Function<Publisher<? extends DataBuffer>, Publisher<? extends DataBuffer>>() {
-                            @Override
-                            public Publisher<? extends DataBuffer> apply(Publisher<? extends DataBuffer> publisher) {
-                                return Flux.from(publisher)
-                                    .doOnNext(recordingConsumer);
-                            }
-                        });
-                }
+            if (activeRecording == null) {
+                return bodyPublisher;
             }
-            return bodyPublisher;
+            RecordingConsumer recordingConsumer = new RecordingConsumer(activeRecording);
+            if (methodName.equals("writeWith")) {
+                Publisher<? extends DataBuffer> actualPublisher = (Publisher<? extends DataBuffer>) bodyPublisher;
+                return Flux.from(actualPublisher)
+                    .doOnNext(recordingConsumer);
+            } else if (methodName.equals("writeAndFlushWith")) {
+                Publisher<? extends Publisher<? extends DataBuffer>> actualPublisher
+                    = (Publisher<? extends Publisher<? extends DataBuffer>>) bodyPublisher;
+                return Flux.from(actualPublisher)
+                    .map(new Function<Publisher<? extends DataBuffer>, Publisher<? extends DataBuffer>>() {
+                        @Override
+                        public Publisher<? extends DataBuffer> apply(Publisher<? extends DataBuffer> publisher) {
+                            return Flux.from(publisher)
+                                .doOnNext(recordingConsumer);
+                        }
+                    });
+            } else {
+                throw new IllegalStateException("This case should never happen");
+            }
         }
     }
 

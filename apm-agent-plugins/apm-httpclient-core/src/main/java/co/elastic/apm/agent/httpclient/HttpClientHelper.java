@@ -90,18 +90,20 @@ public class HttpClientHelper {
         }
         WebConfiguration webConfig = GlobalTracer.get().getConfig(WebConfiguration.class);
         int byteCount = webConfig.getCaptureClientRequestBytes();
-        if (byteCount > 0) {
-            List<WildcardMatcher> contentTypes = webConfig.getCaptureContentTypes();
-            String contentTypeHeader = headerGetter.getFirstHeader("Content-Type", request);
-            if (contentTypeHeader == null) {
-                contentTypeHeader = "";
-            }
-            if (WildcardMatcher.anyMatch(contentTypes, contentTypeHeader) != null) {
-                bodyCapture.markPreconditionsPassed(extractCharsetFromContentType(contentTypeHeader), byteCount);
-                return;
-            }
+        if (byteCount == 0) {
+            bodyCapture.markPreconditionsFailed();
+            return;
         }
-        bodyCapture.markPreconditionsFailed();
+        List<WildcardMatcher> contentTypes = webConfig.getCaptureContentTypes();
+        String contentTypeHeader = headerGetter.getFirstHeader("Content-Type", request);
+        if (contentTypeHeader == null) {
+            contentTypeHeader = "";
+        }
+        if (WildcardMatcher.anyMatch(contentTypes, contentTypeHeader) == null) {
+            bodyCapture.markPreconditionsFailed();
+            return;
+        }
+        bodyCapture.markPreconditionsPassed(extractCharsetFromContentType(contentTypeHeader), byteCount);
     }
 
     public static <R> boolean checkAndStartRequestBodyCapture(@Nullable AbstractSpan<?> abstractSpan, R request, TextHeaderGetter<R> headerGetter) {
