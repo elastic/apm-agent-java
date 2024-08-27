@@ -475,7 +475,8 @@ class DslJsonSerializerTest {
         SpanImpl span = new SpanImpl(tracer);
         BodyCaptureImpl bodyCapture = span.getContext().getHttp().getRequestBody();
         bodyCapture.markEligibleForCapturing();
-        bodyCapture.startCapture(charset, WebConfiguration.MAX_BODY_CAPTURE_BYTES);
+        bodyCapture.markPreconditionsPassed(charset, WebConfiguration.MAX_BODY_CAPTURE_BYTES);
+        bodyCapture.startCapture();
 
         if (bodyBytes != null) {
             bodyCapture.append(bodyBytes, 0, bodyBytes.length);

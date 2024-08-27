@@ -22,8 +22,8 @@ import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.TraceState;
+import co.elastic.apm.agent.tracer.Tracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
@@ -84,6 +84,8 @@ public class WebClientExchangeFunctionInstrumentation extends ElasticApmInstrume
             if (span != null) {
                 span.activate();
             }
+
+            HttpClientHelper.checkBodyCapturePreconditions(tracer.getActive(), clientRequest, ClientRequestHeaderGetter.INSTANCE);
 
             TraceState<?> toPropagate = tracer.currentContext();
             if (!toPropagate.isEmpty()) {

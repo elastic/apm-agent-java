@@ -204,7 +204,7 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
                     Span<?> captureBodyFor = captureBodyForSpan.get(thiz);
                     if (captureBodyFor == null) {
                         AbstractSpan<?> currentSpan = tracer.getActive();
-                        if (HttpClientHelper.startRequestBodyCapture(currentSpan, thiz, UrlConnectionPropertyAccessor.instance())) {
+                        if (HttpClientHelper.checkAndStartRequestBodyCapture(currentSpan, thiz, UrlConnectionPropertyAccessor.instance())) {
                             captureBodyFor = (Span<?>) currentSpan;
                             captureBodyForSpan.put(thiz, captureBodyFor);
                         }
