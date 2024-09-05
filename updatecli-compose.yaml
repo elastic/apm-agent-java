@@ -2,7 +2,7 @@
 # https://www.updatecli.io/docs/core/compose/
 policies:
   - name: Handle apm-data server specs
-    policy: ghcr.io/elastic/oblt-updatecli-policies/apm/apm-data-spec:0.3.0@sha256:e7cdc38653afecaf9fad748356f545da6eb48bb9262665ff563cda974defb6f5
+    policy: ghcr.io/elastic/oblt-updatecli-policies/apm/apm-data-spec:0.4.0@sha256:5ab4c0afe56d8866821644114f5442152457136892e951087cb10b2857270f6d
     values:
       - .ci/updatecli/values.d/scm.yml
       - .ci/updatecli/values.d/apm-data-spec.yml
