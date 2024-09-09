@@ -1574,8 +1574,11 @@ public class DslJsonSerializer {
                     writeField("status_code", http.getStatusCode());
                 }
                 if (http.getRequestBody().hasContent()) {
+                    writeFieldName("request");
+                    jw.writeByte(OBJECT_START);
                     writeFieldName("body");
                     writeRequestBodyAsString(jw, http.getRequestBody());
+                    jw.writeByte(OBJECT_END);
                     jw.writeByte(COMMA);
                 }
                 writeLastField("url", http.getUrl());

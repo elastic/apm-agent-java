@@ -467,7 +467,11 @@ class DslJsonSerializerTest {
         if (http == null) {
             return null;
         }
-        JsonNode bodyContent = http.get("body");
+        JsonNode request = http.get("request");
+        if (request == null) {
+            return null;
+        }
+        JsonNode bodyContent = request.get("body");
         if (bodyContent == null) {
             return null;
         }
