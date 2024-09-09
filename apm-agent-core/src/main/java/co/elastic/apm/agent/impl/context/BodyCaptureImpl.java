@@ -187,4 +187,8 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
     public ByteBuffer getBody() {
         return bodyBuffer;
     }
+
+    public boolean hasContent() {
+        return getBody() != null;
+    }
 }

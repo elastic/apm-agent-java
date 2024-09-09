@@ -1041,7 +1041,7 @@ public class DslJsonSerializer {
             if (!Double.isNaN(sampleRate)) {
                 writeField("sample_rate", sampleRate);
             }
-            serializeOTel(span);
+            serializeOtel(span, Collections.<IdImpl>emptyList());
             if (span.isComposite() && span.getComposite().getCount() > 1) {
                 serializeComposite(span.getComposite());
             }
@@ -1068,23 +1068,18 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeOTel(SpanImpl span) {
-            serializeOtel(span, Collections.<IdImpl>emptyList(), span.getContext().getHttp().getRequestBody());
-        }
-
         private void serializeOTel(TransactionImpl transaction) {
             List<IdImpl> profilingCorrelationStackTraceIds = transaction.getProfilingCorrelationStackTraceIds();
             synchronized (profilingCorrelationStackTraceIds) {
-                serializeOtel(transaction, profilingCorrelationStackTraceIds, null);
+                serializeOtel(transaction, profilingCorrelationStackTraceIds);
             }
         }
 
-        private void serializeOtel(AbstractSpanImpl<?> span, List<IdImpl> profilingStackTraceIds, @Nullable BodyCaptureImpl httpRequestBody) {
+        private void serializeOtel(AbstractSpanImpl<?> span, List<IdImpl> profilingStackTraceIds) {
             OTelSpanKind kind = span.getOtelKind();
             Map<String, Object> attributes = span.getOtelAttributes();
 
-            boolean hasRequestBody = httpRequestBody != null && httpRequestBody.getBody() != null;
-            boolean hasAttributes = !attributes.isEmpty() || !profilingStackTraceIds.isEmpty() || hasRequestBody;
+            boolean hasAttributes = !attributes.isEmpty() || !profilingStackTraceIds.isEmpty();
             boolean hasKind = kind != null;
             if (hasKind || hasAttributes) {
                 writeFieldName("otel");
@@ -1133,13 +1128,6 @@ public class DslJsonSerializer {
                             jw.writeByte(QUOTE);
                         }
                         jw.writeByte(ARRAY_END);
-                    }
-                    if (hasRequestBody) {
-                        if (!isFirstAttrib) {
-                            jw.writeByte(COMMA);
-                        }
-                        writeFieldName("http.request.body.content");
-                        writeRequestBodyAsString(jw, httpRequestBody);
                     }
                     jw.writeByte(OBJECT_END);
                 }
@@ -1584,6 +1572,11 @@ public class DslJsonSerializer {
                 int statusCode = http.getStatusCode();
                 if (statusCode > 0) {
                     writeField("status_code", http.getStatusCode());
+                }
+                if (http.getRequestBody().hasContent()) {
+                    writeFieldName("body");
+                    writeRequestBodyAsString(jw, http.getRequestBody());
+                    jw.writeByte(COMMA);
                 }
                 writeLastField("url", http.getUrl());
                 jw.writeByte(OBJECT_END);

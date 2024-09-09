@@ -459,12 +459,15 @@ class DslJsonSerializerTest {
 
     private String extractRequestBodyJson(SpanImpl span) {
         JsonNode spanJson = readJsonString(writer.toJsonString(span));
-        JsonNode otel = spanJson.get("otel");
-        if (otel == null) {
+        JsonNode context = spanJson.get("context");
+        if (context == null) {
             return null;
         }
-        JsonNode attribs = otel.get("attributes");
-        JsonNode bodyContent = attribs.get("http.request.body.content");
+        JsonNode http = context.get("http");
+        if (http == null) {
+            return null;
+        }
+        JsonNode bodyContent = http.get("body");
         if (bodyContent == null) {
             return null;
         }
