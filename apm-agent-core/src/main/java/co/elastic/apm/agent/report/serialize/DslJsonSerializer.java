@@ -68,7 +68,6 @@ import co.elastic.apm.agent.sdk.internal.pooling.ObjectPooling;
 import co.elastic.apm.agent.sdk.internal.util.IOUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.tracer.metrics.DslJsonUtil;
 import co.elastic.apm.agent.tracer.metrics.Labels;
@@ -112,10 +111,10 @@ public class DslJsonSerializer {
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final List<String> excludedStackFramesPrefixes = Arrays.asList("java.lang.reflect.", "com.sun.", "sun.", "jdk.internal.");
 
-    private static final ObjectPool<? extends ObjectHandle<CharBuffer>> REQUEST_BODY_BUFFER_POOL = ObjectPooling.createWithDefaultFactory(new Callable<CharBuffer>() {
+    private final ObjectPool<? extends ObjectHandle<CharBuffer>> requestBodyBufferPool = ObjectPooling.createWithDefaultFactory(new Callable<CharBuffer>() {
         @Override
         public CharBuffer call() throws Exception {
-            return CharBuffer.allocate(WebConfiguration.MAX_BODY_CAPTURE_BYTES);
+            return CharBuffer.allocate(SerializationConstants.getMaxLongStringValueLength());
         }
     });
 
@@ -1139,7 +1138,7 @@ public class DslJsonSerializer {
 
 
         private void writeRequestBodyAsString(JsonWriter jw, BodyCaptureImpl requestBody) {
-            try (ObjectHandle<CharBuffer> charBufferHandle = REQUEST_BODY_BUFFER_POOL.createInstance()) {
+            try (ObjectHandle<CharBuffer> charBufferHandle = requestBodyBufferPool.createInstance()) {
                 CharBuffer charBuffer = charBufferHandle.get();
                 try {
                     decodeRequestBodyBytes(requestBody, charBuffer);
@@ -1152,20 +1151,29 @@ public class DslJsonSerializer {
         }
 
         private void decodeRequestBodyBytes(BodyCaptureImpl requestBody, CharBuffer charBuffer) {
-            ByteBuffer bodyBytes = requestBody.getBody();
-            ((Buffer) bodyBytes).flip(); //make ready for reading
             CharSequence charset = requestBody.getCharset();
+            List<ByteBuffer> encodedBuffers = requestBody.getBody();
+            for (ByteBuffer buffer : encodedBuffers) {
+                buffer.flip(); //make ready for reading
+            }
+
             if (charset != null) {
-                CoderResult result = IOUtils.decode(bodyBytes, charBuffer, charset.toString());
+                CoderResult result = IOUtils.decode(encodedBuffers, charBuffer, charset.toString());
                 if (result != null && !result.isMalformed() && !result.isUnmappable()) {
                     return;
                 }
             }
+
             //fallback to decoding by simply casting bytes to chars
-            ((Buffer) bodyBytes).position(0);
             ((Buffer) charBuffer).clear();
-            while (bodyBytes.hasRemaining()) {
-                charBuffer.put((char) (((int) bodyBytes.get()) & 0xFF));
+            for (ByteBuffer buffer : encodedBuffers) {
+                ((Buffer) buffer).position(0);
+                while (buffer.hasRemaining() && charBuffer.hasRemaining()) {
+                    charBuffer.put((char) (((int) buffer.get()) & 0xFF));
+                }
+                if (!charBuffer.hasRemaining()) {
+                    return;
+                }
             }
         }
 

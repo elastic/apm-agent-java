@@ -131,8 +131,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         performPost(getBaseUrl() + path, content, "text/plain; charset=utf-8");
         expectSpan(path)
             .withRequestBodySatisfying(body -> {
-                ByteBuffer buffer = body.getBody();
-                assertThat(buffer).isNotNull();
+                List<ByteBuffer> buffer = body.getBody();
                 assertThat(IOUtils.copyToByteArray(buffer)).isEqualTo("Hello".getBytes(StandardCharsets.UTF_8));
                 assertThat(Objects.toString(body.getCharset())).isEqualTo("utf-8");
             })

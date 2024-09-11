@@ -1837,11 +1837,9 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
 
-Configures that the first n bytes of http-client request bodies shall be captured. Note that only request bodies will be captured for content types matching the <<config-transaction-name-groups,`transaction_name_groups`>> configuration. The maximum allowed value is 1024, a value of 0 disables body capturing.
+Configures that the first n bytes of http-client request bodies shall be captured. Note that only request bodies will be captured for content types matching the <<config-transaction-name-groups,`transaction_name_groups`>> configuration. A value of 0 disables body capturing. Note that even if this option is configured higher, the maximum amount of decoded characters will still be limited by the value of the <<config-long-field-max-length, `long_field_max_length`>> option.
 
 Currently only support for Apache Http Client v4 and v5, HttpUrlConnection, Spring Webflux WebClient and other frameworks building on top of these (e.g. Spring RestTemplate).
-
-The body will be stored in the `labels.http_request_body_content` field on the span documents.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -4361,11 +4359,9 @@ Example: `5ms`.
 #
 # url_groups=
 
-# Configures that the first n bytes of http-client request bodies shall be captured. Note that only request bodies will be captured for content types matching the <<config-transaction-name-groups,`transaction_name_groups`>> configuration. The maximum allowed value is 1024, a value of 0 disables body capturing.
+# Configures that the first n bytes of http-client request bodies shall be captured. Note that only request bodies will be captured for content types matching the <<config-transaction-name-groups,`transaction_name_groups`>> configuration. A value of 0 disables body capturing. Note that even if this option is configured higher, the maximum amount of decoded characters will still be limited by the value of the <<config-long-field-max-length, `long_field_max_length`>> option.
 # 
 # Currently only support for Apache Http Client v4 and v5, HttpUrlConnection, Spring Webflux WebClient and other frameworks building on top of these (e.g. Spring RestTemplate).
-# 
-# The body will be stored in the `labels.http_request_body_content` field on the span documents.
 #
 # This setting can be changed at runtime
 # Type: Integer

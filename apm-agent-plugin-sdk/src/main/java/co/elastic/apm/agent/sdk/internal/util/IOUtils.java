@@ -36,6 +36,8 @@ import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -273,13 +275,20 @@ public class IOUtils {
     }
 
     @Nullable
-    public static byte[] copyToByteArray(@Nullable ByteBuffer buf) {
-        if (buf == null) {
-            return null;
+    public static byte[] copyToByteArray(List<ByteBuffer> buffers) {
+        int totalSize = 0;
+        for (ByteBuffer buff : buffers) {
+            totalSize += buff.position();
         }
-        byte[] data = new byte[buf.position()];
-        buf.position(0);
-        buf.get(data);
+        byte[] data = new byte[totalSize];
+
+        int off = 0;
+        for (ByteBuffer buff : buffers) {
+            int len = buff.position();
+            buff.position(0);
+            buff.get(data, off, len);
+            off += len;
+        }
         return data;
     }
 
@@ -296,16 +305,23 @@ public class IOUtils {
      * @return null, if the charset is not known/supported. Otherwise the result of the decoding operation.
      */
     @Nullable
-    public static CoderResult decode(ByteBuffer input, CharBuffer output, String charsetName) {
+    public static CoderResult decode(List<ByteBuffer> input, CharBuffer output, String charsetName) {
         try (ObjectHandle<CharsetDecoder> decoderHandle = getPooledCharsetDecoder(charsetName)) {
             if (decoderHandle == null) {
                 return null; //charset is unsupported
             }
             CharsetDecoder charsetDecoder = decoderHandle.get();
             try {
-                final CoderResult coderResult = charsetDecoder.decode(input, output, true);
-                charsetDecoder.flush(output);
-                return coderResult;
+                Iterator<ByteBuffer> it = input.iterator();
+                while (it.hasNext()) {
+                    ByteBuffer currInput = it.next();
+                    boolean isLast = !it.hasNext();
+                    CoderResult coderResult = charsetDecoder.decode(currInput, output, isLast);
+                    if (coderResult.isError() || coderResult.isOverflow()) {
+                        return coderResult;
+                    }
+                }
+                return charsetDecoder.flush(output);
             } finally {
                 charsetDecoder.reset();
             }

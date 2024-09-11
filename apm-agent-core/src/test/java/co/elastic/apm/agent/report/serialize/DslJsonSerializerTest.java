@@ -57,7 +57,6 @@ import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.sdk.internal.util.IOUtils;
-import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -435,6 +434,10 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanHttpRequestBodySerialization() throws UnsupportedEncodingException {
+        CoreConfigurationImpl coreConfiguration = tracer.getConfig(CoreConfigurationImpl.class);
+        doReturn(2500).when(coreConfiguration).getLongFieldMaxLength();
+        SerializationConstants.init(coreConfiguration);
+
         String noBody = extractRequestBodyJson(createSpanWithRequestBody(null, "utf-8"));
         assertThat(noBody).isNull();
 
@@ -455,6 +458,27 @@ class DslJsonSerializerTest {
 
         String invalidUtf8Sequence = extractRequestBodyJson(createSpanWithRequestBody(new byte[]{'t', 'e', 's', 't', (byte) 0xC2, (byte) 0xC2}, "utf-8"));
         assertThat(invalidUtf8Sequence).isEqualTo("testÂÂ");
+
+        // Test truncation to LongFieldMaxLength
+        String longString = generateStringOfLength(5000);
+        String truncated = longString.substring(0, 2500);
+
+        String longResult = extractRequestBodyJson(createSpanWithRequestBody(longString.getBytes("utf-16"), "utf-16"));
+        assertThat(longResult).isEqualTo(truncated);
+
+    }
+
+    private String generateStringOfLength(int len) {
+        StringBuilder out = new StringBuilder();
+        int i = 0;
+        while (out.length() < len) {
+            out.append(i).append(",");
+            i++;
+        }
+        if (out.length() > len) {
+            out.delete(len, out.length());
+        }
+        return out.toString();
     }
 
     private String extractRequestBodyJson(SpanImpl span) {
@@ -482,7 +506,7 @@ class DslJsonSerializerTest {
         SpanImpl span = new SpanImpl(tracer);
         BodyCaptureImpl bodyCapture = span.getContext().getHttp().getRequestBody();
         bodyCapture.markEligibleForCapturing();
-        bodyCapture.markPreconditionsPassed(charset, WebConfiguration.MAX_BODY_CAPTURE_BYTES);
+        bodyCapture.markPreconditionsPassed(charset, Integer.MAX_VALUE);
         bodyCapture.startCapture();
 
         if (bodyBytes != null) {
