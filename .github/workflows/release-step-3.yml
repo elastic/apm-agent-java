@@ -115,10 +115,10 @@ jobs:
     needs:
       - validate-tag
     steps:
-      - uses: elastic/apm-pipeline-library/.github/actions/await-maven-artifact@current
+      - uses: elastic/oblt-actions/maven/await-artifact@v1
         with:
-          groupid: 'co.elastic.apm'
-          artifactid: 'elastic-apm-agent'
+          group-id: 'co.elastic.apm'
+          artifact-id: 'elastic-apm-agent'
           version: ${{ env.RELEASE_VERSION }}
 
   build-and-push-docker-images:
