@@ -180,7 +180,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(IOUtils.copyToByteArray(captureBody.getBody())).isEqualTo(content);
 
         BodyCaptureImpl noCaptureBody = noCapture.getContext().getHttp().getRequestBody();
-        assertThat(noCaptureBody.getBody()).isNull();
+        assertThat(noCaptureBody.getBody()).isEmpty();
         assertThat(noCaptureBody.getCharset()).isNull();
     }
 
