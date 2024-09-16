@@ -1269,7 +1269,8 @@ Example: `0ms`.
 [[config-central-config]]
 ==== `central_config` (added[1.8.0])
 
-When enabled, the agent will make periodic requests to the APM Server (every 5 minutes) to fetch updated configuration.
+When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration.
+The frequency of the periodic request is driven by the `Cache-Control` header returned from APM Server/Integration, falling back to 5 minutes if not defined.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
