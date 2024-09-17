@@ -4062,6 +4062,7 @@ Example: `5ms`.
 # trace_methods_duration_threshold=0ms
 
 # When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration.
+# The frequency of the periodic request is driven by the `Cache-Control` header returned from APM Server/Integration, falling back to 5 minutes if not defined.
 #
 # This setting can be changed at runtime
 # Type: Boolean
