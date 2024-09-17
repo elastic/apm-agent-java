@@ -42,9 +42,8 @@ public class Log4j2InstrumentationTest {
             .run();
     }
 
-    //TODO: Error capturing is currently broken on 2.6
     @ParameterizedTest
-    @ValueSource(strings = {/*"2.6",*/ "2.17.1", "2.24.0"})
+    @ValueSource(strings = {"2.6", "2.17.1", "2.24.0"})
     public void testErrorCapture(String version) throws Exception {
         List<String> dependencies = List.of(
             "org.apache.logging.log4j:log4j-core:" + version,

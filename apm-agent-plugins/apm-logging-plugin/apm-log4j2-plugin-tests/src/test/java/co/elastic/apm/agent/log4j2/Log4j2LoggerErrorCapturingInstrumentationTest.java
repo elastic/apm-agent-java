@@ -42,7 +42,7 @@ public class Log4j2LoggerErrorCapturingInstrumentationTest extends AbstractError
 
     @Test
     void captureErrorExceptionWithMessageMessage() {
-        logger.error(ParameterizedMessageFactory.INSTANCE.newMessage("exception captured with parameter {}", "foo"), new RuntimeException("some business exception"));
+        logger.error(ParameterizedMessageFactory.INSTANCE.newMessage("exception captured with parameter {}", new Object[]{"foo"}), new RuntimeException("some business exception"));
         verifyExceptionCaptured("some business exception", RuntimeException.class);
     }
 
