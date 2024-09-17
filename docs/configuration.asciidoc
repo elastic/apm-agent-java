@@ -2653,9 +2653,7 @@ But if you must, you can use this option to increase the limit.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-agent-reporter-health-metrics]]
-==== `agent_reporter_health_metrics` (added[1.35.0] experimental)
-
-NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+==== `agent_reporter_health_metrics` (added[1.35.0])
 
 Enables metrics which capture the health state of the agent's event reporting mechanism.
 
@@ -2678,9 +2676,7 @@ Enables metrics which capture the health state of the agent's event reporting me
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-agent-background-overhead-metrics]]
-==== `agent_background_overhead_metrics` (added[1.35.0] experimental)
-
-NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+==== `agent_background_overhead_metrics` (added[1.35.0])
 
 Enables metrics which capture the resource consumption of agent background tasks.
 

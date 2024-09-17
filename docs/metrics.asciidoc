@@ -663,8 +663,6 @@ Fields:
 [[metrics-agenthealth]]
 === Agent Health Metrics
 
-experimental::[]
-
 The agent internally uses a queue to buffer the various events (e.g. transactions, spans, metrics) before sending them to the APM server.
 When <<config-agent-reporter-health-metrics, `agent_reporter_health_metrics`>> is enabled, the agent will expose several metrics regarding the health state of this queue and the network connectivity to the APM server.
 In addition, if <<config-agent-background-overhead-metrics, `agent_background_overhead_metrics`>> is enabled, the agent will continuously measure the resource consumption of its own background tasks and provide the results as metrics.
