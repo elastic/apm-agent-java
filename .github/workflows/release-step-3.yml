@@ -222,7 +222,8 @@ jobs:
           private_key: ${{ secrets.OBS_AUTOMATION_APP_PEM }}
           permissions: >-
             {
-              "contents": "write"
+              "contents": "write",
+              "pull_requests": "write"
             }
           repositories: >-
             ["${{github.repository}}"]
