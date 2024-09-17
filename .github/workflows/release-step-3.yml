@@ -226,7 +226,7 @@ jobs:
               "pull_requests": "write"
             }
           repositories: >-
-            ["${{github.repository}}"]
+            ["apm-agent-java"]
 
       - uses: actions/checkout@v4
         with:
