@@ -18,8 +18,8 @@
  */
 package co.elastic.apm.agent.log4j2;
 
-import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import co.elastic.apm.agent.logging.LoggingConfigurationImpl;
+import co.elastic.apm.agent.testutils.JUnit4TestClassWithDependencyRunner;
 import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.junit.After;
 import org.junit.AfterClass;
