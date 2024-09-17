@@ -39,6 +39,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [float]
 ===== Features
 * Added experimental option to capture HTTP client request bodies for Apache Http Client v4 and v5, HttpUrlConnection and Spring WebClient - {pull}3776[#3776], {pull}3962[#3962], {pull}3724[#3724], {pull}3754[#3754], {pull}3767[#3767]
+* Agent health metrics now GA - {pull}3802[#3802]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
