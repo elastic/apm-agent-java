@@ -25,6 +25,7 @@
         <module>apm-tomcat-logging-plugin</module>
         <module>apm-slf4j-plugin</module>
         <module>apm-jul-plugin</module>
+        <module>apm-log4j2-plugin-tests</module>
     </modules>
 
 </project>
