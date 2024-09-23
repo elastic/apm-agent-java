@@ -1,3 +1,21 @@
+/*
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.objectpool.Resetter;
@@ -28,9 +46,11 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
         });
 
     private enum CaptureState {
-        NOT_ELIGIBLE,
-        ELIGIBLE,
-        STARTED
+        NOT_ELIGIBLE, // initial state
+        ELIGIBLE, // eligible but before preconditions evaluation
+        PRECONDITIONS_PASSED, // post preconditions (passed), can start capture
+        PRECONDITIONS_FAILED, // post preconditions (failed), no body will be captured
+        STARTED // the body capturing has been started, a buffer was acquired
     }
 
     private volatile CaptureState state;
@@ -56,6 +76,7 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
         charset.setLength(0);
         if (bodyBuffer != null) {
             BYTE_BUFFER_POOL.recycle(bodyBuffer);
+            bodyBuffer = null;
         }
     }
 
@@ -76,17 +97,42 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
     }
 
     @Override
-    public boolean startCapture(@Nullable String requestCharset, int numBytesToCapture) {
+    public boolean havePreconditionsBeenChecked() {
+        return state == CaptureState.PRECONDITIONS_PASSED
+               || state == CaptureState.PRECONDITIONS_FAILED
+               || state == CaptureState.STARTED;
+    }
+
+    @Override
+    public void markPreconditionsFailed() {
+        synchronized (this) {
+            if (state == CaptureState.ELIGIBLE) {
+                state = CaptureState.PRECONDITIONS_FAILED;
+            }
+        }
+    }
+
+    @Override
+    public void markPreconditionsPassed(@Nullable String requestCharset, int numBytesToCapture) {
         if (numBytesToCapture > WebConfiguration.MAX_BODY_CAPTURE_BYTES) {
             throw new IllegalArgumentException("Capturing " + numBytesToCapture + " bytes is not supported, maximum is " + WebConfiguration.MAX_BODY_CAPTURE_BYTES + " bytes");
         }
-        if (state == CaptureState.ELIGIBLE) {
+        synchronized (this) {
+            if (state == CaptureState.ELIGIBLE) {
+                if (requestCharset != null) {
+                    this.charset.append(requestCharset);
+                }
+                this.numBytesToCapture = numBytesToCapture;
+                state = CaptureState.PRECONDITIONS_PASSED;
+            }
+        }
+    }
+
+    @Override
+    public boolean startCapture() {
+        if (state == CaptureState.PRECONDITIONS_PASSED) {
             synchronized (this) {
-                if (state == CaptureState.ELIGIBLE) {
-                    if (requestCharset != null) {
-                        this.charset.append(requestCharset);
-                    }
-                    this.numBytesToCapture = numBytesToCapture;
+                if (state == CaptureState.PRECONDITIONS_PASSED) {
                     state = CaptureState.STARTED;
                     return true;
                 }

@@ -29,6 +29,8 @@ import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.protocol.HttpClientContext;
 import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.ProtocolException;
 import org.apache.hc.core5.net.URIAuthority;
 import org.junit.AfterClass;
@@ -66,6 +68,44 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
             .build();
         HttpClientContext httpClientContext = HttpClientContext.create();
         httpClientContext.setRequestConfig(requestConfig);
+        client.execute(req, httpClientContext, new FutureCallback<SimpleHttpResponse>() {
+            @Override
+            public void completed(SimpleHttpResponse simpleHttpResponse) {
+                responseFuture.complete(simpleHttpResponse);
+            }
+
+            @Override
+            public void failed(Exception e) {
+                responseFuture.completeExceptionally(e);
+            }
+
+            @Override
+            public void cancelled() {
+                responseFuture.cancel(true);
+            }
+        });
+
+        responseFuture.get();
+    }
+
+    @Override
+    protected boolean isBodyCapturingSupported() {
+        return true;
+    }
+
+    @Override
+    public void testPostBodyCaptureForExistingSpan() throws Exception {
+        //TODO: async http client instrumentation does not support capturing bodies for existing spans yet
+    }
+
+    @Override
+    protected void performPost(String path, byte[] data, String contentTypeHeader) throws Exception {
+        final CompletableFuture<HttpResponse> responseFuture = new CompletableFuture<>();
+        SimpleHttpRequest req = SimpleRequestBuilder.get().setPath(path)
+            .addHeader("Content-Type", contentTypeHeader)
+            .setBody(data, ContentType.parse(contentTypeHeader))
+            .build();
+        HttpClientContext httpClientContext = HttpClientContext.create();
         client.execute(req, httpClientContext, new FutureCallback<SimpleHttpResponse>() {
             @Override
             public void completed(SimpleHttpResponse simpleHttpResponse) {

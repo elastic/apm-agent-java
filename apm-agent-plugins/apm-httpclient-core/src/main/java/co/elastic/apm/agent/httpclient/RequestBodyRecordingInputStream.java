@@ -19,9 +19,7 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.metadata.BodyCapture;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -29,50 +27,21 @@ public class RequestBodyRecordingInputStream extends InputStream {
 
     private final InputStream delegate;
 
-    @Nullable
-    private Span<?> clientSpan;
+    private final RequestBodyRecordingHelper recordingHelper;
 
     public RequestBodyRecordingInputStream(InputStream delegate, Span<?> clientSpan) {
         this.delegate = delegate;
-        clientSpan.incrementReferences();
-        this.clientSpan = clientSpan;
+        this.recordingHelper = new RequestBodyRecordingHelper(clientSpan);
     }
 
-
-    protected void appendToBody(byte b) {
-        if (clientSpan != null) {
-            BodyCapture requestBody = clientSpan.getContext().getHttp().getRequestBody();
-            requestBody.append(b);
-            if (requestBody.isFull()) {
-                releaseSpan();
-            }
-        }
-    }
-
-    protected void appendToBody(byte[] b, int off, int len) {
-        if (clientSpan != null) {
-            BodyCapture requestBody = clientSpan.getContext().getHttp().getRequestBody();
-            requestBody.append(b, off, len);
-            if (requestBody.isFull()) {
-                releaseSpan();
-            }
-        }
-    }
-
-    public void releaseSpan() {
-        if (clientSpan != null) {
-            clientSpan.decrementReferences();
-            clientSpan = null;
-        }
-    }
 
     @Override
     public int read() throws IOException {
         int character = delegate.read();
         if (character == -1) {
-            releaseSpan();
+            recordingHelper.releaseSpan();
         } else {
-            appendToBody((byte) character);
+            recordingHelper.appendToBody((byte) character);
         }
         return character;
     }
@@ -81,9 +50,9 @@ public class RequestBodyRecordingInputStream extends InputStream {
     public int read(byte[] b, int off, int len) throws IOException {
         int readBytes = delegate.read(b, off, len);
         if (readBytes == -1) {
-            releaseSpan();
+            recordingHelper.releaseSpan();
         } else {
-            appendToBody(b, off, readBytes);
+            recordingHelper.appendToBody(b, off, readBytes);
         }
         return readBytes;
     }
@@ -96,7 +65,7 @@ public class RequestBodyRecordingInputStream extends InputStream {
     @Override
     public void close() throws IOException {
         try {
-            releaseSpan();
+            recordingHelper.releaseSpan();
         } finally {
             delegate.close();
         }
