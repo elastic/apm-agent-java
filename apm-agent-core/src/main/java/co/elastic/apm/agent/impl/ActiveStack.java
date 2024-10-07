@@ -116,7 +116,9 @@ class ActiveStack {
         }
 
         TraceStateImpl<?> activeContext = currentContext();
-        activeContextStack.remove();
+        if (!activeContextStack.isEmpty()) {
+            activeContextStack.remove();
+        }
 
         try {
             assertIsActive(context, activeContext, assertionsEnabled);
@@ -185,7 +187,9 @@ class ActiveStack {
 
         // replace the currently active on the stack, however currentContext() will make sure to return the original
         // context in order to keep wrapping transparent.
-        activeContextStack.remove();
+        if (!activeContextStack.isEmpty()) {
+            activeContextStack.remove();
+        }
         activeContextStack.push(wrapper);
 
         return wrapped;
