@@ -20,7 +20,8 @@ jobs:
           private_key: ${{ secrets.OBS_AUTOMATION_APP_PEM }}
           permissions: >-
             {
-              "repository_projects": "write"
+              "organization_projects": "write",
+              "issues": "read"
             }
 
       - name: Get project data

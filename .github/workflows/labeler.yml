@@ -34,7 +34,8 @@ jobs:
         permissions: >-
           {
             "members": "read",
-            "repository_projects": "write"
+            "organization_projects": "write",
+            "issues": "read"
           }
 
     - id: is_elastic_member
