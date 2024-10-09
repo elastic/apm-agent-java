@@ -309,7 +309,7 @@ jobs:
             distribution: 'temurin'
           - version: 21
             distribution: 'temurin'
-          - version: 22
+          - version: 23
             distribution: 'temurin'
     steps:
       - uses: actions/checkout@v4
