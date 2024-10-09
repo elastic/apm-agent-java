@@ -213,11 +213,12 @@ public class ElasticApmAttacher {
 
         // initializes lazily and ensures its only loaded once
         final File agentJarFile = getAgentJarFile();
+        private static final String APM_AGENT_FILE_NAME = "/elastic-apm-agent.jar";
 
         private static File getAgentJarFile() {
-            if (ElasticApmAttacher.class.getResource("/elastic-apm-agent.jar") != null) {
+            if (ElasticApmAttacher.class.getResource(APM_AGENT_FILE_NAME) != null) {
                 // packaged agent as resource
-                return ResourceExtractionUtil.extractResourceToTempDirectory("elastic-apm-agent.jar", "elastic-apm-agent", ".jar").toFile();
+                return ResourceExtractionUtil.extractResourceToTempDirectory(APM_AGENT_FILE_NAME, "elastic-apm-agent", ".jar").toFile();
             }
 
             // Running attacher without proper packaging is quite common when running it from the IDE without having
