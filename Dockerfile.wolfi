@@ -1,4 +1,4 @@
-FROM docker.elastic.co/wolfi/chainguard-base:latest@sha256:d56fa50e5427f566f0a9ba8b1cad553bfca706de9223776d658e5cd608edd58b
+FROM docker.elastic.co/wolfi/chainguard-base:latest@sha256:5bc7518045103e085b07842c4362ca5366e117abfdcd3010030f1c072a5607ac
 RUN mkdir /usr/agent
 ARG JAR_FILE
 ARG HANDLER_FILE
