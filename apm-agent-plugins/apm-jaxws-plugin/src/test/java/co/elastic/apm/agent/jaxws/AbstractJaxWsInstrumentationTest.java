@@ -41,6 +41,19 @@ public abstract class AbstractJaxWsInstrumentationTest extends AbstractInstrumen
         assertThat(transaction.getFrameworkName()).isEqualTo("JAX-WS");
     }
 
+
+    @Test
+    void testTransactionNameForWebMethod() throws Exception {
+        final TransactionImpl transaction = tracer.startRootTransaction(getClass().getClassLoader());
+        try (Scope scope = transaction.activateInScope()) {
+            helloWorldService.getClass().getMethod("webMethodAnnotated").invoke(helloWorldService);
+        } finally {
+            transaction.end();
+        }
+        assertThat(transaction.getNameAsString()).isEqualTo("HelloWorldServiceImpl#webMethodAnnotated");
+        assertThat(transaction.getFrameworkName()).isEqualTo("JAX-WS");
+    }
+
     public interface BaseHelloWorldService {
         String sayHello();
     }
