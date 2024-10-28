@@ -461,6 +461,7 @@ For example, `DistributionSummary.builder("order").register(...).record(orderPri
 * When using `CountingMode.CUMULATIVE`, you can use TSVB's "Positive Rate" aggregation to convert the counter to a rate.
   But you have to remember to group by a combination of dimensions that uniquely identify the time series.
   This may be a combination of `host.name` and `service.name`, or the `kubernetes.pod.id`.
+* Micrometer metrics can be disabled by using the <<config-disable-instrumentations, `disable_instrumentations`>> setting.
 
 
 [float]
