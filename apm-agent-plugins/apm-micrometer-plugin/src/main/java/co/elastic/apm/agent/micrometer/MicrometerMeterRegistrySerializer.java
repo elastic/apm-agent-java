@@ -229,7 +229,7 @@ public class MicrometerMeterRegistrySerializer {
             serializeValue(id, ".count", count, jw, replaceBuilder, dedotMetricName);
             jw.writeByte(JsonWriter.COMMA);
             serializeValue(id, ".sum", totalAmount, jw, replaceBuilder, dedotMetricName);
-            if (histogramSnapshot != null && histogramSnapshot.histogramCounts().length > 0) {
+            if (histogramSnapshot != null && logHistoLength(histogramSnapshot.histogramCounts().length) > 0) {
                 jw.writeByte(JsonWriter.COMMA);
                 serializeHistogram(id, histogramSnapshot, jw, replaceBuilder, dedotMetricName);
             }
@@ -238,12 +238,21 @@ public class MicrometerMeterRegistrySerializer {
         return hasValue;
     }
 
+    private static int logHistoLength(int length){
+        logger.debug("Histogram length1: {}", length);
+        return length;
+    }
+
     private static void serializeHistogram(Meter.Id id, HistogramSnapshot histogramSnapshot, JsonWriter jw, StringBuilder replaceBuilder, boolean dedotMetricName) {
         if (histogramSnapshot == null) {
             return;
         }
         String suffix = ".histogram";
         CountAtBucket[] bucket = histogramSnapshot.histogramCounts();
+        logger.debug("Histogram length2: {}", bucket.length);
+        if (bucket.length == 0) {
+            return;
+        }
         serializeObjectStart(id.getName(), "values", suffix, jw, replaceBuilder, dedotMetricName);
         jw.writeByte(JsonWriter.ARRAY_START);
         if (bucket.length > 0) {
