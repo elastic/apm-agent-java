@@ -201,7 +201,7 @@ public class MicrometerMeterRegistrySerializer {
             serializeValue(id, ".count", count, jw, replaceBuilder, dedotMetricName);
             jw.writeByte(JsonWriter.COMMA);
             serializeValue(id, ".sum.us", totalTime, jw, replaceBuilder, dedotMetricName);
-            if (histogramSnapshot != null && histogramSnapshot.histogramCounts().length > 0) {
+            if (histogramSnapshot != null && logHistoLength(histogramSnapshot.histogramCounts().length) > 0) {
                 jw.writeByte(JsonWriter.COMMA);
                 serializeHistogram(id, histogramSnapshot, jw, replaceBuilder, dedotMetricName);
             }
