@@ -6,44 +6,46 @@
 
 Please fill out this survey to help us prioritizing framework support: https://docs.google.com/forms/d/e/1FAIpQLScd0RYiwZGrEuxykYkv9z8Hl3exx_LKCtjsqEo1OWx8BkLrOQ/viewform?usp=sf_link
 
-## Release announcements
-
-To get notified about new releases, watch this repository for `Releases only`.
+## Overview
+The Elastic APM Java Agent monitors Java applications, capturing and analyzing performance metrics.
 
 ## Documentation
+Documentation is located [here](https://www.elastic.co/guide/en/apm/agent/java/current/index.html).
 
-Docs are located [here](https://www.elastic.co/guide/en/apm/agent/java/current/index.html).
+## Prerequisites
+- JDK 17
+- Maven
 
-## Getting Help
+## Installation Steps
+### Option 1: Manual Installation
+Snapshots are built from the `main` branch and are available here:
+- [elastic-apm-agent.jar](https://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots&g=co.elastic.apm&a=elastic-apm-agent&v=LATEST)
+- [apm-agent-attach-cli.jar](https://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots&g=co.elastic.apm&a=apm-agent-attach-cli&v=LATEST)
+- [apm-agent-attach.jar](https://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots&g=co.elastic.apm&a=apm-agent-attach&v=LATEST)
+- [apm-agent-api.jar](https://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots&g=co.elastic.apm&a=apm-agent-api&v=LATEST)
 
-If you find a bug or an issue, please
-1. open a new topic on the [APM discuss forum](https://discuss.elastic.co/tags/c/apm/java) (or add to an existing one)
-1. [report an issue](https://github.com/elastic/apm-agent-java/issues/new) on the java agent repository
+For unreleased features and bug fixes, refer to the [release notes](https://www.elastic.co/guide/en/apm/agent/java/current/_unreleased.html).
 
-Please note that we reserve GitHub tickets for actionable things we can work on, thus confirmed bugs and enhancement requests only.
+### Build from Source
+Run the following to build the artifacts and install them to your local Maven repository:
+```bash
+./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
+```
+The agent jar will be in the `elastic-apm-agent/target` folder.
 
-Help requests are better served in [APM discuss forum](https://discuss.elastic.co/tags/c/observability/apm/58/java).
+## Help and Support
+If you find a bug or issue, you can:
+1. Open a new topic on the [APM discuss forum](https://discuss.elastic.co/tags/c/apm/java).
+2. [Report an issue](https://github.com/elastic/apm-agent-java/issues/new) on the Java agent repository.
+
+For help requests, use the [APM discuss forum](https://discuss.elastic.co/tags/c/observability/apm/58/java).
 
 ## Contributing
+See the [contributing documentation](CONTRIBUTING.md).
 
-See the [contributing documentation](CONTRIBUTING.md)
-
-## Snapshots
-
-Snapshots are built from `main` branch and are available here:
-
-* [elastic-apm-agent.jar](https://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots&g=co.elastic.apm&a=elastic-apm-agent&v=LATEST)
-* [apm-agent-attach-cli.jar](https://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots&g=co.elastic.apm&a=apm-agent-attach-cli&v=LATEST)
-* [apm-agent-attach.jar](https://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots&g=co.elastic.apm&a=apm-agent-attach&v=LATEST)
-* [apm-agent-api.jar](https://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots&g=co.elastic.apm&a=apm-agent-api&v=LATEST)
-
-Those snapshots include features & bugfixes for the next release, see [releases notes](https://www.elastic.co/guide/en/apm/agent/java/current/_unreleased.html) details.
-
-## Build form source
-
-Execute `./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true` to build the artifacts and to install them to your local maven repository. The build process requires JDK 17.
-The agent jar is in the folder `elastic-apm-agent/target`.
+## Release Announcements
+To get notified about new releases, watch this repository for `Releases only`.
 
 ## License
-
 Elastic APM Java Agent is licensed under [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.html).
+
