@@ -240,6 +240,8 @@ jobs:
       - name: Update major branch
         if: ${{ ! inputs.dry_run }}
         run: .ci/release/update-major-branch.sh ${{ env.RELEASE_VERSION }}
+        env:
+          GH_TOKEN: ${{ steps.get_token.outputs.token }}
 
   create-github-release:
     name: "Create GitHub Release"
