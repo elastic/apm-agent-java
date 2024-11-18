@@ -31,13 +31,16 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 
 === Unreleased
 
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.52.1]]
+==== 1.52.1 - 2024/11/18
+
 [float]
 ===== Bug fixes
 * Fix JMX metric warning message about unsupported composite value types - {pull}3849[#3849]
 * Fix JAX-WS transaction naming for @WebMethod annotated methods - {pull}3850[#3850]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.52.0]]
 ==== 1.52.0 - 2024/09/23
