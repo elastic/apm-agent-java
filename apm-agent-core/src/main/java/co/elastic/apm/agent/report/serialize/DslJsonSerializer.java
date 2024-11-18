@@ -62,13 +62,8 @@ import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.sdk.internal.collections.LongList;
-import co.elastic.apm.agent.sdk.internal.pooling.ObjectHandle;
-import co.elastic.apm.agent.sdk.internal.pooling.ObjectPool;
-import co.elastic.apm.agent.sdk.internal.pooling.ObjectPooling;
-import co.elastic.apm.agent.sdk.internal.util.IOUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.tracer.metrics.DslJsonUtil;
 import co.elastic.apm.agent.tracer.metrics.Labels;
@@ -84,10 +79,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -95,7 +88,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -111,13 +103,6 @@ public class DslJsonSerializer {
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final List<String> excludedStackFramesPrefixes = Arrays.asList("java.lang.reflect.", "com.sun.", "sun.", "jdk.internal.");
-
-    private static final ObjectPool<? extends ObjectHandle<CharBuffer>> REQUEST_BODY_BUFFER_POOL = ObjectPooling.createWithDefaultFactory(new Callable<CharBuffer>() {
-        @Override
-        public CharBuffer call() throws Exception {
-            return CharBuffer.allocate(WebConfiguration.MAX_BODY_CAPTURE_BYTES);
-        }
-    });
 
 
     private final StacktraceConfigurationImpl stacktraceConfiguration;
@@ -1069,7 +1054,22 @@ public class DslJsonSerializer {
         }
 
         private void serializeOTel(SpanImpl span) {
-            serializeOtel(span, Collections.<IdImpl>emptyList(), span.getContext().getHttp().getRequestBody());
+            serializeOtel(span, Collections.<IdImpl>emptyList(), requestBodyToString(span.getContext().getHttp().getRequestBody()));
+        }
+
+        @Nullable
+        private CharSequence requestBodyToString(BodyCaptureImpl requestBody) {
+            //TODO: perform proper, charset aware conversion to string
+            ByteBuffer buffer = requestBody.getBody();
+            if (buffer == null || buffer.position() == 0) {
+                return null;
+            }
+            buffer.flip();
+            StringBuilder result = new StringBuilder();
+            while (buffer.hasRemaining()) {
+                result.append((char) buffer.get());
+            }
+            return result;
         }
 
         private void serializeOTel(TransactionImpl transaction) {
@@ -1079,12 +1079,11 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeOtel(AbstractSpanImpl<?> span, List<IdImpl> profilingStackTraceIds, @Nullable BodyCaptureImpl httpRequestBody) {
+        private void serializeOtel(AbstractSpanImpl<?> span, List<IdImpl> profilingStackTraceIds, @Nullable CharSequence httpRequestBody) {
             OTelSpanKind kind = span.getOtelKind();
             Map<String, Object> attributes = span.getOtelAttributes();
 
-            boolean hasRequestBody = httpRequestBody != null && httpRequestBody.getBody() != null;
-            boolean hasAttributes = !attributes.isEmpty() || !profilingStackTraceIds.isEmpty() || hasRequestBody;
+            boolean hasAttributes = !attributes.isEmpty() || !profilingStackTraceIds.isEmpty() || httpRequestBody != null;
             boolean hasKind = kind != null;
             if (hasKind || hasAttributes) {
                 writeFieldName("otel");
@@ -1134,50 +1133,18 @@ public class DslJsonSerializer {
                         }
                         jw.writeByte(ARRAY_END);
                     }
-                    if (hasRequestBody) {
+                    if (httpRequestBody != null) {
                         if (!isFirstAttrib) {
                             jw.writeByte(COMMA);
                         }
                         writeFieldName("http.request.body.content");
-                        writeRequestBodyAsString(jw, httpRequestBody);
+                        jw.writeString(httpRequestBody);
                     }
                     jw.writeByte(OBJECT_END);
                 }
 
                 jw.writeByte(OBJECT_END);
                 jw.writeByte(COMMA);
-            }
-        }
-
-
-        private void writeRequestBodyAsString(JsonWriter jw, BodyCaptureImpl requestBody) {
-            try (ObjectHandle<CharBuffer> charBufferHandle = REQUEST_BODY_BUFFER_POOL.createInstance()) {
-                CharBuffer charBuffer = charBufferHandle.get();
-                try {
-                    decodeRequestBodyBytes(requestBody, charBuffer);
-                    charBuffer.flip();
-                    jw.writeString(charBuffer);
-                } finally {
-                    ((Buffer) charBuffer).clear();
-                }
-            }
-        }
-
-        private void decodeRequestBodyBytes(BodyCaptureImpl requestBody, CharBuffer charBuffer) {
-            ByteBuffer bodyBytes = requestBody.getBody();
-            ((Buffer) bodyBytes).flip(); //make ready for reading
-            CharSequence charset = requestBody.getCharset();
-            if (charset != null) {
-                CoderResult result = IOUtils.decode(bodyBytes, charBuffer, charset.toString());
-                if (result != null && !result.isMalformed() && !result.isUnmappable()) {
-                    return;
-                }
-            }
-            //fallback to decoding by simply casting bytes to chars
-            ((Buffer) bodyBytes).position(0);
-            ((Buffer) charBuffer).clear();
-            while (bodyBytes.hasRemaining()) {
-                charBuffer.put((char) (((int) bodyBytes.get()) & 0xFF));
             }
         }
 

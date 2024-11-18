@@ -1,4 +1,2 @@
 co.elastic.apm.agent.httpclient.v5.ApacheHttpClient5Instrumentation
 co.elastic.apm.agent.httpclient.v5.ApacheHttpAsyncClient5Instrumentation
-co.elastic.apm.agent.httpclient.v5.ApacheHttp5EntityWriteToInstrumentation
-co.elastic.apm.agent.httpclient.v5.ApacheHttp5EntityGetContentInstrumentation

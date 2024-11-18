@@ -105,7 +105,7 @@ jobs:
         run: tar xvf ${{ env.TARBALL_FILE }}
 
       - name: generate build provenance
-        uses: actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c  # v1.4.3
+        uses: actions/attest-build-provenance@5e9cb68e95676991667494a6a4e59b8a2f13e1d0  # v1.3.3
         with:
           subject-path: "${{ github.workspace }}/**/target/*.jar"
 
@@ -115,10 +115,10 @@ jobs:
     needs:
       - validate-tag
     steps:
-      - uses: elastic/oblt-actions/maven/await-artifact@v1
+      - uses: elastic/apm-pipeline-library/.github/actions/await-maven-artifact@current
         with:
-          group-id: 'co.elastic.apm'
-          artifact-id: 'elastic-apm-agent'
+          groupid: 'co.elastic.apm'
+          artifactid: 'elastic-apm-agent'
           version: ${{ env.RELEASE_VERSION }}
 
   build-and-push-docker-images:
@@ -136,7 +136,7 @@ jobs:
           fetch-depth: 0 # Load entire history as it is required for the push-script
 
       - name: Log in to the Elastic Container registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@0d4c9c5ea7693da7b068278f7b52bda2a190a446 # v3.2.0
         with:
           registry: ${{ secrets.ELASTIC_DOCKER_REGISTRY }}
           username: ${{ secrets.ELASTIC_DOCKER_USERNAME }}

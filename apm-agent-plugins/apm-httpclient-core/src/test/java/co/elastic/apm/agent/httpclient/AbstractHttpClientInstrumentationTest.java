@@ -27,7 +27,6 @@ import co.elastic.apm.agent.impl.context.HttpImpl;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
-import co.elastic.apm.agent.sdk.internal.util.IOUtils;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Scope;
 import co.elastic.apm.agent.tracer.TraceState;
@@ -133,56 +132,14 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             .withRequestBodySatisfying(body -> {
                 ByteBuffer buffer = body.getBody();
                 assertThat(buffer).isNotNull();
-                assertThat(IOUtils.copyToByteArray(buffer)).isEqualTo("Hello".getBytes(StandardCharsets.UTF_8));
+                int numBytes = buffer.position();
+                buffer.position(0);
+                byte[] contentBytes = new byte[numBytes];
+                buffer.get(contentBytes);
+                assertThat(contentBytes).isEqualTo("Hello".getBytes(StandardCharsets.UTF_8));
                 assertThat(Objects.toString(body.getCharset())).isEqualTo("utf-8");
             })
             .verify();
-    }
-
-
-    /**
-     * This test verifies
-     *
-     * @throws Exception
-     */
-    @Test
-    public void testPostBodyCaptureForExistingSpan() throws Exception {
-        if (!isBodyCapturingSupported()) {
-            return;
-        }
-        doReturn(1024).when(config.getConfig(WebConfiguration.class)).getCaptureClientRequestBytes();
-        byte[] content = "Hello World!".getBytes(StandardCharsets.UTF_8);
-        String path = "/";
-
-        SpanImpl capture = createExitSpan("capture");
-        capture.getContext().getHttp().getRequestBody().markEligibleForCapturing();
-        capture.activate();
-        try {
-            performPost(getBaseUrl() + path, content, "application/json; charset=iso-8859-1");
-        } finally {
-            capture.deactivate().end();
-        }
-
-        //Do not not capture body for "noCapture" because it is not marked eligible
-        SpanImpl noCapture = createExitSpan("no-capture");
-        noCapture.activate();
-        try {
-            performPost(getBaseUrl() + path, content, "application/json; charset=iso-8859-1");
-        } finally {
-            noCapture.deactivate().end();
-        }
-
-        assertThat(reporter.getSpans())
-            .containsExactly(capture, noCapture);
-
-        BodyCaptureImpl captureBody = capture.getContext().getHttp().getRequestBody();
-        assertThat(captureBody.getBody()).isNotNull();
-        assertThat(Objects.toString(captureBody.getCharset())).isEqualTo("iso-8859-1");
-        assertThat(IOUtils.copyToByteArray(captureBody.getBody())).isEqualTo(content);
-
-        BodyCaptureImpl noCaptureBody = noCapture.getContext().getHttp().getRequestBody();
-        assertThat(noCaptureBody.getBody()).isNull();
-        assertThat(noCaptureBody.getCharset()).isNull();
     }
 
     @Test
@@ -196,8 +153,11 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     @Test
     public void testContextPropagationFromExitParent() {
         String path = "/";
-        SpanImpl exitSpan = createExitSpan("exit");
+        SpanImpl exitSpan = Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(tracer.currentTransaction()).createExitSpan()));
         try {
+            exitSpan.withType("custom").withSubtype("exit");
+            exitSpan.getContext().getDestination().withAddress("test-host").withPort(6000);
+            exitSpan.getContext().getServiceTarget().withType("test-resource");
             exitSpan.activate();
             performGetWithinTransaction(path);
             verifyTraceContextHeaders(exitSpan, path);
@@ -205,14 +165,6 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         } finally {
             exitSpan.deactivate().end();
         }
-    }
-
-    private static SpanImpl createExitSpan(String name) {
-        SpanImpl exitSpan = Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(tracer.currentTransaction()).createExitSpan()));
-        exitSpan.withName(name).withType("custom").withSubtype("exit");
-        exitSpan.getContext().getDestination().withAddress("test-host").withPort(6000);
-        exitSpan.getContext().getServiceTarget().withType("test-resource");
-        return exitSpan;
     }
 
     @Test

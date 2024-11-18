@@ -17,7 +17,7 @@ jobs:
   report:
     runs-on: ubuntu-latest
     steps:
-      - uses: elastic/oblt-actions/test-report@v1
+      - uses: elastic/apm-pipeline-library/.github/actions/test-report@current
         with:
           artifact: /test-results-(.*)/
           name: 'Test Results $1'

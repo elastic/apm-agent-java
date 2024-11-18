@@ -1,3 +1,1 @@
 co.elastic.apm.agent.springwebclient.WebClientExchangeFunctionInstrumentation
-co.elastic.apm.agent.springwebclient.ClientHttpConnectorInstrumentation
-co.elastic.apm.agent.springwebclient.ClientHttpRequestInstrumentation

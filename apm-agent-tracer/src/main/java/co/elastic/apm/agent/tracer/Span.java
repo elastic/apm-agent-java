@@ -42,8 +42,4 @@ public interface Span<T extends Span<T>> extends AbstractSpan<T> {
      * Action related to this span (eg: 'query', 'render' etc)
      */
     T withAction(@Nullable String action);
-
-    void addEndListener(SpanEndListener<? super T> listener);
-
-    void removeEndListener(SpanEndListener<? super T> listener);
 }

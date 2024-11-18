@@ -20,10 +20,8 @@ package co.elastic.apm.agent.httpclient.v5;
 
 
 import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpClientAdvice;
-import co.elastic.apm.agent.httpclient.common.RequestBodyCaptureRegistry;
 import co.elastic.apm.agent.httpclient.v5.helper.ApacheHttpClient5ApiAdapter;
 import co.elastic.apm.agent.httpclient.v5.helper.RequestHeaderAccessor;
-import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -52,9 +50,7 @@ public class ApacheHttpClient5Instrumentation extends BaseApacheHttpClient5Instr
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(0) @Nullable HttpHost httpHost,
                                              @Advice.Argument(1) ClassicHttpRequest request) throws URISyntaxException {
-            Span<?> resultSpan = startSpan(tracer, adapter, request, httpHost, RequestHeaderAccessor.INSTANCE);
-            RequestBodyCaptureRegistry.potentiallyCaptureRequestBody(request, tracer.getActive(), adapter, RequestHeaderAccessor.INSTANCE);
-            return resultSpan;
+            return startSpan(tracer, adapter, request, httpHost, RequestHeaderAccessor.INSTANCE);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

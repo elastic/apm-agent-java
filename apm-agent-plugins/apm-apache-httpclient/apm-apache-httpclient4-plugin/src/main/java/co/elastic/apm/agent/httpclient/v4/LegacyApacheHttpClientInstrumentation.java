@@ -19,8 +19,7 @@
 package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.HttpClientHelper;
-import co.elastic.apm.agent.httpclient.common.RequestBodyCaptureRegistry;
-import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpClient4ApiAdapter;
+import co.elastic.apm.agent.httpclient.v4.helper.RequestBodyCaptureRegistry;
 import co.elastic.apm.agent.httpclient.v4.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
@@ -107,7 +106,7 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                 }
             }
 
-            RequestBodyCaptureRegistry.potentiallyCaptureRequestBody(request, tracer.getActive(), ApacheHttpClient4ApiAdapter.get(), RequestHeaderAccessor.INSTANCE);
+            RequestBodyCaptureRegistry.potentiallyCaptureRequestBody(request, tracer.getActive());
             tracer.currentContext().propagateContext(request, RequestHeaderAccessor.INSTANCE, RequestHeaderAccessor.INSTANCE);
             return span;
         }

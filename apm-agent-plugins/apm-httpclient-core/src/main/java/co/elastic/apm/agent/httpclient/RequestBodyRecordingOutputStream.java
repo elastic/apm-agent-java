@@ -19,7 +19,9 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.metadata.BodyCapture;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -27,26 +29,38 @@ public class RequestBodyRecordingOutputStream extends OutputStream {
 
     private final OutputStream delegate;
 
-    private final RequestBodyRecordingHelper recordingHelper;
+    @Nullable
+    private Span<?> clientSpan;
 
     public RequestBodyRecordingOutputStream(OutputStream delegate, Span<?> clientSpan) {
         this.delegate = delegate;
-        this.recordingHelper = new RequestBodyRecordingHelper(clientSpan);
+        clientSpan.incrementReferences();
+        this.clientSpan = clientSpan;
     }
 
     @Override
     public void write(int b) throws IOException {
         try {
-            recordingHelper.appendToBody((byte) b);
+            appendToBody((byte) b);
         } finally {
             delegate.write(b);
+        }
+    }
+
+    protected void appendToBody(byte b) {
+        if (clientSpan != null) {
+            BodyCapture body = clientSpan.getContext().getHttp().getRequestBody();
+            body.append(b);
+            if (body.isFull()) {
+                releaseSpan();
+            }
         }
     }
 
     @Override
     public void write(byte[] b) throws IOException {
         try {
-            recordingHelper.appendToBody(b, 0, b.length);
+            appendToBody(b, 0, b.length);
         } finally {
             delegate.write(b);
         }
@@ -55,16 +69,33 @@ public class RequestBodyRecordingOutputStream extends OutputStream {
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
         try {
-            recordingHelper.appendToBody(b, off, len);
+            appendToBody(b, off, len);
         } finally {
             delegate.write(b, off, len);
+        }
+    }
+
+    protected void appendToBody(byte[] b, int off, int len) {
+        if (clientSpan != null) {
+            BodyCapture body = clientSpan.getContext().getHttp().getRequestBody();
+            body.append(b, off, len);
+            if (body.isFull()) {
+                releaseSpan();
+            }
+        }
+    }
+
+    public void releaseSpan() {
+        if (clientSpan != null) {
+            clientSpan.decrementReferences();
+            clientSpan = null;
         }
     }
 
     @Override
     public void close() throws IOException {
         try {
-            recordingHelper.releaseSpan();
+            releaseSpan();
         } finally {
             delegate.close();
         }
@@ -73,9 +104,5 @@ public class RequestBodyRecordingOutputStream extends OutputStream {
     @Override
     public void flush() throws IOException {
         delegate.flush();
-    }
-
-    public void releaseSpan() {
-        recordingHelper.releaseSpan();
     }
 }

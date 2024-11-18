@@ -57,7 +57,6 @@ import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.sdk.internal.collections.LongList;
 import co.elastic.apm.agent.sdk.internal.util.IOUtils;
-import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -75,7 +74,6 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -434,54 +432,18 @@ class DslJsonSerializerTest {
     }
 
     @Test
-    void testSpanHttpRequestBodySerialization() throws UnsupportedEncodingException {
-        String noBody = extractRequestBodyJson(createSpanWithRequestBody(null, "utf-8"));
-        assertThat(noBody).isNull();
-
-        String emptyBody = extractRequestBodyJson(createSpanWithRequestBody(new byte[0], "utf-8"));
-        assertThat(emptyBody).isEqualTo("");
-
-        String invalidCharset = extractRequestBodyJson(createSpanWithRequestBody("testö".getBytes("utf-8"), "bad charset!"));
-        assertThat(invalidCharset).isEqualTo("testÃ¶");
-
-        String noCharset = extractRequestBodyJson(createSpanWithRequestBody("testö".getBytes("utf-8"), null));
-        assertThat(noCharset).isEqualTo("testÃ¶");
-
-        String utf8 = extractRequestBodyJson(createSpanWithRequestBody("special charßßß!äöü".getBytes("utf-8"), "utf-8"));
-        assertThat(utf8).isEqualTo("special charßßß!äöü");
-
-        String utf16 = extractRequestBodyJson(createSpanWithRequestBody("special charßßß!äöü".getBytes("utf-16"), "utf-16"));
-        assertThat(utf16).isEqualTo("special charßßß!äöü");
-
-        String invalidUtf8Sequence = extractRequestBodyJson(createSpanWithRequestBody(new byte[]{'t', 'e', 's', 't', (byte) 0xC2, (byte) 0xC2}, "utf-8"));
-        assertThat(invalidUtf8Sequence).isEqualTo("testÂÂ");
-    }
-
-    private String extractRequestBodyJson(SpanImpl span) {
-        JsonNode spanJson = readJsonString(writer.toJsonString(span));
-        JsonNode otel = spanJson.get("otel");
-        if (otel == null) {
-            return null;
-        }
-        JsonNode attribs = otel.get("attributes");
-        JsonNode bodyContent = attribs.get("http.request.body.content");
-        if (bodyContent == null) {
-            return null;
-        }
-        return bodyContent.textValue();
-    }
-
-    private SpanImpl createSpanWithRequestBody(@Nullable byte[] bodyBytes, @Nullable String charset) {
+    void testSpanHttpRequestBodySerialization() {
         SpanImpl span = new SpanImpl(tracer);
+
         BodyCaptureImpl bodyCapture = span.getContext().getHttp().getRequestBody();
         bodyCapture.markEligibleForCapturing();
-        bodyCapture.markPreconditionsPassed(charset, WebConfiguration.MAX_BODY_CAPTURE_BYTES);
-        bodyCapture.startCapture();
+        bodyCapture.startCapture("utf-8", 50);
+        bodyCapture.append("foobar".getBytes(StandardCharsets.UTF_8), 0, 6);
 
-        if (bodyBytes != null) {
-            bodyCapture.append(bodyBytes, 0, bodyBytes.length);
-        }
-        return span;
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
+        JsonNode otel = spanJson.get("otel");
+        JsonNode attribs = otel.get("attributes");
+        assertThat(attribs.get("http.request.body.content").textValue()).isEqualTo("foobar");
     }
 
     public static boolean[][] getContentCombinations() {
