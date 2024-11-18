@@ -26,6 +26,7 @@ import org.springframework.http.client.reactive.HttpComponentsClientHttpConnecto
 import org.springframework.http.client.reactive.JettyClientHttpConnector;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 @RunWith(Parameterized.class)
@@ -86,6 +87,16 @@ public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentat
         strategy.execute(webClient, path);
     }
 
+    @Override
+    protected boolean isBodyCapturingSupported() {
+        return true;
+    }
+
+    @Override
+    protected void performPost(String path, byte[] content, String contentTypeHeader) throws Exception {
+        strategy.execute(webClient, path, content, contentTypeHeader);
+    }
+
     /**
      * Client-side API variants to cover. While we know that implementation details might delegate to the same method
      * we have to test for it to prevent regression in a future version
@@ -98,11 +109,33 @@ public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentat
                 ((WebClient) client).get().uri(uri).exchange() // deprecated API
                     .block();
             }
+
+            @Override
+            void execute(Object client, String uri, byte[] body, String contentTypeHeader) {
+                ((WebClient) client).post()
+                    .uri(uri)
+                    .header("Content-Type", contentTypeHeader)
+                    .body(Mono.just(body), byte[].class)
+                    .exchange() // deprecated API
+                    .block();
+
+            }
         },
         EXCHANGE_TO_FLUX {
             @Override
             void execute(Object client, String uri) {
                 ((WebClient) client).get().uri(uri).exchangeToFlux(response -> response.bodyToFlux(String.class)).blockLast();
+            }
+
+            @Override
+            void execute(Object client, String uri, byte[] body, String contentTypeHeader) {
+                ((WebClient) client).post()
+                    .uri(uri)
+                    .header("Content-Type", contentTypeHeader)
+                    .body(Mono.just(body), byte[].class)
+                    .exchangeToFlux(response -> response.bodyToFlux(String.class))
+                    .blockLast();
+
             }
         },
         EXCHANGE_TO_MONO {
@@ -111,15 +144,37 @@ public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentat
             void execute(Object client, String uri) {
                 ((WebClient) client).get().uri(uri).exchangeToMono(response -> response.bodyToMono(String.class)).block();
             }
+
+            @Override
+            void execute(Object client, String uri, byte[] body, String contentTypeHeader) {
+                ((WebClient) client).post()
+                    .uri(uri)
+                    .header("Content-Type", contentTypeHeader)
+                    .body(Mono.just(body), byte[].class)
+                    .exchangeToMono(response -> response.bodyToMono(String.class)).block();
+
+            }
         },
         RETRIEVE {
             @Override
             void execute(Object client, String uri) {
                 ((WebClient) client).get().uri(uri).retrieve().bodyToMono(String.class).block();
             }
+
+            @Override
+            void execute(Object client, String uri, byte[] body, String contentTypeHeader) {
+                ((WebClient) client).post()
+                    .uri(uri)
+                    .header("Content-Type", contentTypeHeader)
+                    .body(Mono.just(body), byte[].class)
+                    .retrieve().bodyToMono(String.class).block();
+
+            }
         };
 
         abstract void execute(Object client, String uri);
+
+        abstract void execute(Object client, String uri, byte[] body, String contentTypeHeader);
     }
 
     public static class Clients {

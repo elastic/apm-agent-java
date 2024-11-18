@@ -34,6 +34,27 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
+[[release-notes-1.52.1]]
+==== 1.52.1 - 2024/11/18
+
+[float]
+===== Bug fixes
+* Fix JMX metric warning message about unsupported composite value types - {pull}3849[#3849]
+* Fix JAX-WS transaction naming for @WebMethod annotated methods - {pull}3850[#3850]
+
+[[release-notes-1.52.0]]
+==== 1.52.0 - 2024/09/23
+
+[float]
+===== Bug fixes
+* Fix log4j2 log correlation with shaded application jar - {pull}3764[#3764]
+* Improve automatic span class name detection for Scala and nested/anonymous classes - {pull}3746[#3746]
+
+[float]
+===== Features
+* Added experimental option to capture HTTP client request bodies for Apache Http Client v4 and v5, HttpUrlConnection and Spring WebClient - {pull}3776[#3776], {pull}3962[#3962], {pull}3724[#3724], {pull}3754[#3754], {pull}3767[#3767]
+* Agent health metrics now GA - {pull}3802[#3802]
+
 [[release-notes-1.51.0]]
 ==== 1.51.0 - 2024/07/24
 
@@ -49,6 +70,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ===== Features
 * Added option to make routing-key part of RabbitMQ transaction/span names - {pull}3636[#3636]
 * Added internal option for capturing request bodies for apache httpclient v4 - {pull}3692[#3692]
+* Added automatic module name to apm-agent-attach - {pull}3743[#3743]
 
 [[release-notes-1.50.0]]
 ==== 1.50.0 - 2024/05/28

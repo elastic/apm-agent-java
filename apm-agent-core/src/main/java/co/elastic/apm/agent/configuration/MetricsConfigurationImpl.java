@@ -93,7 +93,7 @@ public class MetricsConfigurationImpl extends ConfigurationOptionProvider implem
         .key("agent_reporter_health_metrics")
         .configurationCategory(METRICS_CATEGORY)
         .description("Enables metrics which capture the health state of the agent's event reporting mechanism.")
-        .tags("added[1.35.0]", "experimental")
+        .tags("added[1.35.0]")
         .dynamic(false)
         .buildWithDefault(false);
 
@@ -101,7 +101,7 @@ public class MetricsConfigurationImpl extends ConfigurationOptionProvider implem
         .key("agent_background_overhead_metrics")
         .configurationCategory(METRICS_CATEGORY)
         .description("Enables metrics which capture the resource consumption of agent background tasks.")
-        .tags("added[1.35.0]", "experimental")
+        .tags("added[1.35.0]")
         .dynamic(false)
         .buildWithDefault(false);
 

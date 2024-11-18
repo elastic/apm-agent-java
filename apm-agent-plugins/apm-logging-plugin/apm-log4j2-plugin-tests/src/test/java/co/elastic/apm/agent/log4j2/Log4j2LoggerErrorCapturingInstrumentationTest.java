@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.log4j2.error;
+package co.elastic.apm.agent.log4j2;
 
 import co.elastic.apm.agent.loginstr.error.AbstractErrorLoggingInstrumentationTest;
+import co.elastic.apm.agent.testutils.TestClassWithDependencyRunner;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
  * Only tested through dedicated class loaders for latest and oldest-supported versions.
- * See {@link Log4j2ErrorCapturingTestVersions}
+ * See {@link co.elastic.apm.agent.log4j2.Log4j2InstrumentationTest}
  */
-@Disabled
+@TestClassWithDependencyRunner.DisableOutsideOfRunner
 public class Log4j2LoggerErrorCapturingInstrumentationTest extends AbstractErrorLoggingInstrumentationTest {
 
     private static final Logger logger = LogManager.getLogger(Log4j2LoggerErrorCapturingInstrumentationTest.class);
@@ -42,7 +42,7 @@ public class Log4j2LoggerErrorCapturingInstrumentationTest extends AbstractError
 
     @Test
     void captureErrorExceptionWithMessageMessage() {
-        logger.error(ParameterizedMessageFactory.INSTANCE.newMessage("exception captured with parameter {}", "foo"), new RuntimeException("some business exception"));
+        logger.error(ParameterizedMessageFactory.INSTANCE.newMessage("exception captured with parameter {}", new Object[]{"foo"}), new RuntimeException("some business exception"));
         verifyExceptionCaptured("some business exception", RuntimeException.class);
     }
 

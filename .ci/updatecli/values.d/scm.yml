@@ -4,6 +4,7 @@ scm:
   repository: apm-agent-java
   apm_repository: apm
   branch: main
+  commitusingapi: true
   # begin update-compose policy values
   user: obltmachine
   email: obltmachine@users.noreply.github.com

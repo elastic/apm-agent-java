@@ -461,6 +461,7 @@ For example, `DistributionSummary.builder("order").register(...).record(orderPri
 * When using `CountingMode.CUMULATIVE`, you can use TSVB's "Positive Rate" aggregation to convert the counter to a rate.
   But you have to remember to group by a combination of dimensions that uniquely identify the time series.
   This may be a combination of `host.name` and `service.name`, or the `kubernetes.pod.id`.
+* Micrometer metrics can be disabled by using the <<config-disable-instrumentations, `disable_instrumentations`>> setting.
 
 
 [float]
@@ -662,8 +663,6 @@ Fields:
 [float]
 [[metrics-agenthealth]]
 === Agent Health Metrics
-
-experimental::[]
 
 The agent internally uses a queue to buffer the various events (e.g. transactions, spans, metrics) before sending them to the APM server.
 When <<config-agent-reporter-health-metrics, `agent_reporter_health_metrics`>> is enabled, the agent will expose several metrics regarding the health state of this queue and the network connectivity to the APM server.

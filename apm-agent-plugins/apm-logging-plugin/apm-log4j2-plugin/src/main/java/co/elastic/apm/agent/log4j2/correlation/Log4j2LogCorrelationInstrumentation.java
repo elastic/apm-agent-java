@@ -71,9 +71,11 @@ public abstract class Log4j2LogCorrelationInstrumentation extends AbstractLogInt
     }
 
     public static class Log4J2_6LogCorrelationInstrumentation extends Log4j2LogCorrelationInstrumentation {
+
         @Override
         public ElementMatcher.Junction<ProtectionDomain> getProtectionDomainPostFilter() {
-            return implementationVersionGte("2.6").and(not(implementationVersionGte("2.7")));
+            return implementationVersionGte("2.6", "org.apache.logging.log4j", "log4j-core")
+                .and(not(implementationVersionGte("2.7", "org.apache.logging.log4j", "log4j-core")));
         }
 
         public static class AdviceClass {
@@ -94,7 +96,7 @@ public abstract class Log4j2LogCorrelationInstrumentation extends AbstractLogInt
     public static class Log4J2_7PlusLogCorrelationInstrumentation extends Log4j2LogCorrelationInstrumentation {
         @Override
         public ElementMatcher.Junction<ProtectionDomain> getProtectionDomainPostFilter() {
-            return implementationVersionGte("2.7");
+            return implementationVersionGte("2.7", "org.apache.logging.log4j", "log4j-core");
         }
 
         public static class AdviceClass {
