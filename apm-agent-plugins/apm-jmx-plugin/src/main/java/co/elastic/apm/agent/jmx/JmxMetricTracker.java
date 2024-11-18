@@ -18,16 +18,16 @@
  */
 package co.elastic.apm.agent.jmx;
 
-import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
-import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
-import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.metrics.Labels;
-import co.elastic.apm.agent.tracer.GlobalLocks;
 import co.elastic.apm.agent.sdk.internal.util.ExecutorUtils;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
+import co.elastic.apm.agent.tracer.GlobalLocks;
+import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.configuration.TimeDuration;
+import co.elastic.apm.agent.tracer.metrics.DoubleSupplier;
+import co.elastic.apm.agent.tracer.metrics.Labels;
 import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nullable;
@@ -35,6 +35,7 @@ import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
 import javax.management.JMException;
 import javax.management.MBeanAttributeInfo;
+import javax.management.MBeanException;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServer;
 import javax.management.MBeanServerDelegate;
@@ -45,9 +46,8 @@ import javax.management.Notification;
 import javax.management.NotificationListener;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
-import javax.management.RuntimeMBeanException;
-import javax.management.MBeanException;
 import javax.management.ReflectionException;
+import javax.management.RuntimeMBeanException;
 import javax.management.openmbean.CompositeData;
 import javax.management.relation.MBeanServerNotificationFilter;
 import java.lang.management.ManagementFactory;
@@ -436,7 +436,8 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         } else if (value instanceof CompositeData) {
             final CompositeData compositeValue = (CompositeData) value;
             for (final String key : compositeValue.getCompositeType().keySet()) {
-                if (compositeValue.get(key) instanceof Number) {
+                Object entryValue = compositeValue.get(key);
+                if (entryValue instanceof Number) {
                     logger.debug("Found composite number attribute {}.{}={}", attribute.getJmxAttributeName(), key, value);
                     registrations.add(
                         new JmxMetricRegistration(
@@ -452,7 +453,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                     );
                 } else {
                     if (!isWildcard(attribute)) {
-                        logger.warn("Can't create metric '{}' because composite value '{}' is not a number: '{}'", jmxMetric, key, value);
+                        logger.warn("Can't create metric '{}' because composite value '{}' is not a number: '{}'", jmxMetric, key, entryValue);
                     }
                 }
             }

@@ -47,6 +47,11 @@ class JaxWsTransactionNameInstrumentationTest extends AbstractJaxWsInstrumentati
         public String sayHello() {
             return "Hello World";
         }
+
+        @WebMethod
+        public String webMethodAnnotated() {
+            return "foo bar";
+        }
     }
 
 }
