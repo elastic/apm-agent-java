@@ -18,11 +18,12 @@
  */
 package co.elastic.apm.agent.embeddedotel;
 
-import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.embeddedotel.proxy.ProxyMeterProvider;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.AbstractLifecycleListener;
 import co.elastic.apm.agent.tracer.Tracer;
+import io.opentelemetry.api.metrics.MeterProvider;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.metrics.SdkMeterProviderBuilder;
 
@@ -65,6 +66,10 @@ public class EmbeddedSdkManager extends AbstractLifecycleListener {
         if (sdkInstance == null) {
             startSdk();
         }
+        if (sdkInstance == null) {
+            logger.warn("Returning NoOp-MeterProvider because OpenTelemetry metrics SDK could not be initialized!");
+            return new ProxyMeterProvider(MeterProvider.noop());
+        }
         return new ProxyMeterProvider(sdkInstance);
     }
 
@@ -78,7 +83,11 @@ public class EmbeddedSdkManager extends AbstractLifecycleListener {
     }
 
     private synchronized void startSdk() {
-        if (isShutdown || sdkInstance != null || tracer == null) {
+        if (isShutdown || sdkInstance != null) {
+            return;
+        }
+        if (tracer == null) {
+            logger.warn("Cannot initialize OpenTelemetry metrics SDK because tracer has not started yet");
             return;
         }
         logger.debug("Starting embedded OpenTelemetry metrics SDK");
