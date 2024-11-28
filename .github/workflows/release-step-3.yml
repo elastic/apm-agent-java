@@ -168,7 +168,7 @@ jobs:
         uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw dependency:purge-local-repository package -pl apm-agent-lambda-layer
-      - uses: elastic/oblt-actions/aws/auth@v1.10.0
+      - uses: elastic/oblt-actions/aws/auth@v1
         with:
           aws-account-id: '267093732750'
       - name: Publish
