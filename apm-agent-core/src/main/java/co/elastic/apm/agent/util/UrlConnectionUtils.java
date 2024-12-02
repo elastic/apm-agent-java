@@ -23,7 +23,9 @@ import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.Proxy;
 import java.net.ProxySelector;
 import java.net.URISyntaxException;
@@ -85,6 +87,50 @@ public class UrlConnectionUtils {
             } catch (URISyntaxException e) {
                 logger.debug("Failed to read and debug-print proxy settings for {}", url, e);
             }
+        }
+    }
+
+    public static ContextClassloaderScope withContextClassloaderOf(HttpURLConnection connection) {
+        Class<?> type = connection.getClass();
+        // so far, only weblogic is known to use context CL to load parts of the SSL/TLS communication
+        // see https://github.com/elastic/apm-agent-java/issues/2409 for background on why this is needed
+        boolean override = type.getCanonicalName().startsWith("weblogic.");
+        return withContextClassloader(type.getClassLoader(), override);
+    }
+
+    // package private for testing
+    static ContextClassloaderScope withContextClassloader(@Nullable ClassLoader cl, boolean override) {
+        if (!override) {
+            return ContextClassloaderScope.NOOP;
+        }
+        return new ContextClassloaderScope(cl, false);
+    }
+
+    public static class ContextClassloaderScope implements AutoCloseable {
+
+        private static final ContextClassloaderScope NOOP = new ContextClassloaderScope(null, true);
+
+        private final boolean noop;
+        @Nullable
+        private final ClassLoader previous;
+
+        private ContextClassloaderScope(@Nullable ClassLoader classLoader, boolean noop) {
+            this.noop = noop;
+            if (noop) {
+                this.previous = null;
+                return;
+            }
+            this.previous = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(classLoader);
+        }
+
+        @Override
+        public void close() {
+            if (noop) {
+                return;
+            }
+            Thread.currentThread().setContextClassLoader(previous);
+
         }
     }
 }

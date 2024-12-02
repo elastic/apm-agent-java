@@ -265,8 +265,10 @@ public class ApmServerClient {
         Exception previousException = null;
         for (URL serverUrl : prioritizedUrlList) {
             HttpURLConnection connection = null;
+            UrlConnectionUtils.ContextClassloaderScope clScope = null;
             try {
                 connection = startRequestToUrl(appendPath(serverUrl, path));
+                clScope = UrlConnectionUtils.withContextClassloaderOf(connection);
                 return connectionHandler.withConnection(connection);
             } catch (Exception e) {
                 expectedErrorCount = incrementAndGetErrorCount(expectedErrorCount);
@@ -277,6 +279,9 @@ public class ApmServerClient {
                 previousException = e;
             } finally {
                 HttpUtils.consumeAndClose(connection);
+                if (clScope != null) {
+                    clScope.close();
+                }
             }
         }
         if (previousException == null) {
@@ -290,13 +295,19 @@ public class ApmServerClient {
         List<T> results = new ArrayList<>(serverUrls.size());
         for (URL serverUrl : serverUrls) {
             HttpURLConnection connection = null;
+            UrlConnectionUtils.ContextClassloaderScope clScope = null;
             try {
                 connection = startRequestToUrl(appendPath(serverUrl, path));
+                clScope = UrlConnectionUtils.withContextClassloaderOf(connection);
                 results.add(connectionHandler.withConnection(connection));
             } catch (Exception e) {
                 logger.debug("Exception while interacting with APM Server", e);
             } finally {
                 HttpUtils.consumeAndClose(connection);
+                if (clScope != null) {
+                    clScope.close();
+                }
+
             }
         }
         return results;
@@ -436,6 +447,7 @@ public class ApmServerClient {
     /**
      * Escapes the provided string from characters that are disallowed within HTTP header comments.
      * See spec- https://httpwg.org/specs/rfc7230.html#field.components
+     *
      * @param headerFieldComment HTTP header comment value to be escaped
      * @return the escaped header comment
      */
