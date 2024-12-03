@@ -3,7 +3,7 @@ scm:
   owner: elastic
   repository: apm-agent-java
   apm_repository: apm
-  branch: main
+  branch: test/use-version-file
   commitusingapi: true
   # begin update-compose policy values
   user: obltmachine
