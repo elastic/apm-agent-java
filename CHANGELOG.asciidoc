@@ -35,6 +35,7 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 ===== Bug fixes
 * Prevent NPE in OpenTelemetry metrics bridge in case of asynchronous agent start - {pull}3880[#3880]
 * Fix random Weblogic ClassNotFoundException related to thread context classloader - {pull}3870[#3870]
+* Skips using NOFOLLOW_LINKS file open option when running on OS/400 as it's unsupported there - {pull}3905[#3905]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
