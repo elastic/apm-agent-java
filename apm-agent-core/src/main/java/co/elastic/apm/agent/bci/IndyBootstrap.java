@@ -219,6 +219,7 @@ public class IndyBootstrap {
     static Method bootstrapLoggingMethod;
 
     private static final CallDepth callDepth = CallDepth.get(IndyBootstrap.class);
+    private static final CallDepth loggingForNestedCall = CallDepth.get("indy-bootstrap-nested-logging");
 
     private static Logger logger() {
         // must not be a static field as it would initialize logging before it's ready
@@ -430,7 +431,12 @@ public class IndyBootstrap {
                 // avoid re-entrancy and stack overflow errors
                 // may happen when bootstrapping an instrumentation that also gets triggered during the bootstrap
                 // for example, adding correlation ids to the thread context when executing logger.debug.
-                logger().warn("Nested instrumented invokedynamic instruction linkage detected", new Throwable());
+                if (!loggingForNestedCall.isNestedCallAndIncrement()) {
+                    // We might be unlucky and cause an infinite recurison through logger()
+                    // for this reason we have the loggingForNestedCall in place to prevent this recursion
+                    logger().warn("Nested instrumented invokedynamic instruction linkage detected", new Throwable());
+                }
+                loggingForNestedCall.decrement();
                 return null;
             }
             String adviceClassName = (String) args[0];
@@ -498,7 +504,7 @@ public class IndyBootstrap {
             // When calling findStatic now, the lookup class will be one that is loaded by the plugin class loader
             MethodHandle methodHandle = indyLookup.findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
             return new ConstantCallSite(methodHandle);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             logger().error(e.getMessage(), e);
             return null;
         } finally {
