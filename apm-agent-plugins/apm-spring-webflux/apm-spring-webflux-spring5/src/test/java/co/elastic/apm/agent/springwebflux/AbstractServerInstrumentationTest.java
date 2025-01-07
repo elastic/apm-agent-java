@@ -464,6 +464,12 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         assertThat(transaction.getResult())
             .isEqualTo(String.format("HTTP %dxx", expectedStatus / 100));
 
+        assertThat(transaction.getFrameworkName())
+            .isEqualTo("Spring Webflux");
+
+        assertThat(transaction.getFrameworkVersion())
+            .isEqualTo("5.3.30");
+
         return transaction;
     }
 
