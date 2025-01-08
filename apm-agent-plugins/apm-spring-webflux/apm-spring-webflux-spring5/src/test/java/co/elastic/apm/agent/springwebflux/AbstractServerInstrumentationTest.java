@@ -58,6 +58,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     private static final String BASIC_AUTH_HEADER_VALUE = "Basic ZWxhc3RpYzpjaGFuZ2VtZQ==";
 
     protected static WebFluxApplication.App app;
+    protected String expectedFrameworkVersion = "5.3.30";
     protected GreetingWebClient client;
 
     @BeforeAll
@@ -451,7 +452,11 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         return reporter.getFirstError(200);
     }
 
-    static TransactionImpl checkTransaction(TransactionImpl transaction, String expectedName, String expectedMethod, int expectedStatus) {
+    TransactionImpl checkTransaction(TransactionImpl transaction, String expectedName, String expectedMethod, int expectedStatus) {
+        return checkTransaction(transaction, expectedName, expectedMethod, expectedStatus, expectedFrameworkVersion);
+    }
+
+    static TransactionImpl checkTransaction(TransactionImpl transaction, String expectedName, String expectedMethod, int expectedStatus, String expectedFrameworkVersion) {
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getNameAsString()).isEqualTo(expectedName);
 
@@ -468,7 +473,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
             .isEqualTo("Spring Webflux");
 
         assertThat(transaction.getFrameworkVersion())
-            .isEqualTo("5.3.30");
+            .isEqualTo(expectedFrameworkVersion);
 
         return transaction;
     }

@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.testutils.Java17OnlyTest;
+import org.junit.jupiter.api.BeforeEach;
 
 public class Spring6ServerAnnotatedInstrumentationTest extends Java17OnlyTest {
 
@@ -27,5 +28,10 @@ public class Spring6ServerAnnotatedInstrumentationTest extends Java17OnlyTest {
     }
 
     public static class Impl extends ServerAnnotatedInstrumentationTest {
+
+        @BeforeEach
+        void setUp() {
+            expectedFrameworkVersion = "6.2.0";
+        }
     }
 }
