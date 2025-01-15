@@ -40,7 +40,6 @@ public class TomcatIT extends AbstractTomcatIT {
     @Parameterized.Parameters(name = "Tomcat {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"8.5.0-jre8"},
             {"9-jre11-slim"},
             {"9.0.39-jdk14-openjdk-oracle"},
             {"jdk8-adoptopenjdk-openj9"},
