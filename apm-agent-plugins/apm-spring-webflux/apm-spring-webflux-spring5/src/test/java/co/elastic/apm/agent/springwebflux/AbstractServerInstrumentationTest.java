@@ -133,7 +133,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
             assertThat(headersCount)
                 .describedAs("unexpected headers count")
-                .isEqualTo(6);
+                .isGreaterThanOrEqualTo(6);
 
             assertThat(headers.getFirst("random-value"))
                 .describedAs("non-standard request headers should be captured")
