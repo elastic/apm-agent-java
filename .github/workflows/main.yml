@@ -216,8 +216,7 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'ci:agent-integration')
       || github.event.pull_request.draft == false
       || inputs.agent_integration_tests_ci == true
-    # Pinned to ubuntu 20.04 until https://github.com/elastic/apm-agent-java/issues/3035 is solved.
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: build
     steps:
       - uses: actions/checkout@v4
