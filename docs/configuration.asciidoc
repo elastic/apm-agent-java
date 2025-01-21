@@ -2817,7 +2817,7 @@ NOTE: This feature is not available on Windows and on OpenJ9
 ==== `profiling_inferred_spans_logging_enabled` (added[1.37.0])
 
 By default, async profiler prints warning messages about missing JVM symbols to standard output. 
-Set this option to `true` to suppress such messages
+Set this option to `false` to suppress such messages
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
