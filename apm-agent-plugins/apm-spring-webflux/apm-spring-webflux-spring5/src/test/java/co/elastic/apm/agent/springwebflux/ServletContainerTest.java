@@ -64,7 +64,7 @@ public class ServletContainerTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void shouldOnlyCreateOneTransactionTESTRENAME() throws InterruptedException {
+    void shouldOnlyCreateOneTransaction() throws InterruptedException {
 
         // using a request with path parameter so we are sure servlet path and webflux path template are not equal
         StepVerifier.create(client.withPathParameter("42"))
