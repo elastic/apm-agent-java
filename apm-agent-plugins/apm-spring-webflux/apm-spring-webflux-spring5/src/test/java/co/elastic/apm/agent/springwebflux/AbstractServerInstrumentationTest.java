@@ -38,6 +38,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.core.SpringVersion;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Hooks;
@@ -58,7 +59,6 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     private static final String BASIC_AUTH_HEADER_VALUE = "Basic ZWxhc3RpYzpjaGFuZ2VtZQ==";
 
     protected static WebFluxApplication.App app;
-    protected String expectedFrameworkVersion = "5.3.30";
     protected GreetingWebClient client;
 
     @BeforeAll
@@ -452,11 +452,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         return reporter.getFirstError(200);
     }
 
-    TransactionImpl checkTransaction(TransactionImpl transaction, String expectedName, String expectedMethod, int expectedStatus) {
-        return checkTransaction(transaction, expectedName, expectedMethod, expectedStatus, expectedFrameworkVersion);
-    }
-
-    static TransactionImpl checkTransaction(TransactionImpl transaction, String expectedName, String expectedMethod, int expectedStatus, String expectedFrameworkVersion) {
+    static TransactionImpl checkTransaction(TransactionImpl transaction, String expectedName, String expectedMethod, int expectedStatus) {
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getNameAsString()).isEqualTo(expectedName);
 
@@ -473,7 +469,8 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
             .isEqualTo("Spring Webflux");
 
         assertThat(transaction.getFrameworkVersion())
-            .isEqualTo(expectedFrameworkVersion);
+            .isNotBlank()
+            .isEqualTo(SpringVersion.getVersion());
 
         return transaction;
     }

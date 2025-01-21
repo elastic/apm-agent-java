@@ -18,15 +18,9 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
 
 @EnabledForJreRange(min = JRE.JAVA_17)
 public class Spring6ServletContainerTest extends ServletContainerTest {
-
-    @BeforeEach
-    void setUp() {
-        expectedFrameworkVersion = "6.2.0";
-    }
 }
