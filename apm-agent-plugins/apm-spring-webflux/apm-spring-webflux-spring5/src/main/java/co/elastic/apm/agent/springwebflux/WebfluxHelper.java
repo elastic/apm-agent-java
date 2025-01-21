@@ -19,6 +19,7 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
+import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.tracer.util.ResultUtil;
@@ -64,6 +65,8 @@ import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEW
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
 public class WebfluxHelper {
+
+    private static final String FRAMEWORK_NAME = "Spring Webflux";
 
     private static final Logger log = LoggerFactory.getLogger(WebfluxHelper.class);
     private static final Logger oneTimeResponseCodeErrorLogger = LoggerUtils.logOnce(log);
@@ -179,6 +182,13 @@ public class WebfluxHelper {
         // will take care of this.
         if (!WebfluxHelper.isServletTransaction(exchange)) {
             transaction.end();
+        }
+    }
+
+    public static void setFrameworkInfo(@Nullable Transaction<?> transaction) {
+        if (transaction != null) {
+            transaction.setFrameworkName(FRAMEWORK_NAME);
+            transaction.setFrameworkVersion(VersionUtils.getVersion(HandlerMethod.class, "org.springframework", "webflux"));
         }
     }
 

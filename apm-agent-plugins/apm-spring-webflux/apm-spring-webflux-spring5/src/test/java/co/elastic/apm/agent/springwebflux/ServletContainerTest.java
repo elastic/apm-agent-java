@@ -34,6 +34,7 @@ public class ServletContainerTest extends AbstractInstrumentationTest {
 
     protected static WebFluxApplication.App app;
     protected static GreetingWebClient client;
+    protected String expectedFrameworkVersion = "5.3.30";
 
     @BeforeAll
     static void startApp() {
@@ -74,7 +75,7 @@ public class ServletContainerTest extends AbstractInstrumentationTest {
         TransactionImpl transaction = reporter.getFirstTransaction(200);
 
         // transaction naming should be set by webflux instrumentation
-        AbstractServerInstrumentationTest.checkTransaction(transaction, "GET /functional/with-parameters/{id}", "GET", 200);
+        AbstractServerInstrumentationTest.checkTransaction(transaction, "GET /functional/with-parameters/{id}", "GET", 200, expectedFrameworkVersion);
 
         // transaction HTTP part should be provided by servlet instrumentation
         AbstractServerInstrumentationTest.checkUrl(client, transaction, "/with-parameters/42");
