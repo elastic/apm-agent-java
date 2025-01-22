@@ -46,7 +46,7 @@ public class PartitionProjects {
 
         ArrayList<String> projectsSorted = new ArrayList<>(nonPomProjects);
         projectsSorted.sort(Comparator.naturalOrder()); //sort first in case maven reactor has a indeterminisitc order
-        Collections.shuffle(projectsSorted, new Random(42)); // deterministically shuffle to separate workload equally
+        Collections.shuffle(projectsSorted, new Random(7)); // deterministically shuffle to separate workload equally
 
         int count = projectsSorted.size();
         int partitionStartInclusive = partitionId * count / partitionCount;
