@@ -173,8 +173,11 @@ jobs:
           path: ${{ github.workspace }}
       - name: Compute Test Partition
         id: compute-partition
+        env:
+          # Use environment variable to have proper escaping and not pollute logs
+          MVN_VALIDATE_OUTPUT: ${{needs.build.outputs.mvn-validate-output}}
         run: |
-          PROJECTS=`java .ci/PartitionProjects.java 10 ${{ matrix.partition }} '${{needs.build.outputs.mvn-validate-output}}'`
+          PROJECTS=`java .ci/PartitionProjects.java 10 "$MVN_VALIDATE_OUTPUT"`
           echo "Partition: $PROJECTS"
           echo "PROJECTS=$PROJECTS" >> $GITHUB_OUTPUT
       - name: "mvn install partition projects and dependencies"
