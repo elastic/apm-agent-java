@@ -168,7 +168,7 @@ jobs:
         run: |
           PROJECTS=`java .ci/PartitionProjects.java 10 ${{ matrix.partition }} "$(./mvnw validate)"`
           echo "Partition: $PROJECTS"
-          echo "$PROJECTS=$PROJECTS" >> $GITHUB_OUTPUT
+          echo "PROJECTS=$PROJECTS" >> $GITHUB_OUTPUT
       - name: "mvn install partition projects and dependencies"
         uses: ./.github/workflows/maven-goal
         with:
