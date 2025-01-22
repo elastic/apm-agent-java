@@ -161,7 +161,7 @@ jobs:
     timeout-minutes: 30
     needs: build
     strategy:
-      # Even if the tests fail on one JDK we want to know if it also fails on others
+      # Even if the tests fail on one partition we want to know if it also fails on others to keep things deterministic
       fail-fast: false
       matrix:
         partition: [0,1,2,3,4,5,6,7,8,9]
@@ -177,7 +177,7 @@ jobs:
           # Use environment variable to have proper escaping and not pollute logs
           MVN_VALIDATE_OUTPUT: ${{needs.build.outputs.mvn-validate-output}}
         run: |
-          PROJECTS=`java .ci/PartitionProjects.java 10 "$MVN_VALIDATE_OUTPUT"`
+          PROJECTS=`java .ci/PartitionProjects.java 10 ${{ matrix.partition }} "$MVN_VALIDATE_OUTPUT"`
           echo "Partition: $PROJECTS"
           echo "PROJECTS=$PROJECTS" >> $GITHUB_OUTPUT
       - name: "mvn install partition projects and dependencies"

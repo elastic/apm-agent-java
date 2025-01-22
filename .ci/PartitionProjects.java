@@ -24,7 +24,6 @@ public class PartitionProjects {
             throw new IllegalArgumentException("Invalid argument count: " + args.length);
         }
 
-
         int partitionCount = Integer.parseInt(args[0]);
         int partitionId = Integer.parseInt(args[1]);
         String mvnValidateOutput = args[2];
