@@ -217,18 +217,6 @@ jobs:
         with:
           name: build
           path: ${{ github.workspace }}
-      # As long as there are some space issues with the CI runners.
-      - name: Free Disk Space
-        continue-on-error: true
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
-        with:
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-          tool-cache: false
       - name: Compute Test Partition
         id: compute-partition
         env:
@@ -274,18 +262,6 @@ jobs:
         with:
           name: build
           path: ${{ github.workspace }}
-      # As long as there are some space issues with the CI runners.
-      - name: Free Disk Space
-        continue-on-error: true
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
-        with:
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-          tool-cache: false
       - name: Compute Test Partition
         id: compute-partition
         env:
