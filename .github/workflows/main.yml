@@ -230,7 +230,8 @@ jobs:
         uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw -q install -DskipTests=true -Dmaven.javadoc.skip=true --also-make --projects ${{ steps.compute-partition.outputs.PROJECTS }}
-      - uses: ./.github/workflows/maven-goal
+      - name: Run tests
+        uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw -P ci-non-application-server-integration-tests verify --projects ${{ steps.compute-partition.outputs.PROJECTS }}
       - name: Store test results
@@ -251,38 +252,32 @@ jobs:
       || inputs.agent_integration_tests_ci == true
     runs-on: ubuntu-22.04
     needs: build
-    strategy:
-      # Even if the tests fail on one partition we want to know if it also fails on others to keep things deterministic
-      fail-fast: false
-      matrix:
-        partition: [0,1,2,3,4,5,6,7]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/workflows/unstash
         with:
           name: build
           path: ${{ github.workspace }}
-      - name: Compute Test Partition
-        id: compute-partition
-        env:
-          # Use environment variable to have proper escaping and not pollute logs
-          MVN_VALIDATE_OUTPUT: ${{needs.build.outputs.mvn-validate-output}}
-        run: |
-          PROJECTS=`java .ci/PartitionProjects.java 8 ${{ matrix.partition }} "$MVN_VALIDATE_OUTPUT"`
-          echo "Partition: $PROJECTS"
-          echo "PROJECTS=$PROJECTS" >> $GITHUB_OUTPUT
-      - name: "mvn install partition projects and dependencies"
-        uses: ./.github/workflows/maven-goal
+      # As long as there are some space issues with the CI runners.
+      - name: Free Disk Space
+        continue-on-error: true
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
         with:
-          command: ./mvnw -q install -DskipTests=true -Dmaven.javadoc.skip=true --also-make --projects ${{ steps.compute-partition.outputs.PROJECTS }}
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+          tool-cache: false
       - uses: ./.github/workflows/maven-goal
         with:
-          command: ./mvnw -q -P ci-application-server-integration-tests verify --projects ${{ steps.compute-partition.outputs.PROJECTS }}
+          command: ./mvnw -q -P ci-application-server-integration-tests verify
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-app-server-integration-${{ matrix.partition }}
+          name: test-results-app-server-integration
           path: |
             **/junit-*.xml
             **/TEST-*.xml
