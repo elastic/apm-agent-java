@@ -152,6 +152,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: build
+    strategy:
+      # Even if the tests fail on one JDK we want to know if it also fails on others
+      fail-fast: false
+      matrix:
+        partition: [0,1,2,3,4,5,6,7,8,9]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/workflows/unstash
@@ -160,12 +165,12 @@ jobs:
           path: ${{ github.workspace }}
       - uses: ./.github/workflows/maven-goal
         with:
-          command: ./mvnw test -DargLine="-Delastic.apm.overwrite.config.docs=false"
+          command: ./mvnw test -DargLine="-Delastic.apm.overwrite.config.docs=false" --projects $(java .ci/PartitionProjects.java 10 ${{ matrix.partition }} "$(./mvnw validate)")
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-JUnit
+          name: test-results-JUnit${{ matrix.partition }}
           path: |
             **/junit-*.xml
             **/TEST-*.xml
