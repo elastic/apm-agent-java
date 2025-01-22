@@ -163,9 +163,20 @@ jobs:
         with:
           name: build
           path: ${{ github.workspace }}
-      - uses: ./.github/workflows/maven-goal
+      - name: Compute Test Partition
+        id: compute-partition
+        run: |
+          PROJECTS=`java .ci/PartitionProjects.java 10 ${{ matrix.partition }} "$(./mvnw validate)"`
+          echo "Partition: $PROJECTS"
+          echo "$PROJECTS=$PROJECTS" >> $GITHUB_OUTPUT
+      - name: "Build partition and dependencies"
+        uses: ./.github/workflows/maven-goal
         with:
-          command: ./mvnw test -DargLine="-Delastic.apm.overwrite.config.docs=false" --also-make --projects $(java .ci/PartitionProjects.java 10 ${{ matrix.partition }} "$(./mvnw validate)")
+          command: ./mvnw -q install -DskipTests=true -Dmaven.javadoc.skip=true --also-make --projects $(java .ci/PartitionProjects.java 10 ${{ matrix.partition }} ${{ steps.compute-partition.outputs.PROJECTS }})
+      - name: "Run tests"
+        uses: ./.github/workflows/maven-goal
+        with:
+          command: ./mvnw test -DargLine="-Delastic.apm.overwrite.config.docs=false" --projects $(java .ci/PartitionProjects.java 10 ${{ matrix.partition }} ${{ steps.compute-partition.outputs.PROJECTS }})
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v4
