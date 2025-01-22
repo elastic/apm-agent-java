@@ -165,7 +165,7 @@ jobs:
           path: ${{ github.workspace }}
       - uses: ./.github/workflows/maven-goal
         with:
-          command: ./mvnw test -DargLine="-Delastic.apm.overwrite.config.docs=false" --projects $(java .ci/PartitionProjects.java 10 ${{ matrix.partition }} "$(./mvnw validate)")
+          command: ./mvnw test -DargLine="-Delastic.apm.overwrite.config.docs=false" --also-make --projects $(java .ci/PartitionProjects.java 10 ${{ matrix.partition }} "$(./mvnw validate)")
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v4
