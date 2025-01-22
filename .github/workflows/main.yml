@@ -164,7 +164,7 @@ jobs:
       # Even if the tests fail on one partition we want to know if it also fails on others to keep things deterministic
       fail-fast: false
       matrix:
-        partition: [0,1,2,3,4,5,6,7,8,9]
+        partition: [0,1,2,3,4]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/workflows/unstash
@@ -177,7 +177,7 @@ jobs:
           # Use environment variable to have proper escaping and not pollute logs
           MVN_VALIDATE_OUTPUT: ${{needs.build.outputs.mvn-validate-output}}
         run: |
-          PROJECTS=`java .ci/PartitionProjects.java 10 ${{ matrix.partition }} "$MVN_VALIDATE_OUTPUT"`
+          PROJECTS=`java .ci/PartitionProjects.java 5 ${{ matrix.partition }} "$MVN_VALIDATE_OUTPUT"`
           echo "Partition: $PROJECTS"
           echo "PROJECTS=$PROJECTS" >> $GITHUB_OUTPUT
       - name: "mvn install partition projects and dependencies"
@@ -192,7 +192,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-JUnit${{ matrix.partition }}
+          name: test-results-JUnit-${{ matrix.partition }}
           path: |
             **/junit-*.xml
             **/TEST-*.xml
@@ -206,6 +206,11 @@ jobs:
       || inputs.agent_integration_tests_ci == true
     runs-on: ubuntu-latest
     needs: build
+    strategy:
+      # Even if the tests fail on one partition we want to know if it also fails on others to keep things deterministic
+      fail-fast: false
+      matrix:
+        partition: [0,1,2,3,4,5,6,7]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/workflows/unstash
@@ -224,14 +229,27 @@ jobs:
           docker-images: true
           swap-storage: true
           tool-cache: false
+      - name: Compute Test Partition
+        id: compute-partition
+        env:
+          # Use environment variable to have proper escaping and not pollute logs
+          MVN_VALIDATE_OUTPUT: ${{needs.build.outputs.mvn-validate-output}}
+        run: |
+          PROJECTS=`java .ci/PartitionProjects.java 8 ${{ matrix.partition }} "$MVN_VALIDATE_OUTPUT"`
+          echo "Partition: $PROJECTS"
+          echo "PROJECTS=$PROJECTS" >> $GITHUB_OUTPUT
+      - name: "mvn install partition projects and dependencies"
+        uses: ./.github/workflows/maven-goal
+        with:
+          command: ./mvnw -q install -DskipTests=true -Dmaven.javadoc.skip=true --also-make --projects ${{ steps.compute-partition.outputs.PROJECTS }}
       - uses: ./.github/workflows/maven-goal
         with:
-          command: ./mvnw -q -P ci-non-application-server-integration-tests verify
+          command: ./mvnw -P ci-non-application-server-integration-tests verify --projects ${{ steps.compute-partition.outputs.PROJECTS }}
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-non-app-server-integration
+          name: test-results-non-app-server-integration-${{ matrix.partition }}
           path: |
             **/junit-*.xml
             **/TEST-*.xml
@@ -245,6 +263,11 @@ jobs:
       || inputs.agent_integration_tests_ci == true
     runs-on: ubuntu-22.04
     needs: build
+    strategy:
+      # Even if the tests fail on one partition we want to know if it also fails on others to keep things deterministic
+      fail-fast: false
+      matrix:
+        partition: [0,1,2,3,4,5,6,7]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/workflows/unstash
@@ -263,14 +286,27 @@ jobs:
           docker-images: true
           swap-storage: true
           tool-cache: false
+      - name: Compute Test Partition
+        id: compute-partition
+        env:
+          # Use environment variable to have proper escaping and not pollute logs
+          MVN_VALIDATE_OUTPUT: ${{needs.build.outputs.mvn-validate-output}}
+        run: |
+          PROJECTS=`java .ci/PartitionProjects.java 8 ${{ matrix.partition }} "$MVN_VALIDATE_OUTPUT"`
+          echo "Partition: $PROJECTS"
+          echo "PROJECTS=$PROJECTS" >> $GITHUB_OUTPUT
+      - name: "mvn install partition projects and dependencies"
+        uses: ./.github/workflows/maven-goal
+        with:
+          command: ./mvnw -q install -DskipTests=true -Dmaven.javadoc.skip=true --also-make --projects ${{ steps.compute-partition.outputs.PROJECTS }}
       - uses: ./.github/workflows/maven-goal
         with:
-          command: ./mvnw -q -P ci-application-server-integration-tests verify
+          command: ./mvnw -q -P ci-application-server-integration-tests verify --projects ${{ steps.compute-partition.outputs.PROJECTS }}
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-app-server-integration
+          name: test-results-app-server-integration-${{ matrix.partition }}
           path: |
             **/junit-*.xml
             **/TEST-*.xml
