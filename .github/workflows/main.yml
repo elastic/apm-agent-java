@@ -210,7 +210,7 @@ jobs:
       # Even if the tests fail on one partition we want to know if it also fails on others to keep things deterministic
       fail-fast: false
       matrix:
-        partition: [0,1,2,3,4,5,6,7]
+        partition: [0,1,2,3,4]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/workflows/unstash
@@ -223,7 +223,7 @@ jobs:
           # Use environment variable to have proper escaping and not pollute logs
           MVN_VALIDATE_OUTPUT: ${{needs.build.outputs.mvn-validate-output}}
         run: |
-          PROJECTS=`java .ci/PartitionProjects.java 8 ${{ matrix.partition }} "$MVN_VALIDATE_OUTPUT"`
+          PROJECTS=`java .ci/PartitionProjects.java 5 ${{ matrix.partition }} "$MVN_VALIDATE_OUTPUT"`
           echo "Partition: $PROJECTS"
           echo "PROJECTS=$PROJECTS" >> $GITHUB_OUTPUT
       - name: "mvn install partition projects and dependencies"
