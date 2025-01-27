@@ -20,13 +20,13 @@ package co.elastic.apm.agent.jdbc;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.SpanConfiguration;
-import co.elastic.apm.agent.impl.transaction.SpanImpl;
-import co.elastic.apm.agent.sdk.internal.db.signature.SignatureParser;
 import co.elastic.apm.agent.impl.context.DbImpl;
 import co.elastic.apm.agent.impl.context.DestinationImpl;
-import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.jdbc.helper.JdbcGlobalState;
+import co.elastic.apm.agent.sdk.internal.db.signature.SignatureParser;
+import co.elastic.apm.agent.tracer.Outcome;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -441,8 +441,12 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         DbImpl db = span.getContext().getDb();
         assertThat(db).hasStatement(rawSql);
         DatabaseMetaData metaData = connection.getMetaData();
-
-        assertThat(db.getUser()).isEqualToIgnoringCase(metaData.getUserName());
+        String expectedUserName = metaData.getUserName();
+        if (expectedUserName == null || expectedUserName.isEmpty()) {
+            assertThat(db.getUser()).isNullOrEmpty();
+        } else {
+            assertThat(db.getUser()).isEqualToIgnoringCase(expectedUserName);
+        }
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
 
         assertThat(db.getAffectedRowsCount())
