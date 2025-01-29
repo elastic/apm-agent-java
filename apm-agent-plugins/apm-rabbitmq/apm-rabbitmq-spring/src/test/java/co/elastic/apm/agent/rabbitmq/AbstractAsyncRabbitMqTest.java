@@ -18,14 +18,14 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import org.junit.Test;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import org.junit.Test;
 import org.springframework.amqp.rabbit.AsyncRabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.util.concurrent.ListenableFuture;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -45,7 +45,7 @@ public abstract class AbstractAsyncRabbitMqTest extends RabbitMqTestBase {
     @Test
     public void verifyThatTransactionWithSpanCreated() throws TimeoutException {
         logger.info("Trying to send to async rabbit template");
-        ListenableFuture<String> future = asyncRabbitTemplate.convertSendAndReceive(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, MESSAGE);
+        CompletableFuture<String> future = asyncRabbitTemplate.convertSendAndReceive(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, MESSAGE);
         try {
             String response = future.get(5, TimeUnit.SECONDS);
             logger.info("Got response = {}", response);
