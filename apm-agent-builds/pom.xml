@@ -314,7 +314,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-rabbitmq-spring</artifactId>
+            <artifactId>apm-rabbitmq-spring5</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
