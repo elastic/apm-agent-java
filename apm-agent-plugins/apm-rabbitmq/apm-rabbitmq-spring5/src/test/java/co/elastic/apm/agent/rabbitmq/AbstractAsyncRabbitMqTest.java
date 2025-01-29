@@ -25,11 +25,12 @@ import org.springframework.amqp.rabbit.AsyncRabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static co.elastic.apm.agent.rabbitmq.TestConstants.ROUTING_KEY;
 import static co.elastic.apm.agent.rabbitmq.TestConstants.TOPIC_EXCHANGE_NAME;
 
 public abstract class AbstractAsyncRabbitMqTest extends RabbitMqTestBase {
@@ -45,7 +46,7 @@ public abstract class AbstractAsyncRabbitMqTest extends RabbitMqTestBase {
     @Test
     public void verifyThatTransactionWithSpanCreated() throws TimeoutException {
         logger.info("Trying to send to async rabbit template");
-        CompletableFuture<String> future = asyncRabbitTemplate.convertSendAndReceive(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, MESSAGE);
+        Future<String> future = invokeConvertAndSend(TOPIC_EXCHANGE_NAME, ROUTING_KEY, MESSAGE);
         try {
             String response = future.get(5, TimeUnit.SECONDS);
             logger.info("Got response = {}", response);
@@ -54,5 +55,20 @@ public abstract class AbstractAsyncRabbitMqTest extends RabbitMqTestBase {
         }
 
         reporter.awaitTransactionCount(2);
+    }
+
+    /**
+     * {@link AsyncRabbitTemplate#convertSendAndReceive(String, String, Object)} changed it's return type
+     * in Spring 6, so we use reflection to invoke it safely for both spring 5 and 6.
+     */
+    @SuppressWarnings("unchecked")
+    private Future<String> invokeConvertAndSend(String topic, String routingKey, Object message) {
+        try {
+            return (Future<String>) asyncRabbitTemplate.getClass()
+                .getMethod("convertSendAndReceive", String.class, String.class, Object.class)
+                .invoke(asyncRabbitTemplate, topic, routingKey, message);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

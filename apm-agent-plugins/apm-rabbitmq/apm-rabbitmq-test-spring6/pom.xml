@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -8,7 +9,7 @@
         <version>1.52.2-SNAPSHOT</version>
     </parent>
 
-    <artifactId>apm-rabbitmq-spring</artifactId>
+    <artifactId>apm-rabbitmq-test-spring6</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
@@ -45,6 +46,19 @@
             <artifactId>apm-rabbitmq-plugin</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-rabbitmq-spring5</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-rabbitmq-spring5</artifactId>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
