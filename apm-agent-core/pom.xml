@@ -58,11 +58,6 @@
             <artifactId>jctools-core</artifactId>
             <version>4.0.5</version>
         </dependency>
-        <dependency>
-            <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
-            <artifactId>concurrentlinkedhashmap-lru</artifactId>
-            <version>1.4.2</version>
-        </dependency>
 
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
