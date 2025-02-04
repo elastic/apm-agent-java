@@ -37,7 +37,8 @@ public class AgentInfo {
         "com.lmax.disruptor",
         "com.dslplatform.json",
         "com.googlecode.concurrentlinkedhashmap",
-        "co.elastic.otel"
+        "co.elastic.otel",
+        "codes.rafael.asmjdkbridge"
     ));
 
     private static final Set<String> agentRootPackages = new HashSet<>(Arrays.asList(
