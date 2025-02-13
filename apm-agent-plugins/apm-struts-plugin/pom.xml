@@ -18,13 +18,13 @@
         <dependency>
             <groupId>org.apache.struts</groupId>
             <artifactId>struts2-core</artifactId>
-            <version>7.0.0</version>
+            <version>6.7.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.struts</groupId>
             <artifactId>struts2-junit-plugin</artifactId>
-            <version>7.0.0</version>
+            <version>6.7.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
