@@ -9,6 +9,7 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+        <animal.sniffer.skip>true</animal.sniffer.skip>
     </properties>
 
     <artifactId>apm-struts-plugin</artifactId>
