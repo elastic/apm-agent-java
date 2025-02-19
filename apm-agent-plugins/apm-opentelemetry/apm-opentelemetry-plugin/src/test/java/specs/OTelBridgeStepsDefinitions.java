@@ -34,7 +34,6 @@ import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.semconv.SemanticAttributes;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -205,35 +204,14 @@ public class OTelBridgeStepsDefinitions {
     }
 
     private static AttributeKey<?> lookupKey(String name) {
+        // only doing a simple type mapping to cover existing test cases
+        // this is not meant to be exhaustive nor to cover up-to-date semconv definitions
         switch (name) {
-            case "http.url":
-                return SemanticAttributes.HTTP_URL;
-            case "http.scheme":
-                return SemanticAttributes.HTTP_SCHEME;
-            case "http.host":
-                return SemanticAttributes.HTTP_HOST;
-            case "net.peer.name":
-                return SemanticAttributes.NET_PEER_NAME;
-            case "net.peer.ip":
-                return SemanticAttributes.NET_PEER_IP;
             case "net.peer.port":
-                return SemanticAttributes.NET_PEER_PORT;
-            case "db.system":
-                return SemanticAttributes.DB_SYSTEM;
-            case "db.name":
-                return SemanticAttributes.DB_NAME;
-            case "messaging.system":
-                return SemanticAttributes.MESSAGING_SYSTEM;
-            case "messaging.url":
-                return SemanticAttributes.MESSAGING_URL;
-            case "messaging.destination":
-                return SemanticAttributes.MESSAGING_DESTINATION;
-            case "rpc.system":
-                return SemanticAttributes.RPC_SYSTEM;
-            case "rpc.service":
-                return SemanticAttributes.RPC_SERVICE;
+                return AttributeKey.longKey(name);
             default:
-                throw new IllegalArgumentException("unknown key for name " + name);
+                return AttributeKey.stringKey(name);
+
         }
     }
 
