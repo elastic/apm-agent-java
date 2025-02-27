@@ -60,7 +60,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .key("profiling_inferred_spans_logging_enabled")
         .configurationCategory(PROFILING_CATEGORY)
         .description("By default, async profiler prints warning messages about missing JVM symbols to standard output. \n" +
-            "Set this option to `true` to suppress such messages")
+                     "Set this option to `false` to suppress such messages")
         .dynamic(true)
         .tags("added[1.37.0]")
         .buildWithDefault(true);

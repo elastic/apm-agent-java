@@ -34,6 +34,16 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
+[[release-notes-1.52.2]]
+==== 1.52.2 - 2025/02/27
+
+[float]
+===== Bug fixes
+* Prevent NPE in OpenTelemetry metrics bridge in case of asynchronous agent start - {pull}3880[#3880]
+* Fix random Weblogic ClassNotFoundException related to thread context classloader - {pull}3870[#3870]
+* Skips using NOFOLLOW_LINKS file open option when running on OS/400 as it's unsupported there - {pull}3905[#3905]
+* Add framework name and version for Spring Webflux transactions - {pull}3936[#3936]
+
 [[release-notes-1.52.1]]
 ==== 1.52.1 - 2024/11/18
 

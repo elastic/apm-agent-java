@@ -288,6 +288,10 @@ further information about how to download this file can be found <<setup-javaage
 `java.net.SocketException: Broken pipe` - one option is that client authentication fails. Check out
 <<ssl-client-authentication>>.
 
+With Oracle Weblogic application server wildcard TLS certificates are not allowed by default, when this
+happens a message error like this is visible in agent logs: `Hostname verification failed: HostnameVerifier=weblogic.security.utils.SSLWLSHostnameVerifier`.
+Disabling this extra check can be done with `-Dweblogic.security.SSL.ignoreHostnameVerification=true`.
+
 For other SSL/TLS related problems, - check out
 https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html#Troubleshooting[the JSSE
 troubleshooting section].

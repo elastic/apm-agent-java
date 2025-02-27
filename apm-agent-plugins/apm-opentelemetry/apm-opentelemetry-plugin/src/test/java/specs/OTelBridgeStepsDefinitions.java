@@ -20,7 +20,6 @@ package specs;
 
 import co.elastic.apm.agent.impl.context.ServiceTargetImpl;
 import co.elastic.apm.agent.impl.transaction.*;
-import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.opentelemetry.global.ElasticOpenTelemetry;
 import co.elastic.apm.agent.opentelemetry.tracing.ElasticOpenTelemetryTest;
 import co.elastic.apm.agent.opentelemetry.tracing.OTelSpan;
@@ -34,7 +33,6 @@ import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.semconv.SemanticAttributes;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -103,7 +101,7 @@ public class OTelBridgeStepsDefinitions {
         assertThat(traceContext.getTraceId().toString()).isEqualTo(REMOTE_PARENT_TRACE_ID);
     }
 
-    private Context getRemoteContext(){
+    private Context getRemoteContext() {
         return getOtel().getPropagators()
             .getTextMapPropagator()
             .extract(Context.current(),
@@ -113,7 +111,7 @@ public class OTelBridgeStepsDefinitions {
     }
 
     @Given("OTel span is created without parent")
-    public void createOTelSpanWithoutParent(){
+    public void createOTelSpanWithoutParent() {
         otelSpan = (OTelSpan) getOtel().getTracer("")
             .spanBuilder("otel span")
             .setNoParent() // redundant, but makes it explicit
@@ -156,14 +154,14 @@ public class OTelBridgeStepsDefinitions {
         // the parent transaction is created by another step definition, thus we reuse the existing state
         TransactionImpl parentTransaction = state.getTransaction();
 
-        Function<String,OTelSpan> createSpanWithKind = k -> {
+        Function<String, OTelSpan> createSpanWithKind = k -> {
             SpanBuilder spanBuilder = getOtel().getTracer("")
                 .spanBuilder("span")
                 .setSpanKind(SpanKind.valueOf(k));
             return (OTelSpan) spanBuilder.startSpan();
         };
 
-        if( parentTransaction != null){
+        if (parentTransaction != null) {
             // creating a span as a child of existing transaction
             try (Scope scope = parentTransaction.activateInScope()) {
                 this.otelSpan = createSpanWithKind.apply(kind);
@@ -205,40 +203,19 @@ public class OTelBridgeStepsDefinitions {
     }
 
     private static AttributeKey<?> lookupKey(String name) {
+        // only doing a simple type mapping to cover existing test cases
+        // this is not meant to be exhaustive nor to cover up-to-date semconv definitions
         switch (name) {
-            case "http.url":
-                return SemanticAttributes.HTTP_URL;
-            case "http.scheme":
-                return SemanticAttributes.HTTP_SCHEME;
-            case "http.host":
-                return SemanticAttributes.HTTP_HOST;
-            case "net.peer.name":
-                return SemanticAttributes.NET_PEER_NAME;
-            case "net.peer.ip":
-                return SemanticAttributes.NET_PEER_IP;
             case "net.peer.port":
-                return SemanticAttributes.NET_PEER_PORT;
-            case "db.system":
-                return SemanticAttributes.DB_SYSTEM;
-            case "db.name":
-                return SemanticAttributes.DB_NAME;
-            case "messaging.system":
-                return SemanticAttributes.MESSAGING_SYSTEM;
-            case "messaging.url":
-                return SemanticAttributes.MESSAGING_URL;
-            case "messaging.destination":
-                return SemanticAttributes.MESSAGING_DESTINATION;
-            case "rpc.system":
-                return SemanticAttributes.RPC_SYSTEM;
-            case "rpc.service":
-                return SemanticAttributes.RPC_SERVICE;
+                return AttributeKey.longKey(name);
             default:
-                throw new IllegalArgumentException("unknown key for name " + name);
+                return AttributeKey.stringKey(name);
+
         }
     }
 
     @Then("Elastic bridged (transaction|span) OTel kind is {string}")
-    public void bridgeObjectKind(String kind){
+    public void bridgeObjectKind(String kind) {
         assertThat(getBridgedAbstractSpan().getOtelKind())
             .isEqualTo(OTelSpanKind.valueOf(kind));
     }
@@ -325,7 +302,7 @@ public class OTelBridgeStepsDefinitions {
     }
 
     @Then("OTel span status set to {string}")
-    public void setOtelSpanStatus(String status){
+    public void setOtelSpanStatus(String status) {
         otelSpan.setStatus(StatusCode.valueOf(status.toUpperCase(Locale.ROOT)));
     }
 

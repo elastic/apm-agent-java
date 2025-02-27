@@ -26,6 +26,7 @@ import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
+import co.elastic.apm.agent.util.UrlConnectionUtils;
 
 import java.net.HttpURLConnection;
 
@@ -67,27 +68,30 @@ class PartialTransactionReporter {
                 logger.debug("Cannot report partial transaction because server url is not configured");
                 return;
             }
-            connection.setRequestMethod("POST");
-            connection.setDoOutput(true);
-            connection.setChunkedStreamingMode(SerializationConstants.BUFFER_SIZE);
-            connection.setRequestProperty("Content-Type", "application/vnd.elastic.apm.transaction+ndjson");
-            connection.setRequestProperty("x-elastic-aws-request-id", requestId);
-            connection.setUseCaches(false);
-            connection.connect();
 
-            DslJsonSerializer.Writer writer = writerPool.createInstance();
-            try {
-                writer.setOutputStream(connection.getOutputStream());
-                writer.blockUntilReady(); //should actually not block on AWS Lambda, as metadata is available immediately
-                writer.appendMetaDataNdJsonToStream();
-                writer.serializeTransactionNdJson(transaction);
-                writer.fullFlush();
-            } finally {
-                writerPool.recycle(writer);
+            try (UrlConnectionUtils.ContextClassloaderScope clScope = UrlConnectionUtils.withContextClassloaderOf(connection)) {
+                connection.setRequestMethod("POST");
+                connection.setDoOutput(true);
+                connection.setChunkedStreamingMode(SerializationConstants.BUFFER_SIZE);
+                connection.setRequestProperty("Content-Type", "application/vnd.elastic.apm.transaction+ndjson");
+                connection.setRequestProperty("x-elastic-aws-request-id", requestId);
+                connection.setUseCaches(false);
+                connection.connect();
+
+                DslJsonSerializer.Writer writer = writerPool.createInstance();
+                try {
+                    writer.setOutputStream(connection.getOutputStream());
+                    writer.blockUntilReady(); //should actually not block on AWS Lambda, as metadata is available immediately
+                    writer.appendMetaDataNdJsonToStream();
+                    writer.serializeTransactionNdJson(transaction);
+                    writer.fullFlush();
+                } finally {
+                    writerPool.recycle(writer);
+                }
+
+                handleResponse(connection);
+                connection.disconnect();
             }
-
-            handleResponse(connection);
-            connection.disconnect();
 
         } catch (Exception e) {
             logger.error("Failed to report partial transaction {}", transaction, e);

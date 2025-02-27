@@ -105,7 +105,7 @@ jobs:
         run: tar xvf ${{ env.TARBALL_FILE }}
 
       - name: generate build provenance
-        uses: actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c  # v1.4.3
+        uses: actions/attest-build-provenance@520d128f165991a6c774bcb264f323e3d70747f4  # v2.2.0
         with:
           subject-path: "${{ github.workspace }}/**/target/*.jar"
 
@@ -168,7 +168,7 @@ jobs:
         uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw dependency:purge-local-repository package -pl apm-agent-lambda-layer
-      - uses: elastic/oblt-actions/aws/auth@v1.10.0
+      - uses: elastic/oblt-actions/aws/auth@v1
         with:
           aws-account-id: '267093732750'
       - name: Publish
@@ -240,6 +240,8 @@ jobs:
       - name: Update major branch
         if: ${{ ! inputs.dry_run }}
         run: .ci/release/update-major-branch.sh ${{ env.RELEASE_VERSION }}
+        env:
+          GH_TOKEN: ${{ steps.get_token.outputs.token }}
 
   create-github-release:
     name: "Create GitHub Release"
