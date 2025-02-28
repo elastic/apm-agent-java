@@ -8,13 +8,13 @@ mapped_pages:
 Elastic Java APM Agent provides the following log features:
 
 * [Log correlation](#log-correlation-ids) : Automatically inject correlation IDs that allow navigation between logs, traces and services.
-* [Log reformatting (experimental)](#log-reformatting) : Automatically reformat plaintext logs in [ECS logging](ecs-logging://docs/reference/intro.md) format.
+* [Log reformatting (experimental)](#log-reformatting) : Automatically reformat plaintext logs in [ECS logging](ecs-logging://reference/intro.md) format.
 * [Error capturing](#log-error-capturing) : Automatically captures exceptions for calls like `logger.error("message", exception)`.
 * [Log sending (experimental)](#log-sending) : Automatically send logs to APM Server without filebeat
 
 Those features are part of [Application log ingestion strategies](docs-content://solutions/observability/logs/stream-application-logs.md).
 
-The [`ecs-logging-java`](ecs-logging-java://docs/reference/index.md) library can also be used to use the [ECS logging](ecs-logging://docs/reference/intro.md) format without an APM agent. When deployed with the Java APM agent, the agent will provide [log correlation](#log-correlation-ids) IDs.
+The [`ecs-logging-java`](ecs-logging-java://reference/index.md) library can also be used to use the [ECS logging](ecs-logging://reference/intro.md) format without an APM agent. When deployed with the Java APM agent, the agent will provide [log correlation](#log-correlation-ids) IDs.
 
 
 ## Log correlation [log-correlation-ids]
@@ -28,9 +28,9 @@ Starting in APM agent version 1.30.0, log correlation is enabled by default. In 
 
 In order to correlate logs from your application with traces and errors captured by the Elastic APM Java Agent, the agent injects the following IDs into [slf4j-MDC](https://www.slf4j.org/api/org/slf4j/MDC.md)-equivalents of [supported logging frameworks](/reference/supported-technologies.md#supported-logging-frameworks):
 
-* [`transaction.id`](ecs://docs/reference/ecs-tracing.md)
-* [`trace.id`](ecs://docs/reference/ecs-tracing.md)
-* [`error.id`](ecs://docs/reference/ecs-error.md)
+* [`transaction.id`](ecs://reference/ecs-tracing.md)
+* [`trace.id`](ecs://reference/ecs-tracing.md)
+* [`error.id`](ecs://reference/ecs-error.md)
 
 For frameworks that don’t provide an MDC like `java.util.logging` (JUL), correlation is only supported when using ECS logging library or with [Log reformatting](#log-reformatting).
 
@@ -38,9 +38,9 @@ For plain text logs, the pattern layout of your logging configuration needs to b
 
 When the application is logging in ECS format (by using `ecs-logging-java` or [log reformatting](#log-reformatting)) but does not provide the service fields, then the agent will automatically provide fallback values from its own configuration to provide service-level correlation:
 
-* [`service.name`](ecs://docs/reference/ecs-service.md) value provided [`service_name`](/reference/config-core.md#config-service-name) in agent config.
-* [`service.version`](ecs://docs/reference/ecs-service.md) value provided by [`service_version`](/reference/config-core.md#config-service-version) in agent config.
-* [`service.environment`](ecs://docs/reference/ecs-service.md) value provided by [`environment`](/reference/config-core.md#config-environment) in agent config.
+* [`service.name`](ecs://reference/ecs-service.md) value provided [`service_name`](/reference/config-core.md#config-service-name) in agent config.
+* [`service.version`](ecs://reference/ecs-service.md) value provided by [`service_version`](/reference/config-core.md#config-service-version) in agent config.
+* [`service.environment`](ecs://reference/ecs-service.md) value provided by [`environment`](/reference/config-core.md#config-environment) in agent config.
 
 
 ## Log reformatting (experimental) [log-reformatting]

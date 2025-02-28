@@ -687,7 +687,7 @@ To check for security updates, go to [Security announcements for the Elastic sta
 * Overhaul of the [attacher cli]/apm-agent-java/docs/reference/setup-attach-cli.md) application that allows to attach the agent to running JVMs - [#1667](https://github.com/elastic/apm-agent-java/pull/1667)
     * The artifact of the standalone cli application is now called `apm-agent-attach-cli`. The attacher API is still called `apm-agent-attach`.
     * There is also a slim version of the cli application that does not bundle the Java agent. It requires the `--agent-jar` option to be set.
-    * Improved logging<br> The application uses [Java ECS logging](ecs-logging-java://docs/reference/index.md) to emit JSON logs. The log level can be configured with the `--log-level` option. By default, the program is logging to the console but using the `--log-file` option, it can also log to a file.
+    * Improved logging<br> The application uses [Java ECS logging](ecs-logging-java://reference/index.md) to emit JSON logs. The log level can be configured with the `--log-level` option. By default, the program is logging to the console but using the `--log-file` option, it can also log to a file.
     * Attach to JVMs running under a different user (unix only)<br> The JVM requires the attacher to be running under the same user as the target VM (the attachee). The `apm-agent-attach-standalone.jar` can now be run with a user that has permissions to switch to the user that runs the target VM. On Windows, the attacher can still only attach to JVMs that are running with under the same user.
     * New include/exclude discovery rules<br>
 

@@ -57,9 +57,9 @@ This feature is currently experimental, which means it is disabled by default an
 ::::
 
 
-Specifying whether and how the agent should automatically reformat application logs into [ECS-compatible JSON](ecs-logging://docs/reference/intro.md), suitable for ingestion into Elasticsearch for further Log analysis. This functionality is available for log4j1, log4j2, Logback and `java.util.logging`. The ECS log lines will include active trace/transaction/error IDs, if there are such.
+Specifying whether and how the agent should automatically reformat application logs into [ECS-compatible JSON](ecs-logging://reference/intro.md), suitable for ingestion into Elasticsearch for further Log analysis. This functionality is available for log4j1, log4j2, Logback and `java.util.logging`. The ECS log lines will include active trace/transaction/error IDs, if there are such.
 
-This option only applies to pattern layouts/formatters by default. See also [`log_ecs_formatter_allow_list`](#config-log-ecs-formatter-allow-list). To properly ingest and parse ECS JSON logs, follow the [getting started guide](ecs-logging-java://docs/reference/setup.md#setup-step-2).
+This option only applies to pattern layouts/formatters by default. See also [`log_ecs_formatter_allow_list`](#config-log-ecs-formatter-allow-list). To properly ingest and parse ECS JSON logs, follow the [getting started guide](ecs-logging-java://reference/setup.md#setup-step-2).
 
 Available options:
 

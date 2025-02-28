@@ -334,7 +334,7 @@ If this method is called after child spans are already created, they may have th
 Labels are used to add **indexed** information to transactions, spans, and errors. Indexed means the data is searchable and aggregatable in Elasticsearch. Multiple labels can be defined with different key-value pairs.
 
 * Indexed: Yes
-* Elasticsearch type: [object](elasticsearch://docs/reference/elasticsearch/mapping-reference/object.md)
+* Elasticsearch type: [object](elasticsearch://reference/elasticsearch/mapping-reference/object.md)
 * Elasticsearch field: `labels` (previously `context.tags` in <v.7.0)
 
 Label values can be a string, boolean, or number. Because labels for a given key are stored in the same place in Elasticsearch, all label values of a given key must have the same data type. Multiple data types per key will throw an exception, e.g. `{foo: bar}` and `{foo: 42}`
@@ -446,7 +446,7 @@ Also, add a snippet similar to this to the body of your HTML page, preferably be
 </script>
 ```
 
-See the [JavaScript RUM agent documentation](apm-agent-rum-js://docs/reference/index.md) for more information.
+See the [JavaScript RUM agent documentation](apm-agent-rum-js://reference/index.md) for more information.
 
 
 ### `Span startSpan(String type, String subtype, String action)` [api-transaction-start-span-with-type]

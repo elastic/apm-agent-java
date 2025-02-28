@@ -31,7 +31,7 @@ Dedicated JVM metrics views are available since Elastic stack version 7.2. Start
 
 Host metrics. As of version 6.6, these metrics will be visualized in the APM app.
 
-For more system metrics, consider installing [metricbeat](beats://docs/reference/metricbeat/metricbeat.md) on your hosts.
+For more system metrics, consider installing [metricbeat](beats://reference/metricbeat/metricbeat.md) on your hosts.
 
 **`system.cpu.total.norm.pct`**
 :   type: scaled_float
@@ -333,7 +333,7 @@ The limitation of tracking metrics is that you won’t be able to attribute a va
 ### Notes [metrics-micrometer-beta-notes]
 
 * Dots in metric names of Micrometer metrics get replaced with underscores to avoid mapping conflicts. De-dotting can be disabled via [`dedot_custom_metrics`](/reference/config-metrics.md#config-dedot-custom-metrics).
-* Histograms ([DistributionSummary](https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/DistributionSummary.md), [Timer](https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/Timer.md), and [LongTaskTimer](https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/LongTaskTimer.md)) are supported by converting the histogram metric into three derived metrics: a counter of the values, the sum of the values, and the [histogram](elasticsearch://docs/reference/elasticsearch/mapping-reference/histogram.md). For example, `DistributionSummary.builder("order").register(...).record(orderPrice)` will create three metrics: `order.sum`, `order.count` and `order.histogram` (which has a `values` array for the buckets and a `counts` array for counts of samples in each bucket).
+* Histograms ([DistributionSummary](https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/DistributionSummary.md), [Timer](https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/Timer.md), and [LongTaskTimer](https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/LongTaskTimer.md)) are supported by converting the histogram metric into three derived metrics: a counter of the values, the sum of the values, and the [histogram](elasticsearch://reference/elasticsearch/mapping-reference/histogram.md). For example, `DistributionSummary.builder("order").register(...).record(orderPrice)` will create three metrics: `order.sum`, `order.count` and `order.histogram` (which has a `values` array for the buckets and a `counts` array for counts of samples in each bucket).
 * When multiple `MeterRegistry` s are used, the metrics are de-duplicated based on their meter id. A warning is issued if a collision occurs from multiple meter registries within a compound meter registry.
 * When using `CountingMode.CUMULATIVE`, you can use TSVB’s "Positive Rate" aggregation to convert the counter to a rate. But you have to remember to group by a combination of dimensions that uniquely identify the time series. This may be a combination of `host.name` and `service.name`, or the `kubernetes.pod.id`.
 * Micrometer metrics can be disabled by using the [`disable_instrumentations`](/reference/config-core.md#config-disable-instrumentations) setting.
