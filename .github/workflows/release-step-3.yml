@@ -10,7 +10,7 @@ on:
       ref:
         description: 'Branch or tag ref to run the workflow on'
         required: true
-        default: "temp-1-52-2"
+        default: "main"
       version:
         description: 'The version to release (e.g. 1.2.3). This workflow will automatically perform the required post-release version bumps'
         required: true
@@ -46,42 +46,49 @@ env:
   RELEASE_VERSION_TAG: v${{ inputs.version }}
 
 jobs:
-  publish-aws-lambda:
-    name: "Publish AWS Lambda"
-    permissions:
-      contents: read
-      id-token: write
+  create-github-release:
+    name: "Create GitHub Release"
     runs-on: ubuntu-latest
-    outputs:
-      arn_content: ${{ steps.arn_output.outputs.arn_content }}
+    if: ${{ ! inputs.dry_run }}
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-      - name: Build Lambda-layer zip using agent from maven-central
-        uses: ./.github/workflows/maven-goal
-        with:
-          command: ./mvnw dependency:purge-local-repository package -pl apm-agent-lambda-layer
-      - uses: elastic/oblt-actions/aws/auth@v1
-        with:
-          aws-account-id: '267093732750'
-      - name: Publish
-        if: ${{ ! inputs.dry_run }}
+      - name: Await release-notes published
+        shell: bash
+        timeout-minutes: 120
         run: |
-          # Convert v1.2.3 to ver-1-2-3
-          VERSION=${RELEASE_VERSION_TAG/v/ver-}
-          VERSION=${VERSION//./-}
-          
-          ELASTIC_LAYER_NAME="elastic-apm-java-${VERSION}" .ci/publish-aws.sh
-      - uses: actions/upload-artifact@v4
-        if: ${{ ! inputs.dry_run }}
-        with:
-          name: arn-file
-          path: .ci/.arn-file.md
-      - name: Add ARN file to output
-        if: ${{ ! inputs.dry_run }}
-        id: arn_output
+          until .ci/release/wait_release_notes_published.sh ${{ env.RELEASE_VERSION }}
+          do
+            echo "Release notes not published yet. Sleeping 30 seconds, retrying afterwards"
+            sleep 30s
+          done
+      - name: Compute major.x branch
+        id: get_dotx_branch
+        run: echo "dotx_branch=$(echo '${{ env.RELEASE_VERSION }}' | sed -E 's/\..+/.x/')" >> $GITHUB_OUTPUT
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo 'arn_content<<ARN_CONTENT_EOF' >> $GITHUB_OUTPUT
-          cat .ci/.arn-file.md >> $GITHUB_OUTPUT
-          echo 'ARN_CONTENT_EOF' >> $GITHUB_OUTPUT
+          gh release create ${{ env.RELEASE_VERSION_TAG }} \
+            --title="Release ${{ env.RELEASE_VERSION }}" \
+            --notes="[Release Notes for ${{ env.RELEASE_VERSION }}](https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${{ steps.get_dotx_branch.outputs.dotx_branch }}.html#release-notes-${{ env.RELEASE_VERSION }})
+            ${{ needs.publish-aws-lambda.outputs.arn_content }}"
+
+  notify:
+    if: ${{ always() && ! inputs.dry_run }}
+    needs:
+      - create-github-release
+    runs-on: ubuntu-latest
+    steps:
+      - id: check
+        uses: elastic/oblt-actions/check-dependent-jobs@v1
+        with:
+          jobs: ${{ toJSON(needs) }}
+      - uses: elastic/oblt-actions/slack/notify-result@v1
+        with:
+          bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          channel-id: "#apm-agent-java"
+          status: ${{ steps.check.outputs.status }}
