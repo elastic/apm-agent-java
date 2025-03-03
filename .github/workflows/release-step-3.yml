@@ -10,7 +10,7 @@ on:
       ref:
         description: 'Branch or tag ref to run the workflow on'
         required: true
-        default: "main"
+        default: "temp-1-52-2"
       version:
         description: 'The version to release (e.g. 1.2.3). This workflow will automatically perform the required post-release version bumps'
         required: true
@@ -46,32 +46,6 @@ env:
   RELEASE_VERSION_TAG: v${{ inputs.version }}
 
 jobs:
-  build-and-push-docker-images:
-    name: "Build and push docker images"
-    runs-on: ubuntu-latest
-    env:
-      SONATYPE_FALLBACK: 1
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
-          fetch-depth: 0 # Load entire history as it is required for the push-script
-
-      - name: Log in to the Elastic Container registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
-        with:
-          registry: ${{ secrets.ELASTIC_DOCKER_REGISTRY }}
-          username: ${{ secrets.ELASTIC_DOCKER_USERNAME }}
-          password: ${{ secrets.ELASTIC_DOCKER_PASSWORD }}
-
-      - name: "Build docker image"
-        shell: bash
-        run: ./scripts/docker-release/build_docker.sh "${{ env.RELEASE_VERSION }}"
-      - name: "Push docker image"
-        if: ${{ ! inputs.dry_run }}
-        shell: bash
-        run: ./scripts/docker-release/push_docker.sh "${{ env.RELEASE_VERSION }}"
-
   publish-aws-lambda:
     name: "Publish AWS Lambda"
     permissions:
@@ -111,54 +85,3 @@ jobs:
           echo 'arn_content<<ARN_CONTENT_EOF' >> $GITHUB_OUTPUT
           cat .ci/.arn-file.md >> $GITHUB_OUTPUT
           echo 'ARN_CONTENT_EOF' >> $GITHUB_OUTPUT
-
-  create-github-release:
-    name: "Create GitHub Release"
-    needs:
-      - publish-aws-lambda
-    runs-on: ubuntu-latest
-    if: ${{ ! inputs.dry_run }}
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
-      - name: Await release-notes published
-        shell: bash
-        timeout-minutes: 120
-        run: |
-          until .ci/release/wait_release_notes_published.sh ${{ env.RELEASE_VERSION }}
-          do
-            echo "Release notes not published yet. Sleeping 30 seconds, retrying afterwards"
-            sleep 30s
-          done
-      - name: Compute major.x branch
-        id: get_dotx_branch
-        run: echo "dotx_branch=$(echo '${{ env.RELEASE_VERSION }}' | sed -E 's/\..+/.x/')" >> $GITHUB_OUTPUT
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create ${{ env.RELEASE_VERSION_TAG }} \
-            --title="Release ${{ env.RELEASE_VERSION }}" \
-            --notes="[Release Notes for ${{ env.RELEASE_VERSION }}](https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${{ steps.get_dotx_branch.outputs.dotx_branch }}.html#release-notes-${{ env.RELEASE_VERSION }})
-            ${{ needs.publish-aws-lambda.outputs.arn_content }}"
-
-  notify:
-    if: ${{ always() && ! inputs.dry_run }}
-    needs:
-      - build-and-push-docker-images
-      - publish-aws-lambda
-      - create-github-release
-    runs-on: ubuntu-latest
-    steps:
-      - id: check
-        uses: elastic/oblt-actions/check-dependent-jobs@v1
-        with:
-          jobs: ${{ toJSON(needs) }}
-      - uses: elastic/oblt-actions/slack/notify-result@v1
-        with:
-          bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          channel-id: "#apm-agent-java"
-          status: ${{ steps.check.outputs.status }}
