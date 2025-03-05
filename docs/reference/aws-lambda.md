@@ -1,9 +1,9 @@
 ---
 mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/aws-lambda.html
-subs:
-  - apm-lambda-ext-v: ver-1-5-7
-  - apm-java-v: ver-1-52-2
+sub:
+  apm-lambda-ext-v: ver-1-5-7
+  apm-java-v: ver-1-52-2
 ---
 
 # Monitoring AWS Lambda Java Functions [aws-lambda]
