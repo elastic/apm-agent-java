@@ -32,7 +32,7 @@ To get started with APM for your Java AWS Lambda functions, follow the steps bel
     | 8 | Java 8 (OpenJDK) | Amazon Linux 2018.03 | no |
 
 
-## Step 1: Add the APM Layers to your Lambda function [add_the_apm_layers_to_your_lambda_function]
+### Step 1: Add the APM Layers to your Lambda function [add_the_apm_layers_to_your_lambda_function]
 
 Both the [{{apm-lambda-ext}}](apm-aws-lambda://reference/index.md) and the Java APM Agent are added to your Lambda function as [AWS Lambda Layers](https://docs.aws.amazon.com/lambda/latest/dg/invocation-layers.md). Therefore, you need to add the corresponding Layer ARNs (identifiers) to your Lambda function.
 
@@ -139,7 +139,7 @@ COPY --from=java-agent /usr/agent/ /opt/
 
 :::::::
 
-### Step 3: Configure APM on AWS Lambda [configure_apm_on_aws_lambda]
+### Step 2: Configure APM on AWS Lambda [configure_apm_on_aws_lambda]
 
 The {{apm-lambda-ext}} and the APM Java agent are configured through environment variables on the AWS Lambda function.
 
