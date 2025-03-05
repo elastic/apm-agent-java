@@ -17,12 +17,12 @@ To learn how to upgrade, check out [Upgrading](/reference/upgrading.md).
 % **Action**<br> Steps for mitigating deprecation impact.
 % ::::
 
-## 1.33.0 [elastic-apm-java-agent-1330-deprecations]
+## 1.33.0 [elastic-apm-java-agent-1-33-0-deprecations]
 **Release date:** July 8, 2022
 
 * Deprecated [`url_groups`](/reference/config-http.md#config-url-groups) in favor of [`transaction_name_groups`](/reference/config-core.md#config-transaction-name-groups).
 
-## 1.18.0 [elastic-apm-java-agent-1180-deprecations]
+## 1.18.0 [elastic-apm-java-agent-1-18-0-deprecations]
 **Release date:** September 8, 2020
 
 * Deprecating `ignore_urls` config in favour of [`transaction_ignore_urls`](/reference/config-http.md#config-transaction-ignore-urls) to align with other agents, while still allowing the old config name for backward compatibility - [#1315](https://github.com/elastic/apm-agent-java/pull/1315)
