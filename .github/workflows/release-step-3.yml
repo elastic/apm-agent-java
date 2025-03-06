@@ -196,6 +196,7 @@ jobs:
     name: "Bump versions and create PR"
     needs:
       - await-maven-central-artifact
+      - publish-aws-lambda # The AWS lambda layer publishing breaks if the version-bump PR is accidentally merged before it finished
     uses: ./.github/workflows/pre-post-release.yml
     permissions:
       contents: write
