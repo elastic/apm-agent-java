@@ -70,16 +70,20 @@ public class ReleaseChangelog {
     }
 
     private static Lines generateReleaseNotes(VersionNumber version, String releaseDateLine, Lines enhancements, Lines fixes) {
-        Lines result = new Lines().append("## " + version.dotStr() + " [elastic-apm-java-agent-" + version.dashStr() + "-release-notes]").append(releaseDateLine);
+        Lines result = new Lines()
+            .append("## " + version.dotStr() + " [elastic-apm-java-agent-" + version.dashStr() + "-release-notes]")
+            .append(releaseDateLine);
         if (!enhancements.isEmpty()) {
-            result.append("");
-            result.append("### Features and enhancements [elastic-apm-java-agent-" + version.dashStr() + "-features-enhancements]");
-            result.append(enhancements);
+            result
+                .append("")
+                .append("### Features and enhancements [elastic-apm-java-agent-" + version.dashStr() + "-features-enhancements]")
+                .append(enhancements);
         }
         if (!fixes.isEmpty()) {
-            result.append("");
-            result.append("### Fixes [elastic-apm-java-agent-" + version.dashStr() + "-fixes]");
-            result.append(fixes);
+            result
+                .append("")
+                .append("### Fixes [elastic-apm-java-agent-" + version.dashStr() + "-fixes]")
+                .append(fixes);
         }
         result.append("");
         return result;
@@ -87,7 +91,12 @@ public class ReleaseChangelog {
 
 
     private static Lines generateDeprecations(VersionNumber version, String releaseDateLine, Lines deprecations) {
-        return new Lines().append("## " + version.dotStr() + " [elastic-apm-java-agent-" + version.dashStr() + "-deprecations]").append(releaseDateLine).append("").append(deprecations).append("");
+        return new Lines()
+            .append("## " + version.dotStr() + " [elastic-apm-java-agent-" + version.dashStr() + "-deprecations]")
+            .append(releaseDateLine)
+            .append("")
+            .append(deprecations)
+            .append("");
     }
 
     static int findHeadingOfPreviousVersion(Lines lines, VersionNumber version) {
@@ -99,7 +108,8 @@ public class ReleaseChangelog {
             Matcher matcher = headingPattern.matcher(lines.getLine(i));
             if (matcher.matches()) {
                 VersionNumber headingForVersion = VersionNumber.parse(matcher.group(1));
-                if (comp.compare(headingForVersion, version) < 0 && (currentBestVersion == null || comp.compare(headingForVersion, currentBestVersion) > 0)) {
+                if (comp.compare(headingForVersion, version) < 0
+                    && (currentBestVersion == null || comp.compare(headingForVersion, currentBestVersion) > 0)) {
                     currentBestLineNo = i;
                     currentBestVersion = headingForVersion;
                 }
@@ -118,7 +128,10 @@ public class ReleaseChangelog {
         }
 
         static Comparator<VersionNumber> comparator() {
-            return Comparator.comparing(VersionNumber::major).thenComparing(VersionNumber::minor).thenComparing(VersionNumber::patch);
+            return Comparator
+                .comparing(VersionNumber::major)
+                .thenComparing(VersionNumber::minor)
+                .thenComparing(VersionNumber::patch);
         }
 
         String dashSt() {
@@ -152,8 +165,10 @@ public class ReleaseChangelog {
         }
 
         Lines cutLinesBetween(String startLine, String endLine) {
-            int start = findLine(l -> l.trim().equals(startLine), 0).orElseThrow(() -> new IllegalStateException("Expected line '" + startLine + "' to exist"));
-            int end = findLine(l -> l.trim().equals(endLine), start + 1).orElseThrow(() -> new IllegalStateException("Expected line '" + endLine + "' to exist after '" + startLine + "'"));
+            int start = findLine(l -> l.trim().equals(startLine), 0)
+                .orElseThrow(() -> new IllegalStateException("Expected line '" + startLine + "' to exist"));
+            int end = findLine(l -> l.trim().equals(endLine), start + 1)
+                .orElseThrow(() -> new IllegalStateException("Expected line '" + endLine + "' to exist after '" + startLine + "'"));
             Lines result = cut(start + 1, end).trim();
 
             lines.add(start + 1, "");
