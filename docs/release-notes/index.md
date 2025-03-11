@@ -20,6 +20,15 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 % ### Fixes [elastic-apm-java-agent-versionext-fixes]
 
+## 1.52.2 [elastic-apm-java-agent-1-52-2-release-notes]
+**Release date:** February 27, 2025
+
+### Fixes [elastic-apm-java-agent-1-52-2-fixes]
+* Prevent NPE in OpenTelemetry metrics bridge in case of asynchronous agent start - [#3880](https://github.com/elastic/apm-agent-java/pull/3880)
+* Fix random Weblogic ClassNotFoundException related to thread context classloader - [#3870](https://github.com/elastic/apm-agent-java/pull/3870)
+* Skips using NOFOLLOW_LINKS file open option when running on OS/400 as it’s unsupported there - [#3905](https://github.com/elastic/apm-agent-java/pull/3905)
+* Add framework name and version for Spring Webflux transactions - [#3936](https://github.com/elastic/apm-agent-java/pull/3936)
+
 ## 1.52.1 [elastic-apm-java-agent-1-52-1-release-notes]
 **Release date:** November 18, 2024
 
