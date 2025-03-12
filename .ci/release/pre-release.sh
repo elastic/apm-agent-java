@@ -19,4 +19,4 @@ echo "Set release version"
 ./mvnw -V versions:set -DprocessAllModules=true -DgenerateBackupPoms=false -DnewVersion="${RELEASE_VERSION}"
 
 echo "Prepare changelog for release"
-java "${BASE_PROJECT}/.ci/ReleaseChangelog.java" CHANGELOG.asciidoc "${RELEASE_VERSION}"
+java "${BASE_PROJECT}/.ci/ReleaseChangelog.java" CHANGELOG.next-release.md docs/release-notes "${RELEASE_VERSION}"
