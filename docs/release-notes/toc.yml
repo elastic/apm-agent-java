@@ -1,4 +1,3 @@
 toc:
-  - file: index.md
-  - file: known-issues.md
+  - file: release-notes.md
   - file: deprecations.md

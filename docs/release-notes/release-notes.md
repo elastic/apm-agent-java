@@ -4,10 +4,8 @@ mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-1.x.html
   - https://www.elastic.co/guide/en/apm/agent/java/current/release-notes.html
 ---
-
-# Elastic APM Java Agent release notes [elastic-apm-java-agent-release-notes]
-
-Review the changes, fixes, and more in each version of Elastic APM Java Agent.
+# {{apm-java-agent}} release notes [elastic-apm-java-agent-release-notes]
+Review the changes, fixes, and more in each version of {{apm-java-agent}}.
 
 To check for security updates, go to [Security announcements for the Elastic stack](https://discuss.elastic.co/c/announcements/security-announcements/31).
 
