@@ -1,5 +1,5 @@
 ---
-navigation_title: "Elastic APM Java Agent"
+navigation_title: "Deprecations"
 ---
 
 # Elastic APM Java Agent deprecations [elastic-apm-java-agent-deprecations]
