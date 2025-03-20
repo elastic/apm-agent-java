@@ -15,7 +15,7 @@ Identifying a problematic service is only half of the battle when diagnosing app
 
 Find out which part of your code is making your application slow by periodically recording running methods with a sampling-based profiler.
 
-![green check](../images/green-check.svg "") Very low overhead.<br> ![green check](../images/green-check.svg "") No code changes required.<br> ![red x](../images/red-x.svg "") Does not work on Windows and on OpenJ9.<br> ![red x](../images/red-x.svg "") The duration of profiler-inferred spans are not exact measurements, only estimates.
+![green check](images/green-check.svg "") Very low overhead.<br> ![green check](../images/green-check.svg "") No code changes required.<br> ![red x](images/red-x.svg "") Does not work on Windows and on OpenJ9.<br> ![red x](../images/red-x.svg "") The duration of profiler-inferred spans are not exact measurements, only estimates.
 
 [Learn more](/reference/method-sampling-based.md)
 
