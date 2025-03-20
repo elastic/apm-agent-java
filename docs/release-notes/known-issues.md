@@ -1,5 +1,5 @@
 ---
-navigation_title: "Elastic APM Java Agent"
+navigation_title: "Known issues"
 
 ---
 
