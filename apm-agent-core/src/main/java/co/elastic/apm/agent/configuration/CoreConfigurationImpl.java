@@ -886,7 +886,7 @@ public class CoreConfigurationImpl extends ConfigurationOptionProvider implement
     private final ConfigurationOption<Boolean> captureThreadOnStart = ConfigurationOption.booleanOption()
         .key("capture_thread_on_start")
         .configurationCategory(CORE_CATEGORY)
-        .description("Whether to capture tread name and ID as labels.")
+        .description("Whether to capture thread name and ID as labels.")
         .dynamic(true)
         .tags("internal")
         .buildWithDefault(false);
