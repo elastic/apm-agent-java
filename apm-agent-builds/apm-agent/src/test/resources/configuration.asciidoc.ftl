@@ -9,16 +9,16 @@ you can configure it using one of the methods below, listed in descending order 
 [horizontal]
 1) {apm-app-ref}/agent-configuration.html[Central configuration]::
 Configure the Agent in the Kibana APM app.
-<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+<<configuration-dynamic, image:/reference/images/dynamic-config.svg[] >>
 
 2) Properties file::
 The `elasticapm.properties` file is located in the same folder as the agent jar,
 or provided through the <<config-config-file,`config_file`>> option.
-image:./images/dynamic-config.svg[link=configuration.html#configuration-dynamic]
+image:/reference/images/dynamic-config.svg[link=configuration.html#configuration-dynamic]
 
 3) Java system properties::
 All configuration keys are prefixed with `elastic.apm.` +
-image:./images/dynamic-config.svg[link=configuration.html#configuration-dynamic]
+image:/reference/images/dynamic-config.svg[link=configuration.html#configuration-dynamic]
 
 4) Environment variables::
 All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`.
@@ -36,7 +36,7 @@ Defined for each configuration.
 
 [float]
 [[configuration-dynamic]]
-=== Dynamic configuration image:./images/dynamic-config.svg[]
+=== Dynamic configuration image:/reference/images/dynamic-config.svg[]
 
 Configuration options marked with Dynamic true can be changed at runtime when set from supported sources:
 
@@ -119,7 +119,7 @@ NOTE: This feature is currently experimental, which means it is disabled by defa
 </#if>
 ${option.description}
 
-<#if option.dynamic><<configuration-dynamic, image:./images/dynamic-config.svg[] >></#if>
+<#if option.dynamic><<configuration-dynamic, image:/reference/images/dynamic-config.svg[] >></#if>
 
 <#if option.valueType?matches("TimeDuration")>
   <#if option.valueConverter.canUseMicros>

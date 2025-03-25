@@ -31,7 +31,7 @@ Dedicated JVM metrics views are available since Elastic stack version 7.2. Start
 
 Host metrics. As of version 6.6, these metrics will be visualized in the APM app.
 
-For more system metrics, consider installing [metricbeat](beats://reference/metricbeat/metricbeat.md) on your hosts.
+For more system metrics, consider installing [metricbeat](beats://reference/metricbeat/index.md) on your hosts.
 
 **`system.cpu.total.norm.pct`**
 :   type: scaled_float

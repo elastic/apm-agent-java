@@ -42,7 +42,7 @@ Both the [{{apm-lambda-ext}}](apm-aws-lambda://reference/index.md) and the Java 
 To add the layers to your Lambda function through the AWS Management Console:
 
 1. Navigate to your function in the AWS Management Console
-2. Scroll to the Layers section and click the *Add a layer* button ![image of layer configuration section in AWS Console](../images/config-layer.png "")
+2. Scroll to the Layers section and click the *Add a layer* button ![image of layer configuration section in AWS Console](images/config-layer.png "")
 3. Choose the *Specify an ARN* radio button
 4. Copy and paste the following ARNs of the {{apm-lambda-ext}} layer and the APM agent layer in the *Specify an ARN* text input:
     * APM Extension layer:
@@ -169,7 +169,7 @@ ELASTIC_APM_SEND_STRATEGY     = background                <4>
 3. This is your APM secret token.
 4. The [ELASTIC_APM_SEND_STRATEGY](apm-aws-lambda://reference/aws-lambda-config-options.md#_elastic_apm_send_strategy) defines when APM data is sent to your Elastic APM backend. To reduce the execution time of your lambda functions, we recommend to use the background strategy in production environments with steady load scenarios.
 
-![Java environment variables configuration section in AWS Console](../images/java-lambda-env-vars.png "")
+![Java environment variables configuration section in AWS Console](images/java-lambda-env-vars.png "")
 ::::::
 
 ::::::{tab-item} AWS CLI
