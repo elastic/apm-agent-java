@@ -54,6 +54,8 @@ public interface CoreConfiguration {
 
     boolean isUseServletAttributesForExceptionPropagation();
 
+    boolean isCaptureThreadOnStart();
+
     enum EventType {
         /**
          * Request bodies will never be reported

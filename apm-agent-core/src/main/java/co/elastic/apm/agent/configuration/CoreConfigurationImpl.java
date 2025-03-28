@@ -883,6 +883,14 @@ public class CoreConfigurationImpl extends ConfigurationOptionProvider implement
         .dynamic(true)
         .buildWithDefault(Arrays.asList(WildcardMatcher.valueOf("*")));
 
+    private final ConfigurationOption<Boolean> captureThreadOnStart = ConfigurationOption.booleanOption()
+        .key("capture_thread_on_start")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Whether to capture thread name and ID as labels.")
+        .dynamic(true)
+        .tags("internal")
+        .buildWithDefault(false);
+
     public boolean isEnabled() {
         return enabled.get();
     }
@@ -1217,4 +1225,8 @@ public class CoreConfigurationImpl extends ConfigurationOptionProvider implement
         }
     }
 
+    @Override
+    public boolean isCaptureThreadOnStart() {
+        return captureThreadOnStart.get();
+    }
 }
