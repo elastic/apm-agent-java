@@ -40,6 +40,8 @@ import co.elastic.apm.agent.tracer.Scope;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -771,13 +773,13 @@ class ElasticApmTracerTest {
 
     @Test
     void testUnknownConfiguration() {
-        assertThatThrownBy(()-> tracerImpl.getConfig(Object.class))
+        assertThatThrownBy(() -> tracerImpl.getConfig(Object.class))
             .isInstanceOf(IllegalStateException.class);
 
         ConfigurationOptionProvider unregisteredConfigProvider = new ConfigurationOptionProvider() {
         };
 
-        assertThatThrownBy(()-> tracerImpl.getConfig(unregisteredConfigProvider.getClass()))
+        assertThatThrownBy(() -> tracerImpl.getConfig(unregisteredConfigProvider.getClass()))
             .isInstanceOf(IllegalStateException.class);
 
     }
@@ -808,5 +810,33 @@ class ElasticApmTracerTest {
         public void decrementReferences() {
 
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testCaptureThreadDetails(boolean enabled) {
+
+        doReturn(enabled).when(tracerImpl.getConfig(CoreConfigurationImpl.class)).isCaptureThreadOnStart();
+
+        TransactionImpl transaction = startTestRootTransaction();
+        try (Scope scope = transaction.activateInScope()) {
+            SpanImpl span = tracerImpl.getActive().createSpan();
+            try (Scope spanScope = span.activateInScope()) {
+                span.end();
+            }
+            transaction.end();
+        }
+        Stream.of(reporter.getFirstTransaction().getContext(), reporter.getFirstSpan().getContext())
+            .forEach(c -> {
+                if (enabled) {
+                    assertThat(c.getLabel("thread_id")).isNotNull();
+                    assertThat(c.getLabel("thread_name")).isNotNull();
+                } else {
+                    assertThat(c.getLabel("thread_id")).isNull();
+                    assertThat(c.getLabel("thread_name")).isNull();
+                }
+
+            });
+
     }
 }
