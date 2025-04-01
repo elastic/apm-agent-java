@@ -13,6 +13,7 @@ This file contains all changes which are not released yet.
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
+* Add internal option to capture thread id/name as labels - [#4014](https://github.com/elastic/apm-agent-java/pull/4014)
 
 <!--ENHANCEMENTS-END-->
 # Deprecations
