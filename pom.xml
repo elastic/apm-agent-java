@@ -128,13 +128,13 @@
         <version.ecs.logging>1.6.0</version.ecs.logging>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.5.5</version.json-schema-validator>
+        <version.json-schema-validator>1.5.6</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.17.0</version.byte-buddy>
+        <version.byte-buddy>1.17.5</version.byte-buddy>
         <version.asm>9.7.1</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
-        <version.mockito>5.15.2</version.mockito>
+        <version.mockito>5.16.1</version.mockito>
 
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
@@ -692,7 +692,7 @@
             <dependency>
                 <groupId>org.apache.ivy</groupId>
                 <artifactId>ivy</artifactId>
-                <version>2.5.2</version>
+                <version>2.5.3</version>
                 <scope>test</scope>
             </dependency>
 
@@ -832,7 +832,7 @@
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
-            <version>4.2.2</version>
+            <version>4.3.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

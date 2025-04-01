@@ -1,0 +1,18 @@
+project: 'APM Java agent docs'
+cross_links:
+  - apm-agent-rum-js
+  - apm-aws-lambda
+  - apm-k8s-attacher
+  - beats
+  - docs-content
+  - ecs
+  - ecs-logging
+  - ecs-logging-java
+  - elasticsearch
+toc:
+  - toc: reference
+  - toc: release-notes
+subs:
+  ecloud:   "Elastic Cloud"
+  kib:   "Kibana"
+  apm-lambda-ext:   "Elastic APM AWS Lambda extension"
