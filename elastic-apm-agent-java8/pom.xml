@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.53.0</version>
+        <version>1.53.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent-java8</artifactId>
