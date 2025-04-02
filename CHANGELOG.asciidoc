@@ -34,6 +34,13 @@ Use subheadings with the "=====" level for adding notes for unreleased changes:
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
+[[release-notes-1.53.0]]
+==== 1.53.0 - 2025/04/02
+
+[float]
+===== Features
+*  Add internal option to capture thread id/name as labels - {pull}4014[#4014]
+
 [[release-notes-1.52.2]]
 ==== 1.52.2 - 2025/02/27
 
