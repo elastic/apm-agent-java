@@ -5,7 +5,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.52.3-SNAPSHOT</version>
+        <version>1.53.0</version>
     </parent>
 
     <artifactId>spring-boot-2</artifactId>
