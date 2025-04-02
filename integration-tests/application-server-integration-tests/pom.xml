@@ -5,7 +5,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.53.0</version>
+        <version>1.53.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>application-server-integration-tests</artifactId>
