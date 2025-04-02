@@ -20,6 +20,12 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 % ### Fixes [elastic-apm-java-agent-versionext-fixes]
 
+## 1.53.0 [elastic-apm-java-agent-1-53-0-release-notes]
+**Release date:** April 2, 2025
+
+### Features and enhancements [elastic-apm-java-agent-1-53-0-features-enhancements]
+* Add internal option to capture thread id/name as labels - [#4014](https://github.com/elastic/apm-agent-java/pull/4014)
+
 ## 1.52.2 [elastic-apm-java-agent-1-52-2-release-notes]
 **Release date:** February 27, 2025
 

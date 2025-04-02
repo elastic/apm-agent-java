@@ -4,7 +4,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-opentelemetry</artifactId>
-        <version>1.52.3-SNAPSHOT</version>
+        <version>1.53.0</version>
     </parent>
 
     <artifactId>apm-opentelemetry-metricsdk-plugin</artifactId>
