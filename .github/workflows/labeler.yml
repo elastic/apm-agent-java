@@ -68,6 +68,7 @@ jobs:
       run: |
         item_id=$(gh project item-add ${PROJECT_NUMBER_ID} --url ${PULL_REQUEST_URL} --owner elastic --format json --jq .id)
         gh project item-edit --id "${item_id}" --project-id "${PROJECT_ID}" --field-id "${STATUS_FIELD_ID}" --single-select-option-id "${STATUS_FIELD_VALUE_ID}"
+        gh project item-edit --id "${item_id}" --project-id "${PROJECT_ID}" --field-id "${AGENT_FIELD_ID}" --single-select-option-id "${AGENT_FIELD_VALUE_ID}"
       env:
         MY_GITHUB_TOKEN: ${{ steps.get_token.outputs.token }}
         PROJECT_ID: 'PVT_kwDOAGc3Zs4Awt-_'
@@ -79,4 +80,17 @@ jobs:
         STATUS_FIELD_ID: 'PVTSSF_lADOAGc3Zs4Awt-_zgm8e9E'
         # In Progress: 47fc9ee4
         STATUS_FIELD_VALUE_ID: '47fc9ee4'
+
+        # Agent: PVTSSF_lADOAGc3Zs4Awt-_zgnoTPA
+        AGENT_FIELD_ID: 'PVTSSF_lADOAGc3Zs4Awt-_zgnoTPA'
+        # java: 1cf9f1dc
+        # dotnet: 23d446ac
+        # python: c4f7a785
+        # nodejs: 294a39a3
+        # php: a076bea7
+        # android: c897738c
+        # ios: df64a860
+        # rum: 92db652b
+        # golang: 1bd45efd
+        AGENT_FIELD_VALUE_ID: '1cf9f1dc'
 
