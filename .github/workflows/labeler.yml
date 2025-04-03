@@ -45,6 +45,22 @@ jobs:
         github-user: ${{ github.actor }}
         github-token: ${{ steps.get_token.outputs.token }}
 
+    - name: Check team membership for user
+      uses: elastic/get-user-teams-membership@1.1.0
+      id: checkUserMember
+      with:
+        username: ${{ github.actor }}
+        team: 'apm'
+        usernamesToExclude: |
+          apmmachine
+          dependabot
+          dependabot[bot]
+        GITHUB_TOKEN: ${{ steps.get_token.outputs.token }}
+    - name: Show team membership
+      run: |
+        echo "::debug::isTeamMember: ${{ steps.checkUserMember.outputs.isTeamMember }}"
+        echo "::debug::isExcluded: ${{ steps.checkUserMember.outputs.isExcluded }}"
+
     - name: Add community and triage labels
       if: contains(steps.is_elastic_member.outputs.result, 'false') && github.actor != 'dependabot[bot]' && github.actor != 'elastic-renovate-prod[bot]' && github.actor != 'elastic-observability-automation[bot]'
       uses: actions/github-script@v7
