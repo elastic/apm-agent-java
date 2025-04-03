@@ -71,7 +71,7 @@ jobs:
         gh project item-edit --id "${item_id}" --project-id "${PROJECT_ID}" --field-id "${STATUS_FIELD_ID}" --single-select-option-id "${STATUS_FIELD_VALUE_ID}"
         gh project item-edit --id "${item_id}" --project-id "${PROJECT_ID}" --field-id "${AGENT_FIELD_ID}" --single-select-option-id "${AGENT_FIELD_VALUE_ID}"
       env:
-        MY_GITHUB_TOKEN: ${{ steps.get_token.outputs.token }}
+        GITHUB_TOKEN: ${{ steps.get_token.outputs.token }}
         PROJECT_ID: 'PVT_kwDOAGc3Zs4Awt-_'
         PROJECT_NUMBER_ID: '1829'
         #PULL_REQUEST_URL: "https://github.com/elastic/apm-agent-java/pull/${{ github.event.pull_request.number }}"
