@@ -64,7 +64,8 @@ jobs:
         enable-versioned-regex: 0
 
     - name: Assign new internal pull requests to project
-      if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
+      if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true')
+      # && github.event_name == 'pull_request'
       run: |
         item_id=$(gh project item-add ${PROJECT_NUMBER_ID} --url ${PULL_REQUEST_URL} --owner elastic --format json --jq .id)
         gh project item-edit --id "${item_id}" --project-id "${PROJECT_ID}" --field-id "${STATUS_FIELD_ID}" --single-select-option-id "${STATUS_FIELD_VALUE_ID}"
