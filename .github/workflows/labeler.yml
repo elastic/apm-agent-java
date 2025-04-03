@@ -15,16 +15,16 @@ jobs:
   triage:
     runs-on: ubuntu-latest
     steps:
-    - name: Add agent-java label
-      uses: actions/github-script@v7
-      with:
-        script: |
-          github.rest.issues.addLabels({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            labels: ["agent-java"]
-          })
+#    - name: Add agent-java label
+#      uses: actions/github-script@v7
+#      with:
+#        script: |
+#          github.rest.issues.addLabels({
+#            issue_number: context.issue.number,
+#            owner: context.repo.owner,
+#            repo: context.repo.repo,
+#            labels: ["agent-java"]
+#          })
 
     - name: Get token
       id: get_token
