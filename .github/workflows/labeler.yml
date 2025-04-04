@@ -72,7 +72,7 @@ jobs:
         project-id: 1829
         # TODO: switch to real PR URL before merging this
         # item-url: "https://github.com/elastic/apm-agent-java/pull/${{ github.event.pull_request.number }}"
-        item-url: "https://github.com/elastic/apm-agent-java/pull/4307"
+        item-url: "https://github.com/elastic/apm-agent-java/pull/4037"
 
     - name: set status in project
       # TODO: add same condition as when adding to project
