@@ -64,7 +64,7 @@ jobs:
     - name: Assign new internal pull requests to project
       uses: SylvainJuge/oblt-actions/github/project-add@gh-project
       with:
-        github-token: "${{ secrets.GITHUB_TOKEN }}"
+        github-token: ${{ steps.get_token.outputs.token }}
         project-id: 1829
         item-url: "https://github.com/elastic/apm-agent-java/pull/4037"
 
