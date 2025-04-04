@@ -21,7 +21,6 @@ jobs:
       with:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
         configuration-path: .github/java-label.yml
-        enable-versioned-regex: 0
 
     - name: Get token
       id: get_token
@@ -59,7 +58,6 @@ jobs:
       with:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
         configuration-path: .github/community-label.yml
-        enable-versioned-regex: 0
 
     - name: Assign new internal pull requests to project in current iteration
       if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
