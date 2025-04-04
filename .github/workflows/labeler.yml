@@ -87,6 +87,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ steps.get_token.outputs.token }}
         PROJECT_NUMBER_ID: '1829'
-        PULL_REQUEST_URL: "https://github.com/elastic/apm-agent-java/pull/${{ github.event.pull_request.number }}"
+        #PULL_REQUEST_URL: "https://github.com/elastic/apm-agent-java/pull/${{ github.event.pull_request.number }}"
+        PULL_REQUEST_URL: "https://github.com/elastic/apm-agent-java/pull/4037"
         AGENT: 'java'
         STATUS: 'In Progress'
