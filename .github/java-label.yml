@@ -1,0 +1,3 @@
+# add 'agent-java' label to all new issues and PRs
+agent-java:
+  - '.*'
