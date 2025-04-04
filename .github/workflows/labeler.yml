@@ -61,6 +61,13 @@ jobs:
         configuration-path: .github/community-label.yml
         enable-versioned-regex: 0
 
+    - name: Assign new internal pull requests to project
+      uses: SylvainJuge/oblt-actions/github/project-add@gh-project
+      with:
+        github-token: "${{ secrets.GITHUB_TOKEN }}"
+        project-id: 1829
+        item-url: "https://github.com/elastic/apm-agent-java/pull/4037"
+
     - name: Assign new internal pull requests to project in current iteration
       if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
       run: |
