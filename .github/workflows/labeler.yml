@@ -1,5 +1,6 @@
 name: "Issue Labeler"
 on:
+  workflow_dispatch: ~
   issues:
     types: [opened]
   pull_request_target:
@@ -14,16 +15,13 @@ jobs:
   triage:
     runs-on: ubuntu-latest
     steps:
+
     - name: Add agent-java label
-      uses: actions/github-script@v7
+      uses: AlexanderWert/issue-labeler@32be4a3c3d8f009c2741af471994337c34b4cb6f  # v2.3
       with:
-        script: |
-          github.rest.issues.addLabels({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            labels: ["agent-java"]
-          })
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        configuration-path: .github/java-label.yml
+        enable-versioned-regex: 0
 
     - name: Get token
       id: get_token
@@ -38,41 +36,97 @@ jobs:
             "issues": "read"
           }
 
-    - id: is_elastic_member
-      uses: elastic/oblt-actions/github/is-member-of@v1
+    - name: Check team membership for user
+      uses: elastic/get-user-teams-membership@1.1.0
+      id: checkUserMember
       with:
-        github-org: "elastic"
-        github-user: ${{ github.actor }}
-        github-token: ${{ steps.get_token.outputs.token }}
+        username: ${{ github.actor }}
+        team: 'apm'
+        usernamesToExclude: |
+          apmmachine
+          dependabot
+          dependabot[bot]
+        GITHUB_TOKEN: ${{ steps.get_token.outputs.token }}
+
+    - name: Show team membership
+      run: |
+        echo "::debug::isTeamMember: ${{ steps.checkUserMember.outputs.isTeamMember }}"
+        echo "::debug::isExcluded: ${{ steps.checkUserMember.outputs.isExcluded }}"
 
     - name: Add community and triage labels
-      if: contains(steps.is_elastic_member.outputs.result, 'false') && github.actor != 'dependabot[bot]' && github.actor != 'elastic-renovate-prod[bot]' && github.actor != 'elastic-observability-automation[bot]'
-      uses: actions/github-script@v7
+      if: steps.checkUserMember.outputs.isTeamMember != 'true' && steps.checkUserMember.outputs.isExcluded != 'true'
+      uses: AlexanderWert/issue-labeler@32be4a3c3d8f009c2741af471994337c34b4cb6f  # v2.3
       with:
-        script: |
-          github.rest.issues.addLabels({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            labels: ["community", "triage"]
-          })
-    - name: Add comment for community PR
-      if: contains(steps.is_elastic_member.outputs.result, 'false') && github.actor != 'dependabot[bot]' && github.actor != 'elastic-renovate-prod[bot]' && github.actor != 'elastic-observability-automation[bot]'
-      uses: wow-actions/auto-comment@2fc064c21cfb2505de3c5c10e1473b8eb7beca1a  # v1.1.2
-      with:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        pullRequestOpened: |
-          👋 @{{ author }} Thanks a lot for your contribution! 
-          
-          It may take some time before we review a PR, so even if you don’t see activity for some time, it **does not** mean that we have forgotten about it. 
-          
-          Every once in a while we go through a process of prioritization, after which we are focussing on the tasks that were planned for the upcoming [milestone](https://github.com/elastic/apm-agent-java/milestones). The prioritization status is typically reflected through the PR labels. It could be pending triage, a candidate for a future milestone, or have a target milestone set to it.
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        configuration-path: .github/community-label.yml
+        enable-versioned-regex: 0
+
     - name: Assign new internal pull requests to project
-      uses: elastic/assign-one-project-github-action@1.2.2
-      if: contains(steps.is_elastic_member.outputs.result, 'true') && github.event.pull_request
-      env:
-        MY_GITHUB_TOKEN: ${{ steps.get_token.outputs.token }}
+      # TODO: enable condition before merging this
+      #if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
+      id: add-to-project
+      # TODO: switch to elastic version before merging this
+      uses: SylvainJuge/oblt-actions/github/project-add@gh-project
       with:
-        project: 'https://github.com/orgs/elastic/projects/454'
-        project_id: '5882982'
-        column_name: 'In Progress'
+        github-token: ${{ steps.get_token.outputs.token }}
+        project-id: 1829
+        # TODO: switch to real PR URL before merging this
+        # item-url: "https://github.com/elastic/apm-agent-java/pull/${{ github.event.pull_request.number }}"
+        item-url: "https://github.com/elastic/apm-agent-java/pull/4037"
+
+    - name: set status in project
+      # TODO: add same condition as when adding to project
+      uses: SylvainJuge/oblt-actions/github/project-field-set@gh-project
+      with:
+        github-token: ${{ steps.get_token.outputs.token }}
+        project-id: ${{ steps.add-to-project.outputs.project-id }}
+        item-id: ${{ steps.add-to-project.outputs.item-id }}
+        field-name: 'Status'
+        field-value: 'In Progress'
+
+    - name: set agent in project
+      # TODO: add same condition as when adding to project
+      uses: SylvainJuge/oblt-actions/github/project-field-set@gh-project
+      with:
+        github-token: ${{ steps.get_token.outputs.token }}
+        project-id: ${{ steps.add-to-project.outputs.project-id }}
+        item-id: ${{ steps.add-to-project.outputs.item-id }}
+        field-name: 'Agent'
+        field-value: 'java'
+
+    - name: set current iteration in project
+      # TODO: add same condition as when adding to project
+      uses: SylvainJuge/oblt-actions/github/project-field-set@gh-project
+      with:
+        github-token: ${{ steps.get_token.outputs.token }}
+        project-id: ${{ steps.add-to-project.outputs.project-id }}
+        item-id: ${{ steps.add-to-project.outputs.item-id }}
+        field-name: 'Iteration'
+        field-iteration: true
+
+    - name: Assign new internal pull requests to project in current iteration
+      if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
+      run: |
+        project_id=$(gh api graphql -f query='query($project_number:Int!){ organization(login:"elastic"){ projectV2(number:$project_number) { id } } }' -F project_number=${PROJECT_NUMBER_ID} --jq '.data.organization.projectV2.id' )
+        item_id=$(gh project item-add ${PROJECT_NUMBER_ID} --url ${PULL_REQUEST_URL} --owner elastic --format json --jq .id)
+
+        status_field_json=$(gh api graphql -f query='query($project_id:ID!){ node(id:$project_id){ ... on ProjectV2 { fields(first:20) { nodes { ... on ProjectV2SingleSelectField { id name options { id name } } } } } } }' --jq '.data.node.fields.nodes[]|select(.name=="Status")' -F project_id=${project_id})
+        status_field_id=$( echo "$status_field_json" | jq -r '.id' )
+        status_field_value_id=$( echo "$status_field_json" | jq -r ".options[]|select(.name==\"${STATUS}\")|.id" )
+        gh project item-edit --id "${item_id}" --project-id "${project_id}" --field-id "${status_field_id}" --single-select-option-id "${status_field_value_id}"
+
+        agent_field_json=$(gh api graphql -f query='query($project_id:ID!){ node(id:$project_id){ ... on ProjectV2 { fields(first:20) { nodes { ... on ProjectV2SingleSelectField { id name options { id name } } } } } } }' --jq '.data.node.fields.nodes[]|select(.name=="Agent")' -F project_id=${project_id})
+        agent_field_id=$(echo "$agent_field_json" | jq -r '.id' )
+        agent_field_value_id=$(echo "$agent_field_json" | jq -r ".options[]|select(.name==\"${AGENT}\")|.id" )
+        gh project item-edit --id "${item_id}" --project-id "${project_id}" --field-id "${agent_field_id}" --single-select-option-id "${agent_field_value_id}"
+
+        iteration_field_json=$(gh api graphql -f query='query($project_id:ID!){ node(id:$project_id) { ... on ProjectV2 { fields(first: 20) { nodes { ... on ProjectV2IterationField { id name configuration { iterations { startDate id } } } } } } } }' --jq '.data.node.fields.nodes[] | select( .name == "Iteration" )' -F project_id=${project_id})
+        iteration_field_id=$(echo "$iteration_field_json" | jq -r '.id' )
+        iteration_field_value_id=$(echo "$iteration_field_json" | jq -r 'last(.configuration.iterations[]|select(.startDate<=(now|strftime("%Y-%m-%d"))))|.id')
+        gh project item-edit --id "${item_id}" --project-id "${project_id}" --field-id "${iteration_field_id}" --iteration-id "${iteration_field_value_id}"
+      env:
+        GITHUB_TOKEN: ${{ steps.get_token.outputs.token }}
+        PROJECT_NUMBER_ID: '1829'
+        PULL_REQUEST_URL: "https://github.com/elastic/apm-agent-java/pull/${{ github.event.pull_request.number }}"
+        AGENT: 'java'
+        STATUS: 'In Progress'
