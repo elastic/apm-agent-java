@@ -84,6 +84,16 @@ jobs:
         field-name: 'Status'
         field-value: 'In Progress'
 
+    - name: set agent in project
+      # TODO: add same condition as when adding to project
+      uses: SylvainJuge/oblt-actions/github/project-field-set@gh-project
+      with:
+        github-token: ${{ steps.get_token.outputs.token }}
+        project-id: ${{ steps.add-to-project.outputs.project-id }}
+        item-id: ${{ steps.add-to-project.outputs.item-id }}
+        field-name: 'Agent'
+        field-value: 'java'
+
     - name: Assign new internal pull requests to project in current iteration
       if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
       run: |
