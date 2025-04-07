@@ -62,9 +62,8 @@ jobs:
         enable-versioned-regex: 0
 
     - name: Assign new internal pull requests to project
-      # TODO: enable condition before merging this
-      #if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
       id: add-to-project
+      if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
       # TODO: switch to elastic version before merging this
       uses: SylvainJuge/oblt-actions/github/project-add@gh-project
       with:
@@ -75,6 +74,8 @@ jobs:
         item-url: "https://github.com/elastic/apm-agent-java/pull/4037"
 
     - name: set status in project
+      id: set-project-status-field
+      if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
       # TODO: add same condition as when adding to project
       uses: SylvainJuge/oblt-actions/github/project-field-set@gh-project
       with:
@@ -85,6 +86,8 @@ jobs:
         field-value: 'In Progress'
 
     - name: set agent in project
+      id: set-project-agent-field
+      if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
       # TODO: add same condition as when adding to project
       uses: SylvainJuge/oblt-actions/github/project-field-set@gh-project
       with:
@@ -95,6 +98,8 @@ jobs:
         field-value: 'java'
 
     - name: set current iteration in project
+      id: set project-iteration-field
+      if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
       # TODO: add same condition as when adding to project
       uses: SylvainJuge/oblt-actions/github/project-field-set@gh-project
       with:
@@ -103,30 +108,3 @@ jobs:
         item-id: ${{ steps.add-to-project.outputs.item-id }}
         field-name: 'Iteration'
         field-iteration: true
-
-    - name: Assign new internal pull requests to project in current iteration
-      if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
-      run: |
-        project_id=$(gh api graphql -f query='query($project_number:Int!){ organization(login:"elastic"){ projectV2(number:$project_number) { id } } }' -F project_number=${PROJECT_NUMBER_ID} --jq '.data.organization.projectV2.id' )
-        item_id=$(gh project item-add ${PROJECT_NUMBER_ID} --url ${PULL_REQUEST_URL} --owner elastic --format json --jq .id)
-
-        status_field_json=$(gh api graphql -f query='query($project_id:ID!){ node(id:$project_id){ ... on ProjectV2 { fields(first:20) { nodes { ... on ProjectV2SingleSelectField { id name options { id name } } } } } } }' --jq '.data.node.fields.nodes[]|select(.name=="Status")' -F project_id=${project_id})
-        status_field_id=$( echo "$status_field_json" | jq -r '.id' )
-        status_field_value_id=$( echo "$status_field_json" | jq -r ".options[]|select(.name==\"${STATUS}\")|.id" )
-        gh project item-edit --id "${item_id}" --project-id "${project_id}" --field-id "${status_field_id}" --single-select-option-id "${status_field_value_id}"
-
-        agent_field_json=$(gh api graphql -f query='query($project_id:ID!){ node(id:$project_id){ ... on ProjectV2 { fields(first:20) { nodes { ... on ProjectV2SingleSelectField { id name options { id name } } } } } } }' --jq '.data.node.fields.nodes[]|select(.name=="Agent")' -F project_id=${project_id})
-        agent_field_id=$(echo "$agent_field_json" | jq -r '.id' )
-        agent_field_value_id=$(echo "$agent_field_json" | jq -r ".options[]|select(.name==\"${AGENT}\")|.id" )
-        gh project item-edit --id "${item_id}" --project-id "${project_id}" --field-id "${agent_field_id}" --single-select-option-id "${agent_field_value_id}"
-
-        iteration_field_json=$(gh api graphql -f query='query($project_id:ID!){ node(id:$project_id) { ... on ProjectV2 { fields(first: 20) { nodes { ... on ProjectV2IterationField { id name configuration { iterations { startDate id } } } } } } } }' --jq '.data.node.fields.nodes[] | select( .name == "Iteration" )' -F project_id=${project_id})
-        iteration_field_id=$(echo "$iteration_field_json" | jq -r '.id' )
-        iteration_field_value_id=$(echo "$iteration_field_json" | jq -r 'last(.configuration.iterations[]|select(.startDate<=(now|strftime("%Y-%m-%d"))))|.id')
-        gh project item-edit --id "${item_id}" --project-id "${project_id}" --field-id "${iteration_field_id}" --iteration-id "${iteration_field_value_id}"
-      env:
-        GITHUB_TOKEN: ${{ steps.get_token.outputs.token }}
-        PROJECT_NUMBER_ID: '1829'
-        PULL_REQUEST_URL: "https://github.com/elastic/apm-agent-java/pull/${{ github.event.pull_request.number }}"
-        AGENT: 'java'
-        STATUS: 'In Progress'
