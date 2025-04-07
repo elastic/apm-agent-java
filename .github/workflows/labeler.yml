@@ -63,7 +63,7 @@ jobs:
 
     - name: Assign new internal pull requests to project
       id: add-to-project
-      if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
+      # if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
       # TODO: switch to elastic version before merging this
       uses: SylvainJuge/oblt-actions/github/project-add@gh-project
       with:
@@ -75,36 +75,36 @@ jobs:
 
     - name: set status in project
       id: set-project-status-field
-      if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
+      # if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
       # TODO: add same condition as when adding to project
       uses: SylvainJuge/oblt-actions/github/project-field-set@gh-project
       with:
         github-token: ${{ steps.get_token.outputs.token }}
-        project-id: ${{ steps.add-to-project.outputs.project-id }}
+        project-id: 1829
         item-id: ${{ steps.add-to-project.outputs.item-id }}
         field-name: 'Status'
         field-value: 'In Progress'
 
     - name: set agent in project
       id: set-project-agent-field
-      if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
+      # if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
       # TODO: add same condition as when adding to project
       uses: SylvainJuge/oblt-actions/github/project-field-set@gh-project
       with:
         github-token: ${{ steps.get_token.outputs.token }}
-        project-id: ${{ steps.add-to-project.outputs.project-id }}
+        project-id: 1829
         item-id: ${{ steps.add-to-project.outputs.item-id }}
         field-name: 'Agent'
         field-value: 'java'
 
     - name: set current iteration in project
-      id: set project-iteration-field
-      if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
+      id: set-project-iteration-field
+      # if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
       # TODO: add same condition as when adding to project
       uses: SylvainJuge/oblt-actions/github/project-field-set@gh-project
       with:
         github-token: ${{ steps.get_token.outputs.token }}
-        project-id: ${{ steps.add-to-project.outputs.project-id }}
+        project-id: 1829
         item-id: ${{ steps.add-to-project.outputs.item-id }}
         field-name: 'Iteration'
         field-iteration: true
