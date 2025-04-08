@@ -97,7 +97,7 @@ jobs:
         field-name: 'Agent'
         field-value: 'java'
 
-    - name: set current iteration in project
+    - name: set iteration in project
       id: set-project-iteration-field
       # if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
       # TODO: add same condition as when adding to project
@@ -107,5 +107,5 @@ jobs:
         project-id: 1829
         item-id: ${{ steps.add-to-project.outputs.item-id }}
         field-name: 'Iteration'
-        field-value: '@current'
+        field-value: '@previous'
         field-type: 'iteration'
