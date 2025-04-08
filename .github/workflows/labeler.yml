@@ -107,5 +107,5 @@ jobs:
         project-id: 1829
         item-id: ${{ steps.add-to-project.outputs.item-id }}
         field-name: 'Iteration'
-        field-value: '@next'
+        field-value: 'it-110'
         field-type: 'iteration'
