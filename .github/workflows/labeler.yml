@@ -64,7 +64,7 @@ jobs:
       with:
         github-token: ${{ steps.get_token.outputs.token }}
         project-id: 1829
-        item-url: "https://github.com/elastic/apm-agent-java/pull/${{ github.event.pull_request.number }}"
+        item-url: "${{ github.event.pull_request.url }}"
 
     - name: set status in project
       id: set-project-status-field
