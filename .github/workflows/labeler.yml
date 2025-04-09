@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Add agent-python label
+    - name: Add agent-java label
       run: gh issue edit "${NUMBER}" --add-label "agent-java" --repo "${{ github.repository }}"
 
     - name: Get token
