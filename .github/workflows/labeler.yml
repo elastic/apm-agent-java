@@ -1,6 +1,5 @@
 name: "Issue Labeler"
 on:
-  workflow_dispatch: ~
   issues:
     types: [opened]
   pull_request_target:
@@ -16,12 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Add agent-java label
-      uses: AlexanderWert/issue-labeler@32be4a3c3d8f009c2741af471994337c34b4cb6f  # v2.3
-      with:
-        repo-token: "${{ secrets.GITHUB_TOKEN }}"
-        configuration-path: .github/java-label.yml
-        enable-versioned-regex: 0
+    - name: Add agent-python label
+      run: gh issue edit "${NUMBER}" --add-label "agent-java" --repo "${{ github.repository }}"
 
     - name: Get token
       id: get_token
@@ -55,11 +50,7 @@ jobs:
 
     - name: Add community and triage labels
       if: steps.checkUserMember.outputs.isTeamMember != 'true' && steps.checkUserMember.outputs.isExcluded != 'true'
-      uses: AlexanderWert/issue-labeler@32be4a3c3d8f009c2741af471994337c34b4cb6f  # v2.3
-      with:
-        repo-token: "${{ secrets.GITHUB_TOKEN }}"
-        configuration-path: .github/community-label.yml
-        enable-versioned-regex: 0
+      run: gh issue edit "${NUMBER}" --add-label "community,triage" --repo "${{ github.repository }}"
 
     - name: Assign new internal pull requests to project
       id: add-to-project
