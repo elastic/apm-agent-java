@@ -64,8 +64,7 @@ jobs:
     - name: Assign new internal pull requests to project
       id: add-to-project
       if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
-      # TODO: switch to elastic version before merging this
-      uses: SylvainJuge/oblt-actions/github/project-add@gh-project
+      uses: elastic/oblt-actions/github/project-add@v1
       with:
         github-token: ${{ steps.get_token.outputs.token }}
         project-id: 1829
@@ -74,7 +73,7 @@ jobs:
     - name: set status in project
       id: set-project-status-field
       if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
-      uses: SylvainJuge/oblt-actions/github/project-field-set@gh-project
+      uses: elastic/oblt-actions/github/project-field-set@v1
       with:
         github-token: ${{ steps.get_token.outputs.token }}
         project-id: 1829
@@ -85,7 +84,7 @@ jobs:
     - name: set agent in project
       id: set-project-agent-field
       if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
-      uses: SylvainJuge/oblt-actions/github/project-field-set@gh-project
+      uses: elastic/oblt-actions/github/project-field-set@v1
       with:
         github-token: ${{ steps.get_token.outputs.token }}
         project-id: 1829
@@ -96,7 +95,7 @@ jobs:
     - name: set iteration in project
       id: set-project-iteration-field
       if: (steps.checkUserMember.outputs.isTeamMember == 'true' || steps.checkUserMember.outputs.isExcluded == 'true') && github.event_name == 'pull_request'
-      uses: SylvainJuge/oblt-actions/github/project-field-set@gh-project
+      uses: elastic/oblt-actions/github/project-field-set@v1
       with:
         github-token: ${{ steps.get_token.outputs.token }}
         project-id: 1829
