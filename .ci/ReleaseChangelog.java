@@ -134,7 +134,7 @@ public class ReleaseChangelog {
                 .thenComparing(VersionNumber::patch);
         }
 
-        String dashSt() {
+        String dashStr() {
             return major + "-" + minor + "-" + patch;
         }
 

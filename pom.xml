@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.52.3-SNAPSHOT</version>
+    <version>1.53.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -134,7 +134,7 @@
         <version.asm>9.7.1</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
-        <version.mockito>5.16.1</version.mockito>
+        <version.mockito>5.17.0</version.mockito>
 
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
@@ -743,7 +743,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.27.2</version>
+            <version>3.27.3</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
