@@ -8,11 +8,11 @@ mapped_pages:
 The Elastic APM OpenTelemetry bridge allows creating Elastic APM `Transactions` and `Spans` using the OpenTelemetry API. OpenTelemetry metrics are also collected. In other words, it translates the calls to the OpenTelemetry API to Elastic APM and thus allows for reusing existing instrumentation.
 
 ::::{note}
-While manual instrumentations using the OpenTelemetry API can be adapted to the Elastic APM Java agent, it’s not possible to use the instrumentations from [opentelemetry-java-instrumentation](https://github.com/open-telemetry/opentelemetry-java-instrumentation) in the context of the Elastic APM Java agent.<br> However, you can use [opentelemetry-java-instrumentation](https://github.com/open-telemetry/opentelemetry-java-instrumentation) (aka the OpenTelemetry Java agent) and send the data to APM Server. See the [OpenTelemetry integration docs](docs-content://solutions/observability/apps/use-opentelemetry-with-apm.md) for more details.
+While manual instrumentations using the OpenTelemetry API can be adapted to the Elastic APM Java agent, it’s not possible to use the instrumentations from [opentelemetry-java-instrumentation](https://github.com/open-telemetry/opentelemetry-java-instrumentation) in the context of the Elastic APM Java agent.<br> However, you can use [opentelemetry-java-instrumentation](https://github.com/open-telemetry/opentelemetry-java-instrumentation) (aka the OpenTelemetry Java agent) and send the data to APM Server. See the [OpenTelemetry integration docs](docs-content://solutions/observability/apm/use-opentelemetry-with-apm.md) for more details.
 ::::
 
 
-The first span of a service will be converted to an Elastic APM [`Transaction`](docs-content://solutions/observability/apps/transactions.md), subsequent spans are mapped to Elastic APM [`Span`](docs-content://solutions/observability/apps/spans.md).
+The first span of a service will be converted to an Elastic APM [`Transaction`](docs-content://solutions/observability/apm/transactions.md), subsequent spans are mapped to Elastic APM [`Span`](docs-content://solutions/observability/apm/spans.md).
 
 
 ## Getting started [otel-getting-started]

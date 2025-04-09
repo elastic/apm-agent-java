@@ -12,7 +12,7 @@ OpenTracing is discontinued in favor of OpenTelemetry. Consider using the [OpenT
 
 The Elastic APM OpenTracing bridge allows creating Elastic APM `Transactions` and `Spans`, using the OpenTracing API. In other words, it translates the calls to the OpenTracing API to Elastic APM and thus allows for reusing existing instrumentation.
 
-The first span of a service will be converted to an Elastic APM [`Transaction`](docs-content://solutions/observability/apps/transactions.md), subsequent spans are mapped to Elastic APM [`Span`](docs-content://solutions/observability/apps/spans.md).
+The first span of a service will be converted to an Elastic APM [`Transaction`](docs-content://solutions/observability/apm/transactions.md), subsequent spans are mapped to Elastic APM [`Span`](docs-content://solutions/observability/apm/spans.md).
 
 
 ## Getting started [opentracing-getting-started]
@@ -81,7 +81,7 @@ The `Span.setBaggageItem(String, String)` method is not supported. Baggage items
 
 ### Logs [opentracing-logs]
 
-Only exception logging is supported. Logging an Exception on the OpenTracing span will create an Elastic APM [`Error`](docs-content://solutions/observability/apps/errors.md). Example:
+Only exception logging is supported. Logging an Exception on the OpenTracing span will create an Elastic APM [`Error`](docs-content://solutions/observability/apm/errors.md). Example:
 
 ```java
 Exception e = ...

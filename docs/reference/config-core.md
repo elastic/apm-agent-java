@@ -190,7 +190,7 @@ Allows for the reported hostname to be manually specified. If unset the hostname
 
 The name of the environment this service is deployed in, e.g. "production" or "staging".
 
-Environments allow you to easily filter data on a global level in the APM app. It’s important to be consistent when naming environments across agents. See [environment selector](docs-content://solutions/observability/apps/filter-application-data.md#apm-filter-your-data-service-environment-filter) in the APM app for more information.
+Environments allow you to easily filter data on a global level in the APM app. It’s important to be consistent when naming environments across agents. See [environment selector](docs-content://solutions/observability/apm/filter-data.md#apm-filter-your-data-service-environment-filter) in the APM app for more information.
 
 ::::{note}
 This feature is fully supported in the APM app in Kibana versions >= 7.2. You must use the query bar to filter for a specific environment in versions prior to 7.2.
@@ -252,7 +252,7 @@ The following transaction, span, and error fields will be truncated at this numb
 * `transaction.context.message.body`, `error.context.message.body`
 * `span.context.db.statement`
 
-Note that tracing data is limited at the upstream APM server to [`max_event_size`](docs-content://solutions/observability/apps/general-configuration-options.md#apm-max_event_size), which defaults to 300kB. If you configure `long_field_max_length` too large, it could result in transactions, spans, or errors that are rejected by APM server.
+Note that tracing data is limited at the upstream APM server to [`max_event_size`](docs-content://solutions/observability/apm/general-configuration-options.md#apm-max_event_size), which defaults to 300kB. If you configure `long_field_max_length` too large, it could result in transactions, spans, or errors that are rejected by APM server.
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -687,7 +687,7 @@ Use the `apm-agent-plugin-sdk` and the `apm-agent-api` artifacts to create a jar
 
 ## `use_elastic_traceparent_header` ([1.14.0]) [config-use-elastic-traceparent-header]
 
-To enable [distributed tracing](docs-content://solutions/observability/apps/traces.md), the agent adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.). These headers (`traceparent` and `tracestate`) are defined in the [W3C Trace Context](https://www.w3.org/TR/trace-context-1/) specification.
+To enable [distributed tracing](docs-content://solutions/observability/apm/traces.md), the agent adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.). These headers (`traceparent` and `tracestate`) are defined in the [W3C Trace Context](https://www.w3.org/TR/trace-context-1/) specification.
 
 When this setting is `true`, the agent will also add the header `elastic-apm-traceparent` for backwards compatibility with older versions of Elastic APM agents.
 
@@ -707,7 +707,7 @@ When this setting is `true`, the agent will also add the header `elastic-apm-tra
 Use this option to disable `tracecontext` headers injection to any outgoing communication.
 
 ::::{note}
-Disabling `tracecontext` headers injection means that [distributed tracing](docs-content://solutions/observability/apps/traces.md) will not work on downstream services.
+Disabling `tracecontext` headers injection means that [distributed tracing](docs-content://solutions/observability/apm/traces.md) will not work on downstream services.
 ::::
 
 

@@ -19,7 +19,7 @@ The [`ecs-logging-java`](ecs-logging-java://reference/index.md) library can also
 
 ## Log correlation [log-correlation-ids]
 
-[Log correlation](docs-content://solutions/observability/apps/logs.md) allows you to navigate to all logs belonging to a particular trace and vice-versa: for a specific log, see in which context it has been logged and which parameters the user provided.
+[Log correlation](docs-content://solutions/observability/apm/logs.md) allows you to navigate to all logs belonging to a particular trace and vice-versa: for a specific log, see in which context it has been logged and which parameters the user provided.
 
 ::::{note}
 Starting in APM agent version 1.30.0, log correlation is enabled by default. In previous versions, log correlation must be explicitly enabled by setting the `enable_log_correlation` configuration variable to `true`.
@@ -66,7 +66,7 @@ As a result, when an exception is reported to the logger:
 
 Please note we capture the exception, not the message passed to the `logger.error`.
 
-To collect the message passed to the `logger.error`, you would need to ingest the logs of the application (see [Log correlation](docs-content://solutions/observability/apps/logs.md)).
+To collect the message passed to the `logger.error`, you would need to ingest the logs of the application (see [Log correlation](docs-content://solutions/observability/apm/logs.md)).
 
 
 ## Log sending (experimental) [log-sending]
