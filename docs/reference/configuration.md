@@ -7,7 +7,7 @@ mapped_pages:
 
 To adapt the Elastic APM Java agent to your needs, you can configure it using one of the methods below, listed in descending order of precedence:
 
-1) [Central configuration](docs-content://solutions/observability/apps/apm-agent-central-configuration.md)
+1) [Central configuration](docs-content://solutions/observability/apm/apm-agent-central-configuration.md)
 :   Configure the Agent in the Kibana APM app. [![dynamic config](/reference/images/dynamic-config.svg "") ](#configuration-dynamic)
 
 2) Properties file
@@ -33,7 +33,7 @@ To adapt the Elastic APM Java agent to your needs, you can configure it using on
 
 Configuration options marked with Dynamic true can be changed at runtime when set from supported sources:
 
-* [Central configuration](docs-content://solutions/observability/apps/apm-agent-central-configuration.md)
+* [Central configuration](docs-content://solutions/observability/apm/apm-agent-central-configuration.md)
 * `elasticapm.properties` file
 * Java system properties, but only when set from within the application
 
