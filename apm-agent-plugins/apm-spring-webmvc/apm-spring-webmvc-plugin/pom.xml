@@ -22,7 +22,7 @@
                 <!-- Import dependency management from Spring Boot -->
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>3.4.1</version> <!-- must be 3.X to correspond to spring 6 -->
+                <version>3.4.4</version> <!-- must be 3.X to correspond to spring 6 -->
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
