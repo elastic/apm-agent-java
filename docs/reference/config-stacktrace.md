@@ -25,7 +25,7 @@ the instrumentation aspect of this configuration option - specifying which class
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -40,7 +40,7 @@ the instrumentation aspect of this configuration option - specifying which class
 
 Setting it to 0 will disable stack trace collection. Any positive integer value will be used as the maximum number of frames to collect. Setting it -1 means that all frames will be collected.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -57,7 +57,7 @@ While this is very helpful to find the exact place in your code that causes the 
 
 To disable stack trace collection for spans completely, set the value to `-1ms`.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 Supports the duration suffixes `ms`, `s` and `m`. Example: `5ms`.
 

@@ -67,7 +67,7 @@ This feature is not available on Windows and on OpenJ9
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -82,7 +82,7 @@ This feature is not available on Windows and on OpenJ9
 
 By default, async profiler prints warning messages about missing JVM symbols to standard output. Set this option to `false` to suppress such messages
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -97,7 +97,7 @@ By default, async profiler prints warning messages about missing JVM symbols to 
 
 The frequency at which stack traces are gathered within a profiling session. The lower you set it, the more accurate the durations will be. This comes at the expense of higher overhead and more spans for potentially irrelevant operations. The minimal duration of a profiling-inferred span is the same as the value of this setting.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 Supports the duration suffixes `ms`, `s` and `m`. Example: `50ms`.
 
@@ -114,7 +114,7 @@ Supports the duration suffixes `ms`, `s` and `m`. Example: `50ms`.
 
 The minimum duration of an inferred span. Note that the min duration is also implicitly set by the sampling interval. However, increasing the sampling interval also decreases the accuracy of the duration of inferred spans.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 Supports the duration suffixes `ms`, `s` and `m`. Example: `0ms`.
 
@@ -133,7 +133,7 @@ If set, the agent will only create inferred spans for methods which match this l
 
 This option supports the wildcard `*`, which matches zero or more characters. Examples: `/foo/*/bar/*/baz*`, `*foo*`. Matching is case insensitive by default. Prepending an element with `(?-i)` makes the matching case sensitive.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -150,7 +150,7 @@ Excludes classes for which no profiler-inferred spans should be created.
 
 This option supports the wildcard `*`, which matches zero or more characters. Examples: `/foo/*/bar/*/baz*`, `*foo*`. Matching is case insensitive by default. Prepending an element with `(?-i)` makes the matching case sensitive.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |

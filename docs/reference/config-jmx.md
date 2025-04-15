@@ -100,7 +100,7 @@ The resulting documents in Elasticsearch look similar to this:
 }
 ```
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |

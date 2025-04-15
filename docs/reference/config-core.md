@@ -19,7 +19,7 @@ A boolean specifying if the agent should be recording or not. When recording, th
 
 You can use this setting to dynamically disable Elastic APM at runtime.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -57,7 +57,7 @@ Changing this value at runtime can slow down the application temporarily.
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -212,7 +212,7 @@ By default, the agent will sample every transaction (e.g. request to your servic
 
 Value will be rounded with 4 significant digits, as an example, value *0.55555* will be rounded to `0.5556`
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -233,7 +233,7 @@ Setting an upper limit will prevent overloading the agent and the APM server wit
 
 A message will be logged when the max number of spans has been exceeded but only at a rate of once every 5 minutes to ensure performance is not impacted.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -281,7 +281,7 @@ Review the data captured by Elastic APM carefully to make sure it does not captu
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -301,7 +301,7 @@ Changing this value at runtime can slow down the application temporarily.
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -321,7 +321,7 @@ Changing this value at runtime can slow down the application temporarily.
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -341,7 +341,7 @@ Changing this value at runtime can slow down the application temporarily. Settin
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -358,7 +358,7 @@ When reporting exceptions, un-nests the exceptions matching the wildcard pattern
 
 This option supports the wildcard `*`, which matches zero or more characters. Examples: `/foo/*/bar/*/baz*`, `*foo*`. Matching is case insensitive by default. Prepending an element with `(?-i)` makes the matching case sensitive.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -386,7 +386,7 @@ Exception inheritance is not supported, thus you have to explicitly list all the
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -420,7 +420,7 @@ Request bodies often contain sensitive values like passwords, credit card number
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 Valid options: `off`, `errors`, `transactions`, `all`
 
@@ -442,7 +442,7 @@ Setting this to `false` reduces network bandwidth, disk space and object allocat
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -488,7 +488,7 @@ A boolean specifying if the agent should instrument pre-Java-1.4 bytecode.
 
 When set to true, disables log sending, metrics and trace collection. Trace context propagation and log correlation will stay active. Note that in contrast to [`disable_send`](/reference/config-reporter.md#config-disable-send) the agent will still connect to the APM-server for fetching configuration updates and health checks.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -576,7 +576,7 @@ Changing this value at runtime can slow down the application temporarily.
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -623,7 +623,7 @@ Supports the duration suffixes `ms`, `s` and `m`. Example: `0ms`.
 
 When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration. The frequency of the periodic request is driven by the `Cache-Control` header returned from APM Server/Integration, falling back to 5 minutes if not defined.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -691,7 +691,7 @@ To enable [distributed tracing](docs-content://solutions/observability/apm/trace
 
 When this setting is `true`, the agent will also add the header `elastic-apm-traceparent` for backwards compatibility with older versions of Elastic APM agents.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -711,7 +711,7 @@ Disabling `tracecontext` headers injection means that [distributed tracing](docs
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -730,7 +730,7 @@ The attempt fails if they lead up to a span that can’t be discarded. Spans tha
 
 However, external calls that don’t propagate context, such as calls to a database, can be discarded using this threshold.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 Supports the duration suffixes `ms`, `s` and `m`. Example: `0ms`.
 
@@ -777,7 +777,7 @@ With this option, you can group transaction names that contain dynamic parts wit
 
 This option supports the wildcard `*`, which matches zero or more characters. Examples: `/foo/*/bar/*/baz*`, `*foo*`. Matching is case insensitive by default. Prepending an element with `(?-i)` makes the matching case sensitive.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -805,7 +805,7 @@ Starting with Elastic Observability 8.2, span links are visible in trace views.
 
 This option is case-insensitive.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 Valid options: `continue`, `restart`, `restart_external`
 
@@ -822,7 +822,7 @@ Valid options: `continue`, `restart`, `restart_external`
 
 If any baggage key matches any of the patterns provided via this config option, the corresponding baggage key and value will be automatically stored on the corresponding transactions, spans and errors. The baggage keys will be prefixed with "baggage." on storage.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
