@@ -18,7 +18,7 @@
 
         <!-- spring boot version to use for dependency management & testing -->
         <version.spring-boot-2>2.7.16</version.spring-boot-2>
-        <version.spring-boot-3>3.4.1</version.spring-boot-3>
+        <version.spring-boot-3>3.4.4</version.spring-boot-3>
     </properties>
 
     <modules>

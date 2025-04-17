@@ -46,7 +46,7 @@ public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentat
     public WebClientInstrumentationTest(String clientName, Object webClient, RequestStrategy strategy) {
         this.webClient = webClient;
         this.strategy = strategy;
-        this.circularRedirectSupported = !"netty".equals(clientName);
+        this.circularRedirectSupported = !"netty".equals(clientName) && !"jetty".equals(clientName);
         this.uriUserInfoSupported = !"hc5".equals(clientName) && !"netty".equals(clientName);
     }
 
