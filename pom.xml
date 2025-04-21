@@ -125,7 +125,7 @@
         (https://nvd.nist.gov/vuln/detail/CVE-2020-9488#vulnCurrentDescriptionTitle), the SMTP appender is
          excluded from the build and not packaged into the agent artifacts -->
         <version.log4j>2.12.4</version.log4j>
-        <version.ecs.logging>1.6.0</version.ecs.logging>
+        <version.ecs.logging>1.7.0</version.ecs.logging>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.json-schema-validator>1.5.6</version.json-schema-validator>
