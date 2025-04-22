@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-redis-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.51.1-SNAPSHOT</version>
+        <version>1.53.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-jedis-5-tests</artifactId>
@@ -46,7 +46,7 @@
         <dependency>
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
-            <version>5.1.5</version>
+            <version>5.2.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-logging-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.51.1-SNAPSHOT</version>
+        <version>1.53.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-log4j2-plugin</artifactId>
@@ -24,25 +24,13 @@
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
-            <version>2.23.1</version>
+            <version>2.24.3</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>co.elastic.logging</groupId>
             <artifactId>log4j2-ecs-layout</artifactId>
             <version>${version.ecs.logging}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-logging-plugin-common</artifactId>
-            <version>${project.version}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.ivy</groupId>
-            <artifactId>ivy</artifactId>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 

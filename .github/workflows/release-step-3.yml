@@ -105,7 +105,7 @@ jobs:
         run: tar xvf ${{ env.TARBALL_FILE }}
 
       - name: generate build provenance
-        uses: actions/attest-build-provenance@6149ea5740be74af77f260b9db67e633f6b0a9a1  # v1.4.2
+        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2  # v2.2.3
         with:
           subject-path: "${{ github.workspace }}/**/target/*.jar"
 
@@ -115,10 +115,10 @@ jobs:
     needs:
       - validate-tag
     steps:
-      - uses: elastic/apm-pipeline-library/.github/actions/await-maven-artifact@current
+      - uses: elastic/oblt-actions/maven/await-artifact@v1
         with:
-          groupid: 'co.elastic.apm'
-          artifactid: 'elastic-apm-agent'
+          group-id: 'co.elastic.apm'
+          artifact-id: 'elastic-apm-agent'
           version: ${{ env.RELEASE_VERSION }}
 
   build-and-push-docker-images:
@@ -136,7 +136,7 @@ jobs:
           fetch-depth: 0 # Load entire history as it is required for the push-script
 
       - name: Log in to the Elastic Container registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ${{ secrets.ELASTIC_DOCKER_REGISTRY }}
           username: ${{ secrets.ELASTIC_DOCKER_USERNAME }}
@@ -168,7 +168,7 @@ jobs:
         uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw dependency:purge-local-repository package -pl apm-agent-lambda-layer
-      - uses: elastic/oblt-actions/aws/auth@v1.10.0
+      - uses: elastic/oblt-actions/aws/auth@v1
         with:
           aws-account-id: '267093732750'
       - name: Publish
@@ -196,6 +196,7 @@ jobs:
     name: "Bump versions and create PR"
     needs:
       - await-maven-central-artifact
+      - publish-aws-lambda # The AWS lambda layer publishing breaks if the version-bump PR is accidentally merged before it finished
     uses: ./.github/workflows/pre-post-release.yml
     permissions:
       contents: write
@@ -213,21 +214,35 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - post-release
-    permissions:
-      contents: write
-    env:
-      GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}
     steps:
+      - name: Get token
+        id: get_token
+        uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
+        with:
+          app_id: ${{ secrets.OBS_AUTOMATION_APP_ID }}
+          private_key: ${{ secrets.OBS_AUTOMATION_APP_PEM }}
+          permissions: >-
+            {
+              "contents": "write",
+              "pull_requests": "write"
+            }
+          repositories: >-
+            ["apm-agent-java"]
+
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-          token: ${{ env.GITHUB_TOKEN }}
+          token: ${{ steps.get_token.outputs.token }}
 
       - uses: elastic/oblt-actions/git/setup@v1
+        with:
+          github-token: ${{ steps.get_token.outputs.token }}
 
       - name: Update major branch
         if: ${{ ! inputs.dry_run }}
         run: .ci/release/update-major-branch.sh ${{ env.RELEASE_VERSION }}
+        env:
+          GH_TOKEN: ${{ steps.get_token.outputs.token }}
 
   create-github-release:
     name: "Create GitHub Release"
@@ -276,9 +291,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: check
-        uses: elastic/apm-pipeline-library/.github/actions/check-dependent-jobs@current
+        uses: elastic/oblt-actions/check-dependent-jobs@v1
         with:
-          needs: ${{ toJSON(needs) }}
+          jobs: ${{ toJSON(needs) }}
       - uses: elastic/oblt-actions/slack/notify-result@v1
         with:
           bot-token: ${{ secrets.SLACK_BOT_TOKEN }}

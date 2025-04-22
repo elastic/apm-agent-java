@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-plugins</artifactId>
-        <version>1.51.1-SNAPSHOT</version>
+        <version>1.53.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-spring-webflux</artifactId>
@@ -18,7 +18,7 @@
 
         <!-- spring boot version to use for dependency management & testing -->
         <version.spring-boot-2>2.7.16</version.spring-boot-2>
-        <version.spring-boot-3>3.3.2</version.spring-boot-3>
+        <version.spring-boot-3>3.4.4</version.spring-boot-3>
     </properties>
 
     <modules>

@@ -83,6 +83,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         wireMockRule.stubFor(any(urlEqualTo("/"))
             .willReturn(dummyResponse()
                 .withStatus(200)));
+        wireMockRule.stubFor(any(urlEqualTo("/dummy"))
+            .willReturn(dummyResponse()
+                .withStatus(200)));
         wireMockRule.stubFor(get(urlEqualTo("/error"))
             .willReturn(dummyResponse()
                 .withStatus(515)));
@@ -125,11 +128,19 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         if (!isBodyCapturingSupported()) {
             return;
         }
-        doReturn(5).when(config.getConfig(WebConfiguration.class)).getCaptureClientRequestBytes();
         byte[] content = "Hello World!".getBytes(StandardCharsets.UTF_8);
-        String path = "/";
-        performPost(getBaseUrl() + path, content, "text/plain; charset=utf-8");
-        expectSpan(path)
+
+        // Ensure that the setting can be turned on dynamically by first issuing a request with the feature disabled
+        doReturn(0).when(config.getConfig(WebConfiguration.class)).getCaptureClientRequestBytes();
+        performPost(getBaseUrl() + "/dummy", content, "text/plain; charset=utf-8");
+        expectSpan("/dummy")
+            .withRequestBodySatisfying(body -> assertThat(body.getBody()).isNull())
+            .verify();
+        reporter.reset();
+
+        doReturn(5).when(config.getConfig(WebConfiguration.class)).getCaptureClientRequestBytes();
+        performPost(getBaseUrl() + "/", content, "text/plain; charset=utf-8");
+        expectSpan("/")
             .withRequestBodySatisfying(body -> {
                 List<ByteBuffer> buffer = body.getBody();
                 assertThat(IOUtils.copyToByteArray(buffer)).isEqualTo("Hello".getBytes(StandardCharsets.UTF_8));

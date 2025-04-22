@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>co.elastic.apm</groupId>
+        <artifactId>apm-logging-plugin</artifactId>
+        <version>1.53.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>apm-log4j2-plugin-tests</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
+    </properties>
+
+    <!--
+        This module contains just the tests for apm-log4j2-plugin.
+        The reason a separate module is required because the plugin needs to be written against the latest version
+        of log4j2, but during tests the version required by the agent needs to be on classpath.
+        Because maven doesn't support different versions of the same dependency for compilation and testing,
+        we need to use separate modules.
+    -->
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-log4j2-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${version.log4j}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-logging-plugin-common</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.ivy</groupId>
+            <artifactId>ivy</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+
+</project>

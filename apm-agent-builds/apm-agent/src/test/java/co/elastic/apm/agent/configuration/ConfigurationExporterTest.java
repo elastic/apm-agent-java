@@ -20,8 +20,8 @@ package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
@@ -29,6 +29,7 @@ import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -107,6 +108,7 @@ class ConfigurationExporterTest {
      * Since we allow a limited number of unit-test failures, this test would have always passed without this configuration.
      */
     @Test
+    @Disabled("Needs migration or update for new docs system")
     void testGeneratedConfigurationDocsAreUpToDate() throws IOException, TemplateException {
         String renderedDocumentation = renderDocumentation(configurationRegistry);
         String expected = new String(Files.readAllBytes(this.renderedDocumentationPath), StandardCharsets.UTF_8);

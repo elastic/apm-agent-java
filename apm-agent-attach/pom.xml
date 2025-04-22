@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.51.1-SNAPSHOT</version>
+        <version>1.53.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-attach</artifactId>
@@ -58,9 +58,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
             </plugin>
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>

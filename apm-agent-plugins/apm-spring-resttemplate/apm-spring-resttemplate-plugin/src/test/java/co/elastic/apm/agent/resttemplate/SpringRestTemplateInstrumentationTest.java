@@ -66,6 +66,11 @@ public class SpringRestTemplateInstrumentationTest extends AbstractHttpClientIns
     }
 
     @Override
+    public boolean isTestHttpCallWithUserInfoEnabled() {
+        return Java17Code.isTestHttpCallWithUserInfoEnabled(restTemplate);
+    }
+
+    @Override
     protected void performPost(String path, byte[] content, String contentTypeHeader) throws Exception {
         Java17Code.performPost(restTemplate, path, content, contentTypeHeader);
     }
@@ -101,6 +106,16 @@ public class SpringRestTemplateInstrumentationTest extends AbstractHttpClientIns
             RestTemplate restTemplate = (RestTemplate) restTemplateObj;
             if (restTemplate.getRequestFactory() instanceof OkHttp3ClientHttpRequestFactory) {
                 // We do not support body capturing for OkHttp yet
+                return false;
+            }
+            return true;
+        }
+
+        public static boolean isTestHttpCallWithUserInfoEnabled(Object restTemplateObj) {
+            RestTemplate restTemplate = (RestTemplate) restTemplateObj;
+            if (restTemplate.getRequestFactory() instanceof HttpComponentsClientHttpRequestFactory) {
+                // newer http components don't support userinfo in URI anymore:
+                // I/O error on GET request for "http://user:passwd@localhost:50931/": Request URI authority contains deprecated userinfo component
                 return false;
             }
             return true;

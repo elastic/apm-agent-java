@@ -37,9 +37,11 @@ fi
 java -version
 
 echo "--- Prepare github secrets :vault:"
-VAULT_SECRET_PATH=kv/ci-shared/observability-ci/github-bot-user
-GITHUB_SECRET=$(vault kv get -field token "${VAULT_SECRET_PATH}")
-GIT_USER=$(vault kv get -field username "${VAULT_SECRET_PATH}")
-GIT_EMAIL=$(vault kv get -field email "${VAULT_SECRET_PATH}")
+# Only accessible by Elastic employees
+# The GitHub Permission Set can be found at:
+# https://github.com/v1v/terrazzo/blob/main/manifests/prod/vault/apm-agent-java-permission-set.yaml
+GITHUB_SECRET=$VAULT_GITHUB_TOKEN
+GIT_USER="elastic-vault-github-plugin-prod"
+GIT_EMAIL="obltmachine@users.noreply.github.com"
 GH_TOKEN=$GITHUB_SECRET
 export GITHUB_SECRET GH_TOKEN GIT_USER GIT_EMAIL

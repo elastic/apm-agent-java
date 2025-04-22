@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.51.1-SNAPSHOT</version>
+        <version>1.53.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-ecs-logging-plugin</artifactId>
@@ -41,7 +41,8 @@
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
-            <version>2.23.1</version>
+            <!-- fixate the log4j version to the one used by the agent, otherwise the agent uses the incorrect version during tests -->
+            <version>${version.log4j}</version>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>

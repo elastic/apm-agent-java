@@ -21,29 +21,14 @@ package co.elastic.apm.agent.opentelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 
 /**
- * Bridge for integration tests which use {@link io.opentelemetry.semconv.SemanticAttributes}
+ * Bridge for integration tests which use semconv attributes
  * which has been moved from {@code io.opentelemetry.semconv.trace.attributes.SemanticAttributes}.
  */
 public class SemAttributes {
 
-    public static final AttributeKey<String> HTTP_URL = getAttribute("HTTP_URL");
-    public static final AttributeKey<Long> HTTP_STATUS_CODE = getAttribute("HTTP_STATUS_CODE");
-    public static final AttributeKey<String> HTTP_METHOD = getAttribute("HTTP_METHOD");
-    public static final AttributeKey<Long> NET_PEER_PORT = getAttribute("NET_PEER_PORT");
-    public static final AttributeKey<String> NET_PEER_IP = getAttribute("NET_PEER_IP");
-
-    @SuppressWarnings("unchecked")
-    private static <T> AttributeKey<T> getAttribute(String name) {
-        try {
-            Class<?> attribClass;
-            try {
-                attribClass = Class.forName("io.opentelemetry.semconv.SemanticAttributes");
-            } catch (ClassNotFoundException cnf) {
-                attribClass = Class.forName("io.opentelemetry.semconv.trace.attributes.SemanticAttributes");
-            }
-            return (AttributeKey<T>) attribClass.getField(name).get(null);
-        }catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
-    }
+    public static final AttributeKey<String> HTTP_URL = AttributeKey.stringKey("HTTP_URL");
+    public static final AttributeKey<Long> HTTP_STATUS_CODE = AttributeKey.longKey("HTTP_STATUS_CODE");
+    public static final AttributeKey<String> HTTP_METHOD = AttributeKey.stringKey("HTTP_METHOD");
+    public static final AttributeKey<Long> NET_PEER_PORT = AttributeKey.longKey("NET_PEER_PORT");
+    public static final AttributeKey<String> NET_PEER_IP = AttributeKey.stringKey("NET_PEER_IP");
 }

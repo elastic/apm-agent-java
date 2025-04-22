@@ -74,7 +74,7 @@ public class Lettuce5StartSpanInstrumentation extends ElasticApmInstrumentation 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object beforeDispatch(@Nullable @Advice.Argument(0) RedisCommand<?, ?, ?> command) {
             if (command != null) {
-                Span<?> span = RedisSpanUtils.createRedisSpan(command.getType().name());
+                Span<?> span = RedisSpanUtils.createRedisSpan(command.getType().toString());
                 if (span != null) {
                     commandToSpan.put(command, span);
                     return span;

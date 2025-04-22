@@ -1,0 +1,46 @@
+project: 'APM Java agent reference'
+toc:
+  - file: index.md
+  - file: set-up-apm-java-agent.md
+    children:
+      - file: setup-javaagent.md
+      - file: setup-attach-cli.md
+      - file: setup-attach-api.md
+      - file: ssl-configuration.md
+      - file: aws-lambda.md
+  - file: supported-technologies.md
+  - file: configuration.md
+    children:
+      - file: config-circuit-breaker.md
+      - file: config-core.md
+      - file: config-datastore.md
+      - file: config-http.md
+      - file: config-huge-traces.md
+      - file: config-jax-rs.md
+      - file: config-jmx.md
+      - file: config-logging.md
+      - file: config-messaging.md
+      - file: config-metrics.md
+      - file: config-profiling.md
+      - file: config-reporter.md
+      - file: config-serverless.md
+      - file: config-stacktrace.md
+      - file: config-reference-properties-file.md
+  - file: tracing-apis.md
+    children:
+      - file: public-api.md
+      - file: opentelemetry-bridge.md
+      - file: opentracing-bridge.md
+  - file: plugin-api.md
+  - file: metrics.md
+  - file: logs.md
+  - file: how-to-find-slow-methods.md
+    children:
+      - file: method-sampling-based.md
+      - file: method-api.md
+      - file: method-annotations.md
+      - file: method-config-based.md
+  - file: overhead-performance-tuning.md
+  - file: frequently-asked-questions.md
+  - file: community-plugins.md
+  - file: upgrading.md

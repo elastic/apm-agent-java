@@ -39,30 +39,33 @@ public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentat
 
     private final RequestStrategy strategy;
 
-    private final boolean isNetty;
+    private final boolean circularRedirectSupported;
 
-    public WebClientInstrumentationTest(String clientIgnored, Object webClient, RequestStrategy strategy, boolean isNetty) {
+    private final boolean uriUserInfoSupported;
+
+    public WebClientInstrumentationTest(String clientName, Object webClient, RequestStrategy strategy) {
         this.webClient = webClient;
         this.strategy = strategy;
-        this.isNetty = isNetty;
+        this.circularRedirectSupported = !"netty".equals(clientName) && !"jetty".equals(clientName);
+        this.uriUserInfoSupported = !"hc5".equals(clientName) && !"netty".equals(clientName);
     }
 
     @Parameterized.Parameters(name = "client = {0}, request strategy = {2}")
     public static Object[][] testParams() {
         if (JvmRuntimeInfo.ofCurrentVM().getMajorVersion() >= 17) {
             return new Object[][]{
-                {"jetty", Clients.jettyClient(), RequestStrategy.EXCHANGE, false},
-                {"jetty", Clients.jettyClient(), RequestStrategy.EXCHANGE_TO_FLUX, false},
-                {"jetty", Clients.jettyClient(), RequestStrategy.EXCHANGE_TO_MONO, false},
-                {"jetty", Clients.jettyClient(), RequestStrategy.RETRIEVE, false},
-                {"netty", Clients.nettyClient(), RequestStrategy.EXCHANGE, true},
-                {"netty", Clients.nettyClient(), RequestStrategy.EXCHANGE_TO_FLUX, true},
-                {"netty", Clients.nettyClient(), RequestStrategy.EXCHANGE_TO_MONO, true},
-                {"netty", Clients.nettyClient(), RequestStrategy.RETRIEVE, true},
-                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.EXCHANGE, false},
-                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_FLUX, false},
-                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_MONO, false},
-                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.RETRIEVE, false}
+                {"jetty", Clients.jettyClient(), RequestStrategy.EXCHANGE},
+                {"jetty", Clients.jettyClient(), RequestStrategy.EXCHANGE_TO_FLUX},
+                {"jetty", Clients.jettyClient(), RequestStrategy.EXCHANGE_TO_MONO},
+                {"jetty", Clients.jettyClient(), RequestStrategy.RETRIEVE},
+                {"netty", Clients.nettyClient(), RequestStrategy.EXCHANGE},
+                {"netty", Clients.nettyClient(), RequestStrategy.EXCHANGE_TO_FLUX},
+                {"netty", Clients.nettyClient(), RequestStrategy.EXCHANGE_TO_MONO},
+                {"netty", Clients.nettyClient(), RequestStrategy.RETRIEVE},
+                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.EXCHANGE},
+                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_FLUX},
+                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_MONO},
+                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.RETRIEVE}
             };
         } else {
             return new Object[0][0];
@@ -72,13 +75,13 @@ public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentat
     @Override
     public boolean isRequireCheckErrorWhenCircularRedirect() {
         // circular redirect does not trigger an error to capture with netty
-        return !isNetty;
+        return circularRedirectSupported;
     }
 
     @Override
     public boolean isTestHttpCallWithUserInfoEnabled() {
         // user info URI does not work with netty
-        return !isNetty;
+        return uriUserInfoSupported;
     }
 
 
