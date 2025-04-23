@@ -134,7 +134,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         doReturn(0).when(config.getConfig(WebConfiguration.class)).getCaptureClientRequestBytes();
         performPost(getBaseUrl() + "/dummy", content, "text/plain; charset=utf-8");
         expectSpan("/dummy")
-            .withRequestBodySatisfying(body -> assertThat(body.getBody()).isNull())
+            .withRequestBodySatisfying(body -> assertThat(body.hasContent()).isFalse())
             .verify();
         reporter.reset();
 
@@ -186,12 +186,12 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             .containsExactly(capture, noCapture);
 
         BodyCaptureImpl captureBody = capture.getContext().getHttp().getRequestBody();
-        assertThat(captureBody.getBody()).isNotNull();
+        assertThat(captureBody.hasContent()).isTrue();
         assertThat(Objects.toString(captureBody.getCharset())).isEqualTo("iso-8859-1");
         assertThat(IOUtils.copyToByteArray(captureBody.getBody())).isEqualTo(content);
 
         BodyCaptureImpl noCaptureBody = noCapture.getContext().getHttp().getRequestBody();
-        assertThat(noCaptureBody.getBody()).isEmpty();
+        assertThat(noCaptureBody.hasContent()).isFalse();
         assertThat(noCaptureBody.getCharset()).isNull();
     }
 
