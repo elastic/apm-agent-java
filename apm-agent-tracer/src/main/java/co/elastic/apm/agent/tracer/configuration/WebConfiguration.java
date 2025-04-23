@@ -139,7 +139,10 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .key("capture_http_client_request_body_as_label")
         .configurationCategory(HTTP_CATEGORY)
         .tags("added[1.54.0]", "experimental")
-        .description("TBD")
+        .description("If `capture_http_client_request_body_size` is configured, by default the request body will be stored in the `http.request.body.orginal` field. " +
+                     "This requires APM-server version 8.18+. " +
+                     "For compatibility with older APM-server versions, this option can be set to `true`, which will make the agent store the body in the `labels.http_request_body_content` field instead. " +
+                     "Note that in this case only a maximum of 1000 characters are supported.")
         .dynamic(false)
         .buildWithDefault(false);
 
