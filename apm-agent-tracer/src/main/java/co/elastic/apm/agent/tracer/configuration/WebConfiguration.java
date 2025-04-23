@@ -135,6 +135,14 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(0);
 
+    private final ConfigurationOption<Boolean> captureClientRequestBodyAsLabel = ConfigurationOption.booleanOption()
+        .key("capture_http_client_request_body_as_label")
+        .configurationCategory(HTTP_CATEGORY)
+        .tags("added[1.54.0]", "experimental")
+        .description("TBD")
+        .dynamic(false)
+        .buildWithDefault(false);
+
     public List<WildcardMatcher> getIgnoreUrls() {
         return ignoreUrls.get();
     }
@@ -157,6 +165,10 @@ public class WebConfiguration extends ConfigurationOptionProvider {
 
     public int getCaptureClientRequestBytes() {
         return captureClientRequestBytes.get();
+    }
+
+    public boolean isCaptureClientRequestBodyAsLabel() {
+        return captureClientRequestBodyAsLabel.get();
     }
 
 }

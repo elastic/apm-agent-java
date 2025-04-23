@@ -18,7 +18,6 @@
  */
 package co.elastic.apm.agent;
 
-import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.context.DestinationImpl;
 import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
@@ -33,7 +32,6 @@ import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterMonitor;
 import co.elastic.apm.agent.report.ReportingEvent;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
-import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.tracer.Outcome;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -805,8 +803,7 @@ public class MockReporter implements Reporter {
             doReturn(isLatest).when(client).supportsNonStringLabels();
             doReturn(isLatest).when(client).supportsLogsEndpoint();
 
-            SerializationConstants.init(spyConfig.getConfig(CoreConfigurationImpl.class));
-            this.serializer = new DslJsonSerializer(stacktraceConfiguration, client, metaData).newWriter();
+            this.serializer = new DslJsonSerializer(spyConfig, client, metaData).newWriter();
         }
 
         private static JsonSchema getSchema(String resource) {

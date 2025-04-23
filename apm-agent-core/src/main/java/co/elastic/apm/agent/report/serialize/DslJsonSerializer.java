@@ -68,6 +68,7 @@ import co.elastic.apm.agent.sdk.internal.pooling.ObjectPooling;
 import co.elastic.apm.agent.sdk.internal.util.IOUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.tracer.metrics.DslJsonUtil;
 import co.elastic.apm.agent.tracer.metrics.Labels;
@@ -77,6 +78,7 @@ import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
 import com.dslplatform.json.StringConverter;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
@@ -120,6 +122,7 @@ public class DslJsonSerializer {
 
 
     private final StacktraceConfigurationImpl stacktraceConfiguration;
+    private final WebConfiguration webConfiguration;
     private final ApmServerClient apmServerClient;
 
     private final Future<MetaData> metaData;
@@ -127,8 +130,9 @@ public class DslJsonSerializer {
     private byte[] serializedMetaData;
     private boolean serializedActivationMethod;
 
-    public DslJsonSerializer(StacktraceConfigurationImpl stacktraceConfiguration, ApmServerClient apmServerClient, final Future<MetaData> metaData) {
-        this.stacktraceConfiguration = stacktraceConfiguration;
+    public DslJsonSerializer(ConfigurationRegistry config, ApmServerClient apmServerClient, final Future<MetaData> metaData) {
+        this.stacktraceConfiguration = config.getConfig(StacktraceConfigurationImpl.class);
+        this.webConfiguration = config.getConfig(WebConfiguration.class);
         this.apmServerClient = apmServerClient;
         this.metaData = metaData;
     }
@@ -1040,7 +1044,7 @@ public class DslJsonSerializer {
             if (!Double.isNaN(sampleRate)) {
                 writeField("sample_rate", sampleRate);
             }
-            serializeOtel(span, Collections.<IdImpl>emptyList());
+            serializeOtel(span, Collections.<IdImpl>emptyList(), span.getContext().getHttp().getRequestBody());
             if (span.isComposite() && span.getComposite().getCount() > 1) {
                 serializeComposite(span.getComposite());
             }
@@ -1070,15 +1074,16 @@ public class DslJsonSerializer {
         private void serializeOTel(TransactionImpl transaction) {
             List<IdImpl> profilingCorrelationStackTraceIds = transaction.getProfilingCorrelationStackTraceIds();
             synchronized (profilingCorrelationStackTraceIds) {
-                serializeOtel(transaction, profilingCorrelationStackTraceIds);
+                serializeOtel(transaction, profilingCorrelationStackTraceIds, null);
             }
         }
 
-        private void serializeOtel(AbstractSpanImpl<?> span, List<IdImpl> profilingStackTraceIds) {
+        private void serializeOtel(AbstractSpanImpl<?> span, List<IdImpl> profilingStackTraceIds, @Nullable BodyCaptureImpl httpRequestBody) {
             OTelSpanKind kind = span.getOtelKind();
             Map<String, Object> attributes = span.getOtelAttributes();
 
-            boolean hasAttributes = !attributes.isEmpty() || !profilingStackTraceIds.isEmpty();
+            boolean hasRequestBody = httpRequestBody != null && httpRequestBody.hasContent() && webConfiguration.isCaptureClientRequestBodyAsLabel();
+            boolean hasAttributes = !attributes.isEmpty() || !profilingStackTraceIds.isEmpty() || hasRequestBody;
             boolean hasKind = kind != null;
             if (hasKind || hasAttributes) {
                 writeFieldName("otel");
@@ -1127,6 +1132,13 @@ public class DslJsonSerializer {
                             jw.writeByte(QUOTE);
                         }
                         jw.writeByte(ARRAY_END);
+                    }
+                    if (hasRequestBody) {
+                        if (!isFirstAttrib) {
+                            jw.writeByte(COMMA);
+                        }
+                        writeFieldName("http.request.body.content");
+                        writeRequestBodyAsString(jw, httpRequestBody);
                     }
                     jw.writeByte(OBJECT_END);
                 }
@@ -1581,7 +1593,7 @@ public class DslJsonSerializer {
                 if (statusCode > 0) {
                     writeField("status_code", http.getStatusCode());
                 }
-                if (http.getRequestBody().hasContent()) {
+                if (http.getRequestBody().hasContent() && !webConfiguration.isCaptureClientRequestBodyAsLabel()) {
                     writeFieldName("request");
                     jw.writeByte(OBJECT_START);
                     writeFieldName("body");

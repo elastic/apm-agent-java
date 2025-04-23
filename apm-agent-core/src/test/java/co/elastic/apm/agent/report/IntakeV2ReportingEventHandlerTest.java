@@ -27,7 +27,6 @@ import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
 import co.elastic.apm.agent.impl.metadata.ServiceImpl;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
@@ -118,7 +117,7 @@ class IntakeV2ReportingEventHandlerTest {
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
             new DslJsonSerializer(
-                mock(StacktraceConfigurationImpl.class),
+                SpyConfiguration.createSpyConfig(),
                 apmServerClient,
                 MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
             ),
@@ -132,7 +131,7 @@ class IntakeV2ReportingEventHandlerTest {
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
             new DslJsonSerializer(
-                mock(StacktraceConfigurationImpl.class),
+                SpyConfiguration.createSpyConfig(),
                 nonConnectedApmServerClient,
                 MetaDataMock.create(title1, service1, system, null, Collections.emptyMap(), null)
             ),

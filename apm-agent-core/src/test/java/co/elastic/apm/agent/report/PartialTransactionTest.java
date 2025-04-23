@@ -23,7 +23,6 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.ServerlessConfigurationImpl;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
@@ -79,8 +78,7 @@ public class PartialTransactionTest {
         ApmServerClient client = new ApmServerClient(spyConfig);
         client.start(List.of(new URL(apmServer.getRuntimeInfo().getHttpBaseUrl())));
 
-        StacktraceConfigurationImpl stackTraceConfig = spyConfig.getConfig(StacktraceConfigurationImpl.class);
-        DslJsonSerializer serializer = new DslJsonSerializer(stackTraceConfig, client, MetaDataMock.create());
+        DslJsonSerializer serializer = new DslJsonSerializer(spyConfig, client, MetaDataMock.create());
 
         PartialTransactionReporter partialTransactionReporter = new PartialTransactionReporter(client, serializer, objectPoolFactory);
         reporter.setPartialTransactionHandler(partialTransactionReporter::reportPartialTransaction);
