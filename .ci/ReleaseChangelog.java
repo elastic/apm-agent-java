@@ -44,12 +44,14 @@ public class ReleaseChangelog {
         Path releaseNotesDir = Paths.get(args[1]);
         Path releaseNotesFile = releaseNotesDir.resolve("index.md");
         Path deprecationsFile = releaseNotesDir.resolve("deprecations.md");
+        Path breakingChangesFile = releaseNotesDir.resolve("breaking-changes.md");
         VersionNumber version = VersionNumber.parse(args[2].trim());
 
         Lines nextChangelogLines = new Lines(Files.readAllLines(nextChangelogFile, StandardCharsets.UTF_8));
         Lines fixes = nextChangelogLines.cutLinesBetween("<!--FIXES-START-->", "<!--FIXES-END-->");
         Lines enhancements = nextChangelogLines.cutLinesBetween("<!--ENHANCEMENTS-START-->", "<!--ENHANCEMENTS-END-->");
         Lines deprecations = nextChangelogLines.cutLinesBetween("<!--DEPRECATIONS-START-->", "<!--DEPRECATIONS-END-->");
+        Lines breakingChanges = nextChangelogLines.cutLinesBetween("<!--BREAKING-CHANGES-START-->", "<!--BREAKING-CHANGES-END-->");
 
 
         var formatter = DateTimeFormatter.ofPattern("LLLL d, yyyy", Locale.ENGLISH);
@@ -64,6 +66,12 @@ public class ReleaseChangelog {
             int insertDepsBeforeLine = findHeadingOfPreviousVersion(allDeprecations, version);
             allDeprecations.insert(generateDeprecations(version, releaseDateLine, deprecations), insertDepsBeforeLine);
             Files.writeString(deprecationsFile, allDeprecations + "\n", StandardCharsets.UTF_8);
+        }
+        if (!breakingChanges.isEmpty()) {
+            Lines allBreakingChanges = new Lines(Files.readAllLines(breakingChangesFile, StandardCharsets.UTF_8));
+            int insertBcBeforeLine = findHeadingOfPreviousVersion(allBreakingChanges, version);
+            allBreakingChanges.insert(generateBreakingChanges(version, releaseDateLine, breakingChanges), insertBcBeforeLine);
+            Files.writeString(breakingChangesFile, allBreakingChanges + "\n", StandardCharsets.UTF_8);
         }
         Files.writeString(releaseNotesFile, allReleaseNotes + "\n", StandardCharsets.UTF_8);
         Files.writeString(nextChangelogFile, nextChangelogLines + "\n", StandardCharsets.UTF_8);
@@ -89,13 +97,22 @@ public class ReleaseChangelog {
         return result;
     }
 
-
     private static Lines generateDeprecations(VersionNumber version, String releaseDateLine, Lines deprecations) {
         return new Lines()
             .append("## " + version.dotStr() + " [elastic-apm-java-agent-" + version.dashStr() + "-deprecations]")
             .append(releaseDateLine)
             .append("")
             .append(deprecations)
+            .append("");
+    }
+
+    private static Lines generateBreakingChanges(VersionNumber version, String releaseDateLine, Lines breakingChanges) {
+        return new Lines()
+            .append("## " + version.dotStr() + " [" + version.dotStr() + "]")
+            .append("")
+            .append(releaseDateLine)
+            .append("")
+            .append(breakingChanges)
             .append("");
     }
 
