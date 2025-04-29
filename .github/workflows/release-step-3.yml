@@ -205,50 +205,14 @@ jobs:
       ref: ${{ inputs.ref }}
       version: ${{ inputs.version }}
       phase: 'post'
-      pr_title: "[release] release-step-5 ${{ inputs.version }}"
-      pr_body: "Step 5 of the release process for version ${{ inputs.version }}: review & merge"
+      pr_title: "[release] release-step-4 ${{ inputs.version }}"
+      pr_body: "Step 4 of the release process for version ${{ inputs.version }}: review & merge"
     secrets: inherit
-
-  update-major-branch:
-    name: "Update Major Branch"
-    runs-on: ubuntu-latest
-    needs:
-      - post-release
-    steps:
-      - name: Get token
-        id: get_token
-        uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
-        with:
-          app_id: ${{ secrets.OBS_AUTOMATION_APP_ID }}
-          private_key: ${{ secrets.OBS_AUTOMATION_APP_PEM }}
-          permissions: >-
-            {
-              "contents": "write",
-              "pull_requests": "write"
-            }
-          repositories: >-
-            ["apm-agent-java"]
-
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
-          token: ${{ steps.get_token.outputs.token }}
-
-      - uses: elastic/oblt-actions/git/setup@v1
-        with:
-          github-token: ${{ steps.get_token.outputs.token }}
-
-      - name: Update major branch
-        if: ${{ ! inputs.dry_run }}
-        run: .ci/release/update-major-branch.sh ${{ env.RELEASE_VERSION }}
-        env:
-          GH_TOKEN: ${{ steps.get_token.outputs.token }}
 
   create-github-release:
     name: "Create GitHub Release"
     needs:
       - publish-aws-lambda
-      - update-major-branch
     runs-on: ubuntu-latest
     if: ${{ ! inputs.dry_run }}
     permissions:
@@ -266,16 +230,13 @@ jobs:
             echo "Release notes not published yet. Sleeping 30 seconds, retrying afterwards"
             sleep 30s
           done
-      - name: Compute major.x branch
-        id: get_dotx_branch
-        run: echo "dotx_branch=$(echo '${{ env.RELEASE_VERSION }}' | sed -E 's/\..+/.x/')" >> $GITHUB_OUTPUT
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create ${{ env.RELEASE_VERSION_TAG }} \
             --title="Release ${{ env.RELEASE_VERSION }}" \
-            --notes="[Release Notes for ${{ env.RELEASE_VERSION }}](https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${{ steps.get_dotx_branch.outputs.dotx_branch }}.html#release-notes-${{ env.RELEASE_VERSION }})
+            --notes="[Release Notes for ${{ env.RELEASE_VERSION }}](https://www.elastic.co/docs/release-notes/apm/agents/java#elastic-apm-java-agent-$(echo '${{ env.RELEASE_VERSION }}' | sed -E 's/\./-/g')-release-notes)
             ${{ needs.publish-aws-lambda.outputs.arn_content }}"
 
   notify:
@@ -283,7 +244,6 @@ jobs:
     needs:
       - maven-central-deploy
       - await-maven-central-artifact
-      - update-major-branch
       - build-and-push-docker-images
       - publish-aws-lambda
       - post-release
