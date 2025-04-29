@@ -20,7 +20,6 @@ package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.objectpool.Resetter;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
-import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.metadata.BodyCapture;
 import co.elastic.apm.agent.tracer.pooling.Allocator;
 import co.elastic.apm.agent.tracer.pooling.ObjectPool;
@@ -29,13 +28,18 @@ import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 public class BodyCaptureImpl implements BodyCapture, Recyclable {
+
+    private static final int BUFFER_SEGMENT_SIZE = 1024;
+
     private static final ObjectPool<ByteBuffer> BYTE_BUFFER_POOL = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<ByteBuffer>(128), false,
         new Allocator<ByteBuffer>() {
             @Override
             public ByteBuffer createInstance() {
-                return ByteBuffer.allocate(WebConfiguration.MAX_BODY_CAPTURE_BYTES);
+                return ByteBuffer.allocate(BUFFER_SEGMENT_SIZE);
             }
         },
         new Resetter<ByteBuffer>() {
@@ -58,12 +62,12 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
     private final StringBuilder charset;
 
     /**
-     * The maximum number of bytes to capture, if the body is longer remaining bytes will be dropped.
+     * The remaining number of bytes to append to {@link #bodyBuffers}.
+     * If zero, append operations will be no-op.
      */
-    private int numBytesToCapture;
+    private int remainingBytesToCapture;
 
-    @Nullable
-    private ByteBuffer bodyBuffer;
+    private final ArrayList<ByteBuffer> bodyBuffers = new ArrayList<>();
 
     BodyCaptureImpl() {
         charset = new StringBuilder();
@@ -74,10 +78,11 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
     public void resetState() {
         state = CaptureState.NOT_ELIGIBLE;
         charset.setLength(0);
-        if (bodyBuffer != null) {
-            BYTE_BUFFER_POOL.recycle(bodyBuffer);
-            bodyBuffer = null;
+        for (ByteBuffer buffer : bodyBuffers) {
+            BYTE_BUFFER_POOL.recycle(buffer);
         }
+        bodyBuffers.clear();
+        bodyBuffers.trimToSize();
     }
 
     @Override
@@ -114,15 +119,12 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
 
     @Override
     public void markPreconditionsPassed(@Nullable String requestCharset, int numBytesToCapture) {
-        if (numBytesToCapture > WebConfiguration.MAX_BODY_CAPTURE_BYTES) {
-            throw new IllegalArgumentException("Capturing " + numBytesToCapture + " bytes is not supported, maximum is " + WebConfiguration.MAX_BODY_CAPTURE_BYTES + " bytes");
-        }
         synchronized (this) {
             if (state == CaptureState.ELIGIBLE) {
                 if (requestCharset != null) {
                     this.charset.append(requestCharset);
                 }
-                this.numBytesToCapture = numBytesToCapture;
+                this.remainingBytesToCapture = numBytesToCapture;
                 state = CaptureState.PRECONDITIONS_PASSED;
             }
         }
@@ -141,38 +143,52 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
         return false;
     }
 
-    private void acquireBodyBufferIfRequired() {
-        if (state != CaptureState.STARTED) {
-            throw new IllegalStateException("Capturing has not been started!");
+    private ByteBuffer getNonFullAppendBuffer() {
+        ByteBuffer last = null;
+        if (!bodyBuffers.isEmpty()) {
+            last = bodyBuffers.get(bodyBuffers.size() - 1);
         }
-        if (bodyBuffer == null) {
-            bodyBuffer = BYTE_BUFFER_POOL.createInstance();
+        if (last == null || !last.hasRemaining()) {
+            last = BYTE_BUFFER_POOL.createInstance();
+            bodyBuffers.add(last);
         }
+        return last;
     }
 
     @Override
     public void append(byte b) {
-        acquireBodyBufferIfRequired();
+        if (state != CaptureState.STARTED) {
+            throw new IllegalStateException("Capturing has not been started!");
+        }
         if (!isFull()) {
-            bodyBuffer.put(b);
+            getNonFullAppendBuffer().put(b);
+            remainingBytesToCapture--;
         }
     }
 
     @Override
     public void append(byte[] b, int offset, int len) {
-        acquireBodyBufferIfRequired();
-        int remaining = numBytesToCapture - bodyBuffer.position();
-        if (remaining > 0) {
-            bodyBuffer.put(b, offset, Math.min(len, remaining));
+        if (state != CaptureState.STARTED) {
+            throw new IllegalStateException("Capturing has not been started!");
         }
+        if (isFull()) {
+            return;
+        }
+        int currOffset = offset;
+        int currLen = len;
+        do {
+            ByteBuffer appendTo = getNonFullAppendBuffer();
+            int toWrite = Math.min(appendTo.remaining(), Math.min(remainingBytesToCapture, currLen));
+            appendTo.put(b, currOffset, toWrite);
+            currOffset += toWrite;
+            currLen -= toWrite;
+            remainingBytesToCapture -= toWrite;
+        } while (remainingBytesToCapture > 0 && currLen > 0);
     }
 
     @Override
     public boolean isFull() {
-        if (bodyBuffer == null) {
-            return false;
-        }
-        return bodyBuffer.position() >= numBytesToCapture;
+        return remainingBytesToCapture == 0;
     }
 
     @Nullable
@@ -183,8 +199,11 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
         return charset;
     }
 
-    @Nullable
-    public ByteBuffer getBody() {
-        return bodyBuffer;
+    public List<ByteBuffer> getBody() {
+        return bodyBuffers;
+    }
+
+    public boolean hasContent() {
+        return !bodyBuffers.isEmpty();
     }
 }

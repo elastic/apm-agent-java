@@ -112,12 +112,11 @@ This option supports the wildcard `*`, which matches zero or more characters. Ex
 This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
 ::::
 
-
-Configures that the first n bytes of http-client request bodies shall be captured. Note that only request bodies will be captured for content types matching the [`transaction_name_groups`](/reference/config-core.md#config-transaction-name-groups) configuration. The maximum allowed value is 1024, a value of 0 disables body capturing.
+Configures that the first n bytes of http-client request bodies shall be captured.
+Note that only request bodies will be captured for content types matching the [`transaction_name_groups`](/reference/config-core.md#config-transaction-name-groups) configuration.
+A value of 0 disables body capturing. Note that even if this option is configured higher, the maximum amount of decoded characters will still be limited by the value of the [`long_field_max_length`](/reference/config-core.md#config-long-field-max-length) option.
 
 Currently only support for Apache Http Client v4 and v5, HttpUrlConnection, Spring Webflux WebClient and other frameworks building on top of these (e.g. Spring RestTemplate).
-
-The body will be stored in the `labels.http_request_body_content` field on the span documents.
 
 [![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
@@ -129,3 +128,22 @@ The body will be stored in the `labels.http_request_body_content` field on the s
 | --- | --- | --- |
 | `elastic.apm.capture_http_client_request_body_size` | `capture_http_client_request_body_size` | `ELASTIC_APM_CAPTURE_HTTP_CLIENT_REQUEST_BODY_SIZE` |
 
+
+## `capture_http_client_request_body_as_label` ([1.54.0]) [config-capture-http-client-request-body-as-label]
+
+::::{note}
+This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+::::
+
+If `capture_http_client_request_body_size` is configured, by default the request body will be stored in the `http.request.body.orginal` field.
+This requires APM-server version 8.18+.
+For compatibility with older APM-server versions, this option can be set to `true`, which will make the agent store the body in the `labels.http_request_body_content` field instead.
+Note that in this case only a maximum of 1000 characters are supported.
+
+| Default | Type | Dynamic |
+| --- | --- | --- |
+| `true` | Boolean | false |
+
+| Java System Properties | Property file | Environment                                             |
+| --- | --- |---------------------------------------------------------|
+| `elastic.apm.capture_http_client_request_body_as_label` | `capture_http_client_request_body_as_label` | `ELASTIC_APM_CAPTURE_HTTP_CLIENT_REQUEST_BODY_AS_LABEL` |

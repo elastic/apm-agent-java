@@ -31,8 +31,6 @@ import static co.elastic.apm.agent.tracer.configuration.RangeValidator.isInRange
 
 public class WebConfiguration extends ConfigurationOptionProvider {
 
-    public static final int MAX_BODY_CAPTURE_BYTES = 1024;
-
     private static final String HTTP_CATEGORY = "HTTP";
 
     private final ConfigurationOption<List<WildcardMatcher>> captureContentTypes = ConfigurationOption
@@ -126,17 +124,27 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
     private final ConfigurationOption<Integer> captureClientRequestBytes = ConfigurationOption.integerOption()
-        .addValidator(isInRange(0, MAX_BODY_CAPTURE_BYTES))
+        .addValidator(isInRange(0, Integer.MAX_VALUE))
         .key("capture_http_client_request_body_size")
         .configurationCategory(HTTP_CATEGORY)
         .tags("added[1.52.0]", "experimental")
         .description("Configures that the first n bytes of http-client request bodies shall be captured. " +
                      "Note that only request bodies will be captured for content types matching the <<config-transaction-name-groups,`transaction_name_groups`>> configuration. " +
-                     "The maximum allowed value is " + MAX_BODY_CAPTURE_BYTES + ", a value of 0 disables body capturing.\n\n" +
-                     "Currently only support for Apache Http Client v4 and v5, HttpUrlConnection, Spring Webflux WebClient and other frameworks building on top of these (e.g. Spring RestTemplate).\n\n" +
-                     "The body will be stored in the `labels.http_request_body_content` field on the span documents.")
+                     "A value of 0 disables body capturing. Note that even if this option is configured higher, the maximum amount of decoded characters will still be limited by the value of the <<config-long-field-max-length, `long_field_max_length`>> option.\n\n" +
+                     "Currently only support for Apache Http Client v4 and v5, HttpUrlConnection, Spring Webflux WebClient and other frameworks building on top of these (e.g. Spring RestTemplate).")
         .dynamic(true)
         .buildWithDefault(0);
+
+    private final ConfigurationOption<Boolean> captureClientRequestBodyAsLabel = ConfigurationOption.booleanOption()
+        .key("capture_http_client_request_body_as_label")
+        .configurationCategory(HTTP_CATEGORY)
+        .tags("added[1.54.0]", "experimental")
+        .description("If `capture_http_client_request_body_size` is configured, by default the request body will be stored in the `http.request.body.orginal` field. " +
+                     "This requires APM-server version 8.18+. " +
+                     "For compatibility with older APM-server versions, this option can be set to `true`, which will make the agent store the body in the `labels.http_request_body_content` field instead. " +
+                     "Note that in this case only a maximum of 1000 characters are supported.")
+        .dynamic(false)
+        .buildWithDefault(false);
 
     public List<WildcardMatcher> getIgnoreUrls() {
         return ignoreUrls.get();
@@ -160,6 +168,10 @@ public class WebConfiguration extends ConfigurationOptionProvider {
 
     public int getCaptureClientRequestBytes() {
         return captureClientRequestBytes.get();
+    }
+
+    public boolean isCaptureClientRequestBodyAsLabel() {
+        return captureClientRequestBodyAsLabel.get();
     }
 
 }

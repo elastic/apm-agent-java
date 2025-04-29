@@ -134,7 +134,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         doReturn(0).when(config.getConfig(WebConfiguration.class)).getCaptureClientRequestBytes();
         performPost(getBaseUrl() + "/dummy", content, "text/plain; charset=utf-8");
         expectSpan("/dummy")
-            .withRequestBodySatisfying(body -> assertThat(body.getBody()).isNull())
+            .withRequestBodySatisfying(body -> assertThat(body.hasContent()).isFalse())
             .verify();
         reporter.reset();
 
@@ -142,8 +142,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         performPost(getBaseUrl() + "/", content, "text/plain; charset=utf-8");
         expectSpan("/")
             .withRequestBodySatisfying(body -> {
-                ByteBuffer buffer = body.getBody();
-                assertThat(buffer).isNotNull();
+                List<ByteBuffer> buffer = body.getBody();
                 assertThat(IOUtils.copyToByteArray(buffer)).isEqualTo("Hello".getBytes(StandardCharsets.UTF_8));
                 assertThat(Objects.toString(body.getCharset())).isEqualTo("utf-8");
             })
@@ -187,12 +186,12 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             .containsExactly(capture, noCapture);
 
         BodyCaptureImpl captureBody = capture.getContext().getHttp().getRequestBody();
-        assertThat(captureBody.getBody()).isNotNull();
+        assertThat(captureBody.hasContent()).isTrue();
         assertThat(Objects.toString(captureBody.getCharset())).isEqualTo("iso-8859-1");
         assertThat(IOUtils.copyToByteArray(captureBody.getBody())).isEqualTo(content);
 
         BodyCaptureImpl noCaptureBody = noCapture.getContext().getHttp().getRequestBody();
-        assertThat(noCaptureBody.getBody()).isNull();
+        assertThat(noCaptureBody.hasContent()).isFalse();
         assertThat(noCaptureBody.getCharset()).isNull();
     }
 

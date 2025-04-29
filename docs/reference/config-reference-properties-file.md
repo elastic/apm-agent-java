@@ -848,17 +848,25 @@ mapped_pages:
 #
 # url_groups=
 
-# Configures that the first n bytes of http-client request bodies shall be captured. Note that only request bodies will be captured for content types matching the <<config-transaction-name-groups,`transaction_name_groups`>> configuration. The maximum allowed value is 1024, a value of 0 disables body capturing.
-#
-# Currently only support for Apache Http Client v4 and v5, HttpUrlConnection, Spring Webflux WebClient and other frameworks building on top of these (e.g. Spring RestTemplate).
-#
-# The body will be stored in the `labels.http_request_body_content` field on the span documents.
+# Configures that the first n bytes of http-client request bodies shall be captured.
+# Note that only request bodies will be captured for content types matching the transaction_name_groups configuration.
+# A value of 0 disables body capturing. Note that even if this option is configured higher, the maximum amount of decoded characters will still be limited by the value of the long_field_max_length option.
 #
 # This setting can be changed at runtime
 # Type: Integer
 # Default value: 0
 #
 # capture_http_client_request_body_size=0
+
+# If `capture_http_client_request_body_size` is configured, by default the request body will be stored in the `http.request.body.orginal` field.
+# This requires APM-server version 8.18+.
+# For compatibility with older APM-server versions, this option can be set to `true`, which will make the agent store the body in the `labels.http_request_body_content` field instead.
+# Note that in this case only a maximum of 1000 characters are supported.
+#
+# Type: Boolean
+# Default value: false
+#
+# capture_http_client_request_body_as_label=false
 
 ############################################
 # Huge Traces                              #

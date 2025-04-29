@@ -20,13 +20,13 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
 import co.elastic.apm.agent.impl.metadata.ProcessInfo;
 import co.elastic.apm.agent.impl.metadata.ServiceImpl;
 import co.elastic.apm.agent.impl.metadata.SystemInfo;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactoryImpl;
@@ -65,7 +65,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -160,7 +159,7 @@ class ApmServerReporterIntegrationTest {
         ApmServerClient apmServerClient = new ApmServerClient(config);
         apmServerClient.start();
         DslJsonSerializer payloadSerializer = new DslJsonSerializer(
-            mock(StacktraceConfigurationImpl.class),
+            SpyConfiguration.createSpyConfig(),
             apmServerClient,
             MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
         );
