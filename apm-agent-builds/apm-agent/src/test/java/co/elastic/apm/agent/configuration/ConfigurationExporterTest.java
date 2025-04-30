@@ -29,7 +29,6 @@ import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -41,6 +40,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -109,15 +110,16 @@ class ConfigurationExporterTest {
      * Since we allow a limited number of unit-test failures, this test would have always passed without this configuration.
      */
     @Test
-//    @Disabled("Needs migration or update for new docs system")
     void testGeneratedConfigurationDocsAreUpToDate() throws IOException, TemplateException {
         String renderedDocumentation = renderDocumentation(configurationRegistry);
 
         // trim EOL whitespace
-        String[] lines = renderedDocumentation.split("\n");
-        for (int i = 0; i < lines.length; i++) {
-            lines[i] = lines[i].replaceAll("\\s+$", "");
+        List<String> lines = new ArrayList<>(Arrays.asList(renderedDocumentation.split("\n")));
+        for (int i = 0; i < lines.size(); i++) {
+            lines.set(i, lines.get(i).replaceAll("\\s+$", ""));
         }
+        // add extra empty line at end of file
+        lines.add("");
         renderedDocumentation = String.join("\n", lines);
 
         if (Boolean.parseBoolean(System.getProperty("elastic.apm.overwrite.config.docs", Boolean.TRUE.toString()))) {
