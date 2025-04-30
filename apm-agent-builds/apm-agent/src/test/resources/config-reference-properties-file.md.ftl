@@ -32,7 +32,7 @@ mapped_pages:
 # Supports the duration suffixes ms, s and m. Example: ${option.defaultValueAsString}.
   </#if>
 </#if>
-# Default value: ${option.defaultValueAsString!}
+# Default value: ${option.key?matches("service_name")?then('Auto-detected based on the rules described above', option.defaultValueAsString!)}
 #
 # ${option.key}=${option.key?matches("service_name")?then('', option.defaultValueAsString!)}
 

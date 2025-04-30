@@ -201,7 +201,6 @@ mapped_pages:
 # Type: String
 # Default value: Auto-detected based on the rules described above
 #
-#
 # service_name=
 
 # A unique name for the service node
