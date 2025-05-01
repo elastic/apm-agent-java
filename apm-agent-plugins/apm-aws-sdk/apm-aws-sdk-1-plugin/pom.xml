@@ -12,7 +12,7 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
-        <version.aws.sdk>1.12.782</version.aws.sdk>
+        <version.aws.sdk>1.12.783</version.aws.sdk>
         <version.aws.jms>1.1.0</version.aws.jms>
     </properties>
 
