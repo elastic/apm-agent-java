@@ -66,9 +66,11 @@ class AgentSetupIT {
         try (AgentTestContainer.JarApp app = testAppWithJavaAgent("openjdk:17", AgentFileAccessor.Variant.STANDARD)) {
 
             app.withSecurityManager(null)
-                .waitingFor(Wait.forLogMessage(expectedMsg, 1))
+                // using a dummy command since testcontainers 1.21.0 as waiting on stderr msg is not working anymore
+                // when the container fails to start. Likely related to https://github.com/testcontainers/testcontainers-java/issues/9956
+                .waitingFor(Wait.forSuccessfulCommand("bash --version"))
                 // we expect startup to fail fast as JVM should not even properly start
-                .withStartupTimeout(Duration.ofSeconds(1));
+                .withStartupTimeout(Duration.ofSeconds(3));
 
             app.start();
 
