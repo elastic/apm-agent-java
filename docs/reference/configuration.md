@@ -135,6 +135,7 @@ This is a list of all configuration options grouped by their category. Click on 
     * [`use_path_as_transaction_name` ([1.0.0])](/reference/config-http.md#config-use-path-as-transaction-name)
     * [`url_groups` (deprecated)](/reference/config-http.md#config-url-groups)
     * [`capture_http_client_request_body_size` ([1.52.0] experimental)](/reference/config-http.md#config-capture-http-client-request-body-size)
+    * [`capture_http_client_request_body_as_label` ([1.54.0] experimental)](/reference/config-http.md#config-capture-http-client-request-body-as-label)
 
 * [Huge Traces](/reference/config-huge-traces.md)
 

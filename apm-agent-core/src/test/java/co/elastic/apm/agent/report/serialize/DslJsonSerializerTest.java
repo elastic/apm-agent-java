@@ -104,15 +104,16 @@ class DslJsonSerializerTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        StacktraceConfigurationImpl stacktraceConfiguration = mock(StacktraceConfigurationImpl.class);
+        tracer = MockTracer.createRealTracer();
+        ConfigurationRegistry config = tracer.getConfigurationRegistry();
+        StacktraceConfigurationImpl stacktraceConfiguration = config.getConfig(StacktraceConfigurationImpl.class);
         doReturn(15).when(stacktraceConfiguration).getStackTraceLimit();
         apmServerClient = mock(ApmServerClient.class);
         metaData = MetaDataMock.create();
         objectMapper = new ObjectMapper();
-        tracer = MockTracer.createRealTracer();
         SerializationConstants.init(tracer.getConfig(CoreConfigurationImpl.class));
 
-        DslJsonSerializer serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData);
+        DslJsonSerializer serializer = new DslJsonSerializer(config, apmServerClient, metaData);
         writer = serializer.newWriter();
         writer.blockUntilReady();
     }
@@ -203,9 +204,10 @@ class DslJsonSerializerTest {
 
     @Test
     void testErrorSerializationAllFrames() {
-        StacktraceConfigurationImpl stacktraceConfiguration = mock(StacktraceConfigurationImpl.class);
+        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        StacktraceConfigurationImpl stacktraceConfiguration = config.getConfig(StacktraceConfigurationImpl.class);
         doReturn(-1).when(stacktraceConfiguration).getStackTraceLimit();
-        writer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, metaData).newWriter();
+        writer = new DslJsonSerializer(config, apmServerClient, metaData).newWriter();
 
         ErrorCaptureImpl error = new ErrorCaptureImpl(tracer).withTimestamp(5000);
         Exception exception = new Exception("test");
@@ -435,6 +437,10 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanHttpRequestBodySerialization() throws UnsupportedEncodingException {
+        CoreConfigurationImpl coreConfiguration = tracer.getConfig(CoreConfigurationImpl.class);
+        doReturn(2500).when(coreConfiguration).getLongFieldMaxLength();
+        SerializationConstants.init(coreConfiguration);
+
         String noBody = extractRequestBodyJson(createSpanWithRequestBody(null, "utf-8"));
         assertThat(noBody).isNull();
 
@@ -455,16 +461,68 @@ class DslJsonSerializerTest {
 
         String invalidUtf8Sequence = extractRequestBodyJson(createSpanWithRequestBody(new byte[]{'t', 'e', 's', 't', (byte) 0xC2, (byte) 0xC2}, "utf-8"));
         assertThat(invalidUtf8Sequence).isEqualTo("testÂÂ");
+
+        // Test truncation to LongFieldMaxLength
+        String longString = generateStringOfLength(5000);
+        String truncated = longString.substring(0, 2500);
+
+        String longResult = extractRequestBodyJson(createSpanWithRequestBody(longString.getBytes("utf-16"), "utf-16"));
+        assertThat(longResult).isEqualTo(truncated);
+    }
+
+    @Test
+    void testSpanHttpRequestBodySerializationAsLabel() throws UnsupportedEncodingException {
+        CoreConfigurationImpl coreConfiguration = tracer.getConfig(CoreConfigurationImpl.class);
+        doReturn(2500).when(coreConfiguration).getLongFieldMaxLength();
+        SerializationConstants.init(coreConfiguration);
+
+        //Ensure the label is not written on default settings first
+        SpanImpl span = createSpanWithRequestBody("test".getBytes("utf-8"), "utf-8");
+        JsonNode spanJson = readJsonString(writer.toJsonString(span));
+        JsonNode otel = spanJson.get("otel");
+        assertThat(otel).isNull();
+
+
+        doReturn(true).when(tracer.getConfig(WebConfiguration.class)).isCaptureClientRequestBodyAsLabel();
+
+        spanJson = readJsonString(writer.toJsonString(span));
+
+        otel = spanJson.get("otel");
+        JsonNode attribs = otel.get("attributes");
+        JsonNode bodyContent = attribs.get("http.request.body.content");
+
+        assertThat(bodyContent.textValue()).isEqualTo("test");
+        assertThat(extractRequestBodyJson(span)).isNull();
+    }
+
+    private String generateStringOfLength(int len) {
+        StringBuilder out = new StringBuilder();
+        int i = 0;
+        while (out.length() < len) {
+            out.append(i).append(",");
+            i++;
+        }
+        if (out.length() > len) {
+            out.delete(len, out.length());
+        }
+        return out.toString();
     }
 
     private String extractRequestBodyJson(SpanImpl span) {
         JsonNode spanJson = readJsonString(writer.toJsonString(span));
-        JsonNode otel = spanJson.get("otel");
-        if (otel == null) {
+        JsonNode context = spanJson.get("context");
+        if (context == null) {
             return null;
         }
-        JsonNode attribs = otel.get("attributes");
-        JsonNode bodyContent = attribs.get("http.request.body.content");
+        JsonNode http = context.get("http");
+        if (http == null) {
+            return null;
+        }
+        JsonNode request = http.get("request");
+        if (request == null) {
+            return null;
+        }
+        JsonNode bodyContent = request.get("body");
         if (bodyContent == null) {
             return null;
         }
@@ -475,7 +533,7 @@ class DslJsonSerializerTest {
         SpanImpl span = new SpanImpl(tracer);
         BodyCaptureImpl bodyCapture = span.getContext().getHttp().getRequestBody();
         bodyCapture.markEligibleForCapturing();
-        bodyCapture.markPreconditionsPassed(charset, WebConfiguration.MAX_BODY_CAPTURE_BYTES);
+        bodyCapture.markPreconditionsPassed(charset, Integer.MAX_VALUE);
         bodyCapture.startCapture();
 
         if (bodyBytes != null) {
@@ -796,7 +854,7 @@ class DslJsonSerializerTest {
 
         CloudProviderInfo cloudProviderInfo = createCloudProviderInfo();
         writer = new DslJsonSerializer(
-            mock(StacktraceConfigurationImpl.class),
+            SpyConfiguration.createSpyConfig(),
             apmServerClient,
             MetaDataMock.create(
                 processInfo, service, systemInfo, cloudProviderInfo,
@@ -878,7 +936,7 @@ class DslJsonSerializerTest {
     void testConfiguredServiceNodeName() throws Exception {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig();
         doReturn("Custom-Node-Name").when(configRegistry.getConfig(CoreConfigurationImpl.class)).getServiceNodeName();
-        writer = new DslJsonSerializer(mock(StacktraceConfigurationImpl.class), apmServerClient, MetaData.create(configRegistry, null)).newWriter();
+        writer = new DslJsonSerializer(configRegistry, apmServerClient, MetaData.create(configRegistry, null)).newWriter();
         writer.blockUntilReady();
         writer.appendMetaDataNdJsonToStream();
         JsonNode metaDataJson = readJsonString(writer.toString()).get("metadata");
@@ -1324,7 +1382,6 @@ class DslJsonSerializerTest {
         // because metadata is serialized only once, we need to ensure it's properly updated whenever needed
         // in particular when going from 'apm server version unknown' to 'apm server version known'
 
-        StacktraceConfigurationImpl stacktraceConfiguration = mock(StacktraceConfigurationImpl.class);
         apmServerClient = mock(ApmServerClient.class);
         doReturn(value1).when(apmServerClient).supportsActivationMethod();
 
@@ -1334,7 +1391,7 @@ class DslJsonSerializerTest {
         MetaData mockMetada = MetaDataMock.createDefaultMock();
         doReturn(service).when(mockMetada).getService();
 
-        writer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient, MetaDataMock.create(mockMetada)).newWriter();
+        writer = new DslJsonSerializer(SpyConfiguration.createSpyConfig(), apmServerClient, MetaDataMock.create(mockMetada)).newWriter();
         writer.blockUntilReady();
         writer.appendMetadataToStream();
 

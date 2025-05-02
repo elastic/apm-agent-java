@@ -21,7 +21,6 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactoryImpl;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
@@ -107,7 +106,7 @@ class ReporterFactoryTest {
         doReturn(false).when(reporterConfiguration).isVerifyServerCert();
         ApmServerClient apmServerClient = new ApmServerClient(configuration);
         apmServerClient.start();
-        DslJsonSerializer serializer = new DslJsonSerializer(configuration.getConfig(StacktraceConfigurationImpl.class), apmServerClient, MetaDataMock.create());
+        DslJsonSerializer serializer = new DslJsonSerializer(configuration, apmServerClient, MetaDataMock.create());
         ObjectPoolFactoryImpl poolFactory = new ObjectPoolFactoryImpl();
         final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, serializer, ReporterMonitor.NOOP, poolFactory);
         reporter.start();
@@ -126,7 +125,7 @@ class ReporterFactoryTest {
         doReturn(true).when(reporterConfiguration).isVerifyServerCert();
         ApmServerClient apmServerClient = new ApmServerClient(configuration);
         apmServerClient.start();
-        DslJsonSerializer serializer = new DslJsonSerializer(configuration.getConfig(StacktraceConfigurationImpl.class), apmServerClient, MetaDataMock.create());
+        DslJsonSerializer serializer = new DslJsonSerializer(configuration, apmServerClient, MetaDataMock.create());
         ObjectPoolFactoryImpl poolFactory = new ObjectPoolFactoryImpl();
         final Reporter reporter = reporterFactory.createReporter(configuration, apmServerClient, serializer, ReporterMonitor.NOOP, poolFactory);
         reporter.start();
