@@ -201,7 +201,6 @@ mapped_pages:
 # Type: String
 # Default value: Auto-detected based on the rules described above
 #
-#
 # service_name=
 
 # A unique name for the service node
@@ -622,7 +621,7 @@ mapped_pages:
 # To enable {apm-guide-ref}/apm-distributed-tracing.html[distributed tracing], the agent
 # adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
 # These headers (`traceparent` and `tracestate`) are defined in the
-# [W3C Trace Context](https://www.w3.org/TR/trace-context-1/) specification.
+# https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.
 #
 # When this setting is `true`, the agent will also add the header `elastic-apm-traceparent`
 # for backwards compatibility with older versions of Elastic APM agents.
@@ -848,9 +847,9 @@ mapped_pages:
 #
 # url_groups=
 
-# Configures that the first n bytes of http-client request bodies shall be captured.
-# Note that only request bodies will be captured for content types matching the transaction_name_groups configuration.
-# A value of 0 disables body capturing. Note that even if this option is configured higher, the maximum amount of decoded characters will still be limited by the value of the long_field_max_length option.
+# Configures that the first n bytes of http-client request bodies shall be captured. Note that only request bodies will be captured for content types matching the <<config-transaction-name-groups,`transaction_name_groups`>> configuration. A value of 0 disables body capturing. Note that even if this option is configured higher, the maximum amount of decoded characters will still be limited by the value of the <<config-long-field-max-length, `long_field_max_length`>> option.
+#
+# Currently only support for Apache Http Client v4 and v5, HttpUrlConnection, Spring Webflux WebClient and other frameworks building on top of these (e.g. Spring RestTemplate).
 #
 # This setting can be changed at runtime
 # Type: Integer
@@ -858,11 +857,9 @@ mapped_pages:
 #
 # capture_http_client_request_body_size=0
 
-# If `capture_http_client_request_body_size` is configured, by default the request body will be stored in the `http.request.body.orginal` field.
-# This requires APM-server version 8.18+.
-# For compatibility with older APM-server versions, this option can be set to `true`, which will make the agent store the body in the `labels.http_request_body_content` field instead.
-# Note that in this case only a maximum of 1000 characters are supported.
+# If `capture_http_client_request_body_size` is configured, by default the request body will be stored in the `http.request.body.orginal` field. This requires APM-server version 8.18+. For compatibility with older APM-server versions, this option can be set to `true`, which will make the agent store the body in the `labels.http_request_body_content` field instead. Note that in this case only a maximum of 1000 characters are supported.
 #
+# This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: Boolean
 # Default value: false
 #
@@ -948,14 +945,14 @@ mapped_pages:
 # * `object_name`:
 # +
 # For more information about the JMX object name pattern syntax,
-# see the [`ObjectName` Javadocs](https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html).
+# see the https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[`ObjectName` Javadocs].
 # * `attribute`:
 # +
 # The name of the JMX attribute.
 # The JMX value has to be either a `Number` or a composite where the composite items are numbers.
 # This element can be defined multiple times.
 # An attribute can contain optional properties.
-# The syntax for that is the same as for [`ObjectName`](https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html).
+# The syntax for that is the same as for https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[`ObjectName`].
 # +
 # ** `metric_name`:
 # +
@@ -964,9 +961,9 @@ mapped_pages:
 # Setting this is optional and will be the same as the `attribute` if not set.
 # Note that all JMX metric names will be prefixed with `jvm.jmx.` by the agent.
 #
-# The agent creates `labels` for each link:[JMX key property](https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html#getKeyPropertyList()) such as `type` and `name`.
+# The agent creates `labels` for each link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html#getKeyPropertyList()[JMX key property] such as `type` and `name`.
 #
-# The link:[JMX object name pattern](https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html) supports wildcards. The attribute definition does NOT support wildcards, but a special definition `attribute[*]` is accepted (from 1.44.0) to mean match all possible (numeric) attributes for the associated object name pattern
+# The link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[JMX object name pattern] supports wildcards. The attribute definition does NOT support wildcards, but a special definition `attribute[*]` is accepted (from 1.44.0) to mean match all possible (numeric) attributes for the associated object name pattern
 # The definition `object_name[*:type=*,name=*] attribute[*]` would match all possible JMX metrics
 # In the following example, the agent will create a metricset for each memory pool `name` (such as `G1 Old Generation` and `G1 Young Generation`)
 #
@@ -1169,7 +1166,7 @@ mapped_pages:
 
 # Defines the log format when logging to `System.out`.
 #
-# When set to `JSON`, the agent will format the logs in an [ECS-compliant JSON format](https://github.com/elastic/ecs-logging-java)
+# When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
 # where each log event is serialized as a single line.
 #
 # Valid options: PLAIN_TEXT, JSON
@@ -1181,7 +1178,7 @@ mapped_pages:
 
 # Defines the log format when logging to a file.
 #
-# When set to `JSON`, the agent will format the logs in an [ECS-compliant JSON format](https://github.com/elastic/ecs-logging-java)
+# When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
 # where each log event is serialized as a single line.
 #
 # Valid options: PLAIN_TEXT, JSON
@@ -1334,7 +1331,7 @@ mapped_pages:
 # universal_profiling_integration_socket_dir=
 
 # Set to `true` to make the agent create spans for method executions based on
-# [async-profiler](https://github.com/jvm-profiling-tools/async-profiler), a sampling aka statistical profiler.
+# https://github.com/jvm-profiling-tools/async-profiler[async-profiler], a sampling aka statistical profiler.
 #
 # Due to the nature of how sampling profilers work,
 # the duration of the inferred spans are not exact, but only estimations.
@@ -1413,7 +1410,7 @@ mapped_pages:
 #
 # profiling_inferred_spans_excluded_classes=(?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*,(?-i)io.undertow.*
 
-# Profiling requires that the [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) shared library is exported to a temporary location and loaded by the JVM.
+# Profiling requires that the https://github.com/jvm-profiling-tools/async-profiler[async-profiler] shared library is exported to a temporary location and loaded by the JVM.
 # The partition backing this location must be executable, however in some server-hardened environments, `noexec` may be set on the standard `/tmp` partition, leading to `java.lang.UnsatisfiedLinkError` errors.
 # Set this property to an alternative directory (e.g. `/var/tmp`) to resolve this.
 # If unset, the value of the `java.io.tmpdir` system property will be used.
@@ -1460,7 +1457,7 @@ mapped_pages:
 #
 # If outgoing HTTP traffic has to go through a proxy,
 # you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
-# See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html)
+# See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation]
 # for more information.
 #
 # NOTE: This configuration can only be reloaded dynamically as of 1.8.0
@@ -1484,7 +1481,7 @@ mapped_pages:
 #
 # If outgoing HTTP traffic has to go through a proxy,
 # you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
-# See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html)
+# See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation]
 # for more information.
 #
 # NOTE: This configuration is specific to the Java agent and does not align with any other APM agent. In order
@@ -1680,5 +1677,5 @@ mapped_pages:
 # Default value: 5ms
 #
 # span_stack_trace_min_duration=5ms
-```
 
+```

@@ -29,7 +29,6 @@ import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -41,6 +40,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -86,7 +88,7 @@ class ConfigurationExporterTest {
 
     @BeforeEach
     void setUp() {
-        renderedDocumentationPath = Paths.get("../../docs/configuration.asciidoc");
+        renderedDocumentationPath = Paths.get("../../docs/reference/config-reference-properties-file.md");
         ElasticApmTracer tracer = mock(ElasticApmTracer.class);
         doReturn(tracer).when(tracer).require(ElasticApmTracer.class);
         doReturn(ElasticApmTracer.TracerState.UNINITIALIZED).when(tracer).getState();
@@ -108,20 +110,33 @@ class ConfigurationExporterTest {
      * Since we allow a limited number of unit-test failures, this test would have always passed without this configuration.
      */
     @Test
-    @Disabled("Needs migration or update for new docs system")
     void testGeneratedConfigurationDocsAreUpToDate() throws IOException, TemplateException {
         String renderedDocumentation = renderDocumentation(configurationRegistry);
-        String expected = new String(Files.readAllBytes(this.renderedDocumentationPath), StandardCharsets.UTF_8);
+
+        // trim EOL whitespace
+        List<String> lines = new ArrayList<>(Arrays.asList(renderedDocumentation.split("\n")));
+        for (int i = 0; i < lines.size(); i++) {
+            lines.set(i, lines.get(i).replaceAll("\\s+$", ""));
+        }
+        // add extra empty line at end of file
+        lines.add("");
+        renderedDocumentation = String.join("\n", lines);
 
         if (Boolean.parseBoolean(System.getProperty("elastic.apm.overwrite.config.docs", Boolean.TRUE.toString()))) {
             // unless explicitly disabled (e.g. on CI) overwrite the current documentation
             Files.write(renderedDocumentationPath, renderedDocumentation.getBytes(StandardCharsets.UTF_8));
         }
 
+        if (!Files.exists(this.renderedDocumentationPath)) {
+            fail("rendered documentation file does not exists %s", this.renderedDocumentationPath.toAbsolutePath());
+        }
+
+        String expected = new String(Files.readAllBytes(this.renderedDocumentationPath), StandardCharsets.UTF_8);
+
         assertThat(renderedDocumentation)
             .withFailMessage("The rendered configuration documentation (/docs/configuration.asciidoc) is not up-to-date.\n" +
                 "If you see this error on CI, it means you have to execute the tests locally " +
-                "(./mvnw -Dsurefire.failIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false -Dtest=ConfigurationExporterTest -pl apm-agent -am clean test) " +
+                "(./mvnw -Dsurefire.failIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false -Dtest=ConfigurationExporterTest -pl apm-agent-builds/apm-agent -am clean test) " +
                 "or on Windows(.\\mvnw \"-Dsurefire.failIfNoTests=false\" \"-Dsurefire.failIfNoSpecifiedTests=false\" -Dtest=ConfigurationExporterTest -pl apm-agent-builds/apm-agent -am clean test) " +
                 "which will update the rendered docs.\n" +
                 "If you see this error while running the tests locally, there's nothing more to do - the rendered docs have been updated " +
@@ -136,13 +151,11 @@ class ConfigurationExporterTest {
         cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
         cfg.setLogTemplateExceptions(false);
 
-        Template temp = cfg.getTemplate("configuration.asciidoc.ftl");
+        // trim EOL whitespace
+        cfg.setWhitespaceStripping(true);
+
+        Template temp = cfg.getTemplate("config-reference-properties-file.md.ftl");
         StringWriter tempRenderedFile = new StringWriter();
-        tempRenderedFile.write("////\n" +
-            "This file is auto generated\n" +
-            "\n" +
-            "Please only make changes in configuration.asciidoc.ftl\n" +
-            "////\n");
         final List<ConfigurationOption<?>> nonInternalOptions = configurationRegistry.getConfigurationOptionsByCategory()
             .values()
             .stream()
