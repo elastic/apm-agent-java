@@ -7,14 +7,14 @@ mapped_pages:
 
 To adapt the Elastic APM Java agent to your needs, you can configure it using one of the methods below, listed in descending order of precedence:
 
-1) [Central configuration](docs-content://solutions/observability/apps/apm-agent-central-configuration.md)
-:   Configure the Agent in the Kibana APM app. [![dynamic config](/reference/images/dynamic-config.svg "") ](#configuration-dynamic)
+1) [Central configuration](docs-content://solutions/observability/apm/apm-agent-central-configuration.md)
+:   Configure the Agent in the Kibana APM app. [![dynamic config](images/dynamic-config.svg "") ](#configuration-dynamic)
 
 2) Properties file
-:   The `elasticapm.properties` file is located in the same folder as the agent jar, or provided through the [`config_file`](/reference/config-core.md#config-config-file) option. ![dynamic config](/reference/images/dynamic-config.svg "")
+:   The `elasticapm.properties` file is located in the same folder as the agent jar, or provided through the [`config_file`](/reference/config-core.md#config-config-file) option. ![dynamic config](images/dynamic-config.svg "")
 
 3) Java system properties
-:   All configuration keys are prefixed with `elastic.apm.`<br> ![dynamic config](/reference/images/dynamic-config.svg "")
+:   All configuration keys are prefixed with `elastic.apm.`<br> ![dynamic config](images/dynamic-config.svg "")
 
 4) Environment variables
 :   All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`.
@@ -29,11 +29,11 @@ To adapt the Elastic APM Java agent to your needs, you can configure it using on
 :   Defined for each configuration.
 
 
-## Dynamic configuration ![dynamic config](/reference/images/dynamic-config.svg "") [configuration-dynamic]
+## Dynamic configuration ![dynamic config](images/dynamic-config.svg "") [configuration-dynamic]
 
 Configuration options marked with Dynamic true can be changed at runtime when set from supported sources:
 
-* [Central configuration](docs-content://solutions/observability/apps/apm-agent-central-configuration.md)
+* [Central configuration](docs-content://solutions/observability/apm/apm-agent-central-configuration.md)
 * `elasticapm.properties` file
 * Java system properties, but only when set from within the application
 
@@ -135,6 +135,7 @@ This is a list of all configuration options grouped by their category. Click on 
     * [`use_path_as_transaction_name` ([1.0.0])](/reference/config-http.md#config-use-path-as-transaction-name)
     * [`url_groups` (deprecated)](/reference/config-http.md#config-url-groups)
     * [`capture_http_client_request_body_size` ([1.52.0] experimental)](/reference/config-http.md#config-capture-http-client-request-body-size)
+    * [`capture_http_client_request_body_as_label` ([1.54.0] experimental)](/reference/config-http.md#config-capture-http-client-request-body-as-label)
 
 * [Huge Traces](/reference/config-huge-traces.md)
 

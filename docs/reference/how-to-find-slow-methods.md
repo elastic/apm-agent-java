@@ -15,7 +15,7 @@ Identifying a problematic service is only half of the battle when diagnosing app
 
 Find out which part of your code is making your application slow by periodically recording running methods with a sampling-based profiler.
 
-![green check](/reference/images/green-check.svg "") Very low overhead.<br> ![green check](/reference/images/green-check.svg "") No code changes required.<br> ![red x](/reference/images/red-x.svg "") Does not work on Windows and on OpenJ9.<br> ![red x](/reference/images/red-x.svg "") The duration of profiler-inferred spans are not exact measurements, only estimates.
+![green check](images/green-check.svg "") Very low overhead.<br> ![green check](images/green-check.svg "") No code changes required.<br> ![red x](images/red-x.svg "") Does not work on Windows and on OpenJ9.<br> ![red x](images/red-x.svg "") The duration of profiler-inferred spans are not exact measurements, only estimates.
 
 [Learn more](/reference/method-sampling-based.md)
 
@@ -27,7 +27,7 @@ Find out which part of your code is making your application slow by periodically
 
 Use the API or OpenTracing bridge to manually create spans for methods of interest.
 
-![green check](/reference/images/green-check.svg "") Most flexible.<br> ![red x](/reference/images/red-x.svg "") Incorrect API usage may lead to invalid traces (scope leaks).
+![green check](images/green-check.svg "") Most flexible.<br> ![red x](images/red-x.svg "") Incorrect API usage may lead to invalid traces (scope leaks).
 
 [Learn more](/reference/method-api.md)
 
@@ -36,7 +36,7 @@ Use the API or OpenTracing bridge to manually create spans for methods of intere
 
 Annotations can be placed on top of methods to automatically create spans for them.
 
-![green check](/reference/images/green-check.svg "") Easier and more robust than the API.<br> ![red x](/reference/images/red-x.svg "") Less flexible on its own, but can be combined with the API.
+![green check](images/green-check.svg "") Easier and more robust than the API.<br> ![red x](images/red-x.svg "") Less flexible on its own, but can be combined with the API.
 
 [Learn more](/reference/method-annotations.md)
 
@@ -45,7 +45,7 @@ Annotations can be placed on top of methods to automatically create spans for th
 
 Use a configuration option to specify additional methods to instrument.
 
-![green check](/reference/images/green-check.svg "") No need to modify source code.<br> ![green check](/reference/images/green-check.svg "") Possible to monitor code in third-party libraries.<br> ![green check](/reference/images/green-check.svg "") Match methods via wildcards.<br> ![red x](/reference/images/red-x.svg "") Easy to overuse which hurts runtime and startup performance.
+![green check](images/green-check.svg "") No need to modify source code.<br> ![green check](images/green-check.svg "") Possible to monitor code in third-party libraries.<br> ![green check](images/green-check.svg "") Match methods via wildcards.<br> ![red x](images/red-x.svg "") Easy to overuse which hurts runtime and startup performance.
 
 [Learn more](/reference/method-config-based.md)
 

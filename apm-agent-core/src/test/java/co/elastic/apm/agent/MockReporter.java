@@ -23,7 +23,6 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.context.DestinationImpl;
 import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
 import co.elastic.apm.agent.impl.metadata.MetaData;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
 import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
@@ -794,7 +793,6 @@ public class MockReporter implements Reporter {
             this.errorSchemaPath = errorSchema;
 
             ConfigurationRegistry spyConfig = SpyConfiguration.createSpyConfig();
-            StacktraceConfigurationImpl stacktraceConfiguration = spyConfig.getConfig(StacktraceConfigurationImpl.class);
 
             Future<MetaData> metaData = MetaData.create(spyConfig, null);
             ApmServerClient client = mock(ApmServerClient.class);
@@ -806,7 +804,7 @@ public class MockReporter implements Reporter {
             doReturn(isLatest).when(client).supportsLogsEndpoint();
 
             SerializationConstants.init(spyConfig.getConfig(CoreConfigurationImpl.class));
-            this.serializer = new DslJsonSerializer(stacktraceConfiguration, client, metaData).newWriter();
+            this.serializer = new DslJsonSerializer(spyConfig, client, metaData).newWriter();
         }
 
         private static JsonSchema getSchema(String resource) {

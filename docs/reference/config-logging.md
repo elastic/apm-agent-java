@@ -17,7 +17,7 @@ Sets the logging level for the agent. This option is case-insensitive.
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 Valid options: `OFF`, `ERROR`, `CRITICAL`, `WARN`, `WARNING`, `INFO`, `DEBUG`, `TRACE`
 
@@ -73,7 +73,7 @@ while `SHADE` and `REPLACE` options are only relevant to file log appenders, the
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 Valid options: `OFF`, `SHADE`, `REPLACE`, `OVERRIDE`
 
@@ -189,7 +189,7 @@ Note that logs can get lost if the agent can’t keep up with the logs, if APM S
 
 For better delivery guarantees, it’s recommended to ship ECS JSON log files with Filebeat See also [`log_ecs_reformatting`](#config-log-ecs-reformatting). Log sending does not currently support custom MDC fields, `log_ecs_reformatting` and shipping the logs with Filebeat must be used if custom MDC fields are required.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |

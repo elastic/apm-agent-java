@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.impl.context;
 
+import co.elastic.apm.agent.sdk.internal.util.IOUtils;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
@@ -42,13 +43,38 @@ public class BodyCaptureImplTest {
         capture.append(" from the other side".getBytes(StandardCharsets.UTF_8), 0, 20);
         assertThat(capture.isFull()).isTrue();
 
-        ByteBuffer content = capture.getBody();
+        assertThat(capture.getBody()).hasSize(1);
+        ByteBuffer content = capture.getBody().get(0);
         int size = content.position();
         byte[] contentBytes = new byte[size];
         content.position(0);
         content.get(contentBytes);
 
         assertThat(contentBytes).isEqualTo("Hello from".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void testAppendLargeData() {
+        byte[] data = generateStringOfLength(4500).getBytes(StandardCharsets.UTF_8);
+
+        BodyCaptureImpl capture = new BodyCaptureImpl();
+        capture.markEligibleForCapturing();
+        capture.markPreconditionsPassed("foobar", 4400);
+        capture.startCapture();
+
+        capture.append(data, 0, 1000);
+        for (int i = 1000; i < 1100; i++) {
+            capture.append(data[i]);
+        }
+        capture.append(data, 1100, 100);
+        capture.append(data, 1200, 1000);
+        capture.append(data, 2200, 2300);
+        capture.append((byte) 42);
+
+        byte[] expected = new byte[4400];
+        System.arraycopy(data, 0, expected, 0, 4400);
+
+        assertThat(IOUtils.copyToByteArray(capture.getBody())).containsExactly(expected);
     }
 
     @Test
@@ -81,6 +107,19 @@ public class BodyCaptureImplTest {
 
         capture.resetState();
         assertThat(capture.getCharset()).isNull();
-        assertThat(capture.getBody()).isNull();
+        assertThat(capture.getBody()).isEmpty();
+    }
+
+    private String generateStringOfLength(int len) {
+        StringBuilder out = new StringBuilder();
+        int i = 0;
+        while (out.length() < len) {
+            out.append(i).append(",");
+            i++;
+        }
+        if (out.length() > len) {
+            out.delete(len, out.length());
+        }
+        return out.toString();
     }
 }

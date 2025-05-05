@@ -31,8 +31,12 @@ import co.elastic.apm.agent.impl.metadata.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactoryImpl;
-import co.elastic.apm.agent.report.*;
+import co.elastic.apm.agent.report.ApmServerClient;
+import co.elastic.apm.agent.report.ApmServerReporter;
+import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
+import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfigurationImpl;
+import co.elastic.apm.agent.report.ReporterMonitor;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -77,7 +81,6 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 
 @Ignore
 public class ElasticsearchRestClientInstrumentationIT_RealReporter {
@@ -134,7 +137,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry);
         apmServerClient.start();
         DslJsonSerializer payloadSerializer = new DslJsonSerializer(
-            mock(StacktraceConfigurationImpl.class),
+            SpyConfiguration.createSpyConfig(),
             apmServerClient,
             MetaDataMock.create(title, service, system, null, Collections.emptyMap(), null)
         );

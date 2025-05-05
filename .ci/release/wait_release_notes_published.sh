@@ -8,7 +8,6 @@ source "$(dirname "${0}")/util.sh"
 
 check_version "${1:-}"
 v="${1:-}"
-major_branch="$(version_major_branch "${v}")"
 
-full_url="https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${major_branch}.html"
-curl -fs "${full_url}" | grep "${v}"
+full_url="https://www.elastic.co/docs/release-notes/apm/agents/java"
+curl -fs "${full_url}" | grep ">${v}</a>"

@@ -78,6 +78,7 @@ import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
 import com.dslplatform.json.StringConverter;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
@@ -112,15 +113,16 @@ public class DslJsonSerializer {
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final List<String> excludedStackFramesPrefixes = Arrays.asList("java.lang.reflect.", "com.sun.", "sun.", "jdk.internal.");
 
-    private static final ObjectPool<? extends ObjectHandle<CharBuffer>> REQUEST_BODY_BUFFER_POOL = ObjectPooling.createWithDefaultFactory(new Callable<CharBuffer>() {
+    private final ObjectPool<? extends ObjectHandle<CharBuffer>> requestBodyBufferPool = ObjectPooling.createWithDefaultFactory(new Callable<CharBuffer>() {
         @Override
         public CharBuffer call() throws Exception {
-            return CharBuffer.allocate(WebConfiguration.MAX_BODY_CAPTURE_BYTES);
+            return CharBuffer.allocate(SerializationConstants.getMaxLongStringValueLength());
         }
     });
 
 
     private final StacktraceConfigurationImpl stacktraceConfiguration;
+    private final WebConfiguration webConfiguration;
     private final ApmServerClient apmServerClient;
 
     private final Future<MetaData> metaData;
@@ -128,8 +130,9 @@ public class DslJsonSerializer {
     private byte[] serializedMetaData;
     private boolean serializedActivationMethod;
 
-    public DslJsonSerializer(StacktraceConfigurationImpl stacktraceConfiguration, ApmServerClient apmServerClient, final Future<MetaData> metaData) {
-        this.stacktraceConfiguration = stacktraceConfiguration;
+    public DslJsonSerializer(ConfigurationRegistry config, ApmServerClient apmServerClient, final Future<MetaData> metaData) {
+        this.stacktraceConfiguration = config.getConfig(StacktraceConfigurationImpl.class);
+        this.webConfiguration = config.getConfig(WebConfiguration.class);
         this.apmServerClient = apmServerClient;
         this.metaData = metaData;
     }
@@ -1041,7 +1044,7 @@ public class DslJsonSerializer {
             if (!Double.isNaN(sampleRate)) {
                 writeField("sample_rate", sampleRate);
             }
-            serializeOTel(span);
+            serializeOtel(span, Collections.<IdImpl>emptyList(), span.getContext().getHttp().getRequestBody());
             if (span.isComposite() && span.getComposite().getCount() > 1) {
                 serializeComposite(span.getComposite());
             }
@@ -1068,10 +1071,6 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeOTel(SpanImpl span) {
-            serializeOtel(span, Collections.<IdImpl>emptyList(), span.getContext().getHttp().getRequestBody());
-        }
-
         private void serializeOTel(TransactionImpl transaction) {
             List<IdImpl> profilingCorrelationStackTraceIds = transaction.getProfilingCorrelationStackTraceIds();
             synchronized (profilingCorrelationStackTraceIds) {
@@ -1083,7 +1082,7 @@ public class DslJsonSerializer {
             OTelSpanKind kind = span.getOtelKind();
             Map<String, Object> attributes = span.getOtelAttributes();
 
-            boolean hasRequestBody = httpRequestBody != null && httpRequestBody.getBody() != null;
+            boolean hasRequestBody = httpRequestBody != null && httpRequestBody.hasContent() && webConfiguration.isCaptureClientRequestBodyAsLabel();
             boolean hasAttributes = !attributes.isEmpty() || !profilingStackTraceIds.isEmpty() || hasRequestBody;
             boolean hasKind = kind != null;
             if (hasKind || hasAttributes) {
@@ -1151,7 +1150,7 @@ public class DslJsonSerializer {
 
 
         private void writeRequestBodyAsString(JsonWriter jw, BodyCaptureImpl requestBody) {
-            try (ObjectHandle<CharBuffer> charBufferHandle = REQUEST_BODY_BUFFER_POOL.createInstance()) {
+            try (ObjectHandle<CharBuffer> charBufferHandle = requestBodyBufferPool.createInstance()) {
                 CharBuffer charBuffer = charBufferHandle.get();
                 try {
                     decodeRequestBodyBytes(requestBody, charBuffer);
@@ -1164,20 +1163,29 @@ public class DslJsonSerializer {
         }
 
         private void decodeRequestBodyBytes(BodyCaptureImpl requestBody, CharBuffer charBuffer) {
-            ByteBuffer bodyBytes = requestBody.getBody();
-            ((Buffer) bodyBytes).flip(); //make ready for reading
             CharSequence charset = requestBody.getCharset();
+            List<ByteBuffer> encodedBuffers = requestBody.getBody();
+            for (ByteBuffer buffer : encodedBuffers) {
+                buffer.flip(); //make ready for reading
+            }
+
             if (charset != null) {
-                CoderResult result = IOUtils.decode(bodyBytes, charBuffer, charset.toString());
+                CoderResult result = IOUtils.decode(encodedBuffers, charBuffer, charset.toString());
                 if (result != null && !result.isMalformed() && !result.isUnmappable()) {
                     return;
                 }
             }
+
             //fallback to decoding by simply casting bytes to chars
-            ((Buffer) bodyBytes).position(0);
             ((Buffer) charBuffer).clear();
-            while (bodyBytes.hasRemaining()) {
-                charBuffer.put((char) (((int) bodyBytes.get()) & 0xFF));
+            for (ByteBuffer buffer : encodedBuffers) {
+                ((Buffer) buffer).position(0);
+                while (buffer.hasRemaining() && charBuffer.hasRemaining()) {
+                    charBuffer.put((char) (((int) buffer.get()) & 0xFF));
+                }
+                if (!charBuffer.hasRemaining()) {
+                    return;
+                }
             }
         }
 
@@ -1584,6 +1592,14 @@ public class DslJsonSerializer {
                 int statusCode = http.getStatusCode();
                 if (statusCode > 0) {
                     writeField("status_code", http.getStatusCode());
+                }
+                if (http.getRequestBody().hasContent() && !webConfiguration.isCaptureClientRequestBodyAsLabel()) {
+                    writeFieldName("request");
+                    jw.writeByte(OBJECT_START);
+                    writeFieldName("body");
+                    writeRequestBodyAsString(jw, http.getRequestBody());
+                    jw.writeByte(OBJECT_END);
+                    jw.writeByte(COMMA);
                 }
                 writeLastField("url", http.getUrl());
                 jw.writeByte(OBJECT_END);

@@ -44,7 +44,7 @@ public class ConfigurationExporter {
             ConfigurationRegistry configurationRegistry = ConfigurationRegistry.builder()
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
                 .build();
-            Path path = Paths.get("docs/configuration.asciidoc");
+            Path path = Paths.get("docs/reference/config-reference-properties-file.md");
             if (!path.toFile().canWrite()) {
                 throw new IllegalStateException(path + " does not exist");
             }

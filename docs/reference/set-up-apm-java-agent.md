@@ -19,7 +19,7 @@ Once you’ve set up the Agent, see the [configuration guide](/reference/configu
 
 ## SSL/TLS communication with APM Server [ssl-setup]
 
-If [SSL/TLS communication](docs-content://solutions/observability/apps/apm-agent-tls-communication.md) is enabled on the APM Server, make sure to check out the [SSL setup guide](/reference/ssl-configuration.md).
+If [SSL/TLS communication](docs-content://solutions/observability/apm/apm-agent-tls-communication.md) is enabled on the APM Server, make sure to check out the [SSL setup guide](/reference/ssl-configuration.md).
 
 
 ## Monitoring AWS Lambda Functions (Experimental) [aws-lambda-setup]

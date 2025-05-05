@@ -14,7 +14,7 @@ This string is used to ensure that only your agents can send data to your APM se
 
 Both the agents and the APM server have to be configured with the same secret token. Use if APM Server requires a token.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -31,7 +31,7 @@ This string is used to ensure that only your agents can send data to your APM se
 
 Agents can use API keys as a replacement of secret token, APM server can have multiple API keys. When both secret token and API key are used, API key has priority and secret token is ignored. Use if APM Server requires an API key.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -55,7 +55,7 @@ This configuration can only be reloaded dynamically as of 1.8.0
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -81,7 +81,7 @@ This configuration is specific to the Java agent and does not align with any oth
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -114,7 +114,7 @@ If timeouts are disabled or set to a high value, your app could experience memor
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 Supports the duration suffixes `ms`, `s` and `m`. Example: `5s`.
 
@@ -183,7 +183,7 @@ This value has to be lower than the APM Server’s `read_timeout` setting.
 ::::
 
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 Supports the duration suffixes `ms`, `s` and `m`. Example: `10s`.
 
@@ -202,7 +202,7 @@ The maximum total compressed size of the request body which is sent to the APM s
 
 Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
 
-[![dynamic config](/reference/images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
+[![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
