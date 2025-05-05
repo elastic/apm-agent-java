@@ -1,9 +1,9 @@
 name: "Issue Labeler"
 on:
   issues:
-    types: [opened]
+    types: [opened, edited, reopened]
   pull_request_target:
-    types: [opened]
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
