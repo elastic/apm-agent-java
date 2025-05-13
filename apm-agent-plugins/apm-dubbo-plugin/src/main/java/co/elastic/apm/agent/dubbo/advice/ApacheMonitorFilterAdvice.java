@@ -106,6 +106,13 @@ public class ApacheMonitorFilterAdvice {
         @Override
         public void accept(@Nullable Result result, @Nullable Throwable t) {
             AbstractSpan<?> span = (AbstractSpan<?>) RpcContext.getContext().get(DubboTraceHelper.SPAN_KEY);
+            /*
+             * because of RpcContextAttachment#getAttachment(String) check value type if not string return null
+             * @see https://github.com/apache/dubbo/blob/dubbo-3.3.4/dubbo-rpc/dubbo-rpc-api/src/main/java/org/apache/dubbo/rpc/RpcContextAttachment.java#L78
+             */
+            if (span == null) {
+                span = (AbstractSpan<?>) RpcContext.getContext().get().get(DubboTraceHelper.SPAN_KEY);
+            }
             if(span == null){
                 return;
             }
