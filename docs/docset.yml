@@ -1,4 +1,6 @@
 project: 'APM Java agent docs'
+products:
+  - id: apm-agent
 cross_links:
   - apm-agent-rum-js
   - apm-aws-lambda
