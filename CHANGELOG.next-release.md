@@ -9,6 +9,7 @@ This file contains all changes which are not released yet.
 
 # Fixes
 <!--FIXES-START-->
+* Added missing java 17 and 21 compatible runtimes for published lambda layers - [#4088](https://github.com/elastic/apm-agent-java/pull/4088)
 
 <!--FIXES-END-->
 # Features and enhancements
