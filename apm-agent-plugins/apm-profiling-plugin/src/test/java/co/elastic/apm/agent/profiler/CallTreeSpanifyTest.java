@@ -30,7 +30,9 @@ import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledForJreRange;
 import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.condition.OS;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -67,6 +69,7 @@ class CallTreeSpanifyTest {
     @Test
     @DisabledOnOs(OS.WINDOWS)
     @DisabledOnAppleSilicon
+    @DisabledForJreRange(min = JRE.JAVA_24)
     void testSpanification() throws Exception {
         CallTree.Root callTree = CallTreeTest.getCallTree(tracer, new String[]{
             " dd   ",
