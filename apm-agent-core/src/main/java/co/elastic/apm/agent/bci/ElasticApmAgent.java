@@ -54,28 +54,21 @@ import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.RedefinitionStrategy;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.asm.AsmVisitorWrapper;
 import net.bytebuddy.asm.TypeConstantAdjustment;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.annotation.AnnotationDescription;
-import net.bytebuddy.description.field.FieldDescription;
-import net.bytebuddy.description.field.FieldList;
 import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.method.MethodList;
 import net.bytebuddy.description.method.ParameterDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
-import net.bytebuddy.implementation.Implementation;
 import net.bytebuddy.implementation.bytecode.StackManipulation;
 import net.bytebuddy.implementation.bytecode.member.MethodInvocation;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.util.CheckClassAdapter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
@@ -447,29 +440,6 @@ public class ElasticApmAgent {
         };
         return agentBuilder
             .type(instrumentationStats.shouldMeasureMatching() ? statsCollectingMatcher : matcher)
-            .transform(new AgentBuilder.Transformer() {
-                @Override
-                public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription,
-                                                        ClassLoader classLoader, JavaModule module, ProtectionDomain protectionDomain) {
-                    return builder.visit(new AsmVisitorWrapper() {
-                        @Override
-                        public int mergeWriter(int flags) {
-                            return flags;
-                        }
-
-                        @Override
-                        public int mergeReader(int flags) {
-                            return flags;
-                        }
-
-                        @Override
-                        public ClassVisitor wrap(TypeDescription typeDescription, ClassVisitor classVisitor, Implementation.Context context, TypePool typePool, FieldList<FieldDescription.InDefinedShape> fieldList, MethodList<?> methodList, int i, int i1) {
-                            logger.debug("Checking verification for class {}", typeDescription.getName());
-                            return new CheckClassAdapter(classVisitor);
-                        }
-                    });
-                }
-            })
             .transform(new PatchBytecodeVersionTo51Transformer())
             .transform(getTransformer(instrumentation, logger, methodMatcher))
             .transform(new AgentBuilder.Transformer() {
@@ -738,13 +708,6 @@ public class ElasticApmAgent {
                 public Iterable<? extends List<Class<?>>> onError(int index, List<Class<?>> batch, Throwable throwable, List<Class<?>> types) {
                     logger.warn("Error while redefining classes {}", throwable.getMessage());
                     logger.debug(throwable.getMessage(), throwable);
-                    if (logger.isDebugEnabled()) {
-                        List<String> names = new ArrayList<>();
-                        for (Class<?> clazz : batch) {
-                            names.add(clazz.getName());
-                        }
-                        logger.debug("Failed batch of redefined classes: {}", batch);
-                    }
                     return super.onError(index, batch, throwable, types);
                 }
             })
