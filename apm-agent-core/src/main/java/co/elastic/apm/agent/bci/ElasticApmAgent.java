@@ -464,6 +464,7 @@ public class ElasticApmAgent {
 
                         @Override
                         public ClassVisitor wrap(TypeDescription typeDescription, ClassVisitor classVisitor, Implementation.Context context, TypePool typePool, FieldList<FieldDescription.InDefinedShape> fieldList, MethodList<?> methodList, int i, int i1) {
+                            logger.debug("Checking verification for class {}", typeDescription.getName());
                             return new CheckClassAdapter(classVisitor);
                         }
                     });
@@ -737,6 +738,13 @@ public class ElasticApmAgent {
                 public Iterable<? extends List<Class<?>>> onError(int index, List<Class<?>> batch, Throwable throwable, List<Class<?>> types) {
                     logger.warn("Error while redefining classes {}", throwable.getMessage());
                     logger.debug(throwable.getMessage(), throwable);
+                    if (logger.isDebugEnabled()) {
+                        List<String> names = new ArrayList<>();
+                        for (Class<?> clazz : batch) {
+                            names.add(clazz.getName());
+                        }
+                        logger.debug("Failed batch of redefined classes: {}", batch);
+                    }
                     return super.onError(index, batch, throwable, types);
                 }
             })
