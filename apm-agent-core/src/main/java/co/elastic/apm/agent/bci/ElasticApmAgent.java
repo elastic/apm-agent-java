@@ -18,8 +18,6 @@
  */
 package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.agent.sdk.internal.PluginClassLoaderRootPackageCustomizer;
-import co.elastic.apm.agent.sdk.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
 import co.elastic.apm.agent.bci.bytebuddy.InstallationListenerImpl;
@@ -29,7 +27,6 @@ import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.agent.bci.bytebuddy.NonInstrumented;
 import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
-import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.bci.modules.ModuleOpener;
 import co.elastic.apm.agent.common.ThreadUtils;
@@ -37,38 +34,48 @@ import co.elastic.apm.agent.common.util.SystemStandardOutputLogger;
 import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.logging.ApmServerLogAppender;
 import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.bytebuddy.AnnotationValueOffsetMappingFactory;
+import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.sdk.internal.PluginClassLoaderRootPackageCustomizer;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import co.elastic.apm.agent.tracemethods.TraceMethodInstrumentation;
+import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.RedefinitionStrategy;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.AsmVisitorWrapper;
 import net.bytebuddy.asm.TypeConstantAdjustment;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.annotation.AnnotationDescription;
+import net.bytebuddy.description.field.FieldDescription;
+import net.bytebuddy.description.field.FieldList;
 import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.method.MethodList;
 import net.bytebuddy.description.method.ParameterDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
+import net.bytebuddy.implementation.Implementation;
 import net.bytebuddy.implementation.bytecode.StackManipulation;
 import net.bytebuddy.implementation.bytecode.member.MethodInvocation;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.util.CheckClassAdapter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
@@ -440,6 +447,28 @@ public class ElasticApmAgent {
         };
         return agentBuilder
             .type(instrumentationStats.shouldMeasureMatching() ? statsCollectingMatcher : matcher)
+            .transform(new AgentBuilder.Transformer() {
+                @Override
+                public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription,
+                                                        ClassLoader classLoader, JavaModule module, ProtectionDomain protectionDomain) {
+                    return builder.visit(new AsmVisitorWrapper() {
+                        @Override
+                        public int mergeWriter(int flags) {
+                            return flags;
+                        }
+
+                        @Override
+                        public int mergeReader(int flags) {
+                            return flags;
+                        }
+
+                        @Override
+                        public ClassVisitor wrap(TypeDescription typeDescription, ClassVisitor classVisitor, Implementation.Context context, TypePool typePool, FieldList<FieldDescription.InDefinedShape> fieldList, MethodList<?> methodList, int i, int i1) {
+                            return new CheckClassAdapter(classVisitor);
+                        }
+                    });
+                }
+            })
             .transform(new PatchBytecodeVersionTo51Transformer())
             .transform(getTransformer(instrumentation, logger, methodMatcher))
             .transform(new AgentBuilder.Transformer() {
