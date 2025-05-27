@@ -6,7 +6,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.54.0</version>
+        <version>1.54.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>jsf-app</artifactId>
