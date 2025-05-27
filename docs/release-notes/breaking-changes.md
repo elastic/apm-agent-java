@@ -18,6 +18,12 @@ To learn how to upgrade, check out [Upgrading](/reference/upgrading.md).
 % **Action**<br> Steps for mitigating deprecation impact.
 % ::::
 
+## 1.54.0 [1.54.0]
+
+**Release date:** May 27, 2025
+
+* Switched from using a label for HTTP client body storage to using the `http.request.body.orginal` span field. This requires APM-server 8.18+, the old behaviour can be restored via the `capture_http_client_request_body_as_label` config option - [#1234](https://github.com/elastic/apm-agent-java/pull/4058)
+
 ## 1.48.0 [1.48.0]
 
 **Release date**: March 05, 2024
