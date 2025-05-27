@@ -51,6 +51,7 @@ The extension needs to bind a socket to a file for communicating with the univer
 
 ::::{note}
 This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+It is currently only supported on Java 7 to Java 23, newer versions are unsupported.
 ::::
 
 
