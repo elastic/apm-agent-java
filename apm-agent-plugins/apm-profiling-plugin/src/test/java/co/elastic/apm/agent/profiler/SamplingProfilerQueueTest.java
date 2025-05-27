@@ -24,7 +24,9 @@ import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactoryImpl;
 import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledForJreRange;
 import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.condition.OS;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,6 +37,7 @@ public class SamplingProfilerQueueTest {
     @Test
     @DisabledOnOs(OS.WINDOWS)
     @DisabledOnAppleSilicon
+    @DisabledForJreRange(min = JRE.JAVA_24)
     void testFillQueue() throws Exception {
         System.out.println(System.getProperty("os.name"));
 

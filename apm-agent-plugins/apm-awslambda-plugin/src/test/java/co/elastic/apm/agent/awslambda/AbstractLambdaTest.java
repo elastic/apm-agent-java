@@ -149,7 +149,9 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
         return true;
     }
 
+
     static synchronized void initAllButInstrumentation() {
+        ElasticApmAgent.reset(); // reset the AbstractInstrumentationTest beforeAll initialization
         config = SpyConfiguration.createSpyConfig();
         serverlessConfiguration = config.getConfig(ServerlessConfigurationImpl.class);
         doReturn(true).when(serverlessConfiguration).runsOnAwsLambda();
