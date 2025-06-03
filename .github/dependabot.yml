@@ -13,8 +13,6 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 3
-    reviewers:
-      - "@elastic/apm-agent-java"
     allow:
       - dependency-name: "com.lmax:disruptor"
       - dependency-name: "org.jctools:jctools-core"
