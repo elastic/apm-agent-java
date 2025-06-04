@@ -64,7 +64,7 @@ jobs:
       with:
         github-token: ${{ steps.get_token.outputs.token }}
         project-id: 1829
-        item-url: "${{ github.event.pull_request.url }}"
+        item-url: "${{ github.event.pull_request.html_url }}"
 
     - name: set status in project
       id: set-project-status-field
