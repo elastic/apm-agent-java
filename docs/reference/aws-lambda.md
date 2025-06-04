@@ -25,11 +25,13 @@ To get started with APM for your Java AWS Lambda functions, follow the steps bel
 1. You need an APM Server to send APM data to. Follow the [APM Quick start](docs-content://solutions/observability/apm/get-started.md) if you have not set one up yet. For the best-possible performance, we recommend setting up APM on {{ecloud}} in the same AWS region as your AWS Lambda functions.
 2. Make sure you are using one of the supported AWS Lambda Java runtimes:
 
-    | Tags | Java Runtime | Operating System | Supported |
-    | --- | --- | --- | --- |
-    | 11 | Java 11 (Corretto) | Amazon Linux 2 | yes |
-    | 8.al2 | Java 8 (Corretto) | Amazon Linux 2 | yes |
-    | 8 | Java 8 (OpenJDK) | Amazon Linux 2018.03 | no |
+    | Tags  | Java Runtime       | Operating System | Supported |
+    |-------|--------------------| --- | --- |
+    | 21    | Java 21 (Corretto)  | Amazon Linux 2023 | yes |
+    | 17    | Java 17 (Corretto)  | Amazon Linux 2 | yes |
+    | 11    | Java 11 (Corretto) | Amazon Linux 2 | yes |
+    | 8.al2 | Java 8 (Corretto)  | Amazon Linux 2 | yes |
+    | 8     | Java 8 (OpenJDK)   | Amazon Linux 2018.03 | no |
 
 
 ### Step 1: Add the APM Layers to your Lambda function [add_the_apm_layers_to_your_lambda_function]

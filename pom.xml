@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.53.1-SNAPSHOT</version>
+    <version>1.54.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -116,7 +116,7 @@
         <!-- -dependencies versions -->
         <version.error_prone>2.2.0</version.error_prone>
         <version.h2>1.4.196</version.h2>
-        <version.junit>5.9.1</version.junit>
+        <version.junit>5.12.2</version.junit>
         <version.junit.vintage>4.13.2</version.junit.vintage>
         <version.okhttp>4.12.0</version.okhttp>
         <!-- this is the last version of slf4j that is compatible with Java 7-->
@@ -128,18 +128,18 @@
         <version.ecs.logging>1.7.0</version.ecs.logging>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.5.6</version.json-schema-validator>
+        <version.json-schema-validator>1.5.7</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
         <version.byte-buddy>1.17.5</version.byte-buddy>
         <version.asm>9.8</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
-        <version.mockito>5.17.0</version.mockito>
+        <version.mockito>5.18.0</version.mockito>
 
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
 
-        <version.testcontainers>1.21.0</version.testcontainers>
+        <version.testcontainers>1.21.1</version.testcontainers>
 
         <!-- latest version compiled for java 11 -->
         <version.jsonunit>2.38.0</version.jsonunit>
@@ -476,6 +476,19 @@
                 </executions>
             </plugin>
             <plugin>
+                <!--
+                  Note that we don't actively use jacoco anymore, but for reasons beyond my understanding the tests will fail if we remove it.
+                  When removing jacoco, some tests will fail deterministically with a java.lang.VerifyError: null during retransformation
+                  of the classes under test. I extracted the bytecode from the failed tests and verified it manually using the ASM CheckClassAdapter,
+                  there the bytecode looks fine and is validated without issues.
+                  My best guess of an explanation for this behaviour is that we cause some kind of obscure JVM bug during our tests, because
+                  we continuously retransform classes. This "bug" seems to be prevented by having multiple agents in the JVM (e.g. running the tests
+                  from IntelliJ with IntelliJ's debug agent also makes them succeed.
+                  This seems to happen only due to the runtime attachment of the agent in the tests,
+                  because we have never seen these kinds of problems in production systems.
+
+                  So for now I've decided to just let it be and leave jacoco in here.
+                -->
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <configuration>
@@ -596,7 +609,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.8</version>
+                    <version>0.8.13</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>

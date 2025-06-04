@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-redis-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.53.1-SNAPSHOT</version>
+        <version>1.54.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -25,6 +25,12 @@
             <artifactId>apm-redis-common</artifactId>
             <type>test-jar</type>
             <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <version>1.15.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

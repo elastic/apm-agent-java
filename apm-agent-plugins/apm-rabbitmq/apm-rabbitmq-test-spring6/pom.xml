@@ -6,7 +6,7 @@
     <parent>
         <artifactId>apm-rabbitmq</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.53.1-SNAPSHOT</version>
+        <version>1.54.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-rabbitmq-test-spring6</artifactId>
@@ -23,7 +23,7 @@
                 <!-- Import dependency management from Spring Boot -->
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>3.4.5</version>
+                <version>3.5.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

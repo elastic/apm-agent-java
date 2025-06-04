@@ -4,7 +4,7 @@
     <parent>
         <artifactId>apm-mongodb</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.53.1-SNAPSHOT</version>
+        <version>1.54.1-SNAPSHOT</version>
     </parent>
 
     <properties>

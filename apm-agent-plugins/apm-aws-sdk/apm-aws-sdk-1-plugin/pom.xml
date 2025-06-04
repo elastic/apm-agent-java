@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-aws-sdk</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.53.1-SNAPSHOT</version>
+        <version>1.54.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -12,7 +12,7 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
-        <version.aws.sdk>1.12.783</version.aws.sdk>
+        <version.aws.sdk>1.12.784</version.aws.sdk>
         <version.aws.jms>1.1.0</version.aws.jms>
     </properties>
 

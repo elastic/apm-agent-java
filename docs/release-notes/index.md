@@ -20,6 +20,15 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 % ### Fixes [elastic-apm-java-agent-versionext-fixes]
 
+## 1.54.0 [elastic-apm-java-agent-1-54-0-release-notes]
+**Release date:** May 27, 2025
+
+### Features and enhancements [elastic-apm-java-agent-1-54-0-features-enhancements]
+* Remove 1000 character limit for HTTP client body capturing  - [#1234](https://github.com/elastic/apm-agent-java/pull/4058)
+
+### Fixes [elastic-apm-java-agent-1-54-0-fixes]
+* Added missing java 17 and 21 compatible runtimes for published lambda layers - [#4088](https://github.com/elastic/apm-agent-java/pull/4088)
+
 ## 1.53.0 [elastic-apm-java-agent-1-53-0-release-notes]
 **Release date:** April 2, 2025
 

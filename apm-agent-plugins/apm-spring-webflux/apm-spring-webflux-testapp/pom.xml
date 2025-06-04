@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-spring-webflux</artifactId>
-        <version>1.53.1-SNAPSHOT</version>
+        <version>1.54.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-spring-webflux-testapp</artifactId>
@@ -102,7 +102,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <!-- explicit version required as bom will not cover plugins, only dependencies -->
-                <version>3.4.2</version>
+                <version>3.5.0</version>
                 <configuration>
                     <mainClass>co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication</mainClass>
                     <!-- by default original jar is replaced, which makes impossible to reuse as dependency -->

@@ -63,7 +63,7 @@ The inferred spans are created after a profiling session has ended. This means t
 Only platform threads are supported. Virtual threads are not supported and will not be profiled.
 
 ::::{note}
-This feature is not available on Windows and on OpenJ9
+This feature is not available on Windows and on OpenJ9. In addition only Java 7 to Java 23 are supported.
 ::::
 
 
