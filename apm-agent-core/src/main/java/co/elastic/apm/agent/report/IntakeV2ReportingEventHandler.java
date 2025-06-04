@@ -136,29 +136,51 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
         endRequest();
     }
 
+    private long lastExplicitGcTimestampInMilliseconds;
     private void handleIntakeEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
-        processorEventHandler.onEvent(event, sequence, endOfBatch);
         try {
-            inflightEvents.increment(event.getType());
-            if (connection == null) {
-                connection = startRequest(INTAKE_V2_URL);
-            }
-            if (connection != null) {
-                writeEvent(event);
-            } else {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Failed to get APM server connection, dropping event: {}", event);
+            processorEventHandler.onEvent(event, sequence, endOfBatch);
+            try {
+                inflightEvents.increment(event.getType());
+                if (connection == null) {
+                    connection = startRequest(INTAKE_V2_URL);
                 }
-                dropped++;
-                if (reporter != null) {
-                    inflightEvents.reset(); //we never actually created a request when connection is null
-                    reporter.getReporterMonitor().eventDroppedAfterDequeue(event.getType());
+                if (connection != null) {
+                    writeEvent(event);
+                } else {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Failed to get APM server connection, dropping event: {}", event);
+                    }
+                    dropped++;
+                    if (reporter != null) {
+                        inflightEvents.reset(); //we never actually created a request when connection is null
+                        reporter.getReporterMonitor().eventDroppedAfterDequeue(event.getType());
+                    }
                 }
+            } catch (Exception e) {
+                handleConnectionError(event, e);
             }
-        } catch (Exception e) {
-            handleConnectionError(event, e);
+        } catch (OutOfMemoryError e) {
+            //sun.security.ssl.TransportContext.finishHandshake spawns a thread on each
+            //connection attempt, and the thread is just used to notify listeners then dies.
+            //Hypothesis is that if the GC frequency is very low, the spawned dead threads
+            //could accumulate and cause native memory exhaustion. Here we'll just catch it
+            //and trigger a GC but drop the event. The GC should clean up the dead threads
+            long nowInMilliseconds = System.currentTimeMillis();
+            //don't call the GC more than once in any 10 second window
+            if ( (nowInMilliseconds - lastExplicitGcTimestampInMilliseconds) > 10_000L) {
+                lastExplicitGcTimestampInMilliseconds = nowInMilliseconds;
+                System.gc();
+            }
+            if (logger.isDebugEnabled()) {
+                logger.error("OutOfMemoryError trying to get APM server connection, called System.gc() and dropping event: {}", event);
+            }
+            dropped++;
+            if (reporter != null) {
+                inflightEvents.reset(); //there was no request when the connection failed to create
+                reporter.getReporterMonitor().eventDroppedAfterDequeue(event.getType());
+            }
         }
-
         if (shouldEndRequest()) {
             endRequest();
         }
