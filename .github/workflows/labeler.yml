@@ -2,6 +2,7 @@ name: "Issue Labeler"
 on:
   pull_request:
 
+
   issues:
     types: [opened, edited, reopened]
   pull_request_target:
@@ -51,6 +52,11 @@ jobs:
       run: |
         echo "::debug::isTeamMember: ${{ steps.checkUserMember.outputs.isTeamMember }}"
         echo "::debug::isExcluded: ${{ steps.checkUserMember.outputs.isExcluded }}"
+
+    - name: Debug
+      run: |
+        echo "::debug::html_url: ${{ github.event.pull_request.html_url }}"
+        echo "::debug::url: ${{ github.event.pull_request.url }}"
 
     - name: Add community and triage labels
       if: steps.checkUserMember.outputs.isTeamMember != 'true' && steps.checkUserMember.outputs.isExcluded != 'true'
