@@ -1,7 +1,6 @@
 name: "Issue Labeler"
 on:
-  # for manual trigger debugging
-  workflow_dispatch: ~
+  pull_request:
 
   issues:
     types: [opened, edited, reopened]
