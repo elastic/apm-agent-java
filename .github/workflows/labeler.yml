@@ -62,16 +62,6 @@ jobs:
         NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Add comment for community PR
-      if: steps.is_elastic_member.outputs.result == 'false' && steps.user_type.outputs.result == 'user'
-      uses: wow-actions/auto-comment@v1
-      with:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        pullRequestOpened: |
-          👋 @{{ author }} Thanks a lot for your contribution!
-          
-          It may take some time before we review a PR, so even if you don’t see activity for some time, it **does not** mean that we have forgotten about it. 
-
     - name: Assign new internal pull requests to project
       id: add-to-project
       if: steps.is_elastic_member.outputs.result == 'true' && github.event_name == 'pull_request_target'
