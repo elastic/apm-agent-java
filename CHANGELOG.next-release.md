@@ -9,7 +9,7 @@ This file contains all changes which are not released yet.
 
 # Fixes
 <!--FIXES-START-->
-
+* Prevent potential memory pressure by limiting OpenTelemetry metrics bridge attribute cache sizes - [#4123](https://github.com/elastic/apm-agent-java/pull/4123)
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
