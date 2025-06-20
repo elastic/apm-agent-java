@@ -138,14 +138,15 @@ public class BridgeFactoryV1_14 implements BridgeFactory {
     }
 
     public final ProxyAttributes convertAttributes(Attributes attributes) {
-        ProxyAttributes cached = convertedAttributes.get(attributes);
-        if (cached == null) {
-            cached = doConvertAttributes(attributes);
-            if (cached != null && convertedAttributes.approximateSize() < MAX_ATTRIBUTE_CACHE_SIZE) {
-                convertedAttributes.put(attributes, cached);
+        ProxyAttributes result = convertedAttributes.get(attributes);
+        if (result == null) {
+            result = doConvertAttributes(attributes);
+            // A slight overshoot of the limit is possible due to concurrency, but this is fine for us
+            if (result != null && convertedAttributes.approximateSize() < MAX_ATTRIBUTE_CACHE_SIZE) {
+                convertedAttributes.put(attributes, result);
             }
         }
-        return cached;
+        return result;
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -164,14 +165,15 @@ public class BridgeFactoryV1_14 implements BridgeFactory {
 
     @Nullable
     public ProxyAttributeKey<?> convertAttributeKey(AttributeKey<?> key) {
-        ProxyAttributeKey<?> cached = convertedAttributeKeys.get(key);
-        if (cached == null) {
-            cached = doConvertAttributeKey(key);
-            if (cached != null && convertedAttributeKeys.approximateSize() < MAX_ATTRIBUTE_KEY_CACHE_SIZE) {
-                convertedAttributeKeys.put(key, cached);
+        ProxyAttributeKey<?> result = convertedAttributeKeys.get(key);
+        if (result == null) {
+            result = doConvertAttributeKey(key);
+            // A slight overshoot of the limit is possible due to concurrency, but this is fine for us
+            if (result != null && convertedAttributeKeys.approximateSize() < MAX_ATTRIBUTE_KEY_CACHE_SIZE) {
+                convertedAttributeKeys.put(key, result);
             }
         }
-        return cached;
+        return result;
     }
 
     @Nullable
