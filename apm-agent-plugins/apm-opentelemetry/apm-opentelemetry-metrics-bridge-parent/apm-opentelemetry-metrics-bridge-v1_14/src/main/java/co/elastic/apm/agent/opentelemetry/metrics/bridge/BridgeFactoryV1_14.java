@@ -108,8 +108,15 @@ public class BridgeFactoryV1_14 implements BridgeFactory {
 
     private static volatile BridgeFactoryV1_14 instance;
 
-    private final WeakMap<AttributeKey<?>, ProxyAttributeKey<?>> convertedAttributeKeys;
-    private final WeakMap<io.opentelemetry.api.common.Attributes, ProxyAttributes> convertedAttributes;
+    // Visible for testing
+    static final int MAX_ATTRIBUTE_KEY_CACHE_SIZE = 2048;
+    // Visible for testing
+    static final int MAX_ATTRIBUTE_CACHE_SIZE = 2048;
+
+    // Visible for testing
+    final WeakMap<AttributeKey<?>, ProxyAttributeKey<?>> convertedAttributeKeys;
+    // Visible for testing
+    final WeakMap<io.opentelemetry.api.common.Attributes, ProxyAttributes> convertedAttributes;
 
     public BridgeFactoryV1_14() {
         convertedAttributeKeys = WeakConcurrent.buildMap();
@@ -134,7 +141,7 @@ public class BridgeFactoryV1_14 implements BridgeFactory {
         ProxyAttributes cached = convertedAttributes.get(attributes);
         if (cached == null) {
             cached = doConvertAttributes(attributes);
-            if (cached != null) {
+            if (cached != null && convertedAttributes.approximateSize() < MAX_ATTRIBUTE_CACHE_SIZE) {
                 convertedAttributes.put(attributes, cached);
             }
         }
@@ -160,7 +167,7 @@ public class BridgeFactoryV1_14 implements BridgeFactory {
         ProxyAttributeKey<?> cached = convertedAttributeKeys.get(key);
         if (cached == null) {
             cached = doConvertAttributeKey(key);
-            if (cached != null) {
+            if (cached != null && convertedAttributeKeys.approximateSize() < MAX_ATTRIBUTE_KEY_CACHE_SIZE) {
                 convertedAttributeKeys.put(key, cached);
             }
         }
