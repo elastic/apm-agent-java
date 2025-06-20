@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.51.0</version>
+        <version>1.54.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -314,7 +314,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-rabbitmq-spring</artifactId>
+            <artifactId>apm-rabbitmq-spring5</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-spring-resttemplate</artifactId>
-        <version>1.51.0</version>
+        <version>1.54.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-spring-resttemplate-plugin</artifactId>
@@ -23,7 +23,7 @@
                 <!-- Import dependency management from Spring Boot -->
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>3.3.2</version> <!-- update IT in case of major upgrade -->
+                <version>3.5.0</version> <!-- update IT in case of major upgrade -->
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -52,6 +52,7 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
+            <version>${version.okhttp}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -68,6 +69,12 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-apache-httpclient4-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-urlconnection-plugin</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

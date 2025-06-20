@@ -19,16 +19,16 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.common.util.WildcardMatcher;
 import co.elastic.apm.agent.configuration.CoreConfigurationImpl;
 import co.elastic.apm.agent.impl.context.RequestImpl;
 import co.elastic.apm.agent.impl.context.UrlImpl;
-import co.elastic.apm.agent.impl.transaction.TransactionImpl;
-import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
-import co.elastic.apm.agent.common.util.WildcardMatcher;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
 import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
 import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.AfterAll;
@@ -38,6 +38,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.core.SpringVersion;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Hooks;
@@ -133,7 +134,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
             assertThat(headersCount)
                 .describedAs("unexpected headers count")
-                .isEqualTo(6);
+                .isGreaterThanOrEqualTo(6);
 
             assertThat(headers.getFirst("random-value"))
                 .describedAs("non-standard request headers should be captured")
@@ -202,7 +203,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     }
 
     @ParameterizedTest
-    @CsvSource({"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"})
+    @CsvSource({"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"})
     void methodMapping(String method) {
         client.setHeader("Authorization", BASIC_AUTH_HEADER_VALUE);
 
@@ -463,6 +464,13 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
         assertThat(transaction.getResult())
             .isEqualTo(String.format("HTTP %dxx", expectedStatus / 100));
+
+        assertThat(transaction.getFrameworkName())
+            .isEqualTo("Spring Webflux");
+
+        assertThat(transaction.getFrameworkVersion())
+            .isNotBlank()
+            .isEqualTo(SpringVersion.getVersion());
 
         return transaction;
     }

@@ -62,8 +62,13 @@ import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.sdk.internal.collections.LongList;
+import co.elastic.apm.agent.sdk.internal.pooling.ObjectHandle;
+import co.elastic.apm.agent.sdk.internal.pooling.ObjectPool;
+import co.elastic.apm.agent.sdk.internal.pooling.ObjectPooling;
+import co.elastic.apm.agent.sdk.internal.util.IOUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.tracer.metrics.DslJsonUtil;
 import co.elastic.apm.agent.tracer.metrics.Labels;
@@ -73,14 +78,17 @@ import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
 import com.dslplatform.json.StringConverter;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -88,6 +96,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -104,8 +113,16 @@ public class DslJsonSerializer {
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final List<String> excludedStackFramesPrefixes = Arrays.asList("java.lang.reflect.", "com.sun.", "sun.", "jdk.internal.");
 
+    private final ObjectPool<? extends ObjectHandle<CharBuffer>> requestBodyBufferPool = ObjectPooling.createWithDefaultFactory(new Callable<CharBuffer>() {
+        @Override
+        public CharBuffer call() throws Exception {
+            return CharBuffer.allocate(SerializationConstants.getMaxLongStringValueLength());
+        }
+    });
+
 
     private final StacktraceConfigurationImpl stacktraceConfiguration;
+    private final WebConfiguration webConfiguration;
     private final ApmServerClient apmServerClient;
 
     private final Future<MetaData> metaData;
@@ -113,8 +130,9 @@ public class DslJsonSerializer {
     private byte[] serializedMetaData;
     private boolean serializedActivationMethod;
 
-    public DslJsonSerializer(StacktraceConfigurationImpl stacktraceConfiguration, ApmServerClient apmServerClient, final Future<MetaData> metaData) {
-        this.stacktraceConfiguration = stacktraceConfiguration;
+    public DslJsonSerializer(ConfigurationRegistry config, ApmServerClient apmServerClient, final Future<MetaData> metaData) {
+        this.stacktraceConfiguration = config.getConfig(StacktraceConfigurationImpl.class);
+        this.webConfiguration = config.getConfig(WebConfiguration.class);
         this.apmServerClient = apmServerClient;
         this.metaData = metaData;
     }
@@ -1026,7 +1044,7 @@ public class DslJsonSerializer {
             if (!Double.isNaN(sampleRate)) {
                 writeField("sample_rate", sampleRate);
             }
-            serializeOTel(span);
+            serializeOtel(span, Collections.<IdImpl>emptyList(), span.getContext().getHttp().getRequestBody());
             if (span.isComposite() && span.getComposite().getCount() > 1) {
                 serializeComposite(span.getComposite());
             }
@@ -1053,25 +1071,6 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeOTel(SpanImpl span) {
-            serializeOtel(span, Collections.<IdImpl>emptyList(), requestBodyToString(span.getContext().getHttp().getRequestBody()));
-        }
-
-        @Nullable
-        private CharSequence requestBodyToString(BodyCaptureImpl requestBody) {
-            //TODO: perform proper, charset aware conversion to string
-            ByteBuffer buffer = requestBody.getBody();
-            if (buffer == null || buffer.position() == 0) {
-                return null;
-            }
-            buffer.flip();
-            StringBuilder result = new StringBuilder();
-            while (buffer.hasRemaining()) {
-                result.append((char) buffer.get());
-            }
-            return result;
-        }
-
         private void serializeOTel(TransactionImpl transaction) {
             List<IdImpl> profilingCorrelationStackTraceIds = transaction.getProfilingCorrelationStackTraceIds();
             synchronized (profilingCorrelationStackTraceIds) {
@@ -1079,11 +1078,12 @@ public class DslJsonSerializer {
             }
         }
 
-        private void serializeOtel(AbstractSpanImpl<?> span, List<IdImpl> profilingStackTraceIds, @Nullable CharSequence httpRequestBody) {
+        private void serializeOtel(AbstractSpanImpl<?> span, List<IdImpl> profilingStackTraceIds, @Nullable BodyCaptureImpl httpRequestBody) {
             OTelSpanKind kind = span.getOtelKind();
             Map<String, Object> attributes = span.getOtelAttributes();
 
-            boolean hasAttributes = !attributes.isEmpty() || !profilingStackTraceIds.isEmpty() || httpRequestBody != null;
+            boolean hasRequestBody = httpRequestBody != null && httpRequestBody.hasContent() && webConfiguration.isCaptureClientRequestBodyAsLabel();
+            boolean hasAttributes = !attributes.isEmpty() || !profilingStackTraceIds.isEmpty() || hasRequestBody;
             boolean hasKind = kind != null;
             if (hasKind || hasAttributes) {
                 writeFieldName("otel");
@@ -1133,18 +1133,59 @@ public class DslJsonSerializer {
                         }
                         jw.writeByte(ARRAY_END);
                     }
-                    if (httpRequestBody != null) {
+                    if (hasRequestBody) {
                         if (!isFirstAttrib) {
                             jw.writeByte(COMMA);
                         }
                         writeFieldName("http.request.body.content");
-                        jw.writeString(httpRequestBody);
+                        writeRequestBodyAsString(jw, httpRequestBody);
                     }
                     jw.writeByte(OBJECT_END);
                 }
 
                 jw.writeByte(OBJECT_END);
                 jw.writeByte(COMMA);
+            }
+        }
+
+
+        private void writeRequestBodyAsString(JsonWriter jw, BodyCaptureImpl requestBody) {
+            try (ObjectHandle<CharBuffer> charBufferHandle = requestBodyBufferPool.createInstance()) {
+                CharBuffer charBuffer = charBufferHandle.get();
+                try {
+                    decodeRequestBodyBytes(requestBody, charBuffer);
+                    charBuffer.flip();
+                    jw.writeString(charBuffer);
+                } finally {
+                    ((Buffer) charBuffer).clear();
+                }
+            }
+        }
+
+        private void decodeRequestBodyBytes(BodyCaptureImpl requestBody, CharBuffer charBuffer) {
+            CharSequence charset = requestBody.getCharset();
+            List<ByteBuffer> encodedBuffers = requestBody.getBody();
+            for (ByteBuffer buffer : encodedBuffers) {
+                buffer.flip(); //make ready for reading
+            }
+
+            if (charset != null) {
+                CoderResult result = IOUtils.decode(encodedBuffers, charBuffer, charset.toString());
+                if (result != null && !result.isMalformed() && !result.isUnmappable()) {
+                    return;
+                }
+            }
+
+            //fallback to decoding by simply casting bytes to chars
+            ((Buffer) charBuffer).clear();
+            for (ByteBuffer buffer : encodedBuffers) {
+                ((Buffer) buffer).position(0);
+                while (buffer.hasRemaining() && charBuffer.hasRemaining()) {
+                    charBuffer.put((char) (((int) buffer.get()) & 0xFF));
+                }
+                if (!charBuffer.hasRemaining()) {
+                    return;
+                }
             }
         }
 
@@ -1551,6 +1592,14 @@ public class DslJsonSerializer {
                 int statusCode = http.getStatusCode();
                 if (statusCode > 0) {
                     writeField("status_code", http.getStatusCode());
+                }
+                if (http.getRequestBody().hasContent() && !webConfiguration.isCaptureClientRequestBodyAsLabel()) {
+                    writeFieldName("request");
+                    jw.writeByte(OBJECT_START);
+                    writeFieldName("body");
+                    writeRequestBodyAsString(jw, http.getRequestBody());
+                    jw.writeByte(OBJECT_END);
+                    jw.writeByte(COMMA);
                 }
                 writeLastField("url", http.getUrl());
                 jw.writeByte(OBJECT_END);

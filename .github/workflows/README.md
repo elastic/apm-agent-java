@@ -43,10 +43,9 @@ To release a new version of apm-agent-java, you must use the two GitHub Workflow
 - Trigger the `release-step-3` GH workflow
   - parameters: version to release and the `main` branch (or merge commit/ref of `release-step-2` PR merge).
   - will generate and publish release artifact through [buildkite](../../.buildkite/README.md).
-  - will open two PRs: `release-step-4` and `release-step-5`
-  - will wait on the `release-step-4` PR to be merged and published (documentation update)
-- Review and merge the `release-step-4` PR to the "major branch", which is currently `1.x`, the documentation effective build and publication can take a while.
-- Review and merge the `release-step-5` PR to `main` (version bump from release to next snapshot version)
+  - will open the `release-step-4` PRs
+  - will wait on the release notes and docs changes from `release-step-2` to be published
+- Review and merge the `release-step-4` PR to `main` (version bump from release to next snapshot version)
 
 The tag release follows the naming convention: `v.<major>.<minor>.<patch>`, where `<major>`, `<minor>` and `<patch>`.
 

@@ -22,6 +22,9 @@ import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.OkHttp3ClientHttpRequestFactory;
@@ -57,6 +60,21 @@ public class SpringRestTemplateInstrumentationTest extends AbstractHttpClientIns
         Java17Code.performGet(restTemplate, path);
     }
 
+    @Override
+    protected boolean isBodyCapturingSupported() {
+        return Java17Code.isBodyCapturingSupported(restTemplate);
+    }
+
+    @Override
+    public boolean isTestHttpCallWithUserInfoEnabled() {
+        return Java17Code.isTestHttpCallWithUserInfoEnabled(restTemplate);
+    }
+
+    @Override
+    protected void performPost(String path, byte[] content, String contentTypeHeader) throws Exception {
+        Java17Code.performPost(restTemplate, path, content, contentTypeHeader);
+    }
+
     /**
      * The code is compiled with java 17 but potentially run with java 11.
      * JUnit will inspect the test class, therefore it must not contain any references to java 17 code.
@@ -67,6 +85,14 @@ public class SpringRestTemplateInstrumentationTest extends AbstractHttpClientIns
             ((RestTemplate) restTemplate).getForEntity(path, String.class);
         }
 
+        public static void performPost(Object restTemplateObj, String path, byte[] content, String contentTypeHeader) {
+            RestTemplate restTemplate = (RestTemplate) restTemplateObj;
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Content-Type", contentTypeHeader);
+            HttpEntity<byte[]> entity = new HttpEntity<byte[]>(content, headers);
+            restTemplate.exchange(path, HttpMethod.POST, entity, String.class);
+        }
+
         public static Iterable<Supplier<RestTemplate>> getRestTemplateFactories() {
             return Stream.<Supplier<ClientHttpRequestFactory>>of(
                     SimpleClientHttpRequestFactory::new,
@@ -75,5 +101,25 @@ public class SpringRestTemplateInstrumentationTest extends AbstractHttpClientIns
                 .map(fac -> (Supplier<RestTemplate>) (() -> new RestTemplate(fac.get())))
                 .collect(Collectors.toList());
         }
+
+        public static boolean isBodyCapturingSupported(Object restTemplateObj) {
+            RestTemplate restTemplate = (RestTemplate) restTemplateObj;
+            if (restTemplate.getRequestFactory() instanceof OkHttp3ClientHttpRequestFactory) {
+                // We do not support body capturing for OkHttp yet
+                return false;
+            }
+            return true;
+        }
+
+        public static boolean isTestHttpCallWithUserInfoEnabled(Object restTemplateObj) {
+            RestTemplate restTemplate = (RestTemplate) restTemplateObj;
+            if (restTemplate.getRequestFactory() instanceof HttpComponentsClientHttpRequestFactory) {
+                // newer http components don't support userinfo in URI anymore:
+                // I/O error on GET request for "http://user:passwd@localhost:50931/": Request URI authority contains deprecated userinfo component
+                return false;
+            }
+            return true;
+        }
+
     }
 }

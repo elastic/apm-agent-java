@@ -101,9 +101,10 @@ public class ResourceExtractionUtil {
                     }
                 }
             } catch (FileAlreadyExistsException e) {
-                try (FileChannel channel = JvmRuntimeInfo.ofCurrentVM().isZos() ?
-                        FileChannel.open(tempFile, READ) :
-                        FileChannel.open(tempFile, READ, NOFOLLOW_LINKS)) {
+                JvmRuntimeInfo jvmRuntimeInfo = JvmRuntimeInfo.ofCurrentVM();
+                try (FileChannel channel = (jvmRuntimeInfo.isZos() || jvmRuntimeInfo.isOs400()) ?
+                    FileChannel.open(tempFile, READ) :
+                    FileChannel.open(tempFile, READ, NOFOLLOW_LINKS)) {
                     // wait until other JVM instances have fully written the file
                     // multiple JVMs can read the file at the same time
                     try (FileLock readLock = channel.lock(0, Long.MAX_VALUE, true)) {

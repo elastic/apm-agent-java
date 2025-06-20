@@ -27,6 +27,7 @@ import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderGetter;
+import co.elastic.apm.agent.tracer.metadata.BodyCapture;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -75,18 +76,23 @@ public class HttpClientHelper {
         return span;
     }
 
-    public static <R> boolean startRequestBodyCapture(@Nullable AbstractSpan<?> abstractSpan, R request, TextHeaderGetter<R> headerGetter) {
+    public static <R> void checkBodyCapturePreconditions(@Nullable AbstractSpan<?> abstractSpan, R request, TextHeaderGetter<R> headerGetter) {
         if (!(abstractSpan instanceof Span<?>)) {
-            return false;
+            return;
         }
         Span<?> span = (Span<?>) abstractSpan;
-        if (!span.getContext().getHttp().getRequestBody().isEligibleForCapturing()) {
-            return false;
+        BodyCapture bodyCapture = span.getContext().getHttp().getRequestBody();
+        if (!bodyCapture.isEligibleForCapturing()) {
+            return;
+        }
+        if (bodyCapture.havePreconditionsBeenChecked()) {
+            return;
         }
         WebConfiguration webConfig = GlobalTracer.get().getConfig(WebConfiguration.class);
         int byteCount = webConfig.getCaptureClientRequestBytes();
         if (byteCount == 0) {
-            return false;
+            bodyCapture.markPreconditionsFailed();
+            return;
         }
         List<WildcardMatcher> contentTypes = webConfig.getCaptureContentTypes();
         String contentTypeHeader = headerGetter.getFirstHeader("Content-Type", request);
@@ -94,10 +100,19 @@ public class HttpClientHelper {
             contentTypeHeader = "";
         }
         if (WildcardMatcher.anyMatch(contentTypes, contentTypeHeader) == null) {
+            bodyCapture.markPreconditionsFailed();
+            return;
+        }
+        bodyCapture.markPreconditionsPassed(extractCharsetFromContentType(contentTypeHeader), byteCount);
+    }
+
+    public static <R> boolean checkAndStartRequestBodyCapture(@Nullable AbstractSpan<?> abstractSpan, R request, TextHeaderGetter<R> headerGetter) {
+        if (!(abstractSpan instanceof Span<?>)) {
             return false;
         }
-        String charset = extractCharsetFromContentType(contentTypeHeader);
-        return span.getContext().getHttp().getRequestBody().startCapture(charset, byteCount);
+        checkBodyCapturePreconditions(abstractSpan, request, headerGetter);
+        Span<?> span = (Span<?>) abstractSpan;
+        return span.getContext().getHttp().getRequestBody().startCapture();
     }
 
     //Visible for testing

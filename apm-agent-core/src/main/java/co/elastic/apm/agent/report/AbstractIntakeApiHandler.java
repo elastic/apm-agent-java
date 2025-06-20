@@ -22,6 +22,7 @@ import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.util.UrlConnectionUtils;
 import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
@@ -93,63 +94,64 @@ public class AbstractIntakeApiHandler {
     protected HttpURLConnection startRequest(String endpoint) throws Exception {
         payloadSerializer.blockUntilReady();
         final HttpURLConnection connection = apmServerClient.startRequest(endpoint);
-        if (connection != null) {
-            boolean useCompression = !isLocalhost(connection);
-            try {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Starting new request to {}", connection.getURL());
-                }
-                connection.setRequestMethod("POST");
-                connection.setDoOutput(true);
-                connection.setChunkedStreamingMode(SerializationConstants.BUFFER_SIZE);
-                if (useCompression) {
-                    connection.setRequestProperty("Content-Encoding", "deflate");
-                }
-                connection.setRequestProperty("Content-Type", "application/x-ndjson");
-                connection.setUseCaches(false);
-                connection.connect();
-                countingOs = new CountingOutputStream(connection.getOutputStream());
-                if (useCompression) {
-                    os = new DeflaterOutputStream(countingOs, deflater, true);
-                } else {
-                    os = countingOs;
-                }
-                payloadSerializer.setOutputStream(os);
-                payloadSerializer.appendMetaDataNdJsonToStream();
-                payloadSerializer.flushToOutputStream();
-                requestStartedNanos = System.nanoTime();
-            } catch (IOException e) {
-                try {
-                    logger.error("Error trying to connect to APM Server at {}. Although not necessarily related to SSL, some related SSL " +
-                        "configurations corresponding the current connection are logged at INFO level.", connection.getURL());
-                    if (logger.isInfoEnabled() && connection instanceof HttpsURLConnection) {
-                        HttpsURLConnection httpsURLConnection = (HttpsURLConnection) connection;
-                        try {
-                            logger.info("Cipher suite used for this connection: {}", httpsURLConnection.getCipherSuite());
-                        } catch (Exception e1) {
-                            SSLSocketFactory sslSocketFactory = httpsURLConnection.getSSLSocketFactory();
-                            logger.info("Default cipher suites: {}", Arrays.toString(sslSocketFactory.getDefaultCipherSuites()));
-                            logger.info("Supported cipher suites: {}", Arrays.toString(sslSocketFactory.getSupportedCipherSuites()));
-                        }
-                        try {
-                            logger.info("APM Server certificates: {}", Arrays.toString(httpsURLConnection.getServerCertificates()));
-                        } catch (Exception e1) {
-                            // ignore - invalid
-                        }
-                        try {
-                            logger.info("Local certificates: {}", Arrays.toString(httpsURLConnection.getLocalCertificates()));
-                        } catch (Exception e1) {
-                            // ignore - invalid
-                        }
-                    }
-                } finally {
-                    closeAndSuppressErrors(connection);
-                }
-                throw e;
-            } catch (Throwable t) {
-                closeAndSuppressErrors(connection);
-                throw t;
+        if (connection == null) {
+            return null;
+        }
+        try (UrlConnectionUtils.ContextClassloaderScope clScope = UrlConnectionUtils.withContextClassloaderOf(connection)){
+            if (logger.isDebugEnabled()) {
+                logger.debug("Starting new request to {}", connection.getURL());
             }
+            boolean useCompression = !isLocalhost(connection);
+            connection.setRequestMethod("POST");
+            connection.setDoOutput(true);
+            connection.setChunkedStreamingMode(SerializationConstants.BUFFER_SIZE);
+            if (useCompression) {
+                connection.setRequestProperty("Content-Encoding", "deflate");
+            }
+            connection.setRequestProperty("Content-Type", "application/x-ndjson");
+            connection.setUseCaches(false);
+            connection.connect();
+            countingOs = new CountingOutputStream(connection.getOutputStream()); // TODO : here
+            if (useCompression) {
+                os = new DeflaterOutputStream(countingOs, deflater, true);
+            } else {
+                os = countingOs;
+            }
+            payloadSerializer.setOutputStream(os);
+            payloadSerializer.appendMetaDataNdJsonToStream();
+            payloadSerializer.flushToOutputStream();
+            requestStartedNanos = System.nanoTime();
+        } catch (IOException e) {
+            try {
+                logger.error("Error trying to connect to APM Server at {}. Although not necessarily related to SSL, some related SSL " +
+                    "configurations corresponding the current connection are logged at INFO level.", connection.getURL());
+                if (logger.isInfoEnabled() && connection instanceof HttpsURLConnection) {
+                    HttpsURLConnection httpsURLConnection = (HttpsURLConnection) connection;
+                    try {
+                        logger.info("Cipher suite used for this connection: {}", httpsURLConnection.getCipherSuite());
+                    } catch (Exception e1) {
+                        SSLSocketFactory sslSocketFactory = httpsURLConnection.getSSLSocketFactory();
+                        logger.info("Default cipher suites: {}", Arrays.toString(sslSocketFactory.getDefaultCipherSuites()));
+                        logger.info("Supported cipher suites: {}", Arrays.toString(sslSocketFactory.getSupportedCipherSuites()));
+                    }
+                    try {
+                        logger.info("APM Server certificates: {}", Arrays.toString(httpsURLConnection.getServerCertificates()));
+                    } catch (Exception e1) {
+                        // ignore - invalid
+                    }
+                    try {
+                        logger.info("Local certificates: {}", Arrays.toString(httpsURLConnection.getLocalCertificates()));
+                    } catch (Exception e1) {
+                        // ignore - invalid
+                    }
+                }
+            } finally {
+                closeAndSuppressErrors(connection);
+            }
+            throw e;
+        } catch (Throwable t) {
+            closeAndSuppressErrors(connection);
+            throw t;
         }
         return connection;
     }
@@ -188,7 +190,10 @@ public class AbstractIntakeApiHandler {
     }
 
     private void endRequest(boolean isFailed) {
-        if (connection != null) {
+        if (connection == null) {
+            return;
+        }
+        try (UrlConnectionUtils.ContextClassloaderScope clScope = UrlConnectionUtils.withContextClassloaderOf(connection)) {
             long writtenBytes = countingOs != null ? countingOs.getCount() : 0L;
             try {
                 payloadSerializer.fullFlush();

@@ -18,22 +18,36 @@
  */
 package co.elastic.apm.agent.sdk.bytebuddy;
 
-import org.apache.http.client.HttpClient;
-
 import net.bytebuddy.description.type.TypeDescription;
+import org.apache.http.client.HttpClient;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.CodeSigner;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.*;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.implementationVersionGte;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.implementationVersionLte;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isAgentClassLoader;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.isInternalPluginClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -61,6 +75,38 @@ class CustomElementMatchersTest {
         assertThat(implementationVersionLte("3").matches(protectionDomain)).isTrue();
         assertThat(implementationVersionLte("2.1.8").matches(protectionDomain)).isFalse();
         assertThat(implementationVersionLte("2.1.9").matches(protectionDomain)).isTrue();
+    }
+
+    @Test
+    void testSemVerFallbackOnMavenProperties(@TempDir Path tempDir) throws URISyntaxException, IOException {
+        // Relying on Apache httpclient-4.5.6.jar
+        // creates a copy of the jar without the manifest so we should parse maven properties
+        URL originalUrl = HttpClient.class.getProtectionDomain().getCodeSource().getLocation();
+        Path modifiedJar = tempDir.resolve("test.jar");
+        try {
+            Files.copy(Paths.get(originalUrl.toURI()), modifiedJar);
+
+            Map<String, String> fsProperties = new HashMap<>();
+            fsProperties.put("create", "false");
+
+            URI fsUri = URI.create("jar:" + modifiedJar.toUri());
+            try (FileSystem zipFs = FileSystems.newFileSystem(fsUri, fsProperties)) {
+                Files.delete(zipFs.getPath("META-INF", "MANIFEST.MF"));
+            }
+
+            ProtectionDomain protectionDomain = new ProtectionDomain(new CodeSource(modifiedJar.toUri().toURL(), new CodeSigner[0]), null);
+
+            assertThat(implementationVersionLte("4.5.5", "org.apache.httpcomponents", "httpclient").matches(protectionDomain)).isFalse();
+            assertThat(implementationVersionLte("4.5.6", "org.apache.httpcomponents", "httpclient").matches(protectionDomain)).isTrue();
+            assertThat(implementationVersionGte("4.5.7", "org.apache.httpcomponents", "httpclient").matches(protectionDomain)).isFalse();
+
+
+        } finally {
+            if (Files.exists(modifiedJar)) {
+                Files.delete(modifiedJar);
+            }
+        }
+
     }
 
     private void testSemVerLteMatcher(ProtectionDomain protectionDomain) {

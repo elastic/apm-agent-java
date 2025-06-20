@@ -26,6 +26,7 @@ import org.springframework.http.client.reactive.HttpComponentsClientHttpConnecto
 import org.springframework.http.client.reactive.JettyClientHttpConnector;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 @RunWith(Parameterized.class)
@@ -38,30 +39,33 @@ public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentat
 
     private final RequestStrategy strategy;
 
-    private final boolean isNetty;
+    private final boolean circularRedirectSupported;
 
-    public WebClientInstrumentationTest(String clientIgnored, Object webClient, RequestStrategy strategy, boolean isNetty) {
+    private final boolean uriUserInfoSupported;
+
+    public WebClientInstrumentationTest(String clientName, Object webClient, RequestStrategy strategy) {
         this.webClient = webClient;
         this.strategy = strategy;
-        this.isNetty = isNetty;
+        this.circularRedirectSupported = !"netty".equals(clientName) && !"jetty".equals(clientName);
+        this.uriUserInfoSupported = !"hc5".equals(clientName) && !"netty".equals(clientName);
     }
 
     @Parameterized.Parameters(name = "client = {0}, request strategy = {2}")
     public static Object[][] testParams() {
         if (JvmRuntimeInfo.ofCurrentVM().getMajorVersion() >= 17) {
             return new Object[][]{
-                {"jetty", Clients.jettyClient(), RequestStrategy.EXCHANGE, false},
-                {"jetty", Clients.jettyClient(), RequestStrategy.EXCHANGE_TO_FLUX, false},
-                {"jetty", Clients.jettyClient(), RequestStrategy.EXCHANGE_TO_MONO, false},
-                {"jetty", Clients.jettyClient(), RequestStrategy.RETRIEVE, false},
-                {"netty", Clients.nettyClient(), RequestStrategy.EXCHANGE, true},
-                {"netty", Clients.nettyClient(), RequestStrategy.EXCHANGE_TO_FLUX, true},
-                {"netty", Clients.nettyClient(), RequestStrategy.EXCHANGE_TO_MONO, true},
-                {"netty", Clients.nettyClient(), RequestStrategy.RETRIEVE, true},
-                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.EXCHANGE, false},
-                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_FLUX, false},
-                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_MONO, false},
-                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.RETRIEVE, false}
+                {"jetty", Clients.jettyClient(), RequestStrategy.EXCHANGE},
+                {"jetty", Clients.jettyClient(), RequestStrategy.EXCHANGE_TO_FLUX},
+                {"jetty", Clients.jettyClient(), RequestStrategy.EXCHANGE_TO_MONO},
+                {"jetty", Clients.jettyClient(), RequestStrategy.RETRIEVE},
+                {"netty", Clients.nettyClient(), RequestStrategy.EXCHANGE},
+                {"netty", Clients.nettyClient(), RequestStrategy.EXCHANGE_TO_FLUX},
+                {"netty", Clients.nettyClient(), RequestStrategy.EXCHANGE_TO_MONO},
+                {"netty", Clients.nettyClient(), RequestStrategy.RETRIEVE},
+                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.EXCHANGE},
+                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_FLUX},
+                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.EXCHANGE_TO_MONO},
+                {"hc5", Clients.reactiveHttpClient5(), RequestStrategy.RETRIEVE}
             };
         } else {
             return new Object[0][0];
@@ -71,19 +75,29 @@ public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentat
     @Override
     public boolean isRequireCheckErrorWhenCircularRedirect() {
         // circular redirect does not trigger an error to capture with netty
-        return !isNetty;
+        return circularRedirectSupported;
     }
 
     @Override
     public boolean isTestHttpCallWithUserInfoEnabled() {
         // user info URI does not work with netty
-        return !isNetty;
+        return uriUserInfoSupported;
     }
 
 
     @Override
     protected void performGet(String path) throws Exception {
         strategy.execute(webClient, path);
+    }
+
+    @Override
+    protected boolean isBodyCapturingSupported() {
+        return true;
+    }
+
+    @Override
+    protected void performPost(String path, byte[] content, String contentTypeHeader) throws Exception {
+        strategy.execute(webClient, path, content, contentTypeHeader);
     }
 
     /**
@@ -98,11 +112,33 @@ public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentat
                 ((WebClient) client).get().uri(uri).exchange() // deprecated API
                     .block();
             }
+
+            @Override
+            void execute(Object client, String uri, byte[] body, String contentTypeHeader) {
+                ((WebClient) client).post()
+                    .uri(uri)
+                    .header("Content-Type", contentTypeHeader)
+                    .body(Mono.just(body), byte[].class)
+                    .exchange() // deprecated API
+                    .block();
+
+            }
         },
         EXCHANGE_TO_FLUX {
             @Override
             void execute(Object client, String uri) {
                 ((WebClient) client).get().uri(uri).exchangeToFlux(response -> response.bodyToFlux(String.class)).blockLast();
+            }
+
+            @Override
+            void execute(Object client, String uri, byte[] body, String contentTypeHeader) {
+                ((WebClient) client).post()
+                    .uri(uri)
+                    .header("Content-Type", contentTypeHeader)
+                    .body(Mono.just(body), byte[].class)
+                    .exchangeToFlux(response -> response.bodyToFlux(String.class))
+                    .blockLast();
+
             }
         },
         EXCHANGE_TO_MONO {
@@ -111,15 +147,37 @@ public class WebClientInstrumentationTest extends AbstractHttpClientInstrumentat
             void execute(Object client, String uri) {
                 ((WebClient) client).get().uri(uri).exchangeToMono(response -> response.bodyToMono(String.class)).block();
             }
+
+            @Override
+            void execute(Object client, String uri, byte[] body, String contentTypeHeader) {
+                ((WebClient) client).post()
+                    .uri(uri)
+                    .header("Content-Type", contentTypeHeader)
+                    .body(Mono.just(body), byte[].class)
+                    .exchangeToMono(response -> response.bodyToMono(String.class)).block();
+
+            }
         },
         RETRIEVE {
             @Override
             void execute(Object client, String uri) {
                 ((WebClient) client).get().uri(uri).retrieve().bodyToMono(String.class).block();
             }
+
+            @Override
+            void execute(Object client, String uri, byte[] body, String contentTypeHeader) {
+                ((WebClient) client).post()
+                    .uri(uri)
+                    .header("Content-Type", contentTypeHeader)
+                    .body(Mono.just(body), byte[].class)
+                    .retrieve().bodyToMono(String.class).block();
+
+            }
         };
 
         abstract void execute(Object client, String uri);
+
+        abstract void execute(Object client, String uri, byte[] body, String contentTypeHeader);
     }
 
     public static class Clients {

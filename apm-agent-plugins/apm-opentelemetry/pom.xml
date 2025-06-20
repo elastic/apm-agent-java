@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-plugins</artifactId>
-        <version>1.51.0</version>
+        <version>1.54.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-opentelemetry</artifactId>
@@ -20,7 +20,7 @@
         to make sure that in the future we stay compatible with the previous version.
         -->
         <version.opentelemetry>1.32.0</version.opentelemetry>
-        <version.opentelemetry-semconv>1.25.0-alpha</version.opentelemetry-semconv>
+        <version.opentelemetry-semconv>1.30.0-rc.1</version.opentelemetry-semconv>
 
         <maven.compiler.target>8</maven.compiler.target>
         <maven.compiler.source>8</maven.compiler.source>

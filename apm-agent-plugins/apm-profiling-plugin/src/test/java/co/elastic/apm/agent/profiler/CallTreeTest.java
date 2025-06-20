@@ -21,20 +21,25 @@ package co.elastic.apm.agent.profiler;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.transaction.*;
-import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.impl.transaction.StackFrame;
+import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.objectpool.NoopObjectPool;
 import co.elastic.apm.agent.objectpool.ObservableObjectPool;
 import co.elastic.apm.agent.objectpool.impl.ListBasedObjectPool;
 import co.elastic.apm.agent.testutils.DisabledOnAppleSilicon;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledForJreRange;
 import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.condition.OS;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -57,6 +62,7 @@ import static org.mockito.Mockito.doReturn;
 
 @DisabledOnOs(OS.WINDOWS)
 @DisabledOnAppleSilicon
+@DisabledForJreRange(min = JRE.JAVA_24)
 class CallTreeTest {
 
     private MockReporter reporter;

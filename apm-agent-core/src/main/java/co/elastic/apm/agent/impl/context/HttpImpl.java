@@ -103,7 +103,8 @@ public class HttpImpl implements Recyclable, Http {
     public boolean hasContent() {
         return url.hasContent() ||
             method != null ||
-            statusCode > 0;
+               statusCode > 0 ||
+               requestBody.hasContent();
     }
 
 }

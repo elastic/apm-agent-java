@@ -187,8 +187,8 @@ public class AwsLambdaIT {
         ImageFromDockerfile imageBuilder = new ImageFromDockerfile().withDockerfileFromBuilder(builder ->
                 {
                     builder
-                        .withStatement(raw("FROM docker.elastic.co/observability/apm-lambda-extension-x86_64:latest AS lambda-extension"))
-                        .withStatement(raw("FROM --platform=linux/amd64 public.ecr.aws/lambda/java:11"))
+                        .withStatement(raw("FROM docker.elastic.co/observability/apm-lambda-extension-x86_64:1.5.5 AS lambda-extension"))
+                        .withStatement(raw("FROM --platform=linux/amd64 public.ecr.aws/lambda/java:21"))
                         .withStatement(raw("COPY --from=lambda-extension /opt/elastic-apm-extension /opt/extensions/elastic-apm-extension"))
                         .copy("aws-lambda-test.jar", "${LAMBDA_TASK_ROOT}/lib/aws-lambda-test.jar")
                         .cmd("[\"" + TestLambda.class.getName() + "\"]");

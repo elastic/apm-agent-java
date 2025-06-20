@@ -43,6 +43,10 @@ public class CallDepth {
     public static CallDepth get(Class<?> adviceClass) {
         // we want to return the same CallDepth instance even if the advice class has been loaded from different class loaders
         String key = adviceClass.getName();
+        return get(key);
+    }
+
+    public static CallDepth get(String key) {
         CallDepth callDepth = registry.get(key);
         if (callDepth == null) {
             registry.putIfAbsent(key, new CallDepth());
@@ -108,7 +112,7 @@ public class CallDepth {
         return decrement() != 0;
     }
 
-    private int get() {
+    public int get() {
         Integer callDepthForCurrentThread = callDepthPerThread.get();
         if (callDepthForCurrentThread == null) {
             callDepthForCurrentThread = 0;

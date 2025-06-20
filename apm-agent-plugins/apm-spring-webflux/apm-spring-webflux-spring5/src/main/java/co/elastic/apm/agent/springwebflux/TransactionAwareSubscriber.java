@@ -145,7 +145,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
         Transaction<?> transaction = getTransaction();
         doEnter("onError", transaction);
         try {
-
+            WebfluxHelper.setFrameworkInfo(transaction);
             // We have to capture the transaction name just before it's actually ended to prevent
             // concurrency issues as the transaction is accessed from multiple threads when created by a servlet.
             WebfluxHelper.setTransactionName(transaction, exchange);
@@ -167,7 +167,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
         Transaction<?> transaction = getTransaction();
         doEnter("onComplete", transaction);
         try {
-
+            WebfluxHelper.setFrameworkInfo(transaction);
             // We have to capture the transaction name just before it's actually ended to prevent
             // concurrency issues as the transaction is accessed from multiple threads when created by a servlet.
             WebfluxHelper.setTransactionName(transaction, exchange);
@@ -209,7 +209,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
             if (transaction == null) {
                 return;
             }
-
+            WebfluxHelper.setFrameworkInfo(transaction);
             WebfluxHelper.setTransactionName(transaction, exchange);
             WebfluxHelper.endTransaction(null, transaction, exchange);
 

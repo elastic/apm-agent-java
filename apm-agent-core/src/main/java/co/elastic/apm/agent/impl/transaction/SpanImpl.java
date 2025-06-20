@@ -27,21 +27,30 @@ import co.elastic.apm.agent.impl.context.ServiceTargetImpl;
 import co.elastic.apm.agent.impl.context.SpanContextImpl;
 import co.elastic.apm.agent.impl.context.UrlImpl;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
-import co.elastic.apm.agent.tracer.Span;
-import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.tracer.Outcome;
+import co.elastic.apm.agent.tracer.Span;
+import co.elastic.apm.agent.tracer.SpanEndListener;
 import co.elastic.apm.agent.tracer.pooling.Recyclable;
+import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.util.CharSequenceUtils;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 public class SpanImpl extends AbstractSpanImpl<SpanImpl> implements Recyclable, Span<SpanImpl> {
 
+    /**
+     * Protection against excessive memory usage and span ending run times:
+     * We limit the maximum allowed number of end listeners.
+     */
+    static final int MAX_END_LISTENERS = 100;
     private static final Logger logger = LoggerFactory.getLogger(SpanImpl.class);
     public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
     private static long lastSpanMaxWarningTimestamp;
@@ -74,6 +83,9 @@ public class SpanImpl extends AbstractSpanImpl<SpanImpl> implements Recyclable, 
     private TransactionImpl transaction;
     @Nullable
     private List<StackFrame> stackFrames;
+
+    private final Set<SpanEndListener<? super SpanImpl>> endListeners =
+        Collections.newSetFromMap(new ConcurrentHashMap<SpanEndListener<? super SpanImpl>, Boolean>());
 
     /**
      * If a span is non-discardable, all the spans leading up to it are non-discardable as well
@@ -174,6 +186,25 @@ public class SpanImpl extends AbstractSpanImpl<SpanImpl> implements Recyclable, 
         return this;
     }
 
+    @Override
+    public void addEndListener(SpanEndListener<? super SpanImpl> listener) {
+        if (endListeners.size() < MAX_END_LISTENERS) {
+            endListeners.add(listener);
+        } else {
+            if (logger.isDebugEnabled()) {
+                logger.warn("Not adding span end listener because limit is reached: {}," +
+                            " throwable stacktrace will be added for debugging", listener, new Throwable());
+            } else {
+                logger.warn("Not adding span end listener because limit is reached: {}", listener);
+            }
+        }
+    }
+
+    @Override
+    public void removeEndListener(SpanEndListener<? super SpanImpl> listener) {
+        endListeners.remove(listener);
+    }
+
 
     /**
      * Sets span.type, span.subtype and span.action. If no subtype and action are provided, assumes the legacy usage of hierarchical
@@ -221,6 +252,9 @@ public class SpanImpl extends AbstractSpanImpl<SpanImpl> implements Recyclable, 
 
     @Override
     public void beforeEnd(long epochMicros) {
+        for (SpanEndListener<? super SpanImpl> endListener : endListeners) {
+            endListener.onEnd(this);
+        }
         // set outcome when not explicitly set by user nor instrumentation
         if (outcomeNotSet()) {
             Outcome outcome;
@@ -476,6 +510,7 @@ public class SpanImpl extends AbstractSpanImpl<SpanImpl> implements Recyclable, 
         super.resetState();
         context.resetState();
         composite.resetState();
+        endListeners.clear();
         stacktrace = null;
         subtype = null;
         action = null;

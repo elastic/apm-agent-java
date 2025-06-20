@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.51.0</version>
+        <version>1.54.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-rabbitmq</artifactId>
@@ -21,7 +21,8 @@
         <module>apm-rabbitmq-plugin</module>
         <module>apm-rabbitmq-test-3</module>
         <module>apm-rabbitmq-test-4</module>
-        <module>apm-rabbitmq-spring</module>
+        <module>apm-rabbitmq-spring5</module>
+        <module>apm-rabbitmq-test-spring6</module>
         <!-- RabbitMQ 5.x is already tested through plugin module, thus we don't need a separate module to cover it -->
     </modules>
 

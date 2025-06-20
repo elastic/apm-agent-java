@@ -39,6 +39,7 @@ public class JvmRuntimeInfo {
     private final boolean isHpUx;
     private final boolean isCoretto;
     private final boolean isZos;
+    private final boolean isOs400;
 
     public static JvmRuntimeInfo ofCurrentVM() {
         return CURRENT_VM;
@@ -68,6 +69,7 @@ public class JvmRuntimeInfo {
         isHpUx = version.endsWith("-hp-ux");
         isCoretto = vendorName != null && vendorName.contains("Amazon");
         isZos = (osName != null) && osName.toLowerCase().contains("z/os");
+        isOs400 = (osName != null) && osName.toLowerCase().contains("os/400");
 
         if (isHpUx) {
             // remove extra hp-ux suffix for parsing
@@ -153,7 +155,7 @@ public class JvmRuntimeInfo {
         return isJ9;
     }
 
-    public boolean isHpUx(){
+    public boolean isHpUx() {
         return isHpUx;
     }
 
@@ -171,6 +173,10 @@ public class JvmRuntimeInfo {
 
     public boolean isZos() {
         return isZos;
+    }
+
+    public boolean isOs400() {
+        return isOs400;
     }
 
     @Override

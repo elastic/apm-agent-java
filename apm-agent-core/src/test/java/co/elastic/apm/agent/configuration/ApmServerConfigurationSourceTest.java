@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.sdk.logging.Logger;
@@ -77,7 +76,7 @@ public class ApmServerConfigurationSourceTest {
         apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
         mockLogger = mock(Logger.class);
         configurationSource = new ApmServerConfigurationSource(
-            new DslJsonSerializer(mock(StacktraceConfigurationImpl.class), apmServerClient, MetaDataMock.create()),
+            new DslJsonSerializer(SpyConfiguration.createSpyConfig(), apmServerClient, MetaDataMock.create()),
             apmServerClient,
             mockLogger
         );

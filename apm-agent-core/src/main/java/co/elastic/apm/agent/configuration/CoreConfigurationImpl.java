@@ -25,7 +25,13 @@ import co.elastic.apm.agent.matcher.MethodMatcher;
 import co.elastic.apm.agent.matcher.MethodMatcherValueConverter;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.tracer.configuration.*;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.ListValueConverter;
+import co.elastic.apm.agent.tracer.configuration.RegexValidator;
+import co.elastic.apm.agent.tracer.configuration.RoundedDoubleConverter;
+import co.elastic.apm.agent.tracer.configuration.TimeDuration;
+import co.elastic.apm.agent.tracer.configuration.TimeDurationValueConverter;
+import co.elastic.apm.agent.tracer.configuration.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.AbstractValueConverter;
@@ -630,7 +636,7 @@ public class CoreConfigurationImpl extends ConfigurationOptionProvider implement
             "\n" +
             "A few examples:\n" +
             "\n" +
-            " - `org.example.*` added[1.4.0,Omitting the method is possible since 1.4.0]\n" +
+            " - `org.example.*` added:[1.4.0,Omitting the method is possible since 1.4.0]\n" +
             " - `org.example.*#*` (before 1.4.0, you need to specify a method matcher)\n" +
             " - `org.example.MyClass#myMethod`\n" +
             " - `org.example.MyClass#myMethod()`\n" +
@@ -696,7 +702,8 @@ public class CoreConfigurationImpl extends ConfigurationOptionProvider implement
         .key("central_config")
         .tags("added[1.8.0]")
         .configurationCategory(CORE_CATEGORY)
-        .description("When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration.")
+        .description("When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration.\n"
+                     + "The frequency of the periodic request is driven by the `Cache-Control` header returned from APM Server/Integration, falling back to 5 minutes if not defined.")
         .dynamic(true)
         .buildWithDefault(true);
 
@@ -875,6 +882,14 @@ public class CoreConfigurationImpl extends ConfigurationOptionProvider implement
             " The baggage keys will be prefixed with \"baggage.\" on storage.")
         .dynamic(true)
         .buildWithDefault(Arrays.asList(WildcardMatcher.valueOf("*")));
+
+    private final ConfigurationOption<Boolean> captureThreadOnStart = ConfigurationOption.booleanOption()
+        .key("capture_thread_on_start")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Whether to capture thread name and ID as labels.")
+        .dynamic(true)
+        .tags("internal")
+        .buildWithDefault(false);
 
     public boolean isEnabled() {
         return enabled.get();
@@ -1210,4 +1225,8 @@ public class CoreConfigurationImpl extends ConfigurationOptionProvider implement
         }
     }
 
+    @Override
+    public boolean isCaptureThreadOnStart() {
+        return captureThreadOnStart.get();
+    }
 }

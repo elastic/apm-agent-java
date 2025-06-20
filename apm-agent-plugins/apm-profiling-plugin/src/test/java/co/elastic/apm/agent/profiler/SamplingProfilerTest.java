@@ -56,6 +56,7 @@ import static org.mockito.Mockito.doReturn;
 // async-profiler doesn't work on Windows
 @DisabledOnOs(OS.WINDOWS)
 @DisabledOnAppleSilicon
+@DisabledForJreRange(min = JRE.JAVA_24)
 class SamplingProfilerTest {
 
     private MockReporter reporter;

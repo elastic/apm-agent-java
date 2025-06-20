@@ -18,8 +18,9 @@
  */
 package co.elastic.apm.agent.jaxws;
 
-import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.bytebuddy.MethodHierarchyMatcher;
+import co.elastic.apm.agent.sdk.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.Transaction;
@@ -94,13 +95,19 @@ public class JaxWsTransactionNameInstrumentation extends ElasticApmInstrumentati
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return overridesOrImplementsMethodThat(
+        MethodHierarchyMatcher annotatedMethodMatcher = overridesOrImplementsMethodThat(
+            isAnnotatedWith(
+                namedOneOf("javax.jws.WebMethod", "jakarta.jws.WebMethod")))
+            .onSuperClassesThat(isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any()));
+
+        MethodHierarchyMatcher interfaceInheritedMatcher = overridesOrImplementsMethodThat(
             isPublic().and(isDeclaredBy(isInterface()))
         ).whereHierarchyContains(
             isInterface().and(isAnnotatedWith(namedOneOf("javax.jws.WebService", "jakarta.jws.WebService")))
         ).onSuperClassesThat(
             isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any())
         );
+        return interfaceInheritedMatcher.or(annotatedMethodMatcher);
     }
 
     @Override

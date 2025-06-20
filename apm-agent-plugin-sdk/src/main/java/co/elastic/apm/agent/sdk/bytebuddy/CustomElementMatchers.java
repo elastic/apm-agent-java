@@ -19,9 +19,9 @@
 package co.elastic.apm.agent.sdk.bytebuddy;
 
 import co.elastic.apm.agent.sdk.internal.InternalUtil;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
-import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
 import net.bytebuddy.description.NamedElement;
@@ -31,6 +31,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.JarURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -38,13 +39,13 @@ import java.net.URLConnection;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.Collection;
+import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.zip.ZipEntry;
 
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
-import static net.bytebuddy.matcher.ElementMatchers.none;
+import static net.bytebuddy.matcher.ElementMatchers.*;
 
 public class CustomElementMatchers {
 
@@ -183,15 +184,23 @@ public class CustomElementMatchers {
      * @param version the version to check against
      * @return an LTE SemVer matcher
      */
-    public static ElementMatcher.Junction<ProtectionDomain> implementationVersionLte(final String version) {
-        return implementationVersion(version, Matcher.LTE);
+    public static ElementMatcher.Junction<ProtectionDomain> implementationVersionLte(String version) {
+        return implementationVersion(version, Matcher.LTE, null, null);
     }
 
-    public static ElementMatcher.Junction<ProtectionDomain> implementationVersionGte(final String version) {
-        return implementationVersion(version, Matcher.GTE);
+    public static ElementMatcher.Junction<ProtectionDomain> implementationVersionGte(String version) {
+        return implementationVersion(version, Matcher.GTE, null, null);
     }
 
-    private static ElementMatcher.Junction<ProtectionDomain> implementationVersion(final String version, final Matcher matcher) {
+    public static ElementMatcher.Junction<ProtectionDomain> implementationVersionLte(String version, String groupId, String artifactId) {
+        return implementationVersion(version, Matcher.LTE, groupId, artifactId);
+    }
+
+    public static ElementMatcher.Junction<ProtectionDomain> implementationVersionGte(String version, String groupId, String artifactId) {
+        return implementationVersion(version, Matcher.GTE, groupId, artifactId);
+    }
+
+    private static ElementMatcher.Junction<ProtectionDomain> implementationVersion(final String version, final Matcher matcher, @Nullable final String mavenGroupId, @Nullable final String mavenArtifactId) {
         return new ElementMatcher.Junction.AbstractBase<ProtectionDomain>() {
             /**
              * Returns true if the implementation version read from the manifest file referenced by the given
@@ -205,7 +214,7 @@ public class CustomElementMatchers {
             @Override
             public boolean matches(@Nullable ProtectionDomain protectionDomain) {
                 try {
-                    Version pdVersion = readImplementationVersionFromManifest(protectionDomain);
+                    Version pdVersion = readImplementationVersion(protectionDomain, mavenGroupId, mavenArtifactId);
                     if (pdVersion != null) {
                         Version limitVersion = Version.of(version);
                         return matcher.match(pdVersion, limitVersion);
@@ -221,22 +230,51 @@ public class CustomElementMatchers {
     }
 
     @Nullable
-    private static Version readImplementationVersionFromManifest(@Nullable ProtectionDomain protectionDomain) throws IOException, URISyntaxException {
+    private static Version readImplementationVersion(@Nullable ProtectionDomain protectionDomain, @Nullable String mavenGroupId, @Nullable String mavenArtifactId) throws IOException, URISyntaxException {
         Version version = null;
         JarFile jarFile = null;
+
+        if (protectionDomain == null) {
+            logger.info("Cannot read implementation version - got null ProtectionDomain");
+            return null;
+        }
+
         try {
-            if (protectionDomain != null) {
-                CodeSource codeSource = protectionDomain.getCodeSource();
-                if (codeSource != null) {
-                    URL jarUrl = codeSource.getLocation();
-                    if (jarUrl != null) {
-                        // does not yet establish an actual connection
-                        URLConnection urlConnection = jarUrl.openConnection();
-                        if (urlConnection instanceof JarURLConnection) {
-                            jarFile = ((JarURLConnection) urlConnection).getJarFile();
-                        } else {
-                            jarFile = new JarFile(new File(jarUrl.toURI()));
+            CodeSource codeSource = protectionDomain.getCodeSource();
+            if (codeSource != null) {
+                URL jarUrl = codeSource.getLocation();
+                if (jarUrl != null) {
+                    // does not yet establish an actual connection
+                    URLConnection urlConnection = jarUrl.openConnection();
+                    if (urlConnection instanceof JarURLConnection) {
+                        jarFile = ((JarURLConnection) urlConnection).getJarFile();
+                    } else {
+                        jarFile = new JarFile(new File(jarUrl.toURI()));
+                    }
+
+                    // read maven properties first as they have higher priority over manifest
+                    // this is mostly for shaded libraries in "fat-jar" applications
+                    if (mavenGroupId != null && mavenArtifactId != null) {
+                        ZipEntry zipEntry = jarFile.getEntry(String.format("META-INF/maven/%s/%s/pom.properties", mavenGroupId, mavenArtifactId));
+                        if (zipEntry != null) {
+                            Properties properties = new Properties();
+                            try (InputStream input = jarFile.getInputStream(zipEntry)) {
+                                properties.load(input);
+                            }
+                            if (mavenGroupId.equals(properties.getProperty("groupId")) && mavenArtifactId.equals(properties.getProperty("artifactId"))) {
+                                String stringVersion = properties.getProperty("version");
+                                if (stringVersion != null) {
+                                    version = Version.of(stringVersion);
+                                }
+                            }
                         }
+                    }
+
+                    // reading manifest if library packaged as a jar
+                    //
+                    // doing this after maven properties is important as it might report executable jar version
+                    // when application is packaged as a "fat jar"
+                    if (version == null) {
                         Manifest manifest = jarFile.getManifest();
                         if (manifest != null) {
                             Attributes attributes = manifest.getMainAttributes();
@@ -248,12 +286,9 @@ public class CustomElementMatchers {
                             if (manifestVersion != null) {
                                 version = Version.of(manifestVersion);
                             }
-
                         }
                     }
                 }
-            } else {
-                logger.info("Cannot read implementation version - got null ProtectionDomain");
             }
         } finally {
             if (jarFile != null) {

@@ -26,7 +26,6 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.ServerlessConfigurationImpl;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
 import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
 import co.elastic.apm.agent.impl.transaction.TraceState;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
@@ -130,7 +129,7 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
 
     public AbstractLambdaTest() {
         jsonSerializer = new DslJsonSerializer(
-            mock(StacktraceConfigurationImpl.class),
+            SpyConfiguration.createSpyConfig(),
             mock(ApmServerClient.class),
             MetaDataMock.create()
         ).newWriter();
@@ -150,7 +149,9 @@ public abstract class AbstractLambdaTest<ReqE, ResE> extends AbstractInstrumenta
         return true;
     }
 
+
     static synchronized void initAllButInstrumentation() {
+        ElasticApmAgent.reset(); // reset the AbstractInstrumentationTest beforeAll initialization
         config = SpyConfiguration.createSpyConfig();
         serverlessConfiguration = config.getConfig(ServerlessConfigurationImpl.class);
         doReturn(true).when(serverlessConfiguration).runsOnAwsLambda();

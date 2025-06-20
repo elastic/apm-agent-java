@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.jaxws;
 
+import jakarta.jws.WebMethod;
 import jakarta.jws.WebService;
 import jakarta.jws.soap.SOAPBinding;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +42,11 @@ class JakartaeeJaxWsTransactionNameInstrumentationTest extends AbstractJaxWsInst
         @Override
         public String sayHello() {
             return "Hello World";
+        }
+
+        @WebMethod
+        public String webMethodAnnotated() {
+            return "foo bar";
         }
     }
 

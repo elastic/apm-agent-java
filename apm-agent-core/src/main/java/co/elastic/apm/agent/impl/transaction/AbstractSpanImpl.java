@@ -542,6 +542,12 @@ public abstract class AbstractSpanImpl<T extends AbstractSpanImpl<T>> extends Ab
 
         List<WildcardMatcher> baggageToAttach = tracer.getConfig(CoreConfigurationImpl.class).getBaggageToAttach();
         baggage.storeBaggageInAttributes(this, baggageToAttach);
+
+        if (tracer.getConfig(CoreConfigurationImpl.class).isCaptureThreadOnStart()) {
+            Thread currentThread = Thread.currentThread();
+            this.addLabel("thread_id", currentThread.getId());
+            this.addLabel("thread_name", currentThread.getName());
+        }
     }
 
     @Override

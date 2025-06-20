@@ -43,7 +43,8 @@ public class JdbcDbIT extends AbstractJdbcInstrumentationTest {
             {"jdbc:tc:postgresql:9://hostname/databasename", "postgresql", "databasename", true},
             {"jdbc:tc:postgresql:10://hostname/databasename", "postgresql", "databasename", true},
             {"jdbc:tc:mariadb:10://hostname/databasename", "mariadb", "databasename", true},
-            {"jdbc:tc:sqlserver:2017-CU12://hostname/databasename", "mssql", "master", false}, // for mssql the 'master' name comes from the runtime catalog fallback
+            // TODO: SQL Server image seems to be broken with recent kernel versions: https://github.com/microsoft/mssql-docker/issues/868
+            //{"jdbc:tc:sqlserver:2017-CU12://hostname/databasename", "mssql", "master", false}, // for mssql the 'master' name comes from the runtime catalog fallback
             {"jdbc:tc:db2:11.5.0.0a://hostname/databasename", "db2", "test", true},
             {"jdbc:tc:oracle://hostname/databasename", "oracle", "xepdb1", true},
         });

@@ -29,7 +29,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.error.ErrorCaptureImpl;
 import co.elastic.apm.agent.impl.metadata.MetaData;
 import co.elastic.apm.agent.impl.metadata.MetaDataMock;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfigurationImpl;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
@@ -139,7 +138,7 @@ public class ApmServerClientTest {
         client.start(serverVersionFuture);
         Future<MetaData> metadata = MetaDataMock.create();
 
-        DslJsonSerializer dslJsonSerializer = new DslJsonSerializer(config.getConfig(StacktraceConfigurationImpl.class), client, metadata);
+        DslJsonSerializer dslJsonSerializer = new DslJsonSerializer(config, client, metadata);
         dslJsonSerializer.newWriter().blockUntilReady();
 
         verify(serverVersionFuture, never()).get();

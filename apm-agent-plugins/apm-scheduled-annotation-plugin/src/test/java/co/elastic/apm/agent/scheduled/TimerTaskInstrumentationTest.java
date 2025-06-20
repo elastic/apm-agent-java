@@ -80,7 +80,7 @@ public class TimerTaskInstrumentationTest extends AbstractInstrumentationTest {
             }, 1);
 
         reporter.awaitTransactionCount(1);
-        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("1#run");
+        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("TimerTaskInstrumentationTest$1#run");
     }
 
     public static class TestTimerTask extends TimerTask {

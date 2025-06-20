@@ -18,12 +18,13 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakKeySoftValueLoadingCache;
-import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakKeySoftValueLoadingCache;
+import co.elastic.apm.agent.tracer.Transaction;
 import org.springframework.http.server.reactive.AbstractServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
 import org.springframework.web.server.ServerWebExchange;
 
 import javax.annotation.Nullable;
@@ -60,19 +61,23 @@ public class WebfluxServletHelper {
 
         // While the active transaction is the one created by Servlet, it would rely on the fact that we are on the
         // same thread as the one that created the transaction, which is an implementation detail.
-
-        Transaction<?> transaction = null;
-
         ServerHttpRequest exchangeRequest = exchange.getRequest();
+        return getTransactionFromRequest(exchangeRequest);
+    }
+
+    @Nullable
+    private static Transaction<?> getTransactionFromRequest(ServerHttpRequest exchangeRequest) {
         if (exchangeRequest instanceof AbstractServerHttpRequest) {
             Object nativeRequest = ((AbstractServerHttpRequest) exchangeRequest).getNativeRequest();
 
             // note: attribute name is defined in Servlet plugin and should be kept in sync
-            transaction = (Transaction<?>) getServletAttribute(nativeRequest, "co.elastic.apm.agent.servlet.ServletApiAdvice.transaction");
+            return (Transaction<?>) getServletAttribute(nativeRequest, "co.elastic.apm.agent.servlet.ServletApiAdvice.transaction");
 
+        } else if (exchangeRequest instanceof ServerHttpRequestDecorator) {
+            ServerHttpRequestDecorator decorator = (ServerHttpRequestDecorator) exchangeRequest;
+            return getTransactionFromRequest(decorator.getDelegate());
         }
-
-        return transaction;
+        return null;
     }
 
     /**

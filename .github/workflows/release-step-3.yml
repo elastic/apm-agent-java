@@ -105,7 +105,7 @@ jobs:
         run: tar xvf ${{ env.TARBALL_FILE }}
 
       - name: generate build provenance
-        uses: actions/attest-build-provenance@5e9cb68e95676991667494a6a4e59b8a2f13e1d0  # v1.3.3
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be  # v2.4.0
         with:
           subject-path: "${{ github.workspace }}/**/target/*.jar"
 
@@ -115,10 +115,10 @@ jobs:
     needs:
       - validate-tag
     steps:
-      - uses: elastic/apm-pipeline-library/.github/actions/await-maven-artifact@current
+      - uses: elastic/oblt-actions/maven/await-artifact@v1
         with:
-          groupid: 'co.elastic.apm'
-          artifactid: 'elastic-apm-agent'
+          group-id: 'co.elastic.apm'
+          artifact-id: 'elastic-apm-agent'
           version: ${{ env.RELEASE_VERSION }}
 
   build-and-push-docker-images:
@@ -136,7 +136,7 @@ jobs:
           fetch-depth: 0 # Load entire history as it is required for the push-script
 
       - name: Log in to the Elastic Container registry
-        uses: docker/login-action@0d4c9c5ea7693da7b068278f7b52bda2a190a446 # v3.2.0
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ${{ secrets.ELASTIC_DOCKER_REGISTRY }}
           username: ${{ secrets.ELASTIC_DOCKER_USERNAME }}
@@ -169,7 +169,7 @@ jobs:
         uses: ./.github/workflows/maven-goal
         with:
           command: ./mvnw dependency:purge-local-repository package -pl apm-agent-lambda-layer
-      - uses: elastic/oblt-actions/aws/auth@v1.10.0
+      - uses: elastic/oblt-actions/aws/auth@v1
         with:
           aws-account-id: '267093732750'
       - name: Publish
@@ -197,6 +197,7 @@ jobs:
     name: "Bump versions and create PR"
     needs:
       - await-maven-central-artifact
+      - publish-aws-lambda # The AWS lambda layer publishing breaks if the version-bump PR is accidentally merged before it finished
     uses: ./.github/workflows/pre-post-release.yml
     permissions:
       contents: write
@@ -205,36 +206,14 @@ jobs:
       ref: ${{ inputs.ref }}
       version: ${{ inputs.version }}
       phase: 'post'
-      pr_title: "[release] release-step-5 ${{ inputs.version }}"
-      pr_body: "Step 5 of the release process for version ${{ inputs.version }}: review & merge"
+      pr_title: "[release] release-step-4 ${{ inputs.version }}"
+      pr_body: "Step 4 of the release process for version ${{ inputs.version }}: review & merge"
     secrets: inherit
-
-  update-major-branch:
-    name: "Update Major Branch"
-    runs-on: ubuntu-latest
-    needs:
-      - post-release
-    permissions:
-      contents: write
-    env:
-      GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
-          token: ${{ env.GITHUB_TOKEN }}
-
-      - uses: elastic/oblt-actions/git/setup@v1
-
-      - name: Update major branch
-        if: ${{ ! inputs.dry_run }}
-        run: .ci/release/update-major-branch.sh ${{ env.RELEASE_VERSION }}
 
   create-github-release:
     name: "Create GitHub Release"
     needs:
       - publish-aws-lambda
-      - update-major-branch
     runs-on: ubuntu-latest
     if: ${{ ! inputs.dry_run }}
     permissions:
@@ -252,16 +231,13 @@ jobs:
             echo "Release notes not published yet. Sleeping 30 seconds, retrying afterwards"
             sleep 30s
           done
-      - name: Compute major.x branch
-        id: get_dotx_branch
-        run: echo "dotx_branch=$(echo '${{ env.RELEASE_VERSION }}' | sed -E 's/\..+/.x/')" >> $GITHUB_OUTPUT
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create ${{ env.RELEASE_VERSION_TAG }} \
             --title="Release ${{ env.RELEASE_VERSION }}" \
-            --notes="[Release Notes for ${{ env.RELEASE_VERSION }}](https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-${{ steps.get_dotx_branch.outputs.dotx_branch }}.html#release-notes-${{ env.RELEASE_VERSION }})
+            --notes="[Release Notes for ${{ env.RELEASE_VERSION }}](https://www.elastic.co/docs/release-notes/apm/agents/java#elastic-apm-java-agent-$(echo '${{ env.RELEASE_VERSION }}' | sed -E 's/\./-/g')-release-notes)
             ${{ needs.publish-aws-lambda.outputs.arn_content }}"
 
   notify:
@@ -269,7 +245,6 @@ jobs:
     needs:
       - maven-central-deploy
       - await-maven-central-artifact
-      - update-major-branch
       - build-and-push-docker-images
       - publish-aws-lambda
       - post-release
@@ -277,9 +252,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: check
-        uses: elastic/apm-pipeline-library/.github/actions/check-dependent-jobs@current
+        uses: elastic/oblt-actions/check-dependent-jobs@v1
         with:
-          needs: ${{ toJSON(needs) }}
+          jobs: ${{ toJSON(needs) }}
       - uses: elastic/oblt-actions/slack/notify-result@v1
         with:
           bot-token: ${{ secrets.SLACK_BOT_TOKEN }}

@@ -1,13 +1,18 @@
 ---
 version: 2
+registries:
+  docker-elastic:
+    type: docker-registry
+    url: https://docker.elastic.co
+    username: ${{secrets.ELASTIC_DOCKER_USERNAME}}
+    password: ${{secrets.ELASTIC_DOCKER_PASSWORD}}
+
 updates:
   - package-ecosystem: "maven"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 3
-    reviewers:
-      - "@elastic/apm-agent-java"
     allow:
       - dependency-name: "com.lmax:disruptor"
       - dependency-name: "org.jctools:jctools-core"
@@ -63,63 +68,28 @@ updates:
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 5
-    reviewers:
-      - "@elastic/apm-agent-java"
     allow:
       - dependency-name: "com.amazonaws:aws-java-sdk-s3"
       - dependency-name: "com.amazonaws:aws-java-sdk-dynamodb"
       - dependency-name: "software.amazon.awssdk:*"
 
-# GitHub actions
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directories:
+      - '/'
+      - '/.github/actions/*'
+      - '/.github/workflows/*'
     schedule:
       interval: "weekly"
       day: "sunday"
       time: "22:00"
-    reviewers:
-      - "elastic/observablt-ci"
     groups:
       github-actions:
         patterns:
           - "*"
 
-# GitHub composite actions
-  - package-ecosystem: "github-actions"
-    directory: "/.github/workflows/maven-goal"
+  - package-ecosystem: "docker"
+    directories:
+      - '/'
+    registries: "*"
     schedule:
-      interval: "weekly"
-      day: "sunday"
-      time: "22:00"
-    reviewers:
-      - "elastic/observablt-ci"
-    groups:
-      github-actions:
-        patterns:
-          - "*"
-
-  - package-ecosystem: "github-actions"
-    directory: "/.github/workflows/stash"
-    schedule:
-      interval: "weekly"
-      day: "sunday"
-      time: "22:00"
-    reviewers:
-      - "elastic/observablt-ci"
-    groups:
-      github-actions:
-        patterns:
-          - "*"
-
-  - package-ecosystem: "github-actions"
-    directory: "/.github/workflows/unstash"
-    schedule:
-      interval: "weekly"
-      day: "sunday"
-      time: "22:00"
-    reviewers:
-      - "elastic/observablt-ci"
-    groups:
-      github-actions:
-        patterns:
-          - "*"
+      interval: "daily"
