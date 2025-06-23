@@ -151,7 +151,6 @@ jobs:
         run: ./scripts/docker-release/push_docker.sh "${{ env.RELEASE_VERSION }}"
 
   publish-aws-lambda:
-    if: false
     name: "Publish AWS Lambda"
     permissions:
       contents: read
