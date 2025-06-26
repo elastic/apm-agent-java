@@ -2,8 +2,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>runtime-attach</artifactId>
-        <groupId>co.elastic.apm</groupId>
-        <version>1.54.1-SNAPSHOT</version>
+        <groupId>co.elastic.release-test</groupId>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -16,13 +16,13 @@
 
     <dependencies>
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>runtime-attach-app</artifactId>
             <version>${project.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>apm-agent-attach-cli</artifactId>
             <version>${project.version}</version>
             <scope>runtime</scope>
@@ -36,7 +36,7 @@
         </dependency>
 
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>apm-agent-common</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>

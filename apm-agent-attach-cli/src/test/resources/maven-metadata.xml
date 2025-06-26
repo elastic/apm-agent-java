@@ -1,5 +1,5 @@
 <metadata>
-    <groupId>co.elastic.apm</groupId>
+    <groupId>co.elastic.release-test</groupId>
     <artifactId>elastic-apm-agent</artifactId>
     <versioning>
         <latest>1.31.0</latest>

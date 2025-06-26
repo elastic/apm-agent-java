@@ -3,9 +3,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>co.elastic.apm</groupId>
+        <groupId>co.elastic.release-test</groupId>
         <artifactId>apm-spring-webflux</artifactId>
-        <version>1.54.1-SNAPSHOT</version>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-spring-webflux-plugin</artifactId>
@@ -55,7 +55,7 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>apm-spring-webflux-spring5</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
@@ -64,14 +64,14 @@
 
         <!-- required for context-propagation during tests, but only at runtime -->
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>apm-reactor-plugin</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>apm-reactor-plugin</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>

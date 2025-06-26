@@ -2,9 +2,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>co.elastic.apm</groupId>
+        <groupId>co.elastic.release-test</groupId>
         <artifactId>integration-tests</artifactId>
-        <version>1.54.1-SNAPSHOT</version>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>external-plugin-otel-test</artifactId>

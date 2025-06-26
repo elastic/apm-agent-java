@@ -11,7 +11,7 @@ The plugin API is the OpenTelemetry API, plus a dependency to the Plugin SDK (ap
 
 ```xml
 <dependency>
-    <groupId>co.elastic.apm</groupId>
+    <groupId>co.elastic.release-test</groupId>
     <artifactId>apm-agent-plugin-sdk</artifactId>
     <version>${elastic-apm.version}</version>
 </dependency>

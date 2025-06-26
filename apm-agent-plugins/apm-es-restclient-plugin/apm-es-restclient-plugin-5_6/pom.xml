@@ -4,8 +4,8 @@
 
     <parent>
         <artifactId>apm-es-restclient-plugin</artifactId>
-        <groupId>co.elastic.apm</groupId>
-        <version>1.54.1-SNAPSHOT</version>
+        <groupId>co.elastic.release-test</groupId>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-es-restclient-plugin-5_6</artifactId>

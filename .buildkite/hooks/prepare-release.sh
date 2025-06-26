@@ -14,9 +14,9 @@ chmod -R 700 $TMP_WORKSPACE
 echo "--- Prepare keys context :key:"
 # Nexus credentials
 NEXUS_SECRET=kv/ci-shared/release-eng/team-release-secrets/apm/maven_central
-SERVER_USERNAME=$(vault kv get --field="username" $NEXUS_SECRET)
+SERVER_USERNAME=$(vault kv get --field="test_username" $NEXUS_SECRET)
 export SERVER_USERNAME
-SERVER_PASSWORD=$(vault kv get --field="password" $NEXUS_SECRET)
+SERVER_PASSWORD=$(vault kv get --field="test_password" $NEXUS_SECRET)
 export SERVER_PASSWORD
 
 # Signing keys

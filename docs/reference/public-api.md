@@ -11,7 +11,7 @@ The first step in getting started with the API is to declare a dependency to the
 
 ```xml
 <dependency>
-    <groupId>co.elastic.apm</groupId>
+    <groupId>co.elastic.release-test</groupId>
     <artifactId>apm-agent-api</artifactId>
     <version>${elastic-apm.version}</version>
 </dependency>

@@ -4,8 +4,8 @@
 
     <parent>
         <artifactId>apm-jms-plugin</artifactId>
-        <groupId>co.elastic.apm</groupId>
-        <version>1.54.1-SNAPSHOT</version>
+        <groupId>co.elastic.release-test</groupId>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-jms-spring-plugin</artifactId>
@@ -56,13 +56,13 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>apm-jms-javax</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>apm-java-concurrent-plugin</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>

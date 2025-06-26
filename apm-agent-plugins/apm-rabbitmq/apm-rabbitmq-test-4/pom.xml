@@ -4,8 +4,8 @@
 
     <parent>
         <artifactId>apm-rabbitmq</artifactId>
-        <groupId>co.elastic.apm</groupId>
-        <version>1.54.1-SNAPSHOT</version>
+        <groupId>co.elastic.release-test</groupId>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-rabbitmq-test-4</artifactId>
@@ -20,14 +20,14 @@
 
         <!-- plugin & common tests -->
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>apm-rabbitmq-plugin</artifactId>
             <version>${project.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>apm-rabbitmq-plugin</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>

@@ -21,7 +21,7 @@ The first step in getting started with the OpenTracing API bridge is to declare 
 
 ```xml
 <dependency>
-    <groupId>co.elastic.apm</groupId>
+    <groupId>co.elastic.release-test</groupId>
     <artifactId>apm-opentracing</artifactId>
     <version>${elastic-apm.version}</version>
 </dependency>

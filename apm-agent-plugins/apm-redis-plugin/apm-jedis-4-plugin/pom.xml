@@ -4,8 +4,8 @@
 
     <parent>
         <artifactId>apm-redis-plugin</artifactId>
-        <groupId>co.elastic.apm</groupId>
-        <version>1.54.1-SNAPSHOT</version>
+        <groupId>co.elastic.release-test</groupId>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-jedis-4-plugin</artifactId>

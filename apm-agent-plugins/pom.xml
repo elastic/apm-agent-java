@@ -4,8 +4,8 @@
 
     <parent>
         <artifactId>apm-agent-parent</artifactId>
-        <groupId>co.elastic.apm</groupId>
-        <version>1.54.1-SNAPSHOT</version>
+        <groupId>co.elastic.release-test</groupId>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-plugins</artifactId>
@@ -111,7 +111,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>apm-agent-common</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>

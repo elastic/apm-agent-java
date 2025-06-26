@@ -34,7 +34,7 @@ Declare a dependency to the [`apm-agent-attach`](https://mvnrepository.com/artif
 
 ```xml
 <dependency>
-    <groupId>co.elastic.apm</groupId>
+    <groupId>co.elastic.release-test</groupId>
     <artifactId>apm-agent-attach</artifactId>
     <version>${elastic-apm.version}</version>
 </dependency>

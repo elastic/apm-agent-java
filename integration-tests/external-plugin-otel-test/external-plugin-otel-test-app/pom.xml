@@ -2,9 +2,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>co.elastic.apm</groupId>
+        <groupId>co.elastic.release-test</groupId>
         <artifactId>external-plugin-otel-test</artifactId>
-        <version>1.54.1-SNAPSHOT</version>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>external-plugin-otel-test-app</artifactId>
@@ -33,7 +33,7 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>apm-agent-common</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>

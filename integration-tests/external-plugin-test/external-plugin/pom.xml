@@ -5,8 +5,8 @@
 
     <parent>
         <artifactId>external-plugin-test</artifactId>
-        <groupId>co.elastic.apm</groupId>
-        <version>1.54.1-SNAPSHOT</version>
+        <groupId>co.elastic.release-test</groupId>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>external-plugin</artifactId>
@@ -18,13 +18,13 @@
 
     <dependencies>
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>apm-agent-plugin-sdk</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>apm-agent-api</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -46,7 +46,7 @@
         Not doing this will return noop transactions in the tests.
         -->
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <!--
             TODO use this artifact when we don't shade anymore
             <artifactId>elastic-apm-agent</artifactId>
@@ -60,7 +60,7 @@
         The test-jar of the core plugin provides useful test helpers such as AbstractInstrumentationTest and MockReporter.
         -->
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>apm-agent-core</artifactId>
             <type>test-jar</type>
             <version>${project.version}</version>
@@ -73,7 +73,7 @@
         This will also make available for testing.
         -->
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>co.elastic.release-test</groupId>
             <artifactId>plugin-instrumentation-target</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
