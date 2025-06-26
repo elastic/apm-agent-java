@@ -52,7 +52,7 @@
             <version>1.3.176</version>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>co.elastic.apm</groupId>
             <artifactId>apm-agent-api</artifactId>
             <!-- Fixating the public API version to verify backward compatibility is maintained -->
             <version>1.30.0</version>
