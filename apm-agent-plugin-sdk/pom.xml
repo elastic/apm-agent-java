@@ -52,7 +52,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Automatic-Module-Name>${project.groupId}.pluginsdk</Automatic-Module-Name>
+                            <Automatic-Module-Name>co.elastic.release_test.pluginsdk</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
                 </configuration>

@@ -54,7 +54,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Automatic-Module-Name>${project.groupId}.api</Automatic-Module-Name>
+                            <Automatic-Module-Name>co.elastic.release_test.api</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
                 </configuration>

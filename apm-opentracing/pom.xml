@@ -88,7 +88,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Automatic-Module-Name>${project.groupId}.opentracing</Automatic-Module-Name>
+                            <Automatic-Module-Name>co.elastic.release_test.opentracing</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
                 </configuration>

@@ -165,7 +165,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Automatic-Module-Name>${project.groupId}.attach</Automatic-Module-Name>
+                            <Automatic-Module-Name>co.elastic.release_test.attach</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
                 </configuration>
