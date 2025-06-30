@@ -139,7 +139,7 @@
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
 
-        <version.testcontainers>1.21.1</version.testcontainers>
+        <version.testcontainers>1.21.3</version.testcontainers>
 
         <!-- latest version compiled for java 11 -->
         <version.jsonunit>2.38.0</version.jsonunit>
