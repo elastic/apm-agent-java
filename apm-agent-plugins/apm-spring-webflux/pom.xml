@@ -17,7 +17,7 @@
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
 
         <!-- spring boot version to use for dependency management & testing -->
-        <version.spring-boot-2>3.5.3</version.spring-boot-2>
+        <version.spring-boot-2>2.7.16</version.spring-boot-2>
         <version.spring-boot-3>3.5.3</version.spring-boot-3>
     </properties>
 
