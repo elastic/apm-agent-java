@@ -37,6 +37,10 @@ import org.apache.kafka.common.record.RecordBatch;
 
 import javax.annotation.Nullable;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+
 import static net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -63,7 +67,8 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
     public static class KafkaProducerHeadersAdvice {
         private static final KafkaInstrumentationHelper helper = KafkaInstrumentationHelper.get();
         private static final KafkaInstrumentationHeadersHelper headersHelper = KafkaInstrumentationHeadersHelper.get();
-        private static boolean headersSupported = true;
+        @Nullable
+        private static Boolean headersSupported = null;
 
         @Nullable
         @Advice.AssignReturned.ToArguments(@ToArgument(value = 1, index = 1, typing = DYNAMIC))
@@ -73,9 +78,24 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
                                           @Nullable @Advice.Argument(value = 1) Callback callback) {
             Span<?> span = helper.onSendStart(record);
 
-            // Avoid adding headers to records sent to a version older than 0.11.0 - see specifications in
-            // https://kafka.apache.org/0110/documentation.html#messageformat
-            if (apiVersions.maxUsableProduceMagic() >= RecordBatch.MAGIC_VALUE_V2 && headersSupported) {
+            if(headersSupported == null) {
+                try {
+                    // using method handle because method is gone in 4.0.0
+                    MethodHandle maxUsableProduceMagic = MethodHandles.lookup()
+                        .findVirtual(ApiVersions.class, "maxUsableProduceMagic", MethodType.methodType(byte.class));
+
+                    // Avoid adding headers to records sent to a version older than 0.11.0 - see specifications in
+                    // https://kafka.apache.org/0110/documentation.html#messageformat
+                    byte result = (byte)maxUsableProduceMagic.invoke(apiVersions);
+                    headersSupported = result >= RecordBatch.MAGIC_VALUE_V2;
+
+                } catch (Throwable e) {
+                    // method not present, assume 4.0.0 or later
+                    headersSupported = true;
+                }
+            }
+
+            if (headersSupported) {
                 try {
                     headersHelper.setOutgoingTraceContextHeaders(tracer.currentContext(), record);
                 } catch (final IllegalStateException e) {
