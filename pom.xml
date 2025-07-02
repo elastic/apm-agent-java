@@ -130,7 +130,7 @@
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.json-schema-validator>1.5.7</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.17.5</version.byte-buddy>
+        <version.byte-buddy>1.17.6</version.byte-buddy>
         <version.asm>9.8</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
@@ -139,7 +139,7 @@
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
 
-        <version.testcontainers>1.21.1</version.testcontainers>
+        <version.testcontainers>1.21.3</version.testcontainers>
 
         <!-- latest version compiled for java 11 -->
         <version.jsonunit>2.38.0</version.jsonunit>
