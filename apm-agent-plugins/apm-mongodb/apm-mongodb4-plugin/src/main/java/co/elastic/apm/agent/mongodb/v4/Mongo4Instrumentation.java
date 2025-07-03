@@ -32,8 +32,8 @@ public abstract class Mongo4Instrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher.Junction<ProtectionDomain> getProtectionDomainPostFilter() {
-        // only use this instrumentation for 4.x
-        return implementationVersionGte("4").and(not(implementationVersionGte("5")));
+        // only use this instrumentation for 4.x and 5.x
+        return implementationVersionGte("4");
     }
 
     @Override

@@ -114,7 +114,7 @@ The Elastic APM Java agent has generic support for the Servlet API 3+. However, 
 | Redis Lettuce | 3.4+ | The agent creates spans for interactions with the Lettuce client. | 1.13.0 |
 | Redis Redisson | 2.1.5+ | The agent creates spans for interactions with the Redisson client. | 1.15.0 |
 | MongoDB driver | 3.x | The agent creates spans for interactions with the MongoDB driver. At the moment, only the synchronous driver (mongo-java-driver) is supported. The asynchronous and reactive drivers are currently not supported.<br> The name of the span is `<db>.<collection>.<command>`. The actual query will not be recorded. | 1.12.0 |
-| MongoDB Sync Driver | 4.x | The agent creates spans for interactions with the MongoDB 4.x sync driver.This provides support for `org.mongodb:mongodb-driver-sync` | 1.34.0 |
+| MongoDB Sync Driver | 4.x, 5.x | The agent creates spans for interactions with the MongoDB 4.x and 5.x sync driver. This provides support for `org.mongodb:mongodb-driver-sync` | 1.34.0 |
 | Cassandra | 2.x+ | The agent creates spans for interactions with the Cassandra Datastax drivers.This provides support for `com.datastax.cassandra:cassandra-driver-core` and`com.datastax.oss:java-driver-core` | 1.23.0 |
 | AWS DynamoDB | 1.x, 2.x | The agent creates spans for interactions with the AWS DynamoDb service through the AWS Java SDK. | 1.31.0, 2.21+ since 1.44.0 |
 | AWS S3 | 1.x, 2.x | The agent creates spans for interactions with the AWS S3 service through the AWS Java SDK. | 1.31.0, 2.21+ since 1.44.0 |
