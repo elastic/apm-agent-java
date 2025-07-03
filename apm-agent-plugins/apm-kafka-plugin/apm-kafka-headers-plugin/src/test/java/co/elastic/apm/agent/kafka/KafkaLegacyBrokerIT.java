@@ -49,6 +49,7 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 
 import javax.annotation.Nullable;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -275,8 +276,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
             int expectedSpans = (testScenario == TestScenario.NO_CONTEXT_PROPAGATION) ? 2 : 4;
             await().atMost(500, MILLISECONDS).until(() -> reporter.getSpans().size() == expectedSpans);
         }
-        //noinspection deprecation - this poll overload is deprecated in newer clients, but enables testing of old ones
-        ConsumerRecords<String, String> replies = replyConsumer.poll(2000);
+        ConsumerRecords<String, String> replies = replyConsumer.poll(Duration.ofMillis(2000));
         assertThat(callback).isNotEmpty();
         assertThat(replies.count()).isEqualTo(2);
         Iterator<ConsumerRecord<String, String>> iterator = replies.iterator();
@@ -395,8 +395,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
             kafkaConsumer.subscribe(Collections.singletonList(REQUEST_TOPIC));
             while (running) {
                 try {
-                    //noinspection deprecation - this poll overload is deprecated in newer clients, but enables testing of old ones
-                    ConsumerRecords<String, String> records = kafkaConsumer.poll(100);
+                    ConsumerRecords<String, String> records = kafkaConsumer.poll(Duration.ofMillis(100));
                     if (records != null && !records.isEmpty()) {
                         // Can't use switch because we run this test in a dedicated class loader, where the anonymous
                         // class created by the enum switch cannot be loaded
