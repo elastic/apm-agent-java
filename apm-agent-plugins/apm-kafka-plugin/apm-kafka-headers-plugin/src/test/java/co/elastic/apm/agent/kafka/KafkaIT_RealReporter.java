@@ -55,6 +55,7 @@ import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 import org.testcontainers.utility.DockerImageName;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -301,8 +302,7 @@ public class KafkaIT_RealReporter {
         long start = System.currentTimeMillis();
         long pollTime = 100;
         while (System.currentTimeMillis() + pollTime - start < timeoutMs) {
-            //noinspection deprecation - this poll overload is deprecated in newer clients, but enables testing of old ones
-            ConsumerRecords<String, String> records = replyConsumer.poll(pollTime);
+            ConsumerRecords<String, String> records = replyConsumer.poll(Duration.ofMillis(pollTime));
             if (!records.isEmpty()) {
                 records.forEach(replies::add);
             }
@@ -350,8 +350,7 @@ public class KafkaIT_RealReporter {
             kafkaConsumer.subscribe(Collections.singletonList(REQUEST_TOPIC));
             while (running) {
                 try {
-                    //noinspection deprecation - this poll overload is deprecated in newer clients, but enables testing of old ones
-                    ConsumerRecords<String, String> records = kafkaConsumer.poll(100);
+                    ConsumerRecords<String, String> records = kafkaConsumer.poll(Duration.ofMillis(100));
                     if (records != null && !records.isEmpty()) {
                         // Can't use switch because we run this test in a dedicated class loader, where the anonymous
                         // class created by the enum switch cannot be loaded
