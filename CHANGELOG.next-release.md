@@ -10,6 +10,7 @@ This file contains all changes which are not released yet.
 # Fixes
 <!--FIXES-START-->
 * Prevent potential memory pressure by limiting OpenTelemetry metrics bridge attribute cache sizes - [#4123](https://github.com/elastic/apm-agent-java/pull/4123)
+* Fix `NoSuchMethodError` for Kafka 4136clients - [#4136](https://github.com/elastic/apm-agent-java/pull/4136)
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
