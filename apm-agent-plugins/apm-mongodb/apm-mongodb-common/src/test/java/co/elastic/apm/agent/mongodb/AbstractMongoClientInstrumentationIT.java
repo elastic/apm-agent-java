@@ -43,6 +43,12 @@ import static org.mockito.Mockito.doReturn;
 
 public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstrumentationTest {
 
+    // needs to be updated from time to time as support for older versions is being removed in drivers:
+    // - 3.6 support has been dropped in 5.2.0
+    // - 4.0 support has been dropped in 5.5.0
+    // see https://github.com/mongodb/mongo-java-driver/releases for updates on such changes
+    private static final String MONGO_IMAGE = "mongo:4.4";
+
     protected static GenericContainer<?> container;
     protected static final String DB_NAME = "testdb";
     protected static final String COLLECTION_NAME = "testcollection";
@@ -52,7 +58,7 @@ public abstract class AbstractMongoClientInstrumentationIT extends AbstractInstr
 
     @BeforeClass
     public static void startContainer() {
-        container = new GenericContainer<>("mongo:3.4")
+        container = new GenericContainer<>(MONGO_IMAGE)
             .withExposedPorts(PORT)
             .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048));
         container.start();

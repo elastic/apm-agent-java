@@ -44,7 +44,7 @@ public class Mongo4VersionIT {
             "org.mongodb:mongodb-driver-core:" + version,
             "org.mongodb:bson:" + version));
 
-        if(legacyDriver){
+        if (legacyDriver) {
             dependencies.add("org.mongodb:mongodb-driver-legacy:" + version);
         }
 
@@ -63,6 +63,17 @@ public class Mongo4VersionIT {
         // driver are also explicitly included, over time the driver has moved to single monolithic jar to having more
         // and more dependencies instead of embedding them.
         List<String> versions = Arrays.asList(
+            "5.5.0",
+            "5.4.0",
+            "5.3.0",
+            "5.2.0",
+            "5.1.0",
+            "5.0.0",
+            "4.11.0",
+            "4.10.0",
+            "4.9.0",
+            "4.8.0",
+            "4.7.0",
             "4.6.0",
             "4.5.0",
             "4.4.0",
