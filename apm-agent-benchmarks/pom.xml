@@ -18,7 +18,6 @@
         <maven.compiler.showWarnings>false</maven.compiler.showWarnings>
         <maven.compiler.errorprone>false</maven.compiler.errorprone>
         <animal.sniffer.skip>true</animal.sniffer.skip>
-        <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 

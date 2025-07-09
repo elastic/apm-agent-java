@@ -12,7 +12,6 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
 
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
 

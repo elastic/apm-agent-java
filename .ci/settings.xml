@@ -6,12 +6,7 @@
     </pluginGroups>
     <servers>
         <server>
-            <id>sonatype-nexus-snapshots</id>
-            <username>${env.SERVER_USERNAME}</username>
-            <password>${env.SERVER_PASSWORD}</password>
-        </server>
-        <server>
-            <id>sonatype-nexus-staging</id>
+            <id>central</id>
             <username>${env.SERVER_USERNAME}</username>
             <password>${env.SERVER_PASSWORD}</password>
         </server>
