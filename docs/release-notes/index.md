@@ -20,6 +20,16 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 % ### Fixes [elastic-apm-java-agent-versionext-fixes]
 
+## 1.55.0 [elastic-apm-java-agent-1-55-0-release-notes]
+**Release date:** July 15, 2025
+
+### Features and enhancements [elastic-apm-java-agent-1-55-0-features-enhancements]
+* Add support for Mongodb 5.x instrumentation - [#4139](https://github.com/elastic/apm-agent-java/pull/4139)
+
+### Fixes [elastic-apm-java-agent-1-55-0-fixes]
+* Prevent potential memory pressure by limiting OpenTelemetry metrics bridge attribute cache sizes - [#4123](https://github.com/elastic/apm-agent-java/pull/4123)
+* Fix `NoSuchMethodError` for Kafka clients - [#4136](https://github.com/elastic/apm-agent-java/pull/4136)
+
 ## 1.54.0 [elastic-apm-java-agent-1-54-0-release-notes]
 **Release date:** May 27, 2025
 
