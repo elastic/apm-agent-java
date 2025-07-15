@@ -4,7 +4,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>external-plugin-otel-test</artifactId>
-        <version>1.54.1-SNAPSHOT</version>
+        <version>1.55.0</version>
     </parent>
 
     <artifactId>external-plugin-otel-test-plugin2</artifactId>
