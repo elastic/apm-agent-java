@@ -16,11 +16,6 @@ runs:
   env:
     SONATYPE_FALLBACK: 1
   steps:
-    - uses: actions/checkout@v4
-      with:
-        ref: ${{ inputs.ref }}
-        fetch-depth: 0 # Load entire history as it is required for the push-script
-
     - name: Log in to the Elastic Container registry
       uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
       with:

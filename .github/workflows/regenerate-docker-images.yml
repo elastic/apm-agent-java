@@ -30,6 +30,10 @@ jobs:
     name: "Build and push docker images"
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0 # Load entire history as it is required for the push-script
       - uses: ./.github/actions/build-and-publish-docker
         with:
           release_version: ${{ inputs.version }}
