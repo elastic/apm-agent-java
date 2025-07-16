@@ -10,7 +10,6 @@ inputs:
   dry_run:
     description: If set, generate the docker image but don't publish it
     required: true
-    type: boolean
   registry:
     description: 'The docker registry'
     required: true
@@ -36,6 +35,6 @@ runs:
       env:
         SONATYPE_FALLBACK: 1
     - name: "Push docker image"
-      if: ${{ ! inputs.dry_run }}
+      if: ${{ inputs.dry_run == 'false' }}
       shell: bash
       run: ./scripts/docker-release/push_docker.sh "${{ inputs.release_version }}"
