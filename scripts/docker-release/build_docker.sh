@@ -34,8 +34,8 @@ then
   then
       echo "ERROR: Pulling images from Sonatype Nexus repo requires cURL to be installed" && exit 1
   fi
-  curl -L -s -o apm-agent-java.jar \
-    "https://oss.sonatype.org/service/local/artifact/maven/redirect?r=releases&g=co.elastic.apm&a=elastic-apm-agent&v=$RELEASE_VERSION"
+  curl -L -s --fail-with-body -o apm-agent-java.jar \
+    "https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/$RELEASE_VERSION/elastic-apm-agent-$RELEASE_VERSION.jar"
   else
     echo "ERROR: No suitable build artifact was found. Re-running this script with the SONATYPE_FALLBACK variable set to true will try to use the Sonatype artifact for the latest tag"
     exit 1

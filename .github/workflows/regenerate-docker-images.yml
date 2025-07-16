@@ -1,0 +1,41 @@
+---
+# Regenerate the docker images based on what is released at maven central if something went wrong during the standard release process
+name: 'regenerate-docker-images'
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch or tag ref to run the workflow on'
+        required: true
+        default: "main"
+      version:
+        description: |
+          The version of the agent to re-generate and publish the docker images for (e.g. 1.2.3).
+          If this is the latest tag (based on the selected ref), the image will also be published with the latest-tag.
+        required: true
+      dry_run:
+        description: If set, generates the images but doesn't push them
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+
+jobs:
+  build-and-push-docker-images:
+    name: "Build and push docker images"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0 # Load entire history as it is required for the push-script
+      - uses: ./.github/actions/build-and-publish-docker
+        with:
+          release_version: ${{ inputs.version }}
+          ref: ${{ inputs.ref }}
+          dry_run: ${{ inputs.dry_run }}

@@ -1,0 +1,32 @@
+name: 'Build and publish docker images'
+description: 'Builds and publishes the docker images for a given version using the agent artifact from maven central'
+inputs:
+  release_version:
+    description: 'The version to release. If this is the currently latest version based on the git tags, it will also be published as latest'
+    required: true
+  ref:
+    description: 'Branch or tag ref to run the action, defines the version of the scripts in the ./scripts folder to run'
+    required: true
+  dry_run:
+    description: If set, generate the docker image but don't publish it
+    required: true
+    type: boolean
+runs:
+  using: "composite"
+  env:
+    SONATYPE_FALLBACK: 1
+  steps:
+    - name: Log in to the Elastic Container registry
+      uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+      with:
+        registry: ${{ secrets.ELASTIC_DOCKER_REGISTRY }}
+        username: ${{ secrets.ELASTIC_DOCKER_USERNAME }}
+        password: ${{ secrets.ELASTIC_DOCKER_PASSWORD }}
+
+    - name: "Build docker image"
+      shell: bash
+      run: ./scripts/docker-release/build_docker.sh "${{ inputs.release_version }}"
+    - name: "Push docker image"
+      if: ${{ ! inputs.dry_run }}
+      shell: bash
+      run: ./scripts/docker-release/push_docker.sh "${{ inputs.release_version }}"
