@@ -1,12 +1,16 @@
 name: 'Build and publish docker images'
 description: 'Builds and publishes the docker images for a given version using the agent artifact from maven central'
 inputs:
-  release-version:
+  release_version:
     description: 'The version to release. If this is the currently latest version based on the git tags, it will also be published as latest'
     required: true
   ref:
     description: 'Branch or tag ref to run the action, defines the version of the scripts in the ./scripts folder to run'
     required: true
+  dry_run:
+    description: If set, generate the docker image but don't publish it
+    required: true
+    type: boolean
 runs:
   using: "composite"
   env:
@@ -26,8 +30,8 @@ runs:
 
     - name: "Build docker image"
       shell: bash
-      run: ./scripts/docker-release/build_docker.sh "${{ inputs.release-version }}"
+      run: ./scripts/docker-release/build_docker.sh "${{ inputs.release_version }}"
     - name: "Push docker image"
       if: ${{ ! inputs.dry_run }}
       shell: bash
-      run: ./scripts/docker-release/push_docker.sh "${{ inputs.release-version }}"
+      run: ./scripts/docker-release/push_docker.sh "${{ inputs.release_version }}"

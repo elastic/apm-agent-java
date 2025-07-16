@@ -130,8 +130,9 @@ jobs:
     steps:
       - uses: ./.github/actions/build-and-publish-docker
         with:
-          release-version: "${{ env.RELEASE_VERSION }}"
+          release_version: "${{ env.RELEASE_VERSION }}"
           ref: ${{ inputs.ref }}
+          dry_run: ${{ inputs.dry_run }}
 
   publish-aws-lambda:
     name: "Publish AWS Lambda"

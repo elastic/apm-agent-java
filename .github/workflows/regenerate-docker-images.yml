@@ -14,6 +14,10 @@ on:
           The version of the agent to re-generate and publish the docker images for (e.g. 1.2.3).
           If this is the latest tag (based on the selected ref), the image will also be published with the latest-tag.
         required: true
+      dry_run:
+        description: If set, generates the images but doesn't push them
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -28,5 +32,6 @@ jobs:
     steps:
       - uses: ./.github/actions/build-and-publish-docker
         with:
-          release-version: ${{ inputs.version }}
+          release_version: ${{ inputs.version }}
           ref: ${{ inputs.ref }}
+          dry_run: ${{ inputs.dry_run }}
