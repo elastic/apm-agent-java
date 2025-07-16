@@ -117,6 +117,8 @@ jobs:
     steps:
       - uses: elastic/oblt-actions/maven/await-artifact@v1
         with:
+          maven-central: true
+          sonatype-central: false
           group-id: 'co.elastic.apm'
           artifact-id: 'elastic-apm-agent'
           version: ${{ env.RELEASE_VERSION }}
