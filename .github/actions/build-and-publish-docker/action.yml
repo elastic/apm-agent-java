@@ -11,15 +11,24 @@ inputs:
     description: If set, generate the docker image but don't publish it
     required: true
     type: boolean
+  registry:
+    description: 'The docker registry'
+    required: true
+  username:
+    description: 'The docker username'
+    required: true
+  password:
+    description: 'The docker password'
+    required: true
 runs:
   using: "composite"
   steps:
     - name: Log in to the Elastic Container registry
       uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
       with:
-        registry: ${{ secrets.ELASTIC_DOCKER_REGISTRY }}
-        username: ${{ secrets.ELASTIC_DOCKER_USERNAME }}
-        password: ${{ secrets.ELASTIC_DOCKER_PASSWORD }}
+        registry: ${{ inputs.registry }}
+        username: ${{ inputs.username }}
+        password: ${{ inputs.password }}
 
     - name: "Build docker image"
       shell: bash
