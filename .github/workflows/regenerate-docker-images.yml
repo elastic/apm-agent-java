@@ -39,3 +39,6 @@ jobs:
           release_version: ${{ inputs.version }}
           ref: ${{ inputs.ref }}
           dry_run: ${{ inputs.dry_run }}
+          registry: ${{ secrets.ELASTIC_DOCKER_REGISTRY }}
+          username: ${{ secrets.ELASTIC_DOCKER_USERNAME }}
+          password: ${{ secrets.ELASTIC_DOCKER_PASSWORD }}
