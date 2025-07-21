@@ -120,7 +120,6 @@ metadata:
       url: https://buildkite.com/elastic/apm-agent-java-opentelemetry-benchmark
   tags:
     - buildkite
-    - user:apmmachine
 spec:
   type: buildkite-pipeline
   owner: group:apm-agent-java
@@ -169,7 +168,6 @@ metadata:
     - gpg-sign
     - maven-central
     - release
-    - user:apmmachine
     - user:obltmachine
   links:
     - title: GitHub action
@@ -180,7 +178,6 @@ spec:
   lifecycle: production
   dependsOn:
     - "system:github-actions"
-    - "user:apmmachine"
     - "user:obltmachine"
 
 ---
