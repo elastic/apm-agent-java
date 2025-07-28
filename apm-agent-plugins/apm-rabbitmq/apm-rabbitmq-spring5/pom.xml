@@ -22,7 +22,7 @@
                 <!-- Import dependency management from Spring Boot -->
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>2.7.11</version> <!-- must be 2.x, do not upgrade further-->
+                <version>3.5.4</version> <!-- must be 2.x, do not upgrade further-->
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
