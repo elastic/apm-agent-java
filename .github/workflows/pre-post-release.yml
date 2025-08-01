@@ -101,10 +101,14 @@ jobs:
       - name: Push the ${{ inputs.phase }} release branch
         run: |
           git add --all
-          git commit -m "${{ inputs.phase }} release: elastic-apm-agent ${{ env.RELEASE_VERSION_TAG }}"
+          git commit -m "$PHASE release: elastic-apm-agent "${{ env.RELEASE_VERSION_TAG }}"
           git push origin ${{ env.BRANCH_NAME }}
+        env:
+          PHASE: ${{ inputs.phase }}
 
       - name: Create the ${{ inputs.phase }} release PR
-        run: gh pr create --title="${{ inputs.pr_title }}" --base main --head ${{ env.BRANCH_NAME }} -b "${{ inputs.pr_body }}"
+        run: gh pr create --title="$PR_TITLE" --base main --head $BRANCH_NAME -b "$PR_BODY"
         env:
           GH_TOKEN: ${{ steps.get_token.outputs.token }}
+          PR_TITLE: ${{ inputs.pr_title }}
+          PR_BODY: ${{ inputs.pr_body }}

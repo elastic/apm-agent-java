@@ -13,8 +13,11 @@ runs:
   using: "composite"
   steps:
     - name: Create stash
-      run: tar -acf ${{ runner.temp }}/${{ inputs.name }}.tar.zst -C ${{ inputs.path }} ./
+      run: tar -acf ${{ runner.temp }}/"$ARTIFACT_NAME".tar.zst -C  ./ $ARTIFACT_PATH
       shell: bash
+      env:
+        ARTIFACT_NAME: ${{ inputs.name }}
+        ARTIFACT_PATH: ${{ inputs.path }}
 
     - name: Upload stash
       uses: actions/upload-artifact@v4

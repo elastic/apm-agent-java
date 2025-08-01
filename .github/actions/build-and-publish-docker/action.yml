@@ -31,10 +31,14 @@ runs:
 
     - name: "Build docker image"
       shell: bash
-      run: ./scripts/docker-release/build_docker.sh "${{ inputs.release_version }}"
+      run: ./scripts/docker-release/build_docker.sh "$RELEASE_VERSION"
       env:
         SONATYPE_FALLBACK: 1
+        RELEASE_VERSION: ${{ inputs.release_version }}
+
     - name: "Push docker image"
       if: ${{ inputs.dry_run == 'false' }}
       shell: bash
-      run: ./scripts/docker-release/push_docker.sh "${{ inputs.release_version }}"
+      run: ./scripts/docker-release/push_docker.sh "$RELEASE_VERSION"
+      env:
+        RELEASE_VERSION: ${{ inputs.release_version }}
