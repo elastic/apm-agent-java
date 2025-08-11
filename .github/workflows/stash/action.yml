@@ -13,7 +13,7 @@ runs:
   using: "composite"
   steps:
     - name: Create stash
-      run: tar -acf ${{ runner.temp }}/"$ARTIFACT_NAME".tar.zst -C "$ARTIFACT_PATH" ./
+      run: tar -acf ${{ runner.temp }}/"{$ARTIFACT_NAME}".tar.zst -C "${ARTIFACT_PATH}" ./
       shell: bash
       env:
         ARTIFACT_NAME: ${{ inputs.name }}

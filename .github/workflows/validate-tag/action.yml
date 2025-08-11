@@ -15,12 +15,12 @@ runs:
       id: validate-tag
       shell: 'bash'
       run: |
-        if ! [ $(echo "$TAG" | grep -P "(\d{1,2})\.(\d{1,2})\.(\d{1,2})") ]; then
+        if ! [ $(echo "${TAG}" | grep -P "(\d{1,2})\.(\d{1,2})\.(\d{1,2})") ]; then
           echo "Tag should be a SemVer format"
           exit 1
         fi
-        if [ $(git tag -l "$TAG") ]; then
-          echo "The tag $TAG already exists"
+        if [ $(git tag -l "${TAG}") ]; then
+          echo "The tag ${TAG} already exists"
           exit 1
         fi
       env:
