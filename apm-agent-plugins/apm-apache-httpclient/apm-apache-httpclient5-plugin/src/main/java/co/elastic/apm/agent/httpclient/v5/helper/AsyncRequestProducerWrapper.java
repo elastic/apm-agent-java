@@ -78,22 +78,26 @@ public class AsyncRequestProducerWrapper implements AsyncRequestProducer, Recycl
 
     @Override
     public boolean isRepeatable() {
-        return delegate.isRepeatable();
+        return delegate != null && delegate.isRepeatable();
     }
 
     @Override
     public void failed(Exception e) {
-        delegate.failed(e);
+        if (delegate != null) {
+            delegate.failed(e);
+        }
     }
 
     @Override
     public int available() {
-        return delegate.available();
+        return delegate != null ? delegate.available() : 0;
     }
 
     @Override
     public void produce(DataStreamChannel dataStreamChannel) throws IOException {
-        delegate.produce(dataStreamChannel);
+        if (delegate != null) {
+            delegate.produce(dataStreamChannel);
+        }
     }
 
     @Override
