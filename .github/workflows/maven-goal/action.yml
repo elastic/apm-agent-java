@@ -21,5 +21,7 @@ runs:
         java-version-file: .java-version
         distribution: temurin
         cache: 'maven'
-    - run: ${{ inputs.command }}
+    - run: "${COMMAND}"
       shell: ${{ inputs.shell }}
+      env:
+        COMMAND: ${{ inputs.command }}

@@ -19,5 +19,8 @@ runs:
         path: ${{ runner.temp }}
 
     - name: Extract stash
-      run: tar -xf ${{ runner.temp }}/${{ inputs.name }}.tar.zst -C ${{ inputs.path }}
+      run: tar -xf "${{ runner.temp }}/${ARTIFACT_NAME}".tar.zst -C "${ARTIFACT_PATH}"
       shell: bash
+      env:
+        ARTIFACT_NAME: ${{ inputs.name }}
+        ARTIFACT_PATH: ${{ inputs.path }}
