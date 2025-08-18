@@ -64,7 +64,7 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
     }
 
     @Override
-    protected void performGet(String path) throws Exception {
+    protected void performGet(String uri) throws Exception {
         final CompletableFuture<HttpResponse> responseFuture = new CompletableFuture<>();
 
         RequestConfig requestConfig = RequestConfig.custom()
@@ -72,7 +72,7 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
             .build();
         HttpClientContext httpClientContext = HttpClientContext.create();
         httpClientContext.setRequestConfig(requestConfig);
-        client.execute(new HttpGet(path), httpClientContext, new FutureCallback<>() {
+        client.execute(new HttpGet(uri), httpClientContext, new FutureCallback<>() {
             @Override
             public void completed(HttpResponse result) {
                 responseFuture.complete(result);
