@@ -107,11 +107,10 @@ class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
         // start by reading the volatile field
         final Span<?> localSpan = span;
         try {
-            if (context != null) {
-                Object responseObject = context.getAttribute(HttpCoreContext.HTTP_RESPONSE);
-                if (responseObject instanceof HttpResponse) {
-                    int statusCode = ((HttpResponse) responseObject).getCode();
-                    span.getContext().getHttp().withStatusCode(statusCode);
+            if (context instanceof HttpCoreContext) {
+                HttpResponse response = ((HttpCoreContext) context).getResponse();
+                if(response != null){
+                    span.getContext().getHttp().withStatusCode(response.getCode());
                 }
             }
             localSpan.captureException(e);

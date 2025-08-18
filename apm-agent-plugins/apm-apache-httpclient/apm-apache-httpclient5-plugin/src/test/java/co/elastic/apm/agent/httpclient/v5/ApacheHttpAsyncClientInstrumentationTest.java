@@ -31,14 +31,13 @@ import org.apache.hc.client5.http.protocol.HttpClientContext;
 import org.apache.hc.core5.concurrent.FutureCallback;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpResponse;
-import org.apache.hc.core5.http.ProtocolException;
-import org.apache.hc.core5.net.URIAuthority;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -68,24 +67,9 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
             .build();
         HttpClientContext httpClientContext = HttpClientContext.create();
         httpClientContext.setRequestConfig(requestConfig);
-        client.execute(req, httpClientContext, new FutureCallback<SimpleHttpResponse>() {
-            @Override
-            public void completed(SimpleHttpResponse simpleHttpResponse) {
-                responseFuture.complete(simpleHttpResponse);
-            }
 
-            @Override
-            public void failed(Exception e) {
-                responseFuture.completeExceptionally(e);
-            }
-
-            @Override
-            public void cancelled() {
-                responseFuture.cancel(true);
-            }
-        });
-
-        responseFuture.get();
+        // using the returned future to wait on request completion, using an explicit callback is covered by performPost
+        client.execute(req, httpClientContext, null).get();
     }
 
     @Override
@@ -106,6 +90,8 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
             .setBody(data, ContentType.parse(contentTypeHeader))
             .build();
         HttpClientContext httpClientContext = HttpClientContext.create();
+
+        // using the callback to wait on request completion
         client.execute(req, httpClientContext, new FutureCallback<SimpleHttpResponse>() {
             @Override
             public void completed(SimpleHttpResponse simpleHttpResponse) {
@@ -166,7 +152,9 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
         String url = getBaseUrl().replaceAll("http:/", "") + "/";
 
         try {
-            assertThatThrownBy(() -> performGet(url)).cause().isInstanceOf(ProtocolException.class);
+            // using a broad exception here as the actual exception type and structure changes depending on which
+            // version is being instrumented
+            assertThatThrownBy(() -> performGet(url)).isInstanceOf(Throwable.class);
         } finally {
             //Reset state for other tests
             setUp();
@@ -181,17 +169,16 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
     }
 
     /**
-     * Difference between sync and async requests is that
-     * In async requests you need {@link SimpleRequestBuilder#setAuthority(URIAuthority)} explicitly
-     * And in this case exception will be thrown from {@link org.apache.hc.client5.http.impl.async.AsyncProtocolExec#execute}
+     * RFC 7230: treat presence of userinfo in authority component in request URI as an HTTP protocol violation.
      * <p>
-     * SimpleHttpRequest req = SimpleRequestBuilder.get().setPath(path)
-     * .setScheme("http")
-     * .setAuthority(new URIAuthority(uri.getUserInfo(), uri.getHost(), uri.getPort()))
-     * .build();
+     * Uses {@link org.apache.hc.core5.http.message.BasicHttpRequest#setUri} to fill {@link org.apache.hc.core5.net.URIAuthority}
+     * <p>
+     * Assertions on authority in {@link org.apache.hc.client5.http.impl.classic.ProtocolExec#execute}
      */
     @Override
     public boolean isTestHttpCallWithUserInfoEnabled() {
-        return true;
+        // earlier 5.x versions still allowed user info for async requests, however this has been removed
+        // thus it's not relevant to keep testing for it.
+        return false;
     }
 }
