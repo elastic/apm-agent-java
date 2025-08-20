@@ -60,7 +60,7 @@ public class ApacheHttpAsyncClient5Instrumentation extends BaseApacheHttpClient5
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient"));
+        return hasSuperType(named("org.apache.hc.client5.http.async.HttpAsyncClient"));
     }
 
     @Override
