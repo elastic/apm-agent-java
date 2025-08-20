@@ -52,6 +52,7 @@ public class AsyncRequestProducerWrapper implements AsyncRequestProducer, Recycl
         this.span = span;
         toPropagate.incrementReferences();
         this.toPropagate = toPropagate;
+        // write to volatile field last
         this.delegate = delegate;
         return this;
     }
@@ -115,6 +116,7 @@ public class AsyncRequestProducerWrapper implements AsyncRequestProducer, Recycl
             toPropagate.decrementReferences();
             toPropagate = null;
         }
+        // write to volatile field last
         delegate = null;
     }
 

@@ -56,6 +56,7 @@ public class RequestChannelWrapper implements RequestChannel, Recyclable {
         this.span = span;
         toPropagate.incrementReferences();
         this.toPropagate = toPropagate;
+        // write to volatile field last
         this.delegate = delegate;
         return this;
     }
