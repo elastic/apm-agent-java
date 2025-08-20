@@ -54,6 +54,7 @@ public class AsyncRequestProducerWrapper implements AsyncRequestProducer {
         this.asyncClientHelper = helper;
         this.delegate = delegate;
         this.span = span;
+        toPropagate.incrementReferences();
         this.toPropagate = toPropagate;
     }
 
