@@ -68,6 +68,7 @@ public class RequestChannelWrapper implements RequestChannel, Recyclable {
             toPropagate.decrementReferences();
             toPropagate = null;
         }
+        // write to volatile field last
         delegate = null;
     }
 
