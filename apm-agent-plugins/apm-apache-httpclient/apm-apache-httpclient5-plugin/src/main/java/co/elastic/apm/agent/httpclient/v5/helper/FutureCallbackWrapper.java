@@ -29,7 +29,7 @@ import org.apache.hc.core5.http.protocol.HttpCoreContext;
 
 import javax.annotation.Nullable;
 
-class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
+public class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
     private final ApacheHttpClient5AsyncHelper helper;
     @Nullable
     private FutureCallback<T> delegate;
@@ -109,7 +109,7 @@ class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
         try {
             if (context instanceof HttpCoreContext) {
                 HttpResponse response = ((HttpCoreContext) context).getResponse();
-                if(response != null){
+                if (response != null) {
                     span.getContext().getHttp().withStatusCode(response.getCode());
                 }
             }

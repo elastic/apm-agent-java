@@ -65,16 +65,11 @@ public class ApacheHttpAsyncClient5Instrumentation extends BaseApacheHttpClient5
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        // the execute public method can be called with a null callback, in which case the wrapped callback will never
-        // be called by the client code, and will block the caller indefinitely. The doExecute method wraps it another
-        // time and returns it, and the caller is expected to call this returned value.
-        return named("doExecute").and(takesArguments(6))
-            .and(takesArgument(0, named("org.apache.hc.core5.http.HttpHost")))
-            .and(takesArgument(1, named("org.apache.hc.core5.http.nio.AsyncRequestProducer")))
-            .and(takesArgument(2, named("org.apache.hc.core5.http.nio.AsyncResponseConsumer")))
-            .and(takesArgument(3, named("org.apache.hc.core5.http.nio.HandlerFactory")))
-            .and(takesArgument(4, named("org.apache.hc.core5.http.protocol.HttpContext")))
-            .and(takesArgument(5, named("org.apache.hc.core5.concurrent.FutureCallback")));
+        return named("execute").and(takesArguments(4))
+            .and(takesArgument(0, named("org.apache.hc.core5.http.nio.AsyncRequestProducer")))
+            .and(takesArgument(1, named("org.apache.hc.core5.http.nio.AsyncResponseConsumer")))
+            .and(takesArgument(2, named("org.apache.hc.core5.http.protocol.HttpContext")))
+            .and(takesArgument(3, named("org.apache.hc.core5.concurrent.FutureCallback")));
     }
 
     public static class ApacheHttpClient5AsyncAdvice extends AbstractApacheHttpClientAsyncAdvice {
@@ -83,13 +78,13 @@ public class ApacheHttpAsyncClient5Instrumentation extends BaseApacheHttpClient5
 
         @Nullable
         @Advice.AssignReturned.ToArguments({
-            @Advice.AssignReturned.ToArguments.ToArgument(index = 0, value = 1, typing = DYNAMIC),
-            @Advice.AssignReturned.ToArguments.ToArgument(index = 1, value = 5, typing = DYNAMIC)
+            @Advice.AssignReturned.ToArguments.ToArgument(index = 0, value = 0, typing = DYNAMIC),
+            @Advice.AssignReturned.ToArguments.ToArgument(index = 1, value = 3, typing = DYNAMIC)
         })
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object[] onBeforeExecute(@Advice.Argument(value = 1) AsyncRequestProducer asyncRequestProducer,
-                                               @Advice.Argument(value = 4) HttpContext context,
-                                               @Advice.Argument(value = 5) FutureCallback<?> futureCallback) {
+        public static Object[] onBeforeExecute(@Advice.Argument(value = 0) AsyncRequestProducer asyncRequestProducer,
+                                               @Advice.Argument(value = 2) HttpContext context,
+                                               @Advice.Argument(value = 3) FutureCallback<?> futureCallback) {
             return startSpan(tracer, asyncHelper, asyncRequestProducer, context, futureCallback);
         }
 
