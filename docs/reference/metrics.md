@@ -422,9 +422,9 @@ The easiest way to get started with Spring Boot is to add a dependency to [Sprin
 Use the `management.metrics.export.simple` prefix to configure via `application.properties`
 
 ```properties
-management.metrics.export.simple.enabled=true
-management.metrics.export.simple.step=30s
-management.metrics.export.simple.mode=STEP
+management.simple.metrics.export.enabled=true
+management.simple.metrics.export.step=30s
+management.simple.metrics.export.mode=STEP
 ```
 
 
