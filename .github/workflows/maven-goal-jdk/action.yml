@@ -24,7 +24,7 @@ runs:
   using: "composite"
   steps:
     - name: Set up testing JDK
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         java-version: ${{ inputs.test-java-version}}
         distribution: ${{ inputs.test-java-distribution}}
