@@ -32,10 +32,14 @@ import org.apache.hc.core5.http.protocol.HttpContext;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
-public class AsyncRequestProducerWrapper implements AsyncRequestProducer, Recyclable {
+/**
+ * Unfortunately, it can't implement {@link Recyclable} because {@link #releaseResources} method might not always be the
+ * last method called, hence we don't have any reliable hook to trigger recycling.
+ */
+public class AsyncRequestProducerWrapper implements AsyncRequestProducer {
 
     private final ApacheHttpClient5AsyncHelper asyncClientHelper;
-    private volatile AsyncRequestProducer delegate;
+    private final AsyncRequestProducer delegate;
 
     @Nullable
     private TraceState<?> toPropagate;
@@ -43,17 +47,15 @@ public class AsyncRequestProducerWrapper implements AsyncRequestProducer, Recycl
     @Nullable
     private Span<?> span;
 
-    AsyncRequestProducerWrapper(ApacheHttpClient5AsyncHelper helper) {
+    AsyncRequestProducerWrapper(ApacheHttpClient5AsyncHelper helper,
+                                AsyncRequestProducer delegate,
+                                @Nullable Span<?> span,
+                                TraceState<?> toPropagate) {
         this.asyncClientHelper = helper;
-    }
-
-    public AsyncRequestProducerWrapper with(AsyncRequestProducer delegate, @Nullable Span<?> span,
-                                            TraceState<?> toPropagate) {
+        this.delegate = delegate;
         this.span = span;
         toPropagate.incrementReferences();
         this.toPropagate = toPropagate;
-        this.delegate = delegate;
-        return this;
     }
 
     /**
@@ -67,7 +69,8 @@ public class AsyncRequestProducerWrapper implements AsyncRequestProducer, Recycl
         try {
             delegate.sendRequest(isNotNullWrappedRequestChannel ? wrappedRequestChannel : requestChannel, httpContext);
         } catch (HttpException | IOException | IllegalStateException e) {
-            asyncClientHelper.recycle(this);
+            // ensures that toPropagate reference count is properly decremented in case of an exception
+            internalResetState();
             throw e;
         } finally {
             if (isNotNullWrappedRequestChannel) {
@@ -78,44 +81,42 @@ public class AsyncRequestProducerWrapper implements AsyncRequestProducer, Recycl
 
     @Override
     public boolean isRepeatable() {
-        return delegate != null && delegate.isRepeatable();
+        return delegate.isRepeatable();
     }
 
     @Override
     public void failed(Exception e) {
-        if (delegate != null) {
+        try {
             delegate.failed(e);
+        } finally {
+            internalResetState();
         }
     }
 
     @Override
     public int available() {
-        return delegate != null ? delegate.available() : 0;
+        return delegate.available();
     }
 
     @Override
     public void produce(DataStreamChannel dataStreamChannel) throws IOException {
-        if (delegate != null) {
-            delegate.produce(dataStreamChannel);
-        }
+        // this method might be called after releaseResources, hence preventing us from implementing recycling easily
+        delegate.produce(dataStreamChannel);
     }
 
     @Override
     public void releaseResources() {
-        if (delegate != null) {
-            delegate.releaseResources();
-            asyncClientHelper.recycle(this);
-        }
+        delegate.releaseResources();
+        internalResetState();
     }
 
-    @Override
-    public void resetState() {
+    private void internalResetState(){
         span = null;
         if (toPropagate != null) {
             toPropagate.decrementReferences();
             toPropagate = null;
         }
-        delegate = null;
+
     }
 
 }

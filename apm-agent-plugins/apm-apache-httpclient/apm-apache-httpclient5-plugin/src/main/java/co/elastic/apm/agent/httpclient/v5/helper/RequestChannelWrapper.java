@@ -56,6 +56,7 @@ public class RequestChannelWrapper implements RequestChannel, Recyclable {
         this.span = span;
         toPropagate.incrementReferences();
         this.toPropagate = toPropagate;
+        // write to volatile field last
         this.delegate = delegate;
         return this;
     }
@@ -67,6 +68,7 @@ public class RequestChannelWrapper implements RequestChannel, Recyclable {
             toPropagate.decrementReferences();
             toPropagate = null;
         }
+        // write to volatile field last
         delegate = null;
     }
 
@@ -99,7 +101,13 @@ public class RequestChannelWrapper implements RequestChannel, Recyclable {
                     if (host != null) {
                         span.appendToName(host);
                     }
-                    span.getContext().getHttp().withMethod(method).withUrl(httpRequest.getRequestUri());
+                    String requestUri = httpRequest.getRequestUri();
+                    // starting with httpclient 5.1 "getRequestUri" can return relative path, not always the absolute one
+                    // thus we have to fallback on using the URI instance
+                    if(requestUri != null && requestUri.startsWith("/") && httpRequestURI != null) {
+                        requestUri = httpRequestURI.toString();
+                    }
+                    span.getContext().getHttp().withMethod(method).withUrl(requestUri);
                     HttpClientHelper.setDestinationServiceDetails(span, protocol, host, port);
                 }
 
