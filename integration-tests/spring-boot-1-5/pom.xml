@@ -13,7 +13,7 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <version.spring-boot-1.5>1.5.22.RELEASE</version.spring-boot-1.5>
+        <version.spring-boot-1.5>3.5.5</version.spring-boot-1.5>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
     </properties>
 
