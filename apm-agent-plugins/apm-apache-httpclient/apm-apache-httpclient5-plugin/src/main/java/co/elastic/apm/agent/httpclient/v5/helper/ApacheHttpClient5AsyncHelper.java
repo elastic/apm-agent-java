@@ -38,7 +38,6 @@ public class ApacheHttpClient5AsyncHelper implements ApacheHttpClientAsyncHelper
 
     private static final int MAX_POOLED_ELEMENTS = 256;
 
-    private final ObjectPool<AsyncRequestProducerWrapper> requestProducerWrapperObjectPool;
     private final ObjectPool<FutureCallbackWrapper<?>> futureCallbackWrapperObjectPool;
     private final ObjectPool<RequestChannelWrapper> requestChannelWrapperObjectPool;
 
@@ -46,16 +45,8 @@ public class ApacheHttpClient5AsyncHelper implements ApacheHttpClientAsyncHelper
         Tracer tracer = GlobalTracer.get();
 
         ObjectPoolFactory factory = tracer.getObjectPoolFactory();
-        requestProducerWrapperObjectPool = factory.createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new RequestProducerWrapperAllocator());
         futureCallbackWrapperObjectPool = factory.createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new FutureCallbackWrapperAllocator());
         requestChannelWrapperObjectPool = factory.createRecyclableObjectPool(MAX_POOLED_ELEMENTS, new RequestChannelWrapperAllocator());
-    }
-
-    private class RequestProducerWrapperAllocator implements Allocator<AsyncRequestProducerWrapper> {
-        @Override
-        public AsyncRequestProducerWrapper createInstance() {
-            return new AsyncRequestProducerWrapper(ApacheHttpClient5AsyncHelper.this);
-        }
     }
 
     private class FutureCallbackWrapperAllocator implements Allocator<FutureCallbackWrapper<?>> {
@@ -72,9 +63,11 @@ public class ApacheHttpClient5AsyncHelper implements ApacheHttpClientAsyncHelper
         }
     }
 
-    public AsyncRequestProducerWrapper wrapRequestProducer(AsyncRequestProducer requestProducer, @Nullable Span<?> span,
-                                                           @Nullable TraceState<?> toPropagate) {
-        return requestProducerWrapperObjectPool.createInstance().with(requestProducer, span, toPropagate);
+    public AsyncRequestProducerWrapper wrapRequestProducer(AsyncRequestProducer requestProducer,
+                                                           @Nullable Span<?> span,
+                                                           TraceState<?> toPropagate) {
+        // with 5.x async request producer is not pooled
+        return new AsyncRequestProducerWrapper(this, requestProducer, span, toPropagate);
     }
 
     @Override
@@ -92,7 +85,7 @@ public class ApacheHttpClient5AsyncHelper implements ApacheHttpClientAsyncHelper
     }
 
     public void recycle(AsyncRequestProducerWrapper requestProducerWrapper) {
-        requestProducerWrapperObjectPool.recycle(requestProducerWrapper);
+        // no-op as with 5.x async request producer is not pooled
     }
 
     void recycle(FutureCallbackWrapper<?> futureCallbackWrapper) {

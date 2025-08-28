@@ -344,7 +344,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     // assumption
-    public boolean isTestHttpCallWithUserInfoEnabled() {
+    protected boolean isTestHttpCallWithUserInfoEnabled() {
         return true;
     }
 

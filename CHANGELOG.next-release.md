@@ -9,6 +9,7 @@ This file contains all changes which are not released yet.
 
 # Fixes
 <!--FIXES-START-->
+* Fix async httpclient 5.x instrumentation- [#4185](https://github.com/elastic/apm-agent-java/pull/4185)
 
 <!--FIXES-END-->
 # Features and enhancements

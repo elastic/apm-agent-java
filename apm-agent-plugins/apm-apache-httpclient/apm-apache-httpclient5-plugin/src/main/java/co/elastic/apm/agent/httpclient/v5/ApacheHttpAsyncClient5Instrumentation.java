@@ -82,7 +82,9 @@ public class ApacheHttpAsyncClient5Instrumentation extends BaseApacheHttpClient5
             @Advice.AssignReturned.ToArguments.ToArgument(index = 1, value = 3, typing = DYNAMIC)
         })
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object[] onBeforeExecute(@Advice.Argument(value = 0) AsyncRequestProducer asyncRequestProducer, @Advice.Argument(value = 2) HttpContext context, @Advice.Argument(value = 3) FutureCallback<?> futureCallback) {
+        public static Object[] onBeforeExecute(@Advice.Argument(value = 0) AsyncRequestProducer asyncRequestProducer,
+                                               @Advice.Argument(value = 2) HttpContext context,
+                                               @Advice.Argument(value = 3) FutureCallback<?> futureCallback) {
             return startSpan(tracer, asyncHelper, asyncRequestProducer, context, futureCallback);
         }
 
