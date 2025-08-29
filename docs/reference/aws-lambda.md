@@ -4,6 +4,16 @@ mapped_pages:
 sub:
   apm-lambda-ext-v: ver-1-5-7
   apm-java-v: ver-1-52-2
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
+products:
+  - id: cloud-serverless
+  - id: observability
+  - id: apm
 ---
 
 # Monitoring AWS Lambda Java Functions [aws-lambda]

@@ -2,13 +2,25 @@
 navigation_title: "Circuit-Breaker"
 mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/config-circuit-breaker.html
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
+products:
+  - id: cloud-serverless
+  - id: observability
+  - id: apm
 ---
 
 # Circuit-Breaker configuration options [config-circuit-breaker]
 
+## `circuit_breaker_enabled` [config-circuit-breaker-enabled]
 
-
-## `circuit_breaker_enabled` ([1.14.0] performance) [config-circuit-breaker-enabled]
+```{applies_to}
+apm_agent_java: ga 1.14.0
+```
 
 A boolean specifying whether the circuit breaker should be enabled or not. When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. If ANY of the monitors detects a stress indication, the agent will become inactive, as if the [`recording`](/reference/config-core.md#config-recording) configuration option has been set to `false`, thus reducing resource consumption to a minimum. When inactive, the agent continues polling the same monitors in order to detect whether the stress state has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the agent will resume and become fully functional.
 

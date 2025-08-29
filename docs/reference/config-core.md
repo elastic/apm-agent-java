@@ -2,13 +2,25 @@
 navigation_title: "Core"
 mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
+products:
+  - id: cloud-serverless
+  - id: observability
+  - id: apm
 ---
 
 # Core configuration options [config-core]
 
+## `recording` [config-recording]
 
-
-## `recording` ([1.15.0]) [config-recording]
+```{applies_to}
+apm_agent_java: ga 1.15.0
+```
 
 ::::{note}
 This option was available in older versions through the `active` key. The old key is still supported in newer versions, but it is now deprecated.
@@ -30,7 +42,11 @@ You can use this setting to dynamically disable Elastic APM at runtime.
 | `elastic.apm.recording` | `recording` | `ELASTIC_APM_RECORDING` |
 
 
-## `enabled` ([1.18.0]) [config-enabled]
+## `enabled` [config-enabled]
+
+```{applies_to}
+apm_agent_java: ga 1.18.0
+```
 
 Setting to false will completely disable the agent, including instrumentation and remote config polling. If you want to dynamically change the status of the agent, use [`recording`](#config-recording) instead.
 
@@ -43,7 +59,11 @@ Setting to false will completely disable the agent, including instrumentation an
 | `elastic.apm.enabled` | `enabled` | `ELASTIC_APM_ENABLED` |
 
 
-## `instrument` ([1.0.0]) [config-instrument]
+## `instrument` [config-instrument]
+
+```{applies_to}
+apm_agent_java: ga 1.0.0
+```
 
 A boolean specifying if the agent should instrument the application to collect traces for the app. When set to `false`, most built-in instrumentation plugins are disabled, which would minimize the effect on your application. However, the agent would still apply instrumentation related to manual tracing options and it would still collect and send metrics to APM Server.
 
@@ -135,7 +155,11 @@ Service name auto discovery mechanisms require APM Server 7.0+.
 | `elastic.apm.service_name` | `service_name` | `ELASTIC_APM_SERVICE_NAME` |
 
 
-## `service_node_name` ([1.11.0]) [config-service-node-name]
+## `service_node_name` [config-service-node-name]
+
+```{applies_to}
+apm_agent_java: ga 1.11.0
+```
 
 If set, this name is used to distinguish between different nodes of a service, therefore it should be unique for each JVM within a service. If not set, data aggregations will be done based on a container ID (where valid) or on the reported hostname (automatically discovered or manually configured through [`hostname`](#config-hostname)).
 
@@ -173,7 +197,11 @@ Similar to the auto-detection of [`service_name`](#config-service-name), the age
 | `elastic.apm.service_version` | `service_version` | `ELASTIC_APM_SERVICE_VERSION` |
 
 
-## `hostname` ([1.10.0]) [config-hostname]
+## `hostname` [config-hostname]
+
+```{applies_to}
+apm_agent_java: ga 1.10.0
+```
 
 Allows for the reported hostname to be manually specified. If unset the hostname will be looked up.
 
@@ -244,7 +272,11 @@ A message will be logged when the max number of spans has been exceeded but only
 | `elastic.apm.transaction_max_spans` | `transaction_max_spans` | `ELASTIC_APM_TRANSACTION_MAX_SPANS` |
 
 
-## `long_field_max_length` (performance [1.37.0]) [config-long-field-max-length]
+## `long_field_max_length` (performance) [config-long-field-max-length]
+
+```{applies_to}
+apm_agent_java: ga 1.37.0
+```
 
 The following transaction, span, and error fields will be truncated at this number of unicode characters before being sent to APM server:
 
@@ -292,7 +324,11 @@ Review the data captured by Elastic APM carefully to make sure it does not captu
 | `elastic.apm.sanitize_field_names` | `sanitize_field_names` | `ELASTIC_APM_SANITIZE_FIELD_NAMES` |
 
 
-## `enable_instrumentations` ([1.28.0]) [config-enable-instrumentations]
+## `enable_instrumentations` [config-enable-instrumentations]
+
+```{applies_to}
+apm_agent_java: ga 1.28.0
+```
 
 A list of instrumentations which should be selectively enabled. Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log-correlation`, `log-error`, `log-reformatting`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentelemetry-annotations`, `opentelemetry-metrics`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`. When set to non-empty value, only listed instrumentations will be enabled if they are not disabled through [`disable_instrumentations` ([1.0.0])](#config-disable-instrumentations) or [`enable_experimental_instrumentations` ([1.25.0])](#config-enable-experimental-instrumentations). When not set or empty (default), all instrumentations enabled by default will be enabled unless they are disabled through [`disable_instrumentations` ([1.0.0])](#config-disable-instrumentations) or [`enable_experimental_instrumentations` ([1.25.0])](#config-enable-experimental-instrumentations).
 
@@ -312,7 +348,11 @@ Changing this value at runtime can slow down the application temporarily.
 | `elastic.apm.enable_instrumentations` | `enable_instrumentations` | `ELASTIC_APM_ENABLE_INSTRUMENTATIONS` |
 
 
-## `disable_instrumentations` ([1.0.0]) [config-disable-instrumentations]
+## `disable_instrumentations` [config-disable-instrumentations]
+
+```{applies_to}
+apm_agent_java: ga 1.0.0
+```
 
 A list of instrumentations which should be disabled. Valid options are `annotations`, `annotations-capture-span`, `annotations-capture-transaction`, `annotations-traced`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `aws-lambda`, `aws-sdk`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `finagle-httpclient`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jakarta-websocket`, `java-ldap`, `javalin`, `javax-websocket`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jdk-httpserver`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log-correlation`, `log-error`, `log-reformatting`, `logging`, `micrometer`, `mongodb`, `mongodb-client`, `okhttp`, `opentelemetry`, `opentelemetry-annotations`, `opentelemetry-metrics`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `reactor`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `servlet-service-name`, `servlet-version`, `sparkjava`, `spring-amqp`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `spring-webclient`, `spring-webflux`, `ssl-context`, `struts`, `timer-task`, `urlconnection`, `vertx`, `vertx-web`, `vertx-webclient`, `websocket`. For version `1.25.0` and later, use [`enable_experimental_instrumentations` ([1.25.0])](#config-enable-experimental-instrumentations) to enable experimental instrumentations.
 
@@ -332,7 +372,11 @@ Changing this value at runtime can slow down the application temporarily.
 | `elastic.apm.disable_instrumentations` | `disable_instrumentations` | `ELASTIC_APM_DISABLE_INSTRUMENTATIONS` |
 
 
-## `enable_experimental_instrumentations` ([1.25.0]) [config-enable-experimental-instrumentations]
+## `enable_experimental_instrumentations` [config-enable-experimental-instrumentations]
+
+```{applies_to}
+apm_agent_java: ga 1.25.0
+```
 
 Whether to apply experimental instrumentations.
 
@@ -369,7 +413,11 @@ This option supports the wildcard `*`, which matches zero or more characters. Ex
 | `elastic.apm.unnest_exceptions` | `unnest_exceptions` | `ELASTIC_APM_UNNEST_EXCEPTIONS` |
 
 
-## `ignore_exceptions` ([1.11.0]) [config-ignore-exceptions]
+## `ignore_exceptions` [config-ignore-exceptions]
+
+```{applies_to}
+apm_agent_java: ga 1.11.0
+```
 
 A list of exceptions that should be ignored and not reported as errors. This allows to ignore exceptions thrown in regular control flow that are not actual errors
 
@@ -453,7 +501,11 @@ Setting this to `false` reduces network bandwidth, disk space and object allocat
 | `elastic.apm.capture_headers` | `capture_headers` | `ELASTIC_APM_CAPTURE_HEADERS` |
 
 
-## `global_labels` ([1.7.0]) [config-global-labels]
+## `global_labels` [config-global-labels]
+
+```{applies_to}
+apm_agent_java: ga 1.7.0
+```
 
 Labels added to all events, with the format `key=value[,key=value[,...]]`. Any labels set by application via the API will override global labels with the same keys.
 
@@ -471,7 +523,11 @@ This feature requires APM Server 7.2+
 | `elastic.apm.global_labels` | `global_labels` | `ELASTIC_APM_GLOBAL_LABELS` |
 
 
-## `instrument_ancient_bytecode` ([1.35.0]) [config-instrument-ancient-bytecode]
+## `instrument_ancient_bytecode` [config-instrument-ancient-bytecode]
+
+```{applies_to}
+apm_agent_java: ga 1.35.0
+```
 
 A boolean specifying if the agent should instrument pre-Java-1.4 bytecode.
 
@@ -484,7 +540,11 @@ A boolean specifying if the agent should instrument pre-Java-1.4 bytecode.
 | `elastic.apm.instrument_ancient_bytecode` | `instrument_ancient_bytecode` | `ELASTIC_APM_INSTRUMENT_ANCIENT_BYTECODE` |
 
 
-## `context_propagation_only` ([1.44.0]) [config-context-propagation-only]
+## `context_propagation_only` [config-context-propagation-only]
+
+```{applies_to}
+apm_agent_java: ga 1.44.0
+```
 
 When set to true, disables log sending, metrics and trace collection. Trace context propagation and log correlation will stay active. Note that in contrast to [`disable_send`](/reference/config-reporter.md#config-disable-send) the agent will still connect to the APM-server for fetching configuration updates and health checks.
 
@@ -512,7 +572,11 @@ Use to exclude specific classes from being instrumented. In order to exclude ent
 | `elastic.apm.classes_excluded_from_instrumentation` | `classes_excluded_from_instrumentation` | `ELASTIC_APM_CLASSES_EXCLUDED_FROM_INSTRUMENTATION` |
 
 
-## `trace_methods` ([1.0.0]) [config-trace-methods]
+## `trace_methods` [config-trace-methods]
+
+```{applies_to}
+apm_agent_java: ga 1.0.0
+```
 
 A list of methods for which to create a transaction or span.
 
@@ -533,7 +597,7 @@ The syntax is `modifier @fully.qualified.AnnotationName fully.qualified.ClassNam
 
 A few examples:
 
-* `org.example.*` [1.4.0]
+* `org.example.*` {applies_to}`apm_agent_java: ga 1.4.0`
 * `org.example.*#*` (before 1.4.0, you need to specify a method matcher)
 * `org.example.MyClass#myMethod`
 * `org.example.MyClass#myMethod()`
@@ -587,7 +651,11 @@ Changing this value at runtime can slow down the application temporarily.
 | `elastic.apm.trace_methods` | `trace_methods` | `ELASTIC_APM_TRACE_METHODS` |
 
 
-## `trace_methods_duration_threshold` ([1.7.0]) [config-trace-methods-duration-threshold]
+## `trace_methods_duration_threshold` [config-trace-methods-duration-threshold]
+
+```{applies_to}
+apm_agent_java: ga 1.7.0
+```
 
 If [`trace_methods`](#config-trace-methods) config option is set, provides a threshold to limit spans based on duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default. Such methods will be traced and reported if one of the following applies:
 
@@ -619,7 +687,11 @@ Supports the duration suffixes `ms`, `s` and `m`. Example: `0ms`.
 | `elastic.apm.trace_methods_duration_threshold` | `trace_methods_duration_threshold` | `ELASTIC_APM_TRACE_METHODS_DURATION_THRESHOLD` |
 
 
-## `central_config` ([1.8.0]) [config-central-config]
+## `central_config` [config-central-config]
+
+```{applies_to}
+apm_agent_java: ga 1.8.0
+```
 
 When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration. The frequency of the periodic request is driven by the `Cache-Control` header returned from APM Server/Integration, falling back to 5 minutes if not defined.
 
@@ -634,7 +706,11 @@ When enabled, the agent will make periodic requests to the APM Server to fetch u
 | `elastic.apm.central_config` | `central_config` | `ELASTIC_APM_CENTRAL_CONFIG` |
 
 
-## `breakdown_metrics` ([1.8.0]) [config-breakdown-metrics]
+## `breakdown_metrics` [config-breakdown-metrics]
+
+```{applies_to}
+apm_agent_java: ga 1.8.0
+```
 
 Disables the collection of breakdown metrics (`span.self_time`)
 
@@ -647,7 +723,11 @@ Disables the collection of breakdown metrics (`span.self_time`)
 | `elastic.apm.breakdown_metrics` | `breakdown_metrics` | `ELASTIC_APM_BREAKDOWN_METRICS` |
 
 
-## `config_file` ([1.8.0]) [config-config-file]
+## `config_file` [config-config-file]
+
+```{applies_to}
+apm_agent_java: ga 1.8.0
+```
 
 Sets the path of the agent config file. The special value `_AGENT_HOME_` is a placeholder for the folder the `elastic-apm-agent.jar` is in. The file has to be on the file system. You can not refer to classpath locations.
 
@@ -685,7 +765,11 @@ Use the `apm-agent-plugin-sdk` and the `apm-agent-api` artifacts to create a jar
 | `elastic.apm.plugins_dir` | `plugins_dir` | `ELASTIC_APM_PLUGINS_DIR` |
 
 
-## `use_elastic_traceparent_header` ([1.14.0]) [config-use-elastic-traceparent-header]
+## `use_elastic_traceparent_header` [config-use-elastic-traceparent-header]
+
+```{applies_to}
+apm_agent_java: ga 1.14.0
+```
 
 To enable [distributed tracing](docs-content://solutions/observability/apm/traces.md), the agent adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.). These headers (`traceparent` and `tracestate`) are defined in the [W3C Trace Context](https://www.w3.org/TR/trace-context-1/) specification.
 
@@ -702,7 +786,11 @@ When this setting is `true`, the agent will also add the header `elastic-apm-tra
 | `elastic.apm.use_elastic_traceparent_header` | `use_elastic_traceparent_header` | `ELASTIC_APM_USE_ELASTIC_TRACEPARENT_HEADER` |
 
 
-## `disable_outgoing_tracecontext_headers` ([1.37.0]) [config-disable-outgoing-tracecontext-headers]
+## `disable_outgoing_tracecontext_headers` [config-disable-outgoing-tracecontext-headers]
+
+```{applies_to}
+apm_agent_java: ga 1.37.0
+```
 
 Use this option to disable `tracecontext` headers injection to any outgoing communication.
 
@@ -722,7 +810,11 @@ Disabling `tracecontext` headers injection means that [distributed tracing](docs
 | `elastic.apm.disable_outgoing_tracecontext_headers` | `disable_outgoing_tracecontext_headers` | `ELASTIC_APM_DISABLE_OUTGOING_TRACECONTEXT_HEADERS` |
 
 
-## `span_min_duration` ([1.16.0]) [config-span-min-duration]
+## `span_min_duration` [config-span-min-duration]
+
+```{applies_to}
+apm_agent_java: ga 1.16.0
+```
 
 Sets the minimum duration of spans. Spans that execute faster than this threshold are attempted to be discarded.
 
@@ -743,7 +835,11 @@ Supports the duration suffixes `ms`, `s` and `m`. Example: `0ms`.
 | `elastic.apm.span_min_duration` | `span_min_duration` | `ELASTIC_APM_SPAN_MIN_DURATION` |
 
 
-## `cloud_provider` ([1.21.0]) [config-cloud-provider]
+## `cloud_provider` [config-cloud-provider]
+
+```{applies_to}
+apm_agent_java: ga 1.21.0
+```
 
 This config value allows you to specify which cloud provider should be assumed for metadata collection. By default, the agent will attempt to detect the cloud provider or, if that fails, will use trial and error to collect the metadata.
 
@@ -771,7 +867,11 @@ A boolean specifying if the agent should search the class hierarchy for public a
 | `elastic.apm.enable_public_api_annotation_inheritance` | `enable_public_api_annotation_inheritance` | `ELASTIC_APM_ENABLE_PUBLIC_API_ANNOTATION_INHERITANCE` |
 
 
-## `transaction_name_groups` ([1.33.0]) [config-transaction-name-groups]
+## `transaction_name_groups` [config-transaction-name-groups]
+
+```{applies_to}
+apm_agent_java: ga 1.33.0
+```
 
 With this option, you can group transaction names that contain dynamic parts with a wildcard expression. For example, the pattern `GET /user/*/cart` would consolidate transactions, such as `GET /users/42/cart` and `GET /users/73/cart` into a single transaction name `GET /users/*/cart`, hence reducing the transaction name cardinality.
 
@@ -788,7 +888,11 @@ This option supports the wildcard `*`, which matches zero or more characters. Ex
 | `elastic.apm.transaction_name_groups` | `transaction_name_groups` | `ELASTIC_APM_TRANSACTION_NAME_GROUPS` |
 
 
-## `trace_continuation_strategy` ([1.34.0]) [config-trace-continuation-strategy]
+## `trace_continuation_strategy` [config-trace-continuation-strategy]
+
+```{applies_to}
+apm_agent_java: ga 1.34.0
+```
 
 This option allows some control over how the APM agent handles W3C trace-context headers on incoming requests. By default, the `traceparent` and `tracestate` headers are used per W3C spec for distributed tracing. However, in certain cases it can be helpful to not use the incoming `traceparent` header. Some example use cases:
 
@@ -818,7 +922,11 @@ Valid options: `continue`, `restart`, `restart_external`
 | `elastic.apm.trace_continuation_strategy` | `trace_continuation_strategy` | `ELASTIC_APM_TRACE_CONTINUATION_STRATEGY` |
 
 
-## `baggage_to_attach` ([1.43.0]) [config-baggage-to-attach]
+## `baggage_to_attach` [config-baggage-to-attach]
+
+```{applies_to}
+apm_agent_java: ga 1.43.0
+```
 
 If any baggage key matches any of the patterns provided via this config option, the corresponding baggage key and value will be automatically stored on the corresponding transactions, spans and errors. The baggage keys will be prefixed with "baggage." on storage.
 

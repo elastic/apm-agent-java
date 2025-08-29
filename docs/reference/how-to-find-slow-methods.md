@@ -1,6 +1,16 @@
 ---
 mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/java-method-monitoring.html
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
+products:
+  - id: cloud-serverless
+  - id: observability
+  - id: apm
 ---
 
 # How to find slow methods [java-method-monitoring]
@@ -8,7 +18,7 @@ mapped_pages:
 Identifying a problematic service is only half of the battle when diagnosing application slowdowns. Luckily, the Elastic APM Java Agent provides multiple ways to get method-level insights into your code. This can help you diagnose slow requests due to heavy computations, inefficient algorithms, or similar problems not related to interactions between services.
 
 
-## *If you don’t know which methods you want to monitor…​* [_if_you_dont_know_which_methods_you_want_to_monitor]
+## *If you don’t know which methods you want to monitor… * [_if_you_dont_know_which_methods_you_want_to_monitor]
 
 
 ### Sampling-based profiler [_sampling_based_profiler]
@@ -20,7 +30,7 @@ Find out which part of your code is making your application slow by periodically
 [Learn more](/reference/method-sampling-based.md)
 
 
-## *If you know which methods you want to monitor…​* [_if_you_know_which_methods_you_want_to_monitor]
+## *If you know which methods you want to monitor… * [_if_you_know_which_methods_you_want_to_monitor]
 
 
 ### API/Code [_apicode]

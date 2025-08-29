@@ -3,6 +3,16 @@ navigation_title: "Elastic APM Java Agent"
 mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-1.x.html
   - https://www.elastic.co/guide/en/apm/agent/java/current/release-notes.html
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
+products:
+  - id: cloud-serverless
+  - id: observability
+  - id: apm
 ---
 
 # Elastic APM Java Agent release notes [elastic-apm-java-agent-release-notes]

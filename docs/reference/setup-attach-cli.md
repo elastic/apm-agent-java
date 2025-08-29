@@ -1,6 +1,16 @@
 ---
 mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/setup-attach-cli.html
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
+products:
+  - id: cloud-serverless
+  - id: observability
+  - id: apm
 ---
 
 # Automatic setup with apm-agent-attach-cli.jar [setup-attach-cli]
@@ -85,19 +95,19 @@ The JVM arguments may contain sensitive information, such as passwords provided 
 :   Includes all JVMs for attachment.
 
 
-**--include-pid <pid>…​**
+**--include-pid <pid>… **
 :   A PID to include.
 
 
-**--include-main/--exclude-main <pattern>…​**
+**--include-main/--exclude-main <pattern>… **
 :   A regular expression of fully qualified main class names or paths to JARs of applications the java agent should be attached to. Performs a partial match so that `foo` matches `/bin/foo.jar`.
 
 
-**--include-vmarg/--exclude-vmarg <pattern>…​**
+**--include-vmarg/--exclude-vmarg <pattern>… **
 :   A regular expression that is matched against the arguments passed to the JVM, such as system properties. Performs a partial match so that `attach=true` matches the system property `-Delastic.apm.attach=true`.
 
 
-**--include-user/--exclude-user <user>…​**
+**--include-user/--exclude-user <user>… **
 :   A username that is matched against the operating system user that run the JVM. For included users, make sure that the user this program is running under is either the same user or has permissions to switch to the user that runs the target JVM.
 
 
@@ -114,7 +124,7 @@ This option cannot be used in conjunction with `--args-provider`
 
 
 
-**-C --config <key=value>…​**
+**-C --config <key=value>… **
 :   This repeatable option sets one agent configuration option.
 
 Example: `--config server_url=http://127.0.0.1:8200`
