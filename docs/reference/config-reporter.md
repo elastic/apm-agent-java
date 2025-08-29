@@ -2,6 +2,16 @@
 navigation_title: "Reporter"
 mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/config-reporter.html
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
+products:
+  - id: cloud-serverless
+  - id: observability
+  - id: apm
 ---
 
 # Reporter configuration options [config-reporter]

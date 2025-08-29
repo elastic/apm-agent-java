@@ -1,6 +1,16 @@
 ---
 mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/metrics.html
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
+products:
+  - id: cloud-serverless
+  - id: observability
+  - id: apm
 ---
 
 # Metrics [metrics]
@@ -12,7 +22,7 @@ These metrics will be sent regularly to the APM Server and from there to Elastic
 The metrics will be stored in the `apm-*` index and have the `processor.event` property set to `metric`.
 
 ::::{note}
-Dedicated JVM metrics views are available since Elastic stack version 7.2. Starting in 7.5, metrics are aggregated separately for each JVM, relying on the ID of the underlying system — either container ID (where applicable) or hostname. Starting in Java agent version 1.11.0, it is possible to manually configure a unique name for each service node/JVM through [`service_node_name`](/reference/config-core.md#config-service-node-name). When multiple JVMs are running on the same host and report data for the same service, this configuration is required in order to be able to view metrics at the JVM level.
+Dedicated JVM metrics views are available since Elastic stack version 7.2. Starting in 7.5, metrics are aggregated separately for each JVM, relying on the ID of the underlying system — either container ID (where applicable) or hostname. Starting in Java agent version 1.11.0, it is possible to manually configure a unique name for each service node/JVM through [`service_node_name`](/reference/config-core.md#config-service-node-name). When multiple JVMs are running on the same host and report data for the same service, this configuration is required in order to be able to view metrics at the JVM level.
 ::::
 
 

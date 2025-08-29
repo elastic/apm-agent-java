@@ -2,6 +2,16 @@
 navigation_title: "JAX-RS"
 mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/config-jax-rs.html
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
+products:
+  - id: cloud-serverless
+  - id: observability
+  - id: apm
 ---
 
 # JAX-RS configuration options [config-jax-rs]
