@@ -60,7 +60,11 @@ When logging to a file, the log will be formatted in new-line-delimited JSON. Wh
 | `elastic.apm.log_file` | `log_file` | `ELASTIC_APM_LOG_FILE` |
 
 
-## `log_ecs_reformatting` ([1.22.0] experimental) [config-log-ecs-reformatting]
+## `log_ecs_reformatting` (experimental) [config-log-ecs-reformatting]
+
+```{applies_to}
+apm_agent_java: ga 1.22.0
+```
 
 ::::{note}
 This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
@@ -96,7 +100,11 @@ Valid options: `OFF`, `SHADE`, `REPLACE`, `OVERRIDE`
 | `elastic.apm.log_ecs_reformatting` | `log_ecs_reformatting` | `ELASTIC_APM_LOG_ECS_REFORMATTING` |
 
 
-## `log_ecs_reformatting_additional_fields` ([1.26.0]) [config-log-ecs-reformatting-additional-fields]
+## `log_ecs_reformatting_additional_fields` [config-log-ecs-reformatting-additional-fields]
+
+```{applies_to}
+apm_agent_java: ga 1.26.0
+```
 
 A comma-separated list of key-value pairs that will be added as additional fields to all log events. Takes the format `key=value[,key=value[,...]]`, for example: `key1=value1,key2=value2`. Only relevant if [`log_ecs_reformatting`](#config-log-ecs-reformatting) is set to any option other than `OFF`. Additional fields are currently not supported for direct log sending through the agent.
 
@@ -137,7 +145,11 @@ If [`log_ecs_reformatting`](#config-log-ecs-reformatting) is set to `SHADE` or `
 | `elastic.apm.log_ecs_reformatting_dir` | `log_ecs_reformatting_dir` | `ELASTIC_APM_LOG_ECS_REFORMATTING_DIR` |
 
 
-## `log_file_size` ([1.17.0]) [config-log-file-size]
+## `log_file_size` [config-log-file-size]
+
+```{applies_to}
+apm_agent_java: ga 1.17.0
+```
 
 The size of the log file.
 
@@ -152,7 +164,11 @@ The agent always keeps one history file so that the max total log file size is t
 | `elastic.apm.log_file_size` | `log_file_size` | `ELASTIC_APM_LOG_FILE_SIZE` |
 
 
-## `log_format_sout` ([1.17.0]) [config-log-format-sout]
+## `log_format_sout` [config-log-format-sout]
+
+```{applies_to}
+apm_agent_java: ga 1.17.0
+```
 
 Defines the log format when logging to `System.out`.
 
@@ -169,7 +185,11 @@ Valid options: `PLAIN_TEXT`, `JSON`
 | `elastic.apm.log_format_sout` | `log_format_sout` | `ELASTIC_APM_LOG_FORMAT_SOUT` |
 
 
-## `log_format_file` ([1.17.0]) [config-log-format-file]
+## `log_format_file` [config-log-format-file]
+
+```{applies_to}
+apm_agent_java: ga 1.17.0
+```
 
 Defines the log format when logging to a file.
 
@@ -186,7 +206,11 @@ Valid options: `PLAIN_TEXT`, `JSON`
 | `elastic.apm.log_format_file` | `log_format_file` | `ELASTIC_APM_LOG_FORMAT_FILE` |
 
 
-## `log_sending` ([1.36.0] experimental) [config-log-sending]
+## `log_sending` (experimental) [config-log-sending]
+
+```{applies_to}
+apm_agent_java: ga 1.36.0
+```
 
 ::::{note}
 This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.

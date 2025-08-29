@@ -37,7 +37,11 @@ This option supports the wildcard `*`, which matches zero or more characters. Ex
 | `elastic.apm.ignore_message_queues` | `ignore_message_queues` | `ELASTIC_APM_IGNORE_MESSAGE_QUEUES` |
 
 
-## `jms_listener_packages` (performance [1.36.0]) [config-jms-listener-packages]
+## `jms_listener_packages` (performance) [config-jms-listener-packages]
+
+```{applies_to}
+apm_agent_java: ga 1.36.0
+```
 
 Defines which packages contain JMS MessageListener implementations for instrumentation. When empty (default), all inner-classes or any classes that have *Listener* or *Message* in their names are considered.
 
@@ -54,7 +58,11 @@ Starting from version 1.43.0, the classes that are part of the *application_pack
 | `elastic.apm.jms_listener_packages` | `jms_listener_packages` | `ELASTIC_APM_JMS_LISTENER_PACKAGES` |
 
 
-## `rabbitmq_naming_mode` ([1.46.0]) [config-rabbitmq-naming-mode]
+## `rabbitmq_naming_mode` [config-rabbitmq-naming-mode]
+
+```{applies_to}
+apm_agent_java: ga 1.46.0
+```
 
 Defines whether the agent should use the exchanges, the routing key or the queue for the naming of RabbitMQ Transactions. Valid options are `QUEUE`, `ROUTING_KEY` and `EXCHANGE`. Note that `QUEUE` only works when using RabbitMQ via spring-amqp and `ROUTING_KEY` only works for the non spring-client.
 

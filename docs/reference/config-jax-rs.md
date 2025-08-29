@@ -31,7 +31,11 @@ By default, the agent will scan for @Path annotations on the whole class hierarc
 | `elastic.apm.enable_jaxrs_annotation_inheritance` | `enable_jaxrs_annotation_inheritance` | `ELASTIC_APM_ENABLE_JAXRS_ANNOTATION_INHERITANCE` |
 
 
-## `use_jaxrs_path_as_transaction_name` ([1.8.0]) [config-use-jaxrs-path-as-transaction-name]
+## `use_jaxrs_path_as_transaction_name` [config-use-jaxrs-path-as-transaction-name]
+
+```{applies_to}
+apm_agent_java: ga 1.8.0
+```
 
 By default, the agent will use `ClassName#methodName` for the transaction name of JAX-RS requests. If you want to use the URI template from the `@Path` annotation, set the value to `true`.
 

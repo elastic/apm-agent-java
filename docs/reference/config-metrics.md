@@ -18,7 +18,11 @@ products:
 
 
 
-## `dedot_custom_metrics` ([1.22.0]) [config-dedot-custom-metrics]
+## `dedot_custom_metrics` [config-dedot-custom-metrics]
+
+```{applies_to}
+apm_agent_java: ga 1.22.0
+```
 
 Replaces dots with underscores in the metric names for Micrometer metrics.
 
@@ -38,7 +42,11 @@ Setting this to `false` can lead to mapping conflicts as dots indicate nesting i
 | `elastic.apm.dedot_custom_metrics` | `dedot_custom_metrics` | `ELASTIC_APM_DEDOT_CUSTOM_METRICS` |
 
 
-## `custom_metrics_histogram_boundaries` ([1.37.0] experimental) [config-custom-metrics-histogram-boundaries]
+## `custom_metrics_histogram_boundaries` (experimental) [config-custom-metrics-histogram-boundaries]
+
+```{applies_to}
+apm_agent_java: ga 1.37.0
+```
 
 ::::{note}
 This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
@@ -58,9 +66,13 @@ Note that for OpenTelemetry 1.32.0 or newer this setting will only work when usi
 | `elastic.apm.custom_metrics_histogram_boundaries` | `custom_metrics_histogram_boundaries` | `ELASTIC_APM_CUSTOM_METRICS_HISTOGRAM_BOUNDARIES` |
 
 
-## `metric_set_limit` ([1.33.0]) [config-metric-set-limit]
+## `metric_set_limit` [config-metric-set-limit]
 
-Limits the number of active metric sets. The metrics sets have associated labels, and the metrics sets are held internally in a map using the labels as keys. The map is limited in size by this option to prevent unbounded growth. If you hit the limit, you’ll receive a warning in the agent log. The recommended option to workaround the limit is to try to limit the cardinality of the labels, eg naming your transactions so that there are fewer distinct transaction names. But if you must, you can use this option to increase the limit.
+```{applies_to}
+apm_agent_java: ga 1.33.0
+```
+
+Limits the number of active metric sets. The metrics sets have associated labels, and the metrics sets are held internally in a map using the labels as keys. The map is limited in size by this option to prevent unbounded growth. If you select the limit, you'll receive a warning in the agent log. The recommended option to workaround the limit is to try to limit the cardinality of the labels, eg naming your transactions so that there are fewer distinct transaction names. But if you must, you can use this option to increase the limit.
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -71,9 +83,13 @@ Limits the number of active metric sets. The metrics sets have associated labels
 | `elastic.apm.metric_set_limit` | `metric_set_limit` | `ELASTIC_APM_METRIC_SET_LIMIT` |
 
 
-## `agent_reporter_health_metrics` ([1.35.0]) [config-agent-reporter-health-metrics]
+## `agent_reporter_health_metrics` [config-agent-reporter-health-metrics]
 
-Enables metrics which capture the health state of the agent’s event reporting mechanism.
+```{applies_to}
+apm_agent_java: ga 1.35.0
+```
+
+Enables metrics which capture the health state of the agent's event reporting mechanism.
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
@@ -84,7 +100,11 @@ Enables metrics which capture the health state of the agent’s event reporting 
 | `elastic.apm.agent_reporter_health_metrics` | `agent_reporter_health_metrics` | `ELASTIC_APM_AGENT_REPORTER_HEALTH_METRICS` |
 
 
-## `agent_background_overhead_metrics` ([1.35.0]) [config-agent-background-overhead-metrics]
+## `agent_background_overhead_metrics` [config-agent-background-overhead-metrics]
+
+```{applies_to}
+apm_agent_java: ga 1.35.0
+```
 
 Enables metrics which capture the resource consumption of agent background tasks.
 

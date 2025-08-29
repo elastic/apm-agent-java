@@ -18,7 +18,11 @@ products:
 
 
 
-## `capture_jmx_metrics` ([1.11.0]) [config-capture-jmx-metrics]
+## `capture_jmx_metrics` [config-capture-jmx-metrics]
+
+```{applies_to}
+apm_agent_java: ga 1.11.0
+```
 
 Report metrics from JMX to the APM Server
 
