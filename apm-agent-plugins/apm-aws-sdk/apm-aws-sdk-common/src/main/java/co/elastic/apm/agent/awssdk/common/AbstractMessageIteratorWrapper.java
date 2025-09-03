@@ -29,6 +29,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static co.elastic.apm.agent.awssdk.common.AbstractSQSInstrumentationHelper.MESSAGE_PROCESSING_ACTION;
 import static co.elastic.apm.agent.awssdk.common.AbstractSQSInstrumentationHelper.MESSAGING_TYPE;
@@ -43,6 +45,7 @@ public abstract class AbstractMessageIteratorWrapper<Message> implements Iterato
     private final String queueName;
     private final AbstractSQSInstrumentationHelper<?, ?, Message> sqsInstrumentationHelper;
     private final TextHeaderGetter<Message> textHeaderGetter;
+    private final AtomicBoolean iterationEnded = new AtomicBoolean(false);
 
     public AbstractMessageIteratorWrapper(Iterator<Message> delegate, Tracer tracer,
                                           String queueName,
@@ -57,9 +60,12 @@ public abstract class AbstractMessageIteratorWrapper<Message> implements Iterato
 
     @Override
     public boolean hasNext() {
-        endCurrentTransaction();
-        endMessageProcessingSpan();
-        return delegate.hasNext();
+        boolean hasNext = delegate.hasNext();
+        if (!hasNext && iterationEnded.compareAndSet(false, true)) {
+            endCurrentTransaction();
+            endMessageProcessingSpan();
+        }
+        return hasNext;
     }
 
     @Nullable
@@ -67,7 +73,7 @@ public abstract class AbstractMessageIteratorWrapper<Message> implements Iterato
         Transaction<?> transaction = null;
         try {
             transaction = tracer.currentTransaction();
-            if (transaction != null && MESSAGING_TYPE.equals(transaction.getType())) {
+            if (transaction != null && !transaction.isFinished() && MESSAGING_TYPE.equals(transaction.getType())) {
                 transaction.deactivate().end();
                 return null;
             }
@@ -93,12 +99,19 @@ public abstract class AbstractMessageIteratorWrapper<Message> implements Iterato
 
     @Override
     public Message next() {
-        Transaction<?> currentTransaction = endCurrentTransaction();
-        Message sqsMessage = delegate.next();
-        if (currentTransaction == null) {
-            sqsInstrumentationHelper.startTransactionOnMessage(sqsMessage, queueName, textHeaderGetter);
+        try {
+            Transaction<?> currentTransaction = endCurrentTransaction();
+            Message sqsMessage = delegate.next();
+            if (currentTransaction == null) {
+                sqsInstrumentationHelper.startTransactionOnMessage(sqsMessage, queueName, textHeaderGetter);
+            }
+            return sqsMessage;
+        } catch (NoSuchElementException e) {
+            if (iterationEnded.compareAndSet(false, true)) {
+                endCurrentTransaction();
+            }
+            throw e;
         }
-        return sqsMessage;
     }
 
 
