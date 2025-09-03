@@ -109,6 +109,7 @@ public abstract class AbstractMessageIteratorWrapper<Message> implements Iterato
         } catch (NoSuchElementException e) {
             if (iterationEnded.compareAndSet(false, true)) {
                 endCurrentTransaction();
+                endMessageProcessingSpan();
             }
             throw e;
         }
