@@ -68,7 +68,7 @@ Note that for OpenTelemetry 1.32.0 or newer this setting will only work when usi
 apm_agent_java: ga 1.33.0
 ```
 
-Limits the number of active metric sets. The metrics sets have associated labels, and the metrics sets are held internally in a map using the labels as keys. The map is limited in size by this option to prevent unbounded growth. If you select the limit, you'll receive a warning in the agent log. The recommended option to workaround the limit is to try to limit the cardinality of the labels, eg naming your transactions so that there are fewer distinct transaction names. But if you must, you can use this option to increase the limit.
+Limits the number of active metric sets. The metrics sets have associated labels, and the metrics sets are held internally in a map using the labels as keys. The map is limited in size by this option to prevent unbounded growth. If you reach the limit, you'll receive a warning in the agent log. The recommended option to workaround the limit is to try to limit the cardinality of the labels, eg naming your transactions so that there are fewer distinct transaction names. But if you must, you can use this option to increase the limit.
 
 | Default | Type | Dynamic |
 | --- | --- | --- |
