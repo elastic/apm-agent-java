@@ -2,6 +2,12 @@
 navigation_title: "Reporter"
 mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/config-reporter.html
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
 ---
 
 # Reporter configuration options [config-reporter]
@@ -213,7 +219,11 @@ Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
 | `elastic.apm.api_request_size` | `api_request_size` | `ELASTIC_APM_API_REQUEST_SIZE` |
 
 
-## `metrics_interval` ([1.3.0]) [config-metrics-interval]
+## `metrics_interval` [config-metrics-interval]
+
+```{applies_to}
+apm_agent_java: ga 1.3.0
+```
 
 The interval at which the agent sends metrics to the APM Server, rounded down to the nearest second (ie 3783ms would be applied as 3000ms). If there is an interval (step) defined in the Meter, that interval (to the nearest second) will instead be used, for that Meter. If the Meter step interval is less than 1 second, the meter will not be reported. Must be at least `1s`. Set to `0s` to deactivate.
 
@@ -228,7 +238,11 @@ Supports the duration suffixes `ms`, `s` and `m`. Example: `30s`.
 | `elastic.apm.metrics_interval` | `metrics_interval` | `ELASTIC_APM_METRICS_INTERVAL` |
 
 
-## `disable_metrics` ([1.3.0]) [config-disable-metrics]
+## `disable_metrics` [config-disable-metrics]
+
+```{applies_to}
+apm_agent_java: ga 1.3.0
+```
 
 Disables the collection of certain metrics. If the name of a metric matches any of the wildcard expressions, it will not be collected. Example: `foo.*,bar.*`
 

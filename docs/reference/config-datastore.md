@@ -2,13 +2,23 @@
 navigation_title: "Datastore"
 mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/config-datastore.html
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
 ---
 
 # Datastore configuration options [config-datastore]
 
 
 
-## `elasticsearch_capture_body_urls` ([1.37.0]) [config-elasticsearch-capture-body-urls]
+## `elasticsearch_capture_body_urls` [config-elasticsearch-capture-body-urls]
+
+```{applies_to}
+apm_agent_java: ga 1.37.0
+```
 
 The URL path patterns for which the APM agent will capture the request body of outgoing requests to Elasticsearch made with the `elasticsearch-restclient` instrumentation. The default setting captures the body for Elasticsearch REST APIs searches and counts.
 

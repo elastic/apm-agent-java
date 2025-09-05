@@ -2,6 +2,12 @@
 navigation_title: "Stacktrace"
 mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/config-stacktrace.html
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
 ---
 
 # Stacktrace configuration options [config-stacktrace]
@@ -37,6 +43,10 @@ the instrumentation aspect of this configuration option - specifying which class
 
 
 ## `stack_trace_limit` (performance) [config-stack-trace-limit]
+
+```{applies_to}
+apm_agent_java: ga 1.0.0
+```
 
 Setting it to 0 will disable stack trace collection. Any positive integer value will be used as the maximum number of frames to collect. Setting it -1 means that all frames will be collected.
 

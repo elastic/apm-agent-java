@@ -2,13 +2,23 @@
 navigation_title: "JMX"
 mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/config-jmx.html
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
 ---
 
 # JMX configuration options [config-jmx]
 
 
 
-## `capture_jmx_metrics` ([1.11.0]) [config-capture-jmx-metrics]
+## `capture_jmx_metrics` [config-capture-jmx-metrics]
+
+```{applies_to}
+apm_agent_java: ga 1.11.0
+```
 
 Report metrics from JMX to the APM Server
 

@@ -1,6 +1,12 @@
 ---
 mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/supported-technologies-details.html
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
 ---
 
 # Supported technologies [supported-technologies-details]
@@ -156,7 +162,7 @@ This section lists all supported asynchronous frameworks.
 | `ExecutorService` |  | The agent propagates the context for `ExecutorService` s. | 1.4.0 |
 | `ScheduledExecutorService` |  | The agent propagates the context for `ScheduledExecutorService#schedule` (this does not include `scheduleAtFixedRate` or `scheduleWithFixedDelay`. | 1.17.0 |
 | `ForkJoinPool` |  | The agent propagates the context for `ForkJoinPool` s. | 1.17.0 |
-| Scala Future | 2.13.x | The agent propagates the context when using the `scala.concurrent.Future` or `scala.concurrent.Promise`.It will propagate the context when using chaining methods such as `map`, `flatMap`, `traverse`, …​NOTE: To enable Scala Future support, you need to enable experimental plugins. | 1.18.0 |
+| Scala Future | 2.13.x | The agent propagates the context when using the `scala.concurrent.Future` or `scala.concurrent.Promise`.It will propagate the context when using chaining methods such as `map`, `flatMap`, `traverse`, … NOTE: To enable Scala Future support, you need to enable experimental plugins. | 1.18.0 |
 | Reactor | 3.2.x+ | The agent propagates the context for `Flux` and `Mono`. | 1.24.0 (experimental), 1.34.0 (GA) |
 
 

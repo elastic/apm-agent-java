@@ -1,5 +1,11 @@
 ---
 navigation_title: "Breaking changes"
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
 ---
 
 # Elastic APM Java Agent breaking changes
