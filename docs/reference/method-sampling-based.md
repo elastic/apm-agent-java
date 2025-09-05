@@ -6,7 +6,7 @@ applies_to:
   serverless:
     observability:
   product:
-    apm_agent_java: ga
+    apm_agent_java: preview
 ---
 
 # Sampling-based profiler [method-sampling-based]
