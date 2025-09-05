@@ -6,10 +6,6 @@ applies_to:
     observability:
   product:
     apm_agent_java: ga
-products:
-  - id: cloud-serverless
-  - id: observability
-  - id: apm
 ---
 
 # Elastic APM Java Agent deprecations [elastic-apm-java-agent-deprecations]

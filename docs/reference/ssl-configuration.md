@@ -7,10 +7,6 @@ applies_to:
     observability:
   product:
     apm_agent_java: ga
-products:
-  - id: cloud-serverless
-  - id: observability
-  - id: apm
 ---
 
 # SSL/TLS communication with APM Server [ssl-configuration]

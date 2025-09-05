@@ -8,10 +8,6 @@ applies_to:
     observability:
   product:
     apm_agent_java: ga
-products:
-  - id: cloud-serverless
-  - id: observability
-  - id: apm
 ---
 
 # Datastore configuration options [config-datastore]

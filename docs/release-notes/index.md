@@ -9,10 +9,6 @@ applies_to:
     observability:
   product:
     apm_agent_java: ga
-products:
-  - id: cloud-serverless
-  - id: observability
-  - id: apm
 ---
 
 # Elastic APM Java Agent release notes [elastic-apm-java-agent-release-notes]
@@ -1085,7 +1081,7 @@ To check for security updates, go to [Security announcements for the Elastic sta
 * A warning in logs saying APM server is not available when using 1.8 with APM server 6.x. Due to that, agent 1.8.0 will silently ignore non-string labels, even if used with APM server of versions 6.7.x or 6.8.x that support such. If APM server version is <6.7 or 7.0+, this should have no effect. Otherwise, upgrade the Java agent to 1.9.0+.
 * `ApacheHttpAsyncClientInstrumentation` matching increases startup time considerably
 * Log correlation feature is active when `active==false`
-* Tomcat’s memory leak prevention mechanism is causing a…​ memory leak. JDBC statement map is leaking in Tomcat if the application that first used it is undeployed/redeployed. See [this related discussion](https://discuss.elastic.co/t/elastic-apm-agent-jdbchelper-seems-to-use-a-lot-of-memory/195295).
+* Tomcat’s memory leak prevention mechanism is causing a…  memory leak. JDBC statement map is leaking in Tomcat if the application that first used it is undeployed/redeployed. See [this related discussion](https://discuss.elastic.co/t/elastic-apm-agent-jdbchelper-seems-to-use-a-lot-of-memory/195295).
 
 ## 1.8.0 [elastic-apm-java-agent-1-8-0-release-notes]
 **Release date:** July 30, 2019

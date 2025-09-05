@@ -10,10 +10,6 @@ applies_to:
     observability:
   product:
     apm_agent_java: ga
-products:
-  - id: cloud-serverless
-  - id: observability
-  - id: apm
 ---
 
 # Monitoring AWS Lambda Java Functions [aws-lambda]
