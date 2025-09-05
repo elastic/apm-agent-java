@@ -14,7 +14,7 @@ applies_to:
 Identifying a problematic service is only half of the battle when diagnosing application slowdowns. Luckily, the Elastic APM Java Agent provides multiple ways to get method-level insights into your code. This can help you diagnose slow requests due to heavy computations, inefficient algorithms, or similar problems not related to interactions between services.
 
 
-## *If you don’t know which methods you want to monitor… * [_if_you_dont_know_which_methods_you_want_to_monitor]
+## If you don’t know which methods you want to monitor… [_if_you_dont_know_which_methods_you_want_to_monitor]
 
 
 ### Sampling-based profiler [_sampling_based_profiler]
