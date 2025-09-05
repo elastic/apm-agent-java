@@ -26,7 +26,7 @@ Find out which part of your code is making your application slow by periodically
 [Learn more](/reference/method-sampling-based.md)
 
 
-## *If you know which methods you want to monitor… * [_if_you_know_which_methods_you_want_to_monitor]
+## If you know which methods you want to monitor… [_if_you_know_which_methods_you_want_to_monitor]
 
 
 ### API/Code [_apicode]
