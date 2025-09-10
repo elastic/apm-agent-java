@@ -1,6 +1,11 @@
 ---
 navigation_title: "Known issues"
-
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
 ---
 
 # Elastic APM Java Agent known issues [elastic-apm-java-agent-known-issues]

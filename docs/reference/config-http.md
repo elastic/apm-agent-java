@@ -2,13 +2,23 @@
 navigation_title: "HTTP"
 mapped_pages:
   - https://www.elastic.co/guide/en/apm/agent/java/current/config-http.html
+applies_to:
+  stack:
+  serverless:
+    observability:
+  product:
+    apm_agent_java: ga
 ---
 
 # HTTP configuration options [config-http]
 
 
 
-## `capture_body_content_types` ([1.5.0] performance) [config-capture-body-content-types]
+## `capture_body_content_types` (performance) [config-capture-body-content-types]
+
+```{applies_to}
+apm_agent_java: ga 1.5.0
+```
 
 Configures which content types should be recorded.
 
@@ -46,7 +56,11 @@ This option supports the wildcard `*`, which matches zero or more characters. Ex
 | `elastic.apm.transaction_ignore_urls` | `transaction_ignore_urls` | `ELASTIC_APM_TRANSACTION_IGNORE_URLS` |
 
 
-## `transaction_ignore_user_agents` ([1.22.0]) [config-transaction-ignore-user-agents]
+## `transaction_ignore_user_agents` [config-transaction-ignore-user-agents]
+
+```{applies_to}
+apm_agent_java: ga 1.22.0
+```
 
 Used to restrict requests from certain User-Agents from being instrumented.
 
@@ -65,7 +79,11 @@ This option supports the wildcard `*`, which matches zero or more characters. Ex
 | `elastic.apm.transaction_ignore_user_agents` | `transaction_ignore_user_agents` | `ELASTIC_APM_TRANSACTION_IGNORE_USER_AGENTS` |
 
 
-## `use_path_as_transaction_name` ([1.0.0]) [config-use-path-as-transaction-name]
+## `use_path_as_transaction_name` [config-use-path-as-transaction-name]
+
+```{applies_to}
+apm_agent_java: ga 1.0.0
+```
 
 If set to `true`, transaction names of unsupported or partially-supported frameworks will be in the form of `$method $path` instead of just `$method unknown route`.
 
@@ -106,7 +124,11 @@ This option supports the wildcard `*`, which matches zero or more characters. Ex
 | `elastic.apm.url_groups` | `url_groups` | `ELASTIC_APM_URL_GROUPS` |
 
 
-## `capture_http_client_request_body_size` ([1.52.0] experimental) [config-capture-http-client-request-body-size]
+## `capture_http_client_request_body_size` (experimental) [config-capture-http-client-request-body-size]
+
+```{applies_to}
+apm_agent_java: ga 1.52.0
+```
 
 ::::{note}
 This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
@@ -129,7 +151,11 @@ Currently only support for Apache Http Client v4 and v5, HttpUrlConnection, Spri
 | `elastic.apm.capture_http_client_request_body_size` | `capture_http_client_request_body_size` | `ELASTIC_APM_CAPTURE_HTTP_CLIENT_REQUEST_BODY_SIZE` |
 
 
-## `capture_http_client_request_body_as_label` ([1.54.0]) [config-capture-http-client-request-body-as-label]
+## `capture_http_client_request_body_as_label` [config-capture-http-client-request-body-as-label]
+
+```{applies_to}
+apm_agent_java: ga 1.54.0
+```
 
 ::::{note}
 This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.

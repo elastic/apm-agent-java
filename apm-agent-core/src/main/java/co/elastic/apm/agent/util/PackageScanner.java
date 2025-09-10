@@ -18,6 +18,7 @@
  */
 package co.elastic.apm.agent.util;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -25,6 +26,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.FileSystem;
+import java.nio.file.FileSystemAlreadyExistsException;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -86,9 +88,8 @@ public class PackageScanner {
             URI uri = resource.toURI();
             List<String> result;
             if (uri.getScheme().equals("jar")) {
-                // avoids FileSystemAlreadyExistsException
                 synchronized (PackageScanner.class) {
-                    try (FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap())) {
+                    try (FileSystem fileSystem = getFileSystem(uri)) {
                         Path basePath  = fileSystem.getPath(baseFolderResource).toAbsolutePath();
                         if (!Files.exists(basePath)) { // called in a privileged action, thus no need to deal with security manager
                             basePath = fileSystem.getPath("agent/" + baseFolderResource).toAbsolutePath();
@@ -102,6 +103,21 @@ public class PackageScanner {
             classNames.addAll(result);
         }
         return classNames;
+    }
+
+    @Nullable
+    private static FileSystem getFileSystem(URI uri) throws IOException {
+        FileSystem fileSystem;
+        // FileSystemAlreadyExistsException is thrown when FS has already been opened
+        // FileSystemNotFoundException is thrown when FS has not already been opened
+        // thus we can't avoid throwing exceptions, but we can use them for transparent fallback
+        // multiple calls for equivalent URIs is expected with "fat jar" that have nested paths with "!/../path/within/jar"
+        try {
+            fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap());
+        } catch (FileSystemAlreadyExistsException e) {
+            fileSystem = FileSystems.getFileSystem(uri);
+        }
+        return fileSystem;
     }
 
     /**
