@@ -107,6 +107,7 @@ public abstract class AbstractMessageIteratorWrapper<Message> implements Iterato
             }
             return sqsMessage;
         } catch (NoSuchElementException e) {
+            // end the transaction when the caller loops with a try/catch until an exception is thrown
             if (iterationEnded.compareAndSet(false, true)) {
                 endCurrentTransaction();
                 endMessageProcessingSpan();
