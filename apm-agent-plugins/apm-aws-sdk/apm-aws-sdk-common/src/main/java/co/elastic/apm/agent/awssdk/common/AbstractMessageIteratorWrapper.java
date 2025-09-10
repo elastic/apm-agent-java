@@ -45,7 +45,7 @@ public abstract class AbstractMessageIteratorWrapper<Message> implements Iterato
     private final String queueName;
     private final AbstractSQSInstrumentationHelper<?, ?, Message> sqsInstrumentationHelper;
     private final TextHeaderGetter<Message> textHeaderGetter;
-    private final AtomicBoolean iterationEnded = new AtomicBoolean(false);
+    private final AtomicBoolean iterationEnded;
 
     public AbstractMessageIteratorWrapper(Iterator<Message> delegate, Tracer tracer,
                                           String queueName,
@@ -56,6 +56,7 @@ public abstract class AbstractMessageIteratorWrapper<Message> implements Iterato
         this.queueName = queueName;
         this.sqsInstrumentationHelper = sqsInstrumentationHelper;
         this.textHeaderGetter = textHeaderGetter;
+        this.iterationEnded = new AtomicBoolean(false);
     }
 
     @Override
