@@ -5,7 +5,7 @@
     <parent>
         <artifactId>quarkus</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.55.1-SNAPSHOT</version>
+        <version>1.55.1</version>
     </parent>
 
     <artifactId>quarkus-jaxrs-undertow</artifactId>

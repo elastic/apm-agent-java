@@ -9,9 +9,6 @@ This file contains all changes which are not released yet.
 
 # Fixes
 <!--FIXES-START-->
-* Fix async httpclient 5.x instrumentation - [#4185](https://github.com/elastic/apm-agent-java/pull/4185)
-* Prevent `FileSystemAlreadyExistsException` on single-jar application startup - [#4204](https://github.com/elastic/apm-agent-java/pull/4204)
-* Improve SQS async transaction handling to be better with flux flow - [#4205](https://github.com/elastic/apm-agent-java/pull/4205)
 
 <!--FIXES-END-->
 # Features and enhancements

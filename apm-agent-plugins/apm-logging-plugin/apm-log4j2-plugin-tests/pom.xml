@@ -6,7 +6,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-logging-plugin</artifactId>
-        <version>1.55.1-SNAPSHOT</version>
+        <version>1.55.1</version>
     </parent>
 
     <artifactId>apm-log4j2-plugin-tests</artifactId>
