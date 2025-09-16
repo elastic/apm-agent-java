@@ -26,6 +26,14 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 % ### Fixes [elastic-apm-java-agent-versionext-fixes]
 
+## 1.55.1 [elastic-apm-java-agent-1-55-1-release-notes]
+**Release date:** September 16, 2025
+
+### Fixes [elastic-apm-java-agent-1-55-1-fixes]
+* Fix async httpclient 5.x instrumentation - [#4185](https://github.com/elastic/apm-agent-java/pull/4185)
+* Prevent `FileSystemAlreadyExistsException` on single-jar application startup - [#4204](https://github.com/elastic/apm-agent-java/pull/4204)
+* Improve SQS async transaction handling to be better with flux flow - [#4205](https://github.com/elastic/apm-agent-java/pull/4205)
+
 ## 1.55.0 [elastic-apm-java-agent-1-55-0-release-notes]
 **Release date:** July 15, 2025
 
