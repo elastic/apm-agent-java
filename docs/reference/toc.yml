@@ -44,3 +44,5 @@ toc:
   - file: frequently-asked-questions.md
   - file: community-plugins.md
   - file: upgrading.md
+  - title: Troubleshooting
+    crosslink: docs-content://troubleshoot/observability/apm-agent-java/apm-java-agent.md
