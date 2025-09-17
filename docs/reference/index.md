@@ -35,4 +35,4 @@ APM Agents work in conjunction with the [APM Server](docs-content://solutions/ob
 
 ## Troubleshooting
 
-If you're experiencing issues with the APM Java agent, refer to [Troubleshooting](docs-content:///troubleshoot/observability/apm-agent-java/apm-java-agent.md).
+If you're experiencing issues with the APM Java agent, refer to [Troubleshooting](docs-content://troubleshoot/observability/apm-agent-java/apm-java-agent.md).
