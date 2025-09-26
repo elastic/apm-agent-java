@@ -308,9 +308,9 @@ jobs:
             distribution: 'temurin'
           - version: 21
             distribution: 'temurin'
-          - version: 24
+          - version: 25
             distribution: 'temurin'
-          - version: '25-ea'
+          - version: '26-ea'
             distribution: 'temurin'
     steps:
       - uses: actions/checkout@v5
