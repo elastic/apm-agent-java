@@ -636,7 +636,7 @@ public class CoreConfigurationImpl extends ConfigurationOptionProvider implement
             "\n" +
             "A few examples:\n" +
             "\n" +
-            " - `org.example.*` added:[1.4.0,Omitting the method is possible since 1.4.0]\n" +
+            " - `org.example.*` Omitting the method is possible since 1.4.0\n" +
             " - `org.example.*#*` (before 1.4.0, you need to specify a method matcher)\n" +
             " - `org.example.MyClass#myMethod`\n" +
             " - `org.example.MyClass#myMethod()`\n" +

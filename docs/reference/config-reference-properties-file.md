@@ -512,7 +512,7 @@ applies_to:
 #
 # A few examples:
 #
-#  - `org.example.*` {applies_to}`apm_agent_java: ga 1.4.0` Omitting the method is possible since 1.4.0
+#  - `org.example.*` Omitting the method is possible since 1.4.0
 #  - `org.example.*#*` (before 1.4.0, you need to specify a method matcher)
 #  - `org.example.MyClass#myMethod`
 #  - `org.example.MyClass#myMethod()`
