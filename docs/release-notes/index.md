@@ -229,7 +229,7 @@ To check for security updates, go to [Security announcements for the Elastic sta
 **Release date:** August 7, 2023
 
 ### Features and enhancements [elastic-apm-java-agent-1-41-1-features-enhancements]
-* Replaced thread-local IO buffers with pooled ones for virtual thread friendliness - [#3239](https://github.com/elastic/apm-agent-java/pull/#3239)
+* Replaced thread-local IO buffers with pooled ones for virtual thread friendliness - [#3239](https://github.com/elastic/apm-agent-java/pull/3239)
 
 ### Fixes [elastic-apm-java-agent-1-41-1-fixes]
 * Fixed Micrometer histograms to be correctly exported with non-cumulative bucket counts - [#3264](https://github.com/elastic/apm-agent-java/pull/3264)
@@ -267,8 +267,8 @@ To check for security updates, go to [Security announcements for the Elastic sta
 ### Features and enhancements [elastic-apm-java-agent-1-39-0-features-enhancements]
 * Capture S3 operation details as OTel attributes - [#3136](https://github.com/elastic/apm-agent-java/pull/3136)
 * Added support for recording AWS lambda transactions even if the JVM crashes or runs into a timeout - [#3134](https://github.com/elastic/apm-agent-java/pull/3134)
-* Add extra built-in metrics: `jvm.fd.*` and `jvm.memory.pool.non_heap.*` - [#3147](https://github.com/elastic/apm-agent-java/pull/)
-* Capture `span.sync` = `false` for some async spans plugins - [#3164](https://github.com/elastic/apm-agent-java/pull/)
+* Add extra built-in metrics: `jvm.fd.*` and `jvm.memory.pool.non_heap.*` - [#3147](https://github.com/elastic/apm-agent-java/pull/3147)
+* Capture `span.sync` = `false` for some async spans plugins - [#3164](https://github.com/elastic/apm-agent-java/pull/3164)
 
 ### Fixes [elastic-apm-java-agent-1-39-0-fixes]
 * Fixed classloading for OpenTelemetry dependencies in external plugins - [#3154](https://github.com/elastic/apm-agent-java/pull/3154)
