@@ -75,9 +75,9 @@ public class Lettuce5InstrumentationIT extends AbstractRedisInstrumentationTest 
     public void testBatchedLettuce() throws Exception {
         RedisAsyncCommands<String, String> async = connection.async();
         async.set("foo", "bar").get();
-        async.setAutoFlushCommands(false);
+        connection.setAutoFlushCommands(false);
         List<RedisFuture<String>> futures = List.of(async.get("foo"), async.get("foo"));
-        async.flushCommands();
+        connection.flushCommands();
         LettuceFutures.awaitAll(Duration.ofSeconds(5), futures.toArray(new RedisFuture[0]));
         assertTransactionWithRedisSpans("SET", "GET", "GET");
     }
