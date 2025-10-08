@@ -50,8 +50,8 @@ As of version 1.33.0, Java 7 support is deprecated and will be removed in a futu
 
 | Vendor     | Supported versions                          | Notes                                                                     |
 |------------|---------------------------------------------|---------------------------------------------------------------------------|
-| Oracle JDK | 7u60+*, 8u40+, 9, 10, 11, 17, 21            | `--module-path` has not been tested yet                                   |
-| OpenJDK    | 7u60+*, 8u40+, 9, 10, 11, 17, 21            | `--module-path` has not been tested yet                                   |
+| Oracle JDK | 7u60+*, 8u40+, 9, 10, 11, 17, 21, 25        | `--module-path` has not been tested yet                                   |
+| OpenJDK    | 7u60+*, 8u40+, 9, 10, 11, 17, 21, 25        | `--module-path` has not been tested yet                                   |
 | IBM J9 VM  | 8 service refresh 5+ (build 2.9 or 8.0.5.0) | [Sampling profiler](/reference/method-sampling-based.md) is not supported |
 | HP-UX JVM  | 7.0.10+*, 8.0.02+                           |                                                                           |
 | SAP JVM    | 8.1.065+                                    |                                                                           |
