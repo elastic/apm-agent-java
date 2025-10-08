@@ -157,13 +157,13 @@ When a Span is created in a different Thread than its parent, the trace context 
 
 This section lists all supported asynchronous frameworks.
 
-| Framework | Supported versions | Description | Since |
-| --- | --- | --- | --- |
-| `ExecutorService` |  | The agent propagates the context for `ExecutorService` s. | 1.4.0 |
-| `ScheduledExecutorService` |  | The agent propagates the context for `ScheduledExecutorService#schedule` (this does not include `scheduleAtFixedRate` or `scheduleWithFixedDelay`. | 1.17.0 |
-| `ForkJoinPool` |  | The agent propagates the context for `ForkJoinPool` s. | 1.17.0 |
-| Scala Future | 2.13.x | The agent propagates the context when using the `scala.concurrent.Future` or `scala.concurrent.Promise`.It will propagate the context when using chaining methods such as `map`, `flatMap`, `traverse`, … NOTE: To enable Scala Future support, you need to enable experimental plugins. | 1.18.0 |
-| Reactor | 3.2.x+ | The agent propagates the context for `Flux` and `Mono`. | 1.24.0 (experimental), 1.34.0 (GA) |
+| Framework                  | Supported versions | Description                                                                                                                                                                                                                                                                              | Since                              |
+|----------------------------|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------|
+| `ExecutorService`          |                    | The agent propagates the context for `ExecutorService` s.                                                                                                                                                                                                                                | 1.4.0                              |
+| `ScheduledExecutorService` |                    | The agent propagates the context for `ScheduledExecutorService#schedule` (this does not include `scheduleAtFixedRate` or `scheduleWithFixedDelay`.                                                                                                                                       | 1.17.0                             |
+| `ForkJoinPool`             |                    | The agent propagates the context for `ForkJoinPool` s.                                                                                                                                                                                                                                   | 1.17.0                             |
+| Scala Future               | 2.13.x             | The agent propagates the context when using the `scala.concurrent.Future` or `scala.concurrent.Promise`.It will propagate the context when using chaining methods such as `map`, `flatMap`, `traverse`, … NOTE: To enable Scala Future support, you need to enable experimental plugins. | 1.18.0                             |
+| Reactor                    | 3.2.x+             | The agent propagates the context for `Flux` and `Mono`.                                                                                                                                                                                                                                  | 1.24.0 (experimental), 1.34.0 (GA) |
 
 
 ## Messaging frameworks [supported-messaging-frameworks]
