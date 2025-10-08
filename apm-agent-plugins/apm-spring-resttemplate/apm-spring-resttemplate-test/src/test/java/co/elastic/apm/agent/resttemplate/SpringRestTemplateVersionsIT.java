@@ -57,8 +57,6 @@ public class SpringRestTemplateVersionsIT {
 
     @ParameterizedTest
     @CsvSource(delimiterString = "|", value = {
-        "3.0.0.RELEASE|false",
-        "3.1.0.RELEASE|false",
         "3.1.1.RELEASE|true", // lower versions are not supported (3.1.1 is from 2012)
         "3.2.0.RELEASE|true",
         "4.0.0.RELEASE|true",

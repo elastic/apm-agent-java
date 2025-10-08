@@ -35,7 +35,7 @@ public class ClientHttpResponseAdapter {
     private static int internalGetStatusCode(ClientHttpResponse response) {
         try {
             return response.getStatusCode().value();
-        } catch (Exception e) {
+        } catch (Exception|Error e) {
             // using broad exception to handle when method is missing for pre 6.x versions
             return UNKNOWN_STATUS;
         }
@@ -43,10 +43,10 @@ public class ClientHttpResponseAdapter {
 
     private static int legacyGetStatusCode(ClientHttpResponse response) {
         // getRawStatusCode has been introduced in 3.1.1
-        // but deprecated in 6.x, will be removed in 7.x
+        // but deprecated in 6.x, will be removed in 7.x (using method handle will be needed).
         try {
             return response.getRawStatusCode();
-        } catch (Exception e) {
+        } catch (Exception|Error e) {
             // using broad exception to handle when method is missing in pre-3.1.1 and post 7.x
             return UNKNOWN_STATUS;
         }
