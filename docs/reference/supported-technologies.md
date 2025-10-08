@@ -97,16 +97,16 @@ As this message states, you can disable this check if required by adding `-Delas
 
 The Elastic APM Java agent has generic support for the Servlet API 3+. However, some servers require special handling. The servers listed here are tested by an integration test suite to make sure Elastic APM is compatible with them. Other Servlet 3+ compliant servers will most likely work as well.
 
-| Server | Supported versions |
-| --- | --- |
-| [Tomcat](/reference/setup-javaagent.md#setup-tomcat) | 7.x, 8.5.x, 9.x, 10.x |
-| [WildFly](/reference/setup-javaagent.md#setup-jboss-wildfly) | 8+ |
-| [JBoss EAP](/reference/setup-javaagent.md#setup-jboss-wildfly) | 6.4, 7.x |
-| [Jetty](/reference/setup-javaagent.md#setup-jetty) (only the `ServletContextHandler` is supported) | 9.2, 9.3, 9.4 |
-| [WebSphere Liberty](/reference/setup-javaagent.md#setup-websphere-liberty) | 8.5.5, 18.0.x |
-| [Undertow Servlet](/reference/setup-javaagent.md#setup-generic) | 1.4 |
-| [Payara](/reference/setup-javaagent.md#setup-payara) | 4.x, 5.x |
-| [Oracle WebLogic](/reference/setup-javaagent.md#setup-weblogic) | 12.2 |
+| Server                                                                                             | Supported versions    |
+|----------------------------------------------------------------------------------------------------|-----------------------|
+| [Tomcat](/reference/setup-javaagent.md#setup-tomcat)                                               | 7.x, 8.5.x, 9.x, 10.x |
+| [WildFly](/reference/setup-javaagent.md#setup-jboss-wildfly)                                       | 8+                    |
+| [JBoss EAP](/reference/setup-javaagent.md#setup-jboss-wildfly)                                     | 6.4, 7.x              |
+| [Jetty](/reference/setup-javaagent.md#setup-jetty) (only the `ServletContextHandler` is supported) | 9.2, 9.3, 9.4         |
+| [WebSphere Liberty](/reference/setup-javaagent.md#setup-websphere-liberty)                         | 8.5.5, 18.0.x         |
+| [Undertow Servlet](/reference/setup-javaagent.md#setup-generic)                                    | 1.4                   |
+| [Payara](/reference/setup-javaagent.md#setup-payara)                                               | 4.x, 5.x              |
+| [Oracle WebLogic](/reference/setup-javaagent.md#setup-weblogic)                                    | 12.2                  |
 
 
 ## Data Stores [supported-databases]
