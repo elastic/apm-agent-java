@@ -136,6 +136,6 @@ public abstract class ApplicationTest {
 
     private Predicate<Throwable> expectClientError(int expectedStatus) {
         return error -> (error instanceof WebClientResponseException)
-            && ((WebClientResponseException) error).getRawStatusCode() == expectedStatus;
+            && ((WebClientResponseException) error).getStatusCode().value() == expectedStatus;
     }
 }
