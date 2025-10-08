@@ -1095,8 +1095,8 @@ To check for security updates, go to [Security announcements for the Elastic sta
 **Release date:** July 30, 2019
 
 ### Features and enhancements [elastic-apm-java-agent-1-8-0-features-enhancements]
-* Added support for tracking [time spent by span type](https://www.elastic.co/guide/en/kibana/7.3/transactions.md). Can be disabled by setting [`breakdown_metrics`](/reference/config-core.md#config-breakdown-metrics) to `false`.
-* Added support for [central configuration](https://www.elastic.co/guide/en/kibana/7.3/agent-configuration.md). Can be disabled by setting [`central_config`](/reference/config-core.md#config-central-config) to `false`.
+* Added support for tracking [time spent by span type](docs-content://solutions/observability/apm/transactions-ui.md). Can be disabled by setting [`breakdown_metrics`](/reference/config-core.md#config-breakdown-metrics) to `false`.
+* Added support for [central configuration](docs-content://solutions/observability/apm/apm-agents/central-configuration.md). Can be disabled by setting [`central_config`](/reference/config-core.md#config-central-config) to `false`.
 * Added support for Spring’s JMS flavor - instrumenting `org.springframework.jms.listener.SessionAwareMessageListener`
 * Added support to legacy ApacheHttpClient APIs (which adds support to Axis2 configured to use ApacheHttpClient)
 * Added support for setting [`server_urls`](/reference/config-reporter.md#config-server-urls) dynamically via properties file [#723](https://github.com/elastic/apm-agent-java/pull/723)
