@@ -63,6 +63,9 @@ updates:
       - dependency-name: "com.amazonaws:aws-java-sdk-dynamodb"
       - dependency-name: "com.amazonaws:aws-java-sdk"
       - dependency-name: "software.amazon.awssdk:*"
+      # we do not have support for 5.x yet
+      - dependency-name: "com.squareup.okhttp3:okhttp"
+        update-types: [ "version-update:semver-major" ]
   - package-ecosystem: "maven"
     directory: "/apm-agent-plugins"
     schedule:
