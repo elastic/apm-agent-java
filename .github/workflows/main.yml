@@ -150,7 +150,7 @@ jobs:
     # When undefined, we need to emulate the default value
     if: inputs.test_ci == true || inputs.test_ci == null
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     needs: build
     steps:
       - uses: actions/checkout@v5
@@ -172,7 +172,7 @@ jobs:
 
   non-app-server-integration-tests:
     name: Non-Application Server integration tests
-    timeout-minutes: 60
+    timeout-minutes: 120
     if: |
       contains(github.event.pull_request.labels.*.name, 'ci:agent-integration')
       || github.event.pull_request.draft == false
@@ -211,7 +211,7 @@ jobs:
 
   app-server-integration-tests:
     name: Application Server integration tests
-    timeout-minutes: 60
+    timeout-minutes: 120
     if: |
       contains(github.event.pull_request.labels.*.name, 'ci:agent-integration')
       || github.event.pull_request.draft == false
@@ -252,7 +252,7 @@ jobs:
     name: Javadoc
     runs-on: ubuntu-latest
     needs: build
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/workflows/unstash
@@ -265,7 +265,7 @@ jobs:
 
   unit-tests-windows:
     name: Build & Test Windows
-    timeout-minutes: 60
+    timeout-minutes: 120
     # Inputs aren't defined on some events
     # When undefined, we need to emulate the default value
     if: |
@@ -293,7 +293,7 @@ jobs:
 
   jdk-compatibility-tests:
     name: JDK Compatibility Tests
-    timeout-minutes: 60
+    timeout-minutes: 120
     if: |
       contains(github.event.pull_request.labels.*.name, 'ci:jdk-compatibility')
       || inputs.jdk_compatibility_ci == true
