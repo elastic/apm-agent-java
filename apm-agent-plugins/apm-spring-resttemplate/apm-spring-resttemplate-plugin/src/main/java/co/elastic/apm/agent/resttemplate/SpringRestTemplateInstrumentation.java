@@ -56,7 +56,10 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
             .and(returns(
                 hasSuperType(named("org.springframework.http.client.ClientHttpResponse"))
                     // getRawStatusCode added in 3.1.1 thus we rely on that to filter unsupported versions
-                    .and(declaresMethod(named("getRawStatusCode")))
+                    // will be removed in 7.x
+                    .and(declaresMethod(named("getRawStatusCode"))
+                        // getStatusCode added in 6.x and replaces getRawStatusCode in 7.x
+                        .or(declaresMethod(named("getStatusCode"))))
             ));
     }
 
