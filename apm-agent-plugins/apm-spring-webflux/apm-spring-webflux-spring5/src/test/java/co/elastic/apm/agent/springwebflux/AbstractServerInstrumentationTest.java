@@ -199,7 +199,22 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     private Predicate<Throwable> expectClientError(int expectedStatus) {
         return error -> (error instanceof WebClientResponseException)
-            && ((WebClientResponseException) error).getStatusCode().value() == expectedStatus;
+            && getStatusCode((WebClientResponseException) error) == expectedStatus;
+    }
+
+    private static int getStatusCode(WebClientResponseException exception) {
+        // deal with API changes and deprecation in an ugly way
+        try {
+            return exception.getStatusCode().value();
+        } catch (Exception | Error e) {
+            // silently ignored
+        }
+        try {
+            return exception.getRawStatusCode();
+        } catch (Exception | Error e) {
+            return -1;
+        }
+
     }
 
     @ParameterizedTest
