@@ -241,14 +241,14 @@ There are multiple log-related features in the agent and their support depend on
 | Framework           | Supported versions | Description                                                                                             | Since  |
 |---------------------|--------------------|---------------------------------------------------------------------------------------------------------|--------|
 | `java.lang.Process` |                    | Instruments `java.lang.Process` execution. Java 9 API using `ProcessHandler` is not supported yet.      | 1.13.0 |
-| Apache commons-exec | 1.3                | Async process support through `org.apache.commons.exec.DefaultExecutor` and subclasses instrumentation. | 1.13.0 |
+| Apache commons-exec | 1.3.x              | Async process support through `org.apache.commons.exec.DefaultExecutor` and subclasses instrumentation. | 1.13.0 |
 
 
 ## RPC frameworks [supported-rpc-frameworks]
 
-| Framework | Supported versions | Description | Since |
-| --- | --- | --- | --- |
-| gRPC | 1.6.1+ | Client (synchronous & asynchronous) & Server instrumentation.  Streaming calls are currently not instrumented. | 1.16.0 |
+| Framework | Supported versions | Description                                                                                                    | Since  |
+|-----------|--------------------|----------------------------------------------------------------------------------------------------------------|--------|
+| gRPC      | 1.6.1+             | Client (synchronous & asynchronous) & Server instrumentation.  Streaming calls are currently not instrumented. | 1.16.0 |
 
 
 ## AWS Lambda runtimes [supported-aws-lambda-runtimes]
