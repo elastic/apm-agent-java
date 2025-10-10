@@ -80,6 +80,8 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     private TransactionImpl transaction;
     private SpanImpl childSpan;
 
+    private Path tempFolder;
+
     public LoggingInstrumentationTest() {
         logger = createLoggerFacade();
         objectMapper = new ObjectMapper();
@@ -98,6 +100,8 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         loggingConfig = config.getConfig(LoggingConfigurationImpl.class);
         doReturn(ADDITIONAL_FIELDS).when(loggingConfig).getLogEcsReformattingAdditionalFields();
 
+        tempFolder = Files.createTempDirectory("log-test");
+
         logger.open();
 
         // IMPORTANT: keep this last, so that it doesn't interfere with Mockito settings above
@@ -112,7 +116,8 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     }
 
     private void initializeReformattingDir(String dirName) throws IOException {
-        doReturn(dirName).when(loggingConfig).getLogEcsFormattingDestinationDir();
+        doReturn(tempFolder.resolve(dirName).toAbsolutePath().toString())
+            .when(loggingConfig).getLogEcsFormattingDestinationDir();
         Files.deleteIfExists(Paths.get(getLogReformattingFilePath()));
         Files.deleteIfExists(Paths.get(getLogReformattingFilePath() + ".1"));
     }
