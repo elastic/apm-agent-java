@@ -80,8 +80,6 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     private TransactionImpl transaction;
     private SpanImpl childSpan;
 
-    private Path tempFolder;
-
     public LoggingInstrumentationTest() {
         logger = createLoggerFacade();
         objectMapper = new ObjectMapper();
@@ -100,8 +98,6 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         loggingConfig = config.getConfig(LoggingConfigurationImpl.class);
         doReturn(ADDITIONAL_FIELDS).when(loggingConfig).getLogEcsReformattingAdditionalFields();
 
-        tempFolder = Files.createTempDirectory("log-test");
-
         logger.open();
 
         // IMPORTANT: keep this last, so that it doesn't interfere with Mockito settings above
@@ -116,8 +112,7 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
     }
 
     private void initializeReformattingDir(String dirName) throws IOException {
-        doReturn(tempFolder.resolve(dirName).toAbsolutePath().toString())
-            .when(loggingConfig).getLogEcsFormattingDestinationDir();
+        doReturn(dirName).when(loggingConfig).getLogEcsFormattingDestinationDir();
         Files.deleteIfExists(Paths.get(getLogReformattingFilePath()));
         Files.deleteIfExists(Paths.get(getLogReformattingFilePath() + ".1"));
     }
@@ -336,21 +331,13 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         assertThat(ecsLogLineTree.get("message")).isNotNull();
         verifyTracingMetadata(ecsLogLineTree);
         if (isLogCorrelationSupported()) {
-            assertThat(textValue(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY))).isEqualTo(transaction.getTraceContext().getTraceId().toString());
-            assertThat(textValue(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY))).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
+            assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
+            assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
             verifyErrorCaptureAndCorrelation(isErrorLine, ecsLogLineTree);
         } else {
             assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY)).isNull();
             assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY)).isNull();
         }
-    }
-
-    @Nullable
-    private static String textValue(@Nullable JsonNode node) {
-        if (node != null && node.isTextual()) {
-            return node.textValue();
-        }
-        return null;
     }
 
     private void verifyTracingMetadata(JsonNode ecsLogLineTree) {

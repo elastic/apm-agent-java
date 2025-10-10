@@ -304,23 +304,30 @@ jobs:
         include:
           - version: 11
             distribution: 'temurin'
+            jacoco_skip: false
           - version: 17
             distribution: 'temurin'
+            jacoco_skip: false
+          # for java 21+ jacoco is required to make tests stable in CI
           - version: 21
             distribution: 'temurin'
+            jacoco_skip: false
           - version: 25
             distribution: 'temurin'
-          - version: '26-ea'
-            distribution: 'temurin'
+            jacoco:skip: false
+          # currently disabled because jacoco does not support it yet
+          # - version: '26-ea'
+          #  distribution: 'temurin'
+          #  jacoco:skip: false
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/workflows/maven-goal-jdk
         with:
           test-java-version: ${{ matrix.version }}
           test-java-distribution: ${{ matrix.distribution }}
-          command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true -Djacoco.skip=true
+          command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true -Djacoco.skip=${{ matrix.jacoco_skip }}
       - name: Run tests for ${{ matrix.version }}:${{ matrix.distribution }}
-        run: ./mvnw test -Delastic.jdkCompatibilityTest=true -Dtest_java_binary=${{ env.TEST_JAVA_BINARY }} -Djacoco.skip=true
+        run: ./mvnw test -Delastic.jdkCompatibilityTest=true -Dtest_java_binary=${{ env.TEST_JAVA_BINARY }} -Djacoco.skip=${{ matrix.jacoco_skip }}
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v4
