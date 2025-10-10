@@ -257,11 +257,11 @@ AWS Lambda provides multiple [JVM base images](https://docs.aws.amazon.com/lambd
 
 Running with unsupported images is still possible but requires providing agent configuration through environment variables explicitly.
 
-| Tags | Java Runtime | Operating System | Supported |
-| --- | --- | --- | --- |
-| 11 | Java 11 (Corretto) | Amazon Linux 2 | yes |
-| 8.al2 | Java 8 (Corretto) | Amazon Linux 2 | yes |
-| 8 | Java 8 (OpenJDK) | Amazon Linux 2018.03 | no |
+| Tags  | Java Runtime       | Operating System     | Supported |
+|-------|--------------------|----------------------|-----------|
+| 11    | Java 11 (Corretto) | Amazon Linux 2       | yes       |
+| 8.al2 | Java 8 (Corretto)  | Amazon Linux 2       | yes       |
+| 8     | Java 8 (OpenJDK)   | Amazon Linux 2018.03 | no        |
 
 
 ## Java method monitoring [supported-java-methods]
@@ -271,11 +271,11 @@ If you are seeing gaps in the span timeline and want to include additional metho
 
 ## Metrics [supported-metrics]
 
-| Framework | Description | Since |
-| --- | --- | --- |
-| Built-in metrics | The agent sends various system, JVM, and application metrics. See the [metrics](/reference/metrics.md) documentation. | 1.3.0 |
-| JMX | Set the configuration option [`capture_jmx_metrics`](/reference/config-jmx.md#config-capture-jmx-metrics) in order to monitor any JMX metric. | 1.11.0 |
-| Micrometer | Automatically detects and reports the metrics of each `MeterRegistry`. See [Micrometer metrics](/reference/metrics.md#metrics-micrometer) for more details. | 1.18.0 |
+| Framework        | Description                                                                                                                                                 | Since  |
+|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|
+| Built-in metrics | The agent sends various system, JVM, and application metrics. See the [metrics](/reference/metrics.md) documentation.                                       | 1.3.0  |
+| JMX              | Set the configuration option [`capture_jmx_metrics`](/reference/config-jmx.md#config-capture-jmx-metrics) in order to monitor any JMX metric.               | 1.11.0 |
+| Micrometer       | Automatically detects and reports the metrics of each `MeterRegistry`. See [Micrometer metrics](/reference/metrics.md#metrics-micrometer) for more details. | 1.18.0 |
 
 
 ## Caveats [supported-technologies-caveats]
