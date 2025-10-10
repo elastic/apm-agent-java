@@ -238,10 +238,10 @@ There are multiple log-related features in the agent and their support depend on
 
 ## Process frameworks [supported-process-frameworks]
 
-| Framework | Supported versions | Description | Since |
-| --- | --- | --- | --- |
-| `java.lang.Process` |  | Instruments `java.lang.Process` execution. Java 9 API using `ProcessHandler` is not supported yet. | 1.13.0 |
-| Apache commons-exec | 1.3 | Async process support through `org.apache.commons.exec.DefaultExecutor` and subclasses instrumentation. | 1.13.0 |
+| Framework           | Supported versions | Description                                                                                             | Since  |
+|---------------------|--------------------|---------------------------------------------------------------------------------------------------------|--------|
+| `java.lang.Process` |                    | Instruments `java.lang.Process` execution. Java 9 API using `ProcessHandler` is not supported yet.      | 1.13.0 |
+| Apache commons-exec | 1.3                | Async process support through `org.apache.commons.exec.DefaultExecutor` and subclasses instrumentation. | 1.13.0 |
 
 
 ## RPC frameworks [supported-rpc-frameworks]
