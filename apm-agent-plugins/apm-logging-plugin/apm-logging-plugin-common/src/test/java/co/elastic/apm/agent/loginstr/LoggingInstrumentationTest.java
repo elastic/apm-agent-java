@@ -331,13 +331,21 @@ public abstract class LoggingInstrumentationTest extends AbstractInstrumentation
         assertThat(ecsLogLineTree.get("message")).isNotNull();
         verifyTracingMetadata(ecsLogLineTree);
         if (isLogCorrelationSupported()) {
-            assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
-            assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY).textValue()).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
+            assertThat(textValue(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY))).isEqualTo(transaction.getTraceContext().getTraceId().toString());
+            assertThat(textValue(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY))).isEqualTo(transaction.getTraceContext().getTransactionId().toString());
             verifyErrorCaptureAndCorrelation(isErrorLine, ecsLogLineTree);
         } else {
             assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRACE_ID_MDC_KEY)).isNull();
             assertThat(ecsLogLineTree.get(AbstractLogCorrelationHelper.TRANSACTION_ID_MDC_KEY)).isNull();
         }
+    }
+
+    @Nullable
+    private static String textValue(@Nullable JsonNode node) {
+        if (node != null && node.isTextual()) {
+            return node.textValue();
+        }
+        return null;
     }
 
     private void verifyTracingMetadata(JsonNode ecsLogLineTree) {
