@@ -170,12 +170,12 @@ This section lists all supported asynchronous frameworks.
 
 When using a messaging framework, sender context is propagated so that receiver events are correlated to the same trace.
 
-| Framework | Supported versions | Description | Since |
-| --- | --- | --- | --- |
-| JMS | 1.1, 2.0 | The agent captures JMS sends and receives as spans/transactions | `javax.jms` since 1.13.0, `jakarta.jms` since 1.40.0 |
-| Kafka | <0.11.0 - without distributed tracing; 0.11.0+ - full support | The agent captures Kafka record sends and polls. Kafka streams are not traced. | 1.13.0 |
-| RabbitMQ | 3.x - 5.x | The agent captures RabbitMQ Message sends, consumption and polling | 1.20.0 |
-| AWS SQS | 1.x, 2.x | The agent captures SQS Message sends and polling as well as SQS message sends and consumption through JMS. | 1.34.0, 2.21+ since 1.44.0 |
+| Framework | Supported versions                                            | Description                                                                                                | Since                                                |
+|-----------|---------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
+| JMS       | 1.1, 2.0                                                      | The agent captures JMS sends and receives as spans/transactions                                            | `javax.jms` since 1.13.0, `jakarta.jms` since 1.40.0 |
+| Kafka     | <0.11.0 - without distributed tracing; 0.11.0+ - full support | The agent captures Kafka record sends and polls. Kafka streams are not traced.                             | 1.13.0                                               |
+| RabbitMQ  | 3.x, 4.x, 5.x                                                 | The agent captures RabbitMQ Message sends, consumption and polling                                         | 1.20.0                                               |
+| AWS SQS   | 1.x, 2.x                                                      | The agent captures SQS Message sends and polling as well as SQS message sends and consumption through JMS. | 1.34.0, 2.21+ since 1.44.0                           |
 
 
 ### Distributed Tracing [_distributed_tracing]
