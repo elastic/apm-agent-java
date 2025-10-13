@@ -310,8 +310,9 @@ jobs:
             distribution: 'temurin'
           - version: 25
             distribution: 'temurin'
-          - version: '26-ea'
-            distribution: 'temurin'
+          # disabled for now
+          # - version: '26-ea'
+          #   distribution: 'temurin'
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/workflows/maven-goal-jdk
