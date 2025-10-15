@@ -27,3 +27,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: 'echo "Not required for docs"'
+
+  # dummy steps that allow to bypass those mandatory checks for tests
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "Not required for docs"'
