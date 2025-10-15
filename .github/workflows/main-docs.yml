@@ -29,7 +29,7 @@ jobs:
       - run: 'echo "Not required for docs"'
 
   # dummy steps that allow to bypass those mandatory checks for tests
-  app-server-integration-tests:
+  unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
