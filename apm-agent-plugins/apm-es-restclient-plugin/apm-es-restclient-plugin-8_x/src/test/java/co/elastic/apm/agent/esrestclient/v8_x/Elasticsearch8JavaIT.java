@@ -113,6 +113,13 @@ public class Elasticsearch8JavaIT extends AbstractEsClientInstrumentationTest {
         this.async = async;
     }
 
+    protected static void startContainer(String image) {
+        container = new ElasticsearchContainer(image)
+            .withEnv("ES_JAVA_OPTS", "-XX:-UseContainerSupport")
+            .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
+        container.start();
+    }
+
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {
         startContainer(ELASTICSEARCH_CONTAINER_VERSION);
