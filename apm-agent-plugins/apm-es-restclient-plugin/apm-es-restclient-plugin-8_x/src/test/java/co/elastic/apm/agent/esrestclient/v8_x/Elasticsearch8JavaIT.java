@@ -20,6 +20,7 @@ package co.elastic.apm.agent.esrestclient.v8_x;
 
 import co.elastic.apm.agent.esrestclient.AbstractEsClientInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
