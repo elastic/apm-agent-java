@@ -20,6 +20,7 @@ package co.elastic.apm.agent.esrestclient.v8_x;
 
 import co.elastic.apm.agent.esrestclient.AbstractEsClientInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
@@ -86,6 +87,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -111,6 +113,13 @@ public class Elasticsearch8JavaIT extends AbstractEsClientInstrumentationTest {
 
     public Elasticsearch8JavaIT(boolean async) {
         this.async = async;
+    }
+
+    protected static void startContainer(String image) {
+        container = new ElasticsearchContainer(image)
+            .withEnv("ES_JAVA_OPTS", "-XX:-UseContainerSupport")
+            .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
+        container.start();
     }
 
     @BeforeClass
