@@ -20,7 +20,7 @@ runs:
         ARTIFACT_PATH: ${{ inputs.path }}
 
     - name: Upload stash
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: ${{ inputs.name }}
         path: ${{ runner.temp }}/${{ inputs.name }}.tar.zst

@@ -172,7 +172,7 @@ jobs:
           VERSION=${VERSION//./-}
           
           ELASTIC_LAYER_NAME="elastic-apm-java-${VERSION}" .ci/publish-aws.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: ${{ ! inputs.dry_run }}
         with:
           name: arn-file

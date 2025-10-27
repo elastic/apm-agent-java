@@ -75,21 +75,21 @@ jobs:
           path: ${{ github.workspace }}
 
       - name: Upload agent binaries as artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: elastic-apm-agent
           path: |
             ./elastic-apm-agent/target/elastic-apm-agent-*.jar
             !./**/*-sources.jar
       - name: Upload agent java 8 binaries as artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: elastic-apm-agent-java8
           path: |
             ./elastic-apm-agent-java8/target/elastic-apm-agent-java8-*.jar
             !./**/*-sources.jar
       - name: Upload agent attach CLI artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: apm-agent-attach-cli
           path: |
@@ -97,28 +97,28 @@ jobs:
             !./**/*-sources.jar
             !./**/*-tests.jar
       - name: Upload agent attach artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: apm-agent-attach
           path: |
             ./apm-agent-attach/target/apm-agent-attach-*.jar
             !./**/*-sources.jar
       - name: Upload agent API artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: apm-agent-api
           path: |
             ./apm-agent-api/target/apm-agent-api-*.jar
             !./**/*-sources.jar
       - name: Upload agent plugin SDK artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: apm-agent-plugin-sdk
           path: |
             ./apm-agent-plugin-sdk/target/apm-agent-plugin-sdk-*.jar
             !./**/*-sources.jar
       - name: Upload benchmark binaries as artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: apm-agent-benchmarks
           path: |
@@ -163,7 +163,7 @@ jobs:
           command: ./mvnw test -DargLine="-Delastic.apm.overwrite.config.docs=false"
       - name: Store test results
         if: success() || failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-results-JUnit
           path: |
@@ -202,7 +202,7 @@ jobs:
           command: ./mvnw -q -P ci-non-application-server-integration-tests verify
       - name: Store test results
         if: success() || failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-results-non-app-server-integration
           path: |
@@ -241,7 +241,7 @@ jobs:
           command: ./mvnw -q -P ci-application-server-integration-tests verify
       - name: Store test results
         if: success() || failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-results-app-server-integration
           path: |
@@ -284,7 +284,7 @@ jobs:
         run: ./mvnw test
       - name: Store test results
         if: success() || failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-results-windows
           path: |
@@ -324,7 +324,7 @@ jobs:
         run: ./mvnw test -Delastic.jdkCompatibilityTest=true -Dtest_java_binary=${{ env.TEST_JAVA_BINARY }}
       - name: Store test results
         if: success() || failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-results-jdk-compatibility-${{ matrix.version }}-${{ matrix.distribution }}
           path: |
@@ -359,7 +359,7 @@ jobs:
           command: ./mvnw -q -P ci-jboss-integration-tests verify
       - name: Store test results
         if: success() || failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-results-jboss-integration
           path: |
