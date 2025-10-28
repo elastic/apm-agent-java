@@ -25,6 +25,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.otel.UniversalProfilingCorrelation;
 
 import javax.annotation.Nullable;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -47,7 +48,8 @@ public class ProfilerSharedMemoryWriter {
     static ByteBuffer generateProcessCorrelationStorage(String serviceName, @Nullable String environment, String socketFilePath) {
         ByteBuffer buffer = ByteBuffer.allocateDirect(4096);
         buffer.order(ByteOrder.nativeOrder());
-        buffer.position(0);
+        //To make it java 8 compatible regardless of how it's compiled, need to explicitly use Buffer.position(int)
+        ((Buffer) buffer).position(0);
 
         buffer.putChar((char) 1); // layout-minor-version
         writeUtf8Str(buffer, serviceName);
