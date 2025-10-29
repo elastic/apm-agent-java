@@ -22,7 +22,9 @@ import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
+@Ignore("This is the legacy apache httpclient that is ancient (needs instrument_ancient_bytecode to apply), it fails after Java 25 and we simply stop supporting it after that")
 public class HttpClient3InstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
     private static HttpClient client;
