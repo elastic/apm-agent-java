@@ -29,8 +29,11 @@ import org.apache.http.protocol.HttpCoreContext;
 
 import javax.annotation.Nullable;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
     private final ApacheHttpClient4AsyncHelper helper;
+    private final AtomicBoolean isEnded = new AtomicBoolean(false);
     @Nullable
     private FutureCallback<T> delegate;
     @Nullable
@@ -74,12 +77,14 @@ public class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
     }
 
     public void failedWithoutExecution(Throwable ex) {
-        try {
-            final Span<?> localSpan = span;
-            localSpan.captureException(ex);
-            localSpan.end();
-        } finally {
-            helper.recycle(this);
+        if (isEnded.compareAndSet(false, true)) {
+            try {
+                final Span<?> localSpan = span;
+                localSpan.captureException(ex);
+                localSpan.end();
+            } finally {
+                helper.recycle(this);
+            }
         }
     }
 
@@ -96,25 +101,27 @@ public class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
     }
 
     private void finishSpan(@Nullable Exception e) {
-        // start by reading the volatile field
-        final Span<?> localSpan = span;
-        try {
-            if (context != null) {
-                Object responseObject = context.getAttribute(HttpCoreContext.HTTP_RESPONSE);
-                if (responseObject instanceof HttpResponse) {
-                    StatusLine statusLine = ((HttpResponse) responseObject).getStatusLine();
-                    if (statusLine != null) {
-                        localSpan.getContext().getHttp().withStatusCode(statusLine.getStatusCode());
+        if (isEnded.compareAndSet(false, true)) {
+            // start by reading the volatile field
+            final Span<?> localSpan = span;
+            try {
+                if (context != null) {
+                    Object responseObject = context.getAttribute(HttpCoreContext.HTTP_RESPONSE);
+                    if (responseObject instanceof HttpResponse) {
+                        StatusLine statusLine = ((HttpResponse) responseObject).getStatusLine();
+                        if (statusLine != null) {
+                            localSpan.getContext().getHttp().withStatusCode(statusLine.getStatusCode());
+                        }
                     }
                 }
-            }
-            localSpan.captureException(e);
+                localSpan.captureException(e);
 
-            if (e != null) {
-                localSpan.withOutcome(Outcome.FAILURE);
+                if (e != null) {
+                    localSpan.withOutcome(Outcome.FAILURE);
+                }
+            } finally {
+                localSpan.end();
             }
-        } finally {
-            localSpan.end();
         }
     }
 
@@ -122,6 +129,7 @@ public class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
     public void resetState() {
         delegate = null;
         context = null;
+        isEnded.set(false);
         // write to volatile field last
         span = null;
     }
