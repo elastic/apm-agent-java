@@ -30,10 +30,6 @@ import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import net.bytebuddy.agent.ByteBuddyAgent;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -65,7 +61,6 @@ public abstract class AbstractInstrumentationTest {
     private boolean validateRecycling = true;
 
     @BeforeAll
-    @BeforeClass
     public static synchronized void beforeAll() {
 
         if (BYTE_BUDDY_DUMP_PATH != null) {
@@ -83,14 +78,12 @@ public abstract class AbstractInstrumentationTest {
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 
-    @Before
     @BeforeEach
     public void disableSpanCompression() {
         doReturn(false).when(config.getConfig(SpanConfiguration.class)).isSpanCompressionEnabled();
     }
 
     @AfterAll
-    @AfterClass
     public static synchronized void afterAll() {
         ElasticApmAgent.reset();
     }
@@ -111,7 +104,6 @@ public abstract class AbstractInstrumentationTest {
         return config;
     }
 
-    @After
     @AfterEach
     public final void cleanUp() {
 

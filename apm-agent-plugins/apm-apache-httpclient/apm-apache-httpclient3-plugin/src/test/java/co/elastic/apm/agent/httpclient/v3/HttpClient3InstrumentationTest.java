@@ -21,7 +21,7 @@ package co.elastic.apm.agent.httpclient.v3;
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.methods.GetMethod;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.condition.DisabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
 
@@ -30,7 +30,7 @@ public class HttpClient3InstrumentationTest extends AbstractHttpClientInstrument
 
     private static HttpClient client;
 
-    @BeforeClass
+    @BeforeAll
     public static void before() {
         client = new HttpClient();
     }

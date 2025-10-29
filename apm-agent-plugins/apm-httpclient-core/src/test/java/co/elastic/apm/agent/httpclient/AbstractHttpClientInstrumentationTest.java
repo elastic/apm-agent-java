@@ -38,14 +38,14 @@ import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.HttpHeader;
 import com.github.tomakehurst.wiremock.http.HttpHeaders;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
@@ -72,12 +72,14 @@ import static org.mockito.Mockito.doReturn;
 
 public abstract class AbstractHttpClientInstrumentationTest extends AbstractInstrumentationTest {
 
-    @Rule
-    public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort().dynamicHttpsPort(), false);
+    @RegisterExtension
+    public static WireMockExtension wireMockRule = WireMockExtension.newInstance()
+        .options(WireMockConfiguration.wireMockConfig().dynamicPort().dynamicHttpsPort())
+        .build();
 
     private TraceState<?> emptyContext;
 
-    @Before
+    @BeforeEach
     public final void setUpWiremock() {
         // ensure that HTTP spans outcome is not unknown
         wireMockRule.stubFor(any(urlEqualTo("/"))
@@ -105,7 +107,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             .withBody("hello");
     }
 
-    @After
+    @AfterEach
     public final void after() {
         TransactionImpl transaction = tracer.currentTransaction();
         assertThat(transaction).isNotNull();
@@ -243,15 +245,15 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Test
     public void testHttpCallWithUserInfo() throws Exception {
-        Assume.assumeTrue(isTestHttpCallWithUserInfoEnabled());
+        Assumptions.assumeTrue(isTestHttpCallWithUserInfoEnabled());
 
-        performGet("http://user:passwd@localhost:" + wireMockRule.port() + "/");
+        performGet("http://user:passwd@localhost:" + wireMockRule.getPort() + "/");
         expectSpan("/").verify();
     }
 
     @Test
     public void testHttpCallWithIpv4() throws Exception {
-        performGet("http://127.0.0.1:" + wireMockRule.port() + "/");
+        performGet("http://127.0.0.1:" + wireMockRule.getPort() + "/");
         expectSpan("/")
             .withHost("127.0.0.1")
             .verify();
@@ -259,9 +261,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Test
     public void testHttpCallWithIpv6() throws Exception {
-        Assume.assumeTrue(isIpv6Supported());
+        Assumptions.assumeTrue(isIpv6Supported());
 
-        performGet(String.format("http://[::1]:%d/", wireMockRule.port()));
+        performGet(String.format("http://[::1]:%d/", wireMockRule.getPort()));
         expectSpan("/")
             .withHost("[::1]")
             .verify();
@@ -291,7 +293,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Test
     public void testHttpCallRedirect() {
-        Assume.assumeTrue(isRedirectFollowingSupported());
+        Assumptions.assumeTrue(isRedirectFollowingSupported());
 
         String path = "/redirect";
         performGetWithinTransaction(path);
@@ -304,7 +306,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Test
     public void testHttpCallCircularRedirect() {
-        Assume.assumeTrue(isErrorOnCircularRedirectSupported());
+        Assumptions.assumeTrue(isErrorOnCircularRedirectSupported());
 
         String path = "/circular-redirect";
         performGetWithinTransaction(path);
@@ -354,7 +356,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     protected String getBaseUrl() {
-        return "http://localhost:" + wireMockRule.port();
+        return "http://localhost:" + wireMockRule.getPort();
     }
 
     protected void performGetWithinTransaction(String path) {
@@ -430,7 +432,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             assertThat(reporter.getSpans()).hasSize(1);
             SpanImpl span = reporter.getSpans().get(0);
 
-            int port = https ? wireMockRule.httpsPort() : wireMockRule.port();
+            int port = https ? wireMockRule.getHttpsPort() : wireMockRule.getPort();
 
             String schema = https ? "https" : "http";
             String baseUrl = String.format("%s://%s:%d", schema, host, port);

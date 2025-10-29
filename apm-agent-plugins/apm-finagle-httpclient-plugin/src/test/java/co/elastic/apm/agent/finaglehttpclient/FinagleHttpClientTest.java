@@ -45,7 +45,7 @@ public class FinagleHttpClientTest extends AbstractHttpClientInstrumentationTest
     @Test
     @Ignore
     public void getWithTlsWithoutVerification() throws Exception {
-        String dest = "localhost:" + wireMockRule.httpsPort();
+        String dest = "localhost:" + wireMockRule.getHttpsPort();
         Http.Client client = Http.client().withTlsWithoutValidation();
         Service<Request, Response> service = client.newService(dest);
 
@@ -61,8 +61,8 @@ public class FinagleHttpClientTest extends AbstractHttpClientInstrumentationTest
 
     @Test
     public void getWithTls() throws Exception {
-        String dest = "localhost:" + wireMockRule.httpsPort();
-        Http.Client client = Http.client().withTls("sub-host:" + wireMockRule.httpsPort());
+        String dest = "localhost:" + wireMockRule.getHttpsPort();
+        Http.Client client = Http.client().withTls("sub-host:" + wireMockRule.getHttpsPort());
         Service<Request, Response> service = client.newService(dest);
 
         try {
@@ -90,7 +90,7 @@ public class FinagleHttpClientTest extends AbstractHttpClientInstrumentationTest
     @Test
     public void getWithoutHostHeader() throws Exception {
         Http.Client client = Http.client();
-        String dest = "localhost:" + wireMockRule.port();
+        String dest = "localhost:" + wireMockRule.getPort();
         Service<Request, Response> service = client.newService(dest);
         try {
             Future<Response> future = service.apply(Request.apply("/"));
@@ -111,7 +111,7 @@ public class FinagleHttpClientTest extends AbstractHttpClientInstrumentationTest
     protected void performGet(String path) throws Exception {
         Request request = RequestBuilder.safeBuildGet(RequestBuilder.create().url(path));
 
-        Service<Request, Response> service = (Service<Request, Response>) Http.newService("localhost:" + wireMockRule.port());
+        Service<Request, Response> service = (Service<Request, Response>) Http.newService("localhost:" + wireMockRule.getPort());
         try {
             service.apply(request).toCompletableFuture().get();
         } finally {

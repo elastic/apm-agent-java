@@ -83,7 +83,7 @@ public abstract class AbstractVertxWebClientTest extends AbstractHttpClientInstr
     @Test
     public void testFailedRequest() {
         try {
-            performGet(String.format("http://not-existing.com:%s/error", wireMockRule.port()));
+            performGet(String.format("http://not-existing.com:%s/error", wireMockRule.getPort()));
         } catch (Exception e) {
             // expected
         }
