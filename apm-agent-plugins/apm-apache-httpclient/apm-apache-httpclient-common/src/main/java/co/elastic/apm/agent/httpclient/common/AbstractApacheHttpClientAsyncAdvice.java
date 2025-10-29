@@ -55,17 +55,16 @@ public abstract class AbstractApacheHttpClientAsyncAdvice {
         ApacheHttpClientAsyncHelper<PRODUCER, WRAPPER, CALLBACK, CALLBACK_WRAPPER, CONTEXT> asyncHelper, Object[] enter, Throwable t) {
         Span<?> span = enter != null ? (Span<?>) enter[2] : null;
         if (span != null) {
-            // Deactivate in this thread
-            span.deactivate();
-            // End the span if the method terminated with an exception.
-            // The exception means that the listener who normally does the ending will not be invoked.
             WRAPPER wrapper = (WRAPPER) enter[0];
             if (t != null) {
+                // The method terminated with an exception.
+                // The listener who normally does the ending will not be invoked.
                 CALLBACK_WRAPPER cb = (CALLBACK_WRAPPER) enter[1];
-                // only for apachehttpclient_v4
                 asyncHelper.failedBeforeRequestStarted(cb, t);
-
                 asyncHelper.recycle(wrapper);
+            } else {
+                // Deactivate in this thread, the span is continued and ended by the callback
+                span.deactivate();
             }
         }
     }

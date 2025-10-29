@@ -78,7 +78,6 @@ public class ApacheHttpClient4AsyncHelper implements ApacheHttpClientAsyncHelper
     @Override
     public void failedBeforeRequestStarted(FutureCallbackWrapper<?> cb, Throwable t) {
         cb.failedWithoutExecution(t);
-        cb.getSpan().end();
     }
 
     @Override

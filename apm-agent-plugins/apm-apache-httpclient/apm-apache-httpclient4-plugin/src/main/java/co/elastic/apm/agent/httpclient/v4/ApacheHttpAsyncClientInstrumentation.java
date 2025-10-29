@@ -20,7 +20,6 @@ package co.elastic.apm.agent.httpclient.v4;
 
 import co.elastic.apm.agent.httpclient.common.AbstractApacheHttpClientAsyncAdvice;
 import co.elastic.apm.agent.httpclient.v4.helper.ApacheHttpClient4AsyncHelper;
-import co.elastic.apm.agent.tracer.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;
 import net.bytebuddy.description.NamedElement;
@@ -95,9 +94,6 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
         public static void onAfterExecute(@Advice.Enter @Nullable Object[] enter,
                                           @Advice.Thrown @Nullable Throwable t) {
             endSpan(asyncHelper, enter, t);
-            if (t == null && enter != null && enter[2] instanceof Span) {
-                ((Span<?>) enter[2]).end();
-            }
         }
     }
 }
