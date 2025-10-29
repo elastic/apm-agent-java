@@ -59,8 +59,9 @@ public abstract class AbstractApacheHttpClientAsyncAdvice {
             if (t != null) {
                 // The method terminated with an exception.
                 // The listener who normally does the ending will not be invoked.
-                CALLBACK_WRAPPER cb = (CALLBACK_WRAPPER) enter[1];
-                asyncHelper.failedBeforeRequestStarted(cb, t);
+                span.captureException(t);
+                span.withOutcome(co.elastic.apm.agent.tracer.Outcome.FAILURE);
+                span.deactivate().end();
                 asyncHelper.recycle(wrapper);
             } else {
                 // Deactivate in this thread, the span is continued and ended by the callback

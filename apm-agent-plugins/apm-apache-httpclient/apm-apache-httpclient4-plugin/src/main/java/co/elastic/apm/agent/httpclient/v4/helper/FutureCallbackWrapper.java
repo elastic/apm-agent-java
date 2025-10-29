@@ -98,13 +98,17 @@ public class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
     private void finishSpan(@Nullable Exception e) {
         // start by reading the volatile field
         final Span<?> localSpan = span;
+        if (localSpan == null) {
+            return;
+        }
+        localSpan.activate();
         try {
             if (context != null) {
                 Object responseObject = context.getAttribute(HttpCoreContext.HTTP_RESPONSE);
                 if (responseObject instanceof HttpResponse) {
                     StatusLine statusLine = ((HttpResponse) responseObject).getStatusLine();
                     if (statusLine != null) {
-                        span.getContext().getHttp().withStatusCode(statusLine.getStatusCode());
+                        localSpan.getContext().getHttp().withStatusCode(statusLine.getStatusCode());
                     }
                 }
             }
@@ -114,7 +118,7 @@ public class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
                 localSpan.withOutcome(Outcome.FAILURE);
             }
         } finally {
-            localSpan.end();
+            localSpan.deactivate().end();
         }
     }
 
