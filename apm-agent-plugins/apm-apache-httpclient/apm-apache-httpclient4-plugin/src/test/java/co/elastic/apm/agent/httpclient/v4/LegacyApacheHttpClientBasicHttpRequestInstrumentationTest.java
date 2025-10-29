@@ -25,25 +25,28 @@ import org.apache.http.HttpResponse;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.util.EntityUtils;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.condition.DisabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 
+@DisabledForJreRange(min = JRE.JAVA_26, disabledReason = "This is the legacy apache httpclient that is ancient (needs instrument_ancient_bytecode to apply), it fails after Java 25 and we simply stop supporting it after that")
 public class LegacyApacheHttpClientBasicHttpRequestInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
     @SuppressWarnings("deprecation")
     private static DefaultHttpClient client;
 
-    @BeforeClass
+    @BeforeAll
     @SuppressWarnings("deprecation")
     public static void setUp() {
         client = new DefaultHttpClient();
     }
 
-    @AfterClass
+    @AfterAll
     public static void close() {
         client.getConnectionManager().shutdown();
     }
@@ -59,6 +62,6 @@ public class LegacyApacheHttpClientBasicHttpRequestInstrumentationTest extends A
             throw (Exception) e.getTargetException();
         }
     }
-    
+
 
 }
