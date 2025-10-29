@@ -49,6 +49,10 @@ public class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
         return this;
     }
 
+    public Span<?> getSpan() {
+        return span;
+    }
+
     @Override
     public void completed(T result) {
         try {
