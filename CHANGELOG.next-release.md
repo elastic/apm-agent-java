@@ -9,7 +9,7 @@ This file contains all changes which are not released yet.
 
 # Fixes
 <!--FIXES-START-->
-
+Prevent Universal Profiling integration crashing agent on startup when run on Java 8 - [#4286](https://github.com/elastic/apm-agent-java/pull/4286)
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
