@@ -94,6 +94,9 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
         public static void onAfterExecute(@Advice.Enter @Nullable Object[] enter,
                                           @Advice.Thrown @Nullable Throwable t) {
             endSpan(asyncHelper, enter, t);
+            if (t == null && enter != null && enter[2] instanceof Span) {
+                ((Span<?>) enter[2]).end();
+            }
         }
     }
 }
