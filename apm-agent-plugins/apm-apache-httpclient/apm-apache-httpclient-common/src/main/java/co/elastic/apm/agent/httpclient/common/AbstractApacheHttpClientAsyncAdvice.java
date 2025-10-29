@@ -23,6 +23,7 @@ import co.elastic.apm.agent.httpclient.HttpClientHelper;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.pooling.Recyclable;
 
 public abstract class AbstractApacheHttpClientAsyncAdvice {
 
@@ -63,6 +64,7 @@ public abstract class AbstractApacheHttpClientAsyncAdvice {
                 span.withOutcome(co.elastic.apm.agent.tracer.Outcome.FAILURE);
                 span.deactivate().end();
                 asyncHelper.recycle(wrapper);
+                ((Recyclable) enter[1]).recycle();
             } else {
                 // Deactivate in this thread, the span is continued and ended by the callback
                 span.deactivate();
