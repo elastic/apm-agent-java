@@ -25,7 +25,7 @@ import org.junit.BeforeClass;
 import org.junit.jupiter.api.condition.DisabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
 
-@DisabledForJreRange(min = JRE.JAVA_25, disabledReason = "This is the legacy apache httpclient that is ancient (needs instrument_ancient_bytecode to apply), it fails after Java 25 and we simply stop supporting it after that")
+@DisabledForJreRange(min = JRE.JAVA_26, disabledReason = "This is the legacy apache httpclient that is ancient (needs instrument_ancient_bytecode to apply), it fails after Java 25 and we simply stop supporting it after that")
 public class HttpClient3InstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
     private static HttpClient client;
