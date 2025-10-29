@@ -30,8 +30,8 @@ import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.InputStreamEntity;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -40,12 +40,12 @@ public class ApacheHttpClientInstrumentationTest extends AbstractHttpClientInstr
 
     private static CloseableHttpClient client;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() {
         client = HttpClients.createDefault();
     }
 
-    @AfterClass
+    @AfterAll
     public static void close() throws IOException {
         client.close();
     }

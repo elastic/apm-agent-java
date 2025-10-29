@@ -32,9 +32,9 @@ import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.assertj.core.api.Assertions;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -47,13 +47,13 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
 
     private static CloseableHttpAsyncClient client;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() {
         client = HttpAsyncClients.createDefault();
         client.start();
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDown() throws IOException {
         client.close();
     }

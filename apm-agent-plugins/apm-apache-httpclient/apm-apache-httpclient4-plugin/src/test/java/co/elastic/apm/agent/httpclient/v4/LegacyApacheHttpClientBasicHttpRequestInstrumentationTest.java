@@ -34,7 +34,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 
-@DisabledForJreRange(min = JRE.JAVA_26, disabledReason = "This is the legacy apache httpclient that is ancient (needs instrument_ancient_bytecode to apply), it fails after Java 25 and we simply stop supporting it after that")
 public class LegacyApacheHttpClientBasicHttpRequestInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
     @SuppressWarnings("deprecation")

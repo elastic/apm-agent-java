@@ -27,8 +27,8 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -39,13 +39,13 @@ public class LegacyApacheHttpClientHttpUriRequestInstrumentationTest extends Abs
     @SuppressWarnings("deprecation")
     private static DefaultHttpClient client;
 
-    @BeforeClass
+    @BeforeAll
     @SuppressWarnings("deprecation")
     public static void setUp() {
         client = new DefaultHttpClient();
     }
 
-    @AfterClass
+    @AfterAll
     public static void close() {
         client.getConnectionManager().shutdown();
     }
