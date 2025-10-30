@@ -70,8 +70,9 @@ public class ApacheHttpClient5ApiAdapter implements ApacheHttpClientApiAdapter<H
         }
 
         try {
-            return RoutingSupport.determineHost(request)
-                .getHostName();
+            HttpHost host = RoutingSupport.determineHost(request);
+            return host == null ?
+                null : host.getHostName();
         } catch (HttpException e) {
             logger.error("Exception while determining HostName", e);
 
