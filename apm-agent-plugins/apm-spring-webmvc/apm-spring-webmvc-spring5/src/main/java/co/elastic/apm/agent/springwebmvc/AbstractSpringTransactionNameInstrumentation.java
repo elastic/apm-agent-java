@@ -75,8 +75,7 @@ public abstract class AbstractSpringTransactionNameInstrumentation extends Elast
      */
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameStartsWith("org.springframework.web.servlet")
-            .and(hasSuperType(named("org.springframework.web.servlet.HandlerAdapter")))
+        return hasSuperType(named("org.springframework.web.servlet.HandlerAdapter"))
             .and(not(isInterface()));
     }
 
