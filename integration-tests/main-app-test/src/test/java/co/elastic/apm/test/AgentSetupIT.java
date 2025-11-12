@@ -39,15 +39,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class AgentSetupIT {
 
+    private static final String OPENJDK_17 = "azul/zulu-openjdk:17-latest";
+
     @ParameterizedTest
     @CsvSource({
-        "openjdk:7,STANDARD",
-        "openjdk:8,STANDARD",
-        "openjdk:8,JAVA8_BUILD",
-        "openjdk:11,STANDARD",
-        "openjdk:11,JAVA8_BUILD",
-        "openjdk:17,STANDARD",
-        "openjdk:17,JAVA8_BUILD"
+        "azul/zulu-openjdk:7-latest,STANDARD",
+        "azul/zulu-openjdk:8-latest,STANDARD",
+        "azul/zulu-openjdk:8-latest,JAVA8_BUILD",
+        "azul/zulu-openjdk:11-latest,STANDARD",
+        "azul/zulu-openjdk:11-latest,JAVA8_BUILD",
+        "azul/zulu-openjdk:17-latest,STANDARD",
+        "azul/zulu-openjdk:17-latest,JAVA8_BUILD"
     })
     void testServiceNameAndVersionFromManifest(String image, AgentFileAccessor.Variant agentVariant) {
         try (AgentTestContainer.JarApp app = testAppWithJavaAgent(image, agentVariant)) {
@@ -63,7 +65,7 @@ class AgentSetupIT {
     void testSecurityManagerWarning() {
         String expectedMsg = "Security manager without agent grant-all permission";
 
-        try (AgentTestContainer.JarApp app = testAppWithJavaAgent("openjdk:17", AgentFileAccessor.Variant.STANDARD)) {
+        try (AgentTestContainer.JarApp app = testAppWithJavaAgent(OPENJDK_17, AgentFileAccessor.Variant.STANDARD)) {
 
             app.withSecurityManager(null)
                 // using a dummy command since testcontainers 1.21.0 as waiting on stderr msg is not working anymore
@@ -90,7 +92,7 @@ class AgentSetupIT {
             "};"), StandardOpenOption.CREATE
         );
 
-        try (AgentTestContainer.JarApp app = testAppWithJavaAgent("openjdk:17", AgentFileAccessor.Variant.STANDARD)) {
+        try (AgentTestContainer.JarApp app = testAppWithJavaAgent(OPENJDK_17, AgentFileAccessor.Variant.STANDARD)) {
             app.withSecurityManager(MountableFile.forHostPath(tempPolicy))
                 .withStartupTimeout(Duration.ofSeconds(10))
                 .waitingFor(Wait.forLogMessage(".*Hello World!.*", 1))
