@@ -83,7 +83,7 @@ public abstract class AbstractQuarkusJaxRSTest {
             .append("-javaagent:/tmp/elastic-apm-agent.jar -jar /srv/quarkus-app/quarkus-run.jar")
             .toString();
 
-        app = new GenericContainer<>("openjdk:11")
+        app = new GenericContainer<>("azul/zulu-openjdk:11-latest")
             .withCommand(cmd)
             .withCopyFileToContainer(MountableFile.forHostPath(AgentFileAccessor.getPathToJavaagent()), "/tmp/elastic-apm-agent.jar")
             .withCopyFileToContainer(MountableFile.forHostPath("target/quarkus-app"), "/srv/quarkus-app")
