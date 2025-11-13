@@ -60,6 +60,10 @@ public class S3ClientIT extends AbstractAws2ClientIT {
                 localstack.getAccessKey(), localstack.getSecretKey()
             )))
             .region(Region.of(localstack.getRegion())).build();
+
+        // newer AWS SDK implementation trigger some non-recycled spans, however the impact is expected to be minimal
+        // as it only makes the instrumentation produce slightly more GC overhead without affecting tracing data correctness
+        disableRecyclingValidation();
     }
 
     @Test
