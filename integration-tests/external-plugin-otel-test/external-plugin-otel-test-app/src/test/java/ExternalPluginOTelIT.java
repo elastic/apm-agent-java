@@ -40,7 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class ExternalPluginOTelIT {
 
-    private static final String DOCKER_IMAGE = "openjdk:11";
+    private static final String DOCKER_IMAGE = "azul/zulu-openjdk:11-latest";
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
