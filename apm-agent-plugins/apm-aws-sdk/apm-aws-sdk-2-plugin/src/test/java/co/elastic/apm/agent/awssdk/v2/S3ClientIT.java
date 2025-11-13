@@ -61,6 +61,7 @@ public class S3ClientIT extends AbstractAws2ClientIT {
             )))
             .region(Region.of(localstack.getRegion())).build();
 
+        // Introduced with changes between AWS SDK 2.32.13 and 2.37.3:
         // newer AWS SDK implementation trigger some non-recycled spans, however the impact is expected to be minimal
         // as it only makes the instrumentation produce slightly more GC overhead without affecting tracing data correctness
         disableRecyclingValidation();
