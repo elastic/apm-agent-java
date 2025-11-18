@@ -79,12 +79,12 @@ public abstract class AbstractServletContainerIntegrationTest {
     @Nullable
     private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
 
-    private static final WiremockServerContainer mockServerContainer;
+    private static final MockApmServerContainer mockServerContainer;
 
     private static final OkHttpClient httpClient;
 
     static {
-        mockServerContainer = MockApmServerContainer.wiremock()
+        mockServerContainer = new MockApmServerContainer()
             .withNetworkAliases("apm-server")
             .withNetwork(Network.SHARED);
 
