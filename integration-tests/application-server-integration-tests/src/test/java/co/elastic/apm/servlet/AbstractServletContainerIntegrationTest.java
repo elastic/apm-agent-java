@@ -36,9 +36,6 @@ import okhttp3.Response;
 import okhttp3.logging.HttpLoggingInterceptor;
 import org.junit.After;
 import org.junit.Test;
-import org.mockserver.model.ClearType;
-import org.mockserver.model.HttpRequest;
-import org.mockserver.model.HttpResponse;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
@@ -59,9 +56,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static co.elastic.apm.agent.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockserver.model.HttpRequest.request;
 
 /**
  * When you want to execute the test in the IDE, execute {@code mvn clean package} before.
@@ -84,18 +79,17 @@ public abstract class AbstractServletContainerIntegrationTest {
     @Nullable
     private static final String AGENT_VERSION_TO_DOWNLOAD_FROM_MAVEN = null;
 
-    private static final MockServerContainer mockServerContainer;
+    private static final WiremockServerContainer mockServerContainer;
 
     private static final OkHttpClient httpClient;
 
     static {
-        mockServerContainer = new MockServerContainer()
+        mockServerContainer = MockApmServerContainer.wiremock()
             .withNetworkAliases("apm-server")
-            .waitingFor(Wait.forHttp(MockServerContainer.HEALTH_ENDPOINT).forStatusCode(200))
             .withNetwork(Network.SHARED);
 
         if (JavaExecutable.isDebugging()) {
-            mockServerContainer.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockServerContainer.class));
+            mockServerContainer.withLogConsumer(TestContainersUtils.createSlf4jLogConsumer(MockApmServerContainer.class));
         }
 
         final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger::info);
@@ -106,8 +100,6 @@ public abstract class AbstractServletContainerIntegrationTest {
             .build();
 
         mockServerContainer.start();
-        mockServerContainer.getClient().when(request(INTAKE_V2_URL)).respond(HttpResponse.response().withStatusCode(200));
-        mockServerContainer.getClient().when(request("/")).respond(HttpResponse.response().withStatusCode(200));
     }
 
     private final MockReporter mockReporter = new MockReporter();
@@ -150,7 +142,7 @@ public abstract class AbstractServletContainerIntegrationTest {
 
         container
             .withNetwork(Network.SHARED)
-            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
+            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:8080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", ignoreUrlConfig)
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
@@ -247,7 +239,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     public void clearMockServerLog() {
-        mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
+        mockServerContainer.clearRecorded();
     }
 
     public JsonNode assertTransactionReported(String pathToTest, int expectedResponseCode) {
@@ -423,8 +415,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         try {
             final List<JsonNode> events = new ArrayList<>();
             final ObjectMapper objectMapper = new ObjectMapper();
-            for (HttpRequest httpRequest : mockServerContainer.getClient().retrieveRecordedRequests(request(INTAKE_V2_URL))) {
-                final String bodyAsString = httpRequest.getBodyAsString();
+            for (String bodyAsString : mockServerContainer.getRecordedRequestBodies()) {
                 for (String ndJsonLine : bodyAsString.split("\n")) {
                     final JsonNode ndJson = objectMapper.readTree(ndJsonLine);
                     if (ndJson.get(eventType) != null) {
