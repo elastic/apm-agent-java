@@ -37,10 +37,9 @@ import co.elastic.apm.agent.tracer.Outcome;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SpecVersion;
-import com.networknt.schema.ValidationMessage;
+import com.networknt.schema.Schema;
+import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.SpecificationVersion;
 import org.awaitility.core.ThrowingRunnable;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import specs.TestJsonSpec;
@@ -384,7 +383,7 @@ public class MockReporter implements Reporter {
     }
 
     private void verifyJsonSchemas(Function<DslJsonSerializer.Writer, String> serializerFunction,
-                                   Function<SchemaInstance, JsonSchema> schemaFunction,
+                                   Function<SchemaInstance, Schema> schemaFunction,
                                    Function<SchemaInstance, String> schemaPathFunction) {
         if (!verifyJsonSchema) {
             return;
@@ -394,14 +393,13 @@ public class MockReporter implements Reporter {
             String serializedString = serializerFunction.apply(schemaInstance.serializer);
             JsonNode jsonNode = asJson(serializedString);
 
-            JsonSchema schema = schemaFunction.apply(schemaInstance);
+            Schema schema = schemaFunction.apply(schemaInstance);
             verifyJsonSchema(jsonNode, schema, schemaPathFunction.apply(schemaInstance));
         }
     }
 
-    private void verifyJsonSchema(JsonNode jsonNode, JsonSchema schema, String schemaPath) {
-        Set<ValidationMessage> errors = schema.validate(jsonNode);
-        assertThat(errors)
+    private void verifyJsonSchema(JsonNode jsonNode, Schema schema, String schemaPath) {
+        assertThat(schema.validate(jsonNode))
             .withFailMessage("%s\nJSON schema path = %s\n\n%s", errors, schemaPath, jsonNode.toPrettyString())
             .isEmpty();
     }
@@ -777,11 +775,11 @@ public class MockReporter implements Reporter {
             false);
 
         private final DslJsonSerializer.Writer serializer;
-        private final JsonSchema transactionSchema;
+        private final Schema transactionSchema;
         private final String transactionSchemaPath;
-        private final JsonSchema spanSchema;
+        private final Schema spanSchema;
         private final String spanSchemaPath;
-        private final JsonSchema errorSchema;
+        private final Schema errorSchema;
         private final String errorSchemaPath;
 
         SchemaInstance(String transactionSchema, String spanSchema, String errorSchema, boolean isLatest) {
@@ -807,9 +805,9 @@ public class MockReporter implements Reporter {
             this.serializer = new DslJsonSerializer(spyConfig, client, metaData).newWriter();
         }
 
-        private static JsonSchema getSchema(String resource) {
+        private static Schema getSchema(String resource) {
             InputStream input = Objects.requireNonNull(MockReporter.class.getResourceAsStream(resource), "missing resource " + resource);
-            return JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4).getSchema(input);
+            return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_4).getSchema(input);
         }
     }
 
