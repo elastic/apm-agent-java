@@ -73,6 +73,7 @@ apm_agent_java: ga 1.15.0
 
 ::::{note}
 This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+This feature is not subject to the support SLA of official GA features.
 ::::
 
 
