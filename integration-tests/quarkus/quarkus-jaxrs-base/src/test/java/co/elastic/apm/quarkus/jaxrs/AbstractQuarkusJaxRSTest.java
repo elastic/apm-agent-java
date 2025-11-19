@@ -19,59 +19,74 @@
 package co.elastic.apm.quarkus.jaxrs;
 
 import co.elastic.apm.agent.test.AgentFileAccessor;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mockserver.client.MockServerClient;
-import org.mockserver.model.ClearType;
-import org.mockserver.model.HttpRequest;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.zip.DataFormatException;
+import java.util.zip.Inflater;
 
+import static com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder.responseDefinition;
+import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.mockserver.model.HttpRequest.request;
-import static org.mockserver.model.HttpResponse.response;
-import static org.mockserver.model.JsonBody.json;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
 public abstract class AbstractQuarkusJaxRSTest {
 
-    private static final int DEBUG_PORT = -1; // set to something else (e.g. 5005) to enable remote debugging of the quarkus app
+    // set to something else (e.g. 5005) to enable remote debugging of the quarkus app
+    private static final int DEBUG_PORT = -1;
+    // set to true to enable verbose container debug logging
+    private static final boolean DEBUG_LOG = false;
 
-
-    private static MockServerContainer mockServer;
-
-    private static MockServerClient mockServerClient;
+    private static final int APM_SERVER_PORT = 8080;
+    private static final String APM_SERVER_HOST = "apm-server";
+    private static final int APP_PORT = 8080;
+    private static final String INTAKE_V2_EVENTS = "/intake/v2/events";
+    private static GenericContainer<?> mockApmServer;
+    private static WireMock wireMock;
 
     private static GenericContainer<?> app;
-
 
     @BeforeAll
     static void setUpAppAndApmServer() {
         Network network = Network.newNetwork();
-        mockServer = new MockServerContainer(DockerImageName
-            .parse("mockserver/mockserver")
-            .withTag("mockserver-" + MockServerClient.class.getPackage().getImplementationVersion()))
+        mockApmServer = new GenericContainer<>("wiremock/wiremock:3.13.2")
             .withNetwork(network)
-            .withNetworkAliases("apm-server");
-        mockServer.start();
-        mockServerClient = new MockServerClient(mockServer.getHost(), mockServer.getServerPort());
-        mockServerClient.when(request("/")).respond(response().withStatusCode(200).withBody(json("{\"version\": \"7.13.0\"}")));
-        mockServerClient.when(request("/config/v1/agents")).respond(response().withStatusCode(403));
-        mockServerClient.when(request("/intake/v2/events")).respond(response().withStatusCode(200));
+            .withExposedPorts(APM_SERVER_PORT)
+            .waitingFor(Wait.forHealthcheck())
+            .withNetworkAliases(APM_SERVER_HOST);
+
+        if (DEBUG_LOG) {
+            mockApmServer.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
+        }
+
+        mockApmServer.start();
+
+        wireMock = WireMock.create()
+            .host(mockApmServer.getHost())
+            .port(mockApmServer.getMappedPort(APM_SERVER_PORT))
+            .build();
+
+        wireMock.register(any(urlEqualTo("/")).willReturn(responseDefinition().withBody("{\"version\": \"7.13.0\"}").withStatus(200)));
+        wireMock.register(any(urlEqualTo("/config/v1/agents")).willReturn(responseDefinition().withStatus(403)));
+        wireMock.register(any(urlEqualTo(INTAKE_V2_EVENTS)).willReturn(responseDefinition().withStatus(200)));
 
         if (DEBUG_PORT > 0) {
             Testcontainers.exposeHostPorts(DEBUG_PORT);
@@ -87,17 +102,23 @@ public abstract class AbstractQuarkusJaxRSTest {
             .withCommand(cmd)
             .withCopyFileToContainer(MountableFile.forHostPath(AgentFileAccessor.getPathToJavaagent()), "/tmp/elastic-apm-agent.jar")
             .withCopyFileToContainer(MountableFile.forHostPath("target/quarkus-app"), "/srv/quarkus-app")
-            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:" + MockServerContainer.PORT)
+            .withEnv("ELASTIC_APM_SERVER_URL", "http://" + APM_SERVER_HOST + ":" + APM_SERVER_PORT)
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
+            .withEnv("ELASTIC_APM_CLOUD_PROVIDER", "none")
             .withEnv("ELASTIC_APM_DISABLE_METRICS", "true")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
             .withEnv("ELASTIC_APM_APPLICATION_PACKAGES", "co.elastic.apm.quarkus.jaxrs")
             .withEnv("ELASTIC_APM_ENABLE_EXPERIMENTAL_INSTRUMENTATIONS", "true")
-            .withEnv("QUARKUS_HTTP_PORT", "8080")
+            .withEnv("QUARKUS_HTTP_PORT", Integer.toString(APP_PORT))
             .withNetwork(network)
-            .withExposedPorts(8080)
+            .withExposedPorts(APP_PORT)
             .waitingFor(Wait.forLogMessage(".*Installed features.*", 1))
-            .dependsOn(mockServer);
+            .dependsOn(mockApmServer);
+
+        if (DEBUG_LOG) {
+            app.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
+        }
+
         app.start();
     }
 
@@ -106,29 +127,31 @@ public abstract class AbstractQuarkusJaxRSTest {
         if (app != null) {
             app.stop();
         }
-        if (mockServer != null) {
-            mockServer.stop();
+        if (mockApmServer != null) {
+            mockApmServer.stop();
         }
     }
 
     @AfterEach
     void clearMockServerLog() {
-        mockServerClient.clear(request(), ClearType.LOG);
+        wireMock.resetRequests();
     }
 
     private static List<Map<String, Object>> getReportedTransactions() {
-        return Arrays.stream(mockServerClient.retrieveRecordedRequests(request("/intake/v2/events")))
-            .map(HttpRequest::getBodyAsString)
-            .flatMap(s -> Arrays.stream(s.split("\r?\n")))
+        return wireMock.find(RequestPatternBuilder.newRequestPattern().withUrl(INTAKE_V2_EVENTS)).stream()
+            // wiremock provides the raw request body without any decompression so we have to do it explicitly ourselves
+            .map(action -> decompressZlib(action.getBody()))
+            .flatMap(requestBody -> Arrays.stream(requestBody.split("\r?\n")))
             .map(JsonPath::parse)
             .flatMap(dc -> ((List<Map<String, Object>>) dc.read("$[?(@.transaction)].transaction")).stream())
             .collect(Collectors.toList());
     }
 
     @Test
-    public void greetingShouldReturnDefaultMessage() {
+    public void
+    greetingShouldReturnDefaultMessage() {
         given()
-            .baseUri("http://" + app.getHost() + ":" + app.getMappedPort(8080))
+            .baseUri("http://" + app.getHost() + ":" + app.getMappedPort(APP_PORT))
             .when()
             .get("/")
             .then()
@@ -145,5 +168,22 @@ public abstract class AbstractQuarkusJaxRSTest {
         assertThat((String) JsonPath.read(transaction, "$.context.user.username")).isEqualTo("username");
         assertThat((String) JsonPath.read(transaction, "$.context.service.framework.name")).isEqualTo("JAX-RS");
         assertThat((String) JsonPath.read(transaction, "$.context.service.framework.version")).isEqualTo("2.0.1.Final");
+    }
+
+    private static String decompressZlib(byte[] input) {
+        Inflater inflater = new Inflater();
+        inflater.setInput(input);
+        try {
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            while (!inflater.finished()) {
+                int count = inflater.inflate(buffer);
+                output.write(buffer, 0, count);
+            }
+            inflater.end();
+            return output.toString(StandardCharsets.UTF_8);
+        } catch (DataFormatException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

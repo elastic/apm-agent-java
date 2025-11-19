@@ -76,10 +76,6 @@
         <maven.compiler.testSource>${maven.compiler.testTarget}</maven.compiler.testSource>
 
         <animal.sniffer.skip>false</animal.sniffer.skip>
-        <!--
-        mockserver-client does not work with the latest jackson version
-        see https://github.com/jamesdbloom/mockserver/issues/440
-        -->
         <maven.compiler.showWarnings>true</maven.compiler.showWarnings>
         <maven.compiler.errorprone>true</maven.compiler.errorprone>
 
