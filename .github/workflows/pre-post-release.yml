@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Validate release tag does not exist in repo
@@ -65,7 +65,7 @@ jobs:
           repositories: |
             apm-agent-java
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref }}
           token: ${{ steps.get_token.outputs.token }}
