@@ -99,7 +99,7 @@
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.json-schema-validator>2.0.0</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.18.1</version.byte-buddy>
+        <version.byte-buddy>1.18.2</version.byte-buddy>
         <version.asm>9.9</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
