@@ -22,8 +22,9 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.baggage.BaggageImpl;
 import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import co.elastic.apm.agent.impl.transaction.MultiValueMapAccessor;
-import co.elastic.apm.agent.impl.transaction.TransactionImpl;
+import co.elastic.apm.agent.impl.transaction.OTelSpanKind;
 import co.elastic.apm.agent.impl.transaction.TraceContextImpl;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.opentelemetry.baggage.OtelBaggage;
 import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
 import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
@@ -191,7 +192,14 @@ class OTelSpanBuilder implements SpanBuilder {
             }
         }
 
-        span.withOtelKind(OTelHelper.map(kind));
+        OTelSpanKind otelKind = OTelHelper.map(kind);
+        span.withOtelKind(otelKind);
+
+        // When otel span kind have been explicitly set to "client", this is equivalent to an "exit" span
+        // Thus no further child spans are expected.
+        if(otelKind == OTelSpanKind.CLIENT) {
+             span.asExit();
+        }
 
         // With OTel API, the status (bridged to outcome) should only be explicitly set, thus we have to set and use
         // user outcome to provide higher priority and avoid inferring outcome from any reported exception
