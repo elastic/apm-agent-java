@@ -26,6 +26,13 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 % ### Fixes [elastic-apm-java-agent-versionext-fixes]
 
+## 1.55.2 [elastic-apm-java-agent-1-55-2-release-notes]
+**Release date:** December 10, 2025
+
+### Fixes [elastic-apm-java-agent-1-55-2-fixes]
+* Prevent Universal Profiling integration crashing agent on startup when run on Java 8 - [#4286](https://github.com/elastic/apm-agent-java/pull/4286)
+* translate OTel client spans to exit spans - [#4327](https://github.com/elastic/apm-agent-java/pull/4327)
+
 ## 1.55.1 [elastic-apm-java-agent-1-55-1-release-notes]
 **Release date:** September 16, 2025
 
