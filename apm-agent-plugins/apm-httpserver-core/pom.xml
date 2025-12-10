@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.55.2-SNAPSHOT</version>
+        <version>1.56.0</version>
     </parent>
 
     <artifactId>apm-httpserver-core</artifactId>
