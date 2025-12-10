@@ -650,7 +650,10 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
             otelTracer.spanBuilder("span")
                 .setStartTimestamp(startSpan)
                 // emulate an outgoing grpc request
-                .setAttribute("rpc.system", "grpc").setSpanKind(SpanKind.CLIENT)
+                .setSpanKind(SpanKind.CLIENT)
+                .setAttribute("rpc.system", "grpc")
+                .setAttribute("net.peer.name", "localhost")
+                .setAttribute("net.peer.port", 8888)
                 .startSpan()
                 .setStatus(StatusCode.UNSET)
                 .end(endSpan);
@@ -719,6 +722,44 @@ public class ElasticOpenTelemetryTest extends AbstractOpenTelemetryTest {
         public String get(@Nullable Map<String, String> carrier, String key) {
             return carrier.get(key);
         }
+    }
+
+    @Test
+    public void otelClientSpanIsExitSpan() {
+        // when a client span is created with otel API, we should consider it as an "exit" span, so that no exit spans
+        // are created when it's active.
+        TransactionImpl transaction = startTestRootTransaction();
+        try {
+            Span internalSpan = otelTracer.spanBuilder("internal span")
+                .setSpanKind(SpanKind.INTERNAL)
+                .startSpan();
+            try (Scope internalScope = internalSpan.makeCurrent()) {
+                assertThat(tracer.getActive().isExit()).isFalse();
+
+                Span clientSpan = otelTracer.spanBuilder("client span")
+                    .setSpanKind(SpanKind.CLIENT)
+                    .setAttribute("http.url", "http://localhost")
+                    .setAttribute("net.peer.name", "localhost")
+                    .setAttribute("net.peer.port", 80)
+                    .startSpan();
+                try (Scope clientScope = clientSpan.makeCurrent()) {
+                    assertThat(tracer.getActive().isExit()).isTrue();
+                } finally {
+                    clientSpan.end();
+                }
+            } finally {
+                internalSpan.end();
+            }
+        } finally {
+            transaction.deactivate().end();
+        }
+
+
+        assertThat(reporter.getNumReportedTransactions()).isEqualTo(1);
+        assertThat(reporter.getFirstTransaction()).isSameAs(transaction);
+
+        assertThat(reporter.getNumReportedSpans()).isEqualTo(2);
+
     }
 
 }
