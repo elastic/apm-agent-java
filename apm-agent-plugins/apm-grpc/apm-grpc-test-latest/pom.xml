@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-grpc</artifactId>
-        <version>1.55.2</version>
+        <version>1.55.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-grpc-test-latest</artifactId>
