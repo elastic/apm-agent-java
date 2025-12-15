@@ -103,7 +103,7 @@
         <version.asm>9.9</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
-        <version.mockito>5.20.0</version.mockito>
+        <version.mockito>5.21.0</version.mockito>
 
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
