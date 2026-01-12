@@ -59,6 +59,14 @@ jobs:
         NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Assign new internal pull requests to author
+      id: assign-to-author
+      if: steps.is_elastic_member.outputs.result == 'true' && github.event_name == 'pull_request_target'
+      run: gh issue edit "${NUMBER}" --add-assignee "${{ github.actor }}" --repo "${{ github.repository }}"
+      env:
+        NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Assign new internal pull requests to project
       id: add-to-project
       if: steps.is_elastic_member.outputs.result == 'true' && github.event_name == 'pull_request_target'
