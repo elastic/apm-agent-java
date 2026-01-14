@@ -26,6 +26,9 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 % ### Fixes [elastic-apm-java-agent-versionext-fixes]
 
+## 1.55.3 [elastic-apm-java-agent-1-55-3-release-notes]
+**Release date:** January 14, 2026
+
 ## 1.55.2 [elastic-apm-java-agent-1-55-2-release-notes]
 **Release date:** December 10, 2025
 
