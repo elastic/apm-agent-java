@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-builds</artifactId>
-        <version>1.55.3-SNAPSHOT</version>
+        <version>1.55.3</version>
     </parent>
 
     <artifactId>apm-agent</artifactId>
