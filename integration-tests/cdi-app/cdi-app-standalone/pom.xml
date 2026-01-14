@@ -4,7 +4,7 @@
     <parent>
         <artifactId>cdi-app</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.55.3</version>
+        <version>1.55.4-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
