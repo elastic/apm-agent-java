@@ -6,7 +6,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.55.4</version>
+        <version>1.55.5-SNAPSHOT</version>
     </parent>
 
     <artifactId>runtime-attach</artifactId>
