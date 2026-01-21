@@ -57,6 +57,8 @@ public class JavaConcurrent {
         EXCLUDED_EXECUTABLE_TYPES.add(CallableLambdaWrapper.class.getName());
         // Spring-JMS polling mechanism that translates to passive onMessage handling
         EXCLUDED_EXECUTABLE_TYPES.add("org.springframework.jms.listener.DefaultMessageListenerContainer$AsyncMessageListenerInvoker");
+        // Spring-Kafka polling mechanism - active loop that shouldn't inherit context from the starter
+        EXCLUDED_EXECUTABLE_TYPES.add("org.springframework.kafka.listener.KafkaMessageListenerContainer$ListenerConsumer");
         EXCLUDED_EXECUTABLE_TYPES.add("com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator");
         EXCLUDED_EXECUTABLE_TYPES.add("com.github.benmanes.caffeine.cache.BoundedLocalCache.PerformCleanupTask");
     }
