@@ -48,8 +48,7 @@ public class ProfilerSharedMemoryWriter {
     static ByteBuffer generateProcessCorrelationStorage(String serviceName, @Nullable String environment, String socketFilePath) {
         ByteBuffer buffer = ByteBuffer.allocateDirect(4096);
         buffer.order(ByteOrder.nativeOrder());
-        //To make it java 8 compatible regardless of how it's compiled, need to explicitly use Buffer.position(int)
-        ((Buffer) buffer).position(0);
+        setBufferPosition(buffer, 0);
 
         buffer.putChar((char) 1); // layout-minor-version
         writeUtf8Str(buffer, serviceName);
@@ -62,6 +61,19 @@ public class ProfilerSharedMemoryWriter {
         byte[] utf8 = str.getBytes(StandardCharsets.UTF_8);
         buffer.putInt(utf8.length);
         buffer.put(utf8);
+    }
+
+    /**
+     * Set {@link ByteBuffer} position in a way that is compatible with Java8.
+     *
+     * @param buffer byte buffer
+     * @param position new position to set
+     */
+    private static void setBufferPosition(ByteBuffer buffer, int position) {
+        //To make it java 8 compatible regardless of how it's compiled, need to explicitly use Buffer.position(int)
+        // a covariant return type override was introduced in ByteBuffer.position(int) in Java 9 which makes it break
+        // binary compatibility with Java 8.
+        ((Buffer) buffer).position(position);
     }
 
     /**
@@ -96,11 +108,11 @@ public class ProfilerSharedMemoryWriter {
                     TransactionImpl tx = newSpan.getParentTransaction();
                     tls.put(TLS_TRACE_PRESENT_OFFSET, (byte) 1);
                     tls.put(TLS_TRACE_FLAGS_OFFSET, newSpan.getTraceContext().getFlags());
-                    tls.position(TLS_TRACE_ID_OFFSET);
+                    setBufferPosition(tls, TLS_TRACE_ID_OFFSET);
                     newSpan.getTraceContext().getTraceId().writeToBuffer(tls);
-                    tls.position(TLS_SPAN_ID_OFFSET);
+                    setBufferPosition(tls,TLS_SPAN_ID_OFFSET);
                     newSpan.getTraceContext().getId().writeToBuffer(tls);
-                    tls.position(TLS_LOCAL_ROOT_SPAN_ID_OFFSET);
+                    setBufferPosition(tls, TLS_LOCAL_ROOT_SPAN_ID_OFFSET);
                     tx.getTraceContext().getId().writeToBuffer(tls);
                 } else {
                     tls.put(TLS_TRACE_PRESENT_OFFSET, (byte) 0);
