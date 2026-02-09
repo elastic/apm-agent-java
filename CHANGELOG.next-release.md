@@ -10,6 +10,8 @@ This file contains all changes which are not released yet.
 # Fixes
 <!--FIXES-START-->
 
+* fix universal profiling integration compatibility with java8 - [#4394](https://github.com/elastic/apm-agent-java/pull/4394)
+
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
