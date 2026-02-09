@@ -285,7 +285,7 @@ public class IOUtils {
         int off = 0;
         for (ByteBuffer buff : buffers) {
             int len = buff.position();
-            buff.position(0);
+            ((Buffer) buff).position(0);
             buff.get(data, off, len);
             off += len;
         }
