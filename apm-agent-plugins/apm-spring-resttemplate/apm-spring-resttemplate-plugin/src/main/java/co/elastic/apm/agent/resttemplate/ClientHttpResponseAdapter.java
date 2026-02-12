@@ -18,10 +18,17 @@
  */
 package co.elastic.apm.agent.resttemplate;
 
+import co.elastic.apm.agent.sdk.internal.util.MethodLookupUtil;
 import org.springframework.http.client.ClientHttpResponse;
+
+import javax.annotation.Nullable;
+import java.lang.invoke.MethodHandle;
 
 public class ClientHttpResponseAdapter {
 
+    @Nullable
+    private static final MethodHandle STATUS_CODE_METHOD =
+        MethodLookupUtil.find(ClientHttpResponse.class, "getRawStatusCode", int.class);
     private static final int UNKNOWN_STATUS = -1;
 
     public static int getStatusCode(ClientHttpResponse response) {
@@ -45,9 +52,11 @@ public class ClientHttpResponseAdapter {
         // getRawStatusCode has been introduced in 3.1.1
         // but deprecated in 6.x, will be removed in 7.x (using method handle will be needed).
         try {
-            return response.getRawStatusCode();
-        } catch (Exception|Error e) {
-            // using broad exception to handle when method is missing in pre-3.1.1 and post 7.x
+            if (STATUS_CODE_METHOD != null) {
+                return (int) STATUS_CODE_METHOD.invoke(response);
+            }
+            return UNKNOWN_STATUS;
+        } catch (Throwable th) {
             return UNKNOWN_STATUS;
         }
     }
