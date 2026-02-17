@@ -101,7 +101,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @RunWith(Parameterized.class)
 public class Elasticsearch8JavaIT extends AbstractEsClientInstrumentationTest {
 
-    private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:7.17.2";
+    private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:7.17.25";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Elasticsearch8JavaIT.class);
 
@@ -117,7 +117,7 @@ public class Elasticsearch8JavaIT extends AbstractEsClientInstrumentationTest {
 
     protected static void startContainer(String image) {
         container = new ElasticsearchContainer(image)
-            .withEnv("ES_JAVA_OPTS", "-XX:-UseContainerSupport")
+            .withEnv("ES_JAVA_OPTS", "-XX:-UseContainerSupport -Xms512m -Xmx512m")
             .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
         container.start();
     }
