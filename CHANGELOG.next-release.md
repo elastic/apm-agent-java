@@ -15,7 +15,7 @@ This file contains all changes which are not released yet.
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
-
+* Support for Spring Framework 7 - [#4345](https://github.com/elastic/apm-agent-java/pull/4398)
 <!--ENHANCEMENTS-END-->
 # Deprecations
 <!--DEPRECATIONS-START-->
