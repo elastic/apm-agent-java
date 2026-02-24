@@ -92,6 +92,20 @@ public class SpringRestTemplateVersionsIT {
         ));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "7.0.0"
+    })
+    @EnabledForJreRange(min = JRE.JAVA_17, disabledReason = "Spring 7 requires JDK 17")
+    void testVersion7(String version) throws Exception {
+        testVersionImpl(version, true, List.of(
+            "commons-logging:commons-logging:1.3.0",
+            "io.micrometer:micrometer-observation:1.10.2",
+            "io.micrometer:micrometer-commons:1.10.2",
+            "org.apache.logging.log4j:log4j-api:2.25.3"
+        ));
+    }
+
     void testVersionImpl(String version, boolean isSupported, List<String> additionalDependencies) throws Exception {
         List<String> dependencies = Stream.of(
                 "spring-webmvc",

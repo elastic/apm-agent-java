@@ -16,21 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package co.elastic.apm.agent.resttemplate;
+package co.elastic.apm.agent.springwebmvc.template;
 
-import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
-import org.springframework.http.HttpRequest;
+public class Spring7FreeMarkerViewTest extends Spring5FreeMarkerViewTest {
 
-public class SpringRestRequestHeaderSetter implements TextHeaderSetter<HttpRequest> {
-
-    public static final SpringRestRequestHeaderSetter INSTANCE = new SpringRestRequestHeaderSetter();
-
-    @Override
-    public void setHeader(String headerName, String headerValue, HttpRequest request) {
-        // In Spring Framework 7, containsKey no longer exists
-        if (request.getHeaders().getFirst(headerName) == null) {
-            // the org.springframework.http.HttpRequest has only be introduced in 3.1.0
-            request.getHeaders().add(headerName, headerValue);
-        }
-    }
 }

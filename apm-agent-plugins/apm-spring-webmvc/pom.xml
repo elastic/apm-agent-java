@@ -20,6 +20,7 @@
     <modules>
         <module>apm-spring-webmvc-plugin</module>
         <module>apm-spring-webmvc-spring5</module>
+        <module>apm-spring-webmvc-spring7-test</module>
     </modules>
 
 

@@ -66,7 +66,7 @@ public class SpringRestClientInstrumentationTest extends AbstractHttpClientInstr
      * The code is compiled with java 17 but potentially run with java 11.
      * JUnit will inspect the test class, therefore it must not contain any references to java 17 code.
      */
-    private static class Java17Code {
+    public static class Java17Code {
         public static void performGet(Object restClient, String path) {
             ((RestClient) restClient).get().uri(path).retrieve().body(String.class);
         }
