@@ -106,7 +106,7 @@ jobs:
         run: tar xvf ${{ env.TARBALL_FILE }}
 
       - name: generate build provenance
-        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f  # v3.2.0
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32  # v4.1.0
         with:
           subject-path: "${{ github.workspace }}/**/target/*.jar"
 
@@ -173,7 +173,7 @@ jobs:
           VERSION=${VERSION//./-}
           
           ELASTIC_LAYER_NAME="elastic-apm-java-${VERSION}" .ci/publish-aws.sh
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: ${{ ! inputs.dry_run }}
         with:
           name: arn-file
