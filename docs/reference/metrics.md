@@ -292,7 +292,7 @@ To power the [Time spent by span type](docs-content://solutions/observability/ap
 
 This timer tracks the span self-times and is the basis of the transaction breakdown visualization.
 
-This metric includes all spans, even those dropped due to [`transaction_max_spans`](/reference/config-core.md). Dropped spans are not reported as trace data, but their self-times still contribute to `sum.us` and `count`. This ensures the breakdown visualization remains accurate regardless of the span limit.
+This metric includes all spans that are started but not recorded, even those dropped due to [`transaction_max_spans`](/reference/config-core.md). Dropped spans are not reported as trace data, but their self-times still contribute to `sum.us` and `count`. This ensures the breakdown visualization remains accurate regardless of the span limit.
 
 Only `sum.us` and `count` are tracked. No maximum or minimum duration is recorded.
 
