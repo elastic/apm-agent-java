@@ -255,6 +255,8 @@ This is helpful in cases where a transaction creates a very high amount of spans
 
 Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.
 
+Dropped spans are not reported as trace data, but their self-times are still included in breakdown metrics (`span.self_time`). See [Built-in application metrics](/reference/metrics.md#metrics-application) for details.
+
 A message will be logged when the max number of spans has been exceeded but only at a rate of once every 5 minutes to ensure performance is not impacted.
 
 [![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
