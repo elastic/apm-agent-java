@@ -23,6 +23,10 @@ check_version "${RELEASE_VERSION}"
 echo "Set next snapshot version"
 ./mvnw -V versions:set -DprocessAllModules=true -DgenerateBackupPoms=false -DnextSnapshot=true
 
+echo "Update agent download URL in docs"
+sed -i.bak -E "s|${BASE_URL}/[0-9]+\.[0-9]+\.[0-9]+/elastic-apm-agent-[0-9]+\.[0-9]+\.[0-9]+\.jar|${BASE_URL}/${RELEASE_VERSION}/elastic-apm-agent-${RELEASE_VERSION}.jar|g" "${DOCS_FILE}"
+rm -f "${DOCS_FILE}.bak"
+
 # make script idempotent if release is already in CF descriptor
 set +e
 grep -e "^${RELEASE_VERSION}:" ${CF_FILE}
@@ -30,7 +34,3 @@ grep -e "^${RELEASE_VERSION}:" ${CF_FILE}
 set -e
 echo "Update cloudfoundry version"
 echo "${RELEASE_VERSION}: ${BASE_URL}/${RELEASE_VERSION}/elastic-apm-agent-${RELEASE_VERSION}.jar" >> "${CF_FILE}"
-
-echo "Update agent download URL in docs"
-sed -i.bak -E "s|${BASE_URL}/[0-9]+\.[0-9]+\.[0-9]+/elastic-apm-agent-[0-9]+\.[0-9]+\.[0-9]+\.jar|${BASE_URL}/${RELEASE_VERSION}/elastic-apm-agent-${RELEASE_VERSION}.jar|g" "${DOCS_FILE}"
-rm -f "${DOCS_FILE}.bak"
