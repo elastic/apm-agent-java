@@ -22,22 +22,36 @@ import co.elastic.apm.agent.common.JvmRuntimeInfo;
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.http.client.OkHttp3ClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.util.ClassUtils;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @RunWith(Parameterized.class)
 public class SpringRestTemplateInstrumentationTest extends AbstractHttpClientInstrumentationTest {
+
+    private static final Map<Class<? extends ClientHttpRequestFactory>, Boolean> factories = new HashMap<>();
+    {
+        factories.put(SimpleClientHttpRequestFactory.class, true);
+        factories.put(HttpComponentsClientHttpRequestFactory.class, true);
+        try {
+            factories.put((Class<? extends ClientHttpRequestFactory>) ClassUtils.forName("org.springframework.http.client.OkHttp3ClientHttpRequestFactory", getClass().getClassLoader()), false);
+        } catch (ClassNotFoundException cnfe) {
+            // Ignore
+        }
+
+    }
 
     // Cannot directly reference RestTemplate here because it is compiled with Java 17
     private final Object restTemplate;
@@ -94,21 +108,15 @@ public class SpringRestTemplateInstrumentationTest extends AbstractHttpClientIns
         }
 
         public static Iterable<Supplier<RestTemplate>> getRestTemplateFactories() {
-            return Stream.<Supplier<ClientHttpRequestFactory>>of(
-                    SimpleClientHttpRequestFactory::new,
-                    OkHttp3ClientHttpRequestFactory::new,
-                    HttpComponentsClientHttpRequestFactory::new)
-                .map(fac -> (Supplier<RestTemplate>) (() -> new RestTemplate(fac.get())))
-                .collect(Collectors.toList());
+            return factories.keySet()
+                .stream()
+                .map((clz) -> BeanUtils.instantiateClass(clz))
+                .map( (fac) -> (Supplier<RestTemplate>) () -> new RestTemplate(fac)).collect(Collectors.toList());
         }
 
         public static boolean isBodyCapturingSupported(Object restTemplateObj) {
             RestTemplate restTemplate = (RestTemplate) restTemplateObj;
-            if (restTemplate.getRequestFactory() instanceof OkHttp3ClientHttpRequestFactory) {
-                // We do not support body capturing for OkHttp yet
-                return false;
-            }
-            return true;
+            return factories.get(restTemplate.getRequestFactory().getClass());
         }
 
         public static boolean isTestHttpCallWithUserInfoEnabled(Object restTemplateObj) {
