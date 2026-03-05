@@ -15,6 +15,7 @@ source "${RELATIVE_DIR}/util.sh"
 # Constants
 BASE_URL="https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent"
 CF_FILE="${BASE_PROJECT}/cloudfoundry/index.yml"
+DOCS_FILE="${BASE_PROJECT}/docs/reference/setup-javaagent.md"
 
 # Requirements
 check_version "${RELEASE_VERSION}"
@@ -29,3 +30,7 @@ grep -e "^${RELEASE_VERSION}:" ${CF_FILE}
 set -e
 echo "Update cloudfoundry version"
 echo "${RELEASE_VERSION}: ${BASE_URL}/${RELEASE_VERSION}/elastic-apm-agent-${RELEASE_VERSION}.jar" >> "${CF_FILE}"
+
+echo "Update agent download URL in docs"
+sed -i.bak -E "s|${BASE_URL}/[0-9]+\.[0-9]+\.[0-9]+/elastic-apm-agent-[0-9]+\.[0-9]+\.[0-9]+\.jar|${BASE_URL}/${RELEASE_VERSION}/elastic-apm-agent-${RELEASE_VERSION}.jar|g" "${DOCS_FILE}"
+rm -f "${DOCS_FILE}.bak"
