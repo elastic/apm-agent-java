@@ -91,7 +91,7 @@ jobs:
         run: |
           mkdir -p elastic-apm-agent/target
           curl -L -s -o elastic-apm-agent/target/elastic-apm-agent-1.49.0.jar \
-            "https://oss.sonatype.org/service/local/artifact/maven/redirect?r=releases&g=co.elastic.apm&a=elastic-apm-agent&v=1.49.0"
+            "https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.49.0/elastic-apm-agent-1.49.0.jar"
       - name: "Build docker image"
         run: ./scripts/docker-release/build_docker.sh "test"
 
