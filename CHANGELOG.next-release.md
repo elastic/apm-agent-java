@@ -15,7 +15,7 @@ This file contains all changes which are not released yet.
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
-
+* Support Spring Boot 4
 <!--ENHANCEMENTS-END-->
 # Deprecations
 <!--DEPRECATIONS-START-->

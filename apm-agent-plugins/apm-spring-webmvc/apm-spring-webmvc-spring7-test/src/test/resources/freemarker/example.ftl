@@ -1,0 +1,1 @@
+FreeMarker Template example: ${message}
