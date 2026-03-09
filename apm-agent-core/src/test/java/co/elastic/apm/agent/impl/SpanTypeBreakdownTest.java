@@ -375,6 +375,92 @@ class SpanTypeBreakdownTest {
         });
     }
 
+    /*
+     * transaction_max_spans=1, so the second span is dropped
+     * Dropped spans should still contribute to breakdown metrics
+     *
+     * ██████████░░░░░░░░░░░░░░░█████
+     * ├─────────█████                <- reported span (within limit)
+     * └───────────────█████          <- dropped span (exceeds limit)
+     *          10        20        30
+     */
+    @Test
+    void testBreakdown_droppedSpan_singleType() {
+        doReturn(1).when(tracer.getConfig(CoreConfigurationImpl.class)).getTransactionMaxSpans();
+        final TransactionImpl transaction = createTransaction();
+        transaction.createSpan(10).withType("db").withSubtype("mysql").end(15);
+        transaction.createSpan(15).withType("db").withSubtype("mysql").end(20);
+        transaction.end(30);
+
+        assertThat(transaction.getSpanCount().getTotal().get()).isEqualTo(2);
+        assertThat(transaction.getSpanCount().getDropped().get()).isEqualTo(1);
+
+        tracer.getMetricRegistry().flipPhaseAndReport(metricSets -> {
+            assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
+            assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(20);
+            assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getCount()).isEqualTo(2);
+            assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(10);
+        });
+    }
+
+    /*
+     * transaction_max_spans=1, so the second span is dropped
+     * Dropped spans of a different type should still appear in breakdown metrics
+     *
+     * ██████████░░░░░░░░░░░░░░░█████
+     * ├─────────█████                <- reported span (within limit)
+     * └───────────────█████          <- dropped span (exceeds limit, different type)
+     *          10        20        30
+     */
+    @Test
+    void testBreakdown_droppedSpan_differentTypes() {
+        doReturn(1).when(tracer.getConfig(CoreConfigurationImpl.class)).getTransactionMaxSpans();
+        final TransactionImpl transaction = createTransaction();
+        transaction.createSpan(10).withType("db").withSubtype("mysql").end(15);
+        transaction.createSpan(15).withType("cache").withSubtype("redis").end(20);
+        transaction.end(30);
+
+        assertThat(transaction.getSpanCount().getTotal().get()).isEqualTo(2);
+        assertThat(transaction.getSpanCount().getDropped().get()).isEqualTo(1);
+
+        tracer.getMetricRegistry().flipPhaseAndReport(metricSets -> {
+            assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
+            assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(20);
+            assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getCount()).isEqualTo(1);
+            assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(5);
+            assertThat(getTimer(metricSets, "span.self_time", "cache", "redis").getCount()).isEqualTo(1);
+            assertThat(getTimer(metricSets, "span.self_time", "cache", "redis").getTotalTimeUs()).isEqualTo(5);
+        });
+    }
+
+    /*
+     * transaction_max_spans=0, so ALL spans are dropped
+     * Even when all spans are dropped, their self-times should still be tracked
+     *
+     * █████░░░░░░░░░░░░░░░░░░░░█████
+     * ├────██████████                <- dropped span
+     * └──────────────██████████      <- dropped span
+     *          10        20        30
+     */
+    @Test
+    void testBreakdown_allSpansDropped() {
+        doReturn(0).when(tracer.getConfig(CoreConfigurationImpl.class)).getTransactionMaxSpans();
+        final TransactionImpl transaction = createTransaction();
+        transaction.createSpan(5).withType("db").withSubtype("mysql").end(15);
+        transaction.createSpan(15).withType("db").withSubtype("mysql").end(25);
+        transaction.end(30);
+
+        assertThat(transaction.getSpanCount().getTotal().get()).isEqualTo(2);
+        assertThat(transaction.getSpanCount().getDropped().get()).isEqualTo(2);
+
+        tracer.getMetricRegistry().flipPhaseAndReport(metricSets -> {
+            assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
+            assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(10);
+            assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getCount()).isEqualTo(2);
+            assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(20);
+        });
+    }
+
     private TransactionImpl createTransaction() {
         return tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
