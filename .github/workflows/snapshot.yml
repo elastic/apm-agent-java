@@ -70,7 +70,7 @@ jobs:
         run: tar xvf ${{ env.TARBALL_FILE }}
 
       - name: generate build provenance
-        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f  # v3.2.0
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26  # v4.1.0
         with:
           subject-path: "${{ github.workspace }}/**/target/*.jar"
 
@@ -81,7 +81,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Log in to the Elastic Container registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
         with:
           registry: ${{ secrets.ELASTIC_DOCKER_REGISTRY }}
           username: ${{ secrets.ELASTIC_DOCKER_USERNAME }}
@@ -91,7 +91,7 @@ jobs:
         run: |
           mkdir -p elastic-apm-agent/target
           curl -L -s -o elastic-apm-agent/target/elastic-apm-agent-1.49.0.jar \
-            "https://oss.sonatype.org/service/local/artifact/maven/redirect?r=releases&g=co.elastic.apm&a=elastic-apm-agent&v=1.49.0"
+            "https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.49.0/elastic-apm-agent-1.49.0.jar"
       - name: "Build docker image"
         run: ./scripts/docker-release/build_docker.sh "test"
 
