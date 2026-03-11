@@ -13,7 +13,7 @@ applies_to:
 
 The Elastic APM Java Agent automatically instruments various APIs, frameworks and application servers. This section lists all supported technologies.
 
-Elastic supports OpenTelemetry, which allows logs, metrics, and trace signal collection for many of these technologies. Consider using the [EDOT Java SDK](https://www.elastic.co/docs/reference/opentelemetry/edot-sdks/java) for observability data so you continue to get the full power of Elastic's platform.
+Elastic supports OpenTelemetry, which allows logs, metrics, and trace signal collection for many of these technologies. Consider using the [EDOT Java SDK](elastic-otel-java://reference/edot-java/index.md) for observability data so you continue to get the full power of Elastic's platform.
 
 * [Java versions](#supported-java-versions)
 * [Web Frameworks](#supported-web-frameworks)
