@@ -3,16 +3,25 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
+        <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <artifactId>apm-spring-resttemplate</artifactId>
         <version>1.55.5-SNAPSHOT</version>
     </parent>
 
-    <artifactId>apm-spring-restclient-test</artifactId>
+    <artifactId>spring-boot-4</artifactId>
+    <packaging>pom</packaging>
+
     <name>${project.groupId}:${project.artifactId}</name>
 
+    <modules>
+        <module>spring-boot-4-base</module>
+        <module>spring-boot-4-jetty</module>
+        <module>spring-boot-4-tomcat</module>
+    </modules>
+
     <properties>
-        <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
+        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+        <animal.sniffer.skip>true</animal.sniffer.skip>
     </properties>
 
     <dependencyManagement>
@@ -20,53 +29,49 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>3.5.7</version>
+                <version>4.0.0</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>spring-boot-4-base</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
 
     <dependencies>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webmvc</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-spring-resttemplate-plugin</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-spring-resttemplate-plugin</artifactId>
-            <version>${project.version}</version>
+            <artifactId>apm-agent-core</artifactId>
             <type>test-jar</type>
+            <version>${project.version}</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-spring-webmvc-plugin</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-httpclient-core</artifactId>
+            <artifactId>apm-servlet-plugin</artifactId>
             <version>${project.version}</version>
-            <type>test-jar</type>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-api-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-api</artifactId>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 </project>
