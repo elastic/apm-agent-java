@@ -18,18 +18,34 @@
  */
 package co.elastic.apm.agent.resttemplate;
 
+import co.elastic.apm.agent.sdk.internal.util.MethodLookupUtil;
 import co.elastic.apm.agent.tracer.dispatch.TextHeaderSetter;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRequest;
 
+import java.lang.invoke.MethodHandle;
+
 public class SpringRestRequestHeaderSetter implements TextHeaderSetter<HttpRequest> {
+
+
+    private static final MethodHandle CONTAINS_METHOD =
+        MethodLookupUtil.findOneOf(HttpHeaders.class, new String[] {"containsKey", "containsHeader"}, boolean.class, Object.class);
 
     public static final SpringRestRequestHeaderSetter INSTANCE = new SpringRestRequestHeaderSetter();
 
     @Override
     public void setHeader(String headerName, String headerValue, HttpRequest request) {
-        if (!request.getHeaders().containsKey(headerName)) {
+        if (!containsHeader(request.getHeaders(), headerName)) {
             // the org.springframework.http.HttpRequest has only be introduced in 3.1.0
             request.getHeaders().add(headerName, headerValue);
+        }
+    }
+
+    private boolean containsHeader(HttpHeaders headers, String headerName) {
+        try {
+            return (boolean) CONTAINS_METHOD.invoke(headers, headerName);
+        } catch (Throwable e) {
+            return false;
         }
     }
 }
