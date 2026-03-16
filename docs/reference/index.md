@@ -12,7 +12,7 @@ applies_to:
 
 # APM Java agent [intro]
 
-The Elastic APM Java Agent automatically measures the performance of your application and tracks errors. It has built-in support for popular frameworks and technologies, as well as a simple [API](/reference/public-api.md) which allows you to instrument any application, and a [Plugin API](/reference/plugin-api.md) that allows you to add custom instrumentation.
+The Elastic APM Java Agent automatically measures the performance of your application and tracks errors. It has built-in support for popular frameworks and technologies, as well as a basic [API](/reference/public-api.md) which allows you to instrument any application, and a [Plugin API](/reference/plugin-api.md) that allows you to add custom instrumentation.
 
 :::::{note}
 Elastic supports OpenTelemetry, which allows logs, metrics, and trace signal collection for many of the [supported technologies](/reference/supported-technologies.md) below. Consider using the [EDOT Java SDK](elastic-otel-java://reference/edot-java/index.md) for observability data so you continue to get the full power of Elastic's platform.
