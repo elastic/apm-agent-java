@@ -29,6 +29,7 @@
         <module>jakartaee-jsf-app</module>
         <module>main-app-test</module>
         <module>spring-boot-3</module>
+        <module>spring-boot-4</module>
         <module>aws-lambda-test</module>
     </modules>
 
