@@ -6,7 +6,7 @@
     <parent>
         <artifactId>apm-spring-webmvc</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.55.5-SNAPSHOT</version>
+        <version>1.55.5</version>
     </parent>
 
     <artifactId>apm-spring-webmvc-spring7-test</artifactId>
