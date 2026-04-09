@@ -26,6 +26,15 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 % ### Fixes [elastic-apm-java-agent-versionext-fixes]
 
+## 1.55.5 [elastic-apm-java-agent-1-55-5-release-notes]
+**Release date:** April 9, 2026
+
+### Features and enhancements [elastic-apm-java-agent-1-55-5-features-enhancements]
+* Add experimental support for Spring Boot 4
+
+### Fixes [elastic-apm-java-agent-1-55-5-fixes]
+* fix universal profiling integration compatibility with java8 - [#4394](https://github.com/elastic/apm-agent-java/pull/4394)
+
 ## 1.55.4 [elastic-apm-java-agent-1-55-4-release-notes]
 **Release date:** January 21, 2026
 
