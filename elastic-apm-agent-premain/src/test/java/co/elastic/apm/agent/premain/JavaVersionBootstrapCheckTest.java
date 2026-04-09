@@ -168,6 +168,36 @@ class JavaVersionBootstrapCheckTest {
         checkHpUx("1.7.0.9-hp-ux", "1.7.0.10-hp-ux");
     }
 
+    @Test
+    void testHyphenVersionFormat() {
+        // Some vendors (e.g., OpenLogic) use hyphen format like "1.8.0-292" instead of "1.8.0_292"
+        // Non-hotspot JVM should be supported regardless of update version
+        checkSupported("", Stream.of(
+            "1.8.0-292",
+            "1.8.0-292-b10",
+            "1.8.0-39",
+            "1.7.0-50"
+        ));
+
+        // HotSpot JVM requires update >= 40 for Java 8, update >= 60 for Java 7
+        checkSupported(HOTSPOT_VM_NAME, Stream.of(
+            "1.8.0-40",
+            "1.8.0-40-b10",
+            "1.8.0-292",
+            "1.8.0-292-b10",
+            "1.7.0-60",
+            "1.7.0-241-b10"
+        ));
+
+        checkNotSupported(HOTSPOT_VM_NAME, Stream.of(
+            "1.8.0-39",
+            "1.8.0-39-b10",
+            "1.8.0-1",
+            "1.7.0-59",
+            "1.7.0-1-b10"
+        ));
+    }
+
     private static void checkHpUx(String unsupportedVersion, String supportedVersion){
         JvmRuntimeInfo runtimeInfo = new JvmRuntimeInfo(unsupportedVersion, HOTSPOT_VM_NAME, "HP Corp", null);
         JavaVersionBootstrapCheck check = new JavaVersionBootstrapCheck(runtimeInfo);
