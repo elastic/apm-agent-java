@@ -103,8 +103,8 @@ public class JvmRuntimeInfo {
                     updateVersion = -1;
                 }
             } else {
-                // GA release like '1.8.0'
-                updateVersion = 0;
+                // Try hyphen format (e.g., OpenLogic's "1.8.0-292" or "1.8.0-292-b10")
+                updateVersion = parseHyphenVersionFormat(version);
             }
 
         } else {
@@ -128,6 +128,42 @@ public class JvmRuntimeInfo {
             SystemStandardOutputLogger.stdErrWarn("Unsupported format of the java.version system property - " + version);
         }
         return updateVersion;
+    }
+
+    /**
+     * Parses version strings that use hyphen format like "1.8.0-292" or "1.8.0-292-b10".
+     * This format is used by some OpenJDK vendors like OpenLogic.
+     *
+     * @param version the version string to parse
+     * @return the update version number, or 0 if it's a GA release or non-numeric suffix
+     */
+    private int parseHyphenVersionFormat(String version) {
+        int lastDotIndex = version.lastIndexOf('.');
+        if (lastDotIndex <= 0) {
+            return 0;
+        }
+
+        int hyphenAfterDot = version.indexOf('-', lastDotIndex + 1);
+        if (hyphenAfterDot <= 0) {
+            // No hyphen found, likely a GA release like '1.8.0'
+            return 0;
+        }
+
+        // Extract the update version between the hyphen and the next hyphen (or end of string)
+        int nextHyphen = version.indexOf('-', hyphenAfterDot + 1);
+        String updateVersionString;
+        if (nextHyphen <= 0) {
+            updateVersionString = version.substring(hyphenAfterDot + 1);
+        } else {
+            updateVersionString = version.substring(hyphenAfterDot + 1, nextHyphen);
+        }
+
+        try {
+            return Integer.parseInt(updateVersionString);
+        } catch (NumberFormatException e) {
+            // Non-numeric suffix like "1.8.0-hello" should be treated as GA release
+            return 0;
+        }
     }
 
     public String getJavaVersion() {
