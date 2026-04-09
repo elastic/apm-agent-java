@@ -7,7 +7,7 @@ set -uo pipefail
 #
 # AWS_FOLDER is used for temporary output of publishing layers used to create the arn table. (Optional)
 # ELASTIC_LAYER_NAME is the name of the lambda layer e.g. elastic-apm-java-ver-3-44-1 for the git tag v3.44.1 (Required)
-# MAX_RETRIES is the number of retries for transient failures (Optional, default: 3)
+# MAX_RETRIES is the number of retries for transient failures (Optional, default: 1)
 
 
 # This needs to be set in GH actions
@@ -17,7 +17,7 @@ export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-eu-west-1}
 
 export AWS_FOLDER=${AWS_FOLDER:-.ci/.aws}
 FULL_LAYER_NAME=${ELASTIC_LAYER_NAME:?layer name not provided}
-MAX_RETRIES=${MAX_RETRIES:-3}
+MAX_RETRIES=${MAX_RETRIES:-1}
 ALL_AWS_REGIONS=$(aws ec2 describe-regions --output json --no-cli-pager | jq -r '.Regions[].RegionName')
 
 rm -rf "${AWS_FOLDER}"
