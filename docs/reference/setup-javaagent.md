@@ -29,11 +29,11 @@ The first step in getting started with the Elastic APM Java agent is to retrieve
 ::::::{tab-item} Maven Central
 Java agent releases are published to [Maven central](https://repo.maven.apache.org/maven2/), in order to get a copy you can either:
 
-* download manually the [latest agent](https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.55.4/elastic-apm-agent-1.55.4.jar) or [previous releases](https://mvnrepository.com/artifact/co.elastic.apm/elastic-apm-agent) from Maven central.
+* download manually the [latest agent](https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.55.5/elastic-apm-agent-1.55.5.jar) or [previous releases](https://mvnrepository.com/artifact/co.elastic.apm/elastic-apm-agent) from Maven central.
 * download with `curl`:
 
     ```bash
-    curl -o 'elastic-apm-agent.jar' -L 'https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.55.4/elastic-apm-agent-1.55.4.jar'
+    curl -o 'elastic-apm-agent.jar' -L 'https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.55.5/elastic-apm-agent-1.55.5.jar'
     ```
 
 
