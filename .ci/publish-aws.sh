@@ -97,5 +97,4 @@ if [ ${#failed_regions[@]} -gt 0 ]; then
   echo "========================================="
   echo "The ARN table has been generated for successful regions only."
   echo "You may need to manually publish to the failed regions later."
-  exit 1
 fi
