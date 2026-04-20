@@ -23,7 +23,7 @@
                 <!-- Import dependency management from Spring Boot -->
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>4.0.0</version> <!-- must be 4.X to correspond to spring 7 -->
+                <version>4.0.5</version> <!-- must be 4.X to correspond to spring 7 -->
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
