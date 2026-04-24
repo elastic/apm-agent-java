@@ -27,7 +27,8 @@ public class SpringRestRequestHeaderSetter implements TextHeaderSetter<HttpReque
 
     @Override
     public void setHeader(String headerName, String headerValue, HttpRequest request) {
-        if (!request.getHeaders().containsKey(headerName)) {
+        // In Spring Framework 7, containsKey no longer exists
+        if (request.getHeaders().getFirst(headerName) == null) {
             // the org.springframework.http.HttpRequest has only be introduced in 3.1.0
             request.getHeaders().add(headerName, headerValue);
         }

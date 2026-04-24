@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-spring-resttemplate</artifactId>
-        <version>1.55.5-SNAPSHOT</version>
+        <version>1.55.7-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-spring-resttemplate-test</artifactId>
@@ -19,6 +19,13 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-httpclient-core</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-spring-resttemplate-plugin</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
@@ -27,6 +34,13 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-spring-resttemplate-plugin</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-spring-restclient-test</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>

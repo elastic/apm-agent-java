@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.55.5-SNAPSHOT</version>
+        <version>1.55.7-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -20,6 +20,7 @@
     <modules>
         <module>apm-spring-webmvc-plugin</module>
         <module>apm-spring-webmvc-spring5</module>
+        <module>apm-spring-webmvc-spring7-test</module>
     </modules>
 
 
