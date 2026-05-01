@@ -44,6 +44,13 @@
                                         See: https://issues.apache.org/jira/browse/LOG4J2-3201
                                         -->
                                         <exclude>org/apache/logging/log4j/core/lookup/JndiLookup.class</exclude>
+                                        <!--
+                                        Strip out XmlLayout class to avoid any possibility of exploitation of CVE-2026-34480 
+                                        and CVE-2026-34479
+                                        See: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-34480
+                                        See: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-34479
+                                        -->
+                                        <exclude>org/apache/logging/log4j/core/layout/XmlLayout.class</exclude>
                                     </excludes>
                                 </filter>
                             </filters>
