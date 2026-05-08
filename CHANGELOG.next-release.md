@@ -10,6 +10,7 @@ This file contains all changes which are not released yet.
 # Fixes
 <!--FIXES-START-->
 * Exclude `XmlLayout` class from log4j dependency - [#4459](https://github.com/elastic/apm-agent-java/pull/4459)
+* Fix unsupported-aggregation warning in OpenTelemetry metric SDK exporter to use SLF4J-style `{}` placeholders instead of `%s`, so the metric name and aggregation type are rendered in the log message - [#4466](https://github.com/elastic/apm-agent-java/pull/4466)
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
