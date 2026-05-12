@@ -87,7 +87,7 @@ public class OtelMetricSerializer {
             case EXPONENTIAL_HISTOGRAM:
             default:
                 if (metricsWithBadAggregations.add(metricName)) {
-                    logger.warn("Ignoring metric '%s' due to unsupported aggregation '%s'", metricName, metric.getType());
+                    logger.warn("Ignoring metric '{}' due to unsupported aggregation '{}'", metricName, metric.getType());
                 }
                 break;
         }
@@ -104,6 +104,14 @@ public class OtelMetricSerializer {
 
     private void addHistogramValues(CharSequence name, CharSequence instrScopeName, HistogramData histogramData) {
         for (HistogramPointData histo : histogramData.getPoints()) {
+            if (histo.getBoundaries().isEmpty()) {
+                // A histogram with no explicit boundaries has a single (-Inf, +Inf) bucket from
+                // which we cannot derive a representative value to send to the APM server.
+                if (metricsWithBadAggregations.add(name.toString())) {
+                    logger.warn("Ignoring histogram '{}' because it has no explicit bucket boundaries", name);
+                }
+                continue;
+            }
             long timestampMicros = histo.getEpochNanos() / 1000L;
             MetricSetSerializer metricSet = getOrCreateMetricSet(instrScopeName, timestampMicros, histo.getAttributes());
             metricSet.addExplicitBucketHistogram(name, histo.getBoundaries(), histo.getCounts());
