@@ -21,6 +21,7 @@ package co.elastic.apm.agent.otelmetricsdk;
 import co.elastic.apm.agent.configuration.MetricsConfigurationImpl;
 import io.opentelemetry.api.metrics.DoubleHistogram;
 import io.opentelemetry.api.metrics.DoubleHistogramBuilder;
+import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.MeterProvider;
 import io.opentelemetry.sdk.metrics.Aggregation;
@@ -111,6 +112,33 @@ public class PrivateUserSdkOtelMetricsTest extends AbstractOtelMetricsTest {
         } catch (NoSuchMethodException e) {
             super.testDefaultHistogramBuckets();
         }
+    }
+
+    @Test
+    public void testHistogramWithEmptyBoundariesIsDropped() {
+        // A View configured with no explicit bucket boundaries produces a single (-Inf, +Inf)
+        // bucket. Our exporter cannot represent that, so it must skip the histogram point
+        // without throwing.
+        sdkCustomizer = builder -> builder.registerView(
+            InstrumentSelector.builder().setName("no_bounds_histo").build(),
+            View.builder().setAggregation(Aggregation.explicitBucketHistogram(List.of())).build()
+        );
+
+        Meter testMeter = createMeter("test");
+        DoubleHistogram badHisto = testMeter.histogramBuilder("no_bounds_histo").build();
+        LongCounter counter = testMeter.counterBuilder("ok_counter").build();
+
+        badHisto.record(1.0);
+        badHisto.record(2.0);
+        counter.add(7);
+
+        resetReporterAndFlushMetrics();
+        // The bad histogram is dropped, but unrelated metrics in the same metricset still export.
+        assertThatMetricSets(reporter.getBytes())
+            .hasMetricsetCount(1)
+            .first()
+            .containsValueMetric("ok_counter", 7)
+            .hasMetricsCount(1);
     }
 
     @Test

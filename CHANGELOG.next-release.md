@@ -10,6 +10,7 @@ This file contains all changes which are not released yet.
 # Fixes
 <!--FIXES-START-->
 * Exclude `XmlLayout` class from log4j dependency - [#4459](https://github.com/elastic/apm-agent-java/pull/4459)
+* Stop OTel metrics exporter from throwing `IndexOutOfBoundsException` when a histogram has no explicit bucket boundaries
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
