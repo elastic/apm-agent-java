@@ -87,7 +87,7 @@ public class OtelMetricSerializer {
             case EXPONENTIAL_HISTOGRAM:
             default:
                 if (metricsWithBadAggregations.add(metricName)) {
-                    logger.warn("Ignoring metric '%s' due to unsupported aggregation '%s'", metricName, metric.getType());
+                    logger.warn("Ignoring metric '{}' due to unsupported aggregation '{}'", metricName, metric.getType());
                 }
                 break;
         }
