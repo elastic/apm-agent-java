@@ -64,7 +64,9 @@ updates:
       - dependency-name: "io.vertx:*"
         update-types: [ "version-update:semver-major" ]
       - dependency-name: "org.springframework.boot:*"
-        update-types: [ "version-update:semver-patch" ] # ignore spring patch updates to prevent PR spam
+        # Ignore patch updates to prevent PR spam, and major updates because Spring Boot versions are
+        # intentionally pinned per instrumentation generation.
+        update-types: [ "version-update:semver-patch", "version-update:semver-major" ]
       # Since these AWS dependencies are heavy and are being released very frequently, we ignore in the weekly update and update monthly
       - dependency-name: "com.amazonaws:aws-java-sdk-s3"
       - dependency-name: "com.amazonaws:aws-java-sdk-dynamodb"
