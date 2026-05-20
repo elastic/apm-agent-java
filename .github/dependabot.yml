@@ -47,6 +47,13 @@ updates:
       - dependency-name: "net.bytebuddy:byte-buddy-agent"
         # We deliberately want to keep this older version of Byte Buddy for our runtime attach test
         versions: [ "<=1.9.16" ]
+      # Keep Testcontainers on 1.x.
+      - dependency-name: "org.testcontainers:*"
+        update-types: [ "version-update:semver-major" ]
+      # Prevent bumping Cassandra from version 3.x in the cassandra3 plugin.
+      # Cassandra 4 support uses com.datastax.oss:java-driver-core in the cassandra4 plugin.
+      - dependency-name: "com.datastax.cassandra:*"
+        update-types: [ "version-update:semver-major" ]
       - dependency-name: "org.slf4j:slf4j-api"
         # A static arbitrary version used within our external plugin test + latest for java 7
         versions: [ "<=1.7.25", "1.7.36" ]
