@@ -63,6 +63,8 @@ updates:
       # Prevent dependabot from attempting to upgrade vertx from version 3 to 4, but still perform minor & patch updates
       - dependency-name: "io.vertx:*"
         update-types: [ "version-update:semver-major" ]
+      # This test dependency is intentionally pinned to a Vertx3-compatible version.
+      - dependency-name: "io.vertx:vertx-junit5"
       - dependency-name: "org.springframework.boot:*"
         # Ignore patch updates to prevent PR spam, and major updates because Spring Boot versions are
         # intentionally pinned per instrumentation generation.
