@@ -15,7 +15,7 @@ This file contains all changes which are not released yet.
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
-
+* Add experimental support for Spring Boot 4 / Spring Framework 7 in WebFlux instrumentation
 <!--ENHANCEMENTS-END-->
 # Deprecations
 <!--DEPRECATIONS-START-->

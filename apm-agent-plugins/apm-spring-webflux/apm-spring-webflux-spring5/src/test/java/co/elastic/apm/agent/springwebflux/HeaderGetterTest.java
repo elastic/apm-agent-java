@@ -34,7 +34,7 @@ class HeaderGetterTest extends AbstractTextHeaderGetterTest<HeaderGetter, HttpHe
     @Override
     protected HttpHeaders createCarrier(Map<String, List<String>> map) {
         HttpHeaders headers = new HttpHeaders();
-        map.forEach(headers::put);
+        map.forEach(headers::addAll);
         return headers;
     }
 

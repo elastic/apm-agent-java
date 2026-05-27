@@ -36,10 +36,7 @@ public class ClientRequestHeaderGetter implements TextHeaderGetter<ClientRequest
 
     @Override
     public <S> void forEach(String headerName, ClientRequest carrier, S state, HeaderConsumer<String, S> consumer) {
-        List<String> headerValues = carrier.headers().get(headerName);
-        if (headerValues == null) {
-            return;
-        }
+        List<String> headerValues = carrier.headers().getValuesAsList(headerName);
         for (String value : headerValues) {
             consumer.accept(value, state);
         }

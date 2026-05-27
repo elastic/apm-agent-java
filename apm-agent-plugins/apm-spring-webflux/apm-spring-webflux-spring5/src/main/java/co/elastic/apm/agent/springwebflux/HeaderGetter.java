@@ -34,10 +34,7 @@ public class HeaderGetter implements TextHeaderGetter<HttpHeaders> {
 
     @Override
     public <S> void forEach(String headerName, HttpHeaders carrier, S state, HeaderConsumer<String, S> consumer) {
-        List<String> values = carrier.get(headerName);
-        if (values == null) {
-            return;
-        }
+        List<String> values = carrier.getValuesAsList(headerName);
         for (int i = 0; i < values.size(); i++) {
             consumer.accept(values.get(i), state);
         }
