@@ -77,6 +77,9 @@ updates:
       # we do not have support for 5.x yet
       - dependency-name: "com.squareup.okhttp3:okhttp"
         update-types: [ "version-update:semver-major" ]
+      # Stay on major version 2.x
+      - dependency-name: "com.networknt:json-schema-validator"
+        update-types: [ "version-update:semver-major" ]
   - package-ecosystem: "maven"
     directory: "/apm-agent-plugins"
     schedule:
