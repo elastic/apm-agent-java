@@ -61,8 +61,8 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.Argument(0) ServerWebExchange exchange) {
 
-            List<String> upgradeHeader = exchange.getRequest().getHeaders().get("upgrade");
-            if (upgradeHeader != null && upgradeHeader.contains("websocket")) {
+            List<String> upgradeHeader = exchange.getRequest().getHeaders().getValuesAsList("upgrade");
+            if (upgradeHeader.contains("websocket")) {
                 // just ignore upgrade WS upgrade requests for now
                 return null;
             }
