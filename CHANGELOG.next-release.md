@@ -17,6 +17,7 @@ This file contains all changes which are not released yet.
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
 * Add experimental support for Spring Boot 4 / Spring Framework 7 in WebFlux instrumentation - [#4489](https://github.com/elastic/apm-agent-java/pull/4489)
+* Bump docker base image to Alpine 3.23.4 - [#4502](https://github.com/elastic/apm-agent-java/pull/4502)
 <!--ENHANCEMENTS-END-->
 # Deprecations
 <!--DEPRECATIONS-START-->
