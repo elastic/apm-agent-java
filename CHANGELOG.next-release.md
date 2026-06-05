@@ -13,6 +13,7 @@ This file contains all changes which are not released yet.
 * Fix unsupported-aggregation warning in OpenTelemetry metric SDK exporter to use SLF4J-style `{}` placeholders instead of `%s`, so the metric name and aggregation type are rendered in the log message - [#4466](https://github.com/elastic/apm-agent-java/pull/4466)
 * Stop OTel metrics exporter from throwing `IndexOutOfBoundsException` when a histogram has no explicit bucket boundaries - [#4465](https://github.com/elastic/apm-agent-java/pull/4465)
 * Cast to parent buffer for Java 8 buffer method compatibility - [#4498](https://github.com/elastic/apm-agent-java/pull/4498)
+* Minor fix to remove NPE noise if multiple APM URLs are invalid - [#4501](https://github.com/elastic/apm-agent-java/pull/4501)
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
