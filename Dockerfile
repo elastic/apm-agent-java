@@ -1,7 +1,7 @@
 # Pin to Alpine 3.23.4 linux/amd64
 # For a complete list of hashes, see:
 # https://github.com/docker-library/repo-info/tree/master/repos/alpine/remote
-FROM alpine@sha256:4d889c14e7d5a73929ab00be2ef8ff22437e7cbc545931e52554a7b00e123d8b
+FROM alpine@sha256:a2d49ea686c2adfe3c992e47dc3b5e7fa6e6b5055609400dc2acaeb241c829f4
 RUN mkdir /usr/agent
 ARG JAR_FILE
 ARG HANDLER_FILE
