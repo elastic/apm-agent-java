@@ -26,6 +26,20 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 % ### Fixes [elastic-apm-java-agent-versionext-fixes]
 
+## 1.56.0 [elastic-apm-java-agent-1-56-0-release-notes]
+**Release date:** June 15, 2026
+
+### Features and enhancements [elastic-apm-java-agent-1-56-0-features-enhancements]
+* Add experimental support for Spring Boot 4 / Spring Framework 7 in WebFlux instrumentation - [#4489](https://github.com/elastic/apm-agent-java/pull/4489)
+* Bump docker base image to Alpine 3.23.4 - [#4502](https://github.com/elastic/apm-agent-java/pull/4502)
+
+### Fixes [elastic-apm-java-agent-1-56-0-fixes]
+* Exclude `XmlLayout` class from log4j dependency - [#4459](https://github.com/elastic/apm-agent-java/pull/4459)
+* Fix unsupported-aggregation warning in OpenTelemetry metric SDK exporter to use SLF4J-style `{}` placeholders instead of `%s`, so the metric name and aggregation type are rendered in the log message - [#4466](https://github.com/elastic/apm-agent-java/pull/4466)
+* Stop OTel metrics exporter from throwing `IndexOutOfBoundsException` when a histogram has no explicit bucket boundaries - [#4465](https://github.com/elastic/apm-agent-java/pull/4465)
+* Cast to parent buffer for Java 8 buffer method compatibility - [#4498](https://github.com/elastic/apm-agent-java/pull/4498)
+* Minor fix to remove NPE noise if multiple APM URLs are invalid - [#4501](https://github.com/elastic/apm-agent-java/pull/4501)
+
 ## 1.55.6 [elastic-apm-java-agent-1-55-6-release-notes]
 **Release date:** April 15, 2026
 
