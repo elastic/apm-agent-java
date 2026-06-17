@@ -60,6 +60,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
@@ -318,7 +319,12 @@ public class WebfluxHelper {
         // This is the only way I could find to make a multiValueMap without having access
         // to the api from spring framework 7 that will work across versions 5, 6 and 7
         Map<String, List<String>> multiValueHeaderMap = source.toSingleValueMap().keySet()
-            .parallelStream().collect(Collectors.toMap(e -> e, key -> Objects.requireNonNull(source.get(key))));
+            .parallelStream().collect(Collectors.toMap(Function.identity(), new Function<>() {
+                @Override
+                public List<String> apply(String key) {
+                    return Objects.requireNonNull(source.get(key));
+                }
+            }));
         for (Map.Entry<String, List<String>> header : multiValueHeaderMap.entrySet()) {
             for (String value : header.getValue()) {
                 destination.add(header.getKey(), value);
