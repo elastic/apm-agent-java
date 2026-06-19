@@ -316,15 +316,12 @@ public class WebfluxHelper {
     }
 
     private static void copyHeaders(HttpHeaders source, PotentiallyMultiValuedMap destination) {
-        // This is the only way I could find to make a multiValueMap without having access
+        // This ensures we can make a MultiValueMap without having access
         // to the api from spring framework 7 that will work across versions 5, 6 and 7
+        Java7IdentityFunction identityFunction = new Java7IdentityFunction();
+        MultiValueCollectorFunction multiValueCollectorFunction = new MultiValueCollectorFunction(source);
         Map<String, List<String>> multiValueHeaderMap = source.toSingleValueMap().keySet()
-            .parallelStream().collect(Collectors.toMap(Function.identity(), new Function<>() {
-                @Override
-                public List<String> apply(String key) {
-                    return Objects.requireNonNull(source.get(key));
-                }
-            }));
+            .stream().collect(Collectors.toMap(identityFunction, multiValueCollectorFunction));
         for (Map.Entry<String, List<String>> header : multiValueHeaderMap.entrySet()) {
             for (String value : header.getValue()) {
                 destination.add(header.getKey(), value);
@@ -340,4 +337,27 @@ public class WebfluxHelper {
         }
     }
 
+    // Due to -source 7, lambdas cannot be used for the collector
+    private static class MultiValueCollectorFunction implements Function<String, List<String>> {
+        private final HttpHeaders source;
+
+        public MultiValueCollectorFunction(HttpHeaders source) {
+            this.source = source;
+        }
+
+        @Override
+        public List<String> apply(String key) {
+            return Objects.requireNonNull(source.getValuesAsList(key));
+        }
+    }
+
+    // Due to -source 7, static method invocations cannot be used
+    private static class Java7IdentityFunction implements Function<String, String> {
+        public Java7IdentityFunction() {}
+
+        @Override
+        public String apply(String key) {
+            return key;
+        }
+    }
 }
