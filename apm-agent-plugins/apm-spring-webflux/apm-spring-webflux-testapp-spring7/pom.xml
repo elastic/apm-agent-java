@@ -15,7 +15,7 @@
         <!-- for licence header plugin -->
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
 
-        <!-- this module is a test dependency, thus use same java version as tests -->
+        <!-- Spring boot 4 requires java 17-->
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
 
