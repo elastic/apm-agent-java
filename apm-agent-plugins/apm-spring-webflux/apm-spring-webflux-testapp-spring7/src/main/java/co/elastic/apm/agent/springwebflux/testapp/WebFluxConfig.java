@@ -19,7 +19,6 @@
 package co.elastic.apm.agent.springwebflux.testapp;
 
 
-
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -33,6 +32,7 @@ import org.springframework.boot.tomcat.TomcatProtocolHandlerCustomizer;
 import org.springframework.boot.tomcat.reactive.TomcatReactiveWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.client.ReactorResourceFactory;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
@@ -41,6 +41,7 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.firewall.StrictServerWebExchangeFirewall;
 import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
@@ -56,7 +57,6 @@ import org.springframework.web.reactive.socket.server.upgrade.StandardWebSocketU
 import reactor.core.publisher.Flux;
 
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebFlux
@@ -78,11 +78,11 @@ public class WebFluxConfig implements WebFluxConfigurer {
         ObjectProvider<TomcatProtocolHandlerCustomizer<?>> protocolHandlerCustomizers) {
         TomcatReactiveWebServerFactory factory = new TomcatReactiveWebServerFactory();
         factory.getConnectorCustomizers()
-            .addAll(connectorCustomizers.orderedStream().collect(Collectors.toList()));
+            .addAll(connectorCustomizers.orderedStream().toList());
         factory.getContextCustomizers()
-            .addAll(contextCustomizers.orderedStream().collect(Collectors.toList()));
+            .addAll(contextCustomizers.orderedStream().toList());
         factory.getProtocolHandlerCustomizers()
-            .addAll(protocolHandlerCustomizers.orderedStream().collect(Collectors.toList()));
+            .addAll(protocolHandlerCustomizers.orderedStream().toList());
         return factory;
     }
 
@@ -110,7 +110,7 @@ public class WebFluxConfig implements WebFluxConfigurer {
         NettyReactiveWebServerFactory serverFactory = new NettyReactiveWebServerFactory();
         serverFactory.setResourceFactory(resourceFactory);
         routes.orderedStream().forEach(serverFactory::addRouteProviders);
-        serverFactory.getServerCustomizers().addAll(serverCustomizers.orderedStream().collect(Collectors.toList()));
+        serverFactory.getServerCustomizers().addAll(serverCustomizers.orderedStream().toList());
         return serverFactory;
     }
 
@@ -158,8 +158,8 @@ public class WebFluxConfig implements WebFluxConfigurer {
             .csrf(ServerHttpSecurity.CsrfSpec::disable)
             .authorizeExchange(e ->
                 e.pathMatchers("/annotated/path-username").hasAnyAuthority("ROLE_USER")
-                .pathMatchers("/functional/path-username", "/functional/username", "/functional/preauthorized").hasAnyAuthority("ROLE_USER")
-                .pathMatchers("/**").permitAll())
+                    .pathMatchers("/functional/path-username", "/functional/username", "/functional/preauthorized").hasAnyAuthority("ROLE_USER")
+                    .pathMatchers("/**").permitAll())
             .httpBasic(Customizer.withDefaults())
             .build();
     }
@@ -173,4 +173,13 @@ public class WebFluxConfig implements WebFluxConfigurer {
                 .roles("USER")
                 .build());
     }
+
+    @Bean
+    @Primary
+    public StrictServerWebExchangeFirewall httpFirewall() {
+        StrictServerWebExchangeFirewall firewall = new StrictServerWebExchangeFirewall();
+        firewall.setUnsafeAllowAnyHttpMethod(true);
+        return firewall;
+    }
+
 }
