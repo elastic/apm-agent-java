@@ -247,7 +247,11 @@ public class CustomElementMatchers {
                     // does not yet establish an actual connection
                     URLConnection urlConnection = jarUrl.openConnection();
                     if (urlConnection instanceof JarURLConnection) {
-                        jarFile = ((JarURLConnection) urlConnection).getJarFile();
+                        JarURLConnection jarUrlConnection = (JarURLConnection)urlConnection;
+                        // disable caching otherwise closing jar might have side effects because it's cached and reused by the URLConnection
+                        // https://github.com/elastic/apm-agent-java/issues/4541
+                        jarUrlConnection.setUseCaches(false);
+                        jarFile = jarUrlConnection.getJarFile();
                     } else {
                         jarFile = new JarFile(new File(jarUrl.toURI()));
                     }
