@@ -10,6 +10,8 @@ This file contains all changes which are not released yet.
 # Fixes
 <!--FIXES-START-->
 
+* Fix `JarFile` obtained from a caching `JarURLConnection` being closed while still shared/in-use, which could crash Spring Boot executable jar startups - [#4541](https://github.com/elastic/apm-agent-java/issues/4541)
+
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->

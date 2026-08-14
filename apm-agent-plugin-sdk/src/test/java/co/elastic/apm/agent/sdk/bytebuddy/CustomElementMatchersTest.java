@@ -25,6 +25,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.JarURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -41,6 +43,8 @@ import java.security.ProtectionDomain;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.implementationVersionGte;
@@ -64,6 +68,28 @@ class CustomElementMatchersTest {
         URL originalUrl = HttpClient.class.getProtectionDomain().getCodeSource().getLocation();
         URL jarFileUrl = new URL("jar:" + originalUrl.toString() + "!/");
         testSemVerLteMatcher(new ProtectionDomain(new CodeSource(jarFileUrl, new CodeSigner[0]), null));
+    }
+
+    @Test
+    void testSemVerLteWithJarFileUrlDoesNotCloseSharedCachedJarFile() throws IOException {
+        // JarURLConnection#getJarFile() returns a shared cached JarFile instance by default (getUseCaches() == true).
+        // Reading the implementation version must not close that shared instance, as other code may still be using it.
+        URL originalUrl = HttpClient.class.getProtectionDomain().getCodeSource().getLocation();
+        URL jarFileUrl = new URL("jar:" + originalUrl.toString() + "!/");
+
+        JarURLConnection jarURLConnection = (JarURLConnection) jarFileUrl.openConnection();
+        assertThat(jarURLConnection.getUseCaches()).isTrue();
+        JarFile cachedJarFile = jarURLConnection.getJarFile();
+
+        ProtectionDomain protectionDomain = new ProtectionDomain(new CodeSource(jarFileUrl, new CodeSigner[0]), null);
+        assertThat(implementationVersionLte("5").matches(protectionDomain)).isTrue();
+
+        // the shared cached JarFile must still be usable after the matcher ran
+        JarEntry manifestEntry = cachedJarFile.getJarEntry("META-INF/MANIFEST.MF");
+        assertThat(manifestEntry).isNotNull();
+        try (InputStream input = cachedJarFile.getInputStream(manifestEntry)) {
+            assertThat(input.read()).isNotEqualTo(-1);
+        }
     }
 
     @Test

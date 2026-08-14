@@ -233,6 +233,7 @@ public class CustomElementMatchers {
     private static Version readImplementationVersion(@Nullable ProtectionDomain protectionDomain, @Nullable String mavenGroupId, @Nullable String mavenArtifactId) throws IOException, URISyntaxException {
         Version version = null;
         JarFile jarFile = null;
+        boolean closeJarFile = true;
 
         if (protectionDomain == null) {
             logger.info("Cannot read implementation version - got null ProtectionDomain");
@@ -247,7 +248,10 @@ public class CustomElementMatchers {
                     // does not yet establish an actual connection
                     URLConnection urlConnection = jarUrl.openConnection();
                     if (urlConnection instanceof JarURLConnection) {
-                        jarFile = ((JarURLConnection) urlConnection).getJarFile();
+                        JarURLConnection jarURLConnection = (JarURLConnection) urlConnection;
+                        // JarURLConnection may return a shared cached JarFile that must not be closed by the caller
+                        jarFile = jarURLConnection.getJarFile();
+                        closeJarFile = !jarURLConnection.getUseCaches();
                     } else {
                         jarFile = new JarFile(new File(jarUrl.toURI()));
                     }
@@ -291,7 +295,7 @@ public class CustomElementMatchers {
                 }
             }
         } finally {
-            if (jarFile != null) {
+            if (jarFile != null && closeJarFile) {
                 try {
                     jarFile.close();
                 } catch (IOException e) {
