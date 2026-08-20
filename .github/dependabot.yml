@@ -37,7 +37,6 @@ updates:
       - dependency-name: "com.datastax.cassandra:cassandra-driver-core"
       - dependency-name: "com.datastax.oss:java-driver-core"
       - dependency-name: "io.micrometer:*"
-      - dependency-name: "redis.clients:*"
       - dependency-name: "io.vertx:*"
       - dependency-name: "org.apache.logging.log4j:*"
       - dependency-name: "org.springframework.boot:*"
@@ -74,9 +73,6 @@ updates:
       - dependency-name: "com.amazonaws:aws-java-sdk-dynamodb"
       - dependency-name: "com.amazonaws:aws-java-sdk"
       - dependency-name: "software.amazon.awssdk:*"
-      # Each jedis module is intentionally pinned to a specific major version.
-      - dependency-name: "redis.clients:jedis"
-        update-types: [ "version-update:semver-major" ]
       # we do not have support for 5.x yet
       - dependency-name: "com.squareup.okhttp3:okhttp"
         update-types: [ "version-update:semver-major" ]
@@ -92,6 +88,64 @@ updates:
       - dependency-name: "com.amazonaws:aws-java-sdk-s3"
       - dependency-name: "com.amazonaws:aws-java-sdk-dynamodb"
       - dependency-name: "software.amazon.awssdk:*"
+
+  # Independent per-module jedis tracking. This setup prevents Dependabot from conflating
+  # all jedis versions into one PR. Each module is intentionally pinned to a
+  # specific major version of redis.clients:jedis.
+  - package-ecosystem: "maven"
+    directory: "/apm-agent-plugins/apm-redis-plugin/apm-jedis-plugin"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 1
+    allow:
+      - dependency-name: "redis.clients:jedis"
+    ignore:
+      - dependency-name: "redis.clients:jedis"
+        update-types: [ "version-update:semver-major" ]
+
+  - package-ecosystem: "maven"
+    directory: "/apm-agent-plugins/apm-redis-plugin/apm-jedis-2-tests"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 1
+    allow:
+      - dependency-name: "redis.clients:jedis"
+    ignore:
+      - dependency-name: "redis.clients:jedis"
+        update-types: [ "version-update:semver-major" ]
+
+  - package-ecosystem: "maven"
+    directory: "/apm-agent-plugins/apm-redis-plugin/apm-jedis-3-tests"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 1
+    allow:
+      - dependency-name: "redis.clients:jedis"
+    ignore:
+      - dependency-name: "redis.clients:jedis"
+        update-types: [ "version-update:semver-major" ]
+
+  - package-ecosystem: "maven"
+    directory: "/apm-agent-plugins/apm-redis-plugin/apm-jedis-4-plugin"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 1
+    allow:
+      - dependency-name: "redis.clients:jedis"
+    ignore:
+      - dependency-name: "redis.clients:jedis"
+        update-types: [ "version-update:semver-major" ]
+
+  - package-ecosystem: "maven"
+    directory: "/apm-agent-plugins/apm-redis-plugin/apm-jedis-5-tests"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 1
+    allow:
+      - dependency-name: "redis.clients:jedis"
+    ignore:
+      - dependency-name: "redis.clients:jedis"
+        update-types: [ "version-update:semver-major" ]
 
   - package-ecosystem: "github-actions"
     directories:
