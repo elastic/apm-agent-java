@@ -18,7 +18,9 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-public class Spring7ServerFunctionalInstrumentationTest extends Spring7Test {
+import co.elastic.apm.agent.testutils.Java17OnlyTest;
+
+public class Spring7ServerFunctionalInstrumentationTest extends Java17OnlyTest {
 
     public Spring7ServerFunctionalInstrumentationTest() {
         super(Impl.class);

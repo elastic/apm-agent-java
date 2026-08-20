@@ -102,7 +102,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <!-- explicit version required as bom will not cover plugins, only dependencies -->
-                <version>4.1.0</version>
+                <version>${version.spring-boot-4}</version>
                 <configuration>
                     <mainClass>co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication</mainClass>
                     <!-- by default original jar is replaced, which makes impossible to reuse as dependency -->
@@ -118,5 +118,21 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <!-- Spring Boot 4 / Spring Framework 7 requires junit 6 which requires java 17 -->
+            <id>testing-jdk-11</id>
+            <activation>
+                <property>
+                    <name>test_java_version</name>
+                    <value>11</value>
+                </property>
+            </activation>
+            <properties>
+                <skipTests>true</skipTests>
+            </properties>
+        </profile>
+    </profiles>
 
 </project>

@@ -40,6 +40,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.core.SpringVersion;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Hooks;
@@ -52,8 +53,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Predicate;
 
+import static io.netty.handler.codec.http.HttpHeaders.Values.APPLICATION_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
+import static org.springframework.http.MediaType.TEXT_PLAIN;
 
 public abstract class AbstractServerInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -142,8 +145,8 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
                 .describedAs("non-standard request headers should be captured")
                 .isEqualTo("12345");
 
-            assertThat(headers.getAll("Accept"))
-                .containsAll(List.of("text/plain" , "application/json"));
+            assertThat(MediaType.parseMediaTypes(headers.getAll("Accept")))
+                .contains(MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON);
 
             assertThat(request.getCookies()
                 .getFirst("cookie"))

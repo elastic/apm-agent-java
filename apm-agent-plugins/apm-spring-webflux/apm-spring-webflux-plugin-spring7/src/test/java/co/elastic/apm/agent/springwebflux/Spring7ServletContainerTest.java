@@ -18,5 +18,15 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-public class Spring7ServletContainerTest extends ServletContainerTest {
+import co.elastic.apm.agent.testutils.Java17OnlyTest;
+
+public class Spring7ServletContainerTest extends Java17OnlyTest {
+
+    public Spring7ServletContainerTest() {
+        super(Impl.class);
+    }
+
+    public static class Impl extends ServletContainerTest {
+
+    }
 }

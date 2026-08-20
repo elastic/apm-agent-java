@@ -18,7 +18,9 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-public class Spring7HeaderGetterTest extends Spring7Test {
+import co.elastic.apm.agent.testutils.Java17OnlyTest;
+
+public class Spring7HeaderGetterTest extends Java17OnlyTest {
 
     public Spring7HeaderGetterTest() {
         super(Impl.class);
