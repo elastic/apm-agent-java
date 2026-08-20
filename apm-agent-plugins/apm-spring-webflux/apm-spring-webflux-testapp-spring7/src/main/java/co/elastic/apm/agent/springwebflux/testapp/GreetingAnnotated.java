@@ -161,7 +161,7 @@ public class GreetingAnnotated {
                                                           @RequestParam(value = "duration", required = false, defaultValue = "5") long durationMillis,
                                                           @RequestParam(value = "delay", required = false, defaultValue = "5") long delayMillis) {
 
-        return greetingHandler.childSpans(count, durationMillis, delayMillis)
+        return greetingHandler.childSpans(count, delayMillis, durationMillis)
             .map(greetingHandler::toSSE);
     }
 

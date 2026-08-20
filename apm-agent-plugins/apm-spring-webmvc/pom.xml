@@ -15,6 +15,11 @@
         <!-- animal sniffer needs to be disabled to prevent analyzing spring-6 dependencies -->
         <animal.sniffer.skip>true</animal.sniffer.skip>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+
+        <!-- spring boot version to use for dependency management & testing -->
+        <version.spring-boot-2>2.7.16</version.spring-boot-2>
+        <version.spring-boot-3>3.5.7</version.spring-boot-3>
+        <version.spring-boot-4>4.1.0</version.spring-boot-4>
     </properties>
 
     <modules>
@@ -30,7 +35,7 @@
                 <!-- Import dependency management from Spring Boot -->
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>3.5.7</version> <!-- must be 3.X to correspond to spring 6 -->
+                <version>${version.spring-boot-3}</version> <!-- must be 3.X to correspond to spring 6 -->
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

@@ -59,6 +59,7 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -214,7 +215,7 @@ public class WebfluxHelper {
         }
         String method = "unknown";
         HttpMethod methodObj = exchange.getRequest().getMethod();
-        if(methodObj != null) {
+        if (methodObj != null) {
             method = methodObj.name();
         }
         StringBuilder transactionName = transaction.getAndOverrideName(namePriority, false);
@@ -316,17 +317,7 @@ public class WebfluxHelper {
     }
 
     private static void copyHeaders(HttpHeaders source, PotentiallyMultiValuedMap destination) {
-        // This ensures we can make a MultiValueMap without having access
-        // to the api from spring framework 7 that will work across versions 5, 6 and 7
-        Java7IdentityFunction identityFunction = new Java7IdentityFunction();
-        MultiValueCollectorFunction multiValueCollectorFunction = new MultiValueCollectorFunction(source);
-        Map<String, List<String>> multiValueHeaderMap = source.toSingleValueMap().keySet()
-            .stream().collect(Collectors.toMap(identityFunction, multiValueCollectorFunction));
-        for (Map.Entry<String, List<String>> header : multiValueHeaderMap.entrySet()) {
-            for (String value : header.getValue()) {
-                destination.add(header.getKey(), value);
-            }
-        }
+        source.forEach(new HeaderCopyConsumer(destination));
     }
 
     private static void copyCookies(MultiValueMap<String, HttpCookie> source, PotentiallyMultiValuedMap destination) {
@@ -337,27 +328,19 @@ public class WebfluxHelper {
         }
     }
 
-    // Due to -source 7, lambdas cannot be used for the collector
-    private static class MultiValueCollectorFunction implements Function<String, List<String>> {
-        private final HttpHeaders source;
+    private static class HeaderCopyConsumer implements BiConsumer<String, List<String>> {
 
-        public MultiValueCollectorFunction(HttpHeaders source) {
-            this.source = source;
+        private final PotentiallyMultiValuedMap destination;
+
+        private HeaderCopyConsumer(PotentiallyMultiValuedMap destination) {
+            this.destination = destination;
         }
 
         @Override
-        public List<String> apply(String key) {
-            return Objects.requireNonNull(source.getValuesAsList(key));
-        }
-    }
-
-    // Due to -source 7, static method invocations cannot be used
-    private static class Java7IdentityFunction implements Function<String, String> {
-        public Java7IdentityFunction() {}
-
-        @Override
-        public String apply(String key) {
-            return key;
+        public void accept(String key, List<String> values) {
+            for (String value : values) {
+                destination.add(key, value);
+            }
         }
     }
 }

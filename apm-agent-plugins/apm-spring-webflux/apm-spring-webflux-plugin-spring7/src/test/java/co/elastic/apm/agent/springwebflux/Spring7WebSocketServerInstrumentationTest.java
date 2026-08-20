@@ -19,5 +19,15 @@
 package co.elastic.apm.agent.springwebflux;
 
 
-public class Spring7WebSocketServerInstrumentationTest extends WebSocketServerInstrumentationTest {
+import co.elastic.apm.agent.testutils.Java17OnlyTest;
+
+public class Spring7WebSocketServerInstrumentationTest extends Java17OnlyTest {
+
+    public Spring7WebSocketServerInstrumentationTest() {
+        super(Impl.class);
+    }
+
+    public static class Impl extends WebSocketServerInstrumentationTest {
+
+    }
 }
