@@ -19,15 +19,18 @@
         <!-- spring boot version to use for dependency management & testing -->
         <version.spring-boot-2>2.7.16</version.spring-boot-2>
         <version.spring-boot-3>3.5.7</version.spring-boot-3>
+        <version.spring-boot-4>4.1.0</version.spring-boot-4>
     </properties>
 
     <modules>
         <module>apm-spring-webflux-plugin</module>
         <module>apm-spring-webclient-plugin</module>
         <module>apm-spring-webflux-testapp</module>
+        <module>apm-spring-webflux-testapp-spring7</module>
         <module>apm-spring-webflux-spring5</module>
         <module>apm-spring-webflux-common</module>
         <module>apm-spring-webflux-common-spring5</module>
+        <module>apm-spring-webflux-plugin-spring7</module>
     </modules>
 
     <dependencies>

@@ -58,7 +58,11 @@ import java.lang.reflect.Type;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
 import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_LOW_LEVEL_FRAMEWORK;
@@ -211,7 +215,7 @@ public class WebfluxHelper {
         }
         String method = "unknown";
         HttpMethod methodObj = exchange.getRequest().getMethod();
-        if(methodObj != null) {
+        if (methodObj != null) {
             method = methodObj.name();
         }
         StringBuilder transactionName = transaction.getAndOverrideName(namePriority, false);
@@ -313,11 +317,7 @@ public class WebfluxHelper {
     }
 
     private static void copyHeaders(HttpHeaders source, PotentiallyMultiValuedMap destination) {
-        for (Map.Entry<String, List<String>> header : source.entrySet()) {
-            for (String value : header.getValue()) {
-                destination.add(header.getKey(), value);
-            }
-        }
+        source.forEach(new HeaderCopyConsumer(destination));
     }
 
     private static void copyCookies(MultiValueMap<String, HttpCookie> source, PotentiallyMultiValuedMap destination) {
@@ -328,4 +328,19 @@ public class WebfluxHelper {
         }
     }
 
+    private static class HeaderCopyConsumer implements BiConsumer<String, List<String>> {
+
+        private final PotentiallyMultiValuedMap destination;
+
+        private HeaderCopyConsumer(PotentiallyMultiValuedMap destination) {
+            this.destination = destination;
+        }
+
+        @Override
+        public void accept(String key, List<String> values) {
+            for (String value : values) {
+                destination.add(key, value);
+            }
+        }
+    }
 }

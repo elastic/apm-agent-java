@@ -32,6 +32,7 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import reactor.core.CoreSubscriber;
 import reactor.core.Fuseable;
+import reactor.core.Fuseable.QueueSubscription;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Operators;
 import reactor.util.context.Context;
@@ -82,7 +83,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
         boolean hasActivated = doEnter("onSubscribe", context);
         Throwable thrown = null;
         try {
-            subscriber.onSubscribe(s);
+            subscriber.onSubscribe(wrapSubscription(s));
         } catch (Throwable e) {
             thrown = e;
             throw e;
@@ -185,6 +186,78 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
 
         // the current context has been activated on enter thus must be the active one
         context.deactivate();
+    }
+
+    /**
+     * Cancellation does not emit a terminal signal, so observe it explicitly instead of
+     * retaining the context until the TracedSubscriber can be garbage-collected.
+     */
+    @SuppressWarnings("unchecked")
+    private Subscription wrapSubscription(Subscription subscription) {
+
+        if (subscription instanceof QueueSubscription) {
+            return new CancellationAwareQueueSubscription((QueueSubscription<T>) subscription);
+        }
+        return new CancellationAwareSubscription(subscription);
+    }
+
+    private class CancellationAwareSubscription implements Subscription {
+
+        protected final Subscription delegate;
+
+        private CancellationAwareSubscription(Subscription delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void request(long n) {
+            delegate.request(n);
+        }
+
+        @Override
+        public void cancel() {
+            try {
+                delegate.cancel();
+            } finally {
+                discardIf(true);
+            }
+        }
+    }
+
+    private class CancellationAwareQueueSubscription extends CancellationAwareSubscription
+        implements QueueSubscription<T> {
+
+        private final QueueSubscription<T> delegate;
+
+        private CancellationAwareQueueSubscription(QueueSubscription<T> delegate) {
+            super(delegate);
+            this.delegate = delegate;
+        }
+
+        @Override
+        public int requestFusion(int requestedMode) {
+            return delegate.requestFusion(requestedMode);
+        }
+
+        @Override
+        public T poll() {
+            return delegate.poll();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return delegate.isEmpty();
+        }
+
+        @Override
+        public int size() {
+            return delegate.size();
+        }
+
+        @Override
+        public void clear() {
+            delegate.clear();
+        }
     }
 
     private void discardIf(boolean condition) {
