@@ -39,11 +39,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.core.SpringVersion;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
+import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -140,8 +142,8 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
                 .describedAs("non-standard request headers should be captured")
                 .isEqualTo("12345");
 
-            assertThat(headers.getFirst("Accept"))
-                .isEqualTo("text/plain, application/json");
+            assertThat(headers.getAll("Accept"))
+                .containsAll(List.of("text/plain" , "application/json"));
 
             assertThat(request.getCookies()
                 .getFirst("cookie"))
@@ -206,6 +208,15 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         // deal with API changes and deprecation in an ugly way
         try {
             return exception.getStatusCode().value();
+        } catch (Exception | Error e) {
+            // silently ignored
+        }
+        try {
+            // Due to the many breaking changes in the spring framework API in version 7, we have to access the status code through reflection.
+            // This will check if it can retrieve the int code via the HttpStatus.value() method, as getRawStatusCode() has been removed in 7
+            Field statusCode = exception.getClass().getSuperclass().getDeclaredField("statusCode");
+            statusCode.setAccessible(true);
+            return ((HttpStatus)statusCode.get(exception)).value();
         } catch (Exception | Error e) {
             // silently ignored
         }
