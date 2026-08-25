@@ -93,4 +93,20 @@
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <!-- Spring Boot 4 / Spring Framework 7 requires junit 6 which requires java 17 -->
+            <id>testing-jdk-11</id>
+            <activation>
+                <property>
+                    <name>test_java_version</name>
+                    <value>11</value>
+                </property>
+            </activation>
+            <properties>
+                <skipTests>true</skipTests>
+            </properties>
+        </profile>
+    </profiles>
+
 </project>

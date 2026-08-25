@@ -11,7 +11,7 @@ This file contains all changes which are not released yet.
 <!--FIXES-START-->
 
 - avoid caching when reading version from jar to prevent side effects - [#4543](https://github.com/elastic/apm-agent-java/pull/4543)
-- fix Spring Webflux 7 NoSuchMethodError on HttpHeaders#entrySet()
+- fix Spring Webflux 7 NoSuchMethodError on HttpHeaders#entrySet() - [#4556](https://github.com/elastic/apm-agent-java/pull/4556)
 
 <!--FIXES-END-->
 # Features and enhancements

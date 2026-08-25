@@ -19,7 +19,7 @@
 package co.elastic.apm.agent.testutils;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledOnJre;
+import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
 import org.junit.platform.launcher.Launcher;
 import org.junit.platform.launcher.LauncherDiscoveryRequest;
@@ -49,7 +49,7 @@ public abstract class Java17OnlyTest {
     }
 
     @Test
-    @EnabledOnJre(JRE.JAVA_17)
+    @EnabledForJreRange(min = JRE.JAVA_17, max = JRE.JAVA_25)
     public void runTests() {
         LauncherDiscoveryRequest request = LauncherDiscoveryRequestBuilder.request()
             .selectors(selectClass(actualTestClass))

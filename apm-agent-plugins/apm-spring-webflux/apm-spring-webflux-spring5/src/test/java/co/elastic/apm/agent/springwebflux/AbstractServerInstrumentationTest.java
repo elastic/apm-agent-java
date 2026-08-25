@@ -53,10 +53,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Predicate;
 
-import static io.netty.handler.codec.http.HttpHeaders.Values.APPLICATION_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
-import static org.springframework.http.MediaType.TEXT_PLAIN;
 
 public abstract class AbstractServerInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -146,7 +144,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
                 .isEqualTo("12345");
 
             assertThat(MediaType.parseMediaTypes(headers.getAll("Accept")))
-                .contains(MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON);
+                .containsExactly(MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON);
 
             assertThat(request.getCookies()
                 .getFirst("cookie"))
