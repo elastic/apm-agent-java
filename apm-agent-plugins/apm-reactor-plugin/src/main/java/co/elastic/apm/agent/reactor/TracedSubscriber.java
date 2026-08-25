@@ -23,6 +23,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -32,7 +33,6 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import reactor.core.CoreSubscriber;
 import reactor.core.Fuseable;
-import reactor.core.Fuseable.QueueSubscription;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Operators;
 import reactor.util.context.Context;
@@ -49,6 +49,8 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
     private static final AtomicBoolean isRegistered = GlobalVariables.get(ReactorInstrumentation.class, "reactor-hook-enabled", new AtomicBoolean(false));
 
     private static final ReferenceCountedMap<TracedSubscriber<?>, TraceState<?>> contextMap = GlobalTracer.get().newReferenceCountedMap();
+
+    private static final WeakMap<Subscription, WeakSet<TracedSubscriber<?>>> subscriptionMap = WeakConcurrent.buildMap();
 
     private static final String HOOK_KEY = "elastic-apm";
 
@@ -83,7 +85,8 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
         boolean hasActivated = doEnter("onSubscribe", context);
         Throwable thrown = null;
         try {
-            subscriber.onSubscribe(wrapSubscription(s));
+            registerSubscription(s);
+            subscriber.onSubscribe(s);
         } catch (Throwable e) {
             thrown = e;
             throw e;
@@ -188,75 +191,29 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
         context.deactivate();
     }
 
-    /**
-     * Cancellation does not emit a terminal signal, so observe it explicitly instead of
-     * retaining the context until the TracedSubscriber can be garbage-collected.
-     */
-    @SuppressWarnings("unchecked")
-    private Subscription wrapSubscription(Subscription subscription) {
-
-        if (subscription instanceof QueueSubscription) {
-            return new CancellationAwareQueueSubscription((QueueSubscription<T>) subscription);
-        }
-        return new CancellationAwareSubscription(subscription);
-    }
-
-    private class CancellationAwareSubscription implements Subscription {
-
-        protected final Subscription delegate;
-
-        private CancellationAwareSubscription(Subscription delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public void request(long n) {
-            delegate.request(n);
-        }
-
-        @Override
-        public void cancel() {
-            try {
-                delegate.cancel();
-            } finally {
-                discardIf(true);
+    private void registerSubscription(Subscription subscription) {
+        WeakSet<TracedSubscriber<?>> subscribers = subscriptionMap.get(subscription);
+        if (subscribers == null) {
+            WeakSet<TracedSubscriber<?>> newSubscribers = WeakConcurrent.buildSet();
+            subscribers = subscriptionMap.putIfAbsent(subscription, newSubscribers);
+            if (subscribers == null) {
+                subscribers = newSubscribers;
             }
         }
+        subscribers.add(this);
     }
 
-    private class CancellationAwareQueueSubscription extends CancellationAwareSubscription
-        implements QueueSubscription<T> {
-
-        private final QueueSubscription<T> delegate;
-
-        private CancellationAwareQueueSubscription(QueueSubscription<T> delegate) {
-            super(delegate);
-            this.delegate = delegate;
+    /**
+     * Cancellation does not emit a terminal signal, so it is observed by
+     * {@link SubscriptionCancelInstrumentation} instead.
+     */
+    static void onCancel(Subscription subscription) {
+        WeakSet<TracedSubscriber<?>> subscribers = subscriptionMap.remove(subscription);
+        if (subscribers == null) {
+            return;
         }
-
-        @Override
-        public int requestFusion(int requestedMode) {
-            return delegate.requestFusion(requestedMode);
-        }
-
-        @Override
-        public T poll() {
-            return delegate.poll();
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return delegate.isEmpty();
-        }
-
-        @Override
-        public int size() {
-            return delegate.size();
-        }
-
-        @Override
-        public void clear() {
-            delegate.clear();
+        for (TracedSubscriber<?> subscriber : subscribers) {
+            subscriber.discardIf(true);
         }
     }
 
