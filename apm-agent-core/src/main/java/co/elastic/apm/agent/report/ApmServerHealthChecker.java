@@ -100,7 +100,13 @@ public class ApmServerHealthChecker implements Callable<Version> {
                 return null;
             }
         });
-        versions.remove(null);
+        return getMinVersionOrUnknown(versions);
+    }
+
+    static Version getMinVersionOrUnknown(List<Version> versions) {
+        while (versions.remove(null)) {
+            // remove all unavailable server results before comparing versions
+        }
         if (!versions.isEmpty()) {
             return Collections.min(versions);
         }

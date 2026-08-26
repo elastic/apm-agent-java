@@ -576,7 +576,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             } else {
                 int position = activationEventsBuffer.position();
                 activationsFile.write(activationEventsBuffer);
-                activationEventsBuffer.position(position);
+                ((Buffer) activationEventsBuffer).position(position);
             }
         }
         Files.copy(jfrFile.toPath(), profilerDir.resolve(now + "-traces.jfr"));

@@ -22,6 +22,9 @@ import co.elastic.apm.agent.common.util.Version;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,5 +41,26 @@ class ApmServerHealthCheckerTest {
         // 6.x
         body = "{\"ok\":{\"build_date\":\"2021-10-13T17:29:41Z\",\"build_sha\":\"04a84d8d3d0358af5e73b3581c4ba37fbdbc979e\",\"version\":\"6.8.20\"}}";
         assertThat(ApmServerHealthChecker.parseVersion(body).compareTo(Version.of("6.8.20"))).isEqualTo(0);
+    }
+
+    @Test
+    void testMinVersionIgnoresUnavailableServers() {
+        List<Version> versions = new ArrayList<>(Arrays.asList(
+            Version.of("8.0.0"),
+            null,
+            Version.of("7.17.0"),
+            null
+        ));
+
+        assertThat(ApmServerHealthChecker.getMinVersionOrUnknown(versions))
+            .isEqualTo(Version.of("7.17.0"));
+    }
+
+    @Test
+    void testMinVersionReturnsUnknownWhenAllServersUnavailable() {
+        List<Version> versions = new ArrayList<>(Arrays.asList(null, null));
+
+        assertThat(ApmServerHealthChecker.getMinVersionOrUnknown(versions))
+            .isEqualTo(ApmServerHealthChecker.UNKNOWN_VERSION);
     }
 }

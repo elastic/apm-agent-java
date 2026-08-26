@@ -9,13 +9,13 @@ This file contains all changes which are not released yet.
 
 # Fixes
 <!--FIXES-START-->
-* Exclude `XmlLayout` class from log4j dependency - [#4459](https://github.com/elastic/apm-agent-java/pull/4459)
-* Fix unsupported-aggregation warning in OpenTelemetry metric SDK exporter to use SLF4J-style `{}` placeholders instead of `%s`, so the metric name and aggregation type are rendered in the log message - [#4466](https://github.com/elastic/apm-agent-java/pull/4466)
-* Stop OTel metrics exporter from throwing `IndexOutOfBoundsException` when a histogram has no explicit bucket boundaries
+
+- avoid caching when reading version from jar to prevent side effects - [#4543](https://github.com/elastic/apm-agent-java/pull/4543)
+
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
-* Add experimental support for Spring Boot 4 / Spring Framework 7 in WebFlux instrumentation
+
 <!--ENHANCEMENTS-END-->
 # Deprecations
 <!--DEPRECATIONS-START-->

@@ -1154,7 +1154,7 @@ public class DslJsonSerializer {
                 CharBuffer charBuffer = charBufferHandle.get();
                 try {
                     decodeRequestBodyBytes(requestBody, charBuffer);
-                    charBuffer.flip();
+                    ((Buffer) charBuffer).flip();
                     jw.writeString(charBuffer);
                 } finally {
                     ((Buffer) charBuffer).clear();
@@ -1166,7 +1166,7 @@ public class DslJsonSerializer {
             CharSequence charset = requestBody.getCharset();
             List<ByteBuffer> encodedBuffers = requestBody.getBody();
             for (ByteBuffer buffer : encodedBuffers) {
-                buffer.flip(); //make ready for reading
+                ((Buffer) buffer).flip(); //make ready for reading
             }
 
             if (charset != null) {

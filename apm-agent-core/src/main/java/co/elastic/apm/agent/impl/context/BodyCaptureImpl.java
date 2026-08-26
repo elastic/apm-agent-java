@@ -27,6 +27,7 @@ import co.elastic.apm.agent.tracer.pooling.Recyclable;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
 import javax.annotation.Nullable;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +46,7 @@ public class BodyCaptureImpl implements BodyCapture, Recyclable {
         new Resetter<ByteBuffer>() {
             @Override
             public void recycle(ByteBuffer object) {
-                object.clear();
+                ((Buffer) object).clear();
             }
         });
 
