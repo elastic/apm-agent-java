@@ -228,7 +228,10 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
         transaction = startTestRootTransaction("root");
         int initialReferenceCount = transaction.getReferenceCount();
 
-        StepVerifier.create(Flux.never())
+        Flux<Integer> flux = Flux.just(1, 2, 3)
+            .subscribeOn(SUBSCRIBE_SCHEDULER);
+
+        StepVerifier.create(flux.log())
             .thenCancel()
             .verify();
 
