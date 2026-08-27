@@ -310,7 +310,7 @@ jobs:
             distribution: 'temurin'
           - version: 25
             distribution: 'temurin'
-          - version: '26-ea'
+          - version: '27-ea'
             distribution: 'temurin'
     steps:
       - uses: actions/checkout@v7
