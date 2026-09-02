@@ -70,6 +70,7 @@ public class WebfluxHelper {
     private static final String FRAMEWORK_NAME = "Spring Webflux";
 
     private static final Logger log = LoggerFactory.getLogger(WebfluxHelper.class);
+    private static final Logger oneTimeResponseHeadersErrorLogger = LoggerUtils.logOnce(log);
     private static final Logger oneTimeResponseCodeErrorLogger = LoggerUtils.logOnce(log);
 
     public static final String TRANSACTION_ATTRIBUTE = WebfluxHelper.class.getName() + ".transaction";
@@ -304,7 +305,11 @@ public class WebfluxHelper {
         Response response = transaction.getContext().getResponse();
 
         if (coreConfig.isCaptureHeaders()) {
-            copyHeaders(serverResponse.getHeaders(), response.getHeaders());
+            try {
+                copyHeaders(serverResponse.getHeaders(), response.getHeaders());
+            } catch (RuntimeException e) {
+                oneTimeResponseHeadersErrorLogger.error("Failed to capture response headers", e);
+            }
         }
 
         response

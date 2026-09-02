@@ -87,8 +87,11 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T>, Subscription {
 
     @Override
     public void cancel() {
-        subscription.cancel();
-        cancelTransaction();
+        try {
+            cancelTransaction();
+        } finally {
+            subscription.cancel();
+        }
     }
 
     /**
