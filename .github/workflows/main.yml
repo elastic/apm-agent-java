@@ -312,6 +312,7 @@ jobs:
             distribution: 'temurin'
           - version: '27-ea'
             distribution: 'temurin'
+            maven_test_args: '-Dnet.bytebuddy.safe=false'
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/workflows/maven-goal-jdk
@@ -320,7 +321,7 @@ jobs:
           test-java-distribution: ${{ matrix.distribution }}
           command: ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true
       - name: Run tests for ${{ matrix.version }}:${{ matrix.distribution }}
-        run: ./mvnw test -Delastic.jdkCompatibilityTest=true -Dtest_java_binary=${{ env.TEST_JAVA_BINARY }} -Dtest_java_version=${{ matrix.version }}
+        run: ./mvnw test -Delastic.jdkCompatibilityTest=true -Dtest_java_binary=${{ env.TEST_JAVA_BINARY }} -Dtest_java_version=${{ matrix.version }} ${{ matrix.maven_test_args }}
       - name: Store test results
         if: success() || failure()
         uses: actions/upload-artifact@v7
