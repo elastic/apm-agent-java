@@ -23,18 +23,24 @@ import co.elastic.apm.agent.impl.baggage.BaggageContext;
 import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.TraceState;
+import org.reactivestreams.Subscription;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.CoreSubscriber;
+import reactor.core.Fuseable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
+import reactor.util.context.Context;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -238,6 +244,88 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
             .thenCancel()
             .verify();
 
+        assertThat(transaction.getReferenceCount()).isEqualTo(initialReferenceCount);
+    }
+
+    @Test
+    void cancelledQueueSubscription_releasedContextAndPreservedFusion() {
+        transaction = startTestRootTransaction("root");
+        int initialReferenceCount = transaction.getReferenceCount();
+        final AtomicReference<Subscription> downstreamSubscription = new AtomicReference<Subscription>();
+
+        CoreSubscriber<Integer> subscriber = new CoreSubscriber<Integer>() {
+            @Override
+            public void onSubscribe(Subscription subscription) {
+                downstreamSubscription.set(subscription);
+            }
+
+            @Override
+            public void onNext(Integer value) {
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+            }
+
+            @Override
+            public void onComplete() {
+            }
+
+            @Override
+            public Context currentContext() {
+                return Context.empty();
+            }
+        };
+
+        TracedSubscriber<Integer> tracedSubscriber = new TracedSubscriber<Integer>(subscriber, tracer, transaction);
+        assertThat(transaction.getReferenceCount()).isEqualTo(initialReferenceCount + 1);
+
+        final AtomicBoolean cancelled = new AtomicBoolean();
+        Fuseable.QueueSubscription<Integer> upstreamSubscription = new Fuseable.QueueSubscription<Integer>() {
+            @Override
+            public int requestFusion(int requestedMode) {
+                return Fuseable.SYNC;
+            }
+
+            @Override
+            public Integer poll() {
+                return null;
+            }
+
+            @Override
+            public boolean isEmpty() {
+                return true;
+            }
+
+            @Override
+            public int size() {
+                return 0;
+            }
+
+            @Override
+            public void clear() {
+            }
+
+            @Override
+            public void request(long n) {
+            }
+
+            @Override
+            public void cancel() {
+                cancelled.set(true);
+            }
+        };
+
+        tracedSubscriber.onSubscribe(upstreamSubscription);
+
+        Subscription wrappedSubscription = downstreamSubscription.get();
+        assertThat(wrappedSubscription).isInstanceOf(Fuseable.QueueSubscription.class);
+        assertThat(((Fuseable.QueueSubscription<?>) wrappedSubscription).requestFusion(Fuseable.ANY))
+            .isEqualTo(Fuseable.SYNC);
+
+        wrappedSubscription.cancel();
+
+        assertThat(cancelled).isTrue();
         assertThat(transaction.getReferenceCount()).isEqualTo(initialReferenceCount);
     }
 

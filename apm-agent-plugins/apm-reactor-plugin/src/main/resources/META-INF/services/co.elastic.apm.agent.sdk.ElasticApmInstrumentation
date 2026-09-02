@@ -1,2 +1,1 @@
 co.elastic.apm.agent.reactor.ReactorInstrumentation
-co.elastic.apm.agent.reactor.SubscriptionCancelInstrumentation

@@ -23,7 +23,6 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
-import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -33,11 +32,14 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import reactor.core.CoreSubscriber;
 import reactor.core.Fuseable;
+import reactor.core.Fuseable.QueueSubscription;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Operators;
 import reactor.util.context.Context;
 
 import javax.annotation.Nullable;
+import java.util.AbstractQueue;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -49,8 +51,6 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
     private static final AtomicBoolean isRegistered = GlobalVariables.get(ReactorInstrumentation.class, "reactor-hook-enabled", new AtomicBoolean(false));
 
     private static final ReferenceCountedMap<TracedSubscriber<?>, TraceState<?>> contextMap = GlobalTracer.get().newReferenceCountedMap();
-
-    private static final WeakMap<Subscription, WeakSet<TracedSubscriber<?>>> subscriptionMap = WeakConcurrent.buildMap();
 
     private static final String HOOK_KEY = "elastic-apm";
 
@@ -85,8 +85,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
         boolean hasActivated = doEnter("onSubscribe", context);
         Throwable thrown = null;
         try {
-            registerSubscription(s);
-            subscriber.onSubscribe(s);
+            subscriber.onSubscribe(wrapSubscription(s));
         } catch (Throwable e) {
             thrown = e;
             throw e;
@@ -130,7 +129,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
             subscriber.onError(t);
         } finally {
             doExit(hasActivated, "onError", context);
-            discardIf(true);
+            discard();
         }
     }
 
@@ -145,7 +144,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
             subscriber.onComplete();
         } finally {
             doExit(hasActivated, "onComplete", context);
-            discardIf(true);
+            discard();
         }
     }
 
@@ -191,36 +190,114 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
         context.deactivate();
     }
 
-    private void registerSubscription(Subscription subscription) {
-        WeakSet<TracedSubscriber<?>> subscribers = subscriptionMap.get(subscription);
-        if (subscribers == null) {
-            WeakSet<TracedSubscriber<?>> newSubscribers = WeakConcurrent.buildSet();
-            subscribers = subscriptionMap.putIfAbsent(subscription, newSubscribers);
-            if (subscribers == null) {
-                subscribers = newSubscribers;
-            }
+    /**
+     * Cancellation does not emit a terminal signal, so observe it explicitly instead of
+     * retaining the context until the TracedSubscriber can be garbage-collected.
+     */
+    @SuppressWarnings("unchecked")
+    private Subscription wrapSubscription(Subscription subscription) {
+        if (subscription instanceof QueueSubscription) {
+            return new CancellationAwareQueueSubscription((QueueSubscription<T>) subscription);
         }
-        subscribers.add(this);
+        return new CancellationAwareSubscription(subscription);
     }
 
-    /**
-     * Cancellation does not emit a terminal signal, so it is observed by
-     * {@link SubscriptionCancelInstrumentation} instead.
-     */
-    static void onCancel(Subscription subscription) {
-        WeakSet<TracedSubscriber<?>> subscribers = subscriptionMap.remove(subscription);
-        if (subscribers == null) {
-            return;
+    private class CancellationAwareSubscription implements Subscription {
+
+        private final Subscription delegate;
+
+        private CancellationAwareSubscription(Subscription delegate) {
+            this.delegate = delegate;
         }
-        for (TracedSubscriber<?> subscriber : subscribers) {
-            subscriber.discardIf(true);
+
+        @Override
+        public void request(long n) {
+            delegate.request(n);
+        }
+
+        @Override
+        public void cancel() {
+            cancelAndDiscard(delegate);
+        }
+    }
+
+    // QueueSubscription provides Java 8 default Queue methods, while this plugin targets Java 7.
+    // AbstractQueue supplies that compatibility bridge so only the meaningful operations need forwarding.
+    private class CancellationAwareQueueSubscription extends AbstractQueue<T>
+        implements QueueSubscription<T> {
+
+        private final QueueSubscription<T> delegate;
+
+        private CancellationAwareQueueSubscription(QueueSubscription<T> delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void request(long n) {
+            delegate.request(n);
+        }
+
+        @Override
+        public void cancel() {
+            cancelAndDiscard(delegate);
+        }
+
+        @Override
+        public int requestFusion(int requestedMode) {
+            return delegate.requestFusion(requestedMode);
+        }
+
+        @Override
+        public T poll() {
+            return delegate.poll();
+        }
+
+        @Override
+        public T peek() {
+            return delegate.peek();
+        }
+
+        @Override
+        public boolean offer(T value) {
+            return delegate.offer(value);
+        }
+
+        @Override
+        public Iterator<T> iterator() {
+            return delegate.iterator();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return delegate.isEmpty();
+        }
+
+        @Override
+        public int size() {
+            return delegate.size();
+        }
+
+        @Override
+        public void clear() {
+            delegate.clear();
+        }
+    }
+
+    private void cancelAndDiscard(Subscription subscription) {
+        try {
+            subscription.cancel();
+        } finally {
+            discard();
         }
     }
 
     private void discardIf(boolean condition) {
-        if (!condition) {
-            return;
+        if (condition) {
+            discard();
         }
+    }
+
+    private void discard() {
         contextMap.remove(this);
     }
 
