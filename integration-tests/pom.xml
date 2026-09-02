@@ -29,7 +29,6 @@
         <module>jakartaee-jsf-app</module>
         <module>main-app-test</module>
         <module>spring-boot-3</module>
-        <module>spring-boot-4</module>
         <module>aws-lambda-test</module>
     </modules>
 
@@ -38,5 +37,20 @@
         <!-- integration tests do not require javadoc -->
         <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
+
+    <profiles>
+        <profile>
+            <id>spring-boot-4-supported-jdk</id>
+            <activation>
+                <property>
+                    <name>test_java_version</name>
+                    <value>!11</value>
+                </property>
+            </activation>
+            <modules>
+                <module>spring-boot-4</module>
+            </modules>
+        </profile>
+    </profiles>
 
 </project>
