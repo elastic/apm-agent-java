@@ -91,7 +91,10 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
 
         // ensure clean as new hooks setup for all tests (some might have removed it)
         TracedSubscriber.unregisterHooks();
-        TracedSubscriber.registerHooks(tracer);
+        // Register through ReactorInstrumentation so the hook and the cancel advice use
+        // TracedSubscriber classes loaded by the same plugin class loader.
+        Mono.just(1);
+        checkHookRegistration(true, "hook should be registered automatically after each test");
 
         flushGcExpiry(3);
     }

@@ -20,6 +20,7 @@ package co.elastic.apm.agent.reactor;
 
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -29,8 +30,10 @@ import java.util.Collection;
 import java.util.Collections;
 
 import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -43,8 +46,15 @@ public class SubscriptionCancelInstrumentation extends ElasticApmInstrumentation
     }
 
     @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("Subscriber").or(nameContains("Subscription"));
+    }
+
+    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface()).and(hasSuperType(named("org.reactivestreams.Subscription")));
+        return not(isInterface())
+            .and(declaresMethod(getMethodMatcher()))
+            .and(hasSuperType(named("org.reactivestreams.Subscription")));
     }
 
     @Override
