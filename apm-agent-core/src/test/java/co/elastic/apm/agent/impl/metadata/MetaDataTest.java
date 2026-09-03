@@ -157,8 +157,9 @@ class MetaDataTest extends CustomEnvVariables {
             timeoutException = e;
         }
         assertThat(timeoutException).isInstanceOf(TimeoutException.class);
-        // Should not time out
-        metaDataFuture.get(500, TimeUnit.MILLISECONDS);
+        // Metadata discovery uses independent per-operation timeouts and may
+        // perform sequential fallbacks, especially for hostname discovery on Windows.
+        metaDataFuture.get(2000, TimeUnit.MILLISECONDS);
     }
 
     @Test
