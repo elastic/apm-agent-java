@@ -91,7 +91,10 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
 
         // ensure clean as new hooks setup for all tests (some might have removed it)
         TracedSubscriber.unregisterHooks();
-        TracedSubscriber.registerHooks(tracer);
+        // Register through ReactorInstrumentation so the hook and the cancel advice use
+        // TracedSubscriber classes loaded by the same plugin class loader.
+        Mono.just(1);
+        checkHookRegistration(true, "hook should be registered automatically after each test");
 
         flushGcExpiry(3);
     }
@@ -221,6 +224,21 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
 
         StepVerifier.create(flux.log())
             .verifyErrorMatches(t -> t == error);
+    }
+
+    @Test
+    void cancelledSubscription_releasedContext() {
+        transaction = startTestRootTransaction("root");
+        int initialReferenceCount = transaction.getReferenceCount();
+
+        Flux<Integer> flux = Flux.just(1, 2, 3)
+            .subscribeOn(SUBSCRIBE_SCHEDULER);
+
+        StepVerifier.create(flux.log())
+            .thenCancel()
+            .verify();
+
+        assertThat(transaction.getReferenceCount()).isEqualTo(initialReferenceCount);
     }
 
     @Test

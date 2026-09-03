@@ -8,16 +8,16 @@
         <version>1.56.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>apm-spring-webflux-testapp</artifactId>
+    <artifactId>apm-spring-webflux-testapp-spring7</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
         <!-- for licence header plugin -->
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
 
-        <!-- this module is a test dependency, thus use same java version as tests -->
-        <maven.compiler.source>${maven.compiler.testTarget}</maven.compiler.source>
-        <maven.compiler.target>${maven.compiler.testTarget}</maven.compiler.target>
+        <!-- Spring boot 4 requires java 17-->
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
 
         <!-- disable signature check as it's a test application -->
         <animal.sniffer.skip>true</animal.sniffer.skip>
@@ -29,7 +29,7 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>${version.spring-boot-2}</version>
+                <version>${version.spring-boot-4}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -118,5 +118,21 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <!-- Spring Boot 4 / Spring Framework 7 requires junit 6 which requires java 17 -->
+            <id>testing-jdk-11</id>
+            <activation>
+                <property>
+                    <name>test_java_version</name>
+                    <value>11</value>
+                </property>
+            </activation>
+            <properties>
+                <skipTests>true</skipTests>
+            </properties>
+        </profile>
+    </profiles>
 
 </project>

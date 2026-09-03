@@ -35,21 +35,21 @@ import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass
  * Why not just put @EnabledForJreRange directly on the test classes?
  * JUnit reflectively loads the target class when discovering tests.
  * Because of spring, the tests contain references/annotations compiled with Java 17.
- * This in turn leads to UnsupportedClassVersionErrors before JUnit can evaluate the @EnableForJRERange when running on older java versions (e.g. 11).
+ * This in turn leads to UnsupportedClassVersionErrors before JUnit can evaluate the @EnabledForJreRange when running on older java versions (e.g. 11).
  * <p>
  * Therefore, this class can be used to wrap tests, as it programmatically triggers the test execution.
  * The actual test implementation should not be named *Test to not be discovered by the maven surefire plugin.
  */
 public abstract class Java17OnlyTest {
 
-    private Class<?> actualTestClass;
+    private final Class<?> actualTestClass;
 
     public Java17OnlyTest(Class<?> testClazz) {
         this.actualTestClass = testClazz;
     }
 
-    @EnabledForJreRange(min = JRE.JAVA_17)
     @Test
+    @EnabledForJreRange(min = JRE.JAVA_17, max = JRE.JAVA_25)
     public void runTests() {
         LauncherDiscoveryRequest request = LauncherDiscoveryRequestBuilder.request()
             .selectors(selectClass(actualTestClass))

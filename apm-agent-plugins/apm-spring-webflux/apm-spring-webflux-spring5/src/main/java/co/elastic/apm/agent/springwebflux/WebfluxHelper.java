@@ -19,22 +19,22 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.httpserver.HttpServerHelper;
+import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
+import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
 import co.elastic.apm.agent.sdk.internal.util.VersionUtils;
-import co.elastic.apm.agent.tracer.GlobalTracer;
-import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
-import co.elastic.apm.agent.tracer.util.ResultUtil;
-import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
-import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
-import co.elastic.apm.agent.tracer.Tracer;
-import co.elastic.apm.agent.tracer.Transaction;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.tracer.GlobalTracer;
+import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.Transaction;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import co.elastic.apm.agent.tracer.configuration.WebConfiguration;
+import co.elastic.apm.agent.tracer.metadata.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.tracer.metadata.Request;
 import co.elastic.apm.agent.tracer.metadata.Response;
-import co.elastic.apm.agent.sdk.internal.util.LoggerUtils;
-import co.elastic.apm.agent.sdk.internal.util.PrivilegedActionUtils;
+import co.elastic.apm.agent.tracer.util.ResultUtil;
 import co.elastic.apm.agent.tracer.util.TransactionNameUtils;
 import co.elastic.apm.agent.webfluxcommon.SpringWebVersionUtils;
 import org.reactivestreams.Publisher;
@@ -58,6 +58,7 @@ import java.lang.reflect.Type;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import static co.elastic.apm.agent.tracer.AbstractSpan.PRIORITY_HIGH_LEVEL_FRAMEWORK;
@@ -69,6 +70,7 @@ public class WebfluxHelper {
     private static final String FRAMEWORK_NAME = "Spring Webflux";
 
     private static final Logger log = LoggerFactory.getLogger(WebfluxHelper.class);
+    private static final Logger oneTimeResponseHeadersErrorLogger = LoggerUtils.logOnce(log);
     private static final Logger oneTimeResponseCodeErrorLogger = LoggerUtils.logOnce(log);
 
     public static final String TRANSACTION_ATTRIBUTE = WebfluxHelper.class.getName() + ".transaction";
@@ -211,7 +213,7 @@ public class WebfluxHelper {
         }
         String method = "unknown";
         HttpMethod methodObj = exchange.getRequest().getMethod();
-        if(methodObj != null) {
+        if (methodObj != null) {
             method = methodObj.name();
         }
         StringBuilder transactionName = transaction.getAndOverrideName(namePriority, false);
@@ -303,7 +305,11 @@ public class WebfluxHelper {
         Response response = transaction.getContext().getResponse();
 
         if (coreConfig.isCaptureHeaders()) {
-            copyHeaders(serverResponse.getHeaders(), response.getHeaders());
+            try {
+                copyHeaders(serverResponse.getHeaders(), response.getHeaders());
+            } catch (RuntimeException e) {
+                oneTimeResponseHeadersErrorLogger.error("Failed to capture response headers", e);
+            }
         }
 
         response
@@ -313,11 +319,7 @@ public class WebfluxHelper {
     }
 
     private static void copyHeaders(HttpHeaders source, PotentiallyMultiValuedMap destination) {
-        for (Map.Entry<String, List<String>> header : source.entrySet()) {
-            for (String value : header.getValue()) {
-                destination.add(header.getKey(), value);
-            }
-        }
+        source.forEach(new HeaderCopyConsumer(destination));
     }
 
     private static void copyCookies(MultiValueMap<String, HttpCookie> source, PotentiallyMultiValuedMap destination) {
@@ -328,4 +330,19 @@ public class WebfluxHelper {
         }
     }
 
+    private static class HeaderCopyConsumer implements BiConsumer<String, List<String>> {
+
+        private final PotentiallyMultiValuedMap destination;
+
+        private HeaderCopyConsumer(PotentiallyMultiValuedMap destination) {
+            this.destination = destination;
+        }
+
+        @Override
+        public void accept(String key, List<String> values) {
+            for (String value : values) {
+                destination.add(key, value);
+            }
+        }
+    }
 }

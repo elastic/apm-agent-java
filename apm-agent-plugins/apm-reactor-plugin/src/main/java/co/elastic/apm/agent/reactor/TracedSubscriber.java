@@ -23,6 +23,7 @@ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakConcurrent;
 import co.elastic.apm.agent.sdk.weakconcurrent.WeakMap;
+import co.elastic.apm.agent.sdk.weakconcurrent.WeakSet;
 import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.GlobalTracer;
 import co.elastic.apm.agent.tracer.Tracer;
@@ -48,6 +49,8 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
     private static final AtomicBoolean isRegistered = GlobalVariables.get(ReactorInstrumentation.class, "reactor-hook-enabled", new AtomicBoolean(false));
 
     private static final ReferenceCountedMap<TracedSubscriber<?>, TraceState<?>> contextMap = GlobalTracer.get().newReferenceCountedMap();
+
+    private static final WeakMap<Subscription, WeakSet<TracedSubscriber<?>>> subscriptionMap = WeakConcurrent.buildMap();
 
     private static final String HOOK_KEY = "elastic-apm";
 
@@ -82,6 +85,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
         boolean hasActivated = doEnter("onSubscribe", context);
         Throwable thrown = null;
         try {
+            registerSubscription(s);
             subscriber.onSubscribe(s);
         } catch (Throwable e) {
             thrown = e;
@@ -185,6 +189,32 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
 
         // the current context has been activated on enter thus must be the active one
         context.deactivate();
+    }
+
+    private void registerSubscription(Subscription subscription) {
+        WeakSet<TracedSubscriber<?>> subscribers = subscriptionMap.get(subscription);
+        if (subscribers == null) {
+            WeakSet<TracedSubscriber<?>> newSubscribers = WeakConcurrent.buildSet();
+            subscribers = subscriptionMap.putIfAbsent(subscription, newSubscribers);
+            if (subscribers == null) {
+                subscribers = newSubscribers;
+            }
+        }
+        subscribers.add(this);
+    }
+
+    /**
+     * Cancellation does not emit a terminal signal, so it is observed by
+     * {@link SubscriptionCancelInstrumentation} instead.
+     */
+    static void onCancel(Subscription subscription) {
+        WeakSet<TracedSubscriber<?>> subscribers = subscriptionMap.remove(subscription);
+        if (subscribers == null) {
+            return;
+        }
+        for (TracedSubscriber<?> subscriber : subscribers) {
+            subscriber.discardIf(true);
+        }
     }
 
     private void discardIf(boolean condition) {
