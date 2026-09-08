@@ -26,6 +26,13 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 % ### Fixes [elastic-apm-java-agent-versionext-fixes]
 
+## 1.57.0 [elastic-apm-java-agent-1-57-0-release-notes]
+**Release date:** September 8, 2026
+
+### Fixes [elastic-apm-java-agent-1-57-0-fixes]
+- avoid caching when reading version from jar to prevent side effects - [#4543](https://github.com/elastic/apm-agent-java/pull/4543)
+- fix Spring Webflux 7 NoSuchMethodError on HttpHeaders#entrySet() - [#4556](https://github.com/elastic/apm-agent-java/pull/4556)
+
 ## 1.56.0 [elastic-apm-java-agent-1-56-0-release-notes]
 **Release date:** June 15, 2026
 
