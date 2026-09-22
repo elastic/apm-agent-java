@@ -188,7 +188,7 @@ jobs:
       # As long as there are some space issues with the CI runners.
       - name: Free Disk Space
         continue-on-error: true
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
+        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6
         with:
           android: true
           dotnet: true
@@ -227,7 +227,7 @@ jobs:
       # As long as there are some space issues with the CI runners.
       - name: Free Disk Space
         continue-on-error: true
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
+        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6
         with:
           android: true
           dotnet: true
