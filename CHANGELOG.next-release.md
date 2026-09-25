@@ -13,7 +13,7 @@ This file contains all changes which are not released yet.
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
-
+* Log an error when activating a transaction while another span or transaction is already active on the thread - [#850](https://github.com/elastic/apm-agent-java/issues/850)
 <!--ENHANCEMENTS-END-->
 # Deprecations
 <!--DEPRECATIONS-START-->
