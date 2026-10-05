@@ -352,6 +352,11 @@ public interface Transaction extends Span {
      * <p>
      * Note: {@link Transaction#activate()} and {@link Scope#close()} have to be called on the same thread.
      * </p>
+     * <p>
+     * Activating a transaction while another transaction or span is already active on this thread is invalid.
+     * At most one transaction should be active on a thread; nested work should be a span.
+     * The agent logs an error when this happens.
+     * </p>
      *
      * @return a scope which has to be {@link Scope#close()}d
      */
