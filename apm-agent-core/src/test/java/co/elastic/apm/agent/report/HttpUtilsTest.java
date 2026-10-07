@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -58,6 +59,26 @@ class HttpUtilsTest {
         HttpUtils.consumeAndClose(connection);
 
         verify(errorStream).close();
+    }
+
+    @Test
+    void consumeAndCloseRuntimeException() throws IOException {
+        HttpURLConnection connection = mock(HttpURLConnection.class);
+        doThrow(new NullPointerException("broken connection")).when(connection).getInputStream();
+
+        assertDoesNotThrow(() -> HttpUtils.consumeAndClose(connection));
+    }
+
+    @Test
+    void consumeAndCloseResponseAfterErrorStreamRuntimeException() throws IOException {
+        HttpURLConnection connection = mock(HttpURLConnection.class);
+        doThrow(new NullPointerException("broken error stream")).when(connection).getErrorStream();
+        InputStream responseStream = mockEmptyInputStream();
+        doReturn(responseStream).when(connection).getInputStream();
+
+        assertDoesNotThrow(() -> HttpUtils.consumeAndClose(connection));
+
+        verify(responseStream).close();
     }
 
     @Test
