@@ -218,11 +218,15 @@ public class AbstractIntakeApiHandler {
                     onRequestError(-1, writtenBytes, connection.getErrorStream(), e);
                 }
             } finally {
-                HttpUtils.consumeAndClose(connection);
+                HttpURLConnection connectionToClose = connection;
                 connection = null;
                 os = null;
                 countingOs = null;
-                deflater.reset();
+                try {
+                    HttpUtils.consumeAndClose(connectionToClose);
+                } finally {
+                    deflater.reset();
+                }
             }
         }
     }
