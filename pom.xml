@@ -100,7 +100,7 @@
         <version.json-schema-validator>2.0.8</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
         <version.byte-buddy>1.18.14-jdk5</version.byte-buddy>
-        <version.asm>9.10.1</version.asm>
+        <version.asm>9.11</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
         <version.mockito>5.24.0</version.mockito>
