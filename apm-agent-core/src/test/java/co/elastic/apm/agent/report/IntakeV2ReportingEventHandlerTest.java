@@ -31,6 +31,7 @@ import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.SerializationConstants;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -49,6 +50,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
@@ -66,6 +68,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.serviceUnavailable;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
 class IntakeV2ReportingEventHandlerTest {
@@ -104,6 +108,7 @@ class IntakeV2ReportingEventHandlerTest {
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         final ReporterConfigurationImpl reporterConfiguration = configurationRegistry.getConfig(ReporterConfigurationImpl.class);
         final CoreConfigurationImpl coreConfiguration = configurationRegistry.getConfig(CoreConfigurationImpl.class);
+        SerializationConstants.init(coreConfiguration);
         SystemInfo system = new SystemInfo("x64", "localhost", null, "platform");
         final ProcessInfo title = new ProcessInfo("title");
         final ServiceImpl service = new ServiceImpl();
@@ -189,6 +194,25 @@ class IntakeV2ReportingEventHandlerTest {
     void testNoopWhenNotConnected() throws Exception {
         reportTransaction(nonConnectedReportingEventHandler);
         assertThat(nonConnectedReportingEventHandler.getBufferSize()).isEqualTo(0);
+    }
+
+    @Test
+    void testCleanupFailureDoesNotRetainConnection() throws Exception {
+        reportTransaction(reportingEventHandler);
+        reportingEventHandler.endRequest();
+
+        HttpURLConnection failedConnection = mock(HttpURLConnection.class);
+        doThrow(new AssertionError("cleanup failed")).when(failedConnection).getInputStream();
+        reportingEventHandler.connection = failedConnection;
+
+        assertThatThrownBy(reportingEventHandler::endRequest)
+            .isInstanceOf(AssertionError.class)
+            .hasMessage("cleanup failed");
+        assertThat(reportingEventHandler.connection).isNull();
+
+        reportTransaction(reportingEventHandler);
+        reportingEventHandler.endRequest();
+        mockApmServer1.verify(2, postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
     }
 
     @Test

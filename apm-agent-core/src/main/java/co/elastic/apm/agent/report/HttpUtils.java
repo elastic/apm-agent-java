@@ -18,6 +18,8 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.sdk.logging.Logger;
+import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
@@ -28,6 +30,8 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 
 public class HttpUtils {
+
+    private static final Logger logger = LoggerFactory.getLogger(HttpUtils.class);
 
     private HttpUtils() {
     }
@@ -57,12 +61,23 @@ public class HttpUtils {
      */
     public static void consumeAndClose(@Nullable HttpURLConnection connection) {
         if (connection != null) {
-            IOUtils.consumeAndClose(connection.getErrorStream());
+            try {
+                IOUtils.consumeAndClose(connection.getErrorStream());
+            } catch (RuntimeException e) {
+                logSuppressedException(e);
+            }
             try {
                 IOUtils.consumeAndClose(connection.getInputStream());
             } catch (IOException ignored) {
                 // silently ignored
+            } catch (RuntimeException e) {
+                logSuppressedException(e);
             }
         }
+    }
+
+    private static void logSuppressedException(RuntimeException e) {
+        logger.warn("Suppressed exception while consuming APM Server response: {}", e.getMessage());
+        logger.debug("Exception while consuming APM Server response", e);
     }
 }
