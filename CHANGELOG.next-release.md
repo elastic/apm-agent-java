@@ -9,7 +9,7 @@ This file contains all changes which are not released yet.
 
 # Fixes
 <!--FIXES-START-->
-
+- Fix custom HttpURLConnection unchecked exception stalling agent - [#4591](https://github.com/elastic/apm-agent-java/pull/4591)
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
