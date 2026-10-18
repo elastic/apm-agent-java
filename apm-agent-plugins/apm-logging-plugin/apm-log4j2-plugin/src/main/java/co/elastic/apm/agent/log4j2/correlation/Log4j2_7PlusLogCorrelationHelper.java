@@ -27,7 +27,8 @@ import org.apache.logging.log4j.ThreadContext;
 import java.util.Map;
 
 /**
- * Using {@link ThreadContext#putAll(Map)} that is available since 2.7 for improved efficiency
+ * Using {@link ThreadContext#putAll(Map)} that is available since 2.7 for improved efficiency.
+ * Keys are removed one by one, as {@link ThreadContext#removeAll(Iterable)} is only available since 2.8.
  */
 public class Log4j2_7PlusLogCorrelationHelper extends AbstractLogCorrelationHelper {
 
@@ -44,6 +45,8 @@ public class Log4j2_7PlusLogCorrelationHelper extends AbstractLogCorrelationHelp
 
     @Override
     protected void removeFromMdc() {
-        ThreadContext.removeAll(CorrelationIdMapAdapter.allKeys());
+        for (String key : CorrelationIdMapAdapter.allKeys()) {
+            ThreadContext.remove(key);
+        }
     }
 }
