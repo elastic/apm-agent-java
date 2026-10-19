@@ -310,7 +310,10 @@ jobs:
             distribution: 'temurin'
           - version: 25
             distribution: 'temurin'
-          - version: '27-ea'
+          - version: 27
+            distribution: 'temurin'
+            maven_test_args: '-Dnet.bytebuddy.safe=false'
+          - version: '28-ea'
             distribution: 'temurin'
             maven_test_args: '-Dnet.bytebuddy.safe=false'
     steps:
