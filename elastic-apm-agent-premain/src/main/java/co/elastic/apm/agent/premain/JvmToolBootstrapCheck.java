@@ -51,14 +51,17 @@ public class JvmToolBootstrapCheck implements BootstrapCheck {
             return;
         }
 
+        // only the main class or module part is relevant, program arguments may contain slashes
+        String mainClass = parts.length > 0 ? parts[0] : jvmCmd;
+
         boolean isJdkTool = false;
 
-        parts = jvmCmd.split("/");
+        parts = mainClass.split("/");
         if (parts.length == 2) {
             // JDK with module system
             isJdkTool = parts[0].startsWith("jdk.") || parts[0].startsWith("java.");
         } else if (parts.length == 1) {
-            isJdkTool = jvmCmd.startsWith("sun.") || jvmCmd.startsWith("com.sun.") || jvmCmd.startsWith("jdk.");
+            isJdkTool = mainClass.startsWith("sun.") || mainClass.startsWith("com.sun.") || mainClass.startsWith("jdk.");
         } else {
             result.addWarn("Unexpected JVM command line syntax: " + jvmCmd);
         }

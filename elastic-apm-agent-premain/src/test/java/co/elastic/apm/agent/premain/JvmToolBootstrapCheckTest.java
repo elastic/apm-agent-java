@@ -92,6 +92,9 @@ class JvmToolBootstrapCheckTest {
         "sun.tools.jstat.Jstat",
         "sun.tools.native2ascii.Main",
         "sun.tools.serialver.SerialVer",
+        // with program arguments containing slashes
+        "java.base/sun.security.tools.keytool.Main -list -keystore /tmp/keystore.jks",
+        "sun.security.tools.keytool.Main -list -keystore /tmp/keystore.jks",
     })
     void testJdkTool(String cmd) {
         BootstrapCheck.BootstrapCheckResult result = new BootstrapCheck.BootstrapCheckResult();
@@ -115,6 +118,8 @@ class JvmToolBootstrapCheckTest {
         checkNotJdkTool("/target/app.jar"); // java -jar /target/app.jar
         checkNotJdkTool("/target/app.jar with some arguments"); // java -jar /target/app.jar with arguments
         checkNotJdkTool("app.Main"); // java app.Main
+        checkNotJdkTool("org.example.Main --file /my/path/containing/slashes/file.txt"); // java org.example.Main --file /my/path/...
+        checkNotJdkTool("my.module/org.example.Main --file /my/path/file.txt"); // java -m my.module/org.example.Main --file /my/path/file.txt
         checkNotJdkTool(System.getProperty("sun.java.command")); // Maven/IDE JUnit runner
     }
 
