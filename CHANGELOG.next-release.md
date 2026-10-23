@@ -10,6 +10,8 @@ This file contains all changes which are not released yet.
 # Fixes
 <!--FIXES-START-->
 
+* Fix invokedynamic dispatcher initialization when Byte Buddy disables Unsafe class injection by default on JDK 26+ - [#4519](https://github.com/elastic/apm-agent-java/issues/4519)
+
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
