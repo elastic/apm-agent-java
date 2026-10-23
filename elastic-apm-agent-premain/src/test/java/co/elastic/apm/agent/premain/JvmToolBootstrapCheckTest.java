@@ -120,6 +120,7 @@ class JvmToolBootstrapCheckTest {
         checkNotJdkTool("app.Main"); // java app.Main
         checkNotJdkTool("org.example.Main --file /my/path/containing/slashes/file.txt"); // java org.example.Main --file /my/path/...
         checkNotJdkTool("my.module/org.example.Main --file /my/path/file.txt"); // java -m my.module/org.example.Main --file /my/path/file.txt
+        checkNotJdkTool("com.sun.enterprise.glassfish.bootstrap.ASMain -upgrade false -domaindir /opt/payara/glassfish/domains/domain1"); // Payara
         checkNotJdkTool(System.getProperty("sun.java.command")); // Maven/IDE JUnit runner
     }
 
