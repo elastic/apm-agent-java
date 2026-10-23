@@ -21,6 +21,7 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.impl.transaction.AbstractSpanImpl;
 import co.elastic.apm.agent.impl.transaction.TraceStateImpl;
 import co.elastic.apm.agent.impl.transaction.TraceStateWrapper;
+import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
 
@@ -82,6 +83,14 @@ class ActiveStack {
     boolean activate(TraceStateImpl<?> context, List<ActivationListener> activationListeners) {
         if (logger.isDebugEnabled()) {
             logger.debug("Activating {} on thread {}", context, Thread.currentThread().getId());
+        }
+
+        AbstractSpanImpl<?> incoming = context.getSpan();
+        AbstractSpanImpl<?> alreadyActive = currentContext().getSpan();
+        if (incoming instanceof TransactionImpl && alreadyActive != null && alreadyActive != incoming) {
+            logger.error("Attempting to activate a transaction while another span or transaction is already active on this thread. " +
+                    "Nested transactions are not supported; nested work should be a span. Already active: {}, activating: {}",
+                alreadyActive, incoming);
         }
 
         if (activeContextStack.size() == stackMaxDepth) {
