@@ -54,15 +54,17 @@ public class ToolCallbackInstrumentation extends AbstractSpringAiInstrumentation
 
     public static class ToolCallbackAdvice {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.This ToolCallback callback) {
-            Span<?> span = SpringAiSpanHelper.startToolSpan(callback);
+        public static Object onEnter(@Advice.This ToolCallback callback,
+                                     @Advice.Argument(0) String toolInput) {
+            Span<?> span = SpringAiSpanHelper.startToolSpan(callback, toolInput);
             return span == null ? null : span.activate();
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Advice.Enter @Nullable Object spanObject,
+                                  @Advice.Return @Nullable String result,
                                   @Advice.Thrown @Nullable Throwable thrown) {
-            SpringAiSpanHelper.endSpan((Span<?>) spanObject, thrown);
+            SpringAiSpanHelper.endToolSpan((Span<?>) spanObject, result, thrown);
         }
     }
 }

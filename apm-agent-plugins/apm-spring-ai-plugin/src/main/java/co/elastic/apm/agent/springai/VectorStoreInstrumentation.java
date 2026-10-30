@@ -24,7 +24,6 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.observation.AbstractObservationVectorStore;
 
 import javax.annotation.Nullable;
@@ -53,7 +52,7 @@ public class VectorStoreInstrumentation extends AbstractSpringAiInstrumentation 
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return namedOneOf("add", "delete", "similaritySearch").and(takesArguments(1));
+        return namedOneOf("add", "delete").and(takesArguments(1));
     }
 
     @Override
@@ -66,9 +65,7 @@ public class VectorStoreInstrumentation extends AbstractSpringAiInstrumentation 
         public static Object onEnter(@Advice.This AbstractObservationVectorStore vectorStore,
                                      @Advice.Origin("#m") String method,
                                      @Advice.Argument(0) @Nullable Object argument) {
-            String operation = "similaritySearch".equals(method) ? "query" : method;
-            SearchRequest searchRequest = argument instanceof SearchRequest ? (SearchRequest) argument : null;
-            Span<?> span = SpringAiSpanHelper.startVectorStoreSpan(vectorStore, operation, searchRequest);
+            Span<?> span = SpringAiSpanHelper.startVectorStoreSpan(vectorStore, method, argument);
             return span == null ? null : span.activate();
         }
 

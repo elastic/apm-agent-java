@@ -21,6 +21,7 @@ package co.elastic.apm.agent.springai;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.metadata.ChatGenerationMetadata;
@@ -50,6 +51,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 
 class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -77,7 +79,8 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
             .hasOtelAttribute("gen_ai.usage.input_tokens", 10)
             .hasOtelAttribute("gen_ai.usage.output_tokens", 5)
             .hasOtelAttribute("gen_ai.usage.total_tokens", 15);
-        org.assertj.core.api.Assertions.assertThat(span.getOtelAttributes()).doesNotContainKey("gen_ai.input.messages");
+        org.assertj.core.api.Assertions.assertThat(span.getOtelAttributes())
+            .doesNotContainKeys("gen_ai.input.messages", "gen_ai.output.messages");
     }
 
     @Test
@@ -106,11 +109,14 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
             transaction.deactivate().end();
         }
 
-        assertThat(reporter.getFirstSpan())
+        SpanImpl span = reporter.getFirstSpan();
+        assertThat(span)
             .hasName("embedding embedding-test")
             .hasAction("embedding")
             .hasOtelAttribute("gen_ai.request.embedding.dimensions", 3)
             .hasOtelAttribute("gen_ai.usage.input_tokens", 4);
+        org.assertj.core.api.Assertions.assertThat(span.getOtelAttributes())
+            .doesNotContainKey("spring.ai.embedding.request.inputs");
     }
 
     @Test
@@ -159,7 +165,102 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
             .hasOtelAttribute("db.vector.query.top_k", 3)
             .hasOtelAttribute("db.vector.query.similarity_threshold", 0.5);
         org.assertj.core.api.Assertions.assertThat(span.getOtelAttributes())
-            .doesNotContainKeys("db.query.text", "db.vector.query.content", "db.vector.query.filter");
+            .doesNotContainKeys("db.query.text", "db.vector.query.content", "db.vector.query.filter",
+                "db.vector.query.response.documents");
+    }
+
+    @Test
+    void capturesChatContentWhenEnabled() {
+        enableContentCapture();
+        TransactionImpl transaction = startTestRootTransaction();
+        try {
+            new OpenAiTestChatModel().call(new Prompt("secret prompt"));
+        } finally {
+            transaction.deactivate().end();
+        }
+
+        org.assertj.core.api.Assertions.assertThat(reporter.getFirstSpan().getOtelAttributes())
+            .extractingByKeys("gen_ai.input.messages", "gen_ai.output.messages")
+            .allSatisfy(value -> org.assertj.core.api.Assertions.assertThat(value.toString()).contains("secret"));
+    }
+
+    @Test
+    void capturesEmbeddingAndToolContentWhenEnabled() {
+        enableContentCapture();
+        TransactionImpl transaction = startTestRootTransaction();
+        try {
+            new OpenAiTestEmbeddingModel().call(new EmbeddingRequest(
+                Collections.singletonList("secret embedding document"), EmbeddingOptions.builder().build()));
+        } finally {
+            transaction.deactivate().end();
+        }
+        assertThat(reporter.getFirstSpan())
+            .hasOtelAttribute("spring.ai.embedding.request.inputs", "[\"secret embedding document\"]");
+
+        reporter.reset();
+        transaction = startTestRootTransaction();
+        try {
+            new TestToolCallback().call("{\"password\":\"secret\"}");
+        } finally {
+            transaction.deactivate().end();
+        }
+        assertThat(reporter.getFirstSpan())
+            .hasOtelAttribute("spring.ai.tool.call.arguments", "{\"password\":\"secret\"}")
+            .hasOtelAttribute("spring.ai.tool.call.result", "secret result");
+    }
+
+    @Test
+    void capturesVectorDocumentsAndQueryContentWhenEnabled() {
+        enableContentCapture();
+        TestVectorStore vectorStore = new TestVectorStore(new OpenAiTestEmbeddingModel());
+        TransactionImpl transaction = startTestRootTransaction();
+        try {
+            vectorStore.add(Collections.singletonList(new Document("secret stored document")));
+        } finally {
+            transaction.deactivate().end();
+        }
+        org.assertj.core.api.Assertions.assertThat(
+                reporter.getFirstSpan().getOtelAttributes().get("db.vector.documents").toString())
+            .contains("secret stored document");
+
+        reporter.reset();
+        transaction = startTestRootTransaction();
+        try {
+            vectorStore.similaritySearch(SearchRequest.builder()
+                .query("secret search query")
+                .filterExpression("category == 'secret'")
+                .build());
+        } finally {
+            transaction.deactivate().end();
+        }
+        assertThat(reporter.getFirstSpan())
+            .hasOtelAttribute("db.vector.query.content", "secret search query");
+        org.assertj.core.api.Assertions.assertThat(
+                reporter.getFirstSpan().getOtelAttributes())
+            .hasEntrySatisfying("db.vector.query.filter",
+                value -> org.assertj.core.api.Assertions.assertThat(value.toString()).contains("secret"))
+            .hasEntrySatisfying("db.vector.query.response.documents",
+                value -> org.assertj.core.api.Assertions.assertThat(value.toString()).contains("secret result document"));
+    }
+
+    @Test
+    void truncatesCapturedContentAtLongFieldLimit() {
+        enableContentCapture();
+        doReturn(6).when(tracer.getConfig(CoreConfiguration.class)).getLongFieldMaxLength();
+        TransactionImpl transaction = startTestRootTransaction();
+        try {
+            new TestToolCallback().call("123456789");
+        } finally {
+            transaction.deactivate().end();
+        }
+
+        assertThat(reporter.getFirstSpan())
+            .hasOtelAttribute("spring.ai.tool.call.arguments", "123456")
+            .hasOtelAttribute("spring.ai.tool.call.result", "secret");
+    }
+
+    private static void enableContentCapture() {
+        doReturn(true).when(config.getConfig(SpringAiConfiguration.class)).isCaptureAiContent();
     }
 
     static class OpenAiTestChatModel implements ChatModel {
@@ -215,7 +316,7 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
 
         @Override
         public List<Document> doSimilaritySearch(SearchRequest request) {
-            return Collections.emptyList();
+            return Collections.singletonList(new Document("secret result document"));
         }
 
         @Override

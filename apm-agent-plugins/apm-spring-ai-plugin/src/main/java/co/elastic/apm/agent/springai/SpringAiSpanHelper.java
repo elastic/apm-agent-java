@@ -23,6 +23,8 @@ import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Tracer;
+import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.metadata.ChatGenerationMetadata;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.Usage;
@@ -30,6 +32,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingOptions;
 import org.springframework.ai.embedding.EmbeddingRequest;
 import org.springframework.ai.embedding.EmbeddingResponse;
@@ -51,17 +54,20 @@ import java.util.concurrent.atomic.AtomicReference;
 final class SpringAiSpanHelper {
 
     private static final Tracer tracer = GlobalTracer.get();
+    private static final SpringAiConfiguration config = tracer.getConfig(SpringAiConfiguration.class);
+    private static final CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
 
     private SpringAiSpanHelper() {
     }
 
     @Nullable
-    static Span<?> startModelSpan(Object model, String operation, @Nullable ChatOptions options, boolean streaming) {
+    static Span<?> startModelSpan(Object model, String operation, Prompt prompt, boolean streaming) {
         Span<?> span = tracer.currentContext().createSpan();
         if (span == null) {
             return null;
         }
 
+        ChatOptions options = prompt.getOptions();
         String requestModel = options == null ? null : options.getModel();
         String provider = providerFor(model);
         span.withName(spanName(operation, requestModel))
@@ -81,6 +87,9 @@ final class SpringAiSpanHelper {
                 .withOtelAttribute("gen_ai.request.temperature", options.getTemperature())
                 .withOtelAttribute("gen_ai.request.top_k", options.getTopK())
                 .withOtelAttribute("gen_ai.request.top_p", options.getTopP());
+        }
+        if (config.isCaptureAiContent()) {
+            captureStructuredContent(span, "gen_ai.input.messages", serializeMessages(prompt.getInstructions()));
         }
         return span;
     }
@@ -102,17 +111,21 @@ final class SpringAiSpanHelper {
             .withOtelAttribute("gen_ai.system", provider)
             .withOtelAttribute("gen_ai.request.model", requestModel)
             .withOtelAttribute("gen_ai.request.embedding.dimensions", options == null ? null : options.getDimensions());
+        if (config.isCaptureAiContent()) {
+            captureStructuredContent(span, "spring.ai.embedding.request.inputs", serializeStrings(request.getInstructions()));
+        }
         return span;
     }
 
     @Nullable
     static Span<?> startVectorStoreSpan(AbstractObservationVectorStore vectorStore, String operation,
-                                        @Nullable SearchRequest searchRequest) {
+                                        @Nullable Object argument) {
         Span<?> span = tracer.currentContext().createExitSpan();
         if (span == null) {
             return null;
         }
         VectorStoreObservationContext.Builder builder = vectorStore.createObservationContextBuilder(operation);
+        SearchRequest searchRequest = argument instanceof SearchRequest ? (SearchRequest) argument : null;
         if (searchRequest != null) {
             builder.queryRequest(searchRequest);
         }
@@ -134,20 +147,28 @@ final class SpringAiSpanHelper {
         if (searchRequest != null) {
             span.withOtelAttribute("db.vector.query.top_k", searchRequest.getTopK())
                 .withOtelAttribute("db.vector.query.similarity_threshold", searchRequest.getSimilarityThreshold());
+            captureContent(span, "db.vector.query.content", searchRequest.getQuery());
+            if (searchRequest.getFilterExpression() != null) {
+                captureContent(span, "db.vector.query.filter", searchRequest.getFilterExpression().toString());
+            }
+        } else if ("add".equals(operation) && argument instanceof List) {
+            if (config.isCaptureAiContent()) {
+                captureStructuredContent(span, "db.vector.documents", serializeDocuments((List<?>) argument));
+            }
         }
         span.getContext().getServiceTarget().withType(dbSystem).withName(context.getCollectionName());
         return span;
     }
 
     @Nullable
-    static Span<?> startToolSpan(ToolCallback callback) {
+    static Span<?> startToolSpan(ToolCallback callback, String toolInput) {
         Span<?> span = tracer.currentContext().createSpan();
         if (span == null) {
             return null;
         }
         ToolDefinition definition = callback.getToolDefinition();
         String name = definition.name();
-        return span.withName("execute_tool " + name)
+        span.withName("execute_tool " + name)
             .withType("app")
             .withSubtype("internal")
             .withAction("execute_tool")
@@ -158,13 +179,15 @@ final class SpringAiSpanHelper {
             .withOtelAttribute("spring.ai.tool.definition.name", name)
             .withOtelAttribute("spring.ai.tool.definition.description", definition.description())
             .withOtelAttribute("spring.ai.tool.definition.schema", definition.inputSchema());
+        captureContent(span, "spring.ai.tool.call.arguments", toolInput);
+        return span;
     }
 
     @SuppressWarnings("unchecked")
     static Flux<?> wrapChatFlux(final Object model, final Prompt prompt, final Flux<?> source) {
         final Flux<Object> typedSource = (Flux<Object>) source;
         return Flux.defer(() -> {
-            final Span<?> span = startModelSpan(model, "chat", prompt.getOptions(), true);
+            final Span<?> span = startModelSpan(model, "chat", prompt, true);
             if (span == null) {
                 return typedSource;
             }
@@ -213,7 +236,26 @@ final class SpringAiSpanHelper {
                 }
             }
             span.withOtelAttribute("gen_ai.response.finish_reasons", stringify(finishReasons));
+            if (config.isCaptureAiContent()) {
+                captureStructuredContent(span, "gen_ai.output.messages", serializeGenerations(response.getResults()));
+            }
         }
+    }
+
+    static void endVectorStoreSpan(@Nullable Span<?> span, @Nullable Object response, @Nullable Throwable thrown) {
+        if (span != null && response instanceof List) {
+            if (config.isCaptureAiContent()) {
+                captureStructuredContent(span, "db.vector.query.response.documents", serializeDocuments((List<?>) response));
+            }
+        }
+        endSpan(span, thrown);
+    }
+
+    static void endToolSpan(@Nullable Span<?> span, @Nullable String result, @Nullable Throwable thrown) {
+        if (span != null) {
+            captureContent(span, "spring.ai.tool.call.result", result);
+        }
+        endSpan(span, thrown);
     }
 
     static void endEmbeddingSpan(@Nullable Span<?> span, @Nullable EmbeddingResponse response,
@@ -275,6 +317,109 @@ final class SpringAiSpanHelper {
         if (className.contains("openai") || className.contains("azure")) return "openai";
         if (className.contains("stability")) return "stability_ai";
         return "spring_ai";
+    }
+
+    private static void captureContent(Span<?> span, String key, @Nullable String content) {
+        if (config.isCaptureAiContent() && content != null) {
+            span.withOtelAttribute(key, truncate(content, coreConfig.getLongFieldMaxLength()));
+        }
+    }
+
+    private static void captureStructuredContent(Span<?> span, String key, String content) {
+        span.withOtelAttribute(key, content);
+    }
+
+    private static String truncate(String value, int maxCodePoints) {
+        if (maxCodePoints < 0 || value.codePointCount(0, value.length()) <= maxCodePoints) {
+            return value;
+        }
+        return value.substring(0, value.offsetByCodePoints(0, maxCodePoints));
+    }
+
+    private static String serializeMessages(List<? extends Message> messages) {
+        StringBuilder result = new StringBuilder("[");
+        for (int i = 0; i < messages.size(); i++) {
+            if (i > 0) {
+                result.append(',');
+            }
+            Message message = messages.get(i);
+            result.append("{\"role\":");
+            appendJsonString(result, message.getMessageType().getValue());
+            result.append(",\"parts\":[{\"type\":\"text\",\"content\":");
+            appendJsonString(result, message.getText());
+            result.append("}]}");
+        }
+        return result.append(']').toString();
+    }
+
+    private static String serializeGenerations(List<Generation> generations) {
+        List<Message> messages = new ArrayList<>();
+        for (Generation generation : generations) {
+            if (generation.getOutput() != null) {
+                messages.add(generation.getOutput());
+            }
+        }
+        return serializeMessages(messages);
+    }
+
+    private static String serializeStrings(List<String> values) {
+        StringBuilder result = new StringBuilder("[");
+        for (int i = 0; i < values.size(); i++) {
+            if (i > 0) {
+                result.append(',');
+            }
+            appendJsonString(result, values.get(i));
+        }
+        return result.append(']').toString();
+    }
+
+    private static String serializeDocuments(List<?> values) {
+        StringBuilder result = new StringBuilder("[");
+        boolean first = true;
+        for (Object value : values) {
+            if (!(value instanceof Document)) {
+                continue;
+            }
+            if (!first) {
+                result.append(',');
+            }
+            first = false;
+            Document document = (Document) value;
+            result.append("{\"id\":");
+            appendJsonString(result, document.getId());
+            result.append(",\"content\":");
+            appendJsonString(result, document.getText());
+            result.append('}');
+        }
+        return result.append(']').toString();
+    }
+
+    private static void appendJsonString(StringBuilder target, @Nullable String value) {
+        if (value == null) {
+            target.append("null");
+            return;
+        }
+        value = truncate(value, coreConfig.getLongFieldMaxLength());
+        target.append('"');
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            switch (c) {
+                case '"': target.append("\\\""); break;
+                case '\\': target.append("\\\\"); break;
+                case '\b': target.append("\\b"); break;
+                case '\f': target.append("\\f"); break;
+                case '\n': target.append("\\n"); break;
+                case '\r': target.append("\\r"); break;
+                case '\t': target.append("\\t"); break;
+                default:
+                    if (c < 0x20) {
+                        target.append(String.format(Locale.ROOT, "\\u%04x", (int) c));
+                    } else {
+                        target.append(c);
+                    }
+            }
+        }
+        target.append('"');
     }
 
     private static String dbSubtype(@Nullable String databaseSystem) {

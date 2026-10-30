@@ -281,6 +281,7 @@ The following transaction, span, and error fields will be truncated at this numb
 * `transaction.context.request.body`, `error.context.request.body`
 * `transaction.context.message.body`, `error.context.message.body`
 * `span.context.db.statement`
+* Captured AI content values
 
 Note that tracing data is limited at the upstream APM server to [`max_event_size`](docs-content://solutions/observability/apm/general-configuration-options.md#apm-max_event_size), which defaults to 300kB. If you configure `long_field_max_length` too large, it could result in transactions, spans, or errors that are rejected by APM server.
 

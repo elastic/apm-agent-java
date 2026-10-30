@@ -13,6 +13,23 @@ applies_to:
 
 ```properties
 ############################################
+# AI                                       #
+############################################
+
+# Enables capture of Spring AI prompt and response messages, embedding inputs, vector store documents and queries,
+# and tool arguments and results.
+#
+# Captured content can contain sensitive information and can significantly increase storage usage.
+# Content capture is disabled by default. Individual captured content values are truncated according to
+# `long_field_max_length`.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# capture_ai_content=false
+
+############################################
 # Circuit-Breaker                          #
 ############################################
 
@@ -294,6 +311,7 @@ applies_to:
 # - `transaction.context.request.body`, `error.context.request.body`
 # - `transaction.context.message.body`, `error.context.message.body`
 # - `span.context.db.statement`
+# - captured AI content values
 #
 # Note that tracing data is limited at the upstream APM server to
 # {apm-guide-ref}/configuration-process.html#max_event_size[`max_event_size`],

@@ -78,6 +78,10 @@ ELASTIC_APM_SERVER_URL=http://127.0.0.1:8200
 
 This is a list of all configuration options grouped by their category. Click on a key to get more information.
 
+* [AI](/reference/config-ai.md)
+
+    * [`capture_ai_content` (experimental, security, performance [1.58.0])](/reference/config-ai.md#config-capture-ai-content)
+
 * [Circuit-Breaker](/reference/config-circuit-breaker.md)
 
     * [`circuit_breaker_enabled` ([1.14.0] performance)](/reference/config-circuit-breaker.md#config-circuit-breaker-enabled)

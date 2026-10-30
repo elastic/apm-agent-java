@@ -2,4 +2,5 @@ co.elastic.apm.agent.springai.ChatModelInstrumentation
 co.elastic.apm.agent.springai.StreamingChatModelInstrumentation
 co.elastic.apm.agent.springai.EmbeddingModelInstrumentation
 co.elastic.apm.agent.springai.VectorStoreInstrumentation
+co.elastic.apm.agent.springai.VectorStoreQueryInstrumentation
 co.elastic.apm.agent.springai.ToolCallbackInstrumentation

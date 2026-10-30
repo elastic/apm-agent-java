@@ -63,7 +63,7 @@ public class ChatModelInstrumentation extends AbstractSpringAiInstrumentation {
     public static class ChatModelAdvice {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This Object model, @Advice.Argument(0) Prompt prompt) {
-            Span<?> span = SpringAiSpanHelper.startModelSpan(model, "chat", prompt.getOptions(), false);
+            Span<?> span = SpringAiSpanHelper.startModelSpan(model, "chat", prompt, false);
             return span == null ? null : span.activate();
         }
 
