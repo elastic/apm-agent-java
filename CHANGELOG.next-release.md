@@ -13,6 +13,7 @@ This file contains all changes which are not released yet.
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
+- Add experimental auto-instrumentation for Spring AI 2.x chat models, embedding models, vector stores, and tool callbacks
 
 <!--ENHANCEMENTS-END-->
 # Deprecations

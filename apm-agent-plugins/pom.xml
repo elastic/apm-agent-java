@@ -28,6 +28,7 @@
         <module>apm-api-plugin</module>
         <module>apm-apache-httpclient</module>
         <module>apm-spring-resttemplate</module>
+        <module>apm-spring-ai-plugin</module>
         <module>apm-httpclient-core</module>
         <module>apm-httpserver-core</module>
         <module>apm-logging-plugin</module>
