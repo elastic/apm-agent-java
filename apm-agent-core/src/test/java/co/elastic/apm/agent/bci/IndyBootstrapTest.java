@@ -19,8 +19,12 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.common.util.ProcessExecutionUtil;
 import co.elastic.apm.agent.sdk.logging.Logger;
 import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+import co.elastic.apm.agent.test.JavaExecutable;
+import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.dynamic.loading.ClassInjector;
 import org.junit.jupiter.api.Test;
 
@@ -28,6 +32,8 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,11 +47,7 @@ class IndyBootstrapTest extends AbstractInstrumentationTest {
         Method bootstrap = IndyBootstrap.getIndyBootstrapMethod(logger);
         Method exceptionHandler = IndyBootstrap.getExceptionHandlerMethod(logger);
         Class<?> dispatcher = bootstrap.getDeclaringClass();
-
-        assertThat(dispatcher.getName()).isEqualTo("java.lang.IndyBootstrapDispatcher");
-        assertThat(dispatcher.getClassLoader()).isNull();
-        assertThat(dispatcher.getModule()).isSameAs(Object.class.getModule());
-        assertThat(exceptionHandler.getDeclaringClass()).isSameAs(dispatcher);
+        assertDispatcherInJavaBase(dispatcher, exceptionHandler);
 
         // Exercise initialization again as well as the cached entry points.
         Method init = IndyBootstrap.class.getDeclaredMethod("initIndyBootstrap", Logger.class);
@@ -59,6 +61,22 @@ class IndyBootstrapTest extends AbstractInstrumentationTest {
             assertThat(dispatcher.getField("logAdviceException").get(null))
                 .isEqualTo(IndyBootstrap.class.getMethod("logExceptionThrownByAdvice", Throwable.class));
         }
+    }
+
+    /**
+     * Byte Buddy reads {@code net.bytebuddy.safe} once and {@link AbstractInstrumentationTest#beforeAll()} has already
+     * started the agent here, so startup with Unsafe disabled has to be tested in a JVM of its own.
+     */
+    @Test
+    void testDispatcherInitializationWithoutUnsafe() {
+        ProcessExecutionUtil.CommandOutput result = ProcessExecutionUtil.executeCommand(Arrays.asList(
+            JavaExecutable.getBinaryPath(),
+            "-Dnet.bytebuddy.safe=true",
+            "-cp", System.getProperty("java.class.path"),
+            UnsafeDisabledStartup.class.getName()
+        ), TimeUnit.MINUTES.toMillis(2));
+
+        assertThat(result.exitedNormally()).as("%s", result).isTrue();
     }
 
     @Test
@@ -89,6 +107,13 @@ class IndyBootstrapTest extends AbstractInstrumentationTest {
         }
     }
 
+    private static void assertDispatcherInJavaBase(Class<?> dispatcher, Method exceptionHandler) {
+        assertThat(dispatcher.getName()).isEqualTo("java.lang.IndyBootstrapDispatcher");
+        assertThat(dispatcher.getClassLoader()).isNull();
+        assertThat(dispatcher.getModule()).isSameAs(Object.class.getModule());
+        assertThat(exceptionHandler.getDeclaringClass()).isSameAs(dispatcher);
+    }
+
     private static Object loadClassInBootstrap(String className, String resourceName) throws Exception {
         Method load = IndyBootstrap.class.getDeclaredMethod("loadClassInBootstrap", String.class, String.class, Class.class);
         load.setAccessible(true);
@@ -106,5 +131,24 @@ class IndyBootstrapTest extends AbstractInstrumentationTest {
     }
 
     private static class ModuleSetterTarget {
+    }
+
+    static class UnsafeDisabledStartup {
+
+        public static void main(String[] args) {
+            try {
+                assertThat(ClassInjector.UsingUnsafe.isAvailable()).isFalse();
+                ElasticApmAgent.initInstrumentation(MockTracer.createMockInstrumentationSetup().getTracer(), ByteBuddyAgent.install());
+
+                Logger logger = LoggerFactory.getLogger(UnsafeDisabledStartup.class);
+                Method bootstrap = IndyBootstrap.getIndyBootstrapMethod(logger);
+                assertDispatcherInJavaBase(bootstrap.getDeclaringClass(), IndyBootstrap.getExceptionHandlerMethod(logger));
+            } catch (Throwable t) {
+                t.printStackTrace();
+                System.exit(1);
+            }
+            // the tracer leaves non-daemon threads behind
+            System.exit(0);
+        }
     }
 }
