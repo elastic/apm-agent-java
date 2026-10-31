@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.57.1-SNAPSHOT</version>
+    <version>1.57.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -97,13 +97,13 @@
         <version.ecs.logging>1.8.0</version.ecs.logging>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>2.0.7</version.json-schema-validator>
+        <version.json-schema-validator>2.0.8</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.18.13-jdk5</version.byte-buddy>
-        <version.asm>9.10.1</version.asm>
+        <version.byte-buddy>1.18.14-jdk5</version.byte-buddy>
+        <version.asm>9.11.1</version.asm>
         <version.cucumber>5.4.0</version.cucumber>
 
-        <version.mockito>5.23.0</version.mockito>
+        <version.mockito>5.24.0</version.mockito>
 
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>

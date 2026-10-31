@@ -26,6 +26,12 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 % ### Fixes [elastic-apm-java-agent-versionext-fixes]
 
+## 1.57.1 [elastic-apm-java-agent-1-57-1-release-notes]
+**Release date:** October 15, 2026
+
+### Fixes [elastic-apm-java-agent-1-57-1-fixes]
+- Fix custom HttpURLConnection unchecked exception stalling agent - [#4591](https://github.com/elastic/apm-agent-java/pull/4591)
+
 ## 1.57.0 [elastic-apm-java-agent-1-57-0-release-notes]
 **Release date:** September 8, 2026
 
