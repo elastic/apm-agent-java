@@ -31,6 +31,7 @@ import co.elastic.apm.agent.util.PackageScanner;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ClassInjector;
+import net.bytebuddy.utility.JavaModule;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.util.IOUtils;
 
@@ -265,9 +266,10 @@ public class IndyBootstrap {
      * Injects the {@code java.lang.IndyBootstrapDispatcher} class into the bootstrap class loader if it wasn't already.
      */
     private static Class<?> initIndyBootstrap(final Logger logger) throws Exception {
-        Class<?> indyBootstrapDispatcherClass = loadClassInBootstrap(INDY_BOOTSTRAP_CLASS_NAME, INDY_BOOTSTRAP_RESOURCE);
+        Class<?> indyBootstrapDispatcherClass = loadClassInBootstrap(INDY_BOOTSTRAP_CLASS_NAME, INDY_BOOTSTRAP_RESOURCE, Object.class);
 
-        if (JvmRuntimeInfo.ofCurrentVM().getMajorVersion() >= 9 && JvmRuntimeInfo.ofCurrentVM().isJ9VM()) {
+        if (JvmRuntimeInfo.ofCurrentVM().getMajorVersion() >= 9 && JvmRuntimeInfo.ofCurrentVM().isJ9VM()
+            && !JavaModule.ofType(Object.class).equals(JavaModule.ofType(indyBootstrapDispatcherClass))) {
             try {
                 logger.info("Overriding IndyBootstrapDispatcher class's module to java.base module. This is required in J9 VMs.");
                 setJavaBaseModule(indyBootstrapDispatcherClass);
@@ -291,11 +293,13 @@ public class IndyBootstrap {
      *
      * @param className    class name
      * @param resourceName class resource name
+     * @param lookupAnchor class in the target bootstrap package for lookup injection on Java 9+, or null to use Unsafe
      * @return class loaded in bootstrap classloader
      * @throws IOException            if unable to open provided resource
      * @throws ClassNotFoundException if unable to load class in bootstrap CL
      */
-    private static Class<?> loadClassInBootstrap(String className, String resourceName) throws IOException, ClassNotFoundException {
+    private static Class<?> loadClassInBootstrap(String className, String resourceName, @Nullable Class<?> lookupAnchor)
+        throws IOException, ClassNotFoundException {
         Class<?> bootstrapClass;
         try {
             // Will return non-null value only if the class has already been loaded.
@@ -307,7 +311,23 @@ public class IndyBootstrap {
             if (classBytes == null || classBytes.length == 0) {
                 throw new IllegalStateException("Could not locate " + resourceName);
             }
-            ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(className, classBytes));
+            if (lookupAnchor != null && JvmRuntimeInfo.ofCurrentVM().getMajorVersion() >= 9) {
+                String packageName = lookupAnchor.getPackage().getName();
+                try {
+                    if (!ElasticApmAgent.openModule(lookupAnchor, IndyBootstrap.class.getClassLoader(), Collections.singleton(packageName))) {
+                        throw new IllegalStateException("Could not open package " + packageName);
+                    }
+                    // Reflective access preserves the Java 7 API baseline.
+                    Object lookup = MethodHandles.class.getMethod("privateLookupIn", Class.class, MethodHandles.Lookup.class)
+                        .invoke(null, lookupAnchor, MethodHandles.lookup());
+                    ClassInjector.UsingLookup.of(lookup).injectRaw(Collections.singletonMap(className, classBytes));
+                } catch (Exception lookupException) {
+                    throw new IllegalStateException("Could not inject " + className + " into bootstrap package " + packageName,
+                        lookupException);
+                }
+            } else {
+                ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(className, classBytes));
+            }
             bootstrapClass = Class.forName(className, false, null);
         }
         return bootstrapClass;
@@ -324,7 +344,7 @@ public class IndyBootstrap {
         // In order to override the original unnamed module assigned to the IndyBootstrapDispatcher, we rely on the
         // Unsafe API, which requires the caller to be loaded by the Bootstrap CL
 
-        Class<?> moduleSetterClass = loadClassInBootstrap(INDY_BOOTSTRAP_MODULE_SETTER_CLASS_NAME, INDY_BOOTSTRAP_MODULE_SETTER_RESOURCE);
+        Class<?> moduleSetterClass = loadClassInBootstrap(INDY_BOOTSTRAP_MODULE_SETTER_CLASS_NAME, INDY_BOOTSTRAP_MODULE_SETTER_RESOURCE, null);
         MethodHandles.lookup()
             .findStatic(moduleSetterClass, "setJavaBaseModule", MethodType.methodType(void.class, Class.class))
             .invoke(targetClass);
