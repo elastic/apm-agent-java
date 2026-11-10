@@ -187,15 +187,28 @@ final class SpringAiSpanHelper {
     static Flux<?> wrapChatFlux(final Object model, final Prompt prompt, final Flux<?> source) {
         final Flux<Object> typedSource = (Flux<Object>) source;
         return Flux.defer(() -> {
+            final long startNanos = System.nanoTime();
             final Span<?> span = startModelSpan(model, "chat", prompt, true);
+            final AtomicBoolean firstChunkRecorded = new AtomicBoolean();
+            final Flux<Object> timedSource = typedSource.doOnNext(value -> {
+                if (firstChunkRecorded.compareAndSet(false, true)) {
+                    double elapsedSeconds = Math.max(0, System.nanoTime() - startNanos) / 1_000_000_000d;
+                    if (span != null) {
+                        span.withOtelAttribute("gen_ai.response.time_to_first_chunk", elapsedSeconds);
+                    }
+                    ChatOptions options = prompt.getOptions();
+                    SpringAiMetrics.recordTimeToFirstChunk(providerFor(model),
+                        options == null ? null : options.getModel(), elapsedSeconds);
+                }
+            });
             if (span == null) {
-                return typedSource;
+                return timedSource;
             }
             final AtomicReference<ChatResponse> lastResponse = new AtomicReference<>();
             final AtomicReference<Throwable> failure = new AtomicReference<>();
             final AtomicBoolean ended = new AtomicBoolean();
             span.withSync(false);
-            return typedSource
+            return timedSource
                 .doOnNext(value -> {
                     if (value instanceof ChatResponse) {
                         lastResponse.set((ChatResponse) value);

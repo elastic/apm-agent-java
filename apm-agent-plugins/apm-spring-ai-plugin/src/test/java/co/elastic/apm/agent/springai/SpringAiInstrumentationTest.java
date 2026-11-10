@@ -19,9 +19,13 @@
 package co.elastic.apm.agent.springai;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.embeddedotel.EmbeddedSdkManager;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.metadata.ChatGenerationMetadata;
@@ -47,6 +51,7 @@ import org.springframework.ai.vectorstore.observation.AbstractObservationVectorS
 import org.springframework.ai.vectorstore.observation.VectorStoreObservationContext;
 import reactor.core.publisher.Flux;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 
@@ -54,6 +59,8 @@ import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
 class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Test
     void capturesChatCallAndSemanticAttributes() {
@@ -84,19 +91,57 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void capturesStreamingChatUntilFluxTerminates() {
+    void capturesStreamingChatUntilFluxTerminates() throws Exception {
         TransactionImpl transaction = startTestRootTransaction();
         try {
             ChatOptions options = ChatOptions.builder().model("gpt-stream").build();
-            new OpenAiTestChatModel().stream(new Prompt("secret stream prompt", options)).blockLast();
+            Prompt prompt = new Prompt("secret stream prompt", options);
+            new OpenAiTestChatModel().stream(prompt).blockLast();
+            new DelayedOpenAiTestChatModel(20).stream(prompt).blockLast();
+            new DelayedOpenAiTestChatModel(200).stream(prompt).blockLast();
         } finally {
             transaction.deactivate().end();
         }
 
-        assertThat(reporter.getFirstSpan())
+        SpanImpl span = reporter.getFirstSpan();
+        assertThat(span)
             .hasName("chat gpt-stream")
             .hasOtelAttribute("gen_ai.request.stream", true)
             .hasOtelAttribute("gen_ai.usage.total_tokens", 15);
+        org.assertj.core.api.Assertions.assertThat(
+                ((Number) span.getOtelAttributes().get("gen_ai.response.time_to_first_chunk")).doubleValue())
+            .isGreaterThanOrEqualTo(0);
+
+        EmbeddedSdkManager sdkManager = tracer.getLifecycleListener(EmbeddedSdkManager.class);
+        ((SdkMeterProvider) sdkManager.getMeterProvider().getDelegate()).forceFlush().join(10,
+            java.util.concurrent.TimeUnit.SECONDS);
+        org.assertj.core.api.Assertions.assertThat(reporter.getBytes()).hasSize(1);
+        JsonNode metricSet = OBJECT_MAPPER.readTree(reporter.getBytes().get(0)).get("metricset");
+        JsonNode sample = metricSet.get("samples").get(SpringAiMetrics.TIME_TO_FIRST_CHUNK);
+        org.assertj.core.api.Assertions.assertThat(sample.get("type").asText()).isEqualTo("histogram");
+        long count = 0;
+        for (JsonNode bucketCount : sample.get("counts")) {
+            count += bucketCount.asLong();
+        }
+        org.assertj.core.api.Assertions.assertThat(count).isEqualTo(3);
+        org.assertj.core.api.Assertions.assertThat(sample.get("values").size()).isGreaterThanOrEqualTo(2);
+        org.assertj.core.api.Assertions.assertThat(metricSet.get("tags").toString())
+            .contains("gen_ai_operation_name", "chat", "gen_ai_provider_name", "openai",
+                "gen_ai_request_model", "gpt-stream");
+
+    }
+
+    @Test
+    void doesNotRecordTimeToFirstChunkForEmptyStream() {
+        TransactionImpl transaction = startTestRootTransaction();
+        try {
+            new EmptyOpenAiTestChatModel().stream(new Prompt("empty stream")).blockLast();
+        } finally {
+            transaction.deactivate().end();
+        }
+
+        org.assertj.core.api.Assertions.assertThat(reporter.getFirstSpan().getOtelAttributes())
+            .doesNotContainKey("gen_ai.response.time_to_first_chunk");
     }
 
     @Test
@@ -274,7 +319,7 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
             return Flux.just(response());
         }
 
-        private static ChatResponse response() {
+        static ChatResponse response() {
             Generation generation = new Generation(new AssistantMessage("secret response"),
                 ChatGenerationMetadata.builder().finishReason("stop").build());
             ChatResponseMetadata metadata = ChatResponseMetadata.builder()
@@ -283,6 +328,26 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
                 .usage(new DefaultUsage(10, 5, 15))
                 .build();
             return new ChatResponse(Collections.singletonList(generation), metadata);
+        }
+    }
+
+    static class DelayedOpenAiTestChatModel extends OpenAiTestChatModel {
+        private final long delayMillis;
+
+        DelayedOpenAiTestChatModel(long delayMillis) {
+            this.delayMillis = delayMillis;
+        }
+
+        @Override
+        public Flux<ChatResponse> stream(Prompt prompt) {
+            return Flux.just(response()).delaySubscription(Duration.ofMillis(delayMillis));
+        }
+    }
+
+    static class EmptyOpenAiTestChatModel extends OpenAiTestChatModel {
+        @Override
+        public Flux<ChatResponse> stream(Prompt prompt) {
+            return Flux.empty();
         }
     }
 

@@ -23,6 +23,16 @@
 
     <dependencies>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-embedded-metrics-sdk</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-model</artifactId>
             <version>${version.spring-ai}</version>
@@ -39,6 +49,12 @@
             <artifactId>reactor-core</artifactId>
             <version>${version.reactor}</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-opentelemetry-metricsdk-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
         </dependency>
         <!-- Spring Framework 7's spring-jcl requires a current Log4j API when
              the agent core test fixture puts Log4j on the test classpath. -->
