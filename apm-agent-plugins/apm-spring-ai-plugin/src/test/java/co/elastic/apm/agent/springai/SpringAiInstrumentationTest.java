@@ -28,6 +28,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.metadata.ChatGenerationMetadata;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.DefaultUsage;
@@ -92,6 +95,7 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void capturesStreamingChatUntilFluxTerminates() throws Exception {
+        enableContentCapture();
         TransactionImpl transaction = startTestRootTransaction();
         try {
             ChatOptions options = ChatOptions.builder().model("gpt-stream").build();
@@ -107,7 +111,9 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(span)
             .hasName("chat gpt-stream")
             .hasOtelAttribute("gen_ai.request.stream", true)
-            .hasOtelAttribute("gen_ai.usage.total_tokens", 15);
+            .hasOtelAttribute("gen_ai.usage.total_tokens", 15)
+            .hasOtelAttribute("gen_ai.output.messages",
+                "[{\"role\":\"assistant\",\"parts\":[{\"type\":\"text\",\"content\":\"secret response\"}]}]");
         org.assertj.core.api.Assertions.assertThat(
                 ((Number) span.getOtelAttributes().get("gen_ai.response.time_to_first_chunk")).doubleValue())
             .isGreaterThanOrEqualTo(0);
@@ -230,6 +236,48 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    void capturesToolCallsAndResponsesInChatMessages() throws Exception {
+        enableContentCapture();
+        AssistantMessage toolCall = AssistantMessage.builder()
+            .content("")
+            .toolCalls(Collections.singletonList(new AssistantMessage.ToolCall(
+                "call-1", "function", "echo", "{\"message\":\"Hello from Spring AI\"}")))
+            .build();
+        ToolResponseMessage toolResponse = ToolResponseMessage.builder()
+            .responses(Collections.singletonList(new ToolResponseMessage.ToolResponse(
+                "call-1", "echo", "[{\"text\":\"Hello from Spring AI\"}]")))
+            .build();
+        Prompt prompt = new Prompt(List.of(
+            new SystemMessage("Call the echo tool"),
+            new UserMessage("Echo this message"),
+            toolCall,
+            toolResponse
+        ));
+
+        TransactionImpl transaction = startTestRootTransaction();
+        try {
+            new OpenAiTestChatModel().call(prompt);
+        } finally {
+            transaction.deactivate().end();
+        }
+
+        String messages = reporter.getFirstSpan().getOtelAttributes().get("gen_ai.input.messages").toString();
+        JsonNode parsed = OBJECT_MAPPER.readTree(messages);
+        org.assertj.core.api.Assertions.assertThat(parsed.get(2).get("role").asText()).isEqualTo("assistant");
+        org.assertj.core.api.Assertions.assertThat(parsed.get(2).get("parts").get(0).get("type").asText())
+            .isEqualTo("tool_call");
+        org.assertj.core.api.Assertions.assertThat(parsed.get(2).get("parts").get(0).get("name").asText())
+            .isEqualTo("echo");
+        org.assertj.core.api.Assertions.assertThat(parsed.get(2).get("parts").get(0).get("arguments").asText())
+            .contains("Hello from Spring AI");
+        org.assertj.core.api.Assertions.assertThat(parsed.get(3).get("role").asText()).isEqualTo("tool");
+        org.assertj.core.api.Assertions.assertThat(parsed.get(3).get("parts").get(0).get("type").asText())
+            .isEqualTo("tool_call_response");
+        org.assertj.core.api.Assertions.assertThat(parsed.get(3).get("parts").get(0).get("response").asText())
+            .contains("Hello from Spring AI");
+    }
+
+    @Test
     void capturesEmbeddingAndToolContentWhenEnabled() {
         enableContentCapture();
         TransactionImpl transaction = startTestRootTransaction();
@@ -316,7 +364,13 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
 
         @Override
         public Flux<ChatResponse> stream(Prompt prompt) {
-            return Flux.just(response());
+            return Flux.just(
+                new ChatResponse(Collections.singletonList(
+                    new Generation(new AssistantMessage("secret ")))),
+                new ChatResponse(Collections.singletonList(
+                    new Generation(new AssistantMessage("response")))),
+                new ChatResponse(Collections.emptyList(), response().getMetadata())
+            );
         }
 
         static ChatResponse response() {

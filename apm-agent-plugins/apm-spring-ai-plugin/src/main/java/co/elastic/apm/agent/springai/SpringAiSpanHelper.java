@@ -24,12 +24,15 @@ import co.elastic.apm.agent.tracer.Span;
 import co.elastic.apm.agent.tracer.TraceState;
 import co.elastic.apm.agent.tracer.Tracer;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.metadata.ChatGenerationMetadata;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.model.MessageAggregator;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.document.Document;
@@ -185,12 +188,12 @@ final class SpringAiSpanHelper {
 
     @SuppressWarnings("unchecked")
     static Flux<?> wrapChatFlux(final Object model, final Prompt prompt, final Flux<?> source) {
-        final Flux<Object> typedSource = (Flux<Object>) source;
+        final Flux<ChatResponse> typedSource = (Flux<ChatResponse>) source;
         return Flux.defer(() -> {
             final long startNanos = System.nanoTime();
             final Span<?> span = startModelSpan(model, "chat", prompt, true);
             final AtomicBoolean firstChunkRecorded = new AtomicBoolean();
-            final Flux<Object> timedSource = typedSource.doOnNext(value -> {
+            final Flux<ChatResponse> timedSource = typedSource.doOnNext(value -> {
                 if (firstChunkRecorded.compareAndSet(false, true)) {
                     double elapsedSeconds = Math.max(0, System.nanoTime() - startNanos) / 1_000_000_000d;
                     if (span != null) {
@@ -205,19 +208,20 @@ final class SpringAiSpanHelper {
                 return timedSource;
             }
             final AtomicReference<ChatResponse> lastResponse = new AtomicReference<>();
+            final AtomicReference<ChatResponse> aggregatedResponse = new AtomicReference<>();
             final AtomicReference<Throwable> failure = new AtomicReference<>();
             final AtomicBoolean ended = new AtomicBoolean();
             span.withSync(false);
-            return timedSource
-                .doOnNext(value -> {
-                    if (value instanceof ChatResponse) {
-                        lastResponse.set((ChatResponse) value);
-                    }
-                })
+            Flux<ChatResponse> observedSource = config.isCaptureAiContent()
+                ? new MessageAggregator().aggregate(timedSource, aggregatedResponse::set)
+                : timedSource;
+            return observedSource
+                .doOnNext(lastResponse::set)
                 .doOnError(failure::set)
                 .doFinally(signal -> {
                     if (ended.compareAndSet(false, true)) {
-                        addChatResponseAttributes(span, lastResponse.get());
+                        ChatResponse response = aggregatedResponse.get();
+                        addChatResponseAttributes(span, response == null ? lastResponse.get() : response);
                         endAsyncSpan(span, failure.get());
                     }
                 })
@@ -358,11 +362,66 @@ final class SpringAiSpanHelper {
             Message message = messages.get(i);
             result.append("{\"role\":");
             appendJsonString(result, message.getMessageType().getValue());
-            result.append(",\"parts\":[{\"type\":\"text\",\"content\":");
-            appendJsonString(result, message.getText());
-            result.append("}]}");
+            result.append(",\"parts\":[");
+            boolean partAdded = false;
+            String text = message.getText();
+            if (text != null && !text.isEmpty()) {
+                appendTextPart(result, text);
+                partAdded = true;
+            }
+            if (message instanceof AssistantMessage) {
+                for (AssistantMessage.ToolCall toolCall : ((AssistantMessage) message).getToolCalls()) {
+                    appendPartSeparator(result, partAdded);
+                    appendToolCallPart(result, toolCall);
+                    partAdded = true;
+                }
+            }
+            if (message instanceof ToolResponseMessage) {
+                for (ToolResponseMessage.ToolResponse response : ((ToolResponseMessage) message).getResponses()) {
+                    appendPartSeparator(result, partAdded);
+                    appendToolResponsePart(result, response);
+                    partAdded = true;
+                }
+            }
+            if (!partAdded) {
+                appendTextPart(result, text);
+            }
+            result.append("]}");
         }
         return result.append(']').toString();
+    }
+
+    private static void appendPartSeparator(StringBuilder target, boolean partAdded) {
+        if (partAdded) {
+            target.append(',');
+        }
+    }
+
+    private static void appendTextPart(StringBuilder target, @Nullable String content) {
+        target.append("{\"type\":\"text\",\"content\":");
+        appendJsonString(target, content);
+        target.append('}');
+    }
+
+    private static void appendToolCallPart(StringBuilder target, AssistantMessage.ToolCall toolCall) {
+        target.append("{\"type\":\"tool_call\",\"id\":");
+        appendJsonString(target, toolCall.id());
+        target.append(",\"name\":");
+        appendJsonString(target, toolCall.name());
+        target.append(",\"arguments\":");
+        appendJsonString(target, toolCall.arguments());
+        target.append('}');
+    }
+
+    private static void appendToolResponsePart(StringBuilder target,
+                                               ToolResponseMessage.ToolResponse response) {
+        target.append("{\"type\":\"tool_call_response\",\"id\":");
+        appendJsonString(target, response.id());
+        target.append(",\"name\":");
+        appendJsonString(target, response.name());
+        target.append(",\"response\":");
+        appendJsonString(target, response.responseData());
+        target.append('}');
     }
 
     private static String serializeGenerations(List<Generation> generations) {
