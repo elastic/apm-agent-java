@@ -31,7 +31,9 @@ abstract class AbstractSpringAiInstrumentation extends ElasticApmInstrumentation
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return classLoaderCanLoadClass("org.springframework.ai.model.Model")
-            .and(classLoaderCanLoadClass("org.springframework.ai.observation.conventions.AiOperationType"));
+            .and(classLoaderCanLoadClass("org.springframework.ai.observation.conventions.AiOperationType"))
+            // DefaultEmbeddingOptions.Builder was introduced in Spring AI 2.0.
+            .and(classLoaderCanLoadClass("org.springframework.ai.embedding.DefaultEmbeddingOptions$Builder"));
     }
 
     @Override

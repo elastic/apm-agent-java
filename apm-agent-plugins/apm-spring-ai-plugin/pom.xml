@@ -17,6 +17,9 @@
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <version.spring-ai>2.0.2</version.spring-ai>
+        <version.spring-ai-2-min>2.0.0</version.spring-ai-2-min>
+        <version.spring-ai-1-0>1.0.8</version.spring-ai-1-0>
+        <version.spring-ai-1-1>1.1.7</version.spring-ai-1-1>
         <version.reactor>3.8.8</version.reactor>
         <version.log4j2-test>2.24.3</version.log4j2-test>
     </properties>
@@ -71,4 +74,80 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-spring-ai-compatibility-artifacts</id>
+                        <phase>generate-test-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.springframework.ai</groupId>
+                                    <artifactId>spring-ai-model</artifactId>
+                                    <version>${version.spring-ai-1-0}</version>
+                                    <outputDirectory>${project.build.directory}/compatibility-libs/${version.spring-ai-1-0}</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.springframework.ai</groupId>
+                                    <artifactId>spring-ai-commons</artifactId>
+                                    <version>${version.spring-ai-1-0}</version>
+                                    <outputDirectory>${project.build.directory}/compatibility-libs/${version.spring-ai-1-0}</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.springframework.ai</groupId>
+                                    <artifactId>spring-ai-vector-store</artifactId>
+                                    <version>${version.spring-ai-1-0}</version>
+                                    <outputDirectory>${project.build.directory}/compatibility-libs/${version.spring-ai-1-0}</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.springframework.ai</groupId>
+                                    <artifactId>spring-ai-model</artifactId>
+                                    <version>${version.spring-ai-1-1}</version>
+                                    <outputDirectory>${project.build.directory}/compatibility-libs/${version.spring-ai-1-1}</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.springframework.ai</groupId>
+                                    <artifactId>spring-ai-commons</artifactId>
+                                    <version>${version.spring-ai-1-1}</version>
+                                    <outputDirectory>${project.build.directory}/compatibility-libs/${version.spring-ai-1-1}</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.springframework.ai</groupId>
+                                    <artifactId>spring-ai-vector-store</artifactId>
+                                    <version>${version.spring-ai-1-1}</version>
+                                    <outputDirectory>${project.build.directory}/compatibility-libs/${version.spring-ai-1-1}</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.springframework.ai</groupId>
+                                    <artifactId>spring-ai-model</artifactId>
+                                    <version>${version.spring-ai-2-min}</version>
+                                    <outputDirectory>${project.build.directory}/compatibility-libs/${version.spring-ai-2-min}</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.springframework.ai</groupId>
+                                    <artifactId>spring-ai-commons</artifactId>
+                                    <version>${version.spring-ai-2-min}</version>
+                                    <outputDirectory>${project.build.directory}/compatibility-libs/${version.spring-ai-2-min}</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.springframework.ai</groupId>
+                                    <artifactId>spring-ai-vector-store</artifactId>
+                                    <version>${version.spring-ai-2-min}</version>
+                                    <outputDirectory>${project.build.directory}/compatibility-libs/${version.spring-ai-2-min}</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
