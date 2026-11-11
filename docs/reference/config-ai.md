@@ -22,6 +22,8 @@ Captured content can contain sensitive information and can significantly increas
 
 [![dynamic config](images/dynamic-config.svg "") ](/reference/configuration.md#configuration-dynamic)
 
+Support for configuring this option through Kibana central configuration will be added in a future Kibana version.
+
 | Default | Type | Dynamic |
 | --- | --- | --- |
 | `false` | Boolean | true |
