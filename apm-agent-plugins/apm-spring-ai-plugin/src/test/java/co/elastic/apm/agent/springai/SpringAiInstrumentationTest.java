@@ -84,14 +84,14 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
             .hasAction("chat")
             .hasOutcome(co.elastic.apm.agent.tracer.Outcome.SUCCESS)
             .hasOtelAttribute("gen_ai.operation.name", "chat")
-            .hasOtelAttribute("gen_ai.system", "openai")
             .hasOtelAttribute("gen_ai.request.model", "gpt-test")
             .hasOtelAttribute("gen_ai.response.model", "gpt-test-result")
             .hasOtelAttribute("gen_ai.usage.input_tokens", 10)
             .hasOtelAttribute("gen_ai.usage.output_tokens", 5)
             .hasOtelAttribute("gen_ai.usage.total_tokens", 15);
         assertThat(span.getOtelAttributes())
-            .doesNotContainKeys("gen_ai.input.messages", "gen_ai.output.messages");
+            .doesNotContainKeys("gen_ai.system", "gen_ai.provider.name",
+                "gen_ai.input.messages", "gen_ai.output.messages");
     }
 
     @Test
@@ -132,8 +132,8 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(count).isEqualTo(3);
         assertThat(sample.get("values").size()).isGreaterThanOrEqualTo(2);
         assertThat(metricSet.get("tags").toString())
-            .contains("gen_ai_operation_name", "chat", "gen_ai_provider_name", "openai",
-                "gen_ai_request_model", "gpt-stream");
+            .contains("gen_ai_operation_name", "chat", "gen_ai_request_model", "gpt-stream")
+            .doesNotContain("gen_ai_provider_name");
 
     }
 

@@ -63,12 +63,11 @@ public class StreamingChatModelInstrumentation extends AbstractSpringAiInstrumen
         @Nullable
         @Advice.AssignReturned.ToReturned
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static Flux<?> onExit(@Advice.This Object model,
-                                     @Advice.Argument(0) Prompt prompt,
+        public static Flux<?> onExit(@Advice.Argument(0) Prompt prompt,
                                      @Advice.Return @Nullable Flux<?> flux,
                                      @Advice.Thrown @Nullable Throwable thrown) {
             if (thrown == null && flux != null) {
-                return SpringAiSpanHelper.wrapChatFlux(model, prompt, flux);
+                return SpringAiSpanHelper.wrapChatFlux(prompt, flux);
             }
             return flux;
         }

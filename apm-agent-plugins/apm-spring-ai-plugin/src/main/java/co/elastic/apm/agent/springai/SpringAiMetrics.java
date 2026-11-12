@@ -36,8 +36,6 @@ final class SpringAiMetrics {
     private static final Tracer tracer = GlobalTracer.get();
     private static final ProxyAttributeKey<String> OPERATION_NAME =
         ProxyAttributeKey.stringKey("gen_ai.operation.name");
-    private static final ProxyAttributeKey<String> PROVIDER_NAME =
-        ProxyAttributeKey.stringKey("gen_ai.provider.name");
     private static final ProxyAttributeKey<String> REQUEST_MODEL =
         ProxyAttributeKey.stringKey("gen_ai.request.model");
     @Nullable
@@ -46,17 +44,16 @@ final class SpringAiMetrics {
     private SpringAiMetrics() {
     }
 
-    static void recordTimeToFirstChunk(String provider, @Nullable String requestModel, double seconds) {
+    static void recordTimeToFirstChunk(@Nullable String requestModel, double seconds) {
         if (timeToFirstChunk == null) {
             return;
         }
-        timeToFirstChunk.record(seconds, createAttributes(provider, requestModel));
+        timeToFirstChunk.record(seconds, createAttributes(requestModel));
     }
 
-    private static ProxyAttributes createAttributes(String provider, @Nullable String requestModel) {
+    private static ProxyAttributes createAttributes(@Nullable String requestModel) {
         ProxyAttributesBuilder builder = ProxyAttributes.builder();
         builder.put(OPERATION_NAME, "chat");
-        builder.put(PROVIDER_NAME, provider);
         if (requestModel != null) {
             builder.put(REQUEST_MODEL, requestModel);
         }

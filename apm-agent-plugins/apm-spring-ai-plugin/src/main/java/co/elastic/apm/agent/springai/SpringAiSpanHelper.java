@@ -64,7 +64,7 @@ final class SpringAiSpanHelper {
     }
 
     @Nullable
-    static Span<?> startModelSpan(Object model, String operation, Prompt prompt, boolean streaming) {
+    static Span<?> startModelSpan(String operation, Prompt prompt, boolean streaming) {
         Span<?> span = tracer.currentContext().createSpan();
         if (span == null) {
             return null;
@@ -72,13 +72,11 @@ final class SpringAiSpanHelper {
 
         ChatOptions options = prompt.getOptions();
         String requestModel = options == null ? null : options.getModel();
-        String provider = providerFor(model);
         span.withName(spanName(operation, requestModel))
             .withType("app")
             .withSubtype("internal")
             .withAction(operation)
             .withOtelAttribute("gen_ai.operation.name", operation)
-            .withOtelAttribute("gen_ai.system", provider)
             .withOtelAttribute("gen_ai.request.model", requestModel)
             .withOtelAttribute("gen_ai.request.stream", streaming);
 
@@ -98,20 +96,18 @@ final class SpringAiSpanHelper {
     }
 
     @Nullable
-    static Span<?> startEmbeddingSpan(Object model, EmbeddingRequest request) {
+    static Span<?> startEmbeddingSpan(EmbeddingRequest request) {
         EmbeddingOptions options = request.getOptions();
         Span<?> span = tracer.currentContext().createSpan();
         if (span == null) {
             return null;
         }
         String requestModel = options == null ? null : options.getModel();
-        String provider = providerFor(model);
         span.withName(spanName("embedding", requestModel))
             .withType("app")
             .withSubtype("internal")
             .withAction("embedding")
             .withOtelAttribute("gen_ai.operation.name", "embedding")
-            .withOtelAttribute("gen_ai.system", provider)
             .withOtelAttribute("gen_ai.request.model", requestModel)
             .withOtelAttribute("gen_ai.request.embedding.dimensions", options == null ? null : options.getDimensions());
         if (config.isCaptureAiContent()) {
@@ -133,14 +129,13 @@ final class SpringAiSpanHelper {
             builder.queryRequest(searchRequest);
         }
         VectorStoreObservationContext context = builder.build();
-        String rawDbSystem = context.getDatabaseSystem();
-        String dbSystem = rawDbSystem == null || rawDbSystem.isEmpty() ? "unknown" : rawDbSystem;
-        span.withName(dbSystem + " " + operation)
+        String dbSystem = context.getDatabaseSystem();
+        boolean hasDbSystem = dbSystem != null && !dbSystem.isEmpty();
+        span.withName((hasDbSystem ? dbSystem : "vector_store") + " " + operation)
             .withType("db")
-            .withSubtype(dbSubtype(dbSystem))
+            .withSubtype("unknown")
             .withAction(operation)
             .withOtelAttribute("spring.ai.kind", "vector_store")
-            .withOtelAttribute("db.system", dbSystem)
             .withOtelAttribute("db.operation.name", operation)
             .withOtelAttribute("db.collection.name", context.getCollectionName())
             .withOtelAttribute("db.namespace", context.getNamespace())
@@ -159,7 +154,10 @@ final class SpringAiSpanHelper {
                 captureStructuredContent(span, "db.vector.documents", serializeDocuments((List<?>) argument));
             }
         }
-        span.getContext().getServiceTarget().withType(dbSystem).withName(context.getCollectionName());
+        if (hasDbSystem) {
+            span.withOtelAttribute("db.system", dbSystem);
+            span.getContext().getServiceTarget().withType(dbSystem).withName(context.getCollectionName());
+        }
         return span;
     }
 
@@ -176,7 +174,6 @@ final class SpringAiSpanHelper {
             .withSubtype("internal")
             .withAction("execute_tool")
             .withOtelAttribute("gen_ai.operation.name", "execute_tool")
-            .withOtelAttribute("gen_ai.system", "spring_ai")
             .withOtelAttribute("spring.ai.kind", "tool_call")
             .withOtelAttribute("spring.ai.tool.type", "function")
             .withOtelAttribute("spring.ai.tool.definition.name", name)
@@ -187,11 +184,11 @@ final class SpringAiSpanHelper {
     }
 
     @SuppressWarnings("unchecked")
-    static Flux<?> wrapChatFlux(final Object model, final Prompt prompt, final Flux<?> source) {
+    static Flux<?> wrapChatFlux(final Prompt prompt, final Flux<?> source) {
         final Flux<ChatResponse> typedSource = (Flux<ChatResponse>) source;
         return Flux.defer(() -> {
             final long startNanos = System.nanoTime();
-            final Span<?> span = startModelSpan(model, "chat", prompt, true);
+            final Span<?> span = startModelSpan("chat", prompt, true);
             final AtomicBoolean firstChunkRecorded = new AtomicBoolean();
             final Flux<ChatResponse> timedSource = typedSource.doOnNext(value -> {
                 if (firstChunkRecorded.compareAndSet(false, true)) {
@@ -200,7 +197,7 @@ final class SpringAiSpanHelper {
                         span.withOtelAttribute("gen_ai.response.time_to_first_chunk", elapsedSeconds);
                     }
                     ChatOptions options = prompt.getOptions();
-                    SpringAiMetrics.recordTimeToFirstChunk(providerFor(model),
+                    SpringAiMetrics.recordTimeToFirstChunk(
                         options == null ? null : options.getModel(), elapsedSeconds);
                 }
             });
@@ -319,21 +316,6 @@ final class SpringAiSpanHelper {
     @Nullable
     private static String stringify(@Nullable List<?> values) {
         return values == null || values.isEmpty() ? null : values.toString();
-    }
-
-    private static String providerFor(Object model) {
-        String className = model.getClass().getName().toLowerCase(Locale.ROOT);
-        if (className.contains("anthropic")) return "anthropic";
-        if (className.contains("bedrock")) return "bedrock_converse";
-        if (className.contains("deepseek")) return "deepseek";
-        if (className.contains("vertex")) return "vertex_ai";
-        if (className.contains("google") || className.contains("gemini")) return "google_genai";
-        if (className.contains("mistral")) return "mistral_ai";
-        if (className.contains("ollama")) return "ollama";
-        if (className.contains("onnx")) return "onnx";
-        if (className.contains("openai") || className.contains("azure")) return "openai";
-        if (className.contains("stability")) return "stability_ai";
-        return "spring_ai";
     }
 
     private static void captureContent(Span<?> span, String key, @Nullable String content) {
@@ -494,17 +476,4 @@ final class SpringAiSpanHelper {
         target.append('"');
     }
 
-    private static String dbSubtype(@Nullable String databaseSystem) {
-        if (databaseSystem == null) {
-            return "unknown";
-        }
-        String normalized = databaseSystem.toLowerCase(Locale.ROOT);
-        if (normalized.contains("postgres") || normalized.contains("pg_vector")) return "postgresql";
-        if (normalized.contains("mongo")) return "mongodb";
-        if (normalized.contains("elastic")) return "elasticsearch";
-        if (normalized.contains("redis")) return "redis";
-        if (normalized.contains("cassandra")) return "cassandra";
-        if (normalized.contains("cosmos")) return "cosmosdb";
-        return "unknown";
-    }
 }
