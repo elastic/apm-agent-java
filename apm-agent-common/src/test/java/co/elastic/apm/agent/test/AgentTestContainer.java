@@ -212,7 +212,7 @@ public abstract class AgentTestContainer<SELF extends GenericContainer<SELF>> ex
         }
 
         public String getBaseUrl() {
-            return String.format("http://%s:%d", getContainerIpAddress(), getMappedPort(webPort));
+            return String.format("http://%s:%d", getHost(), getMappedPort(webPort));
         }
 
         public int getHttpPort() {

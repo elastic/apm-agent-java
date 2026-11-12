@@ -59,6 +59,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static co.elastic.apm.agent.testutils.assertions.Assertions.assertThat;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.Mockito.doReturn;
 
 class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
@@ -89,7 +90,7 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
             .hasOtelAttribute("gen_ai.usage.input_tokens", 10)
             .hasOtelAttribute("gen_ai.usage.output_tokens", 5)
             .hasOtelAttribute("gen_ai.usage.total_tokens", 15);
-        org.assertj.core.api.Assertions.assertThat(span.getOtelAttributes())
+        assertThat(span.getOtelAttributes())
             .doesNotContainKeys("gen_ai.input.messages", "gen_ai.output.messages");
     }
 
@@ -114,24 +115,23 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
             .hasOtelAttribute("gen_ai.usage.total_tokens", 15)
             .hasOtelAttribute("gen_ai.output.messages",
                 "[{\"role\":\"assistant\",\"parts\":[{\"type\":\"text\",\"content\":\"secret response\"}]}]");
-        org.assertj.core.api.Assertions.assertThat(
-                ((Number) span.getOtelAttributes().get("gen_ai.response.time_to_first_chunk")).doubleValue())
+        assertThat(
+            ((Number) span.getOtelAttributes().get("gen_ai.response.time_to_first_chunk")).doubleValue())
             .isGreaterThanOrEqualTo(0);
 
         EmbeddedSdkManager sdkManager = tracer.getLifecycleListener(EmbeddedSdkManager.class);
-        ((SdkMeterProvider) sdkManager.getMeterProvider().getDelegate()).forceFlush().join(10,
-            java.util.concurrent.TimeUnit.SECONDS);
-        org.assertj.core.api.Assertions.assertThat(reporter.getBytes()).hasSize(1);
+        ((SdkMeterProvider) sdkManager.getMeterProvider().getDelegate()).forceFlush().join(10, SECONDS);
+        assertThat(reporter.getBytes()).hasSize(1);
         JsonNode metricSet = OBJECT_MAPPER.readTree(reporter.getBytes().get(0)).get("metricset");
         JsonNode sample = metricSet.get("samples").get(SpringAiMetrics.TIME_TO_FIRST_CHUNK);
-        org.assertj.core.api.Assertions.assertThat(sample.get("type").asText()).isEqualTo("histogram");
+        assertThat(sample.get("type").asText()).isEqualTo("histogram");
         long count = 0;
         for (JsonNode bucketCount : sample.get("counts")) {
             count += bucketCount.asLong();
         }
-        org.assertj.core.api.Assertions.assertThat(count).isEqualTo(3);
-        org.assertj.core.api.Assertions.assertThat(sample.get("values").size()).isGreaterThanOrEqualTo(2);
-        org.assertj.core.api.Assertions.assertThat(metricSet.get("tags").toString())
+        assertThat(count).isEqualTo(3);
+        assertThat(sample.get("values").size()).isGreaterThanOrEqualTo(2);
+        assertThat(metricSet.get("tags").toString())
             .contains("gen_ai_operation_name", "chat", "gen_ai_provider_name", "openai",
                 "gen_ai_request_model", "gpt-stream");
 
@@ -146,7 +146,7 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
             transaction.deactivate().end();
         }
 
-        org.assertj.core.api.Assertions.assertThat(reporter.getFirstSpan().getOtelAttributes())
+        assertThat(reporter.getFirstSpan().getOtelAttributes())
             .doesNotContainKey("gen_ai.response.time_to_first_chunk");
     }
 
@@ -166,7 +166,7 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
             .hasAction("embedding")
             .hasOtelAttribute("gen_ai.request.embedding.dimensions", 3)
             .hasOtelAttribute("gen_ai.usage.input_tokens", 4);
-        org.assertj.core.api.Assertions.assertThat(span.getOtelAttributes())
+        assertThat(span.getOtelAttributes())
             .doesNotContainKey("spring.ai.embedding.request.inputs");
     }
 
@@ -186,7 +186,7 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
             .hasSubType("internal")
             .hasAction("execute_tool")
             .hasOtelAttribute("spring.ai.tool.definition.name", "weather");
-        org.assertj.core.api.Assertions.assertThat(span.getOtelAttributes())
+        assertThat(span.getOtelAttributes())
             .doesNotContainKeys("spring.ai.tool.call.arguments", "spring.ai.tool.call.result");
     }
 
@@ -215,7 +215,7 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
             .hasOtelAttribute("db.operation.name", "query")
             .hasOtelAttribute("db.vector.query.top_k", 3)
             .hasOtelAttribute("db.vector.query.similarity_threshold", 0.5);
-        org.assertj.core.api.Assertions.assertThat(span.getOtelAttributes())
+        assertThat(span.getOtelAttributes())
             .doesNotContainKeys("db.query.text", "db.vector.query.content", "db.vector.query.filter",
                 "db.vector.query.response.documents");
     }
@@ -230,9 +230,9 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
             transaction.deactivate().end();
         }
 
-        org.assertj.core.api.Assertions.assertThat(reporter.getFirstSpan().getOtelAttributes())
+        assertThat(reporter.getFirstSpan().getOtelAttributes())
             .extractingByKeys("gen_ai.input.messages", "gen_ai.output.messages")
-            .allSatisfy(value -> org.assertj.core.api.Assertions.assertThat(value.toString()).contains("secret"));
+            .allSatisfy(value -> assertThat(value.toString()).contains("secret"));
     }
 
     @Test
@@ -263,17 +263,17 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
 
         String messages = reporter.getFirstSpan().getOtelAttributes().get("gen_ai.input.messages").toString();
         JsonNode parsed = OBJECT_MAPPER.readTree(messages);
-        org.assertj.core.api.Assertions.assertThat(parsed.get(2).get("role").asText()).isEqualTo("assistant");
-        org.assertj.core.api.Assertions.assertThat(parsed.get(2).get("parts").get(0).get("type").asText())
+        assertThat(parsed.get(2).get("role").asText()).isEqualTo("assistant");
+        assertThat(parsed.get(2).get("parts").get(0).get("type").asText())
             .isEqualTo("tool_call");
-        org.assertj.core.api.Assertions.assertThat(parsed.get(2).get("parts").get(0).get("name").asText())
+        assertThat(parsed.get(2).get("parts").get(0).get("name").asText())
             .isEqualTo("echo");
-        org.assertj.core.api.Assertions.assertThat(parsed.get(2).get("parts").get(0).get("arguments").asText())
+        assertThat(parsed.get(2).get("parts").get(0).get("arguments").asText())
             .contains("Hello from Spring AI");
-        org.assertj.core.api.Assertions.assertThat(parsed.get(3).get("role").asText()).isEqualTo("tool");
-        org.assertj.core.api.Assertions.assertThat(parsed.get(3).get("parts").get(0).get("type").asText())
+        assertThat(parsed.get(3).get("role").asText()).isEqualTo("tool");
+        assertThat(parsed.get(3).get("parts").get(0).get("type").asText())
             .isEqualTo("tool_call_response");
-        org.assertj.core.api.Assertions.assertThat(parsed.get(3).get("parts").get(0).get("response").asText())
+        assertThat(parsed.get(3).get("parts").get(0).get("response").asText())
             .contains("Hello from Spring AI");
     }
 
@@ -312,8 +312,8 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
         } finally {
             transaction.deactivate().end();
         }
-        org.assertj.core.api.Assertions.assertThat(
-                reporter.getFirstSpan().getOtelAttributes().get("db.vector.documents").toString())
+        assertThat(
+            reporter.getFirstSpan().getOtelAttributes().get("db.vector.documents").toString())
             .contains("secret stored document");
 
         reporter.reset();
@@ -328,12 +328,12 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
         }
         assertThat(reporter.getFirstSpan())
             .hasOtelAttribute("db.vector.query.content", "secret search query");
-        org.assertj.core.api.Assertions.assertThat(
-                reporter.getFirstSpan().getOtelAttributes())
+        assertThat(
+            reporter.getFirstSpan().getOtelAttributes())
             .hasEntrySatisfying("db.vector.query.filter",
-                value -> org.assertj.core.api.Assertions.assertThat(value.toString()).contains("secret"))
+                value -> assertThat(value.toString()).contains("secret"))
             .hasEntrySatisfying("db.vector.query.response.documents",
-                value -> org.assertj.core.api.Assertions.assertThat(value.toString()).contains("secret result document"));
+                value -> assertThat(value.toString()).contains("secret result document"));
     }
 
     @Test
