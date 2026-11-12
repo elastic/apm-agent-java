@@ -30,6 +30,7 @@
         <module>main-app-test</module>
         <module>spring-boot-3</module>
         <module>aws-lambda-test</module>
+        <module>spring-ai-test</module>
     </modules>
 
     <properties>
