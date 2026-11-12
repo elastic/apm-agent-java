@@ -61,6 +61,8 @@ public class VectorStoreInstrumentation extends AbstractSpringAiInstrumentation 
     }
 
     public static class VectorStoreAdvice {
+
+        @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This AbstractObservationVectorStore vectorStore,
                                      @Advice.Origin("#m") String method,

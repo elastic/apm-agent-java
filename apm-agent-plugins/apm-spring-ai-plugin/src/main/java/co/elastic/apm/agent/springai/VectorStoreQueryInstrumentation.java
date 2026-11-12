@@ -69,6 +69,8 @@ public class VectorStoreQueryInstrumentation extends AbstractSpringAiInstrumenta
     }
 
     public static class VectorStoreQueryAdvice {
+
+        @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This AbstractObservationVectorStore vectorStore,
                                      @Advice.Argument(0) SearchRequest request) {

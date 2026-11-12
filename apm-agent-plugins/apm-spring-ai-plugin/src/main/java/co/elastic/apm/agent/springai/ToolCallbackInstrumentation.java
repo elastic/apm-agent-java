@@ -53,6 +53,8 @@ public class ToolCallbackInstrumentation extends AbstractSpringAiInstrumentation
     }
 
     public static class ToolCallbackAdvice {
+
+        @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This ToolCallback callback,
                                      @Advice.Argument(0) String toolInput) {

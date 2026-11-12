@@ -55,6 +55,8 @@ public class EmbeddingModelInstrumentation extends AbstractSpringAiInstrumentati
     }
 
     public static class EmbeddingModelAdvice {
+
+        @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onEnter(@Advice.This Object model, @Advice.Argument(0) EmbeddingRequest request) {
             Span<?> span = SpringAiSpanHelper.startEmbeddingSpan(model, request);
