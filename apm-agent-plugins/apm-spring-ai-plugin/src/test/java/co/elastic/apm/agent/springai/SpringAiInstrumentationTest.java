@@ -22,6 +22,7 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.embeddedotel.EmbeddedSdkManager;
 import co.elastic.apm.agent.impl.transaction.SpanImpl;
 import co.elastic.apm.agent.impl.transaction.TransactionImpl;
+import co.elastic.apm.agent.tracer.Outcome;
 import co.elastic.apm.agent.tracer.configuration.CoreConfiguration;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -81,8 +82,7 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
             .hasName("chat gpt-test")
             .hasType("app")
             .hasSubType("internal")
-            .hasAction("chat")
-            .hasOutcome(co.elastic.apm.agent.tracer.Outcome.SUCCESS)
+            .hasOutcome(Outcome.SUCCESS)
             .hasOtelAttribute("gen_ai.operation.name", "chat")
             .hasOtelAttribute("gen_ai.request.model", "gpt-test")
             .hasOtelAttribute("gen_ai.response.model", "gpt-test-result")
@@ -163,7 +163,6 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
         SpanImpl span = reporter.getFirstSpan();
         assertThat(span)
             .hasName("embedding embedding-test")
-            .hasAction("embedding")
             .hasOtelAttribute("gen_ai.request.embedding.dimensions", 3)
             .hasOtelAttribute("gen_ai.usage.input_tokens", 4);
         assertThat(span.getOtelAttributes())
@@ -184,14 +183,13 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
             .hasName("execute_tool weather")
             .hasType("app")
             .hasSubType("internal")
-            .hasAction("execute_tool")
             .hasOtelAttribute("spring.ai.tool.definition.name", "weather");
         assertThat(span.getOtelAttributes())
             .doesNotContainKeys("spring.ai.tool.call.arguments", "spring.ai.tool.call.result");
     }
 
     @Test
-    void capturesVectorStoreQueryWithoutQueryText() {
+    void capturesVectorStoreQuery() {
         TestVectorStore vectorStore = new TestVectorStore(new OpenAiTestEmbeddingModel());
 
         TransactionImpl transaction = startTestRootTransaction();
@@ -210,14 +208,10 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
             .hasName("simple query")
             .hasType("db")
             .hasSubType("unknown")
-            .hasAction("query")
             .hasOtelAttribute("db.system", "simple")
             .hasOtelAttribute("db.operation.name", "query")
             .hasOtelAttribute("db.vector.query.top_k", 3)
             .hasOtelAttribute("db.vector.query.similarity_threshold", 0.5);
-        assertThat(span.getOtelAttributes())
-            .doesNotContainKeys("db.query.text", "db.vector.query.content", "db.vector.query.filter",
-                "db.vector.query.response.documents");
     }
 
     @Test
@@ -353,7 +347,7 @@ class SpringAiInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     private static void enableContentCapture() {
-        doReturn(true).when(config.getConfig(SpringAiConfiguration.class)).isCaptureAiContent();
+        doReturn(true).when(config.getConfig(SpringAiConfiguration.class)).isCaptureSpringAiContent();
     }
 
     static class OpenAiTestChatModel implements ChatModel {

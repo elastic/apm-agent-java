@@ -133,7 +133,7 @@ The Elastic APM Java agent has generic support for the Servlet API 3+. However, 
 
 | Framework | Supported versions | Description | Since |
 |-----------|--------------------|-------------|-------|
-| Spring AI | 2.x | Creates spans for synchronous and streaming chat model calls, embedding model calls, vector store operations, and tool callbacks. Prompt, response, document, query, tool argument, and tool result content is not captured by default; use [`capture_ai_content`](/reference/config-ai.md#config-capture-ai-content) to opt in. This experimental instrumentation is disabled by default; enable it with [`enable_experimental_instrumentations`](/reference/config-core.md#config-enable-experimental-instrumentations). | 1.58.0 (experimental) |
+| Spring AI | 2.0.0 - 2.0.2 | Creates spans for synchronous and streaming chat model calls, embedding model calls, vector store operations, and tool callbacks. Prompt, response, document, query, tool argument, and tool result content is not captured by default; use [`capture_spring_ai_content`](/reference/config-ai.md#config-capture-spring-ai-content) to opt in. This experimental instrumentation is disabled by default; enable it with [`enable_experimental_instrumentations`](/reference/config-core.md#config-enable-experimental-instrumentations). | 1.58.0 (experimental) |
 
 
 ## Networking frameworks [supported-networking-frameworks]

@@ -18,18 +18,12 @@
  */
 package co.elastic.apm.agent.springai;
 
-import org.junit.jupiter.api.Test;
-
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SpringAiClassLoaderMatcherTest {
+public class SpringAiClassLoaderMatcherAssertions {
 
     private static final String MODEL_CLASS = "org/springframework/ai/model/Model.class";
     private static final String AI_OPERATION_TYPE_CLASS =
@@ -39,29 +33,15 @@ class SpringAiClassLoaderMatcherTest {
     private static final String SPRING_AI_2_MARKER_CLASS =
         "org/springframework/ai/embedding/DefaultEmbeddingOptions$Builder.class";
 
-    @Test
-    void rejectsUnsupportedSpringAi1xVersions() throws Exception {
-        assertUnsupported("1.0.8");
-        assertUnsupported("1.1.7");
-    }
-
-    @Test
-    void acceptsMinimumSupportedSpringAi2xVersion() throws Exception {
-        try (URLClassLoader classLoader = springAiClassLoader("2.0.0")) {
-            assertCommonSpringAiClassesPresent(classLoader);
+    public static void assertClassLoaderMatcher(ClassLoader classLoader, boolean supported) {
+        assertCommonSpringAiClassesPresent(classLoader);
+        if (supported) {
             assertThat(classLoader.getResource(SPRING_AI_2_MARKER_CLASS)).isNotNull();
-            assertThat(instrumentations()).allSatisfy(instrumentation ->
-                assertThat(instrumentation.getClassLoaderMatcher().matches(classLoader)).isTrue());
-        }
-    }
-
-    private static void assertUnsupported(String version) throws Exception {
-        try (URLClassLoader classLoader = springAiClassLoader(version)) {
-            assertCommonSpringAiClassesPresent(classLoader);
+        } else {
             assertThat(classLoader.getResource(SPRING_AI_2_MARKER_CLASS)).isNull();
-            assertThat(instrumentations()).allSatisfy(instrumentation ->
-                assertThat(instrumentation.getClassLoaderMatcher().matches(classLoader)).isFalse());
         }
+        assertThat(instrumentations()).allSatisfy(instrumentation ->
+            assertThat(instrumentation.getClassLoaderMatcher().matches(classLoader)).isEqualTo(supported));
     }
 
     private static void assertCommonSpringAiClassesPresent(ClassLoader classLoader) {
@@ -79,13 +59,5 @@ class SpringAiClassLoaderMatcherTest {
             new VectorStoreQueryInstrumentation(),
             new ToolCallbackInstrumentation()
         );
-    }
-
-    private static URLClassLoader springAiClassLoader(String version) throws Exception {
-        Path directory = Paths.get("target", "compatibility-libs", version);
-        URL model = directory.resolve("spring-ai-model-" + version + ".jar").toUri().toURL();
-        URL commons = directory.resolve("spring-ai-commons-" + version + ".jar").toUri().toURL();
-        URL vectorStore = directory.resolve("spring-ai-vector-store-" + version + ".jar").toUri().toURL();
-        return new URLClassLoader(new URL[]{model, commons, vectorStore}, null);
     }
 }

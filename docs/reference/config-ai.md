@@ -10,7 +10,7 @@ applies_to:
 
 # AI configuration options [config-ai]
 
-## `capture_ai_content` (experimental, security, performance) [config-capture-ai-content]
+## `capture_spring_ai_content` (experimental, security, performance) [config-capture-spring-ai-content]
 
 ```{applies_to}
 apm_agent_java: ga 1.58.0
@@ -30,4 +30,4 @@ Support for configuring this option through Kibana central configuration will be
 
 | Java System Properties | Property file | Environment |
 | --- | --- | --- |
-| `elastic.apm.capture_ai_content` | `capture_ai_content` | `ELASTIC_APM_CAPTURE_AI_CONTENT` |
+| `elastic.apm.capture_spring_ai_content` | `capture_spring_ai_content` | `ELASTIC_APM_CAPTURE_SPRING_AI_CONTENT` |

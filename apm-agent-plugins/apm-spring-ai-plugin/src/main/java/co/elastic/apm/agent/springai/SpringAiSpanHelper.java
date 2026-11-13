@@ -75,7 +75,6 @@ final class SpringAiSpanHelper {
         span.withName(spanName(operation, requestModel))
             .withType("app")
             .withSubtype("internal")
-            .withAction(operation)
             .withOtelAttribute("gen_ai.operation.name", operation)
             .withOtelAttribute("gen_ai.request.model", requestModel)
             .withOtelAttribute("gen_ai.request.stream", streaming);
@@ -89,7 +88,7 @@ final class SpringAiSpanHelper {
                 .withOtelAttribute("gen_ai.request.top_k", options.getTopK())
                 .withOtelAttribute("gen_ai.request.top_p", options.getTopP());
         }
-        if (config.isCaptureAiContent()) {
+        if (config.isCaptureSpringAiContent()) {
             captureStructuredContent(span, "gen_ai.input.messages", serializeMessages(prompt.getInstructions()));
         }
         return span;
@@ -106,11 +105,10 @@ final class SpringAiSpanHelper {
         span.withName(spanName("embedding", requestModel))
             .withType("app")
             .withSubtype("internal")
-            .withAction("embedding")
             .withOtelAttribute("gen_ai.operation.name", "embedding")
             .withOtelAttribute("gen_ai.request.model", requestModel)
             .withOtelAttribute("gen_ai.request.embedding.dimensions", options == null ? null : options.getDimensions());
-        if (config.isCaptureAiContent()) {
+        if (config.isCaptureSpringAiContent()) {
             captureStructuredContent(span, "spring.ai.embedding.request.inputs", serializeStrings(request.getInstructions()));
         }
         return span;
@@ -134,7 +132,6 @@ final class SpringAiSpanHelper {
         span.withName((hasDbSystem ? dbSystem : "vector_store") + " " + operation)
             .withType("db")
             .withSubtype("unknown")
-            .withAction(operation)
             .withOtelAttribute("spring.ai.kind", "vector_store")
             .withOtelAttribute("db.operation.name", operation)
             .withOtelAttribute("db.collection.name", context.getCollectionName())
@@ -150,7 +147,7 @@ final class SpringAiSpanHelper {
                 captureContent(span, "db.vector.query.filter", searchRequest.getFilterExpression().toString());
             }
         } else if ("add".equals(operation) && argument instanceof List) {
-            if (config.isCaptureAiContent()) {
+            if (config.isCaptureSpringAiContent()) {
                 captureStructuredContent(span, "db.vector.documents", serializeDocuments((List<?>) argument));
             }
         }
@@ -172,7 +169,6 @@ final class SpringAiSpanHelper {
         span.withName("execute_tool " + name)
             .withType("app")
             .withSubtype("internal")
-            .withAction("execute_tool")
             .withOtelAttribute("gen_ai.operation.name", "execute_tool")
             .withOtelAttribute("spring.ai.kind", "tool_call")
             .withOtelAttribute("spring.ai.tool.type", "function")
@@ -209,7 +205,7 @@ final class SpringAiSpanHelper {
             final AtomicReference<Throwable> failure = new AtomicReference<>();
             final AtomicBoolean ended = new AtomicBoolean();
             span.withSync(false);
-            Flux<ChatResponse> observedSource = config.isCaptureAiContent()
+            Flux<ChatResponse> observedSource = config.isCaptureSpringAiContent()
                 ? new MessageAggregator().aggregate(timedSource, aggregatedResponse::set)
                 : timedSource;
             return observedSource
@@ -250,7 +246,7 @@ final class SpringAiSpanHelper {
                 }
             }
             span.withOtelAttribute("gen_ai.response.finish_reasons", stringify(finishReasons));
-            if (config.isCaptureAiContent()) {
+            if (config.isCaptureSpringAiContent()) {
                 captureStructuredContent(span, "gen_ai.output.messages", serializeGenerations(response.getResults()));
             }
         }
@@ -258,7 +254,7 @@ final class SpringAiSpanHelper {
 
     static void endVectorStoreSpan(@Nullable Span<?> span, @Nullable Object response, @Nullable Throwable thrown) {
         if (span != null && response instanceof List) {
-            if (config.isCaptureAiContent()) {
+            if (config.isCaptureSpringAiContent()) {
                 captureStructuredContent(span, "db.vector.query.response.documents", serializeDocuments((List<?>) response));
             }
         }
@@ -319,7 +315,7 @@ final class SpringAiSpanHelper {
     }
 
     private static void captureContent(Span<?> span, String key, @Nullable String content) {
-        if (config.isCaptureAiContent() && content != null) {
+        if (config.isCaptureSpringAiContent() && content != null) {
             span.withOtelAttribute(key, truncate(content, coreConfig.getLongFieldMaxLength()));
         }
     }

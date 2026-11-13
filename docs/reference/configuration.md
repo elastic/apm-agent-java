@@ -80,7 +80,7 @@ This is a list of all configuration options grouped by their category. Click on 
 
 * [AI](/reference/config-ai.md)
 
-    * [`capture_ai_content` (experimental, security, performance [1.58.0])](/reference/config-ai.md#config-capture-ai-content)
+    * [`capture_spring_ai_content` (experimental, security, performance [1.58.0])](/reference/config-ai.md#config-capture-spring-ai-content)
 
 * [Circuit-Breaker](/reference/config-circuit-breaker.md)
 

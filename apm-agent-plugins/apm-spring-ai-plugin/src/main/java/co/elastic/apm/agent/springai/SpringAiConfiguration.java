@@ -23,8 +23,8 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 public class SpringAiConfiguration extends ConfigurationOptionProvider {
 
-    private final ConfigurationOption<Boolean> captureAiContent = ConfigurationOption.booleanOption()
-        .key("capture_ai_content")
+    private final ConfigurationOption<Boolean> captureSpringAiContent = ConfigurationOption.booleanOption()
+        .key("capture_spring_ai_content")
         .configurationCategory("AI")
         .tags("security", "performance", "experimental", "added[1.58.0]")
         .description("Enables capture of Spring AI prompt and response messages, embedding inputs, vector store documents and queries, and tool arguments and results.\n\n" +
@@ -33,7 +33,7 @@ public class SpringAiConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(false);
 
-    public boolean isCaptureAiContent() {
-        return captureAiContent.get();
+    public boolean isCaptureSpringAiContent() {
+        return captureSpringAiContent.get();
     }
 }

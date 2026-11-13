@@ -27,7 +27,7 @@ applies_to:
 # Type: Boolean
 # Default value: false
 #
-# capture_ai_content=false
+# capture_spring_ai_content=false
 
 ############################################
 # Circuit-Breaker                          #

@@ -28,7 +28,12 @@ import org.springframework.ai.tool.ToolCallback;
 
 import javax.annotation.Nullable;
 
-import static net.bytebuddy.matcher.ElementMatchers.*;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class ToolCallbackInstrumentation extends AbstractSpringAiInstrumentation {
 
