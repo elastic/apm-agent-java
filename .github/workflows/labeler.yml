@@ -1,23 +1,27 @@
 name: "Issue Labeler"
+
+# pull_request_target is kept so that PRs from forks can be labeled (the pull_request token
+# is read-only for forks and has no access to secrets). No PR code is checked out or run:
+# only event metadata is read.
 on:
   issues:
     types: [opened, edited, reopened]
   pull_request_target:
     types: [opened, synchronize, reopened]
 
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   triage:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
     steps:
 
     - name: Get token
       id: get_token
-      uses: actions/create-github-app-token@v3
+      uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
       with:
         client-id: ${{ secrets.OBS_AUTOMATION_APP_ID }}
         private-key: ${{ secrets.OBS_AUTOMATION_APP_PEM }}
@@ -27,50 +31,59 @@ jobs:
         permission-pull-requests: write
 
     - name: Add agent-java label
-      run: gh issue edit "${NUMBER}" --add-label "agent-java" --repo "${{ github.repository }}"
+      run: gh issue edit "${NUMBER}" --add-label "agent-java" --repo "$REPO"
       env:
         NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        REPO: ${{ github.repository }}
 
     - id: is_elastic_member
-      uses: elastic/oblt-actions/github/is-member-of@v1
+      uses: elastic/oblt-actions/github/is-member-of@208d03b3c3dfec874e5f2d73b2c938e493fc6953 # v1.43.0
       with:
         github-org: "elastic"
         github-user: ${{ github.actor }}
         github-token: ${{ steps.get_token.outputs.token }}
 
     - id: user_type
-      uses: elastic/oblt-actions/github/user-type@v1
+      uses: elastic/oblt-actions/github/user-type@208d03b3c3dfec874e5f2d73b2c938e493fc6953 # v1.43.0
       with:
         github-user: ${{ github.actor }}
         github-token: ${{ steps.get_token.outputs.token }}
 
     - name: debug
+      env:
+        IS_ELASTIC_MEMBER: ${{ steps.is_elastic_member.outputs.result }}
+        USER_TYPE: ${{ steps.user_type.outputs.result }}
+        ACTOR: ${{ github.actor }}
+        EVENT_NAME: ${{ github.event_name }}
       run: |
-        echo "::notice:: is_elastic_member=${{ steps.is_elastic_member.outputs.result }}"
-        echo "::notice:: user_type=${{ steps.user_type.outputs.result }}"
-        echo "::notice:: github.actor=${{ github.actor }}"
-        echo "::notice:: github.event_name=${{ github.event_name }}"
+        echo "::notice:: is_elastic_member=${IS_ELASTIC_MEMBER}"
+        echo "::notice:: user_type=${USER_TYPE}"
+        echo "::notice:: github.actor=${ACTOR}"
+        echo "::notice:: github.event_name=${EVENT_NAME}"
 
     - name: Add community and triage labels
       if: steps.is_elastic_member.outputs.result == 'false' && steps.user_type.outputs.result == 'user'
-      run: gh issue edit "${NUMBER}" --add-label "community,triage" --repo "${{ github.repository }}"
+      run: gh issue edit "${NUMBER}" --add-label "community,triage" --repo "$REPO"
       env:
         NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        REPO: ${{ github.repository }}
 
     - name: Assign new internal pull requests to author
       id: assign-to-author
       if: steps.is_elastic_member.outputs.result == 'true' && github.event_name == 'pull_request_target'
-      run: gh issue edit "${NUMBER}" --add-assignee "${{ github.actor }}" --repo "${{ github.repository }}"
+      run: gh issue edit "${NUMBER}" --add-assignee "$ACTOR" --repo "$REPO"
       env:
+        ACTOR: ${{ github.actor }}
         NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        REPO: ${{ github.repository }}
 
     - name: Assign new internal pull requests to project
       id: add-to-project
       if: steps.is_elastic_member.outputs.result == 'true' && github.event_name == 'pull_request_target'
-      uses: elastic/oblt-actions/github/project-add@v1
+      uses: elastic/oblt-actions/github/project-add@208d03b3c3dfec874e5f2d73b2c938e493fc6953 # v1.43.0
       with:
         github-token: ${{ steps.get_token.outputs.token }}
         project-id: 1829
@@ -79,7 +92,7 @@ jobs:
     - name: set status in project
       id: set-project-status-field
       if: steps.is_elastic_member.outputs.result == 'true' && github.event_name == 'pull_request_target'
-      uses: elastic/oblt-actions/github/project-field-set@v1
+      uses: elastic/oblt-actions/github/project-field-set@208d03b3c3dfec874e5f2d73b2c938e493fc6953 # v1.43.0
       with:
         github-token: ${{ steps.get_token.outputs.token }}
         project-id: 1829
@@ -90,7 +103,7 @@ jobs:
     - name: set agent in project
       id: set-project-agent-field
       if: steps.is_elastic_member.outputs.result == 'true' && github.event_name == 'pull_request_target'
-      uses: elastic/oblt-actions/github/project-field-set@v1
+      uses: elastic/oblt-actions/github/project-field-set@208d03b3c3dfec874e5f2d73b2c938e493fc6953 # v1.43.0
       with:
         github-token: ${{ steps.get_token.outputs.token }}
         project-id: 1829
@@ -101,7 +114,7 @@ jobs:
     - name: set iteration in project
       id: set-project-iteration-field
       if: steps.is_elastic_member.outputs.result == 'true' && github.event_name == 'pull_request_target'
-      uses: elastic/oblt-actions/github/project-field-set@v1
+      uses: elastic/oblt-actions/github/project-field-set@208d03b3c3dfec874e5f2d73b2c938e493fc6953 # v1.43.0
       with:
         github-token: ${{ steps.get_token.outputs.token }}
         project-id: 1829
