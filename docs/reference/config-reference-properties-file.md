@@ -16,12 +16,9 @@ applies_to:
 # AI                                       #
 ############################################
 
-# Enables capture of Spring AI prompt and response messages, embedding inputs, vector store documents and queries,
-# and tool arguments and results.
+# Enables capture of Spring AI prompt and response messages, embedding inputs, vector store documents and queries, and tool arguments and results.
 #
-# Captured content can contain sensitive information and can significantly increase storage usage.
-# Content capture is disabled by default. Individual captured content values are truncated according to
-# `long_field_max_length`.
+# Captured content can contain sensitive information and can significantly increase storage usage. Content capture is disabled by default. Individual captured content values are truncated according to `long_field_max_length`.
 #
 # This setting can be changed at runtime
 # Type: Boolean
