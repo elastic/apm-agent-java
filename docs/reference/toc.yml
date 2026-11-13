@@ -11,6 +11,7 @@ toc:
   - file: supported-technologies.md
   - file: configuration.md
     children:
+      - file: config-ai.md
       - file: config-circuit-breaker.md
       - file: config-core.md
       - file: config-datastore.md

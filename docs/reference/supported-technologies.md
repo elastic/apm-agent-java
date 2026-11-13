@@ -19,6 +19,7 @@ Elastic supports OpenTelemetry, which allows logs, metrics, and trace signal col
 * [Web Frameworks](#supported-web-frameworks)
 * [Application Servers/Servlet Containers](#supported-app-servers)
 * [Data Stores](#supported-databases)
+* [Generative AI](#supported-generative-ai)
 * [Networking frameworks](#supported-networking-frameworks)
 * [Asynchronous frameworks](#supported-async-frameworks)
 * [Messaging frameworks](#supported-messaging-frameworks)
@@ -126,6 +127,13 @@ The Elastic APM Java agent has generic support for the Servlet API 3+. However, 
 | Cassandra                               | ≥ 2.x, ≤ 4.17.x                           | The agent creates spans for interactions with the Cassandra Datastax drivers.This provides support for `com.datastax.cassandra:cassandra-driver-core` and`com.datastax.oss:java-driver-core`                                                                                                                                                                                     | 1.23.0                                            |
 | AWS DynamoDB                            | ≥ 1.x, ≤ 2.39.x                           | The agent creates spans for interactions with the AWS DynamoDb service through the AWS Java SDK.                                                                                                                                                                                                                                                                                 | 1.31.0, 2.21+ since 1.44.0                        |
 | AWS S3                                  | ≥ 1.x, ≤ 2.39.x                           | The agent creates spans for interactions with the AWS S3 service through the AWS Java SDK.                                                                                                                                                                                                                                                                                       | 1.31.0, 2.21+ since 1.44.0                        |
+
+
+## Generative AI [supported-generative-ai]
+
+| Framework | Supported versions | Description | Since |
+|-----------|--------------------|-------------|-------|
+| Spring AI | 2.0.0 - 2.0.2 | Creates spans for synchronous and streaming chat model calls, embedding model calls, vector store operations, and tool callbacks. Prompt, response, document, query, tool argument, and tool result content is not captured by default; use [`capture_spring_ai_content`](/reference/config-ai.md#config-capture-spring-ai-content) to opt in. This experimental instrumentation is disabled by default; enable it with [`enable_experimental_instrumentations`](/reference/config-core.md#config-enable-experimental-instrumentations). | 1.58.0 (experimental) |
 
 
 ## Networking frameworks [supported-networking-frameworks]

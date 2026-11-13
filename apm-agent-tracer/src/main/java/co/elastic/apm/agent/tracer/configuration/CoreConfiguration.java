@@ -34,6 +34,8 @@ public interface CoreConfiguration {
 
     EventType getCaptureBody();
 
+    int getLongFieldMaxLength();
+
     boolean isEnablePublicApiAnnotationInheritance();
 
     List<WildcardMatcher> getSanitizeFieldNames();

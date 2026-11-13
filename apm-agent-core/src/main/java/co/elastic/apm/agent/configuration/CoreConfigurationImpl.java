@@ -261,6 +261,7 @@ public class CoreConfigurationImpl extends ConfigurationOptionProvider implement
             "- `transaction.context.request.body`, `error.context.request.body`\n" +
             "- `transaction.context.message.body`, `error.context.message.body`\n" +
             "- `span.context.db.statement`\n" +
+            "- captured AI content values\n" +
             "\nNote that tracing data is limited at the upstream APM server to \n" +
             "{apm-guide-ref}/configuration-process.html#max_event_size[`max_event_size`], \n" +
             "which defaults to 300kB. If you configure `long_field_max_length` too large, it \n" +
