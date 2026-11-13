@@ -29,6 +29,7 @@ import org.springframework.ai.vectorstore.observation.AbstractObservationVectorS
 
 import javax.annotation.Nullable;
 
+import static co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -42,7 +43,7 @@ public class VectorStoreQueryInstrumentation extends AbstractSpringAiInstrumenta
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return super.getClassLoaderMatcher()
-            .and(co.elastic.apm.agent.sdk.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass(
+            .and(classLoaderCanLoadClass(
                 "org.springframework.ai.vectorstore.observation.AbstractObservationVectorStore"));
     }
 
