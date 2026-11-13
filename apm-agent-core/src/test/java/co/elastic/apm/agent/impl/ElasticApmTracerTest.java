@@ -45,8 +45,13 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.appender.WriterAppender;
+import org.apache.logging.log4j.core.layout.PatternLayout;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
@@ -596,6 +601,35 @@ class ElasticApmTracerTest {
         assertThat(tracerImpl.getActive()).isNull();
         assertThat(tracerImpl.currentTransaction()).isNull();
         transaction.end();
+    }
+
+    @Test
+    void testNestedTransactionActivationLogsError() {
+        TransactionImpl first = startTestRootTransaction();
+        TransactionImpl nested = startTestRootTransaction();
+        StringWriter log = new StringWriter();
+        WriterAppender appender = WriterAppender.newBuilder()
+            .setName("nested-transaction-activation")
+            .setTarget(log)
+            .setLayout(PatternLayout.newBuilder().withPattern("%level %msg%n").build())
+            .build();
+        appender.start();
+        org.apache.logging.log4j.core.Logger coreLogger =
+            (org.apache.logging.log4j.core.Logger) LogManager.getLogger(ActiveStack.class);
+        coreLogger.addAppender(appender);
+        try {
+            tracerImpl.activate(first);
+            tracerImpl.activate(nested);
+            assertThat(log.toString()).contains("Nested transactions are not supported");
+            assertThat(tracerImpl.currentTransaction()).isEqualTo(nested);
+        } finally {
+            coreLogger.removeAppender(appender);
+            appender.stop();
+            tracerImpl.deactivate(nested);
+            tracerImpl.deactivate(first);
+            nested.end();
+            first.end();
+        }
     }
 
     @Test

@@ -593,6 +593,8 @@ try (final Scope scope = transaction.activate()) {
 [`Scope activate()`](#api-transaction-activate) and `Scope#close()` have to be called on the same thread.
 ::::
 
+Activating a transaction while another transaction or span is already active on the same thread is invalid. At most one transaction should be active on a thread; nested work should be a span. The agent logs an error when this happens.
+
 
 
 ### `boolean isSampled()` [api-transaction-is-sampled]
