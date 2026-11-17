@@ -38,14 +38,14 @@ jobs:
         REPO: ${{ github.repository }}
 
     - id: is_elastic_member
-      uses: elastic/oblt-actions/github/is-member-of@208d03b3c3dfec874e5f2d73b2c938e493fc6953 # v1.43.0
+      uses: elastic/oblt-actions/github/is-member-of@37d142a1daa0cac6eaa7bb622a6dfaf1124eea0e # v1.44.0
       with:
         github-org: "elastic"
         github-user: ${{ github.actor }}
         github-token: ${{ steps.get_token.outputs.token }}
 
     - id: user_type
-      uses: elastic/oblt-actions/github/user-type@208d03b3c3dfec874e5f2d73b2c938e493fc6953 # v1.43.0
+      uses: elastic/oblt-actions/github/user-type@37d142a1daa0cac6eaa7bb622a6dfaf1124eea0e # v1.44.0
       with:
         github-user: ${{ github.actor }}
         github-token: ${{ steps.get_token.outputs.token }}
@@ -83,7 +83,7 @@ jobs:
     - name: Assign new internal pull requests to project
       id: add-to-project
       if: steps.is_elastic_member.outputs.result == 'true' && github.event_name == 'pull_request_target'
-      uses: elastic/oblt-actions/github/project-add@208d03b3c3dfec874e5f2d73b2c938e493fc6953 # v1.43.0
+      uses: elastic/oblt-actions/github/project-add@37d142a1daa0cac6eaa7bb622a6dfaf1124eea0e # v1.44.0
       with:
         github-token: ${{ steps.get_token.outputs.token }}
         project-id: 1829
@@ -92,7 +92,7 @@ jobs:
     - name: set status in project
       id: set-project-status-field
       if: steps.is_elastic_member.outputs.result == 'true' && github.event_name == 'pull_request_target'
-      uses: elastic/oblt-actions/github/project-field-set@208d03b3c3dfec874e5f2d73b2c938e493fc6953 # v1.43.0
+      uses: elastic/oblt-actions/github/project-field-set@37d142a1daa0cac6eaa7bb622a6dfaf1124eea0e # v1.44.0
       with:
         github-token: ${{ steps.get_token.outputs.token }}
         project-id: 1829
@@ -103,7 +103,7 @@ jobs:
     - name: set agent in project
       id: set-project-agent-field
       if: steps.is_elastic_member.outputs.result == 'true' && github.event_name == 'pull_request_target'
-      uses: elastic/oblt-actions/github/project-field-set@208d03b3c3dfec874e5f2d73b2c938e493fc6953 # v1.43.0
+      uses: elastic/oblt-actions/github/project-field-set@37d142a1daa0cac6eaa7bb622a6dfaf1124eea0e # v1.44.0
       with:
         github-token: ${{ steps.get_token.outputs.token }}
         project-id: 1829
@@ -114,7 +114,7 @@ jobs:
     - name: set iteration in project
       id: set-project-iteration-field
       if: steps.is_elastic_member.outputs.result == 'true' && github.event_name == 'pull_request_target'
-      uses: elastic/oblt-actions/github/project-field-set@208d03b3c3dfec874e5f2d73b2c938e493fc6953 # v1.43.0
+      uses: elastic/oblt-actions/github/project-field-set@37d142a1daa0cac6eaa7bb622a6dfaf1124eea0e # v1.44.0
       with:
         github-token: ${{ steps.get_token.outputs.token }}
         project-id: 1829
