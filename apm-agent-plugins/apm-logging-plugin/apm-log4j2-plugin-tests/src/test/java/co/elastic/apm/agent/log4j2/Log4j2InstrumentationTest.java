@@ -30,7 +30,7 @@ import java.util.List;
 public class Log4j2InstrumentationTest {
 
     @ParameterizedTest
-    @ValueSource(strings = {"2.6", "2.17.1", "2.24.0"})
+    @ValueSource(strings = {"2.6", "2.7", "2.17.1", "2.24.0"})
     public void testInstrumentation(String version) throws Exception {
         List<String> dependencies = List.of(
             "org.apache.logging.log4j:log4j-core:" + version,
@@ -43,7 +43,7 @@ public class Log4j2InstrumentationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"2.6", "2.17.1", "2.24.0"})
+    @ValueSource(strings = {"2.6", "2.7", "2.17.1", "2.24.0"})
     public void testErrorCapture(String version) throws Exception {
         List<String> dependencies = List.of(
             "org.apache.logging.log4j:log4j-core:" + version,
