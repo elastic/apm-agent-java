@@ -13,7 +13,7 @@ This file contains all changes which are not released yet.
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
-
+- Spring 4 is no longer experimental - [#4609](https://github.com/elastic/apm-agent-java/pull/4609)
 <!--ENHANCEMENTS-END-->
 # Deprecations
 <!--DEPRECATIONS-START-->
