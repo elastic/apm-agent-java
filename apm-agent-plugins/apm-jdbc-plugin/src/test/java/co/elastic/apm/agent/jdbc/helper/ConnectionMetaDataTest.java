@@ -104,6 +104,12 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:postgresql://[::1]/", "postgresql", "::1", 5432, null);
         testUrl("jdbc:postgresql://[::1]:666/", "postgresql", "::1", 666, null);
 
+        // multiple hosts: the first one is used
+        testUrl("jdbc:postgresql://myhost1:666,myhost2:777/database", "postgresql", "myhost1", 666, "database");
+        testUrl("jdbc:postgresql://myhost1,myhost2/database?targetServerType=primary", "postgresql", "myhost1", 5432, "database");
+        testUrl("jdbc:postgresql://myhost1:666,myhost2:777/", "postgresql", "myhost1", 666, null);
+        testUrl("jdbc:postgresql://[::1]:666,[::2]:777/database", "postgresql", "::1", 666, "database");
+
         testUrl("jdbc:postgresql:database", "postgresql", "localhost", 5432, "database");
         testUrl("jdbc:postgresql:/", "postgresql", "localhost", 5432, null);
     }
@@ -300,6 +306,7 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:h2:tcp://dbserv:8084/~/sample", "h2", "dbserv", 8084, "sample");
         testUrl("jdbc:h2:ssl://dbserv:8085/~/sample;", "h2", "dbserv", 8085, "sample");
         testUrl("jdbc:h2:ssl://dbserv:8085/~/sample;prop1=val1;prop2=val2", "h2", "dbserv", 8085, "sample");
+        testUrl("jdbc:h2:tcp://server1:9101,server2:9102/~/sample", "h2", "server1", 9101, "sample");
     }
 
     @Test

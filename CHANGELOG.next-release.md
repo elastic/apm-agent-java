@@ -10,6 +10,7 @@ This file contains all changes which are not released yet.
 # Fixes
 <!--FIXES-START-->
 - Fix JVM tool bootstrap check when program arguments contain slashes - [#4269](https://github.com/elastic/apm-agent-java/issues/4269)
+- Fix JDBC host and port detection for PostgreSQL and H2 connection URLs with multiple hosts - [#4616](https://github.com/elastic/apm-agent-java/issues/4616)
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
