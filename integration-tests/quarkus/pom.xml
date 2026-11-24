@@ -25,10 +25,35 @@
         <maven.compiler.release>${maven.compiler.target}</maven.compiler.release>
         <animal.sniffer.skip>true</animal.sniffer.skip>
         <version.quarkus>2.15.1.Final</version.quarkus>
+        <version.docker-java>3.4.2</version.docker-java>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <!-- Use the repository's Testcontainers version before Quarkus's older pins. -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${version.testcontainers}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Match the docker-java version used by Testcontainers 1.21.4. -->
+            <dependency>
+                <groupId>com.github.docker-java</groupId>
+                <artifactId>docker-java-api</artifactId>
+                <version>${version.docker-java}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.docker-java</groupId>
+                <artifactId>docker-java-transport</artifactId>
+                <version>${version.docker-java}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.docker-java</groupId>
+                <artifactId>docker-java-transport-zerodep</artifactId>
+                <version>${version.docker-java}</version>
+            </dependency>
             <dependency>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-bom</artifactId>

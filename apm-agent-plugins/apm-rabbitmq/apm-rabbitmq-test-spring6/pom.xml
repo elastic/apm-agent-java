@@ -20,6 +20,14 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <!-- Keep the agent's Docker-compatible Testcontainers version ahead of Spring Boot's BOM. -->
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${version.testcontainers}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
                 <!-- Import dependency management from Spring Boot -->
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
