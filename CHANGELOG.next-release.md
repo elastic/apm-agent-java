@@ -10,6 +10,7 @@ This file contains all changes which are not released yet.
 # Fixes
 <!--FIXES-START-->
 - Fix JVM tool bootstrap check when program arguments contain slashes - [#4269](https://github.com/elastic/apm-agent-java/issues/4269)
+- Fix `NoSuchMethodError` in Log4j 2.7 log correlation, which called `ThreadContext.removeAll` that is only available since Log4j 2.8 - [#4593](https://github.com/elastic/apm-agent-java/issues/4593)
 <!--FIXES-END-->
 # Features and enhancements
 <!--ENHANCEMENTS-START-->
