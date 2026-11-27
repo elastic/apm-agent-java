@@ -114,6 +114,23 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         hello(true);
     }
 
+    @ParameterizedTest
+    @CsvSource({"01, true", "00, false"})
+    void unmappedRequestErrorIncludesHttpContext(String traceFlags, boolean sampled) {
+        client.setHeader("traceparent", "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-" + traceFlags);
+        StepVerifier.create(client.getMappingError404())
+            .expectErrorMatches(expectClientError(404))
+            .verify();
+
+        ErrorCaptureImpl error = getFirstError();
+        assertThat(error.getTransactionInfo().isSampled()).isEqualTo(sampled);
+        RequestImpl request = error.getContext().getRequest();
+        assertThat(request.getMethod()).isEqualTo("GET");
+        assertThat(request.getUrl().getHostname()).isEqualTo("localhost");
+        assertThat(request.getUrl().getPathname()).isEqualTo(client.getPathPrefix() + "/error-404");
+        assertThat(error.getContext().getResponse().getStatusCode()).isEqualTo(404);
+    }
+
     private void hello(boolean expectHeaders) {
         client.setHeader("random-value", "12345");
         client.setCookie("cookie", "gdpr-compliant-no-chocolate-here");

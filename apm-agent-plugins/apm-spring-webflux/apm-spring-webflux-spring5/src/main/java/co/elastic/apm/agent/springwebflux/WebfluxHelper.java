@@ -111,6 +111,10 @@ public class WebfluxHelper {
             return null;
         }
 
+        if (!fromServlet) {
+            // Errors captured during dispatch copy the request context immediately.
+            fillRequest(transaction, exchange);
+        }
         transaction.withType("request").activate();
 
         // store transaction in exchange to make it easy to retrieve from other handlers
@@ -172,17 +176,15 @@ public class WebfluxHelper {
             return;
         }
 
-        transaction.captureException(thrown);
-
-        // Fill request/response details if they haven't been already by another HTTP plugin (servlet or other).
-        if (!transaction.getContext().getRequest().hasContent()) {
-            fillRequest(transaction, exchange);
+        boolean fromServlet = isServletTransaction(exchange);
+        if (!fromServlet) {
             fillResponse(transaction, exchange);
         }
+        transaction.captureException(thrown);
 
         // In case transaction has been created by Servlet, we should not terminate it as the Servlet instrumentation
         // will take care of this.
-        if (!WebfluxHelper.isServletTransaction(exchange)) {
+        if (!fromServlet) {
             transaction.end();
         }
     }
