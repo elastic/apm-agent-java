@@ -535,6 +535,12 @@ public class ConnectionMetaData {
                         authority = authority.substring(0, authorityEnd);
                     }
 
+                    // multiple hosts for failover or clustering, for example //host1:666,host2:777/database: use the first one
+                    int hostsSeparator = authority.indexOf(',');
+                    if (hostsSeparator > 0) {
+                        authority = authority.substring(0, hostsSeparator);
+                    }
+
                     parseAuthority(authority, builder);
                 }
             } else if (!vendorUrl.equals("/")) {
